@@ -21,7 +21,10 @@ namespace Sample
         {
             if (_player is not null)
             {
-                _navMeshAgent.SetDestination(_player.position);
+                if (_navMeshAgent && _navMeshAgent.pathStatus != NavMeshPathStatus.PathInvalid)
+                {
+                    _navMeshAgent.SetDestination(_player.position);
+                }
             }
         }
     }
