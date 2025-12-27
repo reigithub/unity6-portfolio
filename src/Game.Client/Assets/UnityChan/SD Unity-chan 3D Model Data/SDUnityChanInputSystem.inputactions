@@ -88,6 +88,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "LeftShift",
+                    "type": "Button",
+                    "id": "3889c0f5-f74e-49f0-ae22-c8ad39263328",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "MouseScrollY",
                     "type": "Value",
                     "id": "f1556d77-9ec6-414d-8be0-1cf3947e096b",
@@ -414,6 +423,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "MouseScrollY",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1f2254b4-773e-4a17-a79d-4422a2312ac6",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LeftShift",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

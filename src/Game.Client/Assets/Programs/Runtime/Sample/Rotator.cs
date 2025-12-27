@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace Sample
 {
+    /// <summary>
+    /// オブジェクトを回転させる
+    /// </summary>
     public class Rotator : MonoBehaviour
     {
         private void Update()

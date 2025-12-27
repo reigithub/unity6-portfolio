@@ -1,13 +1,24 @@
 using System;
+using System.Threading.Tasks;
+using Game.Core.Constants;
+using Game.Core.Extensions;
 using UnityEngine;
+using Game.Core.Services;
+using Sample;
+using UnityEngine.SceneManagement;
 
 namespace Game.Core
 {
-    public partial class GameManager
+    public sealed partial class GameManager
     {
-        public static readonly GameManager Instance = new();
+        private static readonly Lazy<GameManager> InstanceLazy = new(() => new GameManager());
+        public static GameManager Instance => InstanceLazy.Value;
+
+        // public static readonly GameManager Instance = new();
 
         private GameConfig _gameConfig;
+        private GameServiceReference<AddressableAssetService> _assetService;
+        private GameServiceReference<GameSceneService> _sceneService;
 
         private GameManager()
         {
@@ -19,12 +30,19 @@ namespace Game.Core
             Instance.GameStart();
         }
 
-        public void GameStart()
+        private void GameStart()
         {
+#if UNITY_EDITOR
+            var scene = SceneManager.GetActiveScene();
+            if (scene.name != GameSceneConstants.GameRootScene)
+                return;
+#endif
+
             LoadConfig();
             AppQuitIfJailbreak();
             GameServiceManager.Instance.StartUp();
-            GameServiceManager.Instance.GetService<HelloWorldGameService>().HelloWorld();
+            GameServiceManager.Instance.AddService<MessageBrokerService>();
+            GameStartAsync().Forget();
         }
 
         private void LoadConfig()
@@ -37,7 +55,7 @@ namespace Game.Core
         }
 
         /// <summary>
-        /// アプリ脱獄チェックして、黒なら強制終了
+        /// アプリ脱獄チェックして、強制終了
         /// </summary>
         private void AppQuitIfJailbreak()
         {
@@ -48,6 +66,12 @@ namespace Game.Core
             {
                 Application.Quit(-1);
             }
+        }
+
+        private async Task GameStartAsync()
+        {
+            await GameCommonObjects.LoadAssetAsync();
+            await _sceneService.Reference.TransitionAsync<GameTitleScene>();
         }
 
         public void GameReStart()
@@ -65,6 +89,12 @@ namespace Game.Core
         public void GameExit()
         {
             GameServiceManager.Instance.Shutdown();
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.ExitPlaymode();
+#else
+            Application.Quit();
+#endif
         }
     }
 }

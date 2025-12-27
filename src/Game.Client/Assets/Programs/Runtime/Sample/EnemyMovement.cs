@@ -3,6 +3,9 @@ using UnityEngine.AI;
 
 namespace Sample
 {
+    /// <summary>
+    /// 簡易的なエネミー追尾システム
+    /// </summary>
     public class EnemyMovement : MonoBehaviour
     {
         [SerializeField] private Transform _player;
@@ -19,7 +22,7 @@ namespace Sample
 
         private void Update()
         {
-            if (_player is not null)
+            if (_player)
             {
                 if (_navMeshAgent && _navMeshAgent.pathStatus != NavMeshPathStatus.PathInvalid)
                 {
@@ -27,5 +30,12 @@ namespace Sample
                 }
             }
         }
+
+        public void SetPlayer(GameObject player)
+        {
+            _player = player.transform;
+        }
+
+        // TODO: StateMachineでプレイヤー探索～追尾～ロスト～配置に戻るを表現する
     }
 }

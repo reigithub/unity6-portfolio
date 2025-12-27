@@ -150,7 +150,7 @@ public class FaceAnimationPreviewer : MonoBehaviour {
     
 //----------------------------------------------------------------------------------------------------------------------
 
-    HashSet<string> m_faceStateNameSet = null;
+    HashSet<string> m_faceStateNameSet = new HashSet<string>();
 
     float m_curFaceLayerWeight = 0;
     bool m_shouldResetFaceLayerWeight = false;
