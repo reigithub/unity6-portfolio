@@ -7,6 +7,10 @@ namespace Game.Core.Services
     public struct GameServiceReference<TService>
         where TService : GameService, new()
     {
-        public TService Reference => GameServiceManager.Instance.GetService<TService>();
+        private TService _reference;
+        public TService Reference => _reference ??= GameServiceManager.Instance.GetService<TService>();
+
+        // public static implicit operator TService(GameServiceReference<TService> reference)
+        //     => reference.Service;
     }
 }

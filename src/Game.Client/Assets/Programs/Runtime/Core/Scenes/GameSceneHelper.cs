@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Game.Contents.Player;
 using Game.Core.Constants;
-using Sample;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -25,6 +25,22 @@ namespace Game.Core.Scenes
             }
         }
 
+        public static TScene CreateInstance<TScene>()
+        {
+            try
+            {
+                var scene = Activator.CreateInstance(typeof(TScene));
+                if (scene is TScene t) return t;
+                return default;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Debug.Assert(true, $"{typeof(TScene)}\n{e.Message}");
+                return default;
+            }
+        }
+
         public static void MoveToGameRootScene(GameObject scene)
         {
             var activeScene = SceneManager.GetActiveScene();
@@ -42,7 +58,7 @@ namespace Game.Core.Scenes
             }
         }
 
-        public static T GetSceneComponent<T>(GameObject scene) where T : GameSceneComponent
+        public static T GetSceneComponent<T>(GameObject scene) where T : MonoBehaviour
         {
             if (scene.TryGetComponent<T>(out var sceneComponent))
             {
@@ -52,7 +68,7 @@ namespace Game.Core.Scenes
             return scene.GetComponentInChildren<T>();
         }
 
-        public static T GetSceneComponent<T>(Scene scene) where T : GameSceneComponent
+        public static T GetSceneComponent<T>(Scene scene) where T : MonoBehaviour
         {
             return GetRootComponent<T>(scene);
         }
@@ -71,6 +87,10 @@ namespace Game.Core.Scenes
             return component;
         }
 
+        /// <summary>
+        /// ステージインスタンスからプレイヤー開始地点を探して、一番最初に見つかったものを返す
+        /// WARN: 複数配置しないように注意…
+        /// </summary>
         public static PlayerStart GetPlayerStart(Scene scene)
         {
             return GetComponentInChildren<PlayerStart>(scene);
@@ -93,6 +113,44 @@ namespace Game.Core.Scenes
 
             return component;
         }
+
+        // Memo: インターフェース周辺が複雑になり始めているので、雛形の基底シーンクラスを用意する、Type.GetInterfacesなどを検討
+        // var interfaces = sceneType.GetInterfaces();
+        // foreach (var interfaceType in interfaces)
+        // {
+        //     if (interfaceType == typeof(IGameSceneArg<>))
+        //     {
+        //         var mi = interfaceType.GetMethod("PreInitialize");
+        //         var d = (Task)mi?.Invoke(instance, new object[] { });
+        //         if (d != null)
+        //         {
+        //             await d;
+        //         }
+        //     }
+        // }
+
+        // public static MethodInfo GetMethod(Type sceneType, object instance, string methodName, params Type[] parameterTypes)
+        // {
+        // }
+
+        // public static MethodInfo GetMethod(object instance, string methodName, params Type[] parameterTypes)
+        // {
+        //     if (instance == null)
+        //         return null;
+        //
+        //     if (parameterTypes == null || parameterTypes.Length == 0)
+        //     {
+        //         return instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        //     }
+        //     else
+        //     {
+        //         return instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, parameterTypes, null);
+        //     }
+        // }
+
+        #region Obsolute
+
+        // 以下Addressable経由でどうにかなりそうなので不要かも
 
         public static async Task<Scene> LoadUnitySceneAsync(string unitySceneName, LoadSceneMode loadMode)
         {
@@ -155,5 +213,7 @@ namespace Game.Core.Scenes
             return path;
         }
 #endif
+
+        #endregion
     }
 }

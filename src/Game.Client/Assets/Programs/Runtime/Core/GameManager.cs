@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using Game.Contents.Scenes;
 using Game.Core.Constants;
 using Game.Core.Extensions;
 using UnityEngine;
 using Game.Core.Services;
-using Sample;
 using UnityEngine.SceneManagement;
 
 namespace Game.Core
@@ -76,17 +76,10 @@ namespace Game.Core
 
         public void GameReStart()
         {
+            // _sceneService.Reference.TransitionAsync<GameTitleScene>().Forget();
         }
 
-        public void GameSuspend()
-        {
-        }
-
-        public void GameResume()
-        {
-        }
-
-        public void GameExit()
+        public void GameQuit()
         {
             GameServiceManager.Instance.Shutdown();
 

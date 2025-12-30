@@ -1,12 +1,14 @@
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using Game.Contents.Player;
 using Game.Core.Extensions;
 using Game.Core.Services;
 using Game.Core.MessagePipe;
 using MessagePipe;
 using R3;
 using Sample;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 namespace Game.Core
@@ -39,53 +41,94 @@ namespace Game.Core
             }
         }
 
-        [SerializeField] private GameObject _player;
+        [SerializeField] private GameObject _mainCamera;
         [SerializeField] private PlayerFollowCameraController _playerFollowCameraController;
 
-        [SerializeField] private TextMeshProUGUI _countText;
-        [SerializeField] private TextMeshProUGUI _winText;
+        [SerializeField] private GameUIController _gameUIController;
+
+        [SerializeField] private Image _fadeImage;
+
+        private GameServiceReference<GameSceneService> _sceneService;
+        private GameSceneService SceneService => _sceneService.Reference;
 
         private GameServiceReference<MessageBrokerService> _messageBrokerService;
         private GlobalMessageBroker GlobalMessageBroker => _messageBrokerService.Reference.GlobalMessageBroker;
 
-        private int _count;
+        // Memo: どこに持つかは要検討としてマーク
+        private bool _gameStart;
 
         private void Initialize()
         {
-            _count = 0;
-            SetCountText();
+            _gameUIController.Initialize();
+            _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, 1f);
+            Subscribe();
+        }
 
+        private void Subscribe()
+        {
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.System.TimeScale, handler: (status, _) =>
+                {
+                    Time.timeScale = status ? 1f : 0f;
+                    return UniTask.CompletedTask;
+                })
+                .AddTo(this);
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.System.Cursor, handler: (status, _) =>
+                {
+                    if (status)
+                    {
+                        Cursor.visible = true;
+                        Cursor.lockState = CursorLockMode.None;
+                    }
+                    else
+                    {
+                        Cursor.visible = false;
+                        Cursor.lockState = CursorLockMode.Locked;
+                    }
+
+                    return UniTask.CompletedTask;
+                })
+                .AddTo(this);
+
+            // Game
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.Game.Start, handler: _ => { _gameStart = true; })
+                .AddTo(this);
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.Game.Quit, handler: _ => { GameManager.Instance.GameQuit(); })
+                .AddTo(this);
+
+            // GameScene
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameScene.TransitionEnter, handler: _ => { _fadeImage.DOFade(1f, 0.5f); })
+                .AddTo(this);
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameScene.TransitionFinish, handler: _ => { _fadeImage.DOFade(0f, 1f); })
+                .AddTo(this);
+
+            // Player
             GlobalMessageBroker.GetSubscriber<int, GameObject>()
                 .Subscribe(MessageKey.Player.SpawnPlayer, handler: player =>
                 {
-                    _player = player;
+                    // 現在プレイヤーはUnityちゃんしかいない
+                    if (player.TryGetComponent<SDUnityChanPlayerController>(out var controller))
+                    {
+                        controller.SetMainCamera(_mainCamera.transform);
+                    }
+
                     _playerFollowCameraController.SetPlayer(player);
                 })
                 .AddTo(this);
-            GlobalMessageBroker.GetSubscriber<int, int>()
-                .Subscribe(MessageKey.Sample.AddScore, handler: score =>
+
+            // UI
+            GlobalMessageBroker.GetSubscriber<int, Vector2>()
+                .Subscribe(MessageKey.UI.ScrollWheel, handler: scrollWheel =>
                 {
-                    _count += score;
-                    SetCountText();
+                    if (!_gameStart) return;
+                    _playerFollowCameraController.SetCameraRadius(scrollWheel);
                 })
                 .AddTo(this);
-            GlobalMessageBroker.GetSubscriber<int, bool>()
-                .Subscribe(MessageKey.Sample.EnemyCollied, handler: isCollied =>
-                {
-                    _winText.gameObject.SetActive(isCollied);
-                    if (isCollied) _winText.text = "You Lose...";
-                })
-                .AddTo(this);
-        }
-
-        private void SetCountText()
-        {
-            _countText.gameObject.SetActive(true);
-            _countText.text = "Count: " + _count;
-
-            bool isWin = _count >= 16;
-            _winText.gameObject.SetActive(isWin);
-            if (isWin) _winText.text = "You Win!!";
         }
     }
 }
