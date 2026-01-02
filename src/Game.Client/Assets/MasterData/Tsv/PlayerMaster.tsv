@@ -1,0 +1,2 @@
+Id	Name	AssetName	MaxHp	MaxStamina	StaminaDepleteRate	StaminaRegenRate	WalkSpeed	JogSpeed	RunSpeed
+1	Unityちゃん	Player_SDUnityChan	50	50	5	3	2	5	12

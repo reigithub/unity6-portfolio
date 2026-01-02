@@ -12,6 +12,8 @@ namespace Game.Core.MasterData.MemoryTables
         [SecondaryKey(0), NonUnique]
         public int StageId { get; set; }
 
+        public int GroupId { get; set; }
+
         public int EnemyId { get; set; }
 
         public int X { get; set; }

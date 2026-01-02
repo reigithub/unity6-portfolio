@@ -1,3 +1,4 @@
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.MasterData;
 using Game.Core.Services;
@@ -16,9 +17,10 @@ namespace Game.Contents.Enemy
         private GameServiceReference<MasterDataService> _masterDataService;
         private MemoryDatabase MemoryDatabase => _masterDataService.Reference.MemoryDatabase;
 
-        public async UniTask LoadEnemyAsync(GameObject player, int stageId)
+        public async UniTask LoadEnemyAsync(GameObject player, int stageId, int spawnGroupId = 1)
         {
-            var spawnMasters = MemoryDatabase.EnemySpawnMasterTable.FindByStageId(stageId);
+            var spawnMasters = MemoryDatabase.EnemySpawnMasterTable.FindByStageId(stageId)
+                .Where(x => x.GroupId == spawnGroupId);
 
             foreach (var spawnMaster in spawnMasters)
             {

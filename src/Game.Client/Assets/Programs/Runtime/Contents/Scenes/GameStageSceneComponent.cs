@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using DG.Tweening;
 using Game.Core.Extensions;
 using Game.Core.Scenes;
+using R3;
 using TMPro;
 using UnityEngine;
 
@@ -17,15 +18,15 @@ namespace Game.Contents.Scenes
         [SerializeField] private TextMeshProUGUI _currentPoint;
         [SerializeField] private TextMeshProUGUI _maxPoint;
 
-        [SerializeField] private TextMeshProUGUI _currentHp;
-        [SerializeField] private TextMeshProUGUI _maxHp;
-
-        private GameStageSceneModel _sceneModel;
-
         public Task Initialize(GameStageSceneModel sceneModel)
         {
-            _sceneModel = sceneModel;
-            UpdateView();
+            _limitTime.text = sceneModel.CurrentTime.Value.FormatToTimer();
+            _currentPoint.text = sceneModel.CurrentPoint.ToString();
+            _maxPoint.text = sceneModel.MaxPoint.ToString();
+
+            sceneModel.CurrentTime.DistinctUntilChanged().Subscribe(x => { _limitTime.text = x.FormatToTimer(); }).AddTo(this);
+            sceneModel.CurrentPoint.DistinctUntilChanged().Subscribe(x => { _currentPoint.text = x.ToString(); }).AddTo(this);
+
             return Task.CompletedTask;
         }
 
@@ -34,26 +35,12 @@ namespace Game.Contents.Scenes
             _uiCanvasGroup.alpha = 0f;
         }
 
-        public void UpdateLimitTime()
-        {
-            _limitTime.text = _sceneModel.CurrentTime.FormatToTimer();
-        }
-
-        public void UpdateView()
-        {
-            _currentPoint.text = _sceneModel.CurrentPoint.ToString();
-            _maxPoint.text = _sceneModel.MaxPoint.ToString();
-
-            _currentHp.text = _sceneModel.PlayerCurrentHp.ToString();
-            _maxHp.text = _sceneModel.PlayerMaxHp.ToString();
-        }
-
-        public void DoFadeInView()
+        public void DoFadeIn()
         {
             _uiCanvasGroup.DOFade(1f, 0.25f);
         }
 
-        public void DoFadeOutView()
+        public void DoFadeOut()
         {
             _uiCanvasGroup.DOFade(0f, 0.25f);
         }

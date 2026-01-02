@@ -20,18 +20,17 @@ namespace Game.Contents.Enemy
         private float _viewAngle;
         private NavMeshHit _navMeshHit;
 
-        private EnemyMaster _enemyMaster;
-        public EnemyMaster EnemyMaster => _enemyMaster;
+        public EnemyMaster EnemyMaster { get; private set; }
 
         public void Initialize(GameObject player, EnemyMaster enemyMaster)
         {
             _player = player;
-            _enemyMaster = enemyMaster;
+            EnemyMaster = enemyMaster;
 
             if (TryGetComponent<NavMeshAgent>(out var navMeshAgent))
             {
                 _navMeshAgent = navMeshAgent;
-                SetSpeed(_enemyMaster.WalkSpeed);
+                SetSpeed(enemyMaster.WalkSpeed);
             }
         }
 
@@ -71,7 +70,7 @@ namespace Game.Contents.Enemy
         {
             //視覚で感知
             // if (_distance > 5f)
-            if (_distance > _enemyMaster.VisualDistance)
+            if (_distance > EnemyMaster.VisualDistance)
                 return false;
 
             Vector3 distance = transform.position - _player.transform.position;
@@ -106,7 +105,7 @@ namespace Game.Contents.Enemy
                     {
                         if (NavMesh.SamplePosition(_player.transform.position, out _navMeshHit, 1f, 1))
                         {
-                            SetSpeed(_enemyMaster.RunSpeed);
+                            SetSpeed(EnemyMaster.RunSpeed);
                             return TrySetDestination(_navMeshHit.position, ignoreDistance: true);
                         }
                     }
@@ -119,13 +118,13 @@ namespace Game.Contents.Enemy
         private bool TryDetectPlayerByAudio()
         {
             // if (_distance > 3f)
-            if (_distance > _enemyMaster.AuditoryDistance)
+            if (_distance > EnemyMaster.AuditoryDistance)
                 return false;
 
             // if (_playerRigidbody.linearVelocity.magnitude > 0.1f)
             // if (_playerController.IsMoving())
             {
-                var distance = _enemyMaster.AuditoryDistance;
+                var distance = EnemyMaster.AuditoryDistance;
                 float x = _player.transform.position.x + Random.Range(-distance, distance);
                 float z = _player.transform.position.z + Random.Range(-distance, distance);
 
@@ -140,7 +139,7 @@ namespace Game.Contents.Enemy
 
                     // if (_playerController.IsMoving())
                     {
-                        SetSpeed(_enemyMaster.WalkSpeed);
+                        SetSpeed(EnemyMaster.WalkSpeed);
                         return TrySetDestination(_navMeshHit.position, ignoreDistance: true);
                     }
                 }
@@ -155,7 +154,7 @@ namespace Game.Contents.Enemy
 
         private void RandomPatrol()
         {
-            SetSpeed(_enemyMaster.WalkSpeed);
+            SetSpeed(EnemyMaster.WalkSpeed);
 
             _rotationIntervalCount += Time.deltaTime;
 

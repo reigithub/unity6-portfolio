@@ -11,6 +11,7 @@ namespace Game.Core.MasterData.MemoryTables
 
         public string Name { get; set; }
 
+        [SecondaryKey(0)]
         public string AssetName { get; set; }
 
         public int Point { get; set; }

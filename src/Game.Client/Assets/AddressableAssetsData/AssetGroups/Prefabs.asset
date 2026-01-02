@@ -21,12 +21,17 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3a8d1e0bdbb954c4083cedaf437d6248
-    m_Address: Assets/Prefabs/Player_SDUnityChan.prefab
+    m_Address: Player_SDUnityChan
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8f3b2c6451f291846906ca9f2d424a2c
     m_Address: Enemy_Cylinder
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8fb70e9b99eb0f44fb0229091acc71f4
+    m_Address: PlayerHUD
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

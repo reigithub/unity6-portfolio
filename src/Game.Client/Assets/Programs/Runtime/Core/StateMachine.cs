@@ -1,34 +1,39 @@
-#if ENABLE_IL2CPP
-using UnityEngine.Scripting;
-#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using System.Threading;
+
+#if ENABLE_IL2CPP
+using UnityEngine.Scripting;
+#endif
 
 namespace Game.Core
 {
-    public class StateMachine<TContext>
+    public interface IStateMachineContext<TContext>
     {
-        public abstract class State
+        public TContext Context { get; }
+    }
+
+    public abstract class State<TContext> : IStateMachineContext<TContext>
+    {
+        protected internal StateMachine<TContext> StateMachine { get; init; }
+        public TContext Context => StateMachine.Context;
+
+        protected internal virtual void Enter()
         {
-            protected internal StateMachine<TContext> StateMachine { get; set; }
-            protected TContext Context => StateMachine.Context;
-
-            protected internal virtual void Enter()
-            {
-            }
-
-            protected internal virtual void Update()
-            {
-            }
-
-            protected internal virtual void Exit()
-            {
-            }
         }
 
+        protected internal virtual void Update()
+        {
+        }
+
+        protected internal virtual void Exit()
+        {
+        }
+    }
+
+    public sealed class StateMachine<TContext> : IStateMachineContext<TContext>
+    {
         private enum StateUpdateType
         {
             Idle,
@@ -37,13 +42,13 @@ namespace Game.Core
             Exit
         }
 
-        private readonly HashSet<State> _states = new();
-        private readonly Dictionary<int, Dictionary<State, State>> _fromToTransitions = new();
-        private readonly Dictionary<int, HashSet<State>> _anyTransitions = new();
+        private readonly HashSet<State<TContext>> _states = new();
+        private readonly Dictionary<int, Dictionary<State<TContext>, State<TContext>>> _fromToTransitions = new();
+        private readonly Dictionary<int, HashSet<State<TContext>>> _anyTransitions = new();
 
         private StateUpdateType _stateUpdateType = StateUpdateType.Idle;
-        private State _currentState;
-        private State _nextState;
+        private State<TContext> _currentState;
+        private State<TContext> _nextState;
 
         public TContext Context { get; }
 
@@ -53,8 +58,8 @@ namespace Game.Core
         }
 
         public void AddTransition<TFromState, TToState>(int eventId)
-            where TFromState : State, new()
-            where TToState : State, new()
+            where TFromState : State<TContext>, new()
+            where TToState : State<TContext>, new()
         {
             ThrowExceptionIfProcessing();
 
@@ -62,7 +67,7 @@ namespace Game.Core
             var toState = typeof(TToState);
 
             if (!_fromToTransitions.ContainsKey(eventId))
-                _fromToTransitions[eventId] = new Dictionary<State, State>();
+                _fromToTransitions[eventId] = new Dictionary<State<TContext>, State<TContext>>();
 
             var from = GetOrAddState<TFromState>();
             var to = GetOrAddState<TToState>();
@@ -77,14 +82,14 @@ namespace Game.Core
             _fromToTransitions[eventId][from] = to;
         }
 
-        public void AddTransition<TAnyState>(int eventId) where TAnyState : State, new()
+        public void AddTransition<TAnyState>(int eventId) where TAnyState : State<TContext>, new()
         {
             ThrowExceptionIfProcessing();
 
             var anyState = typeof(TAnyState);
 
             if (!_anyTransitions.ContainsKey(eventId))
-                _anyTransitions[eventId] = new HashSet<State>();
+                _anyTransitions[eventId] = new HashSet<State<TContext>>();
 
             var any = GetOrAddState<TAnyState>();
             if (any == null) return;
@@ -97,14 +102,14 @@ namespace Game.Core
             _anyTransitions[eventId].Add(any);
         }
 
-        public void SetStartState<TStartState>() where TStartState : State, new()
+        public void SetInitState<TInitState>() where TInitState : State<TContext>, new()
         {
             ThrowExceptionIfProcessing();
 
-            _nextState = GetOrAddState<TStartState>();
+            _nextState = GetOrAddState<TInitState>();
         }
 
-        private TState GetOrAddState<TState>() where TState : State, new()
+        private TState GetOrAddState<TState>() where TState : State<TContext>, new()
         {
             var stateType = typeof(TState);
             foreach (var state in _states)
@@ -120,7 +125,7 @@ namespace Game.Core
             return newState;
         }
 
-        public virtual bool TransitionState(int eventId)
+        public bool TransitionState(int eventId)
         {
             ThrowExceptionIfNotProcessing();
 
@@ -166,7 +171,7 @@ namespace Game.Core
                 throw new InvalidOperationException("State Machine is not Running!!");
         }
 
-        public virtual void Update()
+        public void Update()
         {
             if (!IsProcessing())
             {
@@ -175,7 +180,6 @@ namespace Game.Core
                     throw new InvalidOperationException("Next State is Nothing!!");
                 }
 
-                // 現在処理中ステートとして設定する
                 _currentState = _nextState;
                 _nextState = null;
 
@@ -184,15 +188,13 @@ namespace Game.Core
                     _stateUpdateType = StateUpdateType.Enter;
                     _currentState.Enter();
                 }
-                catch (Exception exception)
+                catch (Exception e)
                 {
-                    // 起動時の復帰は現在のステートにnullが入っていないとまずいので遷移前の状態に戻す
                     _nextState = _currentState;
                     _currentState = null;
 
                     _stateUpdateType = StateUpdateType.Idle;
-                    DoHandleException(exception);
-                    return;
+                    ExceptionDispatchInfo.Capture(e).Throw();
                 }
 
                 if (_nextState == null)
@@ -224,23 +226,14 @@ namespace Game.Core
 
                 _stateUpdateType = StateUpdateType.Idle;
             }
-            catch (Exception exception)
+            catch (Exception e)
             {
                 _stateUpdateType = StateUpdateType.Idle;
-                DoHandleException(exception);
-                return;
+                ExceptionDispatchInfo.Capture(e).Throw();
             }
         }
 
-        private void DoHandleException(Exception exception)
-        {
-            if (exception == null)
-                throw new Exception(nameof(exception));
-
-            ExceptionDispatchInfo.Capture(exception).Throw();
-        }
-
-        public bool IsCurrentState<TState>() where TState : State
+        public bool IsCurrentState<TState>() where TState : State<TContext>
         {
             ThrowExceptionIfNotProcessing();
 

@@ -34,8 +34,8 @@
         {
             public const int Ready = Offset.GameStage + 0;
             public const int Start = Offset.GameStage + 1;
-            public const int Pause = Offset.Game + 2;
-            public const int Resume = Offset.Game + 3;
+            public const int Pause = Offset.GameStage + 2;
+            public const int Resume = Offset.GameStage + 3;
             public const int Retry = Offset.GameStage + 4;
             public const int ReturnTitle = Offset.GameStage + 5;
             public const int Result = Offset.GameStage + 6;

@@ -30,6 +30,7 @@ namespace Game.Editor
             {
                 _scrollPosition = scroll.scrollPosition;
 
+                // TODO: EditorWindow側に表示できるように修正
                 if (GUILayout.Button("ファイルサイズを取得"))
                 {
                     FileSize();

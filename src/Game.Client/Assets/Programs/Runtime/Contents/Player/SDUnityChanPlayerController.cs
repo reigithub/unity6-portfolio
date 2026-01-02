@@ -1,4 +1,5 @@
 using System.Linq;
+using Game.Core.MasterData.MemoryTables;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using R3;
@@ -18,9 +19,13 @@ namespace Game.Contents.Player
         [SerializeField]
         private float _walkSpeed = 2.0f;
 
+        [Header("ジョギング速度")]
+        [SerializeField]
+        private float _jogSpeed = 5.0f;
+
         [Header("走る速度")]
         [SerializeField]
-        private float _runSpeed = 5.0f;
+        private float _runSpeed = 8.0f;
 
         [Header("振り向き補間比率")]
         [SerializeField]
@@ -46,6 +51,13 @@ namespace Game.Contents.Player
         private float _speed;
         private Quaternion _lookRotation = Quaternion.identity;
         private bool _jumpTriggered;
+
+        public void Initialize(PlayerMaster playerMaster)
+        {
+            _walkSpeed = playerMaster.WalkSpeed;
+            _jogSpeed = playerMaster.JogSpeed;
+            _runSpeed = playerMaster.RunSpeed;
+        }
 
         public void SetMainCamera(Transform mainCamera)
         {
@@ -154,12 +166,7 @@ namespace Game.Contents.Player
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新
-            _speed = _moveVector.magnitude;
-            if (_speed > 0.1f)
-            {
-                _speed *= _player.LeftShift.IsPressed() ? _walkSpeed : _runSpeed;
-            }
-
+            _speed = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
             _animator.SetFloat(Animator.StringToHash("Speed"), _speed);
 
             // 回転入力受付
@@ -247,7 +254,12 @@ namespace Game.Contents.Player
 
         public bool IsWalking()
         {
-            return _speed >= _walkSpeed && _speed < _runSpeed;
+            return _speed >= _walkSpeed && _speed < _jogSpeed;
+        }
+
+        public bool IsJogging()
+        {
+            return _speed >= _jogSpeed && _speed < _runSpeed;
         }
 
         public bool IsRunning()
@@ -258,6 +270,14 @@ namespace Game.Contents.Player
         private bool IsGrounded()
         {
             return _groundedRaycastChecker.Check();
+        }
+
+        public void SetRunInput(bool canRun)
+        {
+            if (canRun)
+                _player.LeftShift.Enable();
+            else
+                _player.LeftShift.Disable();
         }
 
         private void OnTriggerEnter(Collider other)

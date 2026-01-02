@@ -17,7 +17,7 @@ namespace Game.Core.MasterData.MemoryTables
 
         public int MaxPoint { get; set; }
 
-        public int PlayerMaxHp { get; set; }
+        public int? PlayerId { get; set; }
 
         public int? NextStageId { get; set; }
     }

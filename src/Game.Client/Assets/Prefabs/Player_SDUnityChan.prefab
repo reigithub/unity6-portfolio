@@ -78,7 +78,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_bodyStateNames.Array.size
-      value: 7
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: 'm_bodyStateNames.Array.data[0]'
@@ -270,9 +270,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71720a89ea0cc38418b6d01b89efcb66, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Sample.SDUnityChanController
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Contents.Player.SDUnityChanPlayerController
   _walkSpeed: 2
-  _runSpeed: 5
+  _jogSpeed: 5
+  _runSpeed: 16
   _rotationRatio: 10
   _jumpForce: 5
 --- !u!54 &8852584683181521213

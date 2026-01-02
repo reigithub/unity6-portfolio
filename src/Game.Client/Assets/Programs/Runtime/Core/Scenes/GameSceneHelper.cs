@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Game.Contents.Enemy;
+using Game.Contents.Item;
 using Game.Contents.Player;
 using Game.Core.Constants;
 using UnityEngine;
@@ -97,9 +99,14 @@ namespace Game.Core.Scenes
             return GetComponentInChildren<PlayerStart>(scene);
         }
 
-        public static EnemyStart GetEnemyStart(Scene scene)
+        public static EnemyStart[] GetEnemyStarts(Scene scene)
         {
-            return GetComponentInChildren<EnemyStart>(scene);
+            return GetComponentsInChildren<EnemyStart>(scene);
+        }
+
+        public static StageItemStart[] GetStageItemStarts(Scene scene)
+        {
+            return GetComponentsInChildren<StageItemStart>(scene);
         }
 
         public static T GetComponentInChildren<T>(Scene scene) where T : MonoBehaviour
@@ -118,6 +125,29 @@ namespace Game.Core.Scenes
             }
 
             return component;
+        }
+
+        public static T[] GetComponentsInChildren<T>(Scene scene) where T : MonoBehaviour
+        {
+            var rootGameObjects = scene.GetRootGameObjects();
+
+            var list = new List<T>();
+            foreach (var obj in rootGameObjects)
+            {
+                if (obj.TryGetComponent<T>(out var component))
+                {
+                    list.Add(component);
+                    continue;
+                }
+
+                var components = obj.GetComponentsInChildren<T>();
+                if (components != null && components.Length > 0)
+                {
+                    list.AddRange(components);
+                }
+            }
+
+            return list.ToArray();
         }
 
         // Memo: インターフェース周辺が複雑になり始めているので、雛形の基底シーンクラスを用意する、Type.GetInterfacesなどを検討
