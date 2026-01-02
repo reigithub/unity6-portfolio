@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Core.Extensions;
+using Game.Core.MasterData;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using UnityEngine;
@@ -62,6 +63,10 @@ namespace Game.Core.Scenes
 
         private GameServiceReference<GameSceneService> _sceneService;
         protected GameSceneService SceneService => _sceneService.Reference;
+
+        private GameServiceReference<MasterDataService> _masterDataService;
+        protected MasterDataService MasterDataService => _masterDataService.Reference;
+        protected MemoryDatabase MemoryDatabase => MasterDataService.MemoryDatabase;
 
         private GameServiceReference<MessageBrokerService> _messageBrokerService;
         protected MessageBrokerService MessageBrokerService => _messageBrokerService.Reference;

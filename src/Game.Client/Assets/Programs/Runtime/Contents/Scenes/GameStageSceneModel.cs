@@ -1,3 +1,5 @@
+using System;
+using Game.Core.MasterData.MemoryTables;
 using R3;
 using UnityEngine;
 
@@ -24,59 +26,87 @@ namespace Game.Contents.Scenes
     {
         public GameStageResult StageResult { get; set; }
 
-        public int Point { get; set; }
+        public int CurrentTime { get; set; }
+        public int TotalTime { get; set; }
+
+        public int CurrentPoint { get; set; }
         public int MaxPoint { get; set; }
 
-        public int PlayerHp { get; set; }
+        public int PlayerCurrentHp { get; set; }
         public int PlayerMaxHp { get; set; }
+
+        public int? NextStageId { get; set; }
     }
 
     public class GameStageSceneModel
     {
+        public StageMaster StageMaster { get; private set; }
+
         // Memo: データの持ち方は後日検討するとして、一旦動くものを作成
         public GameStageState StageState { get; set; }
         public GameStageResult StageResult { get; set; }
-        public int Point { get; set; }
+
+        public int CurrentTime { get; set; }
+        public int TotalTime { get; set; }
+
+        public int CurrentPoint { get; set; }
         public int MaxPoint { get; set; }
 
-        public int PlayerHp { get; set; }
+        public int PlayerCurrentHp { get; set; }
         public int PlayerMaxHp { get; set; }
+
         public float PlayerStamina { get; set; }
         public float PlayerMaxStamina { get; set; }
-
-        // public ReactiveProperty<int> Mp { get; set; }
 
         public GameStageSceneModel()
         {
             StageState = GameStageState.None;
             StageResult = GameStageResult.None;
-            Point = 0;
-            MaxPoint = 5;
+        }
 
-            PlayerHp = 1;
-            PlayerMaxHp = 1;
-            PlayerStamina = 100f;
-            PlayerMaxStamina = 100f;
+        public void Initialize(StageMaster stageMaster)
+        {
+            StageMaster = stageMaster;
+
+            CurrentTime = stageMaster.TotalTime;
+            TotalTime = stageMaster.TotalTime;
+            CurrentPoint = 0;
+            MaxPoint = stageMaster.MaxPoint;
+            PlayerCurrentHp = stageMaster.PlayerMaxHp;
+            PlayerMaxHp = stageMaster.PlayerMaxHp;
+            // PlayerStamina = 100f;
+            // PlayerMaxStamina = 100f;
+        }
+
+        public void ProgressTime()
+        {
+            CurrentTime--;
+            CurrentTime = Math.Max(0, CurrentTime);
         }
 
         public void AddPoint(int point)
         {
-            Point = Mathf.Clamp(Point + point, 0, MaxPoint);
+            CurrentPoint = Mathf.Clamp(CurrentPoint + point, 0, MaxPoint);
         }
 
-        public void PlayerHpDamaged(int hp)
+        public void PlayerHpDamaged(int hpDamage)
         {
-            PlayerHp = Mathf.Clamp(PlayerHp - hp, 0, PlayerMaxHp);
+            PlayerCurrentHp = Mathf.Clamp(PlayerCurrentHp - hpDamage, 0, PlayerMaxHp);
+        }
+
+        public bool IsTimeUp()
+        {
+            return CurrentTime <= 0;
         }
 
         public bool IsClear()
         {
-            return Point >= MaxPoint;
+            return CurrentPoint >= MaxPoint;
         }
 
         public bool IsFailed()
         {
-            return PlayerHp <= 0;
+            return PlayerCurrentHp <= 0 || IsTimeUp();
         }
 
         public bool CanPause()
@@ -89,10 +119,13 @@ namespace Game.Contents.Scenes
             return new GameStageResultData
             {
                 StageResult = StageResult,
-                Point = Point,
+                CurrentTime = CurrentTime,
+                TotalTime = TotalTime,
+                CurrentPoint = CurrentPoint,
                 MaxPoint = MaxPoint,
-                PlayerHp = PlayerHp,
-                PlayerMaxHp = PlayerMaxHp
+                PlayerCurrentHp = PlayerCurrentHp,
+                PlayerMaxHp = PlayerMaxHp,
+                NextStageId = StageMaster.NextStageId,
             };
         }
     }

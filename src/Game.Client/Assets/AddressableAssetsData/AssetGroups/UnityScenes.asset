@@ -15,6 +15,21 @@ MonoBehaviour:
   m_GroupName: UnityScenes
   m_GUID: b06c77d92a5c53e4e9009f7b2d7f0d33
   m_SerializeEntries:
+  - m_GUID: 124e11de32f8f5e49a3525352ee4330b
+    m_Address: PolyVania
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2c632e9fdb7a6154ba528685f1802504
+    m_Address: Stage01
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b36772ea8197ce42a991e4a49b0d2d7
+    m_Address: Stage02
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 605339427e43bff4782336365ce42349
     m_Address: Stage00
     m_ReadOnly: 0

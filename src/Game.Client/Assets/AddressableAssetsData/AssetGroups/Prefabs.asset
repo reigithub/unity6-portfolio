@@ -16,12 +16,22 @@ MonoBehaviour:
   m_GUID: 2cd145404a5cc5c4c9bd67cefe02d650
   m_SerializeEntries:
   - m_GUID: 37474fefc6ee42f4fabd30f28e8d5fc2
-    m_Address: Assets/Prefabs/Enemy_Box.prefab
+    m_Address: Enemy_Box
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3a8d1e0bdbb954c4083cedaf437d6248
     m_Address: Assets/Prefabs/Player_SDUnityChan.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f3b2c6451f291846906ca9f2d424a2c
+    m_Address: Enemy_Cylinder
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9750b374e0f238448aed774ae55dd1bc
+    m_Address: Enemy_Sphere
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

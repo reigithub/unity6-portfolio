@@ -15,7 +15,7 @@
         public struct System
         {
             public const int TimeScale = Offset.System + 0;
-            public const int Cursor = Offset.System + 2;
+            public const int Cursor = Offset.System + 1;
         }
 
         public struct Game
@@ -45,8 +45,8 @@
         public struct Player
         {
             public const int SpawnPlayer = Offset.Player + 0;
-            public const int AddPoint = Offset.Player + 1;
-            public const int HpDamaged = Offset.Player + 2;
+            public const int OnTriggerEnter = Offset.Player + 10;
+            public const int OnCollisionEnter = Offset.Player + 20;
         }
 
         public struct UI

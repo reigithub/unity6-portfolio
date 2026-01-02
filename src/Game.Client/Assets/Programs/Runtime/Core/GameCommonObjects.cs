@@ -1,15 +1,15 @@
+using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Contents.Player;
+using Game.Contents.UI;
 using Game.Core.Extensions;
 using Game.Core.Services;
 using Game.Core.MessagePipe;
 using MessagePipe;
 using R3;
-using Sample;
 using UnityEngine;
 using UnityEngine.UI;
-
 
 namespace Game.Core
 {
@@ -100,11 +100,21 @@ namespace Game.Core
                 .AddTo(this);
 
             // GameScene
-            GlobalMessageBroker.GetSubscriber<int, bool>()
-                .Subscribe(MessageKey.GameScene.TransitionEnter, handler: _ => { _fadeImage.DOFade(1f, 0.5f); })
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameScene.TransitionEnter, handler: async (_, _) =>
+                {
+                    var tcs = new UniTaskCompletionSource<bool>();
+                    DoFade(1f, 0.5f, tcs);
+                    await tcs.Task;
+                })
                 .AddTo(this);
-            GlobalMessageBroker.GetSubscriber<int, bool>()
-                .Subscribe(MessageKey.GameScene.TransitionFinish, handler: _ => { _fadeImage.DOFade(0f, 1f); })
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameScene.TransitionFinish, handler: async (_, _) =>
+                {
+                    var tcs = new UniTaskCompletionSource<bool>();
+                    DoFade(0f, 1f, tcs);
+                    await tcs.Task;
+                })
                 .AddTo(this);
 
             // Player
@@ -129,6 +139,19 @@ namespace Game.Core
                     _playerFollowCameraController.SetCameraRadius(scrollWheel);
                 })
                 .AddTo(this);
+        }
+
+        private void DoFade(float endValue, float duration, UniTaskCompletionSource<bool> tcs)
+        {
+            try
+            {
+                _fadeImage.DOFade(endValue, duration)
+                    .onComplete += () => { tcs.TrySetResult(true); };
+            }
+            catch (Exception)
+            {
+                tcs.TrySetCanceled();
+            }
         }
     }
 }

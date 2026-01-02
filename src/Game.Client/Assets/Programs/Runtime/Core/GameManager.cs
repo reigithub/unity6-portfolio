@@ -16,9 +16,16 @@ namespace Game.Core
 
         // public static readonly GameManager Instance = new();
 
-        private GameConfig _gameConfig;
         private GameServiceReference<AddressableAssetService> _assetService;
+        private AddressableAssetService AssetService => _assetService.Reference;
+
         private GameServiceReference<GameSceneService> _sceneService;
+        private GameSceneService SceneService => _sceneService.Reference;
+
+        private GameServiceReference<MasterDataService> _masterDataService;
+        private MasterDataService MasterDataService => _masterDataService.Reference;
+
+        private GameConfig _gameConfig;
 
         private GameManager()
         {
@@ -40,8 +47,6 @@ namespace Game.Core
 
             LoadConfig();
             AppQuitIfJailbreak();
-            GameServiceManager.Instance.StartUp();
-            GameServiceManager.Instance.AddService<MessageBrokerService>();
             GameStartAsync().Forget();
         }
 
@@ -70,8 +75,16 @@ namespace Game.Core
 
         private async Task GameStartAsync()
         {
+            GameServiceManager.Instance.StartUp();
+            GameServiceManager.Instance.AddService<GameSceneService>();
+            GameServiceManager.Instance.AddService<MasterDataService>();
+            GameServiceManager.Instance.AddService<MessageBrokerService>();
+
             await GameCommonObjects.LoadAssetAsync();
-            await _sceneService.Reference.TransitionAsync<GameTitleScene>();
+
+            await MasterDataService.LoadMasterDataAsync();
+
+            await SceneService.TransitionAsync<GameTitleScene>();
         }
 
         public void GameReStart()

@@ -1,0 +1,4 @@
+Id	Name	AssetName	WalkSpeed	RunSpeed	VisualDistance	AuditoryDistance	HpAttack
+1	Box	Enemy_Box	1	4	7	7	1
+2	Sphere	Enemy_Sphere	2	4	10	4	2
+3	Cylinder	Enemy_Cylinder	2	4	15	3	3

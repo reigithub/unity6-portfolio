@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Contents.Scenes;
 using Game.Core.MessagePipe;
@@ -45,11 +46,17 @@ namespace Game.Core.Services
         {
             // 使うやつは予めココに全て記述する…
             GlobalMessageBroker.AddMessageBroker<int, int>();
+            GlobalMessageBroker.AddMessageBroker<int, int?>();
             GlobalMessageBroker.AddMessageBroker<int, bool>();
+
             GlobalMessageBroker.AddMessageBroker<int, GameObject>();
+            GlobalMessageBroker.AddMessageBroker<int, Collision>();
+            GlobalMessageBroker.AddMessageBroker<int, Collider>();
             GlobalMessageBroker.AddMessageBroker<int, Vector2>();
             GlobalMessageBroker.AddMessageBroker<int, Vector3>();
-            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource>();
+
+            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<int>>();
+            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
 
             GlobalMessageBroker.AddMessageBroker<int, GameStageResult>();
 
