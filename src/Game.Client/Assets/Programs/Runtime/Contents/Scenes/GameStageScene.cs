@@ -171,7 +171,7 @@ namespace Game.Contents.Scenes
 
                     var hpDamage = enemyController.EnemyMaster.HpAttack;
 
-                    other.transform.parent.SafeDestroy();
+                    other.gameObject.SafeDestroy();
 
                     // Memo: エネミーに応じてダメージを変更できるマスタを用意（EnemyMaster）
                     SceneModel.PlayerHpDamaged(hpDamage);

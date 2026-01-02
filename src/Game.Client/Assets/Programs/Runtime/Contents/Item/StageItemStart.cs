@@ -26,6 +26,8 @@ namespace Game.Contents.Item
             var spawnMasters = MemoryDatabase.StageItemSpawnMasterTable.FindByStageId(stageId)
                 .Where(x => x.GroupId == randomGroupId);
 
+            transform.localScale = Vector3.one;
+
             foreach (var spawnMaster in spawnMasters)
             {
                 var itemMaster = MemoryDatabase.StageItemMasterTable.FindById(spawnMaster.StageItemId);
