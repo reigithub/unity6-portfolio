@@ -1,4 +1,8 @@
 Id	Name	AssetName	WalkSpeed	RunSpeed	VisualDistance	AuditoryDistance	HpAttack
-1	Box	Enemy_Box	1	4	7	7	1
-2	Sphere	Enemy_Sphere	2	4	10	4	2
-3	Cylinder	Enemy_Cylinder	2	4	15	3	3
+1	Chicken	Chicken_001	1	5	7	5	1
+2	Deer	Deer_001	2	6	15	8	4
+3	Dog	Dog_001	1	5	7	3	2
+4	Horse	Horse_001	2	6	15	7	3
+5	Kitty	Kitty_001	1	5	7	3	2
+6	Pinguin	Pinguin_001	1	5	7	3	1
+7	Tiger	Tiger_001	2	6	15	10	5

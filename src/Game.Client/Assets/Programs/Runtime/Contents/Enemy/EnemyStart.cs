@@ -33,7 +33,7 @@ namespace Game.Contents.Enemy
                 {
                     // WARN: 一体ずつ配置位置を決めるのが面倒なので生成地点を中心としたランダムな位置に生成する
                     var randomX = Random.Range(-spawnMaster.X, spawnMaster.X);
-                    var randomY = Random.Range(1f, spawnMaster.Y);
+                    var randomY = spawnMaster.Y;
                     var randomZ = Random.Range(-spawnMaster.Z, spawnMaster.Z);
                     var randomOffset = new Vector3(randomX, randomY, randomZ);
 

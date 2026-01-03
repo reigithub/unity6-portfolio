@@ -1,5 +1,6 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Game.Contents.Player;
 using Game.Core.MasterData;
 using Game.Core.Services;
 using UnityEngine;
@@ -38,12 +39,21 @@ namespace Game.Contents.Item
                 for (int i = 0; i < spawnCount; i++)
                 {
                     var randomX = Random.Range(-spawnMaster.X, spawnMaster.X);
-                    var randomY = Random.Range(1f, 1f);
+                    var randomY = spawnMaster.Y;
                     var randomZ = Random.Range(-spawnMaster.Z, spawnMaster.Z);
                     var randomOffset = new Vector3(randomX, randomY, randomZ);
 
                     var instance = Instantiate(itemAsset, transform.position + randomOffset, Quaternion.identity, transform);
                     instance.transform.localScale = Vector3.one;
+
+                    // 地面に固定する
+                    var position = instance.transform.position;
+                    var ray = new Ray(position, Vector3.down);
+                    if (Physics.Raycast(ray, out var raycastHit, 30f))
+                    {
+                        var newPosition = new Vector3(raycastHit.point.x, raycastHit.point.y + 1.5f, raycastHit.point.z);
+                        instance.transform.position = newPosition;
+                    }
                 }
             }
         }

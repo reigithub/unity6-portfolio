@@ -15,6 +15,7 @@ namespace Game.Contents.Enemy
         // private Rigidbody _playerRigidbody;
         // private SDUnityChanPlayerController _playerController;
         private NavMeshAgent _navMeshAgent;
+        private Animator _animator;
 
         private float _distance;
         private float _viewAngle;
@@ -32,11 +33,24 @@ namespace Game.Contents.Enemy
                 _navMeshAgent = navMeshAgent;
                 SetSpeed(enemyMaster.WalkSpeed);
             }
+
+            if (TryGetComponent<Animator>(out var animator))
+            {
+                _animator = animator;
+            }
         }
 
         private void SetSpeed(float speed)
         {
-            _navMeshAgent.speed = speed;
+            if (_navMeshAgent)
+            {
+                _navMeshAgent.speed = speed;
+            }
+
+            if (_animator)
+            {
+                _animator.SetFloat(Animator.StringToHash("Speed"), speed);
+            }
         }
 
         private void Update()

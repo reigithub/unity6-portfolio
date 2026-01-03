@@ -166,8 +166,10 @@ namespace Game.Contents.Scenes
                     if (!other.gameObject.CompareTag("Enemy"))
                         return;
 
-                    if (!other.transform.parent.TryGetComponent<EnemyController>(out var enemyController))
+                    if (!other.gameObject.TryGetComponent<EnemyController>(out var enemyController))
                         return;
+                    // if (!other.transform.parent.TryGetComponent<EnemyController>(out var enemyController))
+                    //     return;
 
                     var hpDamage = enemyController.EnemyMaster.HpAttack;
 
