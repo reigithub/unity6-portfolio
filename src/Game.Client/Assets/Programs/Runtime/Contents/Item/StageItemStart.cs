@@ -20,7 +20,7 @@ namespace Game.Contents.Item
         public async UniTask LoadStageItemAsync(int stageId)
         {
             // Memo: 本当は配置した生成地点で指定したものが良いが、今はランダムにしておく（マスタ側の設定値にバラつきがなければあまり偏らないため）
-            var groupIds = MemoryDatabase.StageItemSpawnMasterTable.All.Select(x => x.GroupId).ToArray();
+            var groupIds = MemoryDatabase.StageItemSpawnMasterTable.FindByStageId(stageId).Select(x => x.GroupId).ToArray();
             var randomGroupId = Random.Range(groupIds.Min(), groupIds.Max());
 
             var spawnMasters = MemoryDatabase.StageItemSpawnMasterTable.FindByStageId(stageId)

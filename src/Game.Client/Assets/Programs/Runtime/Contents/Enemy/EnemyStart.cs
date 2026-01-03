@@ -17,10 +17,10 @@ namespace Game.Contents.Enemy
         private GameServiceReference<MasterDataService> _masterDataService;
         private MemoryDatabase MemoryDatabase => _masterDataService.Reference.MemoryDatabase;
 
-        public async UniTask LoadEnemyAsync(GameObject player, int stageId, int spawnGroupId = 1)
+        public async UniTask LoadEnemyAsync(GameObject player, int stageId)
         {
-            var spawnMasters = MemoryDatabase.EnemySpawnMasterTable.FindByStageId(stageId)
-                .Where(x => x.GroupId == spawnGroupId);
+            var spawnMasters = MemoryDatabase.EnemySpawnMasterTable.FindByStageId(stageId);
+            // .Where(x => x.GroupId == ???);
 
             foreach (var spawnMaster in spawnMasters)
             {

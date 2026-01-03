@@ -186,11 +186,11 @@ namespace Game.Contents.Enemy
         {
             if (_navMeshAgent)
             {
-                if (!ignoreDistance && _navMeshAgent.remainingDistance > remainingDistance)
-                    return false;
-
                 if (_navMeshAgent.pathStatus != NavMeshPathStatus.PathInvalid)
                 {
+                    if (!ignoreDistance && _navMeshAgent.remainingDistance > remainingDistance)
+                        return false;
+
                     _navMeshAgent.SetDestination(position);
                     return true;
                 }
