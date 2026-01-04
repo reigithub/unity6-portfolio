@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Contents.Scenes;
 using Game.Core.MessagePipe;
@@ -18,7 +17,6 @@ namespace Game.Core.Services
 
         public MessageBroker GetOrAdd(int key)
         {
-            // TODO: Keyを重複登録しようとした際に、気づけるようにしたい
             if (!_messageBrokers.TryGetValue(key, out var messageBroker))
             {
                 messageBroker = new MessageBroker();
@@ -48,12 +46,14 @@ namespace Game.Core.Services
             GlobalMessageBroker.AddMessageBroker<int, int>();
             GlobalMessageBroker.AddMessageBroker<int, int?>();
             GlobalMessageBroker.AddMessageBroker<int, bool>();
+            GlobalMessageBroker.AddMessageBroker<int, string>();
 
             GlobalMessageBroker.AddMessageBroker<int, GameObject>();
             GlobalMessageBroker.AddMessageBroker<int, Collision>();
             GlobalMessageBroker.AddMessageBroker<int, Collider>();
             GlobalMessageBroker.AddMessageBroker<int, Vector2>();
             GlobalMessageBroker.AddMessageBroker<int, Vector3>();
+            GlobalMessageBroker.AddMessageBroker<int, Material>();
 
             GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<int>>();
             GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<bool>>();

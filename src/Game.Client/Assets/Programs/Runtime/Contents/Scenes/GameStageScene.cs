@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Game.Contents.Enemy;
 using Game.Contents.Player;
 using Game.Contents.UI;
+using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
@@ -11,13 +12,12 @@ using R3;
 using R3.Triggers;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
-using Random = System.Random;
 
 namespace Game.Contents.Scenes
 {
     public class GameStageScene : GamePrefabScene<GameStageScene, GameStageSceneComponent>, IGameSceneModel<GameStageSceneModel>, IGameSceneArg<int>
     {
-        protected override string AssetPathOrAddress => "Assets/Prefabs/GameStageScene.prefab";
+        protected override string AssetPathOrAddress => "GameStageScene";
 
         public GameStageSceneModel SceneModel { get; set; }
 
@@ -37,6 +37,14 @@ namespace Game.Contents.Scenes
         {
             var instance = await base.LoadAsset();
             _stageSceneInstance = await AssetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
+
+            // ステージアセットに設定されたSkyboxをメインカメラに反映
+            var skybox = GameSceneHelper.GetSkybox(_stageSceneInstance.Scene);
+            if (skybox)
+            {
+                GlobalMessageBroker.GetPublisher<int, Material>().Publish(MessageKey.System.Skybox, skybox.material);
+            }
+
             return instance;
         }
 
@@ -71,17 +79,25 @@ namespace Game.Contents.Scenes
         {
             // ゲーム開始準備OKの合図
             SceneModel.StageState = GameStageState.Ready;
+            AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady).Forget();
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
+            await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.TimeScale, true);
+            await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.Cursor, false);
+            GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.InputSystem.Escape, true);
+            GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.InputSystem.ScrollWheel, true);
             SceneModel.StageState = GameStageState.Start;
             SceneComponent.DoFadeIn();
             _playerStart.PlayerHUD.DoFadeIn();
+            await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageStart);
             await base.Ready();
         }
 
         public override async Task Terminate()
         {
+            GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.System.DefaultSkybox, true);
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
+            AudioService.StopBgm();
             await base.Terminate();
         }
 
@@ -100,33 +116,50 @@ namespace Game.Contents.Scenes
                 .AddTo(SceneComponent);
 
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
-                .Subscribe(MessageKey.GameStage.Pause, handler: async (_, _) =>
+                .Subscribe(MessageKey.GameStage.Pause, handler: async (_, token) =>
                 {
                     if (!SceneModel.CanPause()) return;
+
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StagePause, token).Forget();
+
                     // 一時停止メニュー
                     await GamePauseUIDialog.RunAsync();
                 })
                 .AddTo(SceneComponent);
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
-                .Subscribe(MessageKey.GameStage.Retry, handler: async (_, _) =>
+                .Subscribe(MessageKey.GameStage.Resume, handler: async (_, token) =>
+                {
+                    if (!SceneModel.CanPause()) return;
+
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
+
+                    await SceneService.TerminateAsync<GamePauseUIDialog>();
+                })
+                .AddTo(SceneComponent);
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameStage.Retry, handler: async (_, token) =>
                 {
                     SceneModel.StageState = GameStageState.Retry;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
                     // 現在のステージへ再遷移
                     await SceneService.TransitionAsync<GameStageScene, GameStageSceneModel, int>(_stageId);
                 })
                 .AddTo(SceneComponent);
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
-                .Subscribe(MessageKey.GameStage.ReturnTitle, handler: async (_, _) =>
+                .Subscribe(MessageKey.GameStage.ReturnTitle, handler: async (_, token) =>
                 {
+                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
                     // 現在のシーンを終了させてタイトルに戻る
                     await SceneService.TransitionAsync<GameTitleScene>();
                 })
                 .AddTo(SceneComponent);
 
             GlobalMessageBroker.GetAsyncSubscriber<int, int?>()
-                .Subscribe(MessageKey.GameStage.Finish, handler: async (nextStageId, _) =>
+                .Subscribe(MessageKey.GameStage.Finish, handler: async (nextStageId, token) =>
                 {
                     SceneModel.StageState = GameStageState.Finish;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish, token).Forget();
+
                     if (nextStageId.HasValue)
                     {
                         // 次のステージへ
@@ -155,6 +188,8 @@ namespace Game.Contents.Scenes
 
                     other.gameObject.SafeDestroy();
 
+                    AudioService.PlayRandomOneAsync(AudioPlayTag.PlayerGetPoint).Forget();
+
                     SceneModel.AddPoint(point);
 
                     TryShowResultDialogAsync().Forget();
@@ -175,7 +210,8 @@ namespace Game.Contents.Scenes
 
                     other.gameObject.SafeDestroy();
 
-                    // Memo: エネミーに応じてダメージを変更できるマスタを用意（EnemyMaster）
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
+
                     SceneModel.PlayerHpDamaged(hpDamage);
 
                     _playerStart.PlayerHUD.CurrentHp.Value = SceneModel.PlayerCurrentHp;
@@ -203,6 +239,12 @@ namespace Game.Contents.Scenes
             SceneModel.StageState = GameStageState.Result;
             SceneComponent.DoFadeOut();
             _playerStart.PlayerHUD.DoFadeOut();
+
+            if (SceneModel.StageResult is GameStageResult.Clear)
+                AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageClear).Forget();
+            else
+                AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFailed).Forget();
+
             // Debug.LogError($"Stage Result: {result}");
             await GameResultUIDialog.RunAsync(SceneModel.CreateStageResult());
         }

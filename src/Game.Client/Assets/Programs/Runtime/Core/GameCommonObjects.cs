@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Contents.Player;
 using Game.Contents.UI;
+using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.Services;
 using Game.Core.MessagePipe;
@@ -13,9 +14,12 @@ using UnityEngine.UI;
 
 namespace Game.Core
 {
+    /// <summary>
+    /// ゲーム全体に関わるオブジェクトを管理する
+    /// </summary>
     public class GameCommonObjects : MonoBehaviour
     {
-        private const string Address = "Assets/Prefabs/GameCommonObjects.prefab";
+        private const string Address = "GameCommonObjects";
 
         public static GameCommonObjects Instance { get; private set; }
 
@@ -42,11 +46,16 @@ namespace Game.Core
         }
 
         [SerializeField] private GameObject _mainCamera;
+        [SerializeField] private GameObject _directionalLight;
+        [SerializeField] private Skybox _skybox;
         [SerializeField] private PlayerFollowCameraController _playerFollowCameraController;
 
         [SerializeField] private GameUIController _gameUIController;
 
         [SerializeField] private Image _fadeImage;
+
+        private GameServiceReference<AudioService> _audioService;
+        private AudioService AudioService => _audioService.Reference;
 
         private GameServiceReference<GameSceneService> _sceneService;
         private GameSceneService SceneService => _sceneService.Reference;
@@ -54,17 +63,17 @@ namespace Game.Core
         private GameServiceReference<MessageBrokerService> _messageBrokerService;
         private GlobalMessageBroker GlobalMessageBroker => _messageBrokerService.Reference.GlobalMessageBroker;
 
-        // Memo: どこに持つかは要検討としてマーク
-        private bool _gameStart;
+        private Material _defaultSkyboxMaterial;
 
         private void Initialize()
         {
             _gameUIController.Initialize();
             _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, 1f);
-            Subscribe();
+            if (_skybox) _defaultSkyboxMaterial = _skybox.material;
+            RegisterEvents();
         }
 
-        private void Subscribe()
+        private void RegisterEvents()
         {
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
                 .Subscribe(MessageKey.System.TimeScale, handler: (status, _) =>
@@ -90,13 +99,43 @@ namespace Game.Core
                     return UniTask.CompletedTask;
                 })
                 .AddTo(this);
-
-            // Game
             GlobalMessageBroker.GetSubscriber<int, bool>()
-                .Subscribe(MessageKey.Game.Start, handler: _ => { _gameStart = true; })
+                .Subscribe(MessageKey.System.DirectionalLight, handler: status =>
+                {
+                    if (_directionalLight) _directionalLight.SetActive(status);
+                })
+                .AddTo(this);
+            GlobalMessageBroker.GetSubscriber<int, Material>()
+                .Subscribe(MessageKey.System.Skybox, handler: material =>
+                {
+                    if (_skybox) _skybox.material = material;
+                })
                 .AddTo(this);
             GlobalMessageBroker.GetSubscriber<int, bool>()
-                .Subscribe(MessageKey.Game.Quit, handler: _ => { GameManager.Instance.GameQuit(); })
+                .Subscribe(MessageKey.System.DefaultSkybox, handler: _ =>
+                {
+                    if (_skybox) _skybox.material = _defaultSkyboxMaterial;
+                })
+                .AddTo(this);
+
+            // Game
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.Game.Ready, handler: async (_, token) => { await AudioService.PlayRandomOneAsync(AudioPlayTag.GameReady, token); })
+                .AddTo(this);
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.Game.Start, handler: async (_, token) =>
+                {
+                    AudioService.StopBgm();
+                    await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
+                })
+                .AddTo(this);
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.Game.Quit, handler: async (_, token) =>
+                {
+                    AudioService.StopBgm();
+                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit, token);
+                    GameManager.Instance.GameQuit();
+                })
                 .AddTo(this);
 
             // GameScene
@@ -132,12 +171,12 @@ namespace Game.Core
                 .AddTo(this);
 
             // UI
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.UI.Escape, handler: escape => { GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.GameStage.Pause, escape); })
+                .AddTo(this);
+
             GlobalMessageBroker.GetSubscriber<int, Vector2>()
-                .Subscribe(MessageKey.UI.ScrollWheel, handler: scrollWheel =>
-                {
-                    if (!_gameStart) return;
-                    _playerFollowCameraController.SetCameraRadius(scrollWheel);
-                })
+                .Subscribe(MessageKey.UI.ScrollWheel, handler: scrollWheel => { _playerFollowCameraController.SetCameraRadius(scrollWheel); })
                 .AddTo(this);
         }
 

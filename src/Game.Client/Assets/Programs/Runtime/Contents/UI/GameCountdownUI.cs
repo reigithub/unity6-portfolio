@@ -9,7 +9,7 @@ namespace Game.Contents.UI
 {
     public class GameCountdownUIDialog : GameDialogScene<GameCountdownUIDialog, GameCountdownUI, bool>
     {
-        protected override string AssetPathOrAddress => "Assets/Prefabs/UI/GameCountdownUI.prefab";
+        protected override string AssetPathOrAddress => "GameCountdownUI";
 
         public static Task<bool> RunAsync(float countdown = 3f)
         {

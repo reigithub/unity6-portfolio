@@ -1,4 +1,7 @@
+using System;
 using System.Linq;
+using Game.Core.Enums;
+using Game.Core.Extensions;
 using Game.Core.MasterData.MemoryTables;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
@@ -13,7 +16,7 @@ namespace Game.Contents.Player
     /// <summary>
     /// SD-Unityちゃん用のプレイヤーコントローラー
     /// </summary>
-    public class SDUnityChanPlayerController : MonoBehaviour, SDUnityChanInputSystem.IPlayerActions
+    public class SDUnityChanPlayerController : MonoBehaviour //, SDUnityChanInputSystem.IPlayerActions
     {
         [Header("歩く速度")]
         [SerializeField]
@@ -33,7 +36,10 @@ namespace Game.Contents.Player
 
         [Header("ジャンプ力")]
         [SerializeField]
-        private float _jumpForce = 5.0f;
+        private float _jump = 5.0f;
+
+        private GameServiceReference<AudioService> _audioService;
+        private AudioService AudioService => _audioService.Reference;
 
         private GameServiceReference<MessageBrokerService> _messageBrokerService;
         private GlobalMessageBroker GlobalMessageBroker => _messageBrokerService.Reference.GlobalMessageBroker;
@@ -48,15 +54,77 @@ namespace Game.Contents.Player
         private Transform _mainCamera;
         private Vector2 _moveValue = Vector2.zero;
         private Vector3 _moveVector = Vector3.zero;
-        private float _speed;
+        private readonly ReactiveProperty<float> _speed = new();
         private Quaternion _lookRotation = Quaternion.identity;
         private bool _jumpTriggered;
+
+        private bool _isJumping;
+        private bool _isDamaged;
+        private bool _isDown;
 
         public void Initialize(PlayerMaster playerMaster)
         {
             _walkSpeed = playerMaster.WalkSpeed;
             _jogSpeed = playerMaster.JogSpeed;
             _runSpeed = playerMaster.RunSpeed;
+            _jump = playerMaster.Jump;
+
+            TryGetComponent<Animator>(out _animator);
+            TryGetComponent<Rigidbody>(out _rigidbody);
+            TryGetComponent<RaycastChecker>(out _groundedRaycastChecker);
+
+            // _animator.Play("Salute");
+            var triggers = _animator.GetBehaviours<ObservableStateMachineTrigger>();
+            // Debug.LogError($"---Length ObservableStateMachineTrigger: {triggers.Length}");
+            triggers.Select(x => x.OnStateEnterAsObservable())
+                .Merge()
+                .Subscribe(info => UpdateStateInfo(info.StateInfo, true))
+                .AddTo(this);
+            triggers.Select(x => x.OnStateExitAsObservable())
+                .Merge()
+                .Subscribe(info => UpdateStateInfo(info.StateInfo, false))
+                .AddTo(this);
+
+            _speed
+                .DistinctUntilChangedBy(x => IsRunning())
+                .Subscribe(_ =>
+                {
+                    if (IsRunning()) AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerRun).Forget();
+                })
+                .AddTo(this);
+        }
+
+        private void UpdateStateInfo(AnimatorStateInfo stateInfo, bool enter)
+        {
+            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
+            {
+                _isJumping = enter;
+            }
+            else if (stateInfo.IsName("Base Layer.Damaged"))
+            {
+                _isDamaged = enter;
+            }
+            else if (stateInfo.IsName("Base Layer.GoDown"))
+            {
+                if (enter)
+                {
+                    _isDown = true;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDown).Forget();
+                }
+            }
+            else if (stateInfo.IsName("Base Layer.DownToUp"))
+            {
+                if (!enter)
+                {
+                    _isDown = false;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetUp).Forget();
+                }
+            }
+            // else
+            // {
+            //     if (enter) Debug.LogError($"---Enter ObservableStateMachineTrigger: {stateInfo.fullPathHash}");
+            //     if (!enter) Debug.LogError($"---Exit ObservableStateMachineTrigger: {stateInfo.fullPathHash}");
+            // }
         }
 
         public void SetMainCamera(Transform mainCamera)
@@ -68,7 +136,7 @@ namespace Game.Contents.Player
         {
             _inputSystem = new SDUnityChanInputSystem();
             _player = _inputSystem.Player;
-            _inputSystem.Player.SetCallbacks(this);
+            // _inputSystem.Player.SetCallbacks(this);
         }
 
         private void OnEnable()
@@ -90,61 +158,6 @@ namespace Game.Contents.Player
 
         private void Start()
         {
-            TryGetComponent<Animator>(out _animator);
-            TryGetComponent<Rigidbody>(out _rigidbody);
-            TryGetComponent<RaycastChecker>(out _groundedRaycastChecker);
-
-            // _animator.Play("Salute");
-
-            var triggers = _animator.GetBehaviours<ObservableStateMachineTrigger>();
-            // Debug.LogError($"---Length ObservableStateMachineTrigger: {triggers.Length}");
-            triggers.Select(x => x.OnStateEnterAsObservable())
-                .Merge()
-                .Subscribe(info => UpdateStateInfo(info.StateInfo, true))
-                .AddTo(this);
-            triggers.Select(x => x.OnStateExitAsObservable())
-                .Merge()
-                .Subscribe(info => UpdateStateInfo(info.StateInfo, false))
-                .AddTo(this);
-        }
-
-        private bool _isJumping;
-        private bool _isDamaged;
-        private bool _isDown;
-
-        private void UpdateStateInfo(AnimatorStateInfo stateInfo, bool enter)
-        {
-            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
-            {
-                _isJumping = enter;
-            }
-            else if (stateInfo.IsName("Base Layer.Damaged"))
-            {
-                _isDamaged = enter;
-            }
-            else if (stateInfo.IsName("Base Layer.GoDown"))
-            {
-                if (enter) _isDown = true;
-            }
-            else if (stateInfo.IsName("Base Layer.DownToUp"))
-            {
-                if (!enter) _isDown = false;
-            }
-            else
-            {
-                if (enter) Debug.LogError($"---Enter ObservableStateMachineTrigger: {stateInfo.fullPathHash}");
-                if (!enter) Debug.LogError($"---Exit ObservableStateMachineTrigger: {stateInfo.fullPathHash}");
-            }
-        }
-
-        private bool CanMove()
-        {
-            return !_isDamaged && !_isDown;
-        }
-
-        private bool CanJump()
-        {
-            return !_isJumping && !_isDamaged && !_isDown && IsGrounded();
         }
 
         private void Update()
@@ -166,8 +179,8 @@ namespace Game.Contents.Player
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新
-            _speed = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
-            _animator.SetFloat(Animator.StringToHash("Speed"), _speed);
+            _speed.Value = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
+            _animator.SetFloat(Animator.StringToHash("Speed"), _speed.Value);
 
             // 回転入力受付
             if (_moveValue.magnitude > 0.1f)
@@ -200,7 +213,7 @@ namespace Game.Contents.Player
             }
 
             // 移動
-            _rigidbody.MovePosition(_rigidbody.position + _moveVector * _speed * Time.fixedDeltaTime);
+            _rigidbody.MovePosition(_rigidbody.position + _moveVector * _speed.Value * Time.fixedDeltaTime);
             // _rigidbody.AddForce(_moveVector * speed);
             // transform.Translate(moveVector * speed * Time.deltaTime, Space.World);
 
@@ -239,32 +252,44 @@ namespace Game.Contents.Player
         {
             if (_jumpTriggered && _player.Jump.IsPressed())
             {
+                AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerJump).Forget();
+
                 // _rigidbody.linearDamping = 0.2f;
-                _rigidbody.linearVelocity = new Vector3(_rigidbody.linearVelocity.x, _jumpForce, _rigidbody.linearVelocity.z);
+                _rigidbody.linearVelocity = new Vector3(_rigidbody.linearVelocity.x, _jump, _rigidbody.linearVelocity.z);
                 // _rigidbody.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse);
                 // _animator.ResetTrigger(Animator.StringToHash("Jump"));
                 _jumpTriggered = false;
             }
         }
 
+        private bool CanMove()
+        {
+            return !_isDamaged && !_isDown;
+        }
+
+        private bool CanJump()
+        {
+            return !_isJumping && !_isDamaged && !_isDown && IsGrounded();
+        }
+
         public bool IsMoving()
         {
-            return _speed > 0f;
+            return _speed.Value > 0f;
         }
 
         public bool IsWalking()
         {
-            return _speed >= _walkSpeed && _speed < _jogSpeed;
+            return _speed.Value >= _walkSpeed && _speed.Value < _jogSpeed;
         }
 
         public bool IsJogging()
         {
-            return _speed >= _jogSpeed && _speed < _runSpeed;
+            return _speed.Value >= _jogSpeed && _speed.Value < _runSpeed;
         }
 
         public bool IsRunning()
         {
-            return _speed >= _runSpeed;
+            return _speed.Value >= _runSpeed;
         }
 
         private bool IsGrounded()
@@ -294,53 +319,5 @@ namespace Game.Contents.Player
                 _animator.SetTrigger(Animator.StringToHash("Damaged"));
             }
         }
-
-        #region SDUnityChanInputSystem.IPlayerActions
-
-        public void OnMove(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnLook(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnAttack(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnJump(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnPrevious(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnNext(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnReset(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnLeftAlt(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnLeftControl(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnLeftShift(InputAction.CallbackContext context)
-        {
-        }
-
-        public void OnMouseScrollY(InputAction.CallbackContext context)
-        {
-        }
-
-        #endregion
     }
 }

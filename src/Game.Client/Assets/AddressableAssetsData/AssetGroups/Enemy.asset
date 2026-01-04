@@ -16,37 +16,37 @@ MonoBehaviour:
   m_GUID: 4140c43d4fca422479741598a9eb190e
   m_SerializeEntries:
   - m_GUID: 24cd33af3cfde8d4d80be27d93770874
-    m_Address: Kitty_001
+    m_Address: Kitty
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 39c6074a564d4174e986557d02159d9b
-    m_Address: Chicken_001
+    m_Address: Chicken
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 436c3790865a5344a8478a17c85affd0
-    m_Address: Deer_001
+    m_Address: Deer
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 939e22a298402004ea3d81b5a2be13cd
-    m_Address: Horse_001
+    m_Address: Horse
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a05ed9d822327f54d939ae011fc97d37
-    m_Address: Pinguin_001
+    m_Address: Pinguin
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c720df199a995f6408efcea748a86988
-    m_Address: Dog_001
+    m_Address: Dog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ea815e33848c989419132087654d3028
-    m_Address: Tiger_001
+    m_Address: Tiger
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

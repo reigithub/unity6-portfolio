@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using Game.Core.MasterData.MemoryTables;
+using MasterMemory;
 using MessagePack;
 using MessagePack.Resolvers;
 using UnityEngine;
@@ -117,6 +119,8 @@ namespace Game.Core.MasterData
                 {
                     appendMethod.Invoke(databaseBuilder, new object[] { masterElements });
                 }
+
+                // databaseBuilder.AppendDynamic(memoryTableType, elements);
             }
 
             // ビルダーのバッファからバイナリをビルド
@@ -244,7 +248,7 @@ namespace Game.Core.MasterData
                 {
                     if (columnNames.TryGetValue(property.Name, out var index))
                     {
-                        var value = ConvertToType(values[index], property.PropertyType);
+                        var value = ParseValue(property.PropertyType, values[index]);
                         property.SetValue(instance, value);
                     }
                     else
@@ -301,15 +305,91 @@ namespace Game.Core.MasterData
             return type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         }
 
-        public static object ConvertToType(object fromValue, Type type)
+        public static object ConvertToType(Type type, object value)
         {
             var converter = TypeDescriptor.GetConverter(type);
-            if (converter.CanConvertFrom(fromValue.GetType()))
+            if (converter.CanConvertFrom(value.GetType()))
             {
-                return converter.ConvertFrom(fromValue);
+                return converter.ConvertFrom(value);
             }
 
             throw new InvalidOperationException("変換エラー");
+        }
+
+        // https://github.com/Cysharp/MasterMemory#metadata
+        public static object ParseValue(Type type, string rawValue)
+        {
+            if (type == typeof(string)) return rawValue;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                if (string.IsNullOrWhiteSpace(rawValue)) return null;
+                return ParseValue(type.GenericTypeArguments[0], rawValue);
+            }
+
+            if (type.IsEnum)
+            {
+                // ここで基底型(intなど)に変換できたとしても、Enum型でPropertyInfo.SetValueされてしまうので意味なし
+                // https://github.com/Cysharp/MasterMemory/issues/102
+                var value = Enum.Parse(type, rawValue);
+                var underlyingType = Enum.GetUnderlyingType(type);
+                var convertValue = Convert.ChangeType(value, underlyingType);
+                return convertValue;
+            }
+
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Boolean:
+                    // True/False or 0,1
+                    if (int.TryParse(rawValue, out var intBool))
+                    {
+                        return Convert.ToBoolean(intBool);
+                    }
+
+                    return Boolean.Parse(rawValue);
+                case TypeCode.Char:
+                    return Char.Parse(rawValue);
+                case TypeCode.SByte:
+                    return SByte.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Byte:
+                    return Byte.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Int16:
+                    return Int16.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.UInt16:
+                    return UInt16.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Int32:
+                    return Int32.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.UInt32:
+                    return UInt32.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Int64:
+                    return Int64.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.UInt64:
+                    return UInt64.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Single:
+                    return Single.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Double:
+                    return Double.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.Decimal:
+                    return Decimal.Parse(rawValue, CultureInfo.InvariantCulture);
+                case TypeCode.DateTime:
+                    return DateTime.Parse(rawValue, CultureInfo.InvariantCulture);
+                default:
+                    if (type == typeof(DateTimeOffset))
+                    {
+                        return DateTimeOffset.Parse(rawValue, CultureInfo.InvariantCulture);
+                    }
+                    else if (type == typeof(TimeSpan))
+                    {
+                        return TimeSpan.Parse(rawValue, CultureInfo.InvariantCulture);
+                    }
+                    else if (type == typeof(Guid))
+                    {
+                        return Guid.Parse(rawValue);
+                    }
+
+                    // or other your custom parsing.
+                    throw new NotSupportedException();
+            }
         }
 
         public static IFormatterResolver[] GetMessagePackFormatterResolvers()

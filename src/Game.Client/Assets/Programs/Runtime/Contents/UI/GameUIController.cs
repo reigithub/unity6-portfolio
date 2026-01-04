@@ -1,5 +1,7 @@
 using Game.Core.MessagePipe;
 using Game.Core.Services;
+using MessagePipe;
+using R3;
 using UnityChan;
 using UnityEngine;
 
@@ -16,8 +18,28 @@ namespace Game.Contents.UI
         private SDUnityChanInputSystem _inputSystem;
         private SDUnityChanInputSystem.UIActions _ui;
 
+        private bool _pause;
+
         public void Initialize()
         {
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.InputSystem.Escape, handler: status =>
+                {
+                    if (status)
+                        _ui.Escape.Enable();
+                    else
+                        _ui.Escape.Disable();
+                })
+                .AddTo(this);
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.InputSystem.ScrollWheel, handler: status =>
+                {
+                    if (status)
+                        _ui.ScrollWheel.Enable();
+                    else
+                        _ui.ScrollWheel.Disable();
+                })
+                .AddTo(this);
         }
 
         private void Awake()
@@ -55,7 +77,7 @@ namespace Game.Contents.UI
 
             if (_ui.Escape.WasPressedThisFrame())
             {
-                GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.GameStage.Pause, true);
+                GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.UI.Escape, true);
             }
 
             if (_ui.ScrollWheel.WasPressedThisFrame())

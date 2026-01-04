@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MasterData;
 using Game.Core.MessagePipe;
@@ -60,6 +61,9 @@ namespace Game.Core.Scenes
     {
         private GameServiceReference<AddressableAssetService> _assetService;
         protected AddressableAssetService AssetService => _assetService.Reference;
+
+        private GameServiceReference<AudioService> _audioService;
+        protected AudioService AudioService => _audioService.Reference;
 
         private GameServiceReference<GameSceneService> _sceneService;
         protected GameSceneService SceneService => _sceneService.Reference;

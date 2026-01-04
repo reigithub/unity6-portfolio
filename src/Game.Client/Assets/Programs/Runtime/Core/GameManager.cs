@@ -50,6 +50,7 @@ namespace Game.Core
             GameStartAsync().Forget();
         }
 
+        // ゲーム環境設定を読み込む機能（開発とか本番とか）
         private void LoadConfig()
         {
             _gameConfig ??= GameConfigManager.Load();
@@ -75,7 +76,9 @@ namespace Game.Core
 
         private async Task GameStartAsync()
         {
+            // ゲーム起動時に初期化しておきたいサービスはここで
             GameServiceManager.Instance.StartUp();
+            GameServiceManager.Instance.AddService<AudioService>();
             GameServiceManager.Instance.AddService<GameSceneService>();
             GameServiceManager.Instance.AddService<MasterDataService>();
             GameServiceManager.Instance.AddService<MessageBrokerService>();

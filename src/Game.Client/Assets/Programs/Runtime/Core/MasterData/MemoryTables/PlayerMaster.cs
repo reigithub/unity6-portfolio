@@ -20,5 +20,7 @@ namespace Game.Core.MasterData.MemoryTables
         public int WalkSpeed { get; set; }
         public int JogSpeed { get; set; }
         public int RunSpeed { get; set; }
+
+        public int Jump { get; set; }
     }
 }

@@ -94,7 +94,7 @@ namespace Game.Core.Services
             }
             catch (OperationCanceledException)
             {
-                await TerminateAsync<TScene>();
+                tcs.TrySetCanceled();
             }
 
             return default;
@@ -121,7 +121,7 @@ namespace Game.Core.Services
             }
             catch (OperationCanceledException)
             {
-                await TerminateAsync<TScene>();
+                tcs.TrySetCanceled();
             }
 
             return default;
@@ -155,7 +155,8 @@ namespace Game.Core.Services
             catch (OperationCanceledException)
             {
                 // Debug.LogError($"{e.Message}");
-                await TerminateAsync<TScene>(); // キャンセルされたら閉じるようにしておく
+                // await TerminateAsync<TScene>(); // キャンセルされたら閉じるようにしておく
+                tcs.TrySetCanceled();
             }
 
             return default;

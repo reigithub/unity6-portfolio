@@ -61,7 +61,7 @@ namespace Game.Core.Scenes
             }
         }
 
-        public static T GetSceneComponent<T>(GameObject scene) where T : MonoBehaviour
+        public static T GetSceneComponent<T>(GameObject scene) where T : Behaviour
         {
             if (scene.TryGetComponent<T>(out var sceneComponent))
             {
@@ -90,6 +90,11 @@ namespace Game.Core.Scenes
             return component;
         }
 
+        public static Skybox GetSkybox(Scene scene)
+        {
+            return GetComponentInChildren<Skybox>(scene);
+        }
+
         /// <summary>
         /// ステージインスタンスからプレイヤー開始地点を探して、一番最初に見つかったものを返す
         /// WARN: 複数配置しないように注意…
@@ -109,7 +114,7 @@ namespace Game.Core.Scenes
             return GetComponentsInChildren<StageItemStart>(scene);
         }
 
-        public static T GetComponentInChildren<T>(Scene scene) where T : MonoBehaviour
+        public static T GetComponentInChildren<T>(Scene scene) where T : Behaviour
         {
             var rootGameObjects = scene.GetRootGameObjects();
 
@@ -127,7 +132,7 @@ namespace Game.Core.Scenes
             return component;
         }
 
-        public static T[] GetComponentsInChildren<T>(Scene scene) where T : MonoBehaviour
+        public static T[] GetComponentsInChildren<T>(Scene scene) where T : Behaviour
         {
             var rootGameObjects = scene.GetRootGameObjects();
 
