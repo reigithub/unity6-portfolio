@@ -9,6 +9,11 @@ namespace Game.Core.MasterData.MemoryTables
         [PrimaryKey]
         public int Id { get; set; }
 
+        [SecondaryKey(0), NonUnique]
+        public int GroupId { get; set; }
+
+        public int Order { get; set; }
+
         public string Name { get; set; }
 
         public string AssetName { get; set; }

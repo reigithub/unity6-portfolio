@@ -15,9 +15,9 @@ namespace Game.Contents.UI
         {
             var sceneService = GameServiceManager.Instance.GetService<GameSceneService>();
             return sceneService.TransitionDialogAsync<GameCountdownUIDialog, GameCountdownUI, bool>(
-                startup: (dialog, component) =>
+                initializer: (component, result) =>
                 {
-                    component.Initialize(dialog, countdown);
+                    component.Initialize(result, countdown);
                     return Task.CompletedTask;
                 }
             );
@@ -47,13 +47,13 @@ namespace Game.Contents.UI
         [SerializeField]
         private TextMeshProUGUI _countdownText;
 
-        private GameCountdownUIDialog _dialog;
+        private IGameSceneResult<bool> _result;
         private float _countdown;
         private bool _countdownStart;
 
-        public void Initialize(GameCountdownUIDialog dialog, float countdown)
+        public void Initialize(IGameSceneResult<bool> result, float countdown)
         {
-            _dialog = dialog;
+            _result = result;
             _countdown = countdown;
             _countdownText.text = countdown.ToString("F0");
         }
@@ -69,12 +69,12 @@ namespace Game.Contents.UI
 
             if (_countdown < 0f)
             {
-                _dialog.TrySetResult(true);
+                _result.TrySetResult(true);
                 return;
             }
 
             _countdown -= Time.unscaledDeltaTime;
-            _countdownText.text = _countdown <= 0f
+            _countdownText.text = _countdown <= 1f
                 ? "Game Start!"
                 : _countdown.ToString("F0");
         }

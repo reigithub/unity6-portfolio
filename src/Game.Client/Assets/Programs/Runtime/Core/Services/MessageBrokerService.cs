@@ -8,11 +8,47 @@ namespace Game.Core.Services
 {
     public class MessageBrokerService : GameService
     {
-        // Subscribeした後に、BuiltinContainerBuilder.BuildServiceProviderすると
-        // 設定が全て吹き飛ぶため、同じインスタンスを使い回す事が現実的ではなさそう
-        // という事で無理やりインスタンスを分けて管理してみるサービス…
-        // オリジナルのMessageBroker作るしかない…のか…？
-        // 寿命を短く使う分には、こちらで
+        // BuiltinContainerBuilder.BuildServiceProviderした後に、Subscribeし始める必要があるため
+        // AddMessageBroker～BuildServiceProviderを1ヶ所に集約してみる
+        public GlobalMessageBroker GlobalMessageBroker { get; private set; } = new();
+
+        protected internal override void Startup()
+        {
+            // 使うやつは予めココに全て記述する…
+            GlobalMessageBroker.AddMessageBroker<int, int>();
+            GlobalMessageBroker.AddMessageBroker<int, int?>();
+            GlobalMessageBroker.AddMessageBroker<int, bool>();
+            GlobalMessageBroker.AddMessageBroker<int, string>();
+
+            GlobalMessageBroker.AddMessageBroker<int, GameObject>();
+            GlobalMessageBroker.AddMessageBroker<int, Collision>();
+            GlobalMessageBroker.AddMessageBroker<int, Collider>();
+            GlobalMessageBroker.AddMessageBroker<int, Vector2>();
+            GlobalMessageBroker.AddMessageBroker<int, Vector3>();
+            GlobalMessageBroker.AddMessageBroker<int, Material>();
+
+            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<int>>();
+            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
+
+            // Request/Responseの実験
+            GlobalMessageBroker.AddRequestHandler<GameStageResultData, bool, GameStageRequestHandler>();
+            GlobalMessageBroker.AddRequestHandler<GameStageTotalResultRequest, GameStageTotalResultData, GameStageRequestHandler>();
+
+            GlobalMessageBroker.Build();
+        }
+
+        protected internal override void Shutdown()
+        {
+            RemoveAll();
+            GlobalMessageBroker = null;
+        }
+
+        protected internal override bool AllowResidentOnMemory => true;
+
+        #region MessageBroker
+
+        // 任意のタイミングで再ビルドできないので、使わない可能性が高い（ビルドする度に前回までの設定が全て上書きされて無くなるため）
+        // MVCにおいてはライフサイクルをカスタムするにはオリジナルで作る必要がある
         private readonly Dictionary<int, MessageBroker> _messageBrokers = new();
 
         public MessageBroker GetOrAdd(int key)
@@ -36,39 +72,6 @@ namespace Game.Core.Services
             _messageBrokers.Clear();
         }
 
-        // BuiltinContainerBuilder.BuildServiceProviderした後に、Subscribeし始める必要があるため
-        // AddMessageBroker～BuildServiceProviderを1ヶ所に集約してみる
-        public GlobalMessageBroker GlobalMessageBroker { get; private set; } = new();
-
-        protected internal override void Startup()
-        {
-            // 使うやつは予めココに全て記述する…
-            GlobalMessageBroker.AddMessageBroker<int, int>();
-            GlobalMessageBroker.AddMessageBroker<int, int?>();
-            GlobalMessageBroker.AddMessageBroker<int, bool>();
-            GlobalMessageBroker.AddMessageBroker<int, string>();
-
-            GlobalMessageBroker.AddMessageBroker<int, GameObject>();
-            GlobalMessageBroker.AddMessageBroker<int, Collision>();
-            GlobalMessageBroker.AddMessageBroker<int, Collider>();
-            GlobalMessageBroker.AddMessageBroker<int, Vector2>();
-            GlobalMessageBroker.AddMessageBroker<int, Vector3>();
-            GlobalMessageBroker.AddMessageBroker<int, Material>();
-
-            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<int>>();
-            GlobalMessageBroker.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
-
-            GlobalMessageBroker.AddMessageBroker<int, GameStageResult>();
-
-            GlobalMessageBroker.Build();
-        }
-
-        protected internal override void Shutdown()
-        {
-            RemoveAll();
-            GlobalMessageBroker = null;
-        }
-
-        protected internal override bool AllowResidentOnMemory => true;
+        #endregion
     }
 }

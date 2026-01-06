@@ -156,6 +156,14 @@ namespace Game.Core
                 })
                 .AddTo(this);
 
+            // GameStage
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameStageService.Startup, _ => { GameServiceManager.Instance.StartupService<GameStageService>(); })
+                .AddTo(this);
+            GlobalMessageBroker.GetSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameStageService.Shutdown, _ => { GameServiceManager.Instance.ShutdownService<GameStageService>(); })
+                .AddTo(this);
+
             // Player
             GlobalMessageBroker.GetSubscriber<int, GameObject>()
                 .Subscribe(MessageKey.Player.SpawnPlayer, handler: player =>

@@ -12,17 +12,17 @@ using UnityEngine.SceneManagement;
 
 namespace Game.Core.Scenes
 {
-    public interface IGameScene
+    public interface IGameScene : IGameSceneState, IGameSceneArgHandler
     {
-        // アセット(主にこのシーン)をロード
-        public virtual Task<GameObject> LoadAsset()
+        // 事前初期化処理
+        // サーバー通信, モデルクラスの初期化など
+        public virtual Task PreInitialize()
         {
-            return Task.FromResult<GameObject>(null);
+            return Task.CompletedTask;
         }
 
-        // 事前初期化処理
-        // サーバー通信など…???
-        public virtual Task PreInitialize()
+        // アセット(主にこのシーン)をロード
+        public virtual Task LoadAsset()
         {
             return Task.CompletedTask;
         }
@@ -78,17 +78,30 @@ namespace Game.Core.Scenes
 
         protected abstract string AssetPathOrAddress { get; }
 
-        public virtual Task<GameObject> LoadAsset()
-        {
-            return Task.FromResult<GameObject>(null);
-        }
+        public GameSceneState State { get; set; }
+        public Func<IGameScene, Task> ArgHandler { get; set; }
 
         public virtual Task PreInitialize()
         {
             return Task.CompletedTask;
         }
 
+        public virtual Task LoadAsset()
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual Task Startup()
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task Sleep()
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task Restart()
         {
             return Task.CompletedTask;
         }
@@ -104,47 +117,49 @@ namespace Game.Core.Scenes
         }
     }
 
-    // Memo: Arg, Resultと同じく任意でつけられるという事にする
-    public interface IGameSceneModel<TSceneModel>
-        where TSceneModel : class, new()
+    public interface IGameSceneState
     {
-        public TSceneModel SceneModel { get; set; }
+        GameSceneState State { get; set; }
     }
 
     public interface IGameSceneArg<TArg>
     {
-        public Task PreInitialize(TArg arg) => Task.CompletedTask;
+        public Task ArgHandle(TArg arg) => Task.CompletedTask;
     }
 
-    public interface IGameSceneResult<TResult>
+    public interface IGameSceneArgHandler
+    {
+        public Func<IGameScene, Task> ArgHandler { get; set; }
+    }
+
+    public interface IGameSceneResult
+    {
+    }
+
+    public interface IGameSceneResult<TResult> : IGameSceneResult
     {
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
-    }
 
-    // 任意パラメータを受け取りつつ処理を挟みたいとき
-    // 主にダイアログ
-    // プロセス毎に分けるか要検討
-    public interface IGameSceneStartupFilter<TScene, TSceneComponent>
-    {
-        public Func<TScene, TSceneComponent, Task> StartupFilter { get; set; }
+        public bool TrySetResult(TResult result) => ResultTcs?.TrySetResult(result) ?? false;
+
+        public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
     }
 
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
         where TGameScene : IGameScene
         where TGameSceneComponent : GameSceneComponent
     {
-        public TGameScene Scene { get; set; }
         public TGameSceneComponent SceneComponent { get; protected set; }
-
-        public override Task<GameObject> LoadAsset()
-        {
-            return LoadScene();
-        }
 
         public override Task PreInitialize()
         {
-            SceneComponent = GetSceneComponent();
             return base.PreInitialize();
+        }
+
+        public override async Task LoadAsset()
+        {
+            await LoadScene();
+            SceneComponent = GetSceneComponent();
         }
 
         public override Task Startup()
@@ -152,14 +167,31 @@ namespace Game.Core.Scenes
             return base.Startup();
         }
 
+        public override Task Ready()
+        {
+            return base.Ready();
+        }
+
+        public override Task Sleep()
+        {
+            SceneComponent.Sleep();
+            return base.Sleep();
+        }
+
+        public override Task Restart()
+        {
+            SceneComponent.Restart();
+            return Ready();
+        }
+
         public override async Task Terminate()
         {
             await UnloadScene();
         }
 
-        protected virtual Task<GameObject> LoadScene()
+        protected virtual Task LoadScene()
         {
-            return Task.FromResult<GameObject>(null);
+            return Task.CompletedTask;
         }
 
         protected virtual Task UnloadScene()
@@ -177,12 +209,11 @@ namespace Game.Core.Scenes
         private GameObject _asset;
         private GameObject _instance;
 
-        protected override async Task<GameObject> LoadScene()
+        protected override async Task LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             _instance = GameObject.Instantiate(_asset);
             GameSceneHelper.MoveToGameRootScene(_instance);
-            return _instance;
         }
 
         protected override Task UnloadScene()
@@ -214,11 +245,10 @@ namespace Game.Core.Scenes
 
         private SceneInstance _instance;
 
-        protected override async Task<GameObject> LoadScene()
+        protected override async Task LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
             // SceneManager.SetActiveScene(_instance.Scene);
-            return null;
         }
 
         protected override async Task UnloadScene()
@@ -241,10 +271,9 @@ namespace Game.Core.Scenes
 
         private SceneInstance _instance;
 
-        public override async Task<GameObject> LoadAsset()
+        public override async Task LoadAsset()
         {
             await LoadScene();
-            return null;
         }
 
         public override async Task Terminate()
@@ -264,33 +293,40 @@ namespace Game.Core.Scenes
         }
     }
 
+    // 任意パラメータを受け取りつつ処理を挟みたいとき
+    public interface IGameDialogSceneInitializer<TComponent, TResult>
+    {
+        public Func<TComponent, IGameSceneResult<TResult>, Task> DialogInitializer { get; set; }
+    }
+
     // 主にダイアログ用(オーバーレイ表示想定)
     // Memo: MonoBehaviourを使う以上、C#では多重継承できないので、個別作成
-    public abstract class GameDialogScene<TScene, TSceneComponent, TResult> : GameScene<TScene, TSceneComponent>, IGameSceneStartupFilter<TScene, TSceneComponent>, IGameSceneResult<TResult>
+    public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>,
+        IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
         where TScene : IGameScene
-        where TSceneComponent : GameSceneComponent
+        where TComponent : GameSceneComponent
     {
-        public Func<TScene, TSceneComponent, Task> StartupFilter { get; set; }
+        public Func<TComponent, IGameSceneResult<TResult>, Task> DialogInitializer { get; set; }
 
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
         private GameObject _asset;
         private GameObject _instance;
 
-        public override Task<GameObject> LoadAsset()
-        {
-            return LoadScene();
-        }
-
         public override Task PreInitialize()
         {
-            SceneComponent = GetSceneComponent();
             return Task.CompletedTask;
+        }
+
+        public override async Task LoadAsset()
+        {
+            await LoadScene();
+            SceneComponent = GetSceneComponent();
         }
 
         public override Task Startup()
         {
-            StartupFilter?.Invoke(Scene, SceneComponent);
+            DialogInitializer?.Invoke(SceneComponent, this);
             return Task.CompletedTask;
         }
 
@@ -305,11 +341,10 @@ namespace Game.Core.Scenes
             return UnloadScene();
         }
 
-        protected override async Task<GameObject> LoadScene()
+        protected override async Task LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             _instance = GameObject.Instantiate(_asset);
-            return _instance;
         }
 
         protected override Task UnloadScene()
@@ -340,9 +375,9 @@ namespace Game.Core.Scenes
             return ResultTcs?.TrySetCanceled() ?? false;
         }
 
-        protected override TSceneComponent GetSceneComponent()
+        protected override TComponent GetSceneComponent()
         {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TSceneComponent>(_instance);
+            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TComponent>(_instance);
         }
     }
 }

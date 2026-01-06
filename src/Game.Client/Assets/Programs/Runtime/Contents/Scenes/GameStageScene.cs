@@ -15,7 +15,7 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 
 namespace Game.Contents.Scenes
 {
-    public class GameStageScene : GamePrefabScene<GameStageScene, GameStageSceneComponent>, IGameSceneModel<GameStageSceneModel>, IGameSceneArg<int>
+    public class GameStageScene : GamePrefabScene<GameStageScene, GameStageSceneComponent>, IGameSceneArg<int>
     {
         protected override string AssetPathOrAddress => "GameStageScene";
 
@@ -26,16 +26,24 @@ namespace Game.Contents.Scenes
 
         private PlayerStart _playerStart;
 
-        public Task PreInitialize(int stageId)
+        public Task ArgHandle(int stageId)
         {
             _stageId = stageId;
-            SceneModel.Initialize(stageId);
             return Task.CompletedTask;
         }
 
-        public override async Task<GameObject> LoadAsset()
+        public override Task PreInitialize()
         {
-            var instance = await base.LoadAsset();
+            SceneModel = new GameStageSceneModel();
+            SceneModel.Initialize(_stageId);
+            return base.PreInitialize();
+        }
+
+        public override async Task LoadAsset()
+        {
+            await base.LoadAsset();
+
+            // 追加でStageMasterに対応したUnityシーン(3Dフィールド)をロードする
             _stageSceneInstance = await AssetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
 
             // ステージアセットに設定されたSkyboxをメインカメラに反映
@@ -44,8 +52,6 @@ namespace Game.Contents.Scenes
             {
                 GlobalMessageBroker.GetPublisher<int, Material>().Publish(MessageKey.System.Skybox, skybox.material);
             }
-
-            return instance;
         }
 
         public override async Task Startup()
@@ -77,11 +83,16 @@ namespace Game.Contents.Scenes
 
         public override async Task Ready()
         {
+            if (SceneModel.IsFirstStage) GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.GameStageService.Startup, true);
+
             // ゲーム開始準備OKの合図
             SceneModel.StageState = GameStageState.Ready;
-            AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady).Forget();
+            await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.TimeScale, false);
+            await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.Cursor, true);
+            var audioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
+            await audioTask;
             await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.TimeScale, true);
             await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.System.Cursor, false);
             GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.InputSystem.Escape, true);
@@ -133,7 +144,7 @@ namespace Game.Contents.Scenes
 
                     AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
 
-                    await SceneService.TerminateAsync<GamePauseUIDialog>();
+                    await SceneService.TerminateAsync(typeof(GamePauseUIDialog));
                 })
                 .AddTo(SceneComponent);
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
@@ -142,7 +153,7 @@ namespace Game.Contents.Scenes
                     SceneModel.StageState = GameStageState.Retry;
                     AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
                     // 現在のステージへ再遷移
-                    await SceneService.TransitionAsync<GameStageScene, GameStageSceneModel, int>(_stageId);
+                    await SceneService.TransitionAsync<GameStageScene, int>(_stageId);
                 })
                 .AddTo(SceneComponent);
             GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
@@ -154,23 +165,21 @@ namespace Game.Contents.Scenes
                 })
                 .AddTo(SceneComponent);
 
-            GlobalMessageBroker.GetAsyncSubscriber<int, int?>()
-                .Subscribe(MessageKey.GameStage.Finish, handler: async (nextStageId, token) =>
+            GlobalMessageBroker.GetAsyncSubscriber<int, bool>()
+                .Subscribe(MessageKey.GameStage.Finish, handler: async (_, token) =>
                 {
                     SceneModel.StageState = GameStageState.Finish;
                     AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish, token).Forget();
 
-                    if (nextStageId.HasValue)
+                    if (SceneModel.NextStageId.HasValue)
                     {
                         // 次のステージへ
-                        await SceneService.TransitionAsync<GameStageScene, GameStageSceneModel, int>(nextStageId.Value);
+                        await SceneService.TransitionAsync<GameStageScene, int>(SceneModel.NextStageId.Value);
+                        return;
                     }
-                    else
-                    {
-                        // 総合リザルト画面？？？
-                        // 今はタイトルに戻しておく
-                        await SceneService.TransitionAsync<GameTitleScene>();
-                    }
+
+                    // 総合リザルトへ
+                    await SceneService.TransitionAsync<GameTotalResultScene>();
                 })
                 .AddTo(SceneComponent);
 
@@ -188,7 +197,8 @@ namespace Game.Contents.Scenes
 
                     other.gameObject.SafeDestroy();
 
-                    AudioService.PlayRandomOneAsync(AudioPlayTag.PlayerGetPoint).Forget();
+                    AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.PlayerGetPoint).Forget();
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetPoint).Forget();
 
                     SceneModel.AddPoint(point);
 
@@ -245,8 +255,9 @@ namespace Game.Contents.Scenes
             else
                 AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFailed).Forget();
 
-            // Debug.LogError($"Stage Result: {result}");
-            await GameResultUIDialog.RunAsync(SceneModel.CreateStageResult());
+            var result = SceneModel.CreateStageResult();
+
+            await GameResultUIDialog.RunAsync(result);
         }
     }
 }

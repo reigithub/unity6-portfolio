@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
+using Game.Core.Constants;
 using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MessagePipe;
@@ -21,53 +23,37 @@ namespace Game.Contents.Scenes
         {
             if (_startButton)
             {
-                _startButton
-                    .OnClickAsObservable()
-                    .ThrottleFirst(TimeSpan.FromSeconds(3))
+                _startButton.OnClickAsObservableThrottleFirst()
                     .SubscribeAwait(async (_, token) =>
                     {
-                        SetInteractable(false);
-                        // await AudioService.PlayRandomAsync(AudioCategory.Voice, AudioPlayTag.GameStart, token);
+                        SetInteractiveAllButton(false);
                         await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.Game.Start, true, token);
 
                         // 今のところプレイモードは１つなので
-                        var master = MemoryDatabase.StageMasterTable.All
-                            .OrderBy(x => x.Id)
-                            .FirstOrDefault();
-                        var stageId = master?.Id ?? 1; // 本来はエラーメッセージだして落とす
-                        await SceneService.TransitionAsync<GameStageScene, GameStageSceneModel, int>(stageId);
+                        var stageId = MemoryDatabase.StageMasterTable.All.Min(x => x.Id);
+                        await SceneService.TransitionAsync<GameStageScene, int>(stageId);
                     })
                     .AddTo(this);
             }
 
             if (_quitButton)
             {
-                _quitButton
-                    .OnClickAsObservable()
-                    .ThrottleFirst(TimeSpan.FromSeconds(3))
+                _quitButton.OnClickAsObservableThrottleFirst()
                     .SubscribeAwait(async (_, token) =>
                     {
-                        SetInteractable(false);
-                        // await AudioService.PlayRandomAsync(AudioCategory.Voice, AudioPlayTag.GameQuit);
+                        SetInteractiveAllButton(false);
                         await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.Game.Quit, true, token);
                     })
                     .AddTo(this);
             }
 
-            SetInteractable(true);
+            SetInteractiveAllButton(true);
         }
 
-        public void SetInteractable(bool interactable)
+        public async Task ReadyAsync()
         {
-            if (_startButton) _startButton.interactable = interactable;
-            if (_quitButton) _quitButton.interactable = interactable;
-        }
-
-        public void OnReady()
-        {
-            if (_animator) _animator.Play("Salute"); // MessageBrokerで起動できるようにする
-
-            GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.Game.Ready, true);
+            GlobalMessageBroker.GetPublisher<int, string>().Publish(MessageKey.Player.PlayAnimation, PlayerConstants.GameTitleSceneAnimatorStateName);
+            await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.Game.Ready, true);
         }
     }
 }

@@ -181,6 +181,22 @@ namespace Game.Core.Services
             return Task.CompletedTask;
         }
 
+        public Task PlayAsync(int audioId, CancellationToken token = default)
+        {
+            var audioMaster = MemoryDatabase.AudioMasterTable.FindById(audioId);
+            var audioCategory = (AudioCategory)audioMaster.AudioCategory;
+            var audioName = audioMaster.AssetName;
+            return PlayAsync(audioCategory, audioName, token);
+        }
+
+        public async Task PlayAsync(int[] audioIds, CancellationToken token = default)
+        {
+            foreach (var audioId in audioIds)
+            {
+                await PlayAsync(audioId, token);
+            }
+        }
+
         /// <summary>
         /// 全カテゴリで再生できるものを流す
         /// </summary>
@@ -199,6 +215,7 @@ namespace Game.Core.Services
                     return (audioMaster.AudioCategory, audioMaster.AssetName);
                 })
                 .Where(x => x.AudioCategory > 0)
+                .OrderBy(x => x.AudioCategory)
                 .GroupBy(x => x.AudioCategory, x => x.AssetName)
                 .ToDictionary(x => x.Key, x => x.ToArray());
             if (byCategory.Count <= 0)

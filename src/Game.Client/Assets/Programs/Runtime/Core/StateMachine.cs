@@ -194,7 +194,8 @@ namespace Game.Core
                     _currentState = null;
 
                     _stateUpdateType = StateUpdateType.Idle;
-                    ExceptionDispatchInfo.Capture(e).Throw();
+                    // ExceptionDispatchInfo.Capture(e).Throw();
+                    throw;
                 }
 
                 if (_nextState == null)
@@ -229,7 +230,8 @@ namespace Game.Core
             catch (Exception e)
             {
                 _stateUpdateType = StateUpdateType.Idle;
-                ExceptionDispatchInfo.Capture(e).Throw();
+                // ExceptionDispatchInfo.Capture(e).Throw();
+                throw;
             }
         }
 

@@ -25,13 +25,38 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1dc177c9d0d8347d0b0a178593807e77
+    m_Address: Death2_8bitSFX
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 46e7fc2590c4ae64fb8c79606698b98d
+    m_Address: MagicScore9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4f5bc64a69b9741b49c08897fbf40c67
+    m_Address: Death1_8bitSFX
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 568470e29bef88c4aaa027db357be957
     m_Address: Notified2
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 668620113e9d6dc4483ba3d8dbae9fcf
+    m_Address: MagicScore5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6e7f23ef945c235438595e89d6332d46
     m_Address: ShimmeryReward5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 766700b52c75d4cf3b4a053f311bdfbf
+    m_Address: Death3_8bitSFX
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -42,6 +67,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a0f6b0b611d474beab95e07a195f851e
     m_Address: SpecialClick1_8bitSFX
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b7b21f9a60172844dbf194c6b25f40dd
+    m_Address: MagicScore8
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -16,16 +16,19 @@ namespace Game.Core.Services
 
         public async Task<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
+            ThrowExceptionIfNullAddress(address);
             return await Addressables.LoadAssetAsync<T>(address);
         }
 
         public async Task<GameObject> InstantiateAsync(string address, Transform parent = null)
         {
+            ThrowExceptionIfNullAddress(address);
             return await Addressables.InstantiateAsync(address, parent);
         }
 
         public async Task<SceneInstance> LoadSceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
+            ThrowExceptionIfNullAddress(sceneName);
             return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
         }
 
@@ -38,6 +41,14 @@ namespace Game.Core.Services
             // if (handle.Status == AsyncOperationStatus.Succeeded)
             // {
             // }
+        }
+
+        private void ThrowExceptionIfNullAddress(string address)
+        {
+            if (string.IsNullOrEmpty(address))
+            {
+                throw new InvalidOperationException("Address is Null.");
+            }
         }
     }
 }

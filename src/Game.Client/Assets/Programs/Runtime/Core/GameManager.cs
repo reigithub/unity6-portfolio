@@ -78,10 +78,10 @@ namespace Game.Core
         {
             // ゲーム起動時に初期化しておきたいサービスはここで
             GameServiceManager.Instance.StartUp();
-            GameServiceManager.Instance.AddService<AudioService>();
-            GameServiceManager.Instance.AddService<GameSceneService>();
-            GameServiceManager.Instance.AddService<MasterDataService>();
-            GameServiceManager.Instance.AddService<MessageBrokerService>();
+            GameServiceManager.Instance.StartupService<MasterDataService>();
+            GameServiceManager.Instance.StartupService<MessageBrokerService>();
+            GameServiceManager.Instance.StartupService<AudioService>();
+            GameServiceManager.Instance.StartupService<GameSceneService>();
 
             await GameCommonObjects.LoadAssetAsync();
 

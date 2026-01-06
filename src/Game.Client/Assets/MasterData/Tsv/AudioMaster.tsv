@@ -416,3 +416,9 @@ Id	Name	AssetName	Desc	AudioCategory
 2004	SpecialClick1_8bitSFX	SpecialClick1_8bitSFX	ゲーム開始／終了	3
 2005	Notified2	Notified2	アイテム獲得	3
 2006	ShimmeryReward5	ShimmeryReward5	アイテム獲得	3
+2007	MagicScore5	MagicScore5		4
+2008	MagicScore8	MagicScore8		5
+2009	MagicScore9	MagicScore9		6
+2010	Death1_8bitSFX	Death1_8bitSFX		7
+2011	Death2_8bitSFX	Death2_8bitSFX		8
+2012	Death3_8bitSFX	Death3_8bitSFX		9

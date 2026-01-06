@@ -1,11 +1,6 @@
 using System;
 using MessagePipe;
 
-// global provider が staticなので、やむを得ず毎回、自分のインスタンスをセットし直すことで無理やり競合を回避できるが...
-// デメリットとして、GlobalMessagePipe.MessagePipeDiagnosticsInfoも入れ替わるので、同時に複数インスタンスが存在していると、MessagePipeDiagnosticsInfoWindowで直前のものしか見る事ができない
-// ゲーム内に1つしか持たないという方法もあるが…（→MessageBrokerServiceに持たせたみた）
-// 公式ではBuiltinContainerBuilder使うならGlobalMessagePipe推奨らしい…が要検証
-
 namespace Game.Core.MessagePipe
 {
     public class GlobalMessageBroker
@@ -38,8 +33,6 @@ namespace Game.Core.MessagePipe
         }
 
         // Request/Response形式
-        // Memo: Requestはstruct / Responseはstructかintとか?
-        // Memo: ハンドラーフィルターは後ほど検証してから…
         public void AddRequestHandler<TRequest, TResponse, THandler>()
             where THandler : IRequestHandler
         {
@@ -66,25 +59,21 @@ namespace Game.Core.MessagePipe
 
         public IPublisher<TKey, TMessage> GetPublisher<TKey, TMessage>()
         {
-            // SetProvider();
             return GlobalMessagePipe.GetPublisher<TKey, TMessage>();
         }
 
         public ISubscriber<TKey, TMessage> GetSubscriber<TKey, TMessage>()
         {
-            // SetProvider();
             return GlobalMessagePipe.GetSubscriber<TKey, TMessage>();
         }
 
         public IAsyncPublisher<TKey, TMessage> GetAsyncPublisher<TKey, TMessage>()
         {
-            // SetProvider();
             return GlobalMessagePipe.GetAsyncPublisher<TKey, TMessage>();
         }
 
         public IAsyncSubscriber<TKey, TMessage> GetAsyncSubscriber<TKey, TMessage>()
         {
-            // SetProvider();
             return GlobalMessagePipe.GetAsyncSubscriber<TKey, TMessage>();
         }
 

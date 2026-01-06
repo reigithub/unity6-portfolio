@@ -21,7 +21,7 @@ namespace Game.Core.MessagePipe
 
         private IServiceProvider _serviceProvider;
         // private EventFactory _eventFactory;
-        // private MessagePipeDiagnosticsInfo _diagnosticsInfo; // Memo: GlobalMessagePipeを上書きして、MessagePipeDiagnosticsInfoWindowから中身見られるか
+        // private MessagePipeDiagnosticsInfo _diagnosticsInfo;
 
         public MessageBroker()
         {

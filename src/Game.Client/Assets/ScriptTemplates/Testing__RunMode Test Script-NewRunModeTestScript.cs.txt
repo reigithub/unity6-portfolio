@@ -1,0 +1,15 @@
+#if UNITY_EDITOR || UNITY_INCLUDE_TESTS
+using System.Collections;
+using NUnit.Framework;
+using UnityEngine;
+
+public class #SCRIPTNAME#
+{
+    // A Test behaves as an ordinary method
+    [Test]
+    public void #SCRIPTNAME#SimplePasses()
+    {
+        // Use the Assert class to test conditions
+    }
+}
+#endif

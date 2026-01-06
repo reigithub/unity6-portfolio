@@ -18,11 +18,12 @@ namespace Game.Contents.UI
         public static Task<bool> RunAsync()
         {
             var sceneService = GameServiceManager.Instance.GetService<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, bool>(startup: (dialog, component) =>
-            {
-                component.Initialize(dialog);
-                return Task.CompletedTask;
-            });
+            return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, bool>(
+                initializer: (component, result) =>
+                {
+                    component.Initialize(result);
+                    return Task.CompletedTask;
+                });
         }
 
         public override Task Startup()
@@ -61,57 +62,39 @@ namespace Game.Contents.UI
         [SerializeField]
         private Button _quitButton;
 
-        private const float OnClickInterval = 3f; // Memo: ゲーム共通の定数としてもつか検討
-
-        public void Initialize(GamePauseUIDialog dialog)
+        public void Initialize(IGameSceneResult<bool> result)
         {
-            _resumeButton.OnClickAsObservable()
-                .ThrottleFirst(TimeSpan.FromSeconds(OnClickInterval))
+            _resumeButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractable(false);
+                    SetInteractiveAllButton(false);
                     await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.GameStage.Resume, true, token);
-
-                    // Memo: 一旦、どのメソッドでも閉じられる挙動にするという確認
-                    dialog.TrySetResult(false);
-                    // dialog.TrySetCanceled();
-                    // dialog.Terminate();
+                    result.TrySetResult(false);
                 })
                 .AddTo(this);
-            _retryButton.OnClickAsObservable()
-                .ThrottleFirst(TimeSpan.FromSeconds(OnClickInterval))
+            _retryButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractable(false);
+                    SetInteractiveAllButton(false);
                     await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.GameStage.Retry, true, token);
                 })
                 .AddTo(this);
-            _returnButton.OnClickAsObservable()
-                .ThrottleFirst(TimeSpan.FromSeconds(OnClickInterval))
+            _returnButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractable(false);
+                    SetInteractiveAllButton(false);
                     await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.GameStage.ReturnTitle, true, token);
                 })
                 .AddTo(this);
-            _quitButton.OnClickAsObservable()
-                .ThrottleFirst(TimeSpan.FromSeconds(OnClickInterval))
+            _quitButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractable(false);
+                    SetInteractiveAllButton(false);
                     await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.Game.Quit, true, token);
                 })
                 .AddTo(this);
 
-            SetInteractable(true);
-        }
-
-        private void SetInteractable(bool interactable)
-        {
-            _resumeButton.interactable = interactable;
-            _retryButton.interactable = interactable;
-            _returnButton.interactable = interactable;
-            _quitButton.interactable = interactable;
+            SetInteractiveAllButton(true);
         }
     }
 }
