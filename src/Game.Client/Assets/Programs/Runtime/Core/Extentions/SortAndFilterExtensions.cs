@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Game.Core
+namespace Game.Core.Extensions
 {
     public enum SortType
     {
@@ -29,7 +29,7 @@ namespace Game.Core
     /// <summary>
     /// WIP
     /// </summary>
-    public static class SortAndFilterExtensions
+    public static class SortExtensions
     {
         public static IEnumerable<TItem> Sorting<TItem, TValue>(this IEnumerable<TItem> items, OrderType orderType, Func<TItem, TValue> predicate)
         {
@@ -44,7 +44,10 @@ namespace Game.Core
                     return items;
             }
         }
+    }
 
+    public static class FilterExtensions
+    {
         public static IEnumerable<TItem> Filtering<TItem>(this IEnumerable<TItem> items,
             FilterType filterType,
             IReadOnlyDictionary<FilterType, HashSet<int>> filters,

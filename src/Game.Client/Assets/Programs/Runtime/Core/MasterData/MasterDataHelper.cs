@@ -5,8 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Game.Core.MasterData.MemoryTables;
-using MasterMemory;
 using MessagePack;
 using MessagePack.Resolvers;
 using UnityEngine;
@@ -120,6 +120,7 @@ namespace Game.Core.MasterData
                     appendMethod.Invoke(databaseBuilder, new object[] { masterElements });
                 }
 
+                // Memo: これにできるか検討
                 // databaseBuilder.AppendDynamic(memoryTableType, elements);
             }
 
@@ -228,6 +229,8 @@ namespace Game.Core.MasterData
             if (!File.Exists(tsvPath))
                 yield break;
 
+            // 改善余地あり？
+            // https://github.com/Cysharp/MasterMemory#metadata
             var lines = File.ReadAllLines(tsvPath);
             var columnNames = lines
                 .First()
@@ -389,6 +392,26 @@ namespace Game.Core.MasterData
 
                     // or other your custom parsing.
                     throw new NotSupportedException();
+            }
+        }
+
+        public static void GetMetaDatabase()
+        {
+            var metaDb = MemoryDatabase.GetMetaDatabase();
+            foreach (var table in metaDb.GetTableInfos())
+            {
+                var sb = new StringBuilder();
+                // for example, generate CSV header
+                foreach (var prop in table.Properties)
+                {
+                    if (sb.Length != 0) sb.Append("\t");
+
+                    // Name can convert to LowerCamelCase or SnakeCase.
+                    sb.Append(prop.NameSnakeCase);
+                }
+
+                // File.WriteAllText(table.TableName + ".tsv", sb.ToString(), new UTF8Encoding(false));
+                Debug.LogError($"{sb}");
             }
         }
 

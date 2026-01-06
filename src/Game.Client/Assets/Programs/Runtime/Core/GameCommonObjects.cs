@@ -21,6 +21,7 @@ namespace Game.Core
     {
         private const string Address = "GameCommonObjects";
 
+        // Memo: staticである必要はないかもしれない
         public static GameCommonObjects Instance { get; private set; }
 
         public static async UniTask LoadAssetAsync()

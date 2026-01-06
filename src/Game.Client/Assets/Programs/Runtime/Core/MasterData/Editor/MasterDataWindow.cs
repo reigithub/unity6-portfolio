@@ -44,10 +44,6 @@ namespace Game.MasterData.Editor
         {
             GUILayout.Space(10);
 
-            // ヘッダー
-
-            GUILayout.Space(10);
-
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUILayout.VerticalScope())
@@ -137,12 +133,6 @@ namespace Game.MasterData.Editor
             }
 
             GUILayout.Space(10);
-
-            // ログ;
-
-            GUILayout.Space(10);
-
-            // フッター;
         }
 
         private void AppendLog(string log)
@@ -173,10 +163,6 @@ namespace Game.MasterData.Editor
         {
             GUILayout.Space(10);
 
-            // ヘッダー
-
-            GUILayout.Space(10);
-
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUILayout.VerticalScope())
@@ -194,21 +180,10 @@ namespace Game.MasterData.Editor
                                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                     .ToDictionary(x => x.PropertyType, x => x.GetValue(_memoryDatabase));
 
-                                // GetRawDataUnsafe()
-
                                 foreach (var (type, instance) in tables)
                                 {
                                     var count = type.GetProperty("Count")?.GetValue(instance);
                                     EditorGUILayout.SelectableLabel($"テーブル名: {type.Name} データ件数: {count}");
-
-                                    // var methodInfo = type.GetMethod("GetRawDataUnsafe");
-                                    // var value = methodInfo?.Invoke(instance, null);
-                                    // Type returnType = methodInfo?.ReturnType;
-                                    // var ret = (object[])MasterDataHelper.ConvertToType(value, returnType);
-                                    // foreach (var r in ret)
-                                    // {
-                                    //     EditorGUILayout.SelectableLabel($"{r}");
-                                    // }
                                 }
                             }
                         }
@@ -226,12 +201,6 @@ namespace Game.MasterData.Editor
             }
 
             GUILayout.Space(10);
-
-            // ログ;
-
-            GUILayout.Space(10);
-
-            // フッター;
         }
     }
 }

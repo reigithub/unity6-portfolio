@@ -57,6 +57,8 @@ namespace Game.Core.MessagePipe
             GlobalMessagePipe.SetProvider(_serviceProvider);
         }
 
+        // Memo: GetPublisher/GetSubscriberなどのコードが冗長になりがちなので、もう少しショートカット化できるか検討
+
         public IPublisher<TKey, TMessage> GetPublisher<TKey, TMessage>()
         {
             return GlobalMessagePipe.GetPublisher<TKey, TMessage>();

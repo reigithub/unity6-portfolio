@@ -10,10 +10,6 @@ namespace Game.Core.Services
 {
     public class AddressableAssetService : GameService
     {
-        // Debug.Log(Addressables.BuildPath);
-        // Debug.Log(Addressables.PlayerBuildDataPath);
-        // Debug.Log(Addressables.RuntimePath);
-
         public async Task<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
             ThrowExceptionIfNullAddress(address);
@@ -34,13 +30,7 @@ namespace Game.Core.Services
 
         public async Task UnloadSceneAsync(SceneInstance sceneInstance)
         {
-            var handle = Addressables.UnloadSceneAsync(sceneInstance);
-            await handle;
-
-            // Memo: 何かしらのハンドリングをするなら...
-            // if (handle.Status == AsyncOperationStatus.Succeeded)
-            // {
-            // }
+            await Addressables.UnloadSceneAsync(sceneInstance);
         }
 
         private void ThrowExceptionIfNullAddress(string address)

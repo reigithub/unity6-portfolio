@@ -33,7 +33,7 @@ namespace Game.Core.Services
         protected internal override bool AllowResidentOnMemory => true;
     }
 
-    // Request/Responseじゃなくてもよいが実験的に入れてみた
+    // Request/Responseじゃなくてもよいが実験的に入れてみた、が多分MessageBrokerでいい
     public class GameStageRequestHandler :
         IRequestHandler<GameStageResultData, bool>,
         IRequestHandler<GameStageTotalResultRequest, GameStageTotalResultData>
