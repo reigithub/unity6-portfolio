@@ -26,11 +26,11 @@
 * アウトゲームシーンは遷移挙動のカスタマイズ性を担保するため、全てPrefabシーンを採用しています
 ---
 ## 機能コードリンク
-* シーン遷移サービス : [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/7ae9559318c24b5ee49e6e01d581b28df373a749/Assets/Programs/Runtime/Core/Services/GameSceneService.cs)
-* シーン基底クラス : [GameScene.cs](https://github.com/reigithub/unity6-sample/blob/7ae9559318c24b5ee49e6e01d581b28df373a749/Assets/Programs/Runtime/Core/Scenes/GameScene.cs)
-* マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/7ae9559318c24b5ee49e6e01d581b28df373a749/Assets/Programs/Runtime/Core/MasterData/Editor/MasterDataWindow.cs)
-* ステートマシーン本体 : [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/e9b0245a66349aea0bf831d51fdf093bff281aa9/Assets/Programs/Runtime/Core/StateMachine.cs)
-* ステートマシーン実装 : [PlayerController](https://github.com/reigithub/unity6-sample/blob/e9b0245a66349aea0bf831d51fdf093bff281aa9/Assets/Programs/Runtime/Contents/Player/SDUnityChanPlayerController.cs)
+* シーン遷移サービス : [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/Services/GameSceneService.cs)
+* シーン基底クラス : [GameScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/Scenes/GameScene.cs)
+* マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/MasterData/Editor/MasterDataWindow.cs)
+* ステートマシーン本体 : [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/StateMachine.cs)
+* ステートマシーン実装 : [PlayerController](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Contents/Player/SDUnityChanPlayerController.cs)
 ---
 ## 使用言語/ライブラリ/ツール
 
