@@ -21,28 +21,23 @@ namespace Game.Core
     {
         private const string Address = "GameCommonObjects";
 
-        // Memo: staticである必要はないかもしれない
-        public static GameCommonObjects Instance { get; private set; }
-
         public static async UniTask LoadAssetAsync()
         {
             var assetService = GameServiceManager.Instance.GetService<AddressableAssetService>();
             var prefab = await assetService.LoadAssetAsync<GameObject>(Address);
             if (prefab == null)
-            {
-                Debug.LogError($"Load Asset Failed. {Address}");
-                Debug.Break();
-            }
-
-            Instance.SafeDestroy();
-            Instance = null;
+                throw new NullReferenceException($"Load Asset Failed. {Address}");
 
             var go = Instantiate(prefab);
             if (go.TryGetComponent<GameCommonObjects>(out var commonObjects))
             {
                 DontDestroyOnLoad(go);
                 commonObjects.Initialize();
-                Instance = commonObjects;
+            }
+            else
+            {
+                go.SafeDestroy();
+                throw new MissingComponentException($"{nameof(GameCommonObjects)} is missing.");
             }
         }
 
