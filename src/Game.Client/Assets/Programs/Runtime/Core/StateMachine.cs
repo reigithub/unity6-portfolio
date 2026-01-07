@@ -86,6 +86,8 @@ namespace Game.Core
 
         public TContext Context { get; }
 
+        protected virtual bool AllowForceTransition => false;
+
         public StateMachine(TContext context)
         {
             Context = context;
@@ -219,11 +221,14 @@ namespace Game.Core
         /// 遷移テーブルを無視したState直接指定の遷移
         /// WARN: 強制的に次に遷移すべきステートを上書きします
         /// </summary>
-        /// <remarks>Memo: 後でデフォルト設定では使用を許可しないようにするかもしれない</remarks>
         public void ForceTransition<TState>() where TState : State<TContext, TEventKey>, new()
         {
             if (_stateUpdateType == StateUpdateType.Exit)
                 throw new InvalidOperationException("Cannot transition during Exit");
+
+            // 強制的な遷移が許可されていない
+            if (!AllowForceTransition)
+                return;
 
             _nextState = GetOrAddState<TState>();
         }
