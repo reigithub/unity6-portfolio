@@ -100,9 +100,14 @@ namespace Game.Contents.Player
                 .Subscribe(info => OnAnimatorStateExit(info.StateInfo))
                 .AddTo(this);
 
+            // スピードが変わった時だけアニメーターを更新
+            _speed
+                .DistinctUntilChanged()
+                .Subscribe(speed => _animator.SetFloat(_animatorHashSpeed, speed))
+                .AddTo(this);
             // 走り始めた時のボイス再生
             _speed
-                .DistinctUntilChangedBy(x => IsRunning())
+                .DistinctUntilChangedBy(_ => IsRunning())
                 .Subscribe(_ =>
                 {
                     if (IsRunning()) AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerRun).Forget();
@@ -110,49 +115,12 @@ namespace Game.Contents.Player
                 .AddTo(this);
         }
 
-        #region AnimatorState
-
-        private void OnAnimatorStateEnter(AnimatorStateInfo stateInfo)
-        {
-            // アニメーター状態をフラグに反映（State内で遷移判断に使用）
-            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
-            {
-                _isJumpingAnim = true;
-            }
-            else if (stateInfo.IsName("Base Layer.Damaged"))
-            {
-                _isDamagedAnim = true;
-            }
-            else if (stateInfo.IsName("Base Layer.GoDown"))
-            {
-                _isDownAnim = true;
-            }
-        }
-
-        private void OnAnimatorStateExit(AnimatorStateInfo stateInfo)
-        {
-            // アニメーター状態をフラグに反映（State内で遷移判断に使用）
-            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
-            {
-                _isJumpingAnim = false;
-            }
-            else if (stateInfo.IsName("Base Layer.Damaged"))
-            {
-                _isDamagedAnim = false;
-            }
-            else if (stateInfo.IsName("Base Layer.DownToUp"))
-            {
-                _isDownAnim = false;
-                _isGettingUpComplete = true;
-            }
-        }
-
-        #endregion
-
         public void SetMainCamera(Transform mainCamera)
         {
             _mainCamera = mainCamera;
         }
+
+        #region MonoBehaviour Methods
 
         private void Awake()
         {
@@ -188,6 +156,10 @@ namespace Game.Contents.Player
             _stateMachine.FixedUpdate();
         }
 
+        #endregion
+
+        #region Input
+
         private void UpdateInput()
         {
             // 移動入力受付
@@ -195,12 +167,10 @@ namespace Game.Contents.Player
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新
-            var speed = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
-            _speed.Value = speed;
-            _animator.SetFloat(_animatorHashSpeed, speed);
+            _speed.Value = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
 
             // 回転入力受付
-            if (_moveValue.magnitude > 0.1f)
+            if (IsMoveInput())
             {
                 _lookRotation = Quaternion.LookRotation(_moveVector);
             }
@@ -249,6 +219,11 @@ namespace Game.Contents.Player
             return _speed.Value >= _runSpeed;
         }
 
+        private bool IsMoveInput()
+        {
+            return _moveValue.magnitude > 0.1f;
+        }
+
         public void SetRunInput(bool canRun)
         {
             if (canRun)
@@ -256,6 +231,10 @@ namespace Game.Contents.Player
             else
                 _player.LeftShift.Disable();
         }
+
+        #endregion
+
+        #region Collider
 
         private void OnTriggerEnter(Collider other)
         {
@@ -271,6 +250,8 @@ namespace Game.Contents.Player
                 _animator.SetTrigger(_animatorHashDamaged);
             }
         }
+
+        #endregion
 
         #region StateMachine
 
@@ -340,7 +321,7 @@ namespace Game.Contents.Player
                 }
 
                 // 移動入力チェック
-                if (ctx._moveValue.magnitude > 0.1f)
+                if (ctx.IsMoveInput())
                 {
                     StateMachine.Transition(StateEvent.Move);
                 }
@@ -374,7 +355,7 @@ namespace Game.Contents.Player
                 }
 
                 // 移動入力がなくなったらIdleへ
-                if (ctx._moveValue.magnitude <= 0.1f)
+                if (!ctx.IsMoveInput())
                 {
                     StateMachine.Transition(StateEvent.Stop);
                 }
@@ -385,7 +366,7 @@ namespace Game.Contents.Player
                 var ctx = Context;
                 if (ctx._mainCamera)
                 {
-                    if (ctx._moveValue.magnitude > 0.1f)
+                    if (ctx.IsMoveInput())
                     {
                         var forward = ctx._mainCamera.forward;
                         var right = ctx._mainCamera.right;
@@ -399,7 +380,7 @@ namespace Game.Contents.Player
 
                 ctx._rigidbody.MovePosition(ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
 
-                if (ctx._moveValue.magnitude > 0.1f)
+                if (ctx.IsMoveInput())
                 {
                     ctx._rigidbody.MoveRotation(
                         Quaternion.Slerp(ctx._rigidbody.rotation, ctx._lookRotation, ctx._rotationRatio * Time.fixedDeltaTime));
@@ -443,7 +424,7 @@ namespace Game.Contents.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                if (ctx._mainCamera && ctx._moveValue.magnitude > 0.1f)
+                if (ctx._mainCamera && ctx.IsMoveInput())
                 {
                     var forward = ctx._mainCamera.forward;
                     var right = ctx._mainCamera.right;
@@ -457,7 +438,7 @@ namespace Game.Contents.Player
                 ctx._rigidbody.MovePosition(
                     ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
 
-                if (ctx._moveValue.magnitude > 0.1f)
+                if (ctx.IsMoveInput())
                 {
                     ctx._rigidbody.MoveRotation(
                         Quaternion.Slerp(ctx._rigidbody.rotation, ctx._lookRotation, ctx._rotationRatio * Time.fixedDeltaTime));
@@ -512,6 +493,45 @@ namespace Game.Contents.Player
                     ctx.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetUp).Forget();
                     StateMachine.Transition(StateEvent.GetUp);
                 }
+            }
+        }
+
+        #endregion
+
+        #region AnimatorState
+
+        private void OnAnimatorStateEnter(AnimatorStateInfo stateInfo)
+        {
+            // アニメーター状態をフラグに反映（State内で遷移判断に使用）
+            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
+            {
+                _isJumpingAnim = true;
+            }
+            else if (stateInfo.IsName("Base Layer.Damaged"))
+            {
+                _isDamagedAnim = true;
+            }
+            else if (stateInfo.IsName("Base Layer.GoDown"))
+            {
+                _isDownAnim = true;
+            }
+        }
+
+        private void OnAnimatorStateExit(AnimatorStateInfo stateInfo)
+        {
+            // アニメーター状態をフラグに反映（State内で遷移判断に使用）
+            if (stateInfo.IsName("Base Layer.LocomotionState.JumpState.Jumping"))
+            {
+                _isJumpingAnim = false;
+            }
+            else if (stateInfo.IsName("Base Layer.Damaged"))
+            {
+                _isDamagedAnim = false;
+            }
+            else if (stateInfo.IsName("Base Layer.DownToUp"))
+            {
+                _isDownAnim = false;
+                _isGettingUpComplete = true;
             }
         }
 
