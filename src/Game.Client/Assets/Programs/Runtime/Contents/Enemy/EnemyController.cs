@@ -1,4 +1,5 @@
-using Game.Contents.Player;
+using Game.Core;
+using Game.Core.Constants;
 using Game.Core.MasterData.MemoryTables;
 using UnityEngine;
 using UnityEngine.AI;
@@ -8,18 +9,30 @@ namespace Game.Contents.Enemy
     /// <summary>
     /// 簡易的なエネミー追尾システム
     /// </summary>
+    [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(Animator))]
     public class EnemyController : MonoBehaviour
     {
         [SerializeField] private GameObject _player;
 
-        // private Rigidbody _playerRigidbody;
-        // private SDUnityChanPlayerController _playerController;
         private NavMeshAgent _navMeshAgent;
         private Animator _animator;
 
-        private float _distance;
-        private float _viewAngle;
-        private NavMeshHit _navMeshHit;
+        // ステートマシーン
+        private StateMachine<EnemyController, StateEvent> _stateMachine;
+
+        // 検知関連
+        private readonly RaycastHit[] _raycastHits = new RaycastHit[1];
+        private readonly Collider[] _overlapResults = new Collider[10];
+
+        // パトロール関連
+        private readonly float _rotationSpeed = 5.0f;
+        private float _rotationInterval = 5.0f;
+        private float _rotationIntervalCount;
+        private float _remainingDistance = 0.5f;
+
+        // アニメータハッシュ
+        private readonly int _animatorHashSpeed = Animator.StringToHash("Speed");
 
         public EnemyMaster EnemyMaster { get; private set; }
 
@@ -28,102 +41,59 @@ namespace Game.Contents.Enemy
             _player = player;
             EnemyMaster = enemyMaster;
 
-            if (TryGetComponent<NavMeshAgent>(out var navMeshAgent))
-            {
-                _navMeshAgent = navMeshAgent;
-                SetSpeed(enemyMaster.WalkSpeed);
-            }
+            TryGetComponent(out _navMeshAgent);
+            TryGetComponent(out _animator);
 
-            if (TryGetComponent<Animator>(out var animator))
-            {
-                _animator = animator;
-            }
+            SetSpeed(enemyMaster.WalkSpeed);
+
+            // ステートマシン初期化
+            InitializeStateMachine();
         }
 
-        private void SetSpeed(float speed)
-        {
-            if (_navMeshAgent)
-            {
-                _navMeshAgent.speed = speed;
-            }
-
-            if (_animator)
-            {
-                _animator.SetFloat(Animator.StringToHash("Speed"), speed);
-            }
-        }
+        #region MonoBehaviour Methods
 
         private void Update()
         {
             if (!_player) return;
 
-            DetectPlayerOrPatrol();
+            _stateMachine.Update();
         }
 
-        private void DetectPlayerOrPatrol()
+        #endregion
+
+        #region Speed Control
+
+        private void SetSpeed(float speed)
         {
-            // TODO: StateMachine化の検討
-
-            _distance = Vector3.Distance(_player.transform.position, transform.position);
-
-            // プレイヤー探索
-            bool detected = TryDetectPlayerByVision();
-            if (!detected) detected = TryDetectPlayerByAudio();
-
-            if (!detected)
-            {
-                RandomPatrol();
-            }
-            else
-            {
-                ResetPatrolRotation();
-            }
+            if (_navMeshAgent) _navMeshAgent.speed = speed;
+            if (_animator) _animator.SetFloat(_animatorHashSpeed, speed);
         }
+
+        #endregion
+
+        #region Detection
 
         private bool TryDetectPlayerByVision()
         {
-            //視覚で感知
-            // if (_distance > 5f)
-            if (_distance > EnemyMaster.VisualDistance)
+            // 視覚範囲内のプレイヤーを検知
+            if (!IsPlayerOverlap(EnemyMaster.VisualDistance))
                 return false;
 
-            Vector3 distance = transform.position - _player.transform.position;
-            Vector3 cross = Vector3.Cross(transform.forward, distance);
-            _viewAngle = Vector3.Angle(transform.forward, distance) * (cross.y < 0f ? -1f : 1f);
-            _viewAngle += 180f;
-
-            if (_viewAngle <= 45f || _viewAngle >= 315f)
+            // 視野角チェック
+            Vector3 viewDistance = transform.position - _player.transform.position;
+            Vector3 viewCross = Vector3.Cross(transform.forward, viewDistance);
+            var viewAngle = Vector3.Angle(transform.forward, viewDistance) * (viewCross.y < 0f ? -1f : 1f) + 180f;
+            if (viewAngle <= 45f || viewAngle >= 315f)
             {
-                //Rayを飛ばしてプレイヤーとの間に障害物がないか確認する
-                Vector3 diff = _player.transform.position - transform.position;
-                float maxDistance = diff.magnitude;
-                Vector3 direction = diff.normalized;
+                Vector3 distance = _player.transform.position - transform.position;
+                float maxDistance = distance.magnitude;
+                Vector3 direction = distance.normalized;
                 Vector3 eyePosition = transform.position + new Vector3(0f, 0.5f, 0f);
 
-                // Debug.DrawRay(eyePosition, transform.forward + Quaternion.Euler(0, _viewAngle, 0) * transform.forward * 5f, Color.yellow);
-                // Debug.DrawRay(eyePosition, transform.forward + Quaternion.Euler(0, -_viewAngle, 0) * transform.forward * 5f, Color.yellow);
-
-                // int layerMask = ~(1 << 13);
-                // RaycastHit[] raycastHits = Physics.RaycastAll(eyeHeightPos, direction, distance, layerMask);
-
-                RaycastHit[] raycastHitResults = new RaycastHit[1];
-                var raycastHitCount = Physics.RaycastNonAlloc(new Ray(eyePosition, direction), raycastHitResults, maxDistance);
-
-                // Debug.DrawRay(transform.position + new Vector3(0, 0.5f, 0), direction * distance, Color.red);
-
-                if (raycastHitCount > 0)
-                {
-                    // Debug.Log($"raycastHitCount: {raycastHitCount}");
-
-                    if (raycastHitResults[0].transform.gameObject.CompareTag("Player"))
-                    {
-                        if (NavMesh.SamplePosition(_player.transform.position, out _navMeshHit, 1f, 1))
-                        {
-                            SetSpeed(EnemyMaster.RunSpeed);
-                            return TrySetDestination(_navMeshHit.position, ignoreDistance: true);
-                        }
-                    }
-                }
+                // 視線が遮られていないかチェック
+                var raycastHitCount = Physics.RaycastNonAlloc(new Ray(eyePosition, direction), _raycastHits, maxDistance, LayerMaskConstants.PlayerLayerMask);
+                if (raycastHitCount > 0 && _raycastHits[0].transform.gameObject == _player)
+                    return true;
             }
 
             return false;
@@ -131,62 +101,55 @@ namespace Game.Contents.Enemy
 
         private bool TryDetectPlayerByAudio()
         {
-            // if (_distance > 3f)
-            if (_distance > EnemyMaster.AuditoryDistance)
+            // 聴覚範囲内のプレイヤーを検知
+            return IsPlayerOverlap(EnemyMaster.AuditoryDistance);
+        }
+
+        private bool IsPlayerOverlap(float distance)
+        {
+            float radius = distance * 2f;
+            var hitCount = Physics.OverlapSphereNonAlloc(transform.position, radius, _overlapResults, LayerMaskConstants.PlayerLayerMask);
+            if (hitCount == 0)
                 return false;
 
-            // if (_playerRigidbody.linearVelocity.magnitude > 0.1f)
-            // if (_playerController.IsMoving())
+            // プレイヤーが範囲内にいるか確認
+            for (int i = 0; i < hitCount; i++)
             {
-                var distance = EnemyMaster.AuditoryDistance;
-                float x = _player.transform.position.x + Random.Range(-distance, distance);
-                float z = _player.transform.position.z + Random.Range(-distance, distance);
-
-                if (NavMesh.SamplePosition(new Vector3(x, 0f, z), out _navMeshHit, 1f, 1))
-                {
-                    var forward = _player.transform.position - transform.position;
-                    forward.y = 0f;
-
-                    var lookRotation = Quaternion.LookRotation(forward);
-                    var slerp = Quaternion.Slerp(transform.rotation, lookRotation, 5f * Time.deltaTime);
-                    transform.rotation = slerp;
-
-                    // if (_playerController.IsMoving())
-                    {
-                        SetSpeed(EnemyMaster.WalkSpeed);
-                        return TrySetDestination(_navMeshHit.position, ignoreDistance: true);
-                    }
-                }
+                if (_overlapResults[i].gameObject == _player)
+                    return true;
             }
 
             return false;
         }
 
-        private float _rotationInterval = 5.0f;
-        private float _rotationIntervalCount;
-        private float _remainingDistance = 0.5f;
+        #endregion
 
-        private void RandomPatrol()
+        #region Navigation
+
+        private bool TrySetDestination(Vector3 position, bool ignoreDistance = false, float remainingDistance = 0.5f)
         {
-            SetSpeed(EnemyMaster.WalkSpeed);
+            if (!_navMeshAgent) return false;
 
-            _rotationIntervalCount += Time.deltaTime;
-
-            var randomPos = transform.position + new Vector3(Random.Range(-10f, 10f), 0f, Random.Range(-10f, 10f));
-            TrySetDestination(randomPos, remainingDistance: _remainingDistance);
-
-            // Debug.LogError($"{nameof(EnemyController)} {_enemyMaster.Id} {_enemyMaster.Name} currentPos:{transform.position} speed:{_navMeshAgent.speed}");
-            // Debug.DrawRay(transform.position + new Vector3(0, 0.5f, 0), transform.forward * 5f, Color.red);
-
-            if (_rotationIntervalCount > _rotationInterval)
+            if (_navMeshAgent.pathStatus != NavMeshPathStatus.PathInvalid)
             {
-                var forward = new Vector3(0f, Random.Range(0f, 180f), 0f);
-                var lookRotation = Quaternion.LookRotation(forward);
-                var slerp = Quaternion.Slerp(transform.rotation, lookRotation, 10f * Time.deltaTime);
-                transform.rotation = slerp;
-                // transform.rotation = Quaternion.Euler(forward);
-                ResetPatrolRotation();
+                if (!ignoreDistance && _navMeshAgent.remainingDistance > remainingDistance)
+                    return false;
+
+                _navMeshAgent.SetDestination(position);
+                return true;
             }
+
+            return false;
+        }
+
+        private void LookAtPlayer(float rotationSpeed)
+        {
+            var forward = _player.transform.position - transform.position;
+            forward.y = 0f;
+
+            var lookRotation = Quaternion.LookRotation(forward);
+            var slerp = Quaternion.Slerp(transform.rotation, lookRotation, rotationSpeed * Time.deltaTime);
+            transform.rotation = slerp;
         }
 
         private void ResetPatrolRotation()
@@ -196,21 +159,173 @@ namespace Game.Contents.Enemy
             _remainingDistance = Random.Range(0.3f, 0.8f);
         }
 
-        private bool TrySetDestination(Vector3 position, bool ignoreDistance = false, float remainingDistance = 0.5f)
-        {
-            if (_navMeshAgent)
-            {
-                if (_navMeshAgent.pathStatus != NavMeshPathStatus.PathInvalid)
-                {
-                    if (!ignoreDistance && _navMeshAgent.remainingDistance > remainingDistance)
-                        return false;
+        #endregion
 
-                    _navMeshAgent.SetDestination(position);
-                    return true;
-                }
+        #region StateMachine
+
+        private void InitializeStateMachine()
+        {
+            _stateMachine = new StateMachine<EnemyController, StateEvent>(this);
+
+            // 状態遷移テーブルの構築
+            // Patrol → Chase/Search
+            _stateMachine.AddTransition<PatrolState, ChaseState>(StateEvent.DetectByVision);
+            _stateMachine.AddTransition<PatrolState, SearchState>(StateEvent.DetectByAudio);
+
+            // Chase → Patrol/Search
+            _stateMachine.AddTransition<ChaseState, PatrolState>(StateEvent.LostPlayer);
+            _stateMachine.AddTransition<ChaseState, SearchState>(StateEvent.DetectByAudio);
+
+            // Search → Patrol/Chase
+            _stateMachine.AddTransition<SearchState, PatrolState>(StateEvent.LostPlayer);
+            _stateMachine.AddTransition<SearchState, ChaseState>(StateEvent.DetectByVision);
+
+            // 何もなければ初期ステートに戻る
+            _stateMachine.AddTransition<PatrolState>(StateEvent.LostPlayer);
+
+            // 初期ステート
+            _stateMachine.SetInitState<PatrolState>();
+        }
+
+        /// <summary>
+        /// 状態遷移イベントKey
+        /// </summary>
+        private enum StateEvent
+        {
+            DetectByVision, // 視覚で検知: → Chase
+            DetectByAudio,  // 聴覚で検知: → Search
+            LostPlayer,     // プレイヤーを見失う: → Patrol
+        }
+
+        /// <summary>
+        /// パトロール状態: プレイヤー未検知時のランダム巡回
+        /// </summary>
+        private class PatrolState : State<EnemyController, StateEvent>
+        {
+            public override void Enter()
+            {
+                var ctx = Context;
+                ctx.SetSpeed(ctx.EnemyMaster.WalkSpeed);
+                ctx.ResetPatrolRotation();
             }
 
-            return false;
+            public override void Update()
+            {
+                // 視覚検知チェック
+                var ctx = Context;
+                if (ctx.TryDetectPlayerByVision())
+                {
+                    StateMachine.Transition(StateEvent.DetectByVision);
+                    return;
+                }
+
+                // 聴覚検知チェック
+                if (ctx.TryDetectPlayerByAudio())
+                {
+                    StateMachine.Transition(StateEvent.DetectByAudio);
+                    return;
+                }
+
+                // ランダムパトロール
+                ctx._rotationIntervalCount += Time.deltaTime;
+
+                var randomPos = ctx.transform.position + new Vector3(Random.Range(-10f, 10f), 0f, Random.Range(-10f, 10f));
+                ctx.TrySetDestination(randomPos, remainingDistance: ctx._remainingDistance);
+
+                if (ctx._rotationIntervalCount > ctx._rotationInterval)
+                {
+                    var forward = new Vector3(0f, Random.Range(0f, 180f), 0f);
+                    var lookRotation = Quaternion.LookRotation(forward);
+                    var slerp = Quaternion.Slerp(ctx.transform.rotation, lookRotation, 10f * Time.deltaTime);
+                    ctx.transform.rotation = slerp;
+                    ctx.ResetPatrolRotation();
+                }
+            }
         }
+
+        /// <summary>
+        /// 追跡状態: 視覚でプレイヤーを検知、走って追跡
+        /// </summary>
+        private class ChaseState : State<EnemyController, StateEvent>
+        {
+            public override void Enter()
+            {
+                var ctx = Context;
+                ctx.SetSpeed(ctx.EnemyMaster.RunSpeed);
+            }
+
+            public override void Update()
+            {
+                // 視覚検知継続チェック
+                var ctx = Context;
+                if (ctx.TryDetectPlayerByVision())
+                {
+                    // プレイヤーの位置に向かう
+                    if (NavMesh.SamplePosition(ctx._player.transform.position, out var navMeshHit, 1f, 1))
+                    {
+                        ctx.TrySetDestination(navMeshHit.position, ignoreDistance: true);
+                    }
+
+                    return;
+                }
+
+                // 視覚で見失った場合、聴覚検知チェック
+                if (ctx.TryDetectPlayerByAudio())
+                {
+                    StateMachine.Transition(StateEvent.DetectByAudio);
+                    return;
+                }
+
+                // 完全に見失った
+                StateMachine.Transition(StateEvent.LostPlayer);
+            }
+        }
+
+        /// <summary>
+        /// 捜索状態: 聴覚でプレイヤーを検知、歩いて捜索
+        /// </summary>
+        private class SearchState : State<EnemyController, StateEvent>
+        {
+            public override void Enter()
+            {
+                var ctx = Context;
+                ctx.SetSpeed(ctx.EnemyMaster.WalkSpeed);
+            }
+
+            public override void Update()
+            {
+                // 視覚検知チェック（優先度高）
+                var ctx = Context;
+                if (ctx.TryDetectPlayerByVision())
+                {
+                    StateMachine.Transition(StateEvent.DetectByVision);
+                    return;
+                }
+
+                // 聴覚検知継続チェック
+                if (ctx.TryDetectPlayerByAudio())
+                {
+                    // プレイヤーの方を向く
+                    ctx.LookAtPlayer(ctx._rotationSpeed);
+
+                    // プレイヤーの近くのランダムな位置に向かう
+                    var distance = ctx.EnemyMaster.AuditoryDistance;
+                    float x = ctx._player.transform.position.x + Random.Range(-distance, distance);
+                    float z = ctx._player.transform.position.z + Random.Range(-distance, distance);
+
+                    if (NavMesh.SamplePosition(new Vector3(x, 0f, z), out var navMeshHit, 1f, 1))
+                    {
+                        ctx.TrySetDestination(navMeshHit.position, ignoreDistance: true);
+                    }
+
+                    return;
+                }
+
+                // 完全に見失った
+                StateMachine.Transition(StateEvent.LostPlayer);
+            }
+        }
+
+        #endregion
     }
 }

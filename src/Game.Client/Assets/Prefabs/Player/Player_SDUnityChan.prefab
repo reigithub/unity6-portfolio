@@ -13,6 +13,10 @@ PrefabInstance:
       value: Player_SDUnityChan
       objectReference: {fileID: 0}
     - target: {fileID: 100264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 100264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
@@ -275,7 +279,7 @@ MonoBehaviour:
   _jogSpeed: 5
   _runSpeed: 16
   _rotationRatio: 10
-  _jumpForce: 5
+  _jump: 5
 --- !u!54 &8852584683181521213
 Rigidbody:
   m_ObjectHideFlags: 0

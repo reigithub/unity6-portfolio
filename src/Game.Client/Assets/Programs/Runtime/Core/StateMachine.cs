@@ -2,10 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-#if ENABLE_IL2CPP
-using UnityEngine.Scripting;
-#endif
-
 namespace Game.Core
 {
     internal interface IState
@@ -68,7 +64,7 @@ namespace Game.Core
     /// ステートマシーン
     /// </summary>
     /// <typeparam name="TContext">コンテキスト型</typeparam>
-    /// <typeparam name="TEventKey">遷移ルール毎のイベントKeyの型</typeparam> 
+    /// <typeparam name="TEventKey">遷移ルール毎のイベントKeyの型</typeparam>
     /// <remarks>Memo: TEventKey型はenumくらいしか指定しないのでwhere制約つけてもいいのかもしれない</remarks>
     public class StateMachine<TContext, TEventKey> : IStateMachineContext<TContext>
     {
@@ -95,12 +91,18 @@ namespace Game.Core
             Context = context;
         }
 
+        #region Build
+
         /// <summary>
         /// 遷移ルールを追加
         /// </summary>
         /// <param name="eventKey">遷移ルールを識別するイベントKey値</param>
         /// <typeparam name="TFromState">遷移元ステート</typeparam>
         /// <typeparam name="TToState">遷移先ステート</typeparam>
+        /// <remarks>
+        /// <para>イベントKeyは遷移先ステートが判別できる名称が推奨されます</para>
+        /// <para>イベントKey毎の遷移リストを保持します</para>
+        /// </remarks>
         public void AddTransition<TFromState, TToState>(TEventKey eventKey)
             where TFromState : State<TContext, TEventKey>, new()
             where TToState : State<TContext, TEventKey>, new()
@@ -128,8 +130,8 @@ namespace Game.Core
 
         /// <summary>
         /// 任意ステートから遷移先に指定できるステートを設定
-        /// WARN: 遷移テーブルを実質的に無視します
         /// </summary>
+        /// <remarks>WARN: 優先度が低く遷移テーブルに見つからない場合のみ使用されます</remarks>
         public void AddTransition<TAnyState>(TEventKey eventKey) where TAnyState : State<TContext, TEventKey>, new()
         {
             ThrowExceptionIfProcessing();
@@ -151,7 +153,7 @@ namespace Game.Core
         }
 
         /// <summary>
-        /// ステートマシーン処理開始時に初期状態となるステートを設定 
+        /// ステートマシーン処理開始時に初期状態となるステートを設定
         /// </summary>
         public void SetInitState<TInitState>() where TInitState : State<TContext, TEventKey>, new()
         {
@@ -175,6 +177,10 @@ namespace Game.Core
             _states.Add(newState);
             return newState;
         }
+
+        #endregion
+
+        #region Transition
 
         /// <summary>
         /// 遷移テーブルに基づいた遷移を実行
@@ -222,6 +228,10 @@ namespace Game.Core
             _nextState = GetOrAddState<TState>();
         }
 
+        #endregion
+
+        #region Process
+
         public bool IsCurrentState<TState>() where TState : State<TContext, TEventKey>
         {
             ThrowExceptionIfNotProcessing();
@@ -236,12 +246,12 @@ namespace Game.Core
 
         private void ThrowExceptionIfProcessing()
         {
-            if (IsProcessing()) throw new InvalidOperationException("State Machine is Running!!");
+            if (IsProcessing()) throw new InvalidOperationException("State Machine is Processing!!");
         }
 
         private void ThrowExceptionIfNotProcessing()
         {
-            if (!IsProcessing()) throw new InvalidOperationException("State Machine is not Running!!");
+            if (!IsProcessing()) throw new InvalidOperationException("State Machine is not Processing!!");
         }
 
         public virtual void Update()
@@ -315,12 +325,13 @@ namespace Game.Core
             if (_currentState != null)
                 _currentState.LateUpdate();
         }
+
+        #endregion
     }
 
     /// <summary>
     /// EventKeyがint型のステートマシーン
     /// </summary>
-    /// <remarks>ステート毎にイベントKey型を指定しなくてもいいver.</remarks>>
     public class StateMachine<TContext> : StateMachine<TContext, int>
     {
         public StateMachine(TContext context) : base(context)
