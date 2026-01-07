@@ -54,7 +54,7 @@ namespace Game.Contents.Player
         private RaycastChecker _groundedRaycastChecker;
 
         // ステートマシーン
-        private StateMachine<SDUnityChanPlayerController> _stateMachine;
+        private StateMachine<SDUnityChanPlayerController, StateEvent> _stateMachine;
 
         // 入力関連
         private Transform _mainCamera;
@@ -87,8 +87,7 @@ namespace Game.Contents.Player
             TryGetComponent(out _groundedRaycastChecker);
 
             // ステートマシン初期化
-            _stateMachine = new StateMachine<SDUnityChanPlayerController>(this);
-            _stateMachine.SetInitState<IdleState>();
+            InitializeStateMachine();
 
             // アニメーター状態の監視
             var triggers = _animator.GetBehaviours<ObservableStateMachineTrigger>();
@@ -273,206 +272,245 @@ namespace Game.Contents.Player
             }
         }
 
-        #region Player States
+        #region StateMachine
 
-        private class IdleState : State<SDUnityChanPlayerController>
+        private void InitializeStateMachine()
+        {
+            _stateMachine = new StateMachine<SDUnityChanPlayerController, StateEvent>(this);
+
+            // 状態遷移テーブルの構築
+            _stateMachine.AddTransition<IdleState, MovingState>(StateEvent.Move);
+
+            _stateMachine.AddTransition<MovingState, IdleState>(StateEvent.Stop);
+
+            _stateMachine.AddTransition<IdleState, JumpingState>(StateEvent.Jump);
+            _stateMachine.AddTransition<MovingState, JumpingState>(StateEvent.Jump);
+
+            _stateMachine.AddTransition<JumpingState, IdleState>(StateEvent.Land);
+
+            _stateMachine.AddTransition<IdleState, DamagedState>(StateEvent.Damage);
+            _stateMachine.AddTransition<MovingState, DamagedState>(StateEvent.Damage);
+            _stateMachine.AddTransition<JumpingState, DamagedState>(StateEvent.Damage);
+
+            _stateMachine.AddTransition<DamagedState, DownState>(StateEvent.Down);
+            _stateMachine.AddTransition<MovingState, DownState>(StateEvent.Down);
+
+            _stateMachine.AddTransition<DamagedState, IdleState>(StateEvent.Recover);
+            _stateMachine.AddTransition<DownState, IdleState>(StateEvent.GetUp);
+
+            _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
+
+            // 初期ステート
+            _stateMachine.SetInitState<IdleState>();
+        }
+
+        /// <summary>
+        /// 状態遷移イベントKey
+        /// </summary>
+        private enum StateEvent
+        {
+            Idle,    // 待機状態: Idle
+            Move,    // 移動開始: Idle → Moving<
+            Stop,    // 移動停止: Moving → Idle
+            Jump,    // ジャンプ: Idle/Moving → Jumping
+            Land,    // 着地: Jumping → Idle
+            Damage,  // ダメージ: Idle/Moving/Jumping → Damaged
+            Down,    // ダウン: Damaged/Moving → Down
+            Recover, // ダメージ回復: Damaged → Idle
+            GetUp,   // 起き上がり: Down → Idle
+        }
+
+        private class IdleState : State<SDUnityChanPlayerController, StateEvent>
         {
             public override void Update()
             {
-                var controller = Context;
-
                 // ダメージ状態への遷移チェック
-                if (controller._isDamagedAnim)
+                var ctx = Context;
+                if (ctx._isDamagedAnim)
                 {
-                    StateMachine.TransitionTo<DamagedState>();
+                    StateMachine.Transition(StateEvent.Damage);
                     return;
                 }
 
                 // ジャンプ入力チェック
-                if (controller._jumpTriggered && controller.IsGrounded())
+                if (ctx._jumpTriggered && ctx.IsGrounded())
                 {
-                    StateMachine.TransitionTo<JumpingState>();
+                    StateMachine.Transition(StateEvent.Jump);
                     return;
                 }
 
                 // 移動入力チェック
-                if (controller._moveValue.magnitude > 0.1f)
+                if (ctx._moveValue.magnitude > 0.1f)
                 {
-                    StateMachine.TransitionTo<MovingState>();
+                    StateMachine.Transition(StateEvent.Move);
                 }
             }
         }
 
-        private class MovingState : State<SDUnityChanPlayerController>
+        private class MovingState : State<SDUnityChanPlayerController, StateEvent>
         {
             public override void Update()
             {
-                var controller = Context;
-
                 // ダメージ状態への遷移チェック
-                if (controller._isDamagedAnim)
+                var ctx = Context;
+                if (ctx._isDamagedAnim)
                 {
-                    StateMachine.TransitionTo<DamagedState>();
+                    StateMachine.Transition(StateEvent.Damage);
                     return;
                 }
 
-                if (controller._isDownAnim)
+                // ダウン状態への遷移チェック
+                if (ctx._isDownAnim)
                 {
-                    StateMachine.TransitionTo<DownState>();
+                    StateMachine.Transition(StateEvent.Down);
                     return;
                 }
 
                 // ジャンプ入力チェック
-                if (controller._jumpTriggered && controller.IsGrounded())
+                if (ctx._jumpTriggered && ctx.IsGrounded())
                 {
-                    StateMachine.TransitionTo<JumpingState>();
+                    StateMachine.Transition(StateEvent.Jump);
                     return;
                 }
 
                 // 移動入力がなくなったらIdleへ
-                if (controller._moveValue.magnitude <= 0.1f)
+                if (ctx._moveValue.magnitude <= 0.1f)
                 {
-                    StateMachine.TransitionTo<IdleState>();
+                    StateMachine.Transition(StateEvent.Stop);
                 }
             }
 
             public override void FixedUpdate()
             {
-                var controller = Context;
-
-                if (controller._mainCamera)
+                var ctx = Context;
+                if (ctx._mainCamera)
                 {
-                    if (controller._moveValue.magnitude > 0.1f)
+                    if (ctx._moveValue.magnitude > 0.1f)
                     {
-                        var forward = controller._mainCamera.forward;
-                        var right = controller._mainCamera.right;
+                        var forward = ctx._mainCamera.forward;
+                        var right = ctx._mainCamera.right;
                         forward.y = 0f;
                         right.y = 0f;
 
-                        controller._moveVector = forward * controller._moveValue.y + right * controller._moveValue.x;
-                        controller._lookRotation = Quaternion.LookRotation(controller._moveVector);
+                        ctx._moveVector = forward * ctx._moveValue.y + right * ctx._moveValue.x;
+                        ctx._lookRotation = Quaternion.LookRotation(ctx._moveVector);
                     }
                 }
 
-                controller._rigidbody.MovePosition(controller._rigidbody.position + controller._moveVector * controller._speed.Value * Time.fixedDeltaTime);
+                ctx._rigidbody.MovePosition(ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
 
-                if (controller._moveValue.magnitude > 0.1f)
+                if (ctx._moveValue.magnitude > 0.1f)
                 {
-                    controller._rigidbody.MoveRotation(
-                        Quaternion.Slerp(controller._rigidbody.rotation, controller._lookRotation, controller._rotationRatio * Time.fixedDeltaTime));
+                    ctx._rigidbody.MoveRotation(
+                        Quaternion.Slerp(ctx._rigidbody.rotation, ctx._lookRotation, ctx._rotationRatio * Time.fixedDeltaTime));
                 }
             }
         }
 
-        private class JumpingState : State<SDUnityChanPlayerController>
+        private class JumpingState : State<SDUnityChanPlayerController, StateEvent>
         {
             public override void Enter()
             {
-                var controller = Context;
+                var ctx = Context;
+                ctx._animator.SetTrigger(ctx._animatorHashJump);
+                ctx.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerJump).Forget();
 
-                controller._animator.SetTrigger(controller._animatorHashJump);
-                controller.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerJump).Forget();
+                ctx._rigidbody.linearVelocity = new Vector3(
+                    ctx._rigidbody.linearVelocity.x,
+                    ctx._jump,
+                    ctx._rigidbody.linearVelocity.z);
 
-                controller._rigidbody.linearVelocity = new Vector3(
-                    controller._rigidbody.linearVelocity.x,
-                    controller._jump,
-                    controller._rigidbody.linearVelocity.z);
-
-                controller._jumpTriggered = false;
+                ctx._jumpTriggered = false;
             }
 
             public override void Update()
             {
-                var controller = Context;
-
                 // ダメージ状態への遷移チェック
-                if (controller._isDamagedAnim)
+                var ctx = Context;
+                if (ctx._isDamagedAnim)
                 {
-                    StateMachine.TransitionTo<DamagedState>();
+                    StateMachine.Transition(StateEvent.Damage);
                     return;
                 }
 
                 // 着地チェック（ジャンプアニメーション終了）
-                if (!controller._isJumpingAnim)
+                if (!ctx._isJumpingAnim)
                 {
-                    StateMachine.TransitionTo<IdleState>();
+                    StateMachine.Transition(StateEvent.Land);
                 }
             }
 
             public override void FixedUpdate()
             {
-                var controller = Context;
-
-                if (controller._mainCamera && controller._moveValue.magnitude > 0.1f)
+                var ctx = Context;
+                if (ctx._mainCamera && ctx._moveValue.magnitude > 0.1f)
                 {
-                    var forward = controller._mainCamera.forward;
-                    var right = controller._mainCamera.right;
+                    var forward = ctx._mainCamera.forward;
+                    var right = ctx._mainCamera.right;
                     forward.y = 0f;
                     right.y = 0f;
 
-                    controller._moveVector = forward * controller._moveValue.y + right * controller._moveValue.x;
-                    controller._lookRotation = Quaternion.LookRotation(controller._moveVector);
+                    ctx._moveVector = forward * ctx._moveValue.y + right * ctx._moveValue.x;
+                    ctx._lookRotation = Quaternion.LookRotation(ctx._moveVector);
                 }
 
-                controller._rigidbody.MovePosition(
-                    controller._rigidbody.position + controller._moveVector * controller._speed.Value * Time.fixedDeltaTime);
+                ctx._rigidbody.MovePosition(
+                    ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
 
-                if (controller._moveValue.magnitude > 0.1f)
+                if (ctx._moveValue.magnitude > 0.1f)
                 {
-                    controller._rigidbody.MoveRotation(
-                        Quaternion.Slerp(controller._rigidbody.rotation, controller._lookRotation, controller._rotationRatio * Time.fixedDeltaTime));
+                    ctx._rigidbody.MoveRotation(
+                        Quaternion.Slerp(ctx._rigidbody.rotation, ctx._lookRotation, ctx._rotationRatio * Time.fixedDeltaTime));
                 }
             }
         }
 
-        private class DamagedState : State<SDUnityChanPlayerController>
+        private class DamagedState : State<SDUnityChanPlayerController, StateEvent>
         {
             public override void Enter()
             {
-                var controller = Context;
-                controller._jumpTriggered = false;
-                controller.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
+                var ctx = Context;
+                ctx._jumpTriggered = false;
+                ctx.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
             }
 
             public override void Update()
             {
-                var controller = Context;
-
                 // ダウン状態への遷移チェック
-                if (controller._isDownAnim)
+                var ctx = Context;
+                if (ctx._isDownAnim)
                 {
-                    StateMachine.TransitionTo<DownState>();
+                    StateMachine.Transition(StateEvent.Down);
                     return;
                 }
 
                 // ダメージアニメーション終了チェック
-                if (!controller._isDamagedAnim)
+                if (!ctx._isDamagedAnim)
                 {
-                    StateMachine.TransitionTo<IdleState>();
+                    StateMachine.Transition(StateEvent.Recover);
                 }
             }
         }
 
-        private class DownState : State<SDUnityChanPlayerController>
+        private class DownState : State<SDUnityChanPlayerController, StateEvent>
         {
             public override void Enter()
             {
-                var controller = Context;
-                controller._jumpTriggered = false;
-                controller._isGettingUpComplete = false;
-                controller.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDown).Forget();
+                var ctx = Context;
+                ctx._jumpTriggered = false;
+                ctx._isGettingUpComplete = false;
+                ctx.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDown).Forget();
             }
 
             public override void Update()
             {
-                var controller = Context;
-
                 // 起き上がり完了チェック
-                if (controller._isGettingUpComplete)
+                var ctx = Context;
+                if (ctx._isGettingUpComplete)
                 {
-                    controller._isGettingUpComplete = false;
-                    controller.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetUp).Forget();
-                    StateMachine.TransitionTo<IdleState>();
+                    ctx._isGettingUpComplete = false;
+                    ctx.AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetUp).Forget();
+                    StateMachine.Transition(StateEvent.GetUp);
                 }
             }
         }

@@ -33,14 +33,14 @@ namespace Game.Core
         }
     }
 
-    public interface IStateMachineContext<out TContext>
+    internal interface IStateMachineContext<out TContext>
     {
         public TContext Context { get; }
     }
 
-    public abstract class State<TContext> : IState, IStateMachineContext<TContext>
+    public abstract class State<TContext, TEventKey> : IState, IStateMachineContext<TContext>
     {
-        protected internal StateMachine<TContext> StateMachine { get; init; }
+        protected internal StateMachine<TContext, TEventKey> StateMachine { get; init; }
         public TContext Context => StateMachine.Context;
 
         public virtual void Enter()
@@ -64,7 +64,13 @@ namespace Game.Core
         }
     }
 
-    public class StateMachine<TContext> : IStateMachineContext<TContext>
+    /// <summary>
+    /// ステートマシーン
+    /// </summary>
+    /// <typeparam name="TContext">コンテキスト型</typeparam>
+    /// <typeparam name="TEventKey">遷移ルール毎のイベントKeyの型</typeparam> 
+    /// <remarks>Memo: TEventKey型はenumくらいしか指定しないのでwhere制約つけてもいいのかもしれない</remarks>
+    public class StateMachine<TContext, TEventKey> : IStateMachineContext<TContext>
     {
         private enum StateUpdateType
         {
@@ -75,8 +81,8 @@ namespace Game.Core
         }
 
         private readonly HashSet<IState> _states = new();
-        private readonly Dictionary<int, Dictionary<IState, IState>> _fromToTransitionTable = new();
-        private readonly Dictionary<int, HashSet<IState>> _anyTransitionTable = new();
+        private readonly Dictionary<TEventKey, Dictionary<IState, IState>> _fromToTransitionTable = new();
+        private readonly Dictionary<TEventKey, HashSet<IState>> _anyTransitionTable = new();
 
         private StateUpdateType _stateUpdateType = StateUpdateType.Idle;
         private IState _currentState;
@@ -89,9 +95,15 @@ namespace Game.Core
             Context = context;
         }
 
-        public void AddTransition<TFromState, TToState>(int eventKey)
-            where TFromState : State<TContext>, new()
-            where TToState : State<TContext>, new()
+        /// <summary>
+        /// 遷移ルールを追加
+        /// </summary>
+        /// <param name="eventKey">遷移ルールを識別するイベントKey値</param>
+        /// <typeparam name="TFromState">遷移元ステート</typeparam>
+        /// <typeparam name="TToState">遷移先ステート</typeparam>
+        public void AddTransition<TFromState, TToState>(TEventKey eventKey)
+            where TFromState : State<TContext, TEventKey>, new()
+            where TToState : State<TContext, TEventKey>, new()
         {
             ThrowExceptionIfProcessing();
 
@@ -114,7 +126,11 @@ namespace Game.Core
             _fromToTransitionTable[eventKey][from] = to;
         }
 
-        public void AddTransition<TAnyState>(int eventKey) where TAnyState : State<TContext>, new()
+        /// <summary>
+        /// 任意ステートから遷移先に指定できるステートを設定
+        /// WARN: 遷移テーブルを実質的に無視します
+        /// </summary>
+        public void AddTransition<TAnyState>(TEventKey eventKey) where TAnyState : State<TContext, TEventKey>, new()
         {
             ThrowExceptionIfProcessing();
 
@@ -134,14 +150,17 @@ namespace Game.Core
             _anyTransitionTable[eventKey].Add(any);
         }
 
-        public void SetInitState<TInitState>() where TInitState : State<TContext>, new()
+        /// <summary>
+        /// ステートマシーン処理開始時に初期状態となるステートを設定 
+        /// </summary>
+        public void SetInitState<TInitState>() where TInitState : State<TContext, TEventKey>, new()
         {
             ThrowExceptionIfProcessing();
 
             _nextState = GetOrAddState<TInitState>();
         }
 
-        private TState GetOrAddState<TState>() where TState : State<TContext>, new()
+        private TState GetOrAddState<TState>() where TState : State<TContext, TEventKey>, new()
         {
             var stateType = typeof(TState);
             foreach (var state in _states)
@@ -161,25 +180,25 @@ namespace Game.Core
         /// 遷移テーブルに基づいた遷移を実行
         /// </summary>
         /// <param name="eventKey">どの遷移を実行するかを管理するKeyを指定</param>
-        public bool Transition(int eventKey)
+        public bool Transition(TEventKey eventKey)
         {
             ThrowExceptionIfNotProcessing();
 
             if (_stateUpdateType == StateUpdateType.Exit)
                 throw new InvalidOperationException("Exit Processing");
 
+            // 前回の遷移を開始する前なので、まだ遷移できない
             if (_currentState == null || _nextState != null)
                 return false;
 
+            // 遷移テーブルから次の遷移先を更新
             if (_fromToTransitionTable.ContainsKey(eventKey) && _fromToTransitionTable[eventKey].ContainsKey(_currentState))
             {
-                var nextState = _fromToTransitionTable[eventKey][_currentState];
-                _currentState = nextState;
+                _nextState = _fromToTransitionTable[eventKey][_currentState];
             }
             else if (_anyTransitionTable.ContainsKey(eventKey) && _anyTransitionTable[eventKey].Contains(_currentState))
             {
-                var nextState = _anyTransitionTable[eventKey].FirstOrDefault(x => x == _currentState);
-                _currentState = nextState;
+                _nextState = _anyTransitionTable[eventKey].FirstOrDefault(x => x == _currentState);
             }
             else
             {
@@ -192,8 +211,10 @@ namespace Game.Core
 
         /// <summary>
         /// 遷移テーブルを無視したState直接指定の遷移
+        /// WARN: 強制的に次に遷移すべきステートを上書きします
         /// </summary>
-        public void TransitionTo<TState>() where TState : State<TContext>, new()
+        /// <remarks>Memo: 後でデフォルト設定では使用を許可しないようにするかもしれない</remarks>
+        public void ForceTransition<TState>() where TState : State<TContext, TEventKey>, new()
         {
             if (_stateUpdateType == StateUpdateType.Exit)
                 throw new InvalidOperationException("Cannot transition during Exit");
@@ -201,7 +222,7 @@ namespace Game.Core
             _nextState = GetOrAddState<TState>();
         }
 
-        public bool IsCurrentState<TState>() where TState : State<TContext>
+        public bool IsCurrentState<TState>() where TState : State<TContext, TEventKey>
         {
             ThrowExceptionIfNotProcessing();
 
@@ -215,14 +236,12 @@ namespace Game.Core
 
         private void ThrowExceptionIfProcessing()
         {
-            if (IsProcessing())
-                throw new InvalidOperationException("State Machine is Running!!");
+            if (IsProcessing()) throw new InvalidOperationException("State Machine is Running!!");
         }
 
         private void ThrowExceptionIfNotProcessing()
         {
-            if (!IsProcessing())
-                throw new InvalidOperationException("State Machine is not Running!!");
+            if (!IsProcessing()) throw new InvalidOperationException("State Machine is not Running!!");
         }
 
         public virtual void Update()
@@ -238,13 +257,12 @@ namespace Game.Core
                     _stateUpdateType = StateUpdateType.Enter;
                     _currentState.Enter();
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     _nextState = _currentState;
                     _currentState = null;
 
                     _stateUpdateType = StateUpdateType.Idle;
-                    // ExceptionDispatchInfo.Capture(e).Throw();
                     throw;
                 }
 
@@ -278,7 +296,7 @@ namespace Game.Core
 
                 _stateUpdateType = StateUpdateType.Idle;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 _stateUpdateType = StateUpdateType.Idle;
                 // ExceptionDispatchInfo.Capture(e).Throw();
@@ -296,6 +314,17 @@ namespace Game.Core
         {
             if (_currentState != null)
                 _currentState.LateUpdate();
+        }
+    }
+
+    /// <summary>
+    /// EventKeyがint型のステートマシーン
+    /// </summary>
+    /// <remarks>ステート毎にイベントKey型を指定しなくてもいいver.</remarks>>
+    public class StateMachine<TContext> : StateMachine<TContext, int>
+    {
+        public StateMachine(TContext context) : base(context)
+        {
         }
     }
 }
