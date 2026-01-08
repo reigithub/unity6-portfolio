@@ -57,7 +57,7 @@
 .
 └── Assets
     ├── MesterData マスターデータ(TSV, バイナリ)
-    ├── Tests 　　　単体テスト
+    ├── Tests 　　　単体テスト／パフォーマンス改善テストツール／テストログ
     ├── Programs
     │   ├── Editor エディタ拡張
     │   └── Runtime
@@ -65,6 +65,13 @@
     │       └── Core    　ゲームサービスなど各種コア機能
     └── README.md
 ```
+
+## パフォーマンス改善サンプル等
+* GameSceneService
+  - 各種シーン遷移機能をTaskからUniTaskへ変更し、パフォーマンス改善を検証
+  - イテレーション回数: 10,000
+  - CPU実行時間が約40%削減、ゼロアロケーション化を確認
+  - !["テスト結果"]("Assets/Tests/TestLogs/GameSceneServicePerformanceTests_2026-01-08_220131.png")
 
 ---
 ## 使用言語/ライブラリ/ツール
