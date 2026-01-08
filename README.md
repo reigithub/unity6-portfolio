@@ -71,7 +71,7 @@
   - 各種シーン遷移機能をTaskからUniTaskへ変更し、パフォーマンス改善を検証
   - イテレーション回数: 10,000
   - CPU実行時間が約40%削減、ゼロアロケーション化を確認
-  - !["テスト結果"]("Assets/Tests/TestLogs/GameSceneServicePerformanceTests_2026-01-08_220131.png")
+  - !["テスト結果"](https://github.com/reigithub/unity6-sample/blob/master/Assets/Tests/TestLogs/GameSceneServicePerformanceTests_2026-01-08_220131.png)
 
 ---
 ## 使用言語/ライブラリ/ツール
