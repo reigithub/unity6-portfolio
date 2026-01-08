@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Core.Extensions;
 using Game.Core.Scenes;
@@ -18,7 +19,7 @@ namespace Game.Contents.Scenes
         [SerializeField] private TextMeshProUGUI _currentPoint;
         [SerializeField] private TextMeshProUGUI _maxPoint;
 
-        public Task Initialize(GameStageSceneModel sceneModel)
+        public void Initialize(GameStageSceneModel sceneModel)
         {
             _limitTime.text = sceneModel.CurrentTime.Value.FormatToTimer();
             _currentPoint.text = sceneModel.CurrentPoint.ToString();
@@ -26,8 +27,6 @@ namespace Game.Contents.Scenes
 
             sceneModel.CurrentTime.DistinctUntilChanged().Subscribe(x => { _limitTime.text = x.FormatToTimer(); }).AddTo(this);
             sceneModel.CurrentPoint.DistinctUntilChanged().Subscribe(x => { _currentPoint.text = x.ToString(); }).AddTo(this);
-
-            return Task.CompletedTask;
         }
 
         private void Awake()

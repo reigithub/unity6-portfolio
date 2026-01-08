@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
 
@@ -8,7 +8,7 @@ namespace Game.Contents.Scenes
     {
         protected override string AssetPathOrAddress => "GameTitleScene";
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             OnEnable();
             SceneComponent.Initialize();
@@ -16,20 +16,20 @@ namespace Game.Contents.Scenes
             return base.Startup();
         }
 
-        public override Task Sleep()
+        public override UniTask Sleep()
         {
             OnDisable();
             return base.Sleep();
         }
 
-        public override async Task Ready()
+        public override async UniTask Ready()
         {
             OnEnable();
             await base.Ready();
             await SceneComponent.ReadyAsync();
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             OnDisable();
             return base.Terminate();

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Contents.Scenes;
 using Game.Core.Extensions;
 using Game.Core.MessagePipe;
@@ -16,25 +17,25 @@ namespace Game.Contents.UI
     {
         protected override string AssetPathOrAddress => "GameResultUI";
 
-        public static Task<bool> RunAsync(GameStageResultData data)
+        public static UniTask<bool> RunAsync(GameStageResultData data)
         {
             var sceneService = GameServiceManager.Instance.GetService<GameSceneService>();
             return sceneService.TransitionDialogAsync<GameResultUIDialog, GameResultUI, bool>(
                 initializer: (component, result) =>
                 {
                     component.Initialize(result, data);
-                    return Task.CompletedTask;
+                    return UniTask.CompletedTask;
                 });
         }
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, false);
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.Cursor, true);
             return base.Startup();
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, true);
             return base.Terminate();

@@ -12,6 +12,8 @@
 * その他簡易的なオーディオ再生などの各種ゲームサービスクラス
 ---
 ## 機能詳細
+<details><summary>シーン/ダイアログ遷移機能</summary>
+
 ### シーン/ダイアログ遷移機能
 1. 非同期処理(async/await)で実装
 2. 前のシーンが破棄されていても遷移履歴から再遷移が可能
@@ -20,6 +22,9 @@
 5. シーンに任意で引数や戻り値を追加で設定できます
 6. 引数つきのシーンであっても、履歴から状態を復元して再度引数を渡して遷移する事が可能
 7. ダイアログ(オーバーレイ)は複数開く事が可能で、不正な挙動を防止するためにシーン遷移時に全て破棄されます
+</details>
+
+<details><summary>ステートマシーン</summary>
 
 ### ステートマシーン
 1. ジェネリック型コンテキストを持ち、任意の型を指定できます。
@@ -28,12 +33,17 @@
 4. 任意ステートから遷移先に指定できる特別なステートを設定可能で、適切な設定が遷移テーブルに無い場合に遷移が検証/実行されます。IdleState等の様々なステートの中継地点や不正な遷移のハンドリング用ステート等を指定する事で遷移挙動の実装サンクコストや不具合を抑える事ができる仕様になります。
 5. ジェネリック型のイベントキー型を指定でき、遷移イベント名をenum等で集約管理できます。遷移先ステート名と一致させると可読性/保守性が向上します。
 6. 通常のUpdateに加え、MonoBehaivior.FixedUpdate/LateUpdateにも対応。これにより物理演算やカメラ等の状態と相互に連携できます。
+</details>
+
+<details><summary>その他</summary>
 
 ### その他
 * シーン遷移やオーディオ再生などの共通機能は主にゲームサービスとして分離されています
 * マスターデータエディタ拡張はTSVから簡単にバイナリを作成でき、TSV更新後すぐにデータをテストできます。これによって検証サイクルを早めています。テストしたバイナリをそのままビルドやアセット配信で使用できます。
 * インゲームシーンはPrefabシーン＋Unityシーンで構成されており、ステージとなるUnityシーンはロジックから分離されています。その為、コード修正なしで新しいステージを追加できます
 * アウトゲームシーンは遷移挙動のカスタマイズ性を担保するため、全てPrefabシーンを採用しています
+</details>
+
 ---
 ## 機能コードリンク
 * シーン遷移サービス : [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/Services/GameSceneService.cs)
@@ -41,6 +51,21 @@
 * マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/MasterData/Editor/MasterDataWindow.cs)
 * ステートマシーン本体 : [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/StateMachine.cs)
 * ステートマシーン実装 : [PlayerController](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Contents/Player/SDUnityChanPlayerController.cs)
+---
+## 主なフォルダ構成
+```
+.
+└── Assets
+    ├── MesterData マスターデータ(TSV, バイナリ)
+    ├── Tests 　　　単体テスト
+    ├── Programs
+    │   ├── Editor エディタ拡張
+    │   └── Runtime
+    │       ├── Contents  プレイヤー、エネミー、UI実装など
+    │       └── Core    　ゲームサービスなど各種コア機能
+    └── README.md
+```
+
 ---
 ## 使用言語/ライブラリ/ツール
 

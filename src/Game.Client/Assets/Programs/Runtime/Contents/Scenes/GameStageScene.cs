@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Contents.Enemy;
 using Game.Contents.Player;
 using Game.Contents.UI;
@@ -26,20 +27,20 @@ namespace Game.Contents.Scenes
 
         private PlayerStart _playerStart;
 
-        public Task ArgHandle(int stageId)
+        public UniTask ArgHandle(int stageId)
         {
             _stageId = stageId;
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public override Task PreInitialize()
+        public override UniTask PreInitialize()
         {
             SceneModel = new GameStageSceneModel();
             SceneModel.Initialize(_stageId);
             return base.PreInitialize();
         }
 
-        public override async Task LoadAsset()
+        public override async UniTask LoadAsset()
         {
             await base.LoadAsset();
 
@@ -54,7 +55,7 @@ namespace Game.Contents.Scenes
             }
         }
 
-        public override async Task Startup()
+        public override async UniTask Startup()
         {
             RegisterEvents();
 
@@ -76,12 +77,12 @@ namespace Game.Contents.Scenes
                 await stageItemStart.LoadStageItemAsync(_stageId);
             }
 
-            await SceneComponent.Initialize(SceneModel);
+            SceneComponent.Initialize(SceneModel);
 
             await base.Startup();
         }
 
-        public override async Task Ready()
+        public override async UniTask Ready()
         {
             if (SceneModel.IsFirstStage) GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.GameStageService.Startup, true);
 
@@ -104,7 +105,7 @@ namespace Game.Contents.Scenes
             await base.Ready();
         }
 
-        public override async Task Terminate()
+        public override async UniTask Terminate()
         {
             GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.System.DefaultSkybox, true);
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
@@ -213,8 +214,6 @@ namespace Game.Contents.Scenes
 
                     if (!other.gameObject.TryGetComponent<EnemyController>(out var enemyController))
                         return;
-                    // if (!other.transform.parent.TryGetComponent<EnemyController>(out var enemyController))
-                    //     return;
 
                     var hpDamage = enemyController.EnemyMaster.HpAttack;
 
@@ -231,7 +230,7 @@ namespace Game.Contents.Scenes
                 .AddTo(SceneComponent);
         }
 
-        private async Task TryShowResultDialogAsync()
+        private async UniTask TryShowResultDialogAsync()
         {
             if (SceneModel.IsClear())
             {

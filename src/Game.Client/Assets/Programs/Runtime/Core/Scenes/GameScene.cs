@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Core.Enums;
 using Game.Core.Extensions;
@@ -16,44 +15,44 @@ namespace Game.Core.Scenes
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
-        public virtual Task PreInitialize()
+        public virtual UniTask PreInitialize()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         // アセット(主にこのシーン)をロード
-        public virtual Task LoadAsset()
+        public virtual UniTask LoadAsset()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         // シーンビュー初期化～起動処理
-        public virtual Task Startup()
+        public virtual UniTask Startup()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         // 起動後の処理
         // シーン起動後に演出など
-        public virtual Task Ready()
+        public virtual UniTask Ready()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Sleep()
+        public virtual UniTask Sleep()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Restart()
+        public virtual UniTask Restart()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         // シーンを終了させて破棄する
-        public virtual Task Terminate()
+        public virtual UniTask Terminate()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
     }
 
@@ -79,41 +78,41 @@ namespace Game.Core.Scenes
         protected abstract string AssetPathOrAddress { get; }
 
         public GameSceneState State { get; set; }
-        public Func<IGameScene, Task> ArgHandler { get; set; }
+        public Func<IGameScene, UniTask> ArgHandler { get; set; }
 
-        public virtual Task PreInitialize()
+        public virtual UniTask PreInitialize()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task LoadAsset()
+        public virtual UniTask LoadAsset()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Startup()
+        public virtual UniTask Startup()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Sleep()
+        public virtual UniTask Sleep()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Restart()
+        public virtual UniTask Restart()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Ready()
+        public virtual UniTask Ready()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Terminate()
+        public virtual UniTask Terminate()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
     }
 
@@ -122,14 +121,14 @@ namespace Game.Core.Scenes
         GameSceneState State { get; set; }
     }
 
-    public interface IGameSceneArg<TArg>
+    public interface IGameSceneArg<in TArg>
     {
-        public Task ArgHandle(TArg arg) => Task.CompletedTask;
+        public UniTask ArgHandle(TArg arg);
     }
 
     public interface IGameSceneArgHandler
     {
-        public Func<IGameScene, Task> ArgHandler { get; set; }
+        public Func<IGameScene, UniTask> ArgHandler { get; set; }
     }
 
     public interface IGameSceneResult
@@ -143,6 +142,8 @@ namespace Game.Core.Scenes
         public bool TrySetResult(TResult result) => ResultTcs?.TrySetResult(result) ?? false;
 
         public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
+
+        public bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
     }
 
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
@@ -151,52 +152,52 @@ namespace Game.Core.Scenes
     {
         public TGameSceneComponent SceneComponent { get; protected set; }
 
-        public override Task PreInitialize()
+        public override UniTask PreInitialize()
         {
             return base.PreInitialize();
         }
 
-        public override async Task LoadAsset()
+        public override async UniTask LoadAsset()
         {
             await LoadScene();
             SceneComponent = GetSceneComponent();
         }
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             return base.Startup();
         }
 
-        public override Task Ready()
+        public override UniTask Ready()
         {
             return base.Ready();
         }
 
-        public override Task Sleep()
+        public override UniTask Sleep()
         {
             SceneComponent.Sleep();
             return base.Sleep();
         }
 
-        public override Task Restart()
+        public override UniTask Restart()
         {
             SceneComponent.Restart();
             return Ready();
         }
 
-        public override async Task Terminate()
+        public override async UniTask Terminate()
         {
             await UnloadScene();
         }
 
-        protected virtual Task LoadScene()
+        protected virtual UniTask LoadScene()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        protected virtual Task UnloadScene()
+        protected virtual UniTask UnloadScene()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         protected abstract TGameSceneComponent GetSceneComponent();
@@ -209,14 +210,14 @@ namespace Game.Core.Scenes
         private GameObject _asset;
         private GameObject _instance;
 
-        protected override async Task LoadScene()
+        protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             _instance = GameObject.Instantiate(_asset);
             GameSceneHelper.MoveToGameRootScene(_instance);
         }
 
-        protected override Task UnloadScene()
+        protected override UniTask UnloadScene()
         {
             if (_instance)
             {
@@ -225,7 +226,7 @@ namespace Game.Core.Scenes
                 _asset = null;
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         protected override TGameSceneComponent GetSceneComponent()
@@ -245,13 +246,13 @@ namespace Game.Core.Scenes
 
         private SceneInstance _instance;
 
-        protected override async Task LoadScene()
+        protected override async UniTask LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
             // SceneManager.SetActiveScene(_instance.Scene);
         }
 
-        protected override async Task UnloadScene()
+        protected override async UniTask UnloadScene()
         {
             await AssetService.UnloadSceneAsync(_instance);
         }
@@ -271,23 +272,23 @@ namespace Game.Core.Scenes
 
         private SceneInstance _instance;
 
-        public override async Task LoadAsset()
+        public override async UniTask LoadAsset()
         {
             await LoadScene();
         }
 
-        public override async Task Terminate()
+        public override async UniTask Terminate()
         {
             await UnloadScene();
         }
 
-        protected virtual async Task LoadScene()
+        protected virtual async UniTask LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
             // SceneManager.SetActiveScene(_instance.Scene);
         }
 
-        protected virtual async Task UnloadScene()
+        protected virtual async UniTask UnloadScene()
         {
             await AssetService.UnloadSceneAsync(_instance);
         }
@@ -296,7 +297,7 @@ namespace Game.Core.Scenes
     // 任意パラメータを受け取りつつ処理を挟みたいとき
     public interface IGameDialogSceneInitializer<TComponent, TResult>
     {
-        public Func<TComponent, IGameSceneResult<TResult>, Task> DialogInitializer { get; set; }
+        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
     }
 
     // 主にダイアログ用(オーバーレイ表示想定)
@@ -306,48 +307,52 @@ namespace Game.Core.Scenes
         where TScene : IGameScene
         where TComponent : GameSceneComponent
     {
-        public Func<TComponent, IGameSceneResult<TResult>, Task> DialogInitializer { get; set; }
+        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
 
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
         private GameObject _asset;
         private GameObject _instance;
 
-        public override Task PreInitialize()
+        public override UniTask PreInitialize()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public override async Task LoadAsset()
+        public override async UniTask LoadAsset()
         {
             await LoadScene();
             SceneComponent = GetSceneComponent();
         }
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
-            DialogInitializer?.Invoke(SceneComponent, this);
-            return Task.CompletedTask;
+            if (DialogInitializer != null)
+            {
+                return DialogInitializer.Invoke(SceneComponent, this);
+            }
+
+            return UniTask.CompletedTask;
         }
 
-        public override Task Ready()
+        public override UniTask Ready()
         {
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             TrySetCanceled();
             return UnloadScene();
         }
 
-        protected override async Task LoadScene()
+        protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             _instance = GameObject.Instantiate(_asset);
         }
 
-        protected override Task UnloadScene()
+        protected override UniTask UnloadScene()
         {
             if (_instance)
             {
@@ -356,7 +361,7 @@ namespace Game.Core.Scenes
                 _asset = null;
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
         /// <summary>

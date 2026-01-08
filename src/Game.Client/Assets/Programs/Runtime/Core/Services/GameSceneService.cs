@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Contents.Scenes;
 using Game.Core.Constants;
@@ -30,7 +29,7 @@ namespace Game.Core.Services
 
         private const GameSceneOperations DefaultOperations = GameSceneConstants.DefaultOperations;
 
-        public async Task TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
+        public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
             await OperationAsync(operations);
@@ -41,7 +40,7 @@ namespace Game.Core.Services
         }
 
         // 引数つきの画面遷移
-        public async Task TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = DefaultOperations)
+        public async UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
             await OperationAsync(operations);
@@ -53,7 +52,7 @@ namespace Game.Core.Services
         }
 
         // リザルトつきの画面遷移
-        public async Task<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = DefaultOperations)
+        public async UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
             await OperationAsync(operations);
@@ -66,7 +65,7 @@ namespace Game.Core.Services
         }
 
         // 引数とリザルトつきの画面遷移
-        public async Task<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = DefaultOperations)
+        public async UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
             await OperationAsync(operations);
@@ -80,7 +79,7 @@ namespace Game.Core.Services
         }
 
         // 現在のシーンから見て、前のシーンへ戻る
-        public async Task TransitionPrevAsync()
+        public async UniTask TransitionPrevAsync()
         {
             var prevNode = _gameScenes.Last.Previous;
             if (prevNode != null)
@@ -113,7 +112,7 @@ namespace Game.Core.Services
             }
         }
 
-        public async Task<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, Task> initializer = null)
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
             where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
             where TComponent : GameSceneComponent
         {
@@ -136,7 +135,7 @@ namespace Game.Core.Services
         }
 
         // 主に遷移前に現在のシーンに対して何かする
-        private async Task OperationAsync(GameSceneOperations operations = DefaultOperations)
+        private async UniTask OperationAsync(GameSceneOperations operations = DefaultOperations)
         {
             // シーン遷移が起こる時はダイアログはすべて閉じる
             await TerminateAllDialogAsync();
@@ -165,7 +164,7 @@ namespace Game.Core.Services
                     if (scene is IGameSceneArg<TArg> gameSceneArg)
                         return gameSceneArg.ArgHandle(arg);
 
-                    return Task.CompletedTask;
+                    return UniTask.CompletedTask;
                 };
             }
         }
@@ -183,7 +182,7 @@ namespace Game.Core.Services
         /// <summary>
         /// シーンを起動させる共通処理
         /// </summary>
-        private async Task TransitionCore(IGameScene gameScene, bool isDialog = false)
+        private async UniTask TransitionCore(IGameScene gameScene, bool isDialog = false)
         {
             gameScene.State = GameSceneState.Processing;
 
@@ -198,7 +197,7 @@ namespace Game.Core.Services
             await gameScene.Ready();
         }
 
-        private async Task<TResult> ResultCore<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
+        private async UniTask<TResult> ResultCore<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
         {
             if (tcs == null) return default;
 
@@ -229,7 +228,7 @@ namespace Game.Core.Services
             return false;
         }
 
-        private Task SleepAsync()
+        private UniTask SleepAsync()
         {
             var currentNode = _gameScenes.Last;
             if (currentNode != null)
@@ -242,10 +241,10 @@ namespace Game.Core.Services
                 }
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        private Task RestartAsync()
+        private UniTask RestartAsync()
         {
             var currentNode = _gameScenes.Last;
             if (currentNode != null)
@@ -258,10 +257,10 @@ namespace Game.Core.Services
                 }
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        private async Task TerminateAsync(IGameScene gameScene, bool clearHistory = false)
+        private async UniTask TerminateAsync(IGameScene gameScene, bool clearHistory = false)
         {
             var node = _gameScenes.FindLast(gameScene);
             if (node != null)
@@ -272,7 +271,7 @@ namespace Game.Core.Services
             }
         }
 
-        public async Task TerminateAsync(Type type, bool clearHistory = false)
+        public async UniTask TerminateAsync(Type type, bool clearHistory = false)
         {
             var gameScene = _gameScenes.LastOrDefault(x => x.GetType() == type);
             if (gameScene != null)
@@ -284,7 +283,7 @@ namespace Game.Core.Services
         }
 
         // 最後に開いたものを閉じる
-        public async Task TerminateLastAsync(bool clearHistory = false)
+        public async UniTask TerminateLastAsync(bool clearHistory = false)
         {
             var currentNode = _gameScenes.Last;
             if (currentNode != null)
@@ -297,7 +296,7 @@ namespace Game.Core.Services
             }
         }
 
-        private async Task TerminateAllDialogAsync()
+        private async UniTask TerminateAllDialogAsync()
         {
             foreach (var gameScene in _gameScenes.Reverse())
             {
@@ -309,7 +308,7 @@ namespace Game.Core.Services
             }
         }
 
-        private async Task TerminateAllAsync()
+        private async UniTask TerminateAllAsync()
         {
             foreach (var gameScene in _gameScenes.Reverse())
             {
@@ -319,7 +318,7 @@ namespace Game.Core.Services
             _gameScenes.Clear();
         }
 
-        private async Task TerminateCore(IGameScene gameScene)
+        private async UniTask TerminateCore(IGameScene gameScene)
         {
             if (gameScene != null)
             {
@@ -332,7 +331,7 @@ namespace Game.Core.Services
 
         private readonly List<SceneInstance> _unityScenes = new();
 
-        public async Task<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
+        public async UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
             var sceneInstance = await AssetService.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
             if (sceneInstance.Scene.IsValid())
@@ -343,7 +342,7 @@ namespace Game.Core.Services
             return sceneInstance;
         }
 
-        public async Task UnloadUnitySceneAsync(SceneInstance sceneInstance)
+        public async UniTask UnloadUnitySceneAsync(SceneInstance sceneInstance)
         {
             await AssetService.UnloadSceneAsync(sceneInstance);
 
@@ -351,7 +350,7 @@ namespace Game.Core.Services
                 _unityScenes.Remove(sceneInstance);
         }
 
-        public async Task UnloadUnitySceneAllAsync()
+        public async UniTask UnloadUnitySceneAllAsync()
         {
             foreach (var sceneInstance in _unityScenes)
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MessagePipe;
@@ -15,31 +16,31 @@ namespace Game.Contents.UI
     {
         protected override string AssetPathOrAddress => "GamePauseUI";
 
-        public static Task<bool> RunAsync()
+        public static UniTask<bool> RunAsync()
         {
             var sceneService = GameServiceManager.Instance.GetService<GameSceneService>();
             return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, bool>(
                 initializer: (component, result) =>
                 {
                     component.Initialize(result);
-                    return Task.CompletedTask;
+                    return UniTask.CompletedTask;
                 });
         }
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, false);
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.Cursor, true);
             return base.Startup();
         }
 
-        public override Task Ready()
+        public override UniTask Ready()
         {
             AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIOpen).Forget();
             return base.Ready();
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIClose).Forget();
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, true);

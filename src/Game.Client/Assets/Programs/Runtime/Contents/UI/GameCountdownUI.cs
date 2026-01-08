@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
 using Game.Core.Services;
@@ -11,31 +12,31 @@ namespace Game.Contents.UI
     {
         protected override string AssetPathOrAddress => "GameCountdownUI";
 
-        public static Task<bool> RunAsync(float countdown = 3f)
+        public static UniTask<bool> RunAsync(float countdown = 3f)
         {
             var sceneService = GameServiceManager.Instance.GetService<GameSceneService>();
             return sceneService.TransitionDialogAsync<GameCountdownUIDialog, GameCountdownUI, bool>(
                 initializer: (component, result) =>
                 {
                     component.Initialize(result, countdown);
-                    return Task.CompletedTask;
+                    return UniTask.CompletedTask;
                 }
             );
         }
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, false);
             return base.Startup();
         }
 
-        public override Task Ready()
+        public override UniTask Ready()
         {
             SceneComponent.CountdownStart();
             return base.Ready();
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             GlobalMessageBroker.GetAsyncPublisher<int, bool>().Publish(MessageKey.System.TimeScale, true);
             return base.Terminate();

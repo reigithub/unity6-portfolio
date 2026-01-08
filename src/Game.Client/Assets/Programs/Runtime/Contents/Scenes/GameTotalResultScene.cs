@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
 
@@ -8,7 +8,7 @@ namespace Game.Contents.Scenes
     {
         protected override string AssetPathOrAddress => "GameTotalResultScene";
 
-        public override Task Startup()
+        public override UniTask Startup()
         {
             GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.System.DirectionalLight, false);
 
@@ -17,13 +17,13 @@ namespace Game.Contents.Scenes
             return base.Startup();
         }
 
-        public override Task Ready()
+        public override UniTask Ready()
         {
             SceneComponent.Ready();
             return base.Ready();
         }
 
-        public override Task Terminate()
+        public override UniTask Terminate()
         {
             GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.System.DirectionalLight, true);
             GlobalMessageBroker.GetPublisher<int, bool>().Publish(MessageKey.GameStageService.Shutdown, true);

@@ -1,8 +1,6 @@
-using System;
 using System.Linq;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.Constants;
-using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
@@ -50,7 +48,7 @@ namespace Game.Contents.Scenes
             SetInteractiveAllButton(true);
         }
 
-        public async Task ReadyAsync()
+        public async UniTask ReadyAsync()
         {
             GlobalMessageBroker.GetPublisher<int, string>().Publish(MessageKey.Player.PlayAnimation, PlayerConstants.GameTitleSceneAnimatorStateName);
             await GlobalMessageBroker.GetAsyncPublisher<int, bool>().PublishAsync(MessageKey.Game.Ready, true);
