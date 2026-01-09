@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Game.Core.Enums;
 using Game.Core.Scenes;
 
-namespace Game.Tests
+namespace Game.Editor.Tests
 {
     /// <summary>
     /// パフォーマンス比較用のTask版GameSceneService
@@ -290,13 +290,47 @@ namespace Game.Tests
         public int RestartCount { get; private set; }
         public int TerminateCount { get; private set; }
 
-        public Task PreInitialize() { PreInitializeCount++; return Task.CompletedTask; }
-        public Task LoadAsset() { LoadAssetCount++; return Task.CompletedTask; }
-        public Task Startup() { StartupCount++; return Task.CompletedTask; }
-        public Task Ready() { ReadyCount++; return Task.CompletedTask; }
-        public Task Sleep() { SleepCount++; return Task.CompletedTask; }
-        public Task Restart() { RestartCount++; return Task.CompletedTask; }
-        public Task Terminate() { TerminateCount++; return Task.CompletedTask; }
+        public Task PreInitialize()
+        {
+            PreInitializeCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task LoadAsset()
+        {
+            LoadAssetCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task Startup()
+        {
+            StartupCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task Ready()
+        {
+            ReadyCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task Sleep()
+        {
+            SleepCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task Restart()
+        {
+            RestartCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task Terminate()
+        {
+            TerminateCount++;
+            return Task.CompletedTask;
+        }
     }
 
     public class TaskMockGameSceneWithArg<TArg> : ITaskGameScene, ITaskGameSceneArg<TArg>

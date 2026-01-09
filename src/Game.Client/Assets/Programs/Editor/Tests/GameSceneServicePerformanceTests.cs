@@ -12,7 +12,7 @@ using NUnit.Framework;
 using Unity.Profiling;
 using UnityEngine;
 
-namespace Game.Tests
+namespace Game.Editor.Tests
 {
     /// <summary>
     /// GameSceneServiceのUniTask版とTask版のパフォーマンス比較テスト
@@ -66,9 +66,9 @@ namespace Game.Tests
         [SetUp]
         public void SetUp()
         {
-            _messageBrokerService = new MessageBrokerService();
-            _messageBrokerService.Startup();
-            _uniTaskService = new GameSceneService();
+            GameServiceManager.Instance.StartUp();
+            _messageBrokerService = GameServiceManager.Instance.GetService<MessageBrokerService>();
+            _uniTaskService = GameServiceManager.Instance.GetService<GameSceneService>();
             _taskService = new GameSceneServiceWithTask();
 
             _currentTestName = TestContext.CurrentContext.Test.Name;
@@ -79,7 +79,7 @@ namespace Game.Tests
         [TearDown]
         public void TearDown()
         {
-            _messageBrokerService?.Shutdown();
+            GameServiceManager.Instance.Shutdown();
             _taskService?.Clear();
             LogFooter();
         }
@@ -104,7 +104,7 @@ namespace Game.Tests
             try
             {
                 // ログディレクトリの作成
-                string logDirectory = $"{Application.dataPath}/Tests/TestLogs";
+                string logDirectory = $"{Application.dataPath}/Programs/Editor/Tests/Logs";
                 if (!Directory.Exists(logDirectory))
                 {
                     Directory.CreateDirectory(logDirectory);

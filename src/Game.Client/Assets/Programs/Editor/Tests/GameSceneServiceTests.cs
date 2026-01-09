@@ -9,7 +9,7 @@ using Game.Core.Scenes;
 using Game.Core.Services;
 using NUnit.Framework;
 
-namespace Game.Tests
+namespace Game.Editor.Tests
 {
     [TestFixture]
     public class GameSceneServiceTests
@@ -21,26 +21,19 @@ namespace Game.Tests
         [SetUp]
         public void SetUp()
         {
-            _messageBrokerService = new MessageBrokerService();
-            _messageBrokerService.Startup();
-
-            // GameSceneServiceを取得
-            _service = new GameSceneService();
-            _service.Startup();
+            GameServiceManager.Instance.StartUp();
+            _messageBrokerService = GameServiceManager.Instance.GetService<MessageBrokerService>();
+            _service = GameServiceManager.Instance.GetService<GameSceneService>();
             _gameScenes = GetPrivateField<LinkedList<IGameScene>>(_service, "_gameScenes");
         }
 
         [TearDown]
         public void TearDown()
         {
-            _gameScenes.Clear();
-
-            _messageBrokerService.Shutdown();
-            _messageBrokerService = null;
-
-            _service.Shutdown();
+            GameServiceManager.Instance.Shutdown();
             _service = null;
             _messageBrokerService = null;
+            _gameScenes.Clear();
         }
 
         #region IsProcessing Tests
