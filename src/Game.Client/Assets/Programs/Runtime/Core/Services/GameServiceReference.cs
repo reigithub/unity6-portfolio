@@ -4,8 +4,7 @@ namespace Game.Core.Services
     /// ゲームサービスへの参照
     /// </summary>
     /// <typeparam name="TService">サービス</typeparam>
-    public struct GameServiceReference<TService>
-        where TService : GameService, new()
+    public struct GameServiceReference<TService> where TService : IGameService, new()
     {
         private TService _reference;
         public TService Reference => _reference ??= GameServiceManager.Instance.GetService<TService>();

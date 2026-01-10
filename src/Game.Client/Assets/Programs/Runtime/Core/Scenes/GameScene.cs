@@ -15,42 +15,42 @@ namespace Game.Core.Scenes
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
-        public virtual UniTask PreInitialize()
+        public UniTask PreInitialize()
         {
             return UniTask.CompletedTask;
         }
 
         // アセット(主にこのシーン)をロード
-        public virtual UniTask LoadAsset()
+        public UniTask LoadAsset()
         {
             return UniTask.CompletedTask;
         }
 
         // シーンビュー初期化～起動処理
-        public virtual UniTask Startup()
+        public UniTask Startup()
         {
             return UniTask.CompletedTask;
         }
 
         // 起動後の処理
         // シーン起動後に演出など
-        public virtual UniTask Ready()
+        public UniTask Ready()
         {
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Sleep()
+        public UniTask Sleep()
         {
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Restart()
+        public UniTask Restart()
         {
             return UniTask.CompletedTask;
         }
 
         // シーンを終了させて破棄する
-        public virtual UniTask Terminate()
+        public UniTask Terminate()
         {
             return UniTask.CompletedTask;
         }
@@ -148,9 +148,9 @@ namespace Game.Core.Scenes
 
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
         where TGameScene : IGameScene
-        where TGameSceneComponent : GameSceneComponent
+        where TGameSceneComponent : IGameSceneComponent
     {
-        public TGameSceneComponent SceneComponent { get; protected set; }
+        protected TGameSceneComponent SceneComponent { get; set; }
 
         public override UniTask PreInitialize()
         {
@@ -205,7 +205,7 @@ namespace Game.Core.Scenes
 
     public abstract class GamePrefabScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
         where TGameScene : IGameScene
-        where TGameSceneComponent : GameSceneComponent
+        where TGameSceneComponent : IGameSceneComponent
     {
         private GameObject _asset;
         private GameObject _instance;
@@ -213,7 +213,7 @@ namespace Game.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = GameObject.Instantiate(_asset);
+            _instance = UnityEngine.Object.Instantiate(_asset);
             GameSceneHelper.MoveToGameRootScene(_instance);
         }
 
@@ -240,7 +240,7 @@ namespace Game.Core.Scenes
     // 基本的にPrefabSceneで賄えるのと、PrefabSceneを使う際にGameRootSceneを戻してあげないといけないので面倒
     public abstract class GameUnityScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
         where TGameScene : IGameScene
-        where TGameSceneComponent : GameSceneComponent
+        where TGameSceneComponent : IGameSceneComponent
     {
         protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Single;
 
@@ -301,11 +301,10 @@ namespace Game.Core.Scenes
     }
 
     // 主にダイアログ用(オーバーレイ表示想定)
-    // Memo: MonoBehaviourを使う以上、C#では多重継承できないので、個別作成
     public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>,
         IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
         where TScene : IGameScene
-        where TComponent : GameSceneComponent
+        where TComponent : IGameSceneComponent
     {
         public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
 
@@ -349,7 +348,7 @@ namespace Game.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = GameObject.Instantiate(_asset);
+            _instance = UnityEngine.Object.Instantiate(_asset);
         }
 
         protected override UniTask UnloadScene()

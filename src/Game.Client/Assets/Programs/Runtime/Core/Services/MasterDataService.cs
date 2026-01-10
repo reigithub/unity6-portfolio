@@ -7,22 +7,20 @@ using UnityEngine;
 
 namespace Game.Core.Services
 {
-    public class MasterDataService : GameService
+    public class MasterDataService : IMasterDataService
     {
         private GameServiceReference<AddressableAssetService> _assetService;
         private AddressableAssetService AssetService => _assetService.Reference;
 
         public MemoryDatabase MemoryDatabase { get; private set; }
 
-        protected internal override void Startup()
+        public void Startup()
         {
             var formatterResolvers = MasterDataHelper.GetMessagePackFormatterResolvers();
             StaticCompositeResolver.Instance.Register(formatterResolvers);
             var options = MessagePackSerializerOptions.Standard.WithResolver(StaticCompositeResolver.Instance);
             MessagePackSerializer.DefaultOptions = options;
         }
-
-        protected internal override bool AllowResidentOnMemory => true;
 
         public async Task LoadMasterDataAsync()
         {

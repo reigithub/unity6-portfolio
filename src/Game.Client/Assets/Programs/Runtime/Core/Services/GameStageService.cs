@@ -2,13 +2,11 @@
 using System.Linq;
 using Game.Contents.Scenes;
 using MessagePipe;
-using UnityEngine;
 
 namespace Game.Core.Services
 {
-    public class GameStageService : GameService
+    public class GameStageService : IGameStageService
     {
-        private GameObject _gameStageService;
         private readonly Dictionary<int, GameStageResultData> _gameStageResults = new();
 
         public bool TryAddResult(GameStageResultData result)
@@ -24,13 +22,10 @@ namespace Game.Core.Services
             };
         }
 
-        protected internal override void Shutdown()
+        public void Shutdown()
         {
             _gameStageResults.Clear();
-            base.Shutdown();
         }
-
-        protected internal override bool AllowResidentOnMemory => true;
     }
 
     // Request/Responseじゃなくてもよいが実験的に入れてみた、が多分MessageBrokerでいい

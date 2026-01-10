@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.MasterData;
@@ -12,7 +12,35 @@ using UnityEngine.UI;
 
 namespace Game.Core.Scenes
 {
-    public abstract class GameSceneComponent : MonoBehaviour
+    public interface IGameSceneComponent
+    {
+        public UniTask Startup()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask Ready()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask Sleep()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask Restart()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask Terminate()
+        {
+            return UniTask.CompletedTask;
+        }
+    }
+
+    public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
         private GameServiceReference<AddressableAssetService> _assetService;
         protected AddressableAssetService AssetService => _assetService.Reference;
@@ -35,7 +63,6 @@ namespace Game.Core.Scenes
 
         private void Start()
         {
-            // Memo: 時すでに遅し、ここしかなかったんや…もちろん後で修正検討
             _buttons = gameObject.GetComponentsInChildren<Button>();
             if (_buttons.Length > 0)
             {
@@ -54,17 +81,17 @@ namespace Game.Core.Scenes
             }
         }
 
-        public virtual Task Sleep()
+        public virtual UniTask Sleep()
         {
             if (gameObject.activeSelf)
             {
                 gameObject.SetActive(false);
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
 
-        public virtual Task Restart()
+        public virtual UniTask Restart()
         {
             if (!gameObject.activeSelf)
             {
@@ -72,7 +99,7 @@ namespace Game.Core.Scenes
                 SetInteractiveAllButton(true);
             }
 
-            return Task.CompletedTask;
+            return UniTask.CompletedTask;
         }
     }
 }

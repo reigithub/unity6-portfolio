@@ -59,7 +59,7 @@ namespace Game.Core.Scenes
             }
         }
 
-        public static T GetSceneComponent<T>(GameObject scene) where T : Behaviour
+        public static T GetSceneComponent<T>(GameObject scene) where T : IGameSceneComponent
         {
             if (scene.TryGetComponent<T>(out var sceneComponent))
             {
@@ -69,23 +69,19 @@ namespace Game.Core.Scenes
             return scene.GetComponentInChildren<T>();
         }
 
-        public static T GetSceneComponent<T>(Scene scene) where T : MonoBehaviour
-        {
-            return GetRootComponent<T>(scene);
-        }
-
-        public static T GetRootComponent<T>(Scene scene) where T : MonoBehaviour
+        public static T GetSceneComponent<T>(Scene scene) where T : IGameSceneComponent
         {
             var rootGameObjects = scene.GetRootGameObjects();
 
-            T component = null;
             foreach (var obj in rootGameObjects)
             {
-                if (obj.TryGetComponent<T>(out component))
-                    break;
+                if (obj.TryGetComponent<T>(out var component))
+                {
+                    return component;
+                }
             }
 
-            return component;
+            return default;
         }
 
         public static Skybox GetSkybox(Scene scene)

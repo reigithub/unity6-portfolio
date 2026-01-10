@@ -12,7 +12,7 @@ using UnityEngine.AddressableAssets;
 
 namespace Game.Core.Services
 {
-    public class AudioService : GameService
+    public class AudioService : IAudioService
     {
         private GameServiceReference<MasterDataService> _masterDataService;
         private MemoryDatabase MemoryDatabase => _masterDataService.Reference.MemoryDatabase;
@@ -29,7 +29,7 @@ namespace Game.Core.Services
         private readonly float _sfxVolume = 0.7f;
         private readonly float _sfxFadeDuration = 0.1f;
 
-        protected internal override void Startup()
+        public void Startup()
         {
             _audioService = new GameObject(nameof(AudioService));
             _bgmSource = new GameObject("BgmSource").AddComponent<AudioSource>();
@@ -41,11 +41,9 @@ namespace Game.Core.Services
             _sfxSource.transform.SetParent(_audioService.transform);
 
             UnityEngine.Object.DontDestroyOnLoad(_audioService);
-
-            base.Startup();
         }
 
-        protected internal override void Shutdown()
+        public void Shutdown()
         {
             _bgmSource.SafeDestroy();
             _bgmSource = null;
@@ -55,11 +53,7 @@ namespace Game.Core.Services
             _sfxSource = null;
             _audioService.SafeDestroy();
             _audioService = null;
-
-            base.Shutdown();
         }
-
-        protected internal override bool AllowResidentOnMemory => true;
 
         public async Task PlayBgmAsync(string assetName)
         {
