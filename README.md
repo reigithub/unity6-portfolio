@@ -147,7 +147,6 @@
 ---
 ## 今後の予定
 * MemoryPackを用いた簡易的なセーブ機能(PlayerPrefs代替機能として)
-* Toonファイル使用例
 * PlayerLoopへの介入サンプル
 * EnhancedScroller実装サンプル
 * リストのソート／フィルタ機能サンプル
