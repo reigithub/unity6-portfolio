@@ -122,6 +122,7 @@
 | cysharp/UniTask      | 2.5.10     |
 | cysharp/MasterMemory | 3.0.4      |
 | cysharp/MessagePack  | 3.1.3      |
+| NSubstitute          | 5.3.0      |
 | DOTween              | 1.2.790    |
 | HotReload            | 1.13.13    |
 | JetBrains Rider      | 2025.3.0.2 |
@@ -134,6 +135,7 @@
 * UniTask : Unityに最適化された非同期処理全般のため。現在は主にダイアログのエラーハンドリングに使用しており、随時利用範囲拡大予定。
 * MasterMemory: ゲームロジックとデータを分離し、ロジック修正を抑えつつ、開発サイクルを効率化するため。また、デモゲームが大量の音声ファイル(約400個)を使用するため。
 * MessagePack: 主にMasterMemoryのデータシリアライザーとして。
+* NSubstitute: テストコードでゲームサービス等のモック作成
 * Claude Code: テストコード生成、リファクタリング
 ---
 ## アセット
