@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Contents.Player;
 using Game.Contents.UI;
+using Game.Core.Bootstrap;
 using Game.Core.Enums;
 using Game.Core.Extensions;
 using Game.Core.Services;
@@ -17,9 +18,9 @@ namespace Game.Core
     /// <summary>
     /// ゲーム全体に関わるオブジェクトを管理する
     /// </summary>
-    public class GameCommonObjects : MonoBehaviour
+    public class GameRootController : MonoBehaviour
     {
-        private const string Address = "GameCommonObjects";
+        private const string Address = "GameRootController";
 
         public static async UniTask LoadAssetAsync()
         {
@@ -29,7 +30,7 @@ namespace Game.Core
                 throw new NullReferenceException($"Load Asset Failed. {Address}");
 
             var go = Instantiate(prefab);
-            if (go.TryGetComponent<GameCommonObjects>(out var commonObjects))
+            if (go.TryGetComponent<GameRootController>(out var commonObjects))
             {
                 DontDestroyOnLoad(go);
                 commonObjects.Initialize();
@@ -37,7 +38,7 @@ namespace Game.Core
             else
             {
                 go.SafeDestroy();
-                throw new MissingComponentException($"{nameof(GameCommonObjects)} is missing.");
+                throw new MissingComponentException($"{nameof(GameRootController)} is missing.");
             }
         }
 
@@ -130,7 +131,7 @@ namespace Game.Core
                 {
                     AudioService.StopBgm();
                     await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit, token);
-                    GameManager.Instance.GameQuit();
+                    GameBootstrap.Shutdown();
                 })
                 .AddTo(this);
 

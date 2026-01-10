@@ -515,7 +515,7 @@ GameObject:
   - component: {fileID: 5449809067443127615}
   - component: {fileID: 2872971308034488110}
   m_Layer: 0
-  m_Name: GameCommonObjects
+  m_Name: GameRootController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
