@@ -10,6 +10,10 @@ namespace Game.Core.Services
 {
     public class AddressableAssetService : IAddressableAssetService
     {
+        public AddressableAssetService()
+        {
+        }
+
         public async Task<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
             ThrowExceptionIfNullAddress(address);

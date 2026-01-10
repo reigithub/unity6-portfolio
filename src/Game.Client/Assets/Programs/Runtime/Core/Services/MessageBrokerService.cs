@@ -8,6 +8,10 @@ namespace Game.Core.Services
 {
     public class MessageBrokerService : IMessageBrokerService
     {
+        public MessageBrokerService()
+        {
+        }
+
         // BuiltinContainerBuilder.BuildServiceProviderした後に、Subscribeし始める必要があるため
         // AddMessageBroker～BuildServiceProviderを1ヶ所に集約してみる
         public GlobalMessageBroker GlobalMessageBroker { get; private set; } = new();

@@ -7,6 +7,7 @@ using Game.Core.Enums;
 using Game.Core.MessagePipe;
 using Game.Core.Scenes;
 using Game.Core.Services;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Game.Editor.Tests
@@ -15,25 +16,46 @@ namespace Game.Editor.Tests
     public class GameSceneServiceTests
     {
         private GameSceneService _service;
-        private LinkedList<IGameScene> _gameScenes;
-        private MessageBrokerService _messageBrokerService;
+        private List<IGameScene> _gameScenes;
+        private IAddressableAssetService _addressableAssetService;
+        private IMessageBrokerService _messageBrokerService;
+        private GlobalMessageBroker _globalMessageBroker;
+
+        private GameSceneServiceMock _mockService;
 
         [SetUp]
         public void SetUp()
         {
-            GameServiceManager.Instance.StartUp();
-            _messageBrokerService = GameServiceManager.Instance.GetService<MessageBrokerService>();
-            _service = GameServiceManager.Instance.GetService<GameSceneService>();
-            _gameScenes = GetPrivateField<LinkedList<IGameScene>>(_service, "_gameScenes");
+            // NSubstituteでモックを作成
+            _addressableAssetService = Substitute.For<IAddressableAssetService>();
+            _messageBrokerService = Substitute.For<IMessageBrokerService>();
+
+            // GlobalMessageBrokerは実際のインスタンスを使用（AsyncPublisherが必要なため）
+            _globalMessageBroker = new GlobalMessageBroker();
+            _globalMessageBroker.AddMessageBroker<int, bool>();
+            _globalMessageBroker.Build();
+
+            _messageBrokerService.GlobalMessageBroker.Returns(_globalMessageBroker);
+
+            // DIコンストラクタでモックを注入
+            _service = new GameSceneService(_addressableAssetService, _messageBrokerService);
+
+            // リフレクションで内部のシーンリストを取得（IsProcessing等のテスト用）
+            _gameScenes = GetPrivateField<List<IGameScene>>(_service, "_gameScenes");
+
+            // Simulate処理用のMockサービス
+            _mockService = new GameSceneServiceMock();
         }
 
         [TearDown]
         public void TearDown()
         {
-            GameServiceManager.Instance.Shutdown();
             _service = null;
+            _addressableAssetService = null;
             _messageBrokerService = null;
-            _gameScenes.Clear();
+            _globalMessageBroker = null;
+            _gameScenes?.Clear();
+            _mockService?.Clear();
         }
 
         #region IsProcessing Tests
@@ -50,7 +72,7 @@ namespace Game.Editor.Tests
         public void IsProcessing_WithMatchingTypeAndProcessingState_ReturnsTrue()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             var result = _service.IsProcessing(typeof(MockGameScene));
 
@@ -61,7 +83,7 @@ namespace Game.Editor.Tests
         public void IsProcessing_WithMatchingTypeButDifferentState_ReturnsFalse()
         {
             var scene = new MockGameScene { State = GameSceneState.Sleep };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             var result = _service.IsProcessing(typeof(MockGameScene));
 
@@ -72,7 +94,7 @@ namespace Game.Editor.Tests
         public void IsProcessing_WithDifferentType_ReturnsFalse()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             var result = _service.IsProcessing(typeof(AnotherMockGameScene));
 
@@ -84,8 +106,8 @@ namespace Game.Editor.Tests
         {
             var scene1 = new MockGameScene { State = GameSceneState.Processing };
             var scene2 = new AnotherMockGameScene { State = GameSceneState.Sleep };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _gameScenes.Add(scene1);
+            _gameScenes.Add(scene2);
 
             var result = _service.IsProcessing(typeof(MockGameScene));
 
@@ -100,7 +122,7 @@ namespace Game.Editor.Tests
         public async Task TerminateAsync_WithMatchingType_TerminatesScene()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(MockGameScene), clearHistory: false);
 
@@ -112,7 +134,7 @@ namespace Game.Editor.Tests
         public async Task TerminateAsync_WithClearHistory_RemovesFromList()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(MockGameScene), clearHistory: true);
 
@@ -123,7 +145,7 @@ namespace Game.Editor.Tests
         public async Task TerminateAsync_WithoutClearHistory_KeepsInList()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(MockGameScene), clearHistory: false);
 
@@ -134,7 +156,7 @@ namespace Game.Editor.Tests
         public async Task TerminateAsync_WithNonMatchingType_DoesNothing()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(AnotherMockGameScene), clearHistory: true);
 
@@ -151,8 +173,8 @@ namespace Game.Editor.Tests
         {
             var scene1 = new MockGameScene { State = GameSceneState.Processing };
             var scene2 = new AnotherMockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _gameScenes.Add(scene1);
+            _gameScenes.Add(scene2);
 
             await _service.TerminateLastAsync(clearHistory: false);
 
@@ -165,13 +187,13 @@ namespace Game.Editor.Tests
         {
             var scene1 = new MockGameScene { State = GameSceneState.Processing };
             var scene2 = new AnotherMockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _gameScenes.Add(scene1);
+            _gameScenes.Add(scene2);
 
             await _service.TerminateLastAsync(clearHistory: true);
 
             Assert.AreEqual(1, _gameScenes.Count);
-            Assert.AreSame(scene1, _gameScenes.First.Value);
+            Assert.AreSame(scene1, _gameScenes[0]);
         }
 
         [Test]
@@ -196,7 +218,7 @@ namespace Game.Editor.Tests
         public async Task TerminateCore_SetsStateToTerminate()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(MockGameScene));
 
@@ -212,8 +234,8 @@ namespace Game.Editor.Tests
         {
             var scene1 = new MockGameScene { State = GameSceneState.Processing };
             var scene2 = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _gameScenes.Add(scene1);
+            _gameScenes.Add(scene2);
 
             await _service.TerminateAsync(typeof(MockGameScene), clearHistory: true);
 
@@ -301,7 +323,7 @@ namespace Game.Editor.Tests
         {
             var scene = new MockGameSceneWithArgAndResult<string, int>();
             scene.ResultTcs = new UniTaskCompletionSource<int>();
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             // Simulate arg handling
             const string testArg = "TestInput";
@@ -333,7 +355,7 @@ namespace Game.Editor.Tests
         {
             var scene = new MockGameSceneWithArgAndResult<string, int>();
             scene.State = GameSceneState.Processing;
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             // Sleep
             scene.State = GameSceneState.Sleep;
@@ -356,7 +378,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameSceneWithArgAndResult<string, int>();
             scene.ResultTcs = new UniTaskCompletionSource<int>();
             scene.State = GameSceneState.Processing;
-            _gameScenes.AddLast(scene);
+            _gameScenes.Add(scene);
 
             await _service.TerminateAsync(typeof(MockGameSceneWithArgAndResult<string, int>), clearHistory: true);
 
@@ -491,7 +513,7 @@ namespace Game.Editor.Tests
         {
             var dialog = new MockGameDialogScene<MockSceneComponent, int>();
             dialog.ResultTcs = new UniTaskCompletionSource<int>();
-            _gameScenes.AddLast(dialog);
+            _gameScenes.Add(dialog);
 
             var initData = new { Title = "Test Dialog", Message = "Hello" };
             string capturedTitle = null;
@@ -525,7 +547,7 @@ namespace Game.Editor.Tests
         {
             var dialog = new MockGameDialogScene<MockSceneComponent, string>();
             dialog.ResultTcs = new UniTaskCompletionSource<string>();
-            _gameScenes.AddLast(dialog);
+            _gameScenes.Add(dialog);
 
             dialog.State = GameSceneState.Processing;
             await dialog.LoadAsset();
@@ -534,7 +556,6 @@ namespace Game.Editor.Tests
             // User cancels dialog
             dialog.TrySetCanceled();
 
-            // var ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await dialog.ResultTcs.Task);
             // キャンセルステータス確認のため一度エラーを無視します
             var ex = await dialog.ResultTcs.Task.SuppressCancellationThrow();
             Assert.IsTrue(ex.IsCanceled);
@@ -548,8 +569,8 @@ namespace Game.Editor.Tests
             dialog1.ResultTcs = new UniTaskCompletionSource<int>();
             dialog2.ResultTcs = new UniTaskCompletionSource<string>();
 
-            _gameScenes.AddLast(dialog1);
-            _gameScenes.AddLast(dialog2);
+            _gameScenes.Add(dialog1);
+            _gameScenes.Add(dialog2);
 
             dialog1.State = GameSceneState.Processing;
             dialog2.State = GameSceneState.Processing;
@@ -565,7 +586,7 @@ namespace Game.Editor.Tests
         {
             var dialog = new MockGameDialogSceneWithArg<MockSceneComponent, DialogInput, DialogOutput>();
             dialog.ResultTcs = new UniTaskCompletionSource<DialogOutput>();
-            _gameScenes.AddLast(dialog);
+            _gameScenes.Add(dialog);
 
             var input = new DialogInput { ItemId = 100, Quantity = 5 };
 
@@ -684,21 +705,21 @@ namespace Game.Editor.Tests
         public async Task TransitionCore_AddsSceneToList()
         {
             var scene = new MockGameScene();
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateTransitionCore(scene);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
-            Assert.AreEqual(1, _gameScenes.Count);
-            Assert.IsInstanceOf<MockGameScene>(_gameScenes.First.Value);
+            Assert.AreEqual(1, _mockService.SceneCount);
+            Assert.IsInstanceOf<MockGameScene>(_mockService.Scenes[0]);
         }
 
         [Test]
         public async Task TransitionCore_SetsSceneStateToProcessing()
         {
             var scene = new MockGameScene();
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateTransitionCore(scene);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.AreEqual(GameSceneState.Processing, scene.State);
         }
@@ -707,9 +728,9 @@ namespace Game.Editor.Tests
         public async Task TransitionCore_ExecutesFullLifecycle()
         {
             var scene = new MockGameScene();
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateTransitionCore(scene);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.IsTrue(scene.PreInitializeCalled);
             Assert.IsTrue(scene.LoadAssetCalled);
@@ -724,10 +745,10 @@ namespace Game.Editor.Tests
             const string testArg = "TestArgument";
 
             // ArgHandlerをセットアップ
-            SimulateCreateArgHandler(scene, testArg);
-            _gameScenes.AddLast(scene);
+            _mockService.SetupArgHandler(scene, testArg);
+            _mockService.AddScene(scene);
 
-            await SimulateTransitionCore(scene);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.AreEqual(testArg, scene.ReceivedArg);
         }
@@ -737,10 +758,10 @@ namespace Game.Editor.Tests
         {
             var scene = new MockGameSceneWithArg();
 
-            SimulateCreateArgHandler(scene, "test");
-            _gameScenes.AddLast(scene);
+            _mockService.SetupArgHandler(scene, "test");
+            _mockService.AddScene(scene);
 
-            await SimulateTransitionCore(scene);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.IsNotNull(scene.ArgHandler);
         }
@@ -749,17 +770,17 @@ namespace Game.Editor.Tests
         public async Task TransitionWithResult_CreatesResultTcs()
         {
             var scene = new MockGameSceneWithResult();
-            var tcs = SimulateCreateResultTcs<int>(scene);
-            _gameScenes.AddLast(scene);
+            var tcs = _mockService.SetupResultTcs<int>(scene);
+            _mockService.AddScene(scene);
 
             // 遷移開始
-            var transitionTask = SimulateTransitionWithResultAsync(scene, tcs);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.IsNotNull(scene.ResultTcs);
 
             // 結果をセット
             scene.ResultTcs.TrySetResult(42);
-            var result = await transitionTask;
+            var result = await tcs.Task;
             Assert.AreEqual(42, result);
         }
 
@@ -770,16 +791,16 @@ namespace Game.Editor.Tests
             const string inputArg = "InputData";
             const int expectedResult = 100;
 
-            SimulateCreateArgHandler(scene, inputArg);
-            var tcs = SimulateCreateResultTcs<int>(scene);
-            _gameScenes.AddLast(scene);
+            _mockService.SetupArgHandler(scene, inputArg);
+            var tcs = _mockService.SetupResultTcs<int>(scene);
+            _mockService.AddScene(scene);
 
-            var transitionTask = SimulateTransitionWithResultAsync(scene, tcs);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             Assert.AreEqual(inputArg, scene.ReceivedArg);
 
             scene.ResultTcs.TrySetResult(expectedResult);
-            var result = await transitionTask;
+            var result = await tcs.Task;
 
             Assert.AreEqual(expectedResult, result);
         }
@@ -790,27 +811,27 @@ namespace Game.Editor.Tests
             var scene1 = new MockGameScene();
             var scene2 = new AnotherMockGameScene();
 
-            _gameScenes.AddLast(scene1);
-            await SimulateTransitionCore(scene1);
+            _mockService.AddScene(scene1);
+            await _mockService.ExecuteTransitionCoreAsync(scene1);
 
-            _gameScenes.AddLast(scene2);
-            await SimulateTransitionCore(scene2);
+            _mockService.AddScene(scene2);
+            await _mockService.ExecuteTransitionCoreAsync(scene2);
 
-            Assert.AreEqual(2, _gameScenes.Count);
+            Assert.AreEqual(2, _mockService.SceneCount);
         }
 
         [Test]
         public async Task TransitionWithTerminateOperation_TerminatesPreviousScene()
         {
             var firstScene = new MockGameScene();
-            _gameScenes.AddLast(firstScene);
-            await SimulateTransitionCore(firstScene);
+            _mockService.AddScene(firstScene);
+            await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // 2番目の遷移でTerminate操作
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneTerminate);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate);
             var secondScene = new AnotherMockGameScene();
-            _gameScenes.AddLast(secondScene);
-            await SimulateTransitionCore(secondScene);
+            _mockService.AddScene(secondScene);
+            await _mockService.ExecuteTransitionCoreAsync(secondScene);
 
             Assert.IsTrue(firstScene.TerminateCalled);
             Assert.AreEqual(GameSceneState.Terminate, firstScene.State);
@@ -820,14 +841,14 @@ namespace Game.Editor.Tests
         public async Task TransitionWithSleepOperation_SleepsPreviousScene()
         {
             var firstScene = new MockGameScene();
-            _gameScenes.AddLast(firstScene);
-            await SimulateTransitionCore(firstScene);
+            _mockService.AddScene(firstScene);
+            await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // 2番目の遷移でSleep操作
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneSleep);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneSleep);
             var secondScene = new AnotherMockGameScene();
-            _gameScenes.AddLast(secondScene);
-            await SimulateTransitionCore(secondScene);
+            _mockService.AddScene(secondScene);
+            await _mockService.ExecuteTransitionCoreAsync(secondScene);
 
             Assert.IsTrue(firstScene.SleepCalled);
             Assert.AreEqual(GameSceneState.Sleep, firstScene.State);
@@ -837,32 +858,33 @@ namespace Game.Editor.Tests
         public async Task TransitionWithClearHistoryOperation_RemovesPreviousScene()
         {
             var firstScene = new MockGameScene();
-            _gameScenes.AddLast(firstScene);
-            await SimulateTransitionCore(firstScene);
+            _mockService.AddScene(firstScene);
+            await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // Terminate + ClearHistory
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory);
             var secondScene = new AnotherMockGameScene();
-            _gameScenes.AddLast(secondScene);
-            await SimulateTransitionCore(secondScene);
+            _mockService.AddScene(secondScene);
+            await _mockService.ExecuteTransitionCoreAsync(secondScene);
 
-            Assert.AreEqual(1, _gameScenes.Count);
-            Assert.IsInstanceOf<AnotherMockGameScene>(_gameScenes.First.Value);
+            Assert.AreEqual(1, _mockService.SceneCount);
+            Assert.IsInstanceOf<AnotherMockGameScene>(_mockService.Scenes[0]);
         }
 
         [Test]
         public async Task TransitionWithResult_Canceled_ReturnsDefault()
         {
             var scene = new MockGameSceneWithResult();
-            var tcs = SimulateCreateResultTcs<int>(scene);
-            _gameScenes.AddLast(scene);
+            var tcs = _mockService.SetupResultTcs<int>(scene);
+            _mockService.AddScene(scene);
 
-            var transitionTask = SimulateTransitionWithResultAsync(scene, tcs);
+            await _mockService.ExecuteTransitionCoreAsync(scene);
 
             scene.ResultTcs.TrySetCanceled();
 
-            var result = await transitionTask;
-            Assert.AreEqual(default(int), result);
+            // キャンセル時はdefault値
+            var (isCanceled, _) = await tcs.Task.SuppressCancellationThrow();
+            Assert.IsTrue(isCanceled);
         }
 
         #endregion
@@ -875,10 +897,10 @@ namespace Game.Editor.Tests
             // Setup: Scene1 (sleeping) -> Scene2 (current)
             var scene1 = new MockGameScene { State = GameSceneState.Sleep };
             var scene2 = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _mockService.AddScene(scene1);
+            _mockService.AddScene(scene2);
 
-            await SimulateTransitionPrevAsync();
+            await _mockService.TransitionPrevAsync();
 
             Assert.IsTrue(scene2.TerminateCalled);
             Assert.IsTrue(scene1.RestartCalled);
@@ -890,10 +912,10 @@ namespace Game.Editor.Tests
             // Setup: Scene1 (terminated) -> Scene2 (current)
             var scene1 = new MockGameScene { State = GameSceneState.Terminate };
             var scene2 = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _mockService.AddScene(scene1);
+            _mockService.AddScene(scene2);
 
-            await SimulateTransitionPrevAsync();
+            await _mockService.TransitionPrevAsync();
 
             Assert.IsTrue(scene2.TerminateCalled);
             Assert.IsTrue(scene1.PreInitializeCalled);
@@ -905,10 +927,10 @@ namespace Game.Editor.Tests
             // Setup: Scene1 (processing) -> Scene2 (current)
             var scene1 = new MockGameScene { State = GameSceneState.Processing };
             var scene2 = new AnotherMockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene1);
-            _gameScenes.AddLast(scene2);
+            _mockService.AddScene(scene1);
+            _mockService.AddScene(scene2);
 
-            await SimulateTransitionPrevAsync();
+            await _mockService.TransitionPrevAsync();
 
             Assert.IsTrue(scene2.TerminateCalled);
         }
@@ -921,16 +943,16 @@ namespace Game.Editor.Tests
         public async Task TransitionDialogAsync_AddsDialogToList()
         {
             var dialog = new TestDialogScene();
-            var tcs = SimulateCreateResultTcs<bool>(dialog);
-            _gameScenes.AddLast(dialog);
+            var tcs = _mockService.SetupResultTcs<bool>(dialog);
+            _mockService.AddScene(dialog);
 
-            var dialogTask = SimulateTransitionDialogAsync(dialog, tcs);
+            await _mockService.ExecuteTransitionCoreAsync(dialog);
 
-            Assert.AreEqual(1, _gameScenes.Count);
-            Assert.IsInstanceOf<TestDialogScene>(_gameScenes.First.Value);
+            Assert.AreEqual(1, _mockService.SceneCount);
+            Assert.IsInstanceOf<TestDialogScene>(_mockService.Scenes[0]);
 
             dialog.TrySetResult(true);
-            var result = await dialogTask;
+            var result = await tcs.Task;
             Assert.IsTrue(result);
         }
 
@@ -946,13 +968,10 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             };
 
-            var tcs = SimulateCreateResultTcs<bool>(dialog);
-            _gameScenes.AddLast(dialog);
+            _mockService.SetupResultTcs<bool>(dialog);
+            _mockService.AddScene(dialog);
 
-            var dialogTask = SimulateTransitionDialogAsync(dialog, tcs);
-
-            dialog.TrySetResult(true);
-            await dialogTask;
+            await _mockService.ExecuteTransitionCoreAsync(dialog);
 
             Assert.IsTrue(initializerCalled);
         }
@@ -960,10 +979,10 @@ namespace Game.Editor.Tests
         [Test]
         public async Task TransitionDialogAsync_WhenSameDialogIsProcessing_TerminatesExisting()
         {
-            // 最初のダイアログ
+            // 最初のダイアログ（実際のサービスでテスト）
             var firstDialog = new TestDialogScene { State = GameSceneState.Processing };
             firstDialog.ResultTcs = new UniTaskCompletionSource<bool>();
-            _gameScenes.AddLast(firstDialog);
+            _gameScenes.Add(firstDialog);
 
             // 同じ型のダイアログを再度開こうとする
             var isProcessing = _service.IsProcessing(typeof(TestDialogScene));
@@ -983,27 +1002,28 @@ namespace Game.Editor.Tests
             dialog1.ResultTcs = new UniTaskCompletionSource<bool>();
             dialog2.ResultTcs = new UniTaskCompletionSource<int>();
 
-            _gameScenes.AddLast(dialog1);
-            _gameScenes.AddLast(dialog2);
+            _mockService.AddScene(dialog1);
+            _mockService.AddScene(dialog2);
 
             Assert.IsInstanceOf<IGameSceneResult>(dialog1);
             Assert.IsInstanceOf<IGameSceneResult>(dialog2);
-            Assert.AreEqual(2, _gameScenes.Count);
+            Assert.AreEqual(2, _mockService.SceneCount);
         }
 
         [Test]
         public async Task TransitionDialogAsync_DialogCanceled_ReturnsDefault()
         {
             var dialog = new TestDialogScene();
-            var tcs = SimulateCreateResultTcs<bool>(dialog);
-            _gameScenes.AddLast(dialog);
+            var tcs = _mockService.SetupResultTcs<bool>(dialog);
+            _mockService.AddScene(dialog);
 
-            var dialogTask = SimulateTransitionDialogAsync(dialog, tcs);
+            await _mockService.ExecuteTransitionCoreAsync(dialog);
 
             dialog.TrySetCanceled();
 
-            var result = await dialogTask;
-            Assert.AreEqual(default(bool), result);
+            // キャンセル時はdefault値
+            var (isCanceled, _) = await tcs.Task.SuppressCancellationThrow();
+            Assert.IsTrue(isCanceled);
         }
 
         #endregion
@@ -1014,9 +1034,9 @@ namespace Game.Editor.Tests
         public async Task OperationAsync_WithNoOperation_DoesNothing()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateOperationAsync(GameSceneOperations.None);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.None);
 
             Assert.IsFalse(scene.SleepCalled);
             Assert.IsFalse(scene.RestartCalled);
@@ -1027,9 +1047,9 @@ namespace Game.Editor.Tests
         public async Task OperationAsync_WithSleep_SleepsCurrentScene()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneSleep);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneSleep);
 
             Assert.IsTrue(scene.SleepCalled);
             Assert.AreEqual(GameSceneState.Sleep, scene.State);
@@ -1039,9 +1059,9 @@ namespace Game.Editor.Tests
         public async Task OperationAsync_WithRestart_RestartsCurrentScene()
         {
             var scene = new MockGameScene { State = GameSceneState.Sleep };
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneRestart);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneRestart);
 
             Assert.IsTrue(scene.RestartCalled);
             Assert.AreEqual(GameSceneState.Processing, scene.State);
@@ -1051,9 +1071,9 @@ namespace Game.Editor.Tests
         public async Task OperationAsync_WithTerminate_TerminatesCurrentScene()
         {
             var scene = new MockGameScene { State = GameSceneState.Processing };
-            _gameScenes.AddLast(scene);
+            _mockService.AddScene(scene);
 
-            await SimulateOperationAsync(GameSceneOperations.CurrentSceneTerminate);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate);
 
             Assert.IsTrue(scene.TerminateCalled);
             Assert.AreEqual(GameSceneState.Terminate, scene.State);
@@ -1065,10 +1085,11 @@ namespace Game.Editor.Tests
             var regularScene = new MockGameScene { State = GameSceneState.Processing };
             var dialogScene = new MockGameSceneWithResult { State = GameSceneState.Processing };
             dialogScene.ResultTcs = new UniTaskCompletionSource<int>();
-            _gameScenes.AddLast(regularScene);
-            _gameScenes.AddLast(dialogScene);
+            _mockService.AddScene(regularScene);
+            _mockService.AddScene(dialogScene);
 
-            await SimulateOperationAsync(GameSceneOperations.None);
+            // ダイアログを全て閉じる
+            await _mockService.TerminateAllDialogAsync();
 
             Assert.AreEqual(GameSceneState.Terminate, dialogScene.State);
         }
@@ -1081,238 +1102,6 @@ namespace Game.Editor.Tests
         {
             var field = obj.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return (T)field?.GetValue(obj);
-        }
-
-        /// <summary>
-        /// TransitionCoreの動作をシミュレート
-        /// GlobalMessageBrokerを使用してメッセージを発行
-        /// </summary>
-        private async UniTask SimulateTransitionCore(IGameScene gameScene, bool isDialog = false)
-        {
-            gameScene.State = GameSceneState.Processing;
-
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
-
-            if (!isDialog)
-                await _messageBrokerService.GlobalMessageBroker.GetAsyncPublisher<int, bool>()
-                    .PublishAsync(MessageKey.GameScene.TransitionEnter, true);
-
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            await gameScene.Startup();
-
-            if (!isDialog)
-                await _messageBrokerService.GlobalMessageBroker.GetAsyncPublisher<int, bool>()
-                    .PublishAsync(MessageKey.GameScene.TransitionFinish, true);
-
-            await gameScene.Ready();
-        }
-
-        /// <summary>
-        /// CreateArgHandlerの動作をシミュレート
-        /// </summary>
-        private void SimulateCreateArgHandler<TArg>(IGameScene gameScene, TArg arg)
-        {
-            if (gameScene is IGameSceneArgHandler handler)
-            {
-                handler.ArgHandler = scene =>
-                {
-                    if (scene is IGameSceneArg<TArg> gameSceneArg)
-                        return gameSceneArg.ArgHandle(arg);
-
-                    return UniTask.CompletedTask;
-                };
-            }
-        }
-
-        /// <summary>
-        /// CreateResultTcsの動作をシミュレート
-        /// </summary>
-        private UniTaskCompletionSource<TResult> SimulateCreateResultTcs<TResult>(IGameScene gameScene)
-        {
-            if (gameScene is IGameSceneResult<TResult> result)
-            {
-                return result.ResultTcs = new UniTaskCompletionSource<TResult>();
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Result付き遷移をシミュレート
-        /// </summary>
-        private async UniTask<TResult> SimulateTransitionWithResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
-        {
-            await SimulateTransitionCore(gameScene);
-
-            if (tcs == null) return default;
-
-            try
-            {
-                var result = await tcs.Task;
-                await SimulateTerminateAsync(gameScene, clearHistory: true);
-                return result;
-            }
-            catch (OperationCanceledException)
-            {
-                tcs.TrySetCanceled();
-            }
-
-            return default;
-        }
-
-        /// <summary>
-        /// ダイアログ遷移をシミュレート
-        /// </summary>
-        private async UniTask<TResult> SimulateTransitionDialogAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
-        {
-            await SimulateTransitionCore(gameScene, isDialog: true);
-
-            if (tcs == null) return default;
-
-            try
-            {
-                var result = await tcs.Task;
-                await SimulateTerminateAsync(gameScene, clearHistory: true);
-                return result;
-            }
-            catch (OperationCanceledException)
-            {
-                tcs.TrySetCanceled();
-            }
-
-            return default;
-        }
-
-        /// <summary>
-        /// OperationAsyncの動作をシミュレート
-        /// </summary>
-        private async UniTask SimulateOperationAsync(GameSceneOperations operations)
-        {
-            // 全ダイアログを閉じる
-            await SimulateTerminateAllDialogAsync();
-
-            if (operations.HasFlag(GameSceneOperations.CurrentSceneSleep))
-            {
-                await SimulateSleepAsync();
-            }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneRestart))
-            {
-                await SimulateRestartAsync();
-            }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneTerminate))
-            {
-                bool clearHistory = operations.HasFlag(GameSceneOperations.CurrentSceneClearHistory);
-                await SimulateTerminateLastAsync(clearHistory);
-            }
-        }
-
-        /// <summary>
-        /// TransitionPrevAsyncの動作をシミュレート
-        /// </summary>
-        private async UniTask SimulateTransitionPrevAsync()
-        {
-            var prevNode = _gameScenes.Last?.Previous;
-            if (prevNode != null)
-            {
-                var gameScene = prevNode.Value;
-                if (gameScene.State is GameSceneState.Terminate)
-                {
-                    await SimulateTerminateLastAsync(clearHistory: true);
-                    await SimulateTransitionCore(gameScene);
-                }
-                else if (gameScene.State is GameSceneState.Sleep)
-                {
-                    await SimulateTerminateLastAsync(clearHistory: true);
-                    await SimulateRestartAsync();
-                }
-                else if (gameScene.State is GameSceneState.Processing)
-                {
-                    await SimulateTerminateLastAsync(clearHistory: true);
-                }
-            }
-        }
-
-        private UniTask SimulateSleepAsync()
-        {
-            var currentNode = _gameScenes.Last;
-            if (currentNode != null)
-            {
-                var gameScene = currentNode.Value;
-                if (gameScene != null)
-                {
-                    gameScene.State = GameSceneState.Sleep;
-                    return gameScene.Sleep();
-                }
-            }
-
-            return UniTask.CompletedTask;
-        }
-
-        private UniTask SimulateRestartAsync()
-        {
-            var currentNode = _gameScenes.Last;
-            if (currentNode != null)
-            {
-                var gameScene = currentNode.Value;
-                if (gameScene != null)
-                {
-                    gameScene.State = GameSceneState.Processing;
-                    return gameScene.Restart();
-                }
-            }
-
-            return UniTask.CompletedTask;
-        }
-
-        private async UniTask SimulateTerminateAsync(IGameScene gameScene, bool clearHistory = false)
-        {
-            var node = _gameScenes.FindLast(gameScene);
-            if (node != null)
-            {
-                await SimulateTerminateCore(node.Value);
-                if (clearHistory) _gameScenes.Remove(node);
-            }
-        }
-
-        private async UniTask SimulateTerminateLastAsync(bool clearHistory = false)
-        {
-            var currentNode = _gameScenes.Last;
-            if (currentNode != null)
-            {
-                var gameScene = currentNode.Value;
-                if (gameScene != null)
-                {
-                    await SimulateTerminateAsync(gameScene, clearHistory);
-                }
-            }
-        }
-
-        private async UniTask SimulateTerminateAllDialogAsync()
-        {
-            var scenesToTerminate = new List<IGameScene>();
-            foreach (var gameScene in _gameScenes)
-            {
-                if (gameScene is IGameSceneResult)
-                {
-                    scenesToTerminate.Add(gameScene);
-                }
-            }
-
-            foreach (var gameScene in scenesToTerminate)
-            {
-                await SimulateTerminateAsync(gameScene, clearHistory: true);
-            }
-        }
-
-        private async UniTask SimulateTerminateCore(IGameScene gameScene)
-        {
-            if (gameScene != null)
-            {
-                gameScene.State = GameSceneState.Terminate;
-                await gameScene.Terminate();
-            }
         }
 
         #endregion

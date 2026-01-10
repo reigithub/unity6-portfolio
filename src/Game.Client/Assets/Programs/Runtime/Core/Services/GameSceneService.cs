@@ -16,15 +16,32 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private GameServiceReference<AddressableAssetService> _assetService;
-        private AddressableAssetService AssetService => _assetService.Reference;
-
-        private GameServiceReference<MessageBrokerService> _messageBrokerService;
-        private GlobalMessageBroker GlobalMessageBroker => _messageBrokerService.Reference.GlobalMessageBroker;
+        private IAddressableAssetService _assetService;
+        private IMessageBrokerService _messageBrokerService;
+        private GlobalMessageBroker GlobalMessageBroker => _messageBrokerService.GlobalMessageBroker;
 
         private readonly List<IGameScene> _gameScenes = new(16);
 
         private const GameSceneOperations DefaultOperations = GameSceneConstants.DefaultOperations;
+
+        public GameSceneService()
+        {
+        }
+
+        public GameSceneService(
+            IAddressableAssetService assetService,
+            IMessageBrokerService messageBrokerService)
+        {
+            _assetService = assetService;
+            _messageBrokerService = messageBrokerService;
+        }
+
+        public void Startup()
+        {
+            // DIコンテナ未導入版への後方互換性のため
+            _assetService ??= GameServiceManager.Instance.GetService<AddressableAssetService>();
+            _messageBrokerService ??= GameServiceManager.Instance.GetService<MessageBrokerService>();
+        }
 
         public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
@@ -329,7 +346,7 @@ namespace Game.Core.Services
 
         public async UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
-            var sceneInstance = await AssetService.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
+            var sceneInstance = await _assetService.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
             if (sceneInstance.Scene.IsValid())
             {
                 _unityScenes.Add(sceneInstance);
@@ -340,7 +357,7 @@ namespace Game.Core.Services
 
         public async UniTask UnloadUnitySceneAsync(SceneInstance sceneInstance)
         {
-            await AssetService.UnloadSceneAsync(sceneInstance);
+            await _assetService.UnloadSceneAsync(sceneInstance);
             _unityScenes.Remove(sceneInstance);
         }
 
@@ -348,7 +365,7 @@ namespace Game.Core.Services
         {
             foreach (var sceneInstance in _unityScenes)
             {
-                await AssetService.UnloadSceneAsync(sceneInstance);
+                await _assetService.UnloadSceneAsync(sceneInstance);
             }
 
             _unityScenes.Clear();

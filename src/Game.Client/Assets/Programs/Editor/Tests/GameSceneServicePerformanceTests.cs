@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Core.Enums;
 using Game.Core.Scenes;
-using Game.Core.Services;
 using NUnit.Framework;
 using Unity.Profiling;
 using UnityEngine;
@@ -26,8 +25,7 @@ namespace Game.Editor.Tests
         private const int MemorySampleInterval = 100; // メモリサンプリング間隔
 
         private GameSceneServiceWithTask _taskService;
-        private GameSceneService _uniTaskService;
-        private MessageBrokerService _messageBrokerService;
+        private GameSceneServiceMock _uniTaskService;
 
         // Unity Profiler用のマーカー
         private static readonly ProfilerMarker TaskTransitionMarker = new("Task.TransitionAsync");
@@ -66,10 +64,9 @@ namespace Game.Editor.Tests
         [SetUp]
         public void SetUp()
         {
-            GameServiceManager.Instance.StartUp();
-            _messageBrokerService = GameServiceManager.Instance.GetService<MessageBrokerService>();
-            _uniTaskService = GameServiceManager.Instance.GetService<GameSceneService>();
+            // Task版とUniTask版のサービスを直接インスタンス化
             _taskService = new GameSceneServiceWithTask();
+            _uniTaskService = new GameSceneServiceMock();
 
             _currentTestName = TestContext.CurrentContext.Test.Name;
             _testStartTime = DateTime.Now;
@@ -79,8 +76,8 @@ namespace Game.Editor.Tests
         [TearDown]
         public void TearDown()
         {
-            GameServiceManager.Instance.Shutdown();
             _taskService?.Clear();
+            _uniTaskService?.Clear();
             LogFooter();
         }
 
@@ -214,8 +211,8 @@ namespace Game.Editor.Tests
             // ウォームアップ
             for (int i = 0; i < WarmupIterations; i++)
             {
-                await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
 
             // GC計測
@@ -230,8 +227,8 @@ namespace Game.Editor.Tests
             {
                 for (int i = 0; i < IterationCount; i++)
                 {
-                    await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                    await SimulateUniTaskTerminateLast(clearHistory: true);
+                    await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                    await _uniTaskService.TerminateLastAsync(clearHistory: true);
                 }
             }
 
@@ -293,8 +290,8 @@ namespace Game.Editor.Tests
             // ウォームアップ
             for (int i = 0; i < WarmupIterations; i++)
             {
-                await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
 
             var stopwatch = new Stopwatch();
@@ -304,8 +301,8 @@ namespace Game.Editor.Tests
             {
                 for (int i = 0; i < IterationCount; i++)
                 {
-                    await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                    await SimulateUniTaskTerminateLast(clearHistory: true);
+                    await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                    await _uniTaskService.TerminateLastAsync(clearHistory: true);
                 }
             }
 
@@ -369,8 +366,8 @@ namespace Game.Editor.Tests
             {
                 for (int i = 0; i < IterationCount; i++)
                 {
-                    await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                    await SimulateUniTaskTerminateLast(clearHistory: true);
+                    await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                    await _uniTaskService.TerminateLastAsync(clearHistory: true);
                 }
             }
 
@@ -435,8 +432,8 @@ namespace Game.Editor.Tests
 
             for (int i = 0; i < IterationCount; i++)
             {
-                await SimulateUniTaskTransitionWithArg<UniTaskMockGameSceneWithArg<string>, string>(testArg);
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TransitionAsync<UniTaskMockGameSceneWithArg<string>, string>(testArg);
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
 
             uniTaskStopwatch.Stop();
@@ -501,7 +498,7 @@ namespace Game.Editor.Tests
             {
                 for (int i = 0; i < IterationCount; i++)
                 {
-                    await SimulateUniTaskTransition<UniTaskMockGameScene>();
+                    await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
                 }
             }
 
@@ -509,7 +506,7 @@ namespace Game.Editor.Tests
             {
                 for (int i = 0; i < IterationCount; i++)
                 {
-                    await SimulateUniTaskTerminateLast(clearHistory: true);
+                    await _uniTaskService.TerminateLastAsync(clearHistory: true);
                 }
             }
 
@@ -724,8 +721,8 @@ namespace Game.Editor.Tests
             // ウォームアップ
             for (int i = 0; i < WarmupIterations; i++)
             {
-                await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
 
             // GC実行して安定化
@@ -747,8 +744,8 @@ namespace Game.Editor.Tests
                 {
                     using (UniTaskGCAllocMarker.Auto())
                     {
-                        await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                        await SimulateUniTaskTerminateLast(clearHistory: true);
+                        await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                        await _uniTaskService.TerminateLastAsync(clearHistory: true);
                     }
 
                     // 定期的にメモリサンプリング
@@ -811,8 +808,8 @@ namespace Game.Editor.Tests
 
             for (int i = 0; i < IterationCount; i++)
             {
-                await SimulateUniTaskTransition<UniTaskMockGameScene>();
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
 
                 if (i % MemorySampleInterval == 0)
                 {
@@ -891,7 +888,7 @@ namespace Game.Editor.Tests
 
             for (int i = 0; i < opIterations; i++)
             {
-                await SimulateUniTaskTransition<UniTaskMockGameScene>();
+                await _uniTaskService.TransitionAsync<UniTaskMockGameScene>();
             }
 
             long transitionEnd = GC.GetTotalMemory(false);
@@ -906,7 +903,7 @@ namespace Game.Editor.Tests
 
             for (int i = 0; i < opIterations; i++)
             {
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
 
             long terminateEnd = GC.GetTotalMemory(false);
@@ -921,7 +918,7 @@ namespace Game.Editor.Tests
 
             for (int i = 0; i < opIterations; i++)
             {
-                await SimulateUniTaskTransitionWithArg<UniTaskMockGameSceneWithArg<string>, string>("test");
+                await _uniTaskService.TransitionAsync<UniTaskMockGameSceneWithArg<string>, string>("test");
             }
 
             long argTransitionEnd = GC.GetTotalMemory(false);
@@ -931,7 +928,7 @@ namespace Game.Editor.Tests
             // クリーンアップ
             for (int i = 0; i < opIterations; i++)
             {
-                await SimulateUniTaskTerminateLast(clearHistory: true);
+                await _uniTaskService.TerminateLastAsync(clearHistory: true);
             }
         }
 
@@ -1084,66 +1081,6 @@ namespace Game.Editor.Tests
             if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F2} KB";
             if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F2} MB";
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        private readonly System.Collections.Generic.LinkedList<IGameScene> _uniTaskScenes = new();
-
-        private async UniTask SimulateUniTaskTransition<TScene>() where TScene : IGameScene, new()
-        {
-            var gameScene = new TScene();
-            _uniTaskScenes.AddLast(gameScene);
-            await SimulateTransitionCore(gameScene);
-        }
-
-        private async UniTask SimulateUniTaskTransitionWithArg<TScene, TArg>(TArg arg)
-            where TScene : IGameScene, new()
-        {
-            var gameScene = new TScene();
-            if (gameScene is IGameSceneArgHandler handler)
-            {
-                handler.ArgHandler = scene =>
-                {
-                    if (scene is IGameSceneArg<TArg> gameSceneArg)
-                        return gameSceneArg.ArgHandle(arg);
-                    return UniTask.CompletedTask;
-                };
-            }
-
-            _uniTaskScenes.AddLast(gameScene);
-            await SimulateTransitionCore(gameScene);
-        }
-
-        private async UniTask SimulateTransitionCore(IGameScene gameScene)
-        {
-            gameScene.State = GameSceneState.Processing;
-
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
-
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            await gameScene.Startup();
-            await gameScene.Ready();
-        }
-
-        private async UniTask SimulateUniTaskTerminateLast(bool clearHistory = false)
-        {
-            var currentNode = _uniTaskScenes.Last;
-            if (currentNode != null)
-            {
-                var gameScene = currentNode.Value;
-                if (gameScene != null)
-                {
-                    gameScene.State = GameSceneState.Terminate;
-                    await gameScene.Terminate();
-
-                    if (clearHistory) _uniTaskScenes.Remove(currentNode);
-                }
-            }
         }
 
         #endregion

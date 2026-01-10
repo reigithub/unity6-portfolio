@@ -1,0 +1,72 @@
+# NSubstitute.Analyzers Rule Configuration
+root = true
+
+[*.cs]
+# =============================================================================
+# NS1000-NS1005: Non-substitutable Member
+# =============================================================================
+# Non-virtual members cannot be intercepted by NSubstitute
+dotnet_diagnostic.NS1000.severity = error
+dotnet_diagnostic.NS1001.severity = error
+dotnet_diagnostic.NS1002.severity = error
+dotnet_diagnostic.NS1003.severity = warning
+dotnet_diagnostic.NS1004.severity = error
+dotnet_diagnostic.NS1005.severity = error
+
+# =============================================================================
+# NS2000-NS2007: Substitute Creation
+# =============================================================================
+# ForPartsOf used with interface or delegate
+dotnet_diagnostic.NS2000.severity = warning
+# Class without public/protected constructor
+dotnet_diagnostic.NS2001.severity = warning
+# Class without parameterless constructor
+dotnet_diagnostic.NS2002.severity = warning
+# Internal type substitution
+dotnet_diagnostic.NS2003.severity = warning
+# Wrong constructor arguments
+dotnet_diagnostic.NS2004.severity = error
+# Multiple class substitution
+dotnet_diagnostic.NS2005.severity = error
+# Interface with arguments
+dotnet_diagnostic.NS2006.severity = warning
+# Delegate with arguments
+dotnet_diagnostic.NS2007.severity = warning
+
+# =============================================================================
+# NS3000-NS3006: Argument Specification
+# =============================================================================
+# Argument access out of bounds
+dotnet_diagnostic.NS3000.severity = error
+# Argument type cast error
+dotnet_diagnostic.NS3001.severity = error
+# Non-existent argument type
+dotnet_diagnostic.NS3002.severity = error
+# Ref argument matcher
+dotnet_diagnostic.NS3003.severity = warning
+# Out argument matcher
+dotnet_diagnostic.NS3004.severity = warning
+# Argument matcher type mismatch
+dotnet_diagnostic.NS3005.severity = error
+# Arg.Do type mismatch
+dotnet_diagnostic.NS3006.severity = error
+
+# =============================================================================
+# NS4000: Call Configuration
+# =============================================================================
+# Calling substitute from within Returns block
+dotnet_diagnostic.NS4000.severity = error
+
+# =============================================================================
+# NS5000-NS5004: Usage
+# =============================================================================
+# Received without method call
+dotnet_diagnostic.NS5000.severity = error
+# Async method in ReceivedInOrder
+dotnet_diagnostic.NS5001.severity = warning
+# Argument matcher in async context
+dotnet_diagnostic.NS5002.severity = warning
+# ReturnsAsync on sync method
+dotnet_diagnostic.NS5003.severity = error
+# Arg.Do conflict with argument matcher
+dotnet_diagnostic.NS5004.severity = warning

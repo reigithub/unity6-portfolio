@@ -7,6 +7,10 @@ namespace Game.Core.Services
 {
     public class GameStageService : IGameStageService
     {
+        public GameStageService()
+        {
+        }
+
         private readonly Dictionary<int, GameStageResultData> _gameStageResults = new();
 
         public bool TryAddResult(GameStageResultData result)

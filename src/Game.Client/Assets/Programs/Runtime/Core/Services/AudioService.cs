@@ -14,8 +14,8 @@ namespace Game.Core.Services
 {
     public class AudioService : IAudioService
     {
-        private GameServiceReference<MasterDataService> _masterDataService;
-        private MemoryDatabase MemoryDatabase => _masterDataService.Reference.MemoryDatabase;
+        private IMasterDataService _masterDataService;
+        private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         private GameObject _audioService;
         private AudioSource _bgmSource;
@@ -29,8 +29,20 @@ namespace Game.Core.Services
         private readonly float _sfxVolume = 0.7f;
         private readonly float _sfxFadeDuration = 0.1f;
 
+        public AudioService()
+        {
+        }
+
+        public AudioService(IMasterDataService masterDataService)
+        {
+            _masterDataService = masterDataService;
+        }
+
         public void Startup()
         {
+            // DIコンテナ未導入版への後方互換性のため
+            _masterDataService ??= GameServiceManager.Instance.GetService<MasterDataService>();
+
             _audioService = new GameObject(nameof(AudioService));
             _bgmSource = new GameObject("BgmSource").AddComponent<AudioSource>();
             _voiceSource = new GameObject("VoiceSource").AddComponent<AudioSource>();
