@@ -16,14 +16,8 @@ namespace Game.ScoreTimeAttack.Scenes
         private MasterDataService _masterDataService;
         private MemoryDatabase MemoryDatabase => (_masterDataService ??= GameServiceManager.Get<MasterDataService>()).MemoryDatabase;
 
-        private ScoreTimeAttackStageService _scoreTimeAttackStageService;
-        private ScoreTimeAttackStageService ScoreTimeAttackStageService => _scoreTimeAttackStageService ??= GameServiceManager.Get<ScoreTimeAttackStageService>();
-
         public ScoreTimeAttackStageMaster StageMaster { get; private set; }
         public ScoreTimeAttackPlayerMaster PlayerMaster { get; private set; }
-
-        public bool IsFirstStage { get; private set; }
-        public bool IsLastStage { get; private set; }
 
         public int? NextStageId { get; private set; }
 
@@ -62,8 +56,9 @@ namespace Game.ScoreTimeAttack.Scenes
             PlayerMaxHp = playerMaster.MaxHp;
 
             var stageMasters = MemoryDatabase.ScoreTimeAttackStageMasterTable.FindByGroupId(StageMaster.GroupId);
-            IsFirstStage = stageMasters.Min(x => x.Order) == stageMaster.Order;
-            IsLastStage = stageMasters.Max(x => x.Order) == stageMaster.Order;
+            bool isFirstStage = stageMasters.Min(x => x.Order) == stageMaster.Order;
+            if (isFirstStage) GameServiceManager.Add<ScoreTimeAttackStageService>();
+
             NextStageId = stageMasters.OrderBy(x => x.Order).FirstOrDefault(x => x.Order > stageMaster.Order)?.Id;
         }
 
@@ -136,7 +131,7 @@ namespace Game.ScoreTimeAttack.Scenes
                 NextStageId = NextStageId,
             };
 
-            ScoreTimeAttackStageService.TryAddResult(result);
+            GameServiceManager.Get<ScoreTimeAttackStageService>().TryAddResult(result);
 
             return result;
         }

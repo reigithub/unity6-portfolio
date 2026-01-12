@@ -23,6 +23,11 @@ namespace Game.ScoreTimeAttack.Services
             return totalResultData;
         }
 
+        public void Startup()
+        {
+            _gameStageResults.Clear();
+        }
+
         public void Shutdown()
         {
             _gameStageResults.Clear();

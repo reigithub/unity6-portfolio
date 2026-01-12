@@ -150,9 +150,9 @@ namespace Game.Core
                 .AddTo(this);
 
             // GameStage
-            MessagePipeService.Subscribe(MessageKey.GameStageService.Startup, () => { GameServiceManager.Instance.Startup<ScoreTimeAttackStageService>(); })
+            MessagePipeService.Subscribe(MessageKey.GameStageService.Startup, () => { GameServiceManager.Add<ScoreTimeAttackStageService>(); })
                 .AddTo(this);
-            MessagePipeService.Subscribe(MessageKey.GameStageService.Shutdown, () => { GameServiceManager.Instance.Shutdown<ScoreTimeAttackStageService>(); })
+            MessagePipeService.Subscribe(MessageKey.GameStageService.Shutdown, () => { GameServiceManager.Remove<ScoreTimeAttackStageService>(); })
                 .AddTo(this);
 
             // Player

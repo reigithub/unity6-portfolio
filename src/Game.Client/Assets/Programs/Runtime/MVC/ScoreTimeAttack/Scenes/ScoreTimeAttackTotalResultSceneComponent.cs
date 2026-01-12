@@ -73,7 +73,7 @@ namespace Game.ScoreTimeAttack.Scenes
             _hp.text = currentHp.ToString();
             _maxHp.text = maxHp.ToString();
 
-            var score = data.StageResults.Sum(x => x.CalculateScore());
+            var score = data.CalculateTotalScore();
             _score.text = score.ToString();
 
             var totalResultMasters = MemoryDatabase.ScoreTimeAttackStageTotalResultMasterTable.All;

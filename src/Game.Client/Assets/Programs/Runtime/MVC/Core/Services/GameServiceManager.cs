@@ -45,19 +45,7 @@ namespace Game.Core.Services
             return true;
         }
 
-        public static T Get<T>() where T : IGameService, new()
-        {
-            Instance.TryGetOrAdd<T>(out var service);
-            return service;
-        }
-
-        public void Startup<T>()
-            where T : IGameService, new()
-        {
-            TryGetOrAdd<T>(out _);
-        }
-
-        public void Shutdown<T>()
+        private bool TryRemove<T>()
             where T : IGameService
         {
             var type = typeof(T);
@@ -65,7 +53,28 @@ namespace Game.Core.Services
             {
                 service.Shutdown();
                 _gameServices.Remove(type);
+                return true;
             }
+
+            return false;
+        }
+
+        public static T Get<T>() where T : IGameService, new()
+        {
+            Instance.TryGetOrAdd<T>(out var service);
+            return service;
+        }
+
+        public static void Add<T>()
+            where T : IGameService, new()
+        {
+            Instance.TryGetOrAdd<T>(out _);
+        }
+
+        public static void Remove<T>()
+            where T : IGameService
+        {
+            Instance.TryRemove<T>();
         }
     }
 }

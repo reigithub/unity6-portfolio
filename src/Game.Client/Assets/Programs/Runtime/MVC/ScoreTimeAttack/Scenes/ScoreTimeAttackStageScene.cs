@@ -97,8 +97,6 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override async UniTask Ready()
         {
-            if (SceneModel.IsFirstStage) MessagePipeService.Publish(MessageKey.GameStageService.Startup);
-
             // ゲーム開始準備OKの合図
             SceneModel.StageState = GameStageState.Ready;
             await MessagePipeService.PublishAsync(MessageKey.System.TimeScale, false);
@@ -247,10 +245,10 @@ namespace Game.ScoreTimeAttack.Scenes
             SceneComponent.DoFadeOut();
             MessagePipeService.Publish(MessageKey.Player.HudFadeOut);
 
+            var result = SceneModel.CreateStageResult();
 
             if (SceneModel.NextStageId.HasValue)
             {
-                var result = SceneModel.CreateStageResult();
                 await GameResultUIDialog.RunAsync(result);
                 return;
             }

@@ -16,7 +16,7 @@ namespace Game.ScoreTimeAttack.Scenes
         public override UniTask Startup()
         {
             MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
-            MessagePipeService.Publish(MessageKey.System.Cursor, true);
+            MessagePipeService.PublishForget(MessageKey.System.Cursor, true);
 
             var gameStageService = GameServiceManager.Get<ScoreTimeAttackStageService>();
             var totalResult = gameStageService.CreateTotalResult();
@@ -33,7 +33,7 @@ namespace Game.ScoreTimeAttack.Scenes
         public override UniTask Terminate()
         {
             MessagePipeService.Publish(MessageKey.System.DirectionalLight, true);
-            MessagePipeService.Publish(MessageKey.GameStageService.Shutdown);
+            GameServiceManager.Remove<ScoreTimeAttackStageService>();
             return base.Terminate();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Game.ScoreTimeAttack.Enums;
 
 namespace Game.ScoreTimeAttack.Data
@@ -19,9 +20,14 @@ namespace Game.ScoreTimeAttack.Data
 
         public int? NextStageId { get; init; }
 
+        public int GetRemainingTime()
+        {
+            return TotalTime - Math.Abs(CurrentTime - TotalTime);
+        }
+
         public int CalculateScore()
         {
-            var remainingTime = TotalTime - Math.Abs(CurrentTime - TotalTime);
+            var remainingTime = GetRemainingTime();
             return remainingTime * CurrentPoint * PlayerCurrentHp;
         }
     }
@@ -29,5 +35,13 @@ namespace Game.ScoreTimeAttack.Data
     public readonly struct ScoreTimeAttackStageTotalResultData
     {
         public ScoreTimeAttackStageResultData[] StageResults { get; init; }
+
+        public int CalculateTotalScore()
+        {
+            var remainingTime = StageResults.Sum(x => x.GetRemainingTime());
+            var totalPoint = StageResults.Sum(x => x.CurrentPoint);
+            var totalHp = StageResults.Sum(x => x.PlayerCurrentHp);
+            return remainingTime * totalPoint * totalHp;
+        }
     }
 }
