@@ -1,0 +1,30 @@
+{
+    "name": "Game.MVC.ScoreTimeAttack",
+    "rootNamespace": "Game",
+    "references": [
+        "Game.Shared",
+        "Game.MVC.Core",
+        "UniTask",
+        "R3.Unity",
+        "MessagePipe",
+        "MessagePipe.Unity",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity6Library.Runtime",
+        "Unity.TextMeshPro",
+        "DOTween.Modules",
+        "UnityChan.Common",
+        "SDUnityChan",
+        "Unity.InputSystem",
+        "Unity.Cinemachine"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

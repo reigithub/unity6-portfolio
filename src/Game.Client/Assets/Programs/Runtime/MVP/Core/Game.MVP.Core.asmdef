@@ -1,0 +1,25 @@
+{
+  "name": "Game.MVP.Core",
+  "rootNamespace": "Game.MVP",
+  "references": [
+    "Game.Shared",
+    "UniTask",
+    "UniTask.Addressables",
+    "UniTask.DOTween",
+    "UniTask.Linq",
+    "UniTask.TextMeshPro",
+    "Unity.ResourceManager",
+    "R3.Unity",
+    "VContainer",
+    "DOTween.Modules"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

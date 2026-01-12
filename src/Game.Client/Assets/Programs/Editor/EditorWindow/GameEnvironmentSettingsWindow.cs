@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Core;
+using Game.Shared;
 using UnityEditor;
 using UnityEngine;
 

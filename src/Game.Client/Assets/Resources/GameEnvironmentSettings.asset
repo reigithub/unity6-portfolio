@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
   m_Name: GameEnvironmentSettings
-  m_EditorClassIdentifier: Assembly-CSharp:Game.Core:GameEnvironmentSettings
+  m_EditorClassIdentifier: Game.Shared:Game.Shared:GameEnvironmentSettings
   _environment: 0
   _configs:
   - _environment: 0
@@ -22,27 +22,6 @@ MonoBehaviour:
     _enableAnalytics: 0
     _useLocalMasterData: 0
   - _environment: 1
-    _diContainerMode: 0
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 1000
-    _diContainerMode: 0
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 2000
-    _diContainerMode: 0
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 3000
     _diContainerMode: 0
     _apiBaseUrl: 
     _webSocketUrl: 

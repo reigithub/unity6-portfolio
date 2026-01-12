@@ -2,16 +2,95 @@
 * このプロジェクトは主に個人または小規模のUnityゲーム開発におけるスターターキットを目指して作成されています
 * コードの再利用性を高め、実装のしやすさや可読性、保守性が向上するような作りを意識しています
 * インゲーム/アウトゲーム共にマスターデータで動作しています(データ駆動型)(調整中の部分を除く)
-* MVCパターン
+* **アセンブリ分割によるモジュラー設計**を採用し、MVC/MVP両パターンのゲームモードを共存可能
+* **マスターデータ定義をローカルパッケージ**(com.rei.unity6library)として分離し、再利用性を向上
+* 起動時のゲームモード選択画面から、異なるアーキテクチャのゲームを切り替えて起動可能
+---
+
+[English version is here](https://github.com/reigithub/unity6-sample/blob/master/README.en.md)
+
+---
+## アーキテクチャ概要
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Game.App                              │
+│              (エントリーポイント・ゲームモード選択)             │
+└─────────────────────────────────────────────────────────────┘
+                    ↓                    ↓
+┌─────────────────────────────┐  ┌─────────────────────────────┐
+│      Game.MVC.Core          │  │      Game.MVP.Core          │
+│   (MVCパターン基盤)          │  │   (MVPパターン基盤)          │
+│   GameServiceManager        │  │   VContainer/DI             │
+└─────────────────────────────┘  └─────────────────────────────┘
+            ↓                                ↓
+┌─────────────────────────────┐  ┌─────────────────────────────┐
+│  Game.MVC.ScoreTimeAttack   │  │    Game.MVP.Survivor        │
+│    (タイムアタックゲーム)     │  │   (サバイバーゲーム予定)      │
+└─────────────────────────────┘  └─────────────────────────────┘
+            ↖                                ↗
+               └──────────────┬──────────────┘
+                              ↓
+              ┌─────────────────────────────┐
+              │         Game.Shared         │
+              │    (共通ユーティリティ)       │
+              └─────────────────────────────┘
+                              ↓
+              ┌─────────────────────────────┐
+              │  com.rei.unity6library      │
+              │  (ローカルパッケージ)         │
+              │  マスターデータ定義/Enum     │
+              └─────────────────────────────┘
+```
 ---
 ## 機能一覧
-* プレハブシーン/ダイアログ遷移機能(async/await)
-* マスターデータ更新/読込/バイナリ作成用のUnityエディタ拡張
-* ステートマシーン実装(ジェネリック型コンテキスト付き)
-* 簡単なデモゲーム
-* その他簡易的なオーディオ再生などの各種ゲームサービスクラス
+* **ゲームモード選択システム**: 起動時のタイトル画面から異なるアーキテクチャのゲームモードを選択可能
+* **アセンブリ分割設計**: MVC/MVPパターンを独立したアセンブリで管理し、循環参照を防止
+* **ローカルパッケージ分離**: マスターデータ定義をローカルパッケージ(com.rei.unity6library)として分離し、再利用性を向上
+* **プレハブシーン/ダイアログ遷移機能**: async/awaitによる非同期シーン遷移
+* **ステートマシーン実装**: ジェネリック型コンテキスト付き、遷移テーブルによる状態管理
+* **マスターデータ管理**: TSV→バイナリ変換、エディタ拡張によるデータ駆動開発
+* **各種ゲームサービス**: オーディオ、シーン遷移、メッセージングなどの共通機能
+* **DIコンテナ対応**: VContainerによる依存性注入（MVPパターン用）
 ---
 ## 機能詳細
+<details><summary>ゲームモード選択システム</summary>
+
+1. アプリ起動時にGame.Appのタイトル画面を表示
+2. 選択されたゲームモードに応じて対応するランチャーを起動
+3. 各ゲームモードは独立したアセンブリで実装され、相互に影響しない
+4. ゲーム終了時はランチャーをシャットダウンし、タイトル画面に戻ることが可能
+5. ApplicationEventsによる疎結合なイベント通知（下位→上位アセンブリ）
+</details>
+
+<details><summary>アセンブリ分割設計</summary>
+
+| アセンブリ | 役割 | 依存関係 |
+|-----------|------|---------|
+| Game.Shared | 共通ユーティリティ、インターフェース | Unity6Library |
+| Game.App | エントリーポイント、ゲームモード選択 | Shared, MVC.*, MVP.* |
+| Game.MVC.Core | MVCパターン基盤、GameServiceManager | Shared, Unity6Library |
+| Game.MVC.ScoreTimeAttack | タイムアタックゲーム実装 | Shared, MVC.Core, Unity6Library |
+| Game.MVP.Core | MVPパターン基盤、VContainer | Shared |
+| Game.MVP.Survivor | サバイバーゲーム実装（予定） | Shared, MVP.Core |
+| **com.rei.unity6library** | マスターデータ定義、共通Enum | なし（最下層） |
+
+</details>
+
+<details><summary>ローカルパッケージ (com.rei.unity6library)</summary>
+
+マスターデータ定義ファイルをローカルパッケージとして分離し、以下のメリットを実現：
+
+1. **再利用性**: 複数のプロジェクトで同じマスターデータ定義を共有可能
+2. **依存関係の明確化**: 最下層に配置することで循環参照を防止
+3. **ビルド時間短縮**: 変更頻度の低いコードを分離することでインクリメンタルビルドを効率化
+4. **バージョン管理**: パッケージ単位でバージョン管理が可能
+
+**含まれるコンテンツ:**
+- MasterMemory用マスターデータ定義クラス（AudioMaster, ScoreTimeAttackStageMaster等）
+- 共通Enum定義（AudioCategory, AudioPlayTag等）
+
+</details>
+
 <details><summary>シーン/ダイアログ遷移機能</summary>
 
 1. 非同期処理(async/await)で実装
@@ -43,25 +122,69 @@
 
 ---
 ## 機能コードリンク
-* シーン遷移サービス : [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/Services/GameSceneService.cs)
-* シーン基底クラス : [GameScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/Scenes/GameScene.cs)
-* マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/MasterData/Editor/MasterDataWindow.cs)
-* ステートマシーン本体 : [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Core/StateMachine.cs)
-* ステートマシーン実装 : [PlayerController](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Contents/Player/SDUnityChanPlayerController.cs)
+### Game.App（エントリーポイント）
+* ゲームブートストラップ : [GameBootstrap.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Bootstrap/GameBootstrap.cs)
+* ゲームモードランチャー管理 : [GameModeLauncherRegistry.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Launcher/GameModeLauncherRegistry.cs)
+* アプリタイトル画面 : [AppTitleSceneComponent.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Title/AppTitleSceneComponent.cs)
+
+### Game.Shared（共通）
+* アプリケーションイベント : [ApplicationEvents.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Bootstrap/ApplicationEvents.cs)
+* ゲームモードランチャーIF : [IGameModeLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Bootstrap/IGameModeLauncher.cs)
+* ステートマシーン : [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/StateMachine.cs)
+
+### Game.MVC.Core（MVC基盤）
+* シーン遷移サービス : [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Services/GameSceneService.cs)
+* シーン基底クラス : [GameScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Scenes/GameScene.cs)
+* サービスマネージャー : [GameServiceManager.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Services/GameServiceManager.cs)
+
+### Game.MVC.ScoreTimeAttack（タイムアタックゲーム）
+* ランチャー : [ScoreTimeAttackLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/ScoreTimeAttack/ScoreTimeAttackLauncher.cs)
+* プレイヤー制御 : [SDUnityChanPlayerController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/ScoreTimeAttack/Player/SDUnityChanPlayerController.cs)
+
+### Game.MVP.Core（MVP基盤）
+* VContainerランチャー : [VContainerGameLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Core/DI/VContainerGameLauncher.cs)
+
+### Editor
+* マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/EditorWindow/MasterDataWindow.cs)
+
+### com.rei.unity6library（ローカルパッケージ）
+* オーディオマスター定義 : [AudioMaster.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/MasterData/MemoryTables/AudioMaster.cs)
+* ステージマスター定義 : [ScoreTimeAttackStageMaster.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/MasterData/MemoryTables/ScoreTimeAttackStageMaster.cs)
+* オーディオEnum定義 : [AudioEnums.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/Enums/AudioEnums.cs)
+
 ---
 ## 主なフォルダ構成
 ```
 .
-└── Assets
-    ├── MesterData マスターデータ(TSV, バイナリ)
-    ├── Programs
-    │   ├── Editor エディタ拡張
-    │   │   └── Tests 単体テスト／パフォーマンス改善テストツール
-    │   │       └── Logs テストログ
-    │   └── Runtime
-    │       ├── Contents  プレイヤー、エネミー、UI実装など
-    │       └── Core    　ゲームサービスなど各種コア機能
-    └── README.md
+├── Assets
+│   ├── MasterData          マスターデータ(TSV, バイナリ)
+│   ├── Programs
+│   │   ├── Editor          エディタ拡張
+│   │   │   └── Tests       単体テスト／パフォーマンス改善テストツール
+│   │   └── Runtime
+│   │       ├── Shared      共通ユーティリティ、インターフェース
+│   │       │   ├── Bootstrap   IGameLauncher, ApplicationEvents
+│   │       │   ├── Constants   共通定数
+│   │       │   ├── Enums       GameMode等
+│   │       │   └── Extensions  拡張メソッド
+│   │       ├── App         エントリーポイント
+│   │       │   ├── Bootstrap   GameBootstrap
+│   │       │   ├── Launcher    GameModeLauncherRegistry
+│   │       │   └── Title       アプリタイトル画面
+│   │       ├── MVC         MVCパターン実装
+│   │       │   ├── Core        基盤(Services, Scenes, MessagePipe)
+│   │       │   └── ScoreTimeAttack  タイムアタックゲーム
+│   │       └── MVP         MVPパターン実装
+│   │           ├── Core        基盤(VContainer, Base)
+│   │           └── Survivor    サバイバーゲーム(予定)
+│   └── README.md
+└── Packages
+    └── com.rei.unity6library   ローカルパッケージ
+        └── Runtime
+            └── Shared
+                ├── Enums           AudioCategory, AudioPlayTag等
+                └── MasterData
+                    └── MemoryTables マスターデータ定義クラス
 ```
 
 ## パフォーマンス改善・検証サンプル
@@ -122,6 +245,7 @@
 | cysharp/UniTask      | 2.5.10     |
 | cysharp/MasterMemory | 3.0.4      |
 | cysharp/MessagePack  | 3.1.3      |
+| **hadashiA/VContainer** | **1.16.8** |
 | NSubstitute          | 5.3.0      |
 | DOTween              | 1.2.790    |
 | HotReload            | 1.13.13    |
@@ -130,6 +254,7 @@
 | Claude Code          | -          |
 ---
 ## 主なライブラリ・ツール採用理由・使用目的
+* **VContainer**: MVPパターンにおける依存性注入(DI)コンテナとして。コンストラクタインジェクションによるテスタビリティ向上、ライフサイクル管理の自動化のため。
 * MessagePipe: MessageBrokerを用いたUIイベント、ゲームイベントの疎結合なメッセージング処理(Pub/Sub)のため。
 * R3 : UIボタンの押下間隔の設定や複雑な非同期イベント処理、Animatorステート等のイベント合成が簡潔に記述可能。保守性/再利用性の向上のため。
 * UniTask : Unityに最適化された非同期処理全般のため。現在は主にダイアログのエラーハンドリングに使用しており、随時利用範囲拡大予定。
@@ -143,9 +268,10 @@
 * Unityちゃん: https://unity-chan.com/ (© Unity Technologies Japan/UCL)
 ---
 ## 制作期間
-* 2週間程度 (2026/1/5時点)
+* 3週間程度 (2026/1/13時点)
 ---
 ## 今後の予定
+* **サバイバーゲームモード実装（MVP/VContainer）**
 * MemoryPackを用いた簡易的なセーブ機能(PlayerPrefs代替機能として)
 * PlayerLoopへの介入サンプル
 * EnhancedScroller実装サンプル
@@ -153,11 +279,15 @@
 * オーディオ音量オプション画面
 * MessageBroker周りの冗長な呼び出しコードの改善検討
 * マルチ解像度対応
-* VContainerなどDIライブラリ導入検討(別リポジトリ)
-* デモゲームの高度化を目指した仕様変更または新規実装
 ---
-## デモゲームについて(2026/1/5時点)
+## デモゲームについて
+### タイムアタック（MVC）
 * 制限時間内に全3ステージに配置されたアイテムを規定数集めるタイムアタックです
 * 動作環境: PC／マウス&キーボード
 * 操作: 移動(WASD), ジャンプ(Space), 走る(LShift+移動), カメラ操作(マウスドラッグ)
-* ダウンロード(実行形式): [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨
+
+### サバイバー（MVP）※開発予定
+* VContainerを用いたMVPパターンで実装予定
+
+### ダウンロード
+* 実行形式: [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨

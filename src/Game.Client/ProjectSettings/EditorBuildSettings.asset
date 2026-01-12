@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/GameRootScene.unity
+    path: Assets/ProjectAssets/ScoreTimeAttack/Scenes/GameRootScene.unity
     guid: b95fc326efca503478b5f240092dcccf
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: ee90a92ad1562b7429886b47a0d265a8, type: 2}

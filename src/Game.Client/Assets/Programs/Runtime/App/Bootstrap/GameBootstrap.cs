@@ -1,0 +1,138 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Game.App.Launcher;
+using Game.App.Title;
+using Game.MVC.ScoreTimeAttack;
+using Game.MVP.Core.DI;
+using Game.Shared.Bootstrap;
+using Game.Shared.Constants;
+using Game.Shared.Enums;
+using R3;
+using UnityEngine;
+
+namespace Game.App.Bootstrap
+{
+    public static class GameBootstrap
+    {
+        private const string AppTitleAddress = "AppTitleScene";
+
+        private static GameModeLauncherRegistry _registry;
+        private static AppSceneLoader _sceneLoader;
+        private static bool _isInitialized;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Startup()
+        {
+            if (_isInitialized) return;
+            _isInitialized = true;
+
+            // アプリケーションイベント購読
+            ApplicationEvents.OnShutdownRequested = ShutdownAsync;
+            ApplicationEvents.OnReturnToTitleRequested = ReturnToTitleAsync;
+
+#if UNITY_EDITOR
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (scene.name != AppConstants.GameRootScene)
+                return;
+#endif
+
+            // アプリ脱獄チェック
+            if (Application.genuineCheckAvailable && !Application.genuine)
+            {
+                Application.Quit(-1);
+                return;
+            }
+
+            // 初期化
+            InitializeAsync().Forget();
+        }
+
+        private static async UniTask InitializeAsync()
+        {
+            Debug.Log("[GameBootstrap] Initializing...");
+
+            // ランチャーレジストリ初期化
+            _registry = new GameModeLauncherRegistry();
+            _registry.Register(new ScoreTimeAttackLauncher());
+            _registry.Register(new MVPGameLauncher());
+
+            // シーンローダー初期化
+            _sceneLoader = new AppSceneLoader();
+
+            // タイトル画面表示
+            await ShowTitleAsync();
+        }
+
+        private static async UniTask ShowTitleAsync()
+        {
+            Debug.Log("[GameBootstrap] Loading title screen...");
+
+            var titleComponent = await _sceneLoader.LoadAsync<AppTitleSceneComponent>(AppTitleAddress);
+            if (titleComponent == null)
+            {
+                Debug.LogError("[GameBootstrap] Failed to load title screen. Falling back to ScoreTimeAttack.");
+                await _registry.LaunchAsync(GameMode.MvcScoreTimeAttack);
+                return;
+            }
+
+            titleComponent.Initialize();
+
+            // ゲームモード選択を待つ
+            var cts = new CancellationTokenSource();
+            var selectedMode = GameMode.None;
+            try
+            {
+                selectedMode = await titleComponent.OnGameModeSelected.FirstAsync(cts.Token);
+            }
+            catch (Exception)
+            {
+                cts.Cancel();
+            }
+            finally
+            {
+                // タイトル画面を閉じる
+                _sceneLoader.Unload();
+            }
+
+            if (cts.IsCancellationRequested)
+                return;
+
+            Debug.Log($"[GameBootstrap] Selected mode: {selectedMode}");
+
+            // 選択されたモードを起動
+            await _registry.LaunchAsync(selectedMode);
+        }
+
+        /// <summary>
+        /// タイトル画面に戻る
+        /// </summary>
+        public static async UniTask ReturnToTitleAsync()
+        {
+            Debug.Log("[GameBootstrap] Returning to title...");
+
+            // 現在のゲームモードをシャットダウン
+            await _registry.ShutdownAsync();
+
+            // タイトル画面を表示
+            await ShowTitleAsync();
+        }
+
+        public static async UniTask ShutdownAsync()
+        {
+            Debug.Log("[GameBootstrap] Shutting down...");
+
+            if (_registry != null) await _registry.ShutdownAsync();
+            _sceneLoader?.Unload();
+            _registry = null;
+            _sceneLoader = null;
+            _isInitialized = false;
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.ExitPlaymode();
+#else
+            Application.Quit();
+#endif
+        }
+    }
+}

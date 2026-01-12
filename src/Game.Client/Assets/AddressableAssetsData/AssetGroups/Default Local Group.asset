@@ -15,13 +15,8 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: ab956b5b82bfa614baabbac2e24e7add
   m_SerializeEntries:
-  - m_GUID: 54f6aae839de95a43bff005c63f48350
-    m_Address: GameRootController
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: d8b29316c4a169d4ba4c32dd12a86649
-    m_Address: GameTitleScene
+  - m_GUID: ba5d98dffb522e643b1b6e9e6d150d90
+    m_Address: AppTitleScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

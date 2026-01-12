@@ -1,0 +1,8 @@
+{
+  "name": "com.rei.unity6liblary",
+  "version": "1.0.0",
+  "displayName": "Unity6Library",
+  "description": "Unity6Library",
+  "unity": "6000.3",
+  "dependencies": {}
+}

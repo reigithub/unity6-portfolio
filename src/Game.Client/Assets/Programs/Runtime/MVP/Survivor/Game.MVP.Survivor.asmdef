@@ -1,0 +1,27 @@
+{
+    "name": "Game.MVP.Survivor",
+    "rootNamespace": "Game.MVP.Survivor",
+    "references": [
+        "Game.Shared",
+        "Game.MVP.Core",
+        "Unity6Library.Runtime",
+        "UniTask",
+        "R3.Unity",
+        "VContainer",
+        "UniTask.Addressables",
+        "UniTask.DOTween",
+        "UniTask.Linq",
+        "UniTask.TextMeshPro",
+        "Unity.InputSystem",
+        "MessagePipe"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

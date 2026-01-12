@@ -9,6 +9,13 @@
       },
       "hash": "24d04125d68719816e24dfb79c60dd97ca396038"
     },
+    "com.cysharp.slnmerge": {
+      "version": "https://github.com/Cysharp/SlnMerge.git?path=src#2.0.1",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "7849e3abfc3e33025d38b92cbc5fc0b978c69442"
+    },
     "com.cysharp.unitask": {
       "version": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
       "depth": 0,
@@ -22,6 +29,12 @@
       "source": "git",
       "dependencies": {},
       "hash": "34432703a177c97631a4eb1d908f086037c67969"
+    },
+    "com.rei.unity6liblary": {
+      "version": "file:com.rei.unity6library",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.singularitygroup.hotreload": {
       "version": "file:com.singularitygroup.hotreload",

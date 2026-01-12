@@ -1,0 +1,29 @@
+{
+    "name": "Game.MVC.Core",
+    "rootNamespace": "Game",
+    "references": [
+        "Game.Shared",
+        "UniTask",
+        "UniTask.Addressables",
+        "UniTask.DOTween",
+        "UniTask.Linq",
+        "UniTask.TextMeshPro",
+        "R3.Unity",
+        "MessagePipe",
+        "MessagePipe.Unity",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity6Library.Runtime",
+        "Unity.TextMeshPro",
+        "DOTween.Modules"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

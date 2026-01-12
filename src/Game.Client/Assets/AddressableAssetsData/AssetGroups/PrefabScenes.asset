@@ -16,7 +16,7 @@ MonoBehaviour:
   m_GUID: 101f7e68744e8854380229f3991c04e5
   m_SerializeEntries:
   - m_GUID: 18b55025b730fa442a2fb06b30c50498
-    m_Address: GameTotalResultScene
+    m_Address: ScoreTimeAttackTotalResultScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -31,12 +31,17 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9dc54c1e05a3b674b9f06c92137a5a94
-    m_Address: GameStageScene
+    m_Address: ScoreTimeAttackStageScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: bcbd09f9356db644fb7f47ffd921c262
     m_Address: GameCountdownUI
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d8b29316c4a169d4ba4c32dd12a86649
+    m_Address: GameTitleScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
