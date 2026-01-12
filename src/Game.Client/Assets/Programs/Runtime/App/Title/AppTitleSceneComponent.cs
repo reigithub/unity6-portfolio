@@ -44,7 +44,8 @@ namespace Game.App.Title
                 _survivorButton.OnClickAsObservable().Subscribe(_ =>
                 {
                     SetButtonsInteractable(false);
-                    _onGameModeSelected.OnNext(GameMode.MvpSurvivor);
+                    // Coming Soon...
+                    // _onGameModeSelected.OnNext(GameMode.MvpSurvivor);
                 }).AddTo(this);
             }
 
