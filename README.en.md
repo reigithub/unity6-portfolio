@@ -278,7 +278,6 @@ Master data definition files are separated into a local package, providing these
 * EnhancedScroller implementation sample
 * List sort/filter functionality sample
 * Audio volume options screen
-* Improvement of redundant MessageBroker calling code
 * Multi-resolution support
 ---
 ## About the Demo Game
