@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Game.Core;
+using Game.Shared;
 using NUnit.Framework;
 
 namespace Game.Editor.Tests

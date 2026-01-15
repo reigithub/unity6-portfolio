@@ -1,12 +1,13 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Constants;
-using Game.Core.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.MasterData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;

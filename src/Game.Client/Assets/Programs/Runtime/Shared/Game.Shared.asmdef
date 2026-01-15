@@ -2,8 +2,15 @@
     "name": "Game.Shared",
     "rootNamespace": "Game.Shared",
     "references": [
+        "Unity6Library",
         "UniTask",
-        "R3.Unity"
+        "UniTask.Addressables",
+        "UniTask.DOTween",
+        "R3.Unity",
+        "MessagePipe",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "DOTween.Modules"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

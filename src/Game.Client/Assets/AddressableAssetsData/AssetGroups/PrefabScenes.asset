@@ -40,6 +40,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c0ad243e356a77e49ae4708ba79ba79b
+    m_Address: SurvivorTitleScene
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d8b29316c4a169d4ba4c32dd12a86649
     m_Address: GameTitleScene
     m_ReadOnly: 0

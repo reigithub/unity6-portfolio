@@ -1,44 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Game.MVP.Core.Constants;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Game.Core.Scenes
+namespace Game.MVP.Core.Scenes
 {
     public static class GameSceneHelper
     {
-        public static GameScene CreateInstance(Type type)
-        {
-            try
-            {
-                var scene = Activator.CreateInstance(type) as GameScene;
-                return scene;
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-                Debug.Assert(true, $"{type}\n{e.Message}");
-                return null;
-            }
-        }
-
-        public static TScene CreateInstance<TScene>()
-        {
-            try
-            {
-                var scene = Activator.CreateInstance(typeof(TScene));
-                if (scene is TScene t) return t;
-                return default;
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-                Debug.Assert(true, $"{typeof(TScene)}\n{e.Message}");
-                return default;
-            }
-        }
-
         public static void MoveToGameRootScene(GameObject scene)
         {
             var activeScene = SceneManager.GetActiveScene();
@@ -54,6 +23,16 @@ namespace Game.Core.Scenes
                     SceneManager.MoveGameObjectToScene(scene, rootScene);
                 }
             }
+        }
+
+        public static T GetComponent<T>(GameObject gameObject) where T : Behaviour
+        {
+            if (gameObject.TryGetComponent<T>(out var component))
+            {
+                return component;
+            }
+
+            return gameObject.GetComponentInChildren<T>();
         }
 
         public static T GetSceneComponent<T>(GameObject scene) where T : IGameSceneComponent

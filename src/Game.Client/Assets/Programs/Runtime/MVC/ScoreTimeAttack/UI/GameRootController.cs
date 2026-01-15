@@ -1,14 +1,15 @@
 using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using Game.ScoreTimeAttack.Player;
 using Game.Contents.UI;
-using Game.Core.Extensions;
-using Game.Core.Services;
 using Game.Core.MessagePipe;
+using Game.Core.Services;
 using Game.Library.Shared.Enums;
+using Game.ScoreTimeAttack.Player;
 using Game.ScoreTimeAttack.Services;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
@@ -121,13 +122,13 @@ namespace Game.Core
                 .AddTo(this);
             MessagePipeService.SubscribeAsync<bool>(MessageKey.Game.Start, async (_, token) =>
                 {
-                    AudioService.StopBgm();
+                    AudioService.StopBgmAsync();
                     await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
                 })
                 .AddTo(this);
             MessagePipeService.SubscribeAsync<bool>(MessageKey.Game.Quit, async (_, token) =>
                 {
-                    AudioService.StopBgm();
+                    AudioService.StopBgmAsync();
                     await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit, token);
                     ApplicationEvents.RequestShutdown();
                 })

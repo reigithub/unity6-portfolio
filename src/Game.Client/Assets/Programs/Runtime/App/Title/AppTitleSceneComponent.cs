@@ -1,4 +1,9 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Game.App.Services;
+using Game.Library.Shared.Enums;
 using Game.Shared.Enums;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,45 +26,74 @@ namespace Game.App.Title
         private Subject<GameMode> _onGameModeSelected;
         public Observable<GameMode> OnGameModeSelected => _onGameModeSelected;
 
+        private IAppServiceProvider _serviceProvider;
+        private IAudioService AudioService => _serviceProvider?.AudioService;
+
         private void Awake()
         {
             _onGameModeSelected = new Subject<GameMode>();
         }
 
-        public void Initialize()
+        public void Initialize(IAppServiceProvider serviceProvider)
         {
-            _animator.Play(_animatorStateName);
+            _serviceProvider = serviceProvider;
 
             if (_scoreTimeAttackButton != null)
             {
-                _scoreTimeAttackButton.OnClickAsObservable().Subscribe(_ =>
-                {
-                    SetButtonsInteractable(false);
-                    _onGameModeSelected.OnNext(GameMode.MvcScoreTimeAttack);
-                }).AddTo(this);
+                _scoreTimeAttackButton.OnClickAsObservable()
+                    .SubscribeAwait(async (_, token) =>
+                    {
+                        SetButtonsInteractable(false);
+                        await PlayGameStartSoundAsync(token);
+                        _onGameModeSelected.OnNext(GameMode.MvcScoreTimeAttack);
+                    }).AddTo(this);
             }
 
             if (_survivorButton != null)
             {
-                _survivorButton.OnClickAsObservable().Subscribe(_ =>
-                {
-                    SetButtonsInteractable(false);
-                    // Coming Soon...
-                    // _onGameModeSelected.OnNext(GameMode.MvpSurvivor);
-                }).AddTo(this);
+                _survivorButton.OnClickAsObservable()
+                    .SubscribeAwait(async (_, token) =>
+                    {
+                        SetButtonsInteractable(false);
+                        await PlayGameStartSoundAsync(token);
+                        _onGameModeSelected.OnNext(GameMode.MvpSurvivor);
+                    }).AddTo(this);
             }
 
             if (_quitButton != null)
             {
-                _quitButton.OnClickAsObservable().Subscribe(_ =>
-                {
-                    SetButtonsInteractable(false);
+                _quitButton.OnClickAsObservable()
+                    .SubscribeAwait(async (_, token) =>
+                    {
+                        SetButtonsInteractable(false);
+                        await PlayGameStartSoundAsync(token);
 #if UNITY_EDITOR
-                    UnityEditor.EditorApplication.ExitPlaymode();
+                        UnityEditor.EditorApplication.ExitPlaymode();
 #else
-                    Application.Quit();
+                        Application.Quit();
 #endif
-                });
+                    }).AddTo(this);
+            }
+
+            PlayGameReadySoundAsync().Forget();
+        }
+
+        private async UniTask PlayGameReadySoundAsync()
+        {
+            _animator.Play(_animatorStateName);
+
+            if (AudioService != null)
+            {
+                await AudioService.PlayRandomOneAsync(AudioPlayTag.GameReady);
+            }
+        }
+
+        private async UniTask PlayGameStartSoundAsync(CancellationToken token)
+        {
+            if (AudioService != null)
+            {
+                AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token).Forget();
+                await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
             }
         }
 

@@ -2,6 +2,9 @@ using System;
 
 namespace Game.MVP.Core.Enums
 {
+    /// <summary>
+    /// シーン状態
+    /// </summary>
     public enum GameSceneState
     {
         None = 0,

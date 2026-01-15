@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Game.Core
+namespace Game.Shared
 {
     internal interface IState
     {
@@ -233,7 +233,7 @@ namespace Game.Core
 
             // 強制的な遷移が許可されていない
             if (!AllowForceTransition)
-                return;
+                throw new InvalidOperationException("Disallow force transition");
 
             _nextState = GetOrAddState<TState>();
         }

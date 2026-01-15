@@ -1,69 +1,31 @@
-using System.Linq;
+using System;
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Core.Scenes
+namespace Game.MVP.Core.Scenes
 {
-    public interface IGameSceneComponent
-    {
-        public UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public UniTask Sleep()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public UniTask Restart()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public UniTask Terminate()
-        {
-            return UniTask.CompletedTask;
-        }
-    }
-
+    /// <summary>
+    /// シーンコンポーネント基底クラス
+    /// MonoBehaviourを継承し、シーンのView層を担当
+    /// DIはGamePrefabScene/GameDialogSceneがResolver.InjectGameObject()で注入
+    /// </summary>
+    [RequireComponent(typeof(CanvasGroup))] // フェードインアウト用
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
-        // private IAudioService _audioService;
-        // private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
-
         private Button[] _buttons;
 
         protected Button[] Buttons => _buttons ??= gameObject.GetComponentsInChildren<Button>();
 
-        private void Start()
+        public CompositeDisposable Disposables { get; } = new();
+
+        protected virtual void OnDestroy()
         {
-            if (Buttons.Length > 0)
-            {
-                Buttons.Select(x => x.OnClickAsObservable())
-                    .Merge()
-                    .Subscribe(_ =>
-                    {
-                        // AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton).Forget();
-                    })
-                    .AddTo(this);
-            }
+            Disposables?.Dispose();
         }
 
-        public virtual void SetInteractiveAllButton(bool interactive)
-        {
-            foreach (var button in Buttons)
-            {
-                button.interactable = interactive;
-            }
-        }
+        #region IGameSceneComponent
 
         public virtual UniTask Startup()
         {
@@ -72,6 +34,9 @@ namespace Game.Core.Scenes
 
         public virtual UniTask Sleep()
         {
+            // 一時的な購読解除
+            // Disposables.Clear();
+
             if (gameObject.activeSelf)
             {
                 gameObject.SetActive(false);
@@ -82,10 +47,13 @@ namespace Game.Core.Scenes
 
         public virtual UniTask Restart()
         {
+            // スリープ復帰後の購読開始
+            // .AddTo(Disposables);
+
             if (!gameObject.activeSelf)
             {
                 gameObject.SetActive(true);
-                SetInteractiveAllButton(true);
+                SetInteractables(true);
             }
 
             return UniTask.CompletedTask;
@@ -100,5 +68,15 @@ namespace Game.Core.Scenes
         {
             return UniTask.CompletedTask;
         }
+
+        public virtual void SetInteractables(bool interactable)
+        {
+            foreach (var button in Buttons)
+            {
+                button.interactable = interactable;
+            }
+        }
+
+        #endregion
     }
 }

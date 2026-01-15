@@ -1,5 +1,5 @@
 using DG.Tweening;
-using Game.Core.Extensions;
+using Game.Shared.Extensions;
 using Game.MVC.Core.Scenes;
 using R3;
 using TMPro;

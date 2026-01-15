@@ -1,0 +1,140 @@
+using System;
+using Game.Library.Shared.MasterData.MemoryTables;
+using R3;
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace Game.MVP.Survivor.Enemy
+{
+    /// <summary>
+    /// Survivor敵コントローラー
+    /// マスターデータから初期化され、StateMachineでAI制御
+    /// </summary>
+    public partial class SurvivorEnemyController : MonoBehaviour
+    {
+        [Header("Components")]
+        [SerializeField] private NavMeshAgent _navAgent;
+        [SerializeField] private Animator _animator;
+        [SerializeField] private Collider _collider;
+
+        // マスターデータから設定される値
+        private int _enemyId;
+        private int _maxHp;
+        private int _attackDamage;
+        private int _experienceValue;
+        private float _moveSpeed;
+
+        // State
+        private int _currentHp;
+        private Transform _target;
+        private bool _isDead;
+
+        // Events
+        private readonly Subject<SurvivorEnemyController> _onDeath = new();
+        public Observable<SurvivorEnemyController> OnDeath => _onDeath;
+
+        // Public properties
+        public int EnemyId => _enemyId;
+        public int AttackDamage => _attackDamage;
+        public int ExperienceValue => _experienceValue;
+        public bool IsDead => _isDead;
+
+        // Animator hashes
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int DeathHash = Animator.StringToHash("Death");
+        private static readonly int HitHash = Animator.StringToHash("Hit");
+
+        private void Awake()
+        {
+            if (_navAgent == null)
+            {
+                _navAgent = GetComponent<NavMeshAgent>();
+            }
+
+            if (_animator == null)
+            {
+                _animator = GetComponentInChildren<Animator>();
+            }
+
+            if (_collider == null)
+            {
+                _collider = GetComponent<Collider>();
+            }
+        }
+
+        /// <summary>
+        /// マスターデータから初期化
+        /// </summary>
+        public void Initialize(
+            SurvivorEnemyMaster master,
+            Transform target,
+            float speedMultiplier = 1f,
+            float healthMultiplier = 1f,
+            float damageMultiplier = 1f,
+            float experienceMultiplier = 1f)
+        {
+            _enemyId = master.Id;
+            _target = target;
+
+            // マスターデータからパラメータ設定（倍率適用）
+            _maxHp = Mathf.RoundToInt(master.BaseHp * healthMultiplier);
+            _attackDamage = Mathf.RoundToInt(master.BaseDamage * damageMultiplier);
+            _experienceValue = Mathf.RoundToInt(master.ExperienceValue * experienceMultiplier);
+            _moveSpeed = master.MoveSpeed * speedMultiplier;
+
+            _currentHp = _maxHp;
+            _isDead = false;
+
+            if (_navAgent != null)
+            {
+                _navAgent.speed = _moveSpeed;
+                _navAgent.enabled = true;
+            }
+
+            if (_collider != null)
+            {
+                _collider.enabled = true;
+            }
+
+            InitializeStateMachine();
+        }
+
+        private void Update()
+        {
+            _stateMachine?.Update();
+        }
+
+        public void TakeDamage(int damage)
+        {
+            TakeDamageWithStateMachine(damage);
+        }
+
+        /// <summary>
+        /// プールに戻すためのリセット
+        /// </summary>
+        public void ResetForPool()
+        {
+            _isDead = false;
+            _currentHp = _maxHp;
+            _target = null;
+            _stateMachine = null;
+
+            if (_navAgent != null)
+            {
+                _navAgent.enabled = false;
+            }
+
+            if (_collider != null)
+            {
+                _collider.enabled = true;
+            }
+
+            gameObject.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            _onDeath.Dispose();
+        }
+    }
+}

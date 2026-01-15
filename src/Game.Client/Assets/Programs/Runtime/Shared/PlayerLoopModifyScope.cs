@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine.LowLevel;
 
-namespace Game.Core
+namespace Game.Shared
 {
     /// <summary>
     /// PlayerLoopSystemに処理を挟みたい時の修正用スコープ

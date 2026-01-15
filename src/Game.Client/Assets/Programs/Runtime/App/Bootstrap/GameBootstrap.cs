@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.App.Launcher;
+using Game.App.Services;
 using Game.App.Title;
 using Game.MVC.ScoreTimeAttack;
 using Game.MVP.Core.DI;
@@ -19,6 +20,7 @@ namespace Game.App.Bootstrap
 
         private static GameModeLauncherRegistry _registry;
         private static AppSceneLoader _sceneLoader;
+        private static IAppServiceProvider _appServiceProvider;
         private static bool _isInitialized;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -54,8 +56,8 @@ namespace Game.App.Bootstrap
 
             // ランチャーレジストリ初期化
             _registry = new GameModeLauncherRegistry();
-            _registry.Register(new ScoreTimeAttackLauncher());
-            _registry.Register(new MVPGameLauncher());
+            _registry.Register(new ScoreTimeAttackGameLauncher());
+            _registry.Register(new SurvivorGameLauncher());
 
             // シーンローダー初期化
             _sceneLoader = new AppSceneLoader();
@@ -68,15 +70,21 @@ namespace Game.App.Bootstrap
         {
             Debug.Log("[GameBootstrap] Loading title screen...");
 
+            // アプリサービスプロバイダーを初期化
+            _appServiceProvider = new AppServiceProvider();
+            await _appServiceProvider.InitializeAsync();
+
             var titleComponent = await _sceneLoader.LoadAsync<AppTitleSceneComponent>(AppTitleAddress);
             if (titleComponent == null)
             {
-                Debug.LogError("[GameBootstrap] Failed to load title screen. Falling back to ScoreTimeAttack.");
-                await _registry.LaunchAsync(GameMode.MvcScoreTimeAttack);
-                return;
+                // Debug.LogError("[GameBootstrap] Failed to load title screen. Falling back to ScoreTimeAttack.");
+                DisposeAppServiceProvider();
+                // await _registry.LaunchAsync(GameMode.MvcScoreTimeAttack);
+                throw new NullReferenceException("[GameBootstrap] Failed to load title screen.");
+                // return;
             }
 
-            titleComponent.Initialize();
+            titleComponent.Initialize(_appServiceProvider);
 
             // ゲームモード選択を待つ
             var cts = new CancellationTokenSource();
@@ -93,6 +101,8 @@ namespace Game.App.Bootstrap
             {
                 // タイトル画面を閉じる
                 _sceneLoader.Unload();
+                // アプリサービスプロバイダーを破棄（各ゲームモードで再構築）
+                DisposeAppServiceProvider();
             }
 
             if (cts.IsCancellationRequested)
@@ -102,6 +112,12 @@ namespace Game.App.Bootstrap
 
             // 選択されたモードを起動
             await _registry.LaunchAsync(selectedMode);
+        }
+
+        private static void DisposeAppServiceProvider()
+        {
+            _appServiceProvider?.Dispose();
+            _appServiceProvider = null;
         }
 
         /// <summary>

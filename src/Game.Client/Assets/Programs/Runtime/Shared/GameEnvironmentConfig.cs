@@ -15,17 +15,17 @@ namespace Game.Shared
         Release = 3000, // 本番リリースビルド環境
     }
 
-    public enum GameDiContainerMode
+    public enum DependencyResolverMode
     {
-        Legacy = 0,     // ServiceManager
-        VContainer = 1, // DI Container
+        ServiceLocator = 0, // GameServiceManager
+        DiContainer = 1,    // VContainer
     }
 
     [Serializable]
     public class GameEnvironmentConfig
     {
         [SerializeField] private GameEnvironment _environment;
-        [SerializeField] private GameDiContainerMode _diContainerMode;
+        [SerializeField] private DependencyResolverMode _dependencyResolverMode;
         [SerializeField] private string _apiBaseUrl;
         [SerializeField] private string _webSocketUrl;
         [SerializeField] private bool _enableDebugLog;
@@ -33,7 +33,7 @@ namespace Game.Shared
         [SerializeField] private bool _useLocalMasterData;
 
         public GameEnvironment Environment => _environment;
-        public GameDiContainerMode DiContainerMode => _diContainerMode;
+        public DependencyResolverMode DependencyResolverMode => _dependencyResolverMode;
         public string ApiBaseUrl => _apiBaseUrl;
         public string WebSocketUrl => _webSocketUrl;
         public bool EnableDebugLog => _enableDebugLog;
@@ -69,7 +69,7 @@ namespace Game.Shared
         {
 #if UNITY_EDITOR
             var so = new SerializedObject(Instance);
-            so.FindProperty("_environment").enumValueIndex = (int)environment;
+            so.FindProperty("_environment").intValue = (int)environment;
             so.ApplyModifiedProperties();
             AssetDatabase.SaveAssetIfDirty(this);
 #endif

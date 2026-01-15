@@ -5,6 +5,7 @@ using Game.Core.MessagePipe;
 using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Services;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
@@ -303,7 +304,7 @@ namespace Game.Core.Services
             }
         }
 
-        private async UniTask TerminateAllAsync()
+        public async UniTask TerminateAllAsync()
         {
             // 逆順で終了処理
             for (int i = _gameScenes.Count - 1; i >= 0; i--)

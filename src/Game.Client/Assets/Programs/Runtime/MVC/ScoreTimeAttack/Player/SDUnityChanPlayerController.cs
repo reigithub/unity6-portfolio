@@ -1,6 +1,6 @@
 using System.Linq;
-using Game.Core;
-using Game.Core.Extensions;
+using Cysharp.Threading.Tasks;
+using Game.Shared;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;

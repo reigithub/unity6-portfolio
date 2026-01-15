@@ -6,6 +6,7 @@
         "Game.MVC.Core",
         "Game.MVC.ScoreTimeAttack",
         "Game.MVP.Core",
+        "Unity6Library",
         "UniTask",
         "UniTask.Addressables",
         "Unity.Addressables",

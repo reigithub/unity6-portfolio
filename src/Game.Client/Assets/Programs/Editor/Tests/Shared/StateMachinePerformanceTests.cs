@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using Game.Core;
+using Game.Shared;
 using NUnit.Framework;
 using Unity.Profiling;
 using UnityEngine;
@@ -2153,6 +2153,7 @@ namespace Game.Editor.Tests
             {
                 ExecuteOldTransitionCycleWithTiming(oldStateMachine, oldContext, transitionStopwatch);
             }
+
             oldStopwatch.Stop();
 
             long oldEndMemory = GC.GetTotalMemory(false);
@@ -2183,6 +2184,7 @@ namespace Game.Editor.Tests
             {
                 ExecuteTransitionCycleWithTiming(newStateMachine, newContext, transitionStopwatch);
             }
+
             newStopwatch.Stop();
 
             long newEndMemory = GC.GetTotalMemory(false);
@@ -2258,6 +2260,7 @@ namespace Game.Editor.Tests
             {
                 oldStateMachine.Update();
             }
+
             oldStopwatch.Stop();
 
             long oldEndMemory = GC.GetTotalMemory(false);
@@ -2284,6 +2287,7 @@ namespace Game.Editor.Tests
             {
                 newStateMachine.Update();
             }
+
             newStopwatch.Stop();
 
             long newEndMemory = GC.GetTotalMemory(false);
@@ -2493,6 +2497,7 @@ namespace Game.Editor.Tests
                 {
                     oldStateMachine.FixedUpdate();
                 }
+
                 oldStateMachine.LateUpdate();
             }
 
@@ -2540,6 +2545,7 @@ namespace Game.Editor.Tests
                 {
                     newStateMachine.FixedUpdate();
                 }
+
                 newStateMachine.LateUpdate();
             }
 
@@ -2612,6 +2618,7 @@ namespace Game.Editor.Tests
                     {
                         stateMachine.Update();
                     }
+
                     return 1;
 
                 case OldStateEventResult.Failed:
@@ -2662,6 +2669,7 @@ namespace Game.Editor.Tests
                     {
                         stateMachine.Update();
                     }
+
                     return 1;
 
                 case OldStateEventResult.Failed:

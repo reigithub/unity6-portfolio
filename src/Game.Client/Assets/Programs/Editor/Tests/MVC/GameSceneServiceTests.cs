@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -188,7 +189,7 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public async Task TerminateLastAsync_WithNoScenes_DoesNotThrow()
+        public void TerminateLastAsync_WithNoScenes_DoesNotThrow()
         {
             Assert.DoesNotThrowAsync(async () => await _service.TerminateLastAsync());
         }
@@ -553,7 +554,7 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public async Task MockGameDialogScene_MultipleDialogs()
+        public void MockGameDialogScene_MultipleDialogs()
         {
             var dialog1 = new MockGameDialogScene<MockSceneComponent, int>();
             var dialog2 = new MockGameDialogScene<MockSceneComponent, string>();
@@ -676,7 +677,7 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public async Task MockGameDialogScene_ResultWithException()
+        public void MockGameDialogScene_ResultWithException()
         {
             var dialog = new MockGameDialogScene<MockSceneComponent, int>();
             dialog.ResultTcs = new UniTaskCompletionSource<int>();
@@ -986,7 +987,7 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public async Task TransitionDialogAsync_MultipleDialogs_CanStackDialogs()
+        public void TransitionDialogAsync_MultipleDialogs_CanStackDialogs()
         {
             var dialog1 = new TestDialogScene { State = GameSceneState.Processing };
             var dialog2 = new TestDialogScene2 { State = GameSceneState.Processing };
@@ -1598,9 +1599,10 @@ namespace Game.Editor.Tests
 
             public UniTask PreInitialize() => UniTask.CompletedTask;
 
-            public async UniTask LoadAsset()
+            public UniTask LoadAsset()
             {
                 SceneComponent = new MockSceneComponent();
+                return UniTask.CompletedTask;
             }
 
             public UniTask Startup()
@@ -1644,9 +1646,10 @@ namespace Game.Editor.Tests
 
             public UniTask PreInitialize() => UniTask.CompletedTask;
 
-            public async UniTask LoadAsset()
+            public UniTask LoadAsset()
             {
                 SceneComponent = new MockSceneComponent();
+                return UniTask.CompletedTask;
             }
 
             public UniTask Startup()

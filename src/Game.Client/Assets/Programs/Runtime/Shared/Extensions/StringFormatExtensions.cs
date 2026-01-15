@@ -1,4 +1,4 @@
-namespace Game.Core.Extensions
+namespace Game.Shared.Extensions
 {
     public static class StringFormatExtensions
     {

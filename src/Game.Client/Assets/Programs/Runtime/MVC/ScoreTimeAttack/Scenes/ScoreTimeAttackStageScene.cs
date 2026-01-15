@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.ScoreTimeAttack.Enemy;
 using Game.Contents.UI;
 using Game.ScoreTimeAttack.Enums;
-using Game.Core.Extensions;
+using Game.Shared.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
@@ -120,7 +120,7 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             MessagePipeService.Publish(MessageKey.System.DefaultSkybox);
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
-            AudioService.StopBgm();
+            AudioService.StopBgmAsync();
             await base.Terminate();
         }
 

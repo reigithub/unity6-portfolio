@@ -1,4 +1,4 @@
-using Game.Core;
+using Game.Shared;
 using Game.Shared.Constants;
 using Game.Library.Shared.MasterData.MemoryTables;
 using UnityEngine;

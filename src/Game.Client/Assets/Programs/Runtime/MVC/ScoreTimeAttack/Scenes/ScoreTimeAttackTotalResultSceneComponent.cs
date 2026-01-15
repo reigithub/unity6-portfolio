@@ -1,6 +1,6 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using Game.Core.Extensions;
+using Game.Shared.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.ScoreTimeAttack.Data;
@@ -87,7 +87,7 @@ namespace Game.ScoreTimeAttack.Scenes
                 .SubscribeAwait(async (_, token) =>
                 {
                     SetInteractiveAllButton(false);
-                    AudioService.StopBgm();
+                    AudioService.StopBgmAsync();
                     await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
                     await SceneService.TransitionAsync<GameTitleScene>();
                 })

@@ -1,18 +1,16 @@
-﻿using System;
-using System.Threading.Tasks;
-using Game.Library.Shared.MasterData;
-using MessagePack;
-using MessagePack.Resolvers;
+using Cysharp.Threading.Tasks;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Core.Services
 {
-    public class MasterDataService : IMasterDataService
+    /// <summary>
+    /// MVC用マスターデータサービス
+    /// GameServiceManager経由で使用
+    /// </summary>
+    public class MasterDataService : MasterDataServiceBase, IGameService
     {
         private IAddressableAssetService _assetService;
-        private IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        public MemoryDatabase MemoryDatabase { get; private set; }
 
         public MasterDataService()
         {
@@ -25,26 +23,16 @@ namespace Game.Core.Services
 
         public void Startup()
         {
-            var formatterResolvers = new[]
-            {
-                MasterMemoryResolver.Instance, // 自動生成されたResolver
-                StandardResolver.Instance      // MessagePackの標準Resolver
-            };
-            // StaticCompositeResolver.Instance.Register(formatterResolvers); // 複数回の実行でエラーになるので廃止
-            var compositeResolver = CompositeResolver.Create(formatterResolvers);
-            var options = MessagePackSerializerOptions.Standard.WithResolver(compositeResolver);
-            MessagePackSerializer.DefaultOptions = options;
         }
 
         public void Shutdown()
         {
         }
 
-        public async Task LoadMasterDataAsync()
+        protected override async UniTask<TextAsset> LoadMasterDataBinaryAsync()
         {
-            var asset = await AssetService.LoadAssetAsync<TextAsset>("MasterDataBinary");
-            var binary = asset.bytes;
-            MemoryDatabase = new MemoryDatabase(binary, maxDegreeOfParallelism: Environment.ProcessorCount);
+            _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+            return await _assetService.LoadAssetAsync<TextAsset>("MasterDataBinary");
         }
     }
 }

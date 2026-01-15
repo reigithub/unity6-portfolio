@@ -15,14 +15,35 @@ MonoBehaviour:
   _environment: 0
   _configs:
   - _environment: 0
-    _diContainerMode: 0
+    _dependencyResolverMode: 0
     _apiBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
   - _environment: 1
-    _diContainerMode: 0
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+  - _environment: 1000
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+  - _environment: 2000
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+  - _environment: 3000
+    _dependencyResolverMode: 1
     _apiBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0

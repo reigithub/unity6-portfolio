@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Game.Core.Extensions
+namespace Game.Shared.Extensions
 {
     public enum SortType
     {

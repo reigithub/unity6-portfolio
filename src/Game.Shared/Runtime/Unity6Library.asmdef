@@ -1,0 +1,15 @@
+﻿{
+  "name": "Unity6Library",
+  "references": [
+    "MasterMemory",
+    "MessagePack"
+  ],
+  "optionalUnityReferences": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": []
+}

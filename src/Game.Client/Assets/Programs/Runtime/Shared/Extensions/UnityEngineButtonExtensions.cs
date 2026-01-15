@@ -1,7 +1,7 @@
 using System;
 using R3;
 
-namespace Game.Core.Extensions
+namespace Game.Shared.Extensions
 {
     public static class UnityEngineButtonExtensions
     {
