@@ -14,6 +14,7 @@ namespace Game.MVP.Survivor.Enemy
     {
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
+
         [SerializeField] private Animator _animator;
         [SerializeField] private Collider _collider;
 
@@ -107,6 +108,14 @@ namespace Game.MVP.Survivor.Enemy
         public void TakeDamage(int damage)
         {
             TakeDamageWithStateMachine(damage);
+        }
+
+        public void ApplyKnockback(Vector3 knockback)
+        {
+            if (_isDead || _navAgent == null || !_navAgent.enabled) return;
+
+            // NavMeshAgentのvelocityにノックバックを適用
+            _navAgent.velocity = knockback;
         }
 
         /// <summary>

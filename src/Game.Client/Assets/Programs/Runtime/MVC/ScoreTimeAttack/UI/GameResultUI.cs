@@ -6,27 +6,32 @@ using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.MVC.Core.Scenes;
 using Game.ScoreTimeAttack.Data;
+using Game.Shared.Bootstrap;
 using R3;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.MVC.UI
+namespace Game.ScoreTimeAttack.UI
 {
-    public class GameResultUIDialog : GameDialogScene<GameResultUIDialog, GameResultUI, bool>
+    public enum ResultDialogResult
+    {
+        NextStage,
+        Finish,
+        ReturnToTitle
+    }
+
+    public class GameResultUIDialog : GameDialogScene<GameResultUIDialog, GameResultUI, ResultDialogResult>
     {
         protected override string AssetPathOrAddress => "GameResultUI";
 
         private AudioService _audioService;
         private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
-        public static UniTask<bool> RunAsync(ScoreTimeAttackStageResultData data)
+        public static UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
         {
             var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GameResultUIDialog, GameResultUI, bool>(
+            return sceneService.TransitionDialogAsync<GameResultUIDialog, GameResultUI, ResultDialogResult>(
                 initializer: (component, result) =>
                 {
                     component.Initialize(result, data);
@@ -36,8 +41,9 @@ namespace Game.MVC.UI
 
         public override UniTask Startup()
         {
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, false);
-            MessagePipeService.PublishForget(MessageKey.System.Cursor, true);
+            ApplicationEvents.PauseTime();
+            ApplicationEvents.ShowCursor();
+
             return base.Startup();
         }
 
@@ -52,16 +58,17 @@ namespace Game.MVC.UI
 
         public override UniTask Terminate()
         {
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, true);
+            if (Result != ResultDialogResult.ReturnToTitle)
+            {
+                ApplicationEvents.ResumeTime();
+            }
+
             return base.Terminate();
         }
     }
 
     public class GameResultUI : GameSceneComponent
     {
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
         [SerializeField]
         private TextMeshProUGUI _result;
 
@@ -94,7 +101,7 @@ namespace Game.MVC.UI
 
         public ScoreTimeAttackStageResultData Data { get; private set; }
 
-        public void Initialize(IGameSceneResult<bool> result, ScoreTimeAttackStageResultData data)
+        public void Initialize(IGameSceneResult<ResultDialogResult> result, ScoreTimeAttackStageResultData data)
         {
             Data = data;
 
@@ -124,11 +131,10 @@ namespace Game.MVC.UI
             if (showNext)
             {
                 _nextButton.OnClickAsObservableThrottleFirst()
-                    .SubscribeAwait(async (_, token) =>
+                    .Subscribe(_ =>
                     {
                         SetInteractable(false);
-                        await MessagePipeService.PublishAsync(MessageKey.GameStage.Finish, true, token);
-                        result.TrySetResult(true);
+                        result.TrySetResult(ResultDialogResult.NextStage);
                     })
                     .AddTo(this);
             }
@@ -138,11 +144,10 @@ namespace Game.MVC.UI
             if (showReturn)
             {
                 _returnButton.OnClickAsObservableThrottleFirst()
-                    .SubscribeAwait(async (_, token) =>
+                    .Subscribe(_ =>
                     {
                         SetInteractable(false);
-                        await MessagePipeService.PublishAsync(MessageKey.GameStage.ReturnTitle, true, token);
-                        result.TrySetResult(false);
+                        result.TrySetResult(ResultDialogResult.ReturnToTitle);
                     })
                     .AddTo(this);
             }
@@ -152,11 +157,10 @@ namespace Game.MVC.UI
             if (showTotalResult)
             {
                 _totalResultButton.OnClickAsObservableThrottleFirst()
-                    .SubscribeAwait(async (_, token) =>
+                    .Subscribe(_ =>
                     {
                         SetInteractable(false);
-                        await MessagePipeService.PublishAsync(MessageKey.GameStage.Finish, true, token);
-                        result.TrySetResult(true);
+                        result.TrySetResult(ResultDialogResult.Finish);
                     })
                     .AddTo(this);
             }

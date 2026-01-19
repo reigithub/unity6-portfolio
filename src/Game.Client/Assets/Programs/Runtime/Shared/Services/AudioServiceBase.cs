@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -42,6 +41,7 @@ namespace Game.Shared.Services
         public void Startup()
         {
             _audioServiceObject = new GameObject("AudioService");
+            _audioServiceObject.AddComponent<AudioListener>();
             _bgmSource = new GameObject("BgmSource").AddComponent<AudioSource>();
             _voiceSource = new GameObject("VoiceSource").AddComponent<AudioSource>();
             _sfxSource = new GameObject("SfxSource").AddComponent<AudioSource>();
@@ -74,7 +74,7 @@ namespace Game.Shared.Services
 
             if (_bgmSource.isPlaying)
             {
-                await _bgmSource.DOFade(0f, 0.5f).ToUniTask(cancellationToken: token);
+                await _bgmSource.DOFade(0f, 0.5f).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
 
             _bgmSource.Stop();
@@ -83,16 +83,17 @@ namespace Game.Shared.Services
             _bgmSource.mute = false;
             _bgmSource.loop = true;
             _bgmSource.Play();
-            await _bgmSource.DOFade(_bgmVolume, _bgmFadeDuration).ToUniTask(cancellationToken: token);
+            await _bgmSource.DOFade(_bgmVolume, _bgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
         }
 
-        public async UniTask StopBgmAsync()
+        public async UniTask StopBgmAsync(CancellationToken token = default)
         {
             if (_bgmSource.isPlaying)
             {
-                await _bgmSource.DOFade(0f, _bgmFadeDuration).ToUniTask();
-                _bgmSource.Stop();
+                await _bgmSource.DOFade(0f, _bgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
+
+            _bgmSource.Stop();
         }
 
         public async UniTask PlayVoiceAsync(string assetName, CancellationToken token = default)
@@ -103,14 +104,14 @@ namespace Game.Shared.Services
             var audioClip = await LoadAudioClipAsync(assetName);
 
             if (_voiceSource.isPlaying)
-                await _voiceSource.DOFade(0f, _voiceFadeDuration).ToUniTask(cancellationToken: token);
+                await _voiceSource.DOFade(0f, _voiceFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _voiceSource.Stop();
             _voiceSource.volume = _voiceVolume;
             _voiceSource.mute = false;
             _voiceSource.loop = false;
             _voiceSource.PlayOneShot(audioClip);
-            await UniTask.Delay(TimeSpan.FromSeconds(audioClip.length), cancellationToken: token);
+            await UniTask.Delay(TimeSpan.FromSeconds(audioClip.length), DelayType.Realtime, cancellationToken: token);
         }
 
         public async UniTask PlaySoundEffectAsync(string assetName, CancellationToken token = default)
@@ -122,7 +123,7 @@ namespace Game.Shared.Services
 
             if (_sfxSource.isPlaying)
             {
-                await _sfxSource.DOFade(0f, _sfxFadeDuration).ToUniTask(cancellationToken: token);
+                await _sfxSource.DOFade(0f, _sfxFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
 
             _sfxSource.Stop();
@@ -130,7 +131,7 @@ namespace Game.Shared.Services
             _sfxSource.mute = false;
             _sfxSource.loop = false;
             _sfxSource.PlayOneShot(audioClip);
-            await UniTask.Delay(TimeSpan.FromSeconds(audioClip.length), cancellationToken: token);
+            await UniTask.Delay(TimeSpan.FromSeconds(audioClip.length), DelayType.Realtime, cancellationToken: token);
         }
 
         public UniTask PlayAsync(AudioCategory audioCategory, string audioName, CancellationToken token = default)

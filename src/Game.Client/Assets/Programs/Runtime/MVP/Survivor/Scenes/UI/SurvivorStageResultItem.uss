@@ -1,0 +1,70 @@
+/* ===========================================
+   Survivor Stage Result Item Styles
+   =========================================== */
+
+.stage-result-item {
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: transparent;
+    transition-duration: 0.15s;
+    scale: 1;
+}
+
+.stage-result-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    scale: 1.02;
+}
+
+.stage-result-item--clear {
+    border-color: rgba(80, 200, 120, 0.4);
+}
+
+.stage-result-item--failed {
+    border-color: rgba(200, 80, 80, 0.4);
+}
+
+/* Header */
+.stage-result-item__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stage-result-item__name {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.stage-result-item__status {
+    font-size: 36px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.stage-result-item__status--clear {
+    color: rgb(80, 200, 120);
+}
+
+.stage-result-item__status--failed {
+    color: rgb(200, 80, 80);
+}
+
+/* Stats */
+.stage-result-item__stats {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 40px;
+    margin-top: 8px;
+}
+
+.stage-result-item__stat {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-right: 24px;
+}

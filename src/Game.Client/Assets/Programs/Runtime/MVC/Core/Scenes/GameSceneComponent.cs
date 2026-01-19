@@ -35,12 +35,15 @@ namespace Game.MVC.Core.Scenes
         {
             return UniTask.CompletedTask;
         }
+
+        // ボタンなどのインタラクティブUI有効化を切り替える
+        public void SetInteractables(bool interactable);
     }
 
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
         private IAudioService _audioService;
-        private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
+        protected IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
         private Button[] _buttons;
 
@@ -57,7 +60,7 @@ namespace Game.MVC.Core.Scenes
             }
         }
 
-        public virtual void SetInteractiveAllButton(bool interactive)
+        public virtual void SetInteractables(bool interactive)
         {
             foreach (var button in Buttons)
             {
@@ -85,7 +88,7 @@ namespace Game.MVC.Core.Scenes
             if (!gameObject.activeSelf)
             {
                 gameObject.SetActive(true);
-                SetInteractiveAllButton(true);
+                SetInteractables(true);
             }
 
             return UniTask.CompletedTask;

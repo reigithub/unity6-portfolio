@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- スタイルは親のUIDocumentから継承 -->
+    <ui:VisualElement name="stage-result-item" class="stage-result-item">
+        <ui:VisualElement name="header" class="stage-result-item__header">
+            <ui:Label text="Stage 1" name="stage-name" class="stage-result-item__name"/>
+            <ui:Label text="CLEAR" name="stage-status" class="stage-result-item__status stage-result-item__status--clear"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="stats" class="stage-result-item__stats">
+            <ui:Label text="Score: 0" name="stage-score" class="stage-result-item__stat"/>
+            <ui:Label text="Kills: 0" name="stage-kills" class="stage-result-item__stat"/>
+            <ui:Label text="Time: 00:00" name="stage-time" class="stage-result-item__stat"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

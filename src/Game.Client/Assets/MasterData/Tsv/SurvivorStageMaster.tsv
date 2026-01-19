@@ -1,0 +1,4 @@
+Id	Name	AssetName	ThumbnailAssetName	Description	TimeLimit	PlayerId	BgmAssetName	UnlockStageId	Difficulty
+1	森の入口	PolyVania		初心者向けの森林ステージ	180	1			1
+2	深い森	PolyVania		中級者向けの深い森	300	1		1	2
+3	森の奥地	PolyVania		上級者向けの危険な森	600	1		2	3

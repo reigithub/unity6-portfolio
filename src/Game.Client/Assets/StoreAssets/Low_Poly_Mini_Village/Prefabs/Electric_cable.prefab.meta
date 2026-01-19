@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 0dbda4ea70ba28549b5c445249486cf5
+timeCreated: 1540388913
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 131677
+  packageName: Low Poly Mini Village Free
+  packageVersion: 1.0
+  assetPath: Assets/Low_Poly_Mini_Village/Prefabs/Electric_cable.prefab
+  uploadId: 275189

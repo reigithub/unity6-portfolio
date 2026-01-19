@@ -1,0 +1,213 @@
+/* ===========================================
+   Survivor Stage Scene HUD Styles
+   3D Gameplay HUD Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: transparent;
+    justify-content: space-between;
+}
+
+/* ===========================================
+   Top Bar
+   =========================================== */
+
+.top-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 30px;
+}
+
+.top-bar__left {
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    padding: 12px 20px;
+    align-items: flex-start;
+}
+
+.top-bar__center {
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    padding: 12px 24px;
+}
+
+.top-bar__right {
+    align-items: flex-end;
+}
+
+.wave-text {
+    font-size: 28px;
+    color: rgb(255, 200, 80);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+
+.time-text {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+}
+
+.level-text {
+    font-size: 32px;
+    color: rgb(100, 220, 255);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.pause-button {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
+    -unity-font-style: bold;
+    transition-duration: 0.1s;
+}
+
+.pause-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.pause-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===========================================
+   Gameplay Area (transparent)
+   =========================================== */
+
+.gameplay-area {
+    flex-grow: 1;
+}
+
+/* ===========================================
+   Bottom Bar
+   =========================================== */
+
+.bottom-bar {
+    padding: 20px 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
+/* HP Bar */
+.hp-container {
+    margin-bottom: 8px;
+}
+
+.hp-bar__background {
+    height: 28px;
+    background-color: rgba(80, 20, 20, 0.8);
+    border-radius: 6px;
+    border-width: 2px;
+    border-color: rgba(255, 100, 100, 0.4);
+    overflow: hidden;
+}
+
+.hp-bar__fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(220, 60, 60);
+    border-radius: 4px;
+    transition-duration: 0.2s;
+}
+
+.hp-text {
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-top: 4px;
+}
+
+/* EXP Bar */
+.exp-container {
+    margin-bottom: 12px;
+}
+
+.exp-bar__background {
+    height: 12px;
+    background-color: rgba(20, 60, 100, 0.8);
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(100, 180, 255, 0.4);
+    overflow: hidden;
+}
+
+.exp-bar__fill {
+    height: 100%;
+    width: 0%;
+    background-color: rgb(80, 180, 255);
+    border-radius: 3px;
+    transition-duration: 0.15s;
+}
+
+/* Stats */
+.stats-container {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.kills-text {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 2px;
+}
+
+/* ===========================================
+   Result Overlays
+   =========================================== */
+
+.result-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+}
+
+.result-overlay--hidden {
+    display: none;
+}
+
+.result-panel {
+    padding: 48px 80px;
+    border-radius: 20px;
+    border-width: 3px;
+}
+
+.result-panel--gameover {
+    background-color: rgba(80, 20, 20, 0.95);
+    border-color: rgb(200, 60, 60);
+}
+
+.result-panel--victory {
+    background-color: rgba(20, 60, 80, 0.95);
+    border-color: rgb(80, 200, 255);
+}
+
+.result-panel__title {
+    font-size: 64px;
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+}
+
+.result-panel__title--gameover {
+    color: rgb(255, 100, 100);
+}
+
+.result-panel__title--victory {
+    color: rgb(100, 220, 255);
+}

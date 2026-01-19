@@ -6,6 +6,7 @@ namespace Game.MVP.Survivor.Player
 {
     /// <summary>
     /// SurvivorPlayerController - StateMachine実装部分
+    /// SDUnityChanPlayerControllerと同様のステートマシン構造
     /// </summary>
     public partial class SurvivorPlayerController
     {
@@ -15,9 +16,6 @@ namespace Game.MVP.Survivor.Player
         // Event Flags (State内部からのみ参照)
         private bool _hasPendingDamage;
         private int _pendingDamageAmount;
-
-        // Animator hash for Death
-        private static readonly int DeathHash = Animator.StringToHash("Death");
 
         private void InitializeStateMachine()
         {
@@ -124,11 +122,13 @@ namespace Game.MVP.Survivor.Player
         {
             public override void Update()
             {
+                // ダメージチェック
                 if (CheckDamageAndTransition()) return;
+            }
 
-                var ctx = Context;
-                ctx.HandleInput();
-                ctx.HandleMovement();
+            public override void FixedUpdate()
+            {
+                Context.HandleMovement();
             }
         }
 
@@ -139,8 +139,7 @@ namespace Game.MVP.Survivor.Player
         {
             public override void Enter()
             {
-                var ctx = Context;
-                ctx._isInvincible.Value = true;
+                Context._isInvincible.Value = true;
             }
 
             public override void Update()
@@ -148,22 +147,22 @@ namespace Game.MVP.Survivor.Player
                 // 無敵中はダメージを受けないが、フラグはクリアする
                 Context.TryProcessDamage(out _);
 
-                var ctx = Context;
-                ctx.HandleInput();
-                ctx.HandleMovement();
-
                 // 無敵タイマー
-                ctx._invincibilityTimer -= Time.deltaTime;
-                if (ctx._invincibilityTimer <= 0f)
+                Context._invincibilityTimer -= Time.deltaTime;
+                if (Context._invincibilityTimer <= 0f)
                 {
                     StateMachine.Transition(PlayerEvent.InvincibilityEnd);
                 }
             }
 
+            public override void FixedUpdate()
+            {
+                Context.HandleMovement();
+            }
+
             public override void Exit()
             {
-                var ctx = Context;
-                ctx._isInvincible.Value = false;
+                Context._isInvincible.Value = false;
             }
         }
 
@@ -179,7 +178,7 @@ namespace Game.MVP.Survivor.Player
 
                 if (ctx._animator != null)
                 {
-                    ctx._animator.SetTrigger(DeathHash);
+                    ctx._animator.SetTrigger(AnimatorHashDeath);
                 }
             }
         }

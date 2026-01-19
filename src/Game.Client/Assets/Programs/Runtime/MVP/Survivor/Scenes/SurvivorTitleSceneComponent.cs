@@ -1,22 +1,18 @@
 using Game.MVP.Core.Scenes;
 using R3;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// Survivorタイトルシーンのルートコンポーネント
-    /// UI要素の管理とイベント発行を担当
+    /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
     /// </summary>
     public class SurvivorTitleSceneComponent : GameSceneComponent
     {
-        [Header("Buttons")]
-        [SerializeField] private Button _startGameButton;
-
-        [SerializeField] private Button _returnButton;
-
-        [SerializeField] private Button _quitButton;
+        [Header("UI Document")]
+        [SerializeField] private UIDocument _uiDocument;
 
         private readonly Subject<Unit> _onStartGameClicked = new();
         private readonly Subject<Unit> _onReturnClicked = new();
@@ -26,6 +22,12 @@ namespace Game.MVP.Survivor.Scenes
         public Observable<Unit> OnReturnClicked => _onReturnClicked;
         public Observable<Unit> OnQuitClicked => _onQuitClicked;
 
+        // UI Element References
+        private VisualElement _root;
+        private Button _startButton;
+        private Button _returnButton;
+        private Button _quitButton;
+
         protected override void OnDestroy()
         {
             _onStartGameClicked.Dispose();
@@ -34,26 +36,45 @@ namespace Game.MVP.Survivor.Scenes
             base.OnDestroy();
         }
 
-        protected void Awake()
+        private void Awake()
         {
-            SetupButtons();
+            QueryUIElements();
+            SetupEventHandlers();
         }
 
-        private void SetupButtons()
+        /// <summary>
+        /// UXMLからUI要素を取得
+        /// </summary>
+        private void QueryUIElements()
         {
-            if (_startGameButton != null)
-            {
-                _startGameButton.OnClickAsObservable()
-                    .Subscribe(_ => _onStartGameClicked.OnNext(Unit.Default))
-                    .AddTo(Disposables);
-            }
+            _root = _uiDocument.rootVisualElement;
 
-            if (_returnButton != null)
-            {
-                _returnButton.OnClickAsObservable()
-                    .Subscribe(_ => _onReturnClicked.OnNext(Unit.Default))
-                    .AddTo(Disposables);
-            }
+            _startButton = _root.Q<Button>("start-button");
+            _returnButton = _root.Q<Button>("return-button");
+            _quitButton = _root.Q<Button>("quit-button");
+        }
+
+        /// <summary>
+        /// イベントハンドラーを設定
+        /// </summary>
+        private void SetupEventHandlers()
+        {
+            _startButton?.RegisterCallback<ClickEvent>(_ =>
+                _onStartGameClicked.OnNext(Unit.Default));
+
+            _returnButton?.RegisterCallback<ClickEvent>(_ =>
+                _onReturnClicked.OnNext(Unit.Default));
+
+            _quitButton?.RegisterCallback<ClickEvent>(_ =>
+                _onQuitClicked.OnNext(Unit.Default));
+        }
+
+        /// <summary>
+        /// UI操作の有効/無効を設定
+        /// </summary>
+        public override void SetInteractables(bool interactable)
+        {
+            _root?.SetEnabled(interactable);
         }
     }
 }

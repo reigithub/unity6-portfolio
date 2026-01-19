@@ -20,8 +20,6 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            GameRootController.SetDirectionalLightActive(false);
-
             // Viewのイベントを購読
             SceneComponent.OnStartGameClicked
                 .Subscribe(_ => OnStartGame().Forget())
@@ -38,14 +36,13 @@ namespace Game.MVP.Survivor.Scenes
 
         public override UniTask Terminate()
         {
-            GameRootController.SetDirectionalLightActive(true);
             return base.Terminate();
         }
 
         private async UniTaskVoid OnStartGame()
         {
-            // SceneComponent.SetInteractables(false);
-            // await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+            SceneComponent.SetInteractables(false);
+            await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
             await UniTask.CompletedTask;
         }
 

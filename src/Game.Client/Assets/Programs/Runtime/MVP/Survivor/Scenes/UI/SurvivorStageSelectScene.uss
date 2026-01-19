@@ -1,0 +1,413 @@
+/* ===========================================
+   Survivor Stage Select Scene Styles
+   Layout: Left(35%) - Center Character(12.5%) - Right(35%)
+   =========================================== */
+
+/* ===========================================
+   Utility Classes
+   =========================================== */
+
+.hidden {
+    display: none;
+}
+
+.spacer {
+    flex-grow: 1;
+}
+
+/* ===========================================
+   Root & Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: transparent;
+    padding: 24px 36px;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+}
+
+.header__title {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    flex-grow: 1;
+    -unity-text-align: middle-center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.header__spacer {
+    width: 140px;
+}
+
+/* ===========================================
+   Content Layout
+   =========================================== */
+
+.content {
+    flex-grow: 1;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+/* ===========================================
+   Character Space (Center 12.5%)
+   =========================================== */
+
+.character-space {
+    width: 12.5%;
+    min-width: 120px;
+}
+
+/* ===========================================
+   Stage List Panel (Left)
+   =========================================== */
+
+.stage-list-panel {
+    width: 35%;
+    min-width: 320px;
+    max-width: 480px;
+}
+
+.panel-label {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    margin-left: 8px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.stage-scroll-view {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 16px;
+    padding: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.stage-list-container {
+    flex-grow: 1;
+}
+
+/* ===========================================
+   Stage Item
+   =========================================== */
+
+.stage-item {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    padding: 14px 18px;
+    transition-duration: 0.15s;
+    border-width: 1px;
+    border-color: transparent;
+    scale: 1;
+}
+
+.stage-item:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(100, 200, 255, 0.4);
+    scale: 1.02;
+}
+
+.stage-item--locked {
+    opacity: 0.4;
+}
+
+.stage-item__number {
+    font-size: 36px;
+    color: rgb(100, 200, 255);
+    -unity-font-style: bold;
+    width: 60px;
+    -unity-text-align: middle-center;
+}
+
+.stage-item__number--locked {
+    color: rgb(100, 100, 100);
+}
+
+.stage-item__info {
+    flex-grow: 1;
+    margin-left: 12px;
+}
+
+.stage-item__name {
+    font-size: 26px;
+    color: rgb(255, 255, 255);
+    margin-bottom: 4px;
+}
+
+.stage-item__difficulty {
+    font-size: 18px;
+}
+
+.stage-item__difficulty--easy {
+    color: rgb(100, 220, 100);
+}
+
+.stage-item__difficulty--normal {
+    color: rgb(220, 220, 100);
+}
+
+.stage-item__difficulty--hard {
+    color: rgb(255, 160, 60);
+}
+
+.stage-item__difficulty--very-hard {
+    color: rgb(255, 80, 80);
+}
+
+.stage-item__difficulty--extreme {
+    color: rgb(220, 80, 220);
+}
+
+.stage-item__badge {
+    font-size: 16px;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.stage-item__badge--cleared {
+    color: rgb(100, 255, 100);
+    background-color: rgba(100, 255, 100, 0.2);
+    border-width: 1px;
+    border-color: rgba(100, 255, 100, 0.4);
+}
+
+.stage-item__lock-icon {
+    font-size: 28px;
+    color: rgb(100, 100, 100);
+}
+
+/* ===========================================
+   Detail Panel (Right)
+   =========================================== */
+
+.detail-panel {
+    width: 35%;
+    min-width: 320px;
+    max-width: 480px;
+    background-color: rgba(0, 0, 0, 0.75);
+    border-radius: 16px;
+    padding: 28px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.detail-panel--hidden {
+    display: none;
+}
+
+.detail-panel__title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-bottom: 12px;
+}
+
+.detail-panel__description {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: normal;
+    margin-bottom: 24px;
+    min-height: 60px;
+}
+
+.detail-panel__stats {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 24px;
+}
+
+.stat-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-label {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 2px;
+}
+
+.stat-value {
+    font-size: 28px;
+    -unity-font-style: bold;
+}
+
+.stat-value--gold {
+    color: rgb(255, 215, 80);
+}
+
+.stat-value--cyan {
+    color: rgb(80, 220, 255);
+}
+
+/* ===========================================
+   Stars
+   =========================================== */
+
+.stars-container {
+    flex-direction: row;
+}
+
+.star {
+    font-size: 32px;
+    margin-right: 4px;
+}
+
+.star--filled {
+    color: rgb(255, 200, 50);
+}
+
+.star--empty {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* ===========================================
+   Buttons
+   =========================================== */
+
+.button {
+    color: rgb(255, 255, 255);
+    border-radius: 10px;
+    border-width: 0;
+    transition-duration: 0.12s;
+    -unity-font-style: bold;
+    scale: 1;
+}
+
+.button:hover {
+    scale: 1.05;
+}
+
+.button:active {
+    scale: 0.95;
+}
+
+.button--back {
+    width: 140px;
+    height: 52px;
+    font-size: 22px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.button--back:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.button--start {
+    height: 64px;
+    font-size: 28px;
+    letter-spacing: 6px;
+    background-color: rgb(60, 140, 255);
+    border-width: 2px;
+    border-color: rgb(100, 180, 255);
+}
+
+.button--start:hover {
+    background-color: rgb(80, 160, 255);
+    scale: 1.08;
+}
+
+/* ===========================================
+   Overlay & Dialog
+   =========================================== */
+
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+}
+
+.overlay--hidden {
+    display: none;
+}
+
+.dialog {
+    width: 480px;
+    background-color: rgba(20, 20, 35, 0.98);
+    border-radius: 20px;
+    padding: 36px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dialog__title {
+    font-size: 32px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin-bottom: 28px;
+    letter-spacing: 3px;
+}
+
+.dialog__info {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.85);
+    -unity-text-align: middle-center;
+    margin-bottom: 32px;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 18px;
+    border-radius: 12px;
+}
+
+.dialog__buttons {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.button--dialog {
+    width: 180px;
+    height: 56px;
+    font-size: 20px;
+    margin: 0 12px;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.button--dialog:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+    scale: 1.06;
+}
+
+.button--dialog-primary {
+    background-color: rgb(60, 140, 255);
+    border-color: rgb(100, 180, 255);
+}
+
+.button--dialog-primary:hover {
+    background-color: rgb(80, 160, 255);
+    scale: 1.06;
+}

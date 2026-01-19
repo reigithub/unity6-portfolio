@@ -8,7 +8,6 @@ using Game.Library.Shared.Enums;
 using Game.Library.Shared.MasterData;
 using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVC.Core.Scenes;
-using Game.MVC.ScoreTimeAttack.Scenes;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -86,10 +85,10 @@ namespace Game.ScoreTimeAttack.Scenes
             _returnButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractiveAllButton(false);
-                    AudioService.StopBgmAsync();
+                    SetInteractables(false);
+                    AudioService.StopBgmAsync().Forget();
                     await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
-                    await SceneService.TransitionAsync<GameTitleScene>();
+                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
                 })
                 .AddTo(this);
         }

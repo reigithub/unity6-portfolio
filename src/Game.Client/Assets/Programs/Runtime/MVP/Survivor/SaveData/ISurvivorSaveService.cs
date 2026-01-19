@@ -44,14 +44,14 @@ namespace Game.MVP.Survivor.SaveData
         bool IsStageUnlocked(int stageId);
 
         /// <summary>ステージのクリア記録を取得</summary>
-        StageClearRecord GetStageRecord(int stageId);
+        SurvivorStageClearRecord GetStageRecord(int stageId);
 
         #endregion
 
         #region セッション管理
 
         /// <summary>現在のステージセッション</summary>
-        StageSession CurrentSession { get; }
+        SurvivorStageSession CurrentSession { get; }
 
         /// <summary>アクティブなセッションが存在するか</summary>
         bool HasActiveSession { get; }

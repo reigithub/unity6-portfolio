@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorCountdownDialog.uss" />
+
+    <!-- Fullscreen Overlay -->
+    <ui:VisualElement name="overlay" class="countdown-overlay">
+        <!-- Countdown Display -->
+        <ui:VisualElement name="countdown-container" class="countdown-container">
+            <ui:Label text="3" name="count-label" class="countdown-label countdown-number" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -6,36 +6,22 @@ using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
+using Game.MVP.Survivor.Weapon;
 using R3;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// Survivorステージシーンのルートコンポーネント
+    /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
     /// HUD表示とゲームプレイUIを管理
     /// </summary>
     public class SurvivorStageSceneComponent : GameSceneComponent
     {
-        [Header("HUD Elements")]
-        [SerializeField] private Slider _hpSlider;
-
-        [SerializeField] private TextMeshProUGUI _hpText;
-        [SerializeField] private Slider _expSlider;
-        [SerializeField] private TextMeshProUGUI _levelText;
-        [SerializeField] private TextMeshProUGUI _timeText;
-        [SerializeField] private TextMeshProUGUI _killsText;
-        [SerializeField] private TextMeshProUGUI _waveText;
-
-        [Header("Buttons")]
-        [SerializeField] private Button _pauseButton;
-
-        [Header("Game Over / Victory")]
-        [SerializeField] private GameObject _gameOverPanel;
-
-        [SerializeField] private GameObject _victoryPanel;
+        [Header("UI Document")]
+        [SerializeField] private UIDocument _uiDocument;
 
         [Header("Player")]
         [SerializeField] private SurvivorPlayerController _playerController;
@@ -44,46 +30,41 @@ namespace Game.MVP.Survivor.Scenes
         [SerializeField] private SurvivorEnemySpawner _enemySpawner;
 
         [Header("Weapon")]
-        [SerializeField] private Weapon.WeaponManager _weaponManager;
+        [SerializeField] private SurvivorWeaponManager _weaponManager;
 
         [Header("Items")]
-        [SerializeField] private ExperienceOrbSpawner _experienceOrbSpawner;
+        [SerializeField] private SurvivorItemSpawner _itemSpawner;
 
         private readonly Subject<Unit> _onPauseClicked = new();
         private readonly Subject<bool> _onApplicationPause = new();
         private readonly Subject<Unit> _onApplicationQuit = new();
 
         public Observable<Unit> OnPauseClicked => _onPauseClicked;
-
-        /// <summary>
-        /// アプリケーション中断時（バックグラウンド移行時）
-        /// </summary>
         public Observable<bool> OnApplicationPauseObservable => _onApplicationPause;
-
-        /// <summary>
-        /// アプリケーション終了時
-        /// </summary>
         public Observable<Unit> OnApplicationQuitObservable => _onApplicationQuit;
 
-        /// <summary>
-        /// プレイヤーコントローラー参照
-        /// </summary>
+        // Game Component References
         public SurvivorPlayerController PlayerController => _playerController;
-
-        /// <summary>
-        /// 敵スポーナー参照
-        /// </summary>
         public SurvivorEnemySpawner EnemySpawner => _enemySpawner;
+        public SurvivorWeaponManager WeaponManager => _weaponManager;
+        public SurvivorItemSpawner SurvivorItemSpawner => _itemSpawner;
 
-        /// <summary>
-        /// 武器マネージャー参照
-        /// </summary>
-        public Weapon.WeaponManager WeaponManager => _weaponManager;
+        // UI Element References
+        private VisualElement _root;
+        private Label _waveText;
+        private Label _timeText;
+        private Label _levelText;
+        private Label _hpText;
+        private Label _killsText;
+        private VisualElement _hpBarFill;
+        private VisualElement _expBarFill;
+        private Button _pauseButton;
+        private VisualElement _gameOverPanel;
+        private VisualElement _victoryPanel;
 
-        /// <summary>
-        /// 経験値オーブスポーナー参照
-        /// </summary>
-        public ExperienceOrbSpawner ExperienceOrbSpawner => _experienceOrbSpawner;
+        // Cached values for bar calculations
+        private int _maxHp = 100;
+        private int _maxExp = 100;
 
         protected override void OnDestroy()
         {
@@ -103,29 +84,45 @@ namespace Game.MVP.Survivor.Scenes
             _onApplicationQuit.OnNext(Unit.Default);
         }
 
-        protected void Awake()
+        private void Awake()
         {
-            SetupButtons();
+            QueryUIElements();
+            SetupEventHandlers();
         }
 
-        private void SetupButtons()
+        private void QueryUIElements()
         {
-            if (_pauseButton != null)
-            {
-                _pauseButton.OnClickAsObservable()
-                    .Subscribe(_ => _onPauseClicked.OnNext(Unit.Default))
-                    .AddTo(Disposables);
-            }
+            _root = _uiDocument.rootVisualElement;
+
+            _waveText = _root.Q<Label>("wave-text");
+            _timeText = _root.Q<Label>("time-text");
+            _levelText = _root.Q<Label>("level-text");
+            _hpText = _root.Q<Label>("hp-text");
+            _killsText = _root.Q<Label>("kills-text");
+            _hpBarFill = _root.Q<VisualElement>("hp-bar-fill");
+            _expBarFill = _root.Q<VisualElement>("exp-bar-fill");
+            _pauseButton = _root.Q<Button>("pause-button");
+            _gameOverPanel = _root.Q<VisualElement>("game-over-panel");
+            _victoryPanel = _root.Q<VisualElement>("victory-panel");
+        }
+
+        private void SetupEventHandlers()
+        {
+            _pauseButton?.RegisterCallback<ClickEvent>(_ =>
+                _onPauseClicked.OnNext(Unit.Default));
         }
 
         public void Initialize(SurvivorStageModel model)
         {
-            // 初期表示
-            if (_gameOverPanel != null) _gameOverPanel.SetActive(false);
-            if (_victoryPanel != null) _victoryPanel.SetActive(false);
+            // Hide result panels
+            _gameOverPanel?.AddToClassList("result-overlay--hidden");
+            _victoryPanel?.AddToClassList("result-overlay--hidden");
 
-            // 初期値設定
-            UpdateHP(model.CurrentHp.Value, model.MaxHp.Value);
+            // Initial values
+            _maxHp = model.MaxHp.Value;
+            _maxExp = model.ExperienceToNextLevel.Value;
+
+            UpdateHp(model.CurrentHp.Value, model.MaxHp.Value);
             UpdateExperience(model.Experience.Value, model.ExperienceToNextLevel.Value);
             UpdateLevel(model.Level.Value);
             UpdateKills(model.TotalKills.Value);
@@ -133,20 +130,23 @@ namespace Game.MVP.Survivor.Scenes
             UpdateTime(0f);
         }
 
-        /// <summary>
-        /// プレイヤーをマスターデータで初期化
-        /// </summary>
-        public void InitializePlayer(SurvivorPlayerMaster playerMaster)
+        public void InitializePlayer(SurvivorPlayerMaster playerMaster, Camera mainCamera)
         {
             if (_playerController != null && playerMaster != null)
             {
                 _playerController.Initialize(playerMaster);
+                _playerController.SetMainCamera(mainCamera.transform);
             }
         }
 
         /// <summary>
-        /// 敵スポーナーを初期化
+        /// 動的生成されたプレイヤーコントローラーを設定する
         /// </summary>
+        public void SetPlayerController(SurvivorPlayerController playerController)
+        {
+            _playerController = playerController;
+        }
+
         public async UniTask InitializeEnemySpawnerAsync(SurvivorStageWaveManager waveManager)
         {
             if (_enemySpawner != null && _playerController != null)
@@ -156,9 +156,6 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        /// <summary>
-        /// 武器マネージャーを初期化
-        /// </summary>
         public async UniTask InitializeWeaponManagerAsync(int startingWeaponId, float damageMultiplier = 1f)
         {
             if (_weaponManager != null && _playerController != null)
@@ -167,43 +164,45 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        /// <summary>
-        /// 経験値オーブスポーナーを初期化
-        /// </summary>
         public async UniTask InitializeExperienceOrbSpawnerAsync()
         {
-            if (_experienceOrbSpawner != null)
+            if (_itemSpawner != null)
             {
-                await _experienceOrbSpawner.InitializeAsync();
+                await _itemSpawner.InitializeAsync();
 
-                // 敵スポーナーに接続
                 if (_enemySpawner != null)
                 {
-                    _experienceOrbSpawner.ConnectToEnemySpawner(_enemySpawner);
+                    _itemSpawner.ConnectToEnemySpawner(_enemySpawner);
                 }
             }
         }
 
-        public void UpdateHP(int current, int max)
+        #region HUD Updates
+
+        public void UpdateHp(int current, int max)
         {
-            if (_hpSlider != null)
-            {
-                _hpSlider.maxValue = max;
-                _hpSlider.value = current;
-            }
+            _maxHp = max;
 
             if (_hpText != null)
             {
                 _hpText.text = $"{current}/{max}";
             }
+
+            if (_hpBarFill != null)
+            {
+                var percent = max > 0 ? (float)current / max * 100f : 0f;
+                _hpBarFill.style.width = Length.Percent(percent);
+            }
         }
 
         public void UpdateExperience(int current, int max)
         {
-            if (_expSlider != null)
+            _maxExp = max;
+
+            if (_expBarFill != null)
             {
-                _expSlider.maxValue = max;
-                _expSlider.value = current;
+                var percent = max > 0 ? (float)current / max * 100f : 0f;
+                _expBarFill.style.width = Length.Percent(percent);
             }
         }
 
@@ -229,7 +228,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (_killsText != null)
             {
-                _killsText.text = $"Kills: {kills}";
+                _killsText.text = $"KILLS: {kills}";
             }
         }
 
@@ -237,24 +236,30 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (_waveText != null)
             {
-                _waveText.text = $"Wave {wave}";
+                _waveText.text = $"WAVE {wave}";
             }
         }
 
+        #endregion
+
+        #region Result Panels
+
         public void ShowGameOver()
         {
-            if (_gameOverPanel != null)
-            {
-                _gameOverPanel.SetActive(true);
-            }
+            _gameOverPanel?.RemoveFromClassList("result-overlay--hidden");
         }
 
         public void ShowVictory()
         {
-            if (_victoryPanel != null)
-            {
-                _victoryPanel.SetActive(true);
-            }
+            _victoryPanel?.RemoveFromClassList("result-overlay--hidden");
+        }
+
+        #endregion
+
+        public override void SetInteractables(bool interactable)
+        {
+            _root?.SetEnabled(interactable);
+            base.SetInteractables(interactable);
         }
     }
 }

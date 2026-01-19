@@ -1,19 +1,15 @@
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
-using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Bootstrap;
 using TMPro;
 using UnityEngine;
 
-namespace Game.Contents.UI
+namespace Game.ScoreTimeAttack.UI
 {
     public class GameCountdownUIDialog : GameDialogScene<GameCountdownUIDialog, GameCountdownUI, bool>
     {
         protected override string AssetPathOrAddress => "GameCountdownUI";
-
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
         public static UniTask<bool> RunAsync(float countdown = 3f)
         {
@@ -29,7 +25,8 @@ namespace Game.Contents.UI
 
         public override UniTask Startup()
         {
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, false);
+            ApplicationEvents.PauseTime();
+
             return base.Startup();
         }
 
@@ -41,7 +38,7 @@ namespace Game.Contents.UI
 
         public override UniTask Terminate()
         {
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, true);
+            ApplicationEvents.ResumeTime();
             return base.Terminate();
         }
     }

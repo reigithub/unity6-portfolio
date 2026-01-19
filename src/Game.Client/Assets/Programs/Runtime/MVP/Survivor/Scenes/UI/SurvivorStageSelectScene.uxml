@@ -1,0 +1,53 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Programs/Runtime/MVP/Survivor/Scenes/UI/SurvivorStageSelectScene.uss?fileID=7433441132597879392&amp;guid=e620f9f2566d5ab45888a1060eb44b11&amp;type=3#SurvivorStageSelectScene"/>
+    <ui:VisualElement name="root" class="root">
+        <ui:VisualElement name="header" class="header">
+            <ui:Button text="&lt; BACK" name="back-button" class="button button--back"/>
+            <ui:Label text="STAGE SELECT" name="title" class="header__title"/>
+            <ui:VisualElement class="header__spacer"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="content" class="content">
+            <ui:VisualElement name="stage-list-panel" class="stage-list-panel">
+                <ui:Label text="STAGES" class="panel-label" style="background-color: rgba(0, 0, 0, 0.5); -unity-font-style: bold; -unity-text-align: upper-center;"/>
+                <ui:ScrollView name="stage-scroll-view" class="stage-scroll-view">
+                    <ui:VisualElement name="stage-list-container" class="stage-list-container"/>
+                </ui:ScrollView>
+            </ui:VisualElement>
+            <ui:VisualElement name="character-space" class="character-space"/>
+            <ui:VisualElement name="detail-panel" class="detail-panel detail-panel--hidden">
+                <ui:Label text="Stage Name" name="detail-title" class="detail-panel__title"/>
+                <ui:Label text="Description text goes here..." name="detail-description" class="detail-panel__description"/>
+                <ui:VisualElement class="detail-panel__stats">
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="RATING" class="stat-label"/>
+                        <ui:VisualElement name="stars-container" class="stars-container">
+                            <ui:Label text="☆" class="star star--empty"/>
+                            <ui:Label text="☆" class="star star--empty"/>
+                            <ui:Label text="☆" class="star star--empty"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="HIGH SCORE" class="stat-label"/>
+                        <ui:Label text="---" name="detail-high-score" class="stat-value stat-value--gold"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stat-row">
+                        <ui:Label text="BEST TIME" class="stat-label"/>
+                        <ui:Label text="--:--" name="detail-best-time" class="stat-value stat-value--cyan"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="spacer"/>
+                <ui:Button text="START" name="play-button" class="button button--start"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="resume-panel" class="overlay overlay--hidden">
+        <ui:VisualElement class="dialog">
+            <ui:Label text="SAVE DATA FOUND" class="dialog__title"/>
+            <ui:Label text="Wave: 1&#10;Time: 00:00&#10;Score: 0" name="resume-info" class="dialog__info"/>
+            <ui:VisualElement class="dialog__buttons">
+                <ui:Button text="NEW GAME" name="new-game-button" class="button button--dialog"/>
+                <ui:Button text="CONTINUE" name="resume-button" class="button button--dialog button--dialog-primary"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

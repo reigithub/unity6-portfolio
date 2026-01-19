@@ -1,0 +1,290 @@
+/* ===========================================
+   Survivor Total Result Scene Styles
+   Layout: Left Stats - Center Character - Right Stage Results
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: transparent;
+    padding: 24px 36px;
+    justify-content: space-between;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+.header__title {
+    font-size: 64px;
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+}
+
+.header__title--victory {
+    color: rgb(100, 220, 255);
+}
+
+.header__title--gameover {
+    color: rgb(255, 100, 100);
+}
+
+.result-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 24px;
+}
+
+.result-icon--victory {
+    background-color: rgb(100, 220, 255);
+    border-radius: 40px;
+}
+
+.result-icon--gameover {
+    background-color: rgb(255, 100, 100);
+    border-radius: 8px;
+}
+
+.result-icon--hidden {
+    display: none;
+}
+
+/* ===========================================
+   Content Area
+   =========================================== */
+
+.content {
+    flex-grow: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Character Space (12.5% center) */
+.character-space {
+    width: 12.5%;
+    min-width: 120px;
+}
+
+/* ===========================================
+   Stats Panel (Left)
+   =========================================== */
+
+.stats-panel {
+    width: 35%;
+    height: 640px;
+    background-color: rgba(0, 0, 0, 0.75);
+    border-radius: 16px;
+    padding: 28px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    justify-content: center;
+}
+
+.panel__title {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.9);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    margin-bottom: 28px;
+    -unity-text-align: middle-center;
+    padding-bottom: 16px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 8px 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: visible;
+}
+
+.stat-item__label {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 3px;
+    white-space: nowrap;
+    min-height: 32px;
+    padding: 8px 0;
+    -unity-text-align: middle-left;
+    flex-shrink: 0;
+}
+
+.stat-item__value {
+    font-size: 48px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    min-height: 64px;
+    padding: 8px 0;
+    -unity-text-align: middle-right;
+    flex-shrink: 1;
+    overflow: visible;
+}
+
+.stat-item__value--score {
+    color: rgb(255, 200, 80);
+}
+
+.stat-item__value--kills {
+    color: rgb(255, 100, 100);
+}
+
+.stat-item__value--time {
+    color: rgb(100, 200, 255);
+}
+
+/* ===========================================
+   Stages Panel (Right)
+   =========================================== */
+
+.stages-panel {
+    width: 35%;
+    height: 640px;
+    background-color: rgba(0, 0, 0, 0.75);
+    border-radius: 16px;
+    padding: 28px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.stage-results-scroll {
+    flex-grow: 1;
+}
+
+.stage-results-container {
+    flex-grow: 1;
+}
+
+/* Stage Result Item */
+.stage-result-item {
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: transparent;
+    transition-duration: 0.15s;
+    scale: 1;
+}
+
+.stage-result-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    scale: 1.02;
+}
+
+.stage-result-item--clear {
+    border-color: rgba(80, 200, 120, 0.4);
+}
+
+.stage-result-item--failed {
+    border-color: rgba(200, 80, 80, 0.4);
+}
+
+.stage-result-item__header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stage-result-item__name {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.stage-result-item__status {
+    font-size: 36px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.stage-result-item__status--clear {
+    color: rgb(80, 200, 120);
+}
+
+.stage-result-item__status--failed {
+    color: rgb(200, 80, 80);
+}
+
+.stage-result-item__stats {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 40px;
+    margin-top: 8px;
+}
+
+.stage-result-item__stat {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-right: 24px;
+}
+
+/* ===========================================
+   Footer (Buttons)
+   =========================================== */
+
+.footer {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.action-button {
+    height: 72px;
+    min-width: 240px;
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    border-radius: 14px;
+    border-width: 3px;
+    margin: 0 16px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    transition-duration: 0.15s;
+    scale: 1;
+}
+
+.action-button:hover {
+    scale: 1.05;
+}
+
+.action-button:active {
+    scale: 0.95;
+}
+
+.action-button--primary {
+    background-color: rgba(60, 180, 100, 0.8);
+    border-color: rgb(80, 220, 120);
+}
+
+.action-button--primary:hover {
+    background-color: rgba(80, 200, 120, 0.9);
+}
+
+.action-button--secondary {
+    background-color: rgba(80, 120, 180, 0.6);
+    border-color: rgba(100, 150, 220, 0.7);
+}
+
+.action-button--secondary:hover {
+    background-color: rgba(100, 140, 200, 0.8);
+}

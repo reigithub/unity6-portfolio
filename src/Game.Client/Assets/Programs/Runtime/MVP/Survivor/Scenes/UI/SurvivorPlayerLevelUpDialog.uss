@@ -1,0 +1,133 @@
+/* ===========================================
+   Survivor Level Up Dialog Styles
+   Weapon selection on level up
+   =========================================== */
+
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog {
+    width: 500px;
+    max-width: 90%;
+    background-color: rgba(20, 30, 50, 0.98);
+    border-radius: 24px;
+    padding: 40px;
+    border-width: 3px;
+    border-color: rgba(100, 200, 255, 0.5);
+    align-items: center;
+}
+
+.dialog__title {
+    font-size: 42px;
+    color: rgb(255, 220, 80);
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    text-shadow: 2px 2px 8px rgba(255, 200, 0, 0.5);
+}
+
+.dialog__level {
+    font-size: 32px;
+    color: rgb(100, 220, 255);
+    -unity-font-style: bold;
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+
+.dialog__instruction {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 24px;
+    letter-spacing: 2px;
+}
+
+/* ===========================================
+   Options Container
+   =========================================== */
+
+.options-container {
+    width: 100%;
+    align-items: stretch;
+}
+
+/* ===========================================
+   Option Button (dynamically created)
+   =========================================== */
+
+.option-button {
+    min-height: 80px;
+    padding: 16px 24px;
+    margin-bottom: 12px;
+    background-color: rgba(60, 80, 120, 0.8);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(100, 180, 255, 0.3);
+    transition-duration: 0.15s;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.option-button:hover {
+    background-color: rgba(80, 120, 180, 0.9);
+    border-color: rgba(100, 200, 255, 0.6);
+    scale: 1.02;
+}
+
+.option-button:active {
+    scale: 0.98;
+    background-color: rgba(100, 150, 220, 0.9);
+}
+
+.option-button--new {
+    border-color: rgba(255, 200, 80, 0.6);
+    background-color: rgba(80, 70, 40, 0.8);
+}
+
+.option-button--new:hover {
+    border-color: rgba(255, 220, 100, 0.8);
+    background-color: rgba(100, 90, 50, 0.9);
+}
+
+/* ===========================================
+   Option Content
+   =========================================== */
+
+.option__header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.option__name {
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+.option__level-badge {
+    font-size: 14px;
+    color: rgb(100, 200, 255);
+    background-color: rgba(0, 100, 180, 0.5);
+    border-radius: 8px;
+    padding: 4px 10px;
+    margin-left: 12px;
+}
+
+.option__level-badge--new {
+    color: rgb(255, 220, 80);
+    background-color: rgba(180, 140, 0, 0.5);
+}
+
+.option__description {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: normal;
+}

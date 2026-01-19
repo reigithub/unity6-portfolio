@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using Game.MVP.Core.DI;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Signals;
 using Unity.Cinemachine;
 
@@ -133,21 +134,21 @@ namespace Game.MVP.Survivor.Root
         }
 
         /// <summary>
-        /// フェードイン
+        /// フェードイン（Time.timeScale=0でも動作）
         /// </summary>
         public Tweener FadeIn(float duration = 0.5f)
         {
             if (_fadeImage == null) return null;
-            return _fadeImage.DOFade(0f, duration);
+            return _fadeImage.DOFade(0f, duration).SetUpdate(true);
         }
 
         /// <summary>
-        /// フェードアウト
+        /// フェードアウト（Time.timeScale=0でも動作）
         /// </summary>
         public Tweener FadeOut(float duration = 0.5f)
         {
             if (_fadeImage == null) return null;
-            return _fadeImage.DOFade(1f, duration);
+            return _fadeImage.DOFade(1f, duration).SetUpdate(true);
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace Benjathemaker
 
         public bool isFloating = false;
         public bool useEasingForFloating = false; // Separate toggle for floating ease
-        public float floatHeight = 1f; // Max height displacement
+        public float floatHeight = 1f;            // Max height displacement
         public float floatSpeed = 1f;
         private Vector3 initialPosition;
         private float floatTimer;
@@ -24,21 +24,27 @@ namespace Benjathemaker
 
         public bool isScaling = false;
         public bool useEasingForScaling = false; // Separate toggle for scaling ease
-        public float scaleLerpSpeed = 1f; // Speed of scaling transition
+        public float scaleLerpSpeed = 1f;        // Speed of scaling transition
         private float scaleTimer;
 
-        void Start()
+        private bool _initialized;
+
+        private void Initialize()
         {
             initialScale = transform.localScale;
             initialPosition = transform.position;
 
             // Adjust start and end scale based on initial scale
             startScale = initialScale;
-            endScale = initialScale * (endScale.magnitude / startScale.magnitude);
+            endScale = initialScale * 1.2f;
+
+            _initialized = true;
         }
 
         void Update()
         {
+            if (!_initialized) Initialize();
+
             if (isRotating)
             {
                 Vector3 rotationVector = new Vector3(
@@ -52,7 +58,7 @@ namespace Benjathemaker
             if (isFloating)
             {
                 floatTimer += Time.deltaTime * floatSpeed;
-                float t = Mathf.PingPong(floatTimer, 1f);
+                float t = Mathf.PingPong(floatTimer, floatHeight);
                 if (useEasingForFloating) t = EaseInOutQuad(t);
 
                 transform.position = initialPosition + new Vector3(0, t * floatHeight, 0);
@@ -78,4 +84,3 @@ namespace Benjathemaker
         }
     }
 }
-

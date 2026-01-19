@@ -9,6 +9,7 @@
         "R3.Unity",
         "MessagePipe",
         "Unity.Addressables",
+        "Unity.InputSystem",
         "Unity.ResourceManager",
         "DOTween.Modules"
     ],

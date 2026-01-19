@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 8e9164e00a4d5db48a745b14934ecaa9
+timeCreated: 1540304538
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 131677
+  packageName: Low Poly Mini Village Free
+  packageVersion: 1.0
+  assetPath: Assets/Low_Poly_Mini_Village/Prefabs/Caravan_1.prefab
+  uploadId: 275189

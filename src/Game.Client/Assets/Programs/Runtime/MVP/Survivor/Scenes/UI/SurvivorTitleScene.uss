@@ -1,0 +1,150 @@
+/* ===========================================
+   Survivor Title Scene Styles
+   Layout: Center Character with Right-side Menu
+   =========================================== */
+
+/* ===========================================
+   Root & Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: transparent;
+    padding: 40px;
+    justify-content: space-between;
+}
+
+/* ===========================================
+   Title Area
+   =========================================== */
+
+.title-area {
+    align-items: center;
+    padding: 24px 40px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    align-self: center;
+}
+
+.title {
+    font-size: 72px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 16px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    font-size: 24px;
+    color: rgba(255, 200, 100, 0.9);
+    letter-spacing: 6px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* ===========================================
+   Content Layout
+   =========================================== */
+
+.content {
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 80px;
+}
+
+/* Side space - hidden for right-aligned layout */
+.side-space {
+    display: none;
+}
+
+/* Character space - hidden (character is in 3D scene) */
+.character-space {
+    display: none;
+}
+
+/* ===========================================
+   Menu Panel
+   =========================================== */
+
+.menu-panel {
+    width: 35%;
+    min-width: 400px;
+    max-width: 520px;
+    padding: 40px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    align-items: stretch;
+}
+
+/* ===========================================
+   Menu Buttons
+   =========================================== */
+
+.menu-button {
+    height: 80px;
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 20px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    transition-duration: 0.12s;
+    scale: 1;
+}
+
+.menu-button:last-child {
+    margin-bottom: 0;
+}
+
+.menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.03;
+}
+
+.menu-button:active {
+    scale: 0.97;
+}
+
+.menu-button--primary {
+    background-color: rgba(60, 140, 255, 0.8);
+    border-color: rgb(100, 180, 255);
+}
+
+.menu-button--primary:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+    scale: 1.05;
+}
+
+.menu-button--danger {
+    background-color: rgba(180, 60, 60, 0.6);
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.menu-button--danger:hover {
+    background-color: rgba(200, 70, 70, 0.8);
+    border-color: rgba(240, 100, 100, 0.8);
+}
+
+/* ===========================================
+   Footer
+   =========================================== */
+
+.footer {
+    align-items: center;
+    padding: 12px;
+}
+
+.footer__copyright {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}

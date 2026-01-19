@@ -17,7 +17,10 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         public string AssetName { get; set; }
 
-        /// <summary>アイテムタイプ（1:経験値, 2:回復, 3:磁石, 4:爆弾, 5:宝箱）</summary>
+        /// <summary>
+        /// アイテムタイプ
+        /// 1:経験値, 2:回復, 3:磁石, 4:爆弾, 5:通貨, 6:スピード, 7:時間, 8:シールド, 9:バッテリー, 10:鍵, 11:特殊
+        /// </summary>
         [SecondaryKey(0), NonUnique]
         public int ItemType { get; set; }
 
@@ -32,5 +35,8 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         /// <summary>レアリティ（1:コモン, 2:レア, 3:エピック）</summary>
         public int Rarity { get; set; }
+
+        /// <summary>スポーン時のスケール（1.0 = 等倍）</summary>
+        public float Scale { get; set; }
     }
 }

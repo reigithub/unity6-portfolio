@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.App.Launcher;
 using Game.App.Services;
 using Game.App.Title;
-using Game.MVC.ScoreTimeAttack;
+using Game.ScoreTimeAttack;
 using Game.MVP.Core.DI;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;

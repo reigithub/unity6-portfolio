@@ -78,9 +78,9 @@ namespace Game.MVP.Survivor.Enemy
                 }
             }
 
-            // ウェーブ変更を購読
+            // ウェーブ変更を購読（初期値0は無視）
             _waveManager.CurrentWave
-                .Skip(1) // 初期値をスキップ
+                .Where(wave => wave > 0)
                 .Subscribe(_ => OnWaveChanged())
                 .AddTo(this);
 
@@ -119,8 +119,20 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
-            if (!_isSpawning || _playerTransform == null || _enemySpawnList == null || _enemySpawnList.Count == 0)
+            if (!_isSpawning)
+            {
                 return;
+            }
+            if (_playerTransform == null)
+            {
+                Debug.LogWarning("[SurvivorEnemySpawner] Update: _playerTransform is null");
+                return;
+            }
+            if (_enemySpawnList == null || _enemySpawnList.Count == 0)
+            {
+                Debug.LogWarning($"[SurvivorEnemySpawner] Update: _enemySpawnList is null or empty. List={_enemySpawnList}, Count={_enemySpawnList?.Count ?? 0}");
+                return;
+            }
 
             _spawnTimer -= Time.deltaTime;
 
@@ -153,7 +165,11 @@ namespace Game.MVP.Survivor.Enemy
                 enemy = CreateEnemy(spawnInfo.EnemyId);
             }
 
-            if (enemy == null) return;
+            if (enemy == null)
+            {
+                Debug.LogError($"[SurvivorEnemySpawner] Failed to get/create enemy {spawnInfo.EnemyId}");
+                return;
+            }
 
             // スポーン位置計算
             float minDist = spawnInfo.MinSpawnDistance > 0 ? spawnInfo.MinSpawnDistance : 10f;
@@ -162,6 +178,7 @@ namespace Game.MVP.Survivor.Enemy
 
             enemy.transform.position = spawnPosition;
             enemy.gameObject.SetActive(true);
+            Debug.Log($"[SurvivorEnemySpawner] Spawned enemy {enemyMaster.Name} at {spawnPosition}, Active={enemy.gameObject.activeSelf}");
 
             // マスターデータから初期化
             enemy.Initialize(

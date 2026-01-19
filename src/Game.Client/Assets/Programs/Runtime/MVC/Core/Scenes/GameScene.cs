@@ -118,9 +118,15 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneResult<TResult> : IGameSceneResult
     {
+        public TResult Result { get; set; }
+
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
-        public bool TrySetResult(TResult result) => ResultTcs?.TrySetResult(result) ?? false;
+        public bool TrySetResult(TResult result)
+        {
+            Result = result;
+            return ResultTcs?.TrySetResult(result) ?? false;
+        }
 
         public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
 
@@ -301,6 +307,7 @@ namespace Game.MVC.Core.Scenes
 
         public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
 
+        public TResult Result { get; set; }
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
         private GameObject _asset;
@@ -361,6 +368,7 @@ namespace Game.MVC.Core.Scenes
         /// </summary>
         public bool TrySetResult(TResult result)
         {
+            Result = result;
             return ResultTcs?.TrySetResult(result) ?? false;
         }
 

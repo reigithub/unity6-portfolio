@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: SurvivorEnemy
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: SurvivorEnemy
+  m_GUID: 4d4702349eb96614791dee45e45161af
+  m_SerializeEntries:
+  - m_GUID: 023eca9c59e851d4ab3d41bbf7d2a02c
+    m_Address: MushroomAngryPA
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 045a243503419734a847408c2518410b
+    m_Address: Swarm09PA
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 23cabb1210f856444a249308e296eeeb
+    m_Address: DragonTerrorBringerPurple
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55d28f1cc2e594c49b9271328c09f8be
+    m_Address: DragonSoulEaterGrey
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5b87e2485822fd843a69985011b85339
+    m_Address: CactusPA
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5e578eb0c3fe744499c7b6ae25ed8d23
+    m_Address: DragonNightmareDarkBlue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 637fcd7e6d2c641458d6ac2c6aeb45dd
+    m_Address: TurtleShellPolyart
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d6ef90c46fb48447bbba9e1699bb006
+    m_Address: PartyMonster_C01
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 919f763b3717e9444b7ef7d3613ce7ff
+    m_Address: SlimePolyart
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aa6775e5cf4778b4f89cecf8ce3abea7
+    m_Address: PartyMonster_C02
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bfd7d2a3594efa84d9d0b5d6f8b33018
+    m_Address: PartyMonster_P02
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c1424bfa5ebd0b14eb0e8325c7a2b6b0
+    m_Address: ChestMonsterPolyart
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c2df6de78f751f3479c8660f6f823a12
+    m_Address: DragonUsurperRed
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4691244680fc2943a8ae699510a7bb8
+    m_Address: MushroomSmilePA
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d9f63841d005eec4c87eac7c8d0902a3
+    m_Address: PartyMonster_P01
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: deed5b892ddccf148843a2d7552cc13a
+    m_Address: Swarm08PA
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f53b39d4950a5cc4bb311322087ce93d
+    m_Address: BeholderPolyart
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 6cf82d75fa008904da154cd6c0cec129, type: 2}
+    - {fileID: 11400000, guid: 3ffca7117bd04a34aa41c8c9e5094956, type: 2}

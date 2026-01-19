@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: SurvivorWeapon
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: SurvivorWeapon
+  m_GUID: 35f7405cae18c3546ac9292914d58cac
+  m_SerializeEntries:
+  - m_GUID: 08fd1b80cc24cc8439f45fda3c558255
+    m_Address: Magic fire 0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 25093a0593dc83043a7bc17ebba0e95d
+    m_Address: Magic fire 1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3d35e81bdc5955041be098ef22e82a3b
+    m_Address: Magic fire pro green
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 529eb4216865eba419c1a4a68d0b0388
+    m_Address: Magic fire 2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52d340ed9c2714c4f8aabf1f82df1b58
+    m_Address: Magic fire pro yellow
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 78e8b38d431ddef4fa2994a3f2d6e2ff
+    m_Address: Magic fire 3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c590b17884b119046bc6412066500b7d
+    m_Address: Magic fire pro blue
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e55149ba6f4d00741984987e258c3378
+    m_Address: Magic fire pro orange
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eca000ab44c908d4dab395f654753038
+    m_Address: Magic fire pro red
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 763d279089e011d428a6d58c6be5207e, type: 2}
+    - {fileID: 11400000, guid: a36eddcb8cc80054ab1eea85024c8869, type: 2}

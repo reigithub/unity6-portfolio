@@ -1,0 +1,32 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorTitleScene.uss" />
+
+    <ui:VisualElement name="root" class="root">
+        <!-- Title Area (Top) -->
+        <ui:VisualElement name="title-area" class="title-area">
+            <ui:Label text="SURVIVOR" name="title" class="title" />
+            <ui:Label text="- UNITY CHAN EDITION -" name="subtitle" class="subtitle" />
+        </ui:VisualElement>
+
+        <!-- Content Area -->
+        <ui:VisualElement name="content" class="content">
+            <!-- Left Space -->
+            <ui:VisualElement class="side-space" />
+
+            <!-- Center: Character Space (12.5%) -->
+            <ui:VisualElement name="character-space" class="character-space" />
+
+            <!-- Right: Menu Panel -->
+            <ui:VisualElement name="menu-panel" class="menu-panel">
+                <ui:Button text="START GAME" name="start-button" class="menu-button menu-button--primary" />
+                <ui:Button text="RETURN TO TITLE" name="return-button" class="menu-button" />
+                <ui:Button text="QUIT" name="quit-button" class="menu-button menu-button--danger" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Footer -->
+        <ui:VisualElement name="footer" class="footer">
+            <ui:Label text="© Unity Technologies Japan / UCL" class="footer__copyright" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

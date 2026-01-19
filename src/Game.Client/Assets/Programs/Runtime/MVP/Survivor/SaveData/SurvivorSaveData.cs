@@ -23,12 +23,12 @@ namespace Game.MVP.Survivor.SaveData
         public int SelectedPlayerId { get; set; } = 1;
 
         /// <summary>ステージクリア記録（StageId → Record）</summary>
-        public Dictionary<int, StageClearRecord> StageRecords { get; set; } = new();
+        public Dictionary<int, SurvivorStageClearRecord> StageRecords { get; set; } = new();
 
         /// <summary>アンロック済みステージID</summary>
         public HashSet<int> UnlockedStageIds { get; set; } = new() { 1 };
 
         /// <summary>現在のステージセッション（プレイ中/中断中、nullable）</summary>
-        public StageSession CurrentSession { get; set; }
+        public SurvivorStageSession CurrentSession { get; set; }
     }
 }

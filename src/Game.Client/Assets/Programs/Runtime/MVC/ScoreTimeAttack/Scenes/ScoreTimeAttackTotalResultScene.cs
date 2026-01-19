@@ -3,6 +3,7 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.MVC.Core.Scenes;
 using Game.ScoreTimeAttack.Services;
+using Game.Shared.Bootstrap;
 
 namespace Game.ScoreTimeAttack.Scenes
 {
@@ -16,7 +17,7 @@ namespace Game.ScoreTimeAttack.Scenes
         public override UniTask Startup()
         {
             MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
-            MessagePipeService.PublishForget(MessageKey.System.Cursor, true);
+            ApplicationEvents.ShowCursor();
 
             var gameStageService = GameServiceManager.Get<ScoreTimeAttackStageService>();
             var totalResult = gameStageService.CreateTotalResult();

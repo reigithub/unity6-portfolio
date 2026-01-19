@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.SaveData
         protected override string SaveKey => "survivor_save";
         protected override int CurrentVersion => DataVersion;
 
-        public StageSession CurrentSession => Data?.CurrentSession;
+        public SurvivorStageSession CurrentSession => Data?.CurrentSession;
         public bool HasActiveSession => Data?.CurrentSession != null && !Data.CurrentSession.IsCompleted;
 
         public SurvivorSaveService(ISaveDataStorage storage) : base(storage)
@@ -35,7 +35,7 @@ namespace Game.MVP.Survivor.SaveData
 
             if (!Data.StageRecords.TryGetValue(stageId, out var record))
             {
-                record = new StageClearRecord { StageId = stageId };
+                record = new SurvivorStageClearRecord { StageId = stageId };
                 Data.StageRecords[stageId] = record;
             }
 
@@ -81,7 +81,7 @@ namespace Game.MVP.Survivor.SaveData
             return Data?.UnlockedStageIds.Contains(stageId) ?? false;
         }
 
-        public StageClearRecord GetStageRecord(int stageId)
+        public SurvivorStageClearRecord GetStageRecord(int stageId)
         {
             if (Data == null) return null;
             return Data.StageRecords.GetValueOrDefault(stageId);
@@ -95,7 +95,7 @@ namespace Game.MVP.Survivor.SaveData
         {
             if (Data == null) return;
 
-            Data.CurrentSession = new StageSession
+            Data.CurrentSession = new SurvivorStageSession
             {
                 StageGroupId = stageGroupId,
                 CurrentStageIndex = 0,
@@ -109,7 +109,7 @@ namespace Game.MVP.Survivor.SaveData
                 Score = 0,
                 TotalKills = 0,
                 EquippedWeaponIds = new List<int>(),
-                StageResults = new List<StageResultData>(),
+                StageResults = new List<SurvivorStageResultData>(),
                 StartedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
                 IsCompleted = false
@@ -153,7 +153,7 @@ namespace Game.MVP.Survivor.SaveData
             var session = Data.CurrentSession;
 
             // 結果を記録
-            session.StageResults.Add(new StageResultData
+            session.StageResults.Add(new SurvivorStageResultData
             {
                 StageId = session.StageId,
                 Score = score,

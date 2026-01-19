@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: f7155cb81768ed845bbaa6821ede4fe3
+timeCreated: 1540383142
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 131677
+  packageName: Low Poly Mini Village Free
+  packageVersion: 1.0
+  assetPath: Assets/Low_Poly_Mini_Village/Prefabs/Grass_1.prefab
+  uploadId: 275189

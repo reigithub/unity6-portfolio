@@ -9,14 +9,14 @@ namespace Game.MVP.Survivor.UI
     /// <summary>
     /// レベルアップダイアログ引数
     /// </summary>
-    public record SurvivorPlayerLevelUpDialogArg(List<WeaponUpgradeOption> Options, int PlayerLevel);
+    public record SurvivorPlayerLevelUpDialogArg(List<SurvivorWeaponUpgradeOption> Options, int PlayerLevel);
 
     /// <summary>
     /// レベルアップダイアログ（Presenter）
     /// 武器の選択・アップグレードを行う
     /// </summary>
     public class SurvivorPlayerLevelUpDialog :
-        GameDialogScene<SurvivorPlayerLevelUpDialog, SurvivorPlayerLevelUpDialogComponent, WeaponUpgradeOption>,
+        GameDialogScene<SurvivorPlayerLevelUpDialog, SurvivorPlayerLevelUpDialogComponent, SurvivorWeaponUpgradeOption>,
         IGameSceneArg<SurvivorPlayerLevelUpDialogArg>
     {
         protected override string AssetPathOrAddress => "SurvivorPlayerLevelUpDialog";
@@ -42,7 +42,7 @@ namespace Game.MVP.Survivor.UI
             return base.Startup();
         }
 
-        private void OnOptionSelected(WeaponUpgradeOption option)
+        private void OnOptionSelected(SurvivorWeaponUpgradeOption option)
         {
             SceneComponent.SetInteractables(false);
             TrySetResult(option);

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: ffc545d554bc78c4f9ee506149e450b4
+timeCreated: 1540304910
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 131677
+  packageName: Low Poly Mini Village Free
+  packageVersion: 1.0
+  assetPath: Assets/Low_Poly_Mini_Village/Prefabs/Rock_3.prefab
+  uploadId: 275189

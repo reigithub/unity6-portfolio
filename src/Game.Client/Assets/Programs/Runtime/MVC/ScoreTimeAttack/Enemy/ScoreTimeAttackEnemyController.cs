@@ -1,5 +1,6 @@
 using Game.Shared;
 using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Library.Shared.MasterData.MemoryTables;
 using UnityEngine;
 using UnityEngine.AI;
@@ -25,6 +26,15 @@ namespace Game.ScoreTimeAttack.Enemy
         private readonly RaycastHit[] _raycastHits = new RaycastHit[1];
         private readonly Collider[] _overlapResults = new Collider[10];
 
+        // 目的地更新の最適化（震え防止）
+        private Vector3 _lastDestination;
+        private float _destinationUpdateTimer;
+        private const float DestinationUpdateInterval = 0.2f;  // 更新間隔（秒）
+        private const float DestinationUpdateThreshold = 0.5f; // この距離以上移動したら即更新
+
+        // 位置補間（カメラ操作時の震え防止）
+        private const float RotationSmoothSpeed = 10f; // 回転補間速度
+
         // パトロール関連
         private readonly float _rotationSpeed = 5.0f;
         private float _rotationInterval = 5.0f;
@@ -33,6 +43,9 @@ namespace Game.ScoreTimeAttack.Enemy
 
         // アニメータハッシュ
         private readonly int _animatorHashSpeed = Animator.StringToHash("Speed");
+
+        // 現在の目標速度（SetSpeedで設定される）
+        private float _currentTargetSpeed;
 
         public ScoreTimeAttackEnemyMaster EnemyMaster { get; private set; }
 
@@ -43,6 +56,14 @@ namespace Game.ScoreTimeAttack.Enemy
 
             TryGetComponent(out _navMeshAgent);
             TryGetComponent(out _animator);
+
+            // NavMeshAgentの自動位置・回転更新を無効化（震え防止）
+            // LateUpdateで手動でスムーズに同期する
+            if (_navMeshAgent)
+            {
+                _navMeshAgent.updatePosition = false;
+                _navMeshAgent.updateRotation = false;
+            }
 
             SetSpeed(enemyMaster.WalkSpeed);
 
@@ -59,14 +80,72 @@ namespace Game.ScoreTimeAttack.Enemy
             _stateMachine.Update();
         }
 
+        private void LateUpdate()
+        {
+            if (!_player) return;
+
+            _stateMachine?.LateUpdate();
+        }
+
+        #endregion
+
+        #region Position Sync (Anti-Jitter)
+
+        /// <summary>
+        /// NavMeshAgentの位置・回転をTransformにスムーズに同期
+        /// updatePosition=falseなので手動で同期する必要がある
+        /// </summary>
+        private void SyncPositionAndRotation()
+        {
+            if (!_navMeshAgent) return;
+
+            // NavMeshAgentの計算位置をTransformに反映
+            transform.position = _navMeshAgent.nextPosition;
+
+            // 回転の同期（移動方向を向く）
+            if (_navMeshAgent.velocity.sqrMagnitude > 0.01f)
+            {
+                var targetRotation = Quaternion.LookRotation(_navMeshAgent.velocity.normalized);
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    targetRotation,
+                    RotationSmoothSpeed * Time.deltaTime
+                );
+            }
+
+            // アニメーション更新
+            UpdateAnimation();
+        }
+
         #endregion
 
         #region Speed Control
 
+        /// <summary>
+        /// NavMeshAgentの移動速度とアニメーション用の目標速度を設定
+        /// </summary>
         private void SetSpeed(float speed)
         {
             if (_navMeshAgent) _navMeshAgent.speed = speed;
-            if (_animator) _animator.SetFloat(_animatorHashSpeed, speed);
+            _currentTargetSpeed = speed;
+        }
+
+        /// <summary>
+        /// アニメーションを更新
+        /// - 移動中: SetSpeedで設定した目標速度をアニメーターに設定
+        /// - 停止中: 0を設定（Idle）
+        /// Speed閾値: Idle<=0, Walk>1, Run>4
+        /// </summary>
+        private void UpdateAnimation()
+        {
+            if (!_animator || !_navMeshAgent) return;
+
+            // NavMeshAgentが実際に移動しているかを判定
+            bool isMoving = _navMeshAgent.velocity.sqrMagnitude > 0.01f;
+
+            // 移動中なら目標速度、停止中なら0
+            float animSpeed = isMoving ? _currentTargetSpeed : 0f;
+            _animator.SetFloat(_animatorHashSpeed, animSpeed);
         }
 
         #endregion
@@ -135,8 +214,41 @@ namespace Game.ScoreTimeAttack.Enemy
                 if (!ignoreDistance && _navMeshAgent.remainingDistance > remainingDistance)
                     return false;
 
-                _navMeshAgent.SetDestination(position);
-                return true;
+                // Unity 6 バグ回避: SetDestinationImmediateを使用
+                // positionLeniency = radius + stoppingDistance + height
+                float leniency = _navMeshAgent.radius + _navMeshAgent.stoppingDistance + _navMeshAgent.height;
+                if (_navMeshAgent.SetDestinationImmediate(position, leniency))
+                {
+                    _lastDestination = position;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 目的地更新を最適化（毎フレーム更新による震えを防止）
+        /// - 一定間隔でのみ更新
+        /// - プレイヤーが大きく移動した場合は即座に更新
+        /// </summary>
+        private bool TrySetDestinationThrottled(Vector3 position)
+        {
+            if (!_navMeshAgent) return false;
+
+            // プレイヤーが大きく移動した場合は即座に更新
+            float distanceFromLastDest = Vector3.Distance(position, _lastDestination);
+            if (distanceFromLastDest > DestinationUpdateThreshold)
+            {
+                return TrySetDestination(position, ignoreDistance: true);
+            }
+
+            // 一定間隔でのみ更新
+            _destinationUpdateTimer += Time.deltaTime;
+            if (_destinationUpdateTimer >= DestinationUpdateInterval)
+            {
+                _destinationUpdateTimer = 0f;
+                return TrySetDestination(position, ignoreDistance: true);
             }
 
             return false;
@@ -241,6 +353,11 @@ namespace Game.ScoreTimeAttack.Enemy
                     ctx.ResetPatrolRotation();
                 }
             }
+
+            public override void LateUpdate()
+            {
+                Context.SyncPositionAndRotation();
+            }
         }
 
         /// <summary>
@@ -252,6 +369,7 @@ namespace Game.ScoreTimeAttack.Enemy
             {
                 var ctx = Context;
                 ctx.SetSpeed(ctx.EnemyMaster.RunSpeed);
+                ctx._destinationUpdateTimer = DestinationUpdateInterval; // 即座に目的地を設定
             }
 
             public override void Update()
@@ -260,10 +378,10 @@ namespace Game.ScoreTimeAttack.Enemy
                 var ctx = Context;
                 if (ctx.TryDetectPlayerByVision())
                 {
-                    // プレイヤーの位置に向かう
+                    // プレイヤーの位置に向かう（最適化版：毎フレーム更新しない）
                     if (NavMesh.SamplePosition(ctx._player.transform.position, out var navMeshHit, 1f, 1))
                     {
-                        ctx.TrySetDestination(navMeshHit.position, ignoreDistance: true);
+                        ctx.TrySetDestinationThrottled(navMeshHit.position);
                     }
 
                     return;
@@ -279,6 +397,11 @@ namespace Game.ScoreTimeAttack.Enemy
                 // 完全に見失った
                 StateMachine.Transition(StateEvent.LostPlayer);
             }
+
+            public override void LateUpdate()
+            {
+                Context.SyncPositionAndRotation();
+            }
         }
 
         /// <summary>
@@ -290,6 +413,7 @@ namespace Game.ScoreTimeAttack.Enemy
             {
                 var ctx = Context;
                 ctx.SetSpeed(ctx.EnemyMaster.WalkSpeed);
+                ctx._destinationUpdateTimer = DestinationUpdateInterval; // 即座に目的地を設定
             }
 
             public override void Update()
@@ -308,14 +432,14 @@ namespace Game.ScoreTimeAttack.Enemy
                     // プレイヤーの方を向く
                     ctx.LookAtPlayer(ctx._rotationSpeed);
 
-                    // プレイヤーの近くのランダムな位置に向かう
+                    // プレイヤーの近くのランダムな位置に向かう（最適化版）
                     var distance = ctx.EnemyMaster.AuditoryDistance;
                     float x = ctx._player.transform.position.x + Random.Range(-distance, distance);
                     float z = ctx._player.transform.position.z + Random.Range(-distance, distance);
 
                     if (NavMesh.SamplePosition(new Vector3(x, 0f, z), out var navMeshHit, 1f, 1))
                     {
-                        ctx.TrySetDestination(navMeshHit.position, ignoreDistance: true);
+                        ctx.TrySetDestinationThrottled(navMeshHit.position);
                     }
 
                     return;
@@ -323,6 +447,11 @@ namespace Game.ScoreTimeAttack.Enemy
 
                 // 完全に見失った
                 StateMachine.Transition(StateEvent.LostPlayer);
+            }
+
+            public override void LateUpdate()
+            {
+                Context.SyncPositionAndRotation();
             }
         }
 

@@ -1,7 +1,8 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.ScoreTimeAttack.Enemy;
-using Game.Contents.UI;
+using Game.ScoreTimeAttack.UI;
 using Game.ScoreTimeAttack.Enums;
 using Game.Shared.Extensions;
 using Game.Core.MessagePipe;
@@ -9,8 +10,7 @@ using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Library.Shared.MasterData;
 using Game.MVC.Core.Scenes;
-using Game.MVC.ScoreTimeAttack.Scenes;
-using Game.MVC.UI;
+using Game.Shared.Bootstrap;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -66,6 +66,8 @@ namespace Game.ScoreTimeAttack.Scenes
             {
                 MessagePipeService.Publish(MessageKey.System.Skybox, skybox.material);
             }
+
+            MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
         }
 
         public override async UniTask Startup()
@@ -99,28 +101,29 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             // ゲーム開始準備OKの合図
             SceneModel.StageState = GameStageState.Ready;
-            await MessagePipeService.PublishAsync(MessageKey.System.TimeScale, false);
-            await MessagePipeService.PublishAsync(MessageKey.System.Cursor, true);
+            ApplicationEvents.PauseTime();
+            ApplicationEvents.ShowCursor();
             var audioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
-            await audioTask;
-            await MessagePipeService.PublishAsync(MessageKey.System.TimeScale, true);
-            await MessagePipeService.PublishAsync(MessageKey.System.Cursor, false);
             MessagePipeService.Publish(MessageKey.InputSystem.Escape, true);
             MessagePipeService.Publish(MessageKey.InputSystem.ScrollWheel, true);
+            ApplicationEvents.ResumeTime();
+            ApplicationEvents.HideCursor();
             SceneModel.StageState = GameStageState.Start;
             SceneComponent.DoFadeIn();
             MessagePipeService.Publish(MessageKey.Player.HudFadeIn);
+            await audioTask;
             await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageStart);
             await base.Ready();
         }
 
         public override async UniTask Terminate()
         {
+            MessagePipeService.Publish(MessageKey.System.DirectionalLight, true);
             MessagePipeService.Publish(MessageKey.System.DefaultSkybox);
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
-            AudioService.StopBgmAsync();
+            AudioService.StopBgmAsync().Forget();
             await base.Terminate();
         }
 
@@ -137,61 +140,6 @@ namespace Game.ScoreTimeAttack.Scenes
                     TryShowResultAsync().Forget();
                 })
                 .AddTo(SceneComponent);
-
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameStage.Pause, async (_, token) =>
-                {
-                    if (!SceneModel.CanPause()) return;
-
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StagePause, token).Forget();
-
-                    // 一時停止メニュー
-                    await GamePauseUIDialog.RunAsync();
-                })
-                .AddTo(SceneComponent);
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameStage.Resume, async (_, token) =>
-                {
-                    if (!SceneModel.CanPause()) return;
-
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
-
-                    await SceneService.TerminateAsync(typeof(GamePauseUIDialog));
-                })
-                .AddTo(SceneComponent);
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameStage.Retry, async (_, token) =>
-                {
-                    SceneModel.StageState = GameStageState.Retry;
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
-                    // 現在のステージへ再遷移
-                    await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(_stageId);
-                })
-                .AddTo(SceneComponent);
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameStage.ReturnTitle, async (_, token) =>
-                {
-                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
-                    // 現在のシーンを終了させてタイトルに戻る
-                    await SceneService.TransitionAsync<GameTitleScene>();
-                })
-                .AddTo(SceneComponent);
-
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameStage.Finish, async (_, token) =>
-                {
-                    SceneModel.StageState = GameStageState.Finish;
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish, token).Forget();
-
-                    TryShowResultAsync().Forget();
-
-                    if (SceneModel.NextStageId.HasValue && SceneModel.IsClear())
-                    {
-                        // 次のステージへ
-                        await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(SceneModel.NextStageId.Value);
-                        return;
-                    }
-
-                    // 総合リザルトへ
-                    await TryShowResultAsync();
-                })
-                .AddTo(SceneComponent);
-
 
             // プレイヤー設定
             MessagePipeService.Subscribe<Collider>(MessageKey.Player.OnTriggerEnter, other =>
@@ -234,6 +182,47 @@ namespace Game.ScoreTimeAttack.Scenes
                     TryShowResultAsync().Forget();
                 })
                 .AddTo(SceneComponent);
+
+            MessagePipeService.SubscribeAsync<bool>(MessageKey.UI.Escape, async (_, token) => { await ShowPauseAsync(token); })
+                .AddTo(SceneComponent);
+        }
+
+        private async UniTask ShowPauseAsync(CancellationToken token = default)
+        {
+            if (!SceneModel.CanPause()) return;
+
+            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StagePause, token).Forget();
+
+            // 一時停止メニュー
+            var result = await GamePauseUIDialog.RunAsync();
+            switch (result)
+            {
+                case PauseDialogResult.Resume:
+                {
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
+                    break;
+                }
+                case PauseDialogResult.Retry:
+                {
+                    SceneModel.StageState = GameStageState.Retry;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
+                    // 現在のステージへ再遷移
+                    await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(_stageId);
+                    break;
+                }
+                case PauseDialogResult.ReturnToTitle:
+                {
+                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
+                    // 現在のシーンを終了させてタイトルに戻る
+                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
+                    break;
+                }
+                case PauseDialogResult.Quit:
+                {
+                    ApplicationEvents.RequestShutdown();
+                    break;
+                }
+            }
         }
 
         private async UniTask TryShowResultAsync()
@@ -245,16 +234,33 @@ namespace Game.ScoreTimeAttack.Scenes
             SceneComponent.DoFadeOut();
             MessagePipeService.Publish(MessageKey.Player.HudFadeOut);
 
-            var result = SceneModel.CreateStageResult();
+            var stageResult = SceneModel.CreateStageResult();
 
-            if (SceneModel.NextStageId.HasValue)
+            var result = await GameResultUIDialog.RunAsync(stageResult);
+            switch (result)
             {
-                await GameResultUIDialog.RunAsync(result);
-                return;
+                case ResultDialogResult.NextStage:
+                {
+                    if (!SceneModel.NextStageId.HasValue) return;
+                    await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(SceneModel.NextStageId.Value);
+                    break;
+                }
+                case ResultDialogResult.Finish:
+                {
+                    SceneModel.StageState = GameStageState.Finish;
+                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish).Forget();
+                    await SceneService.TransitionAsync<ScoreTimeAttackTotalResultScene>();
+                    break;
+                }
+                case ResultDialogResult.ReturnToTitle:
+                {
+                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle);
+                    ApplicationEvents.ResumeTime();
+                    // 現在のシーンを終了させてタイトルに戻る
+                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
+                    break;
+                }
             }
-
-            // 総合リザルトへ
-            await SceneService.TransitionAsync<ScoreTimeAttackTotalResultScene>();
         }
     }
 }

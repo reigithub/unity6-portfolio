@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorPlayerLevelUpDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Title -->
+            <ui:Label text="LEVEL UP!" name="title-text" class="dialog__title" />
+            <ui:Label text="Lv.1" name="level-text" class="dialog__level" />
+
+            <!-- Instruction -->
+            <ui:Label text="Choose an upgrade" class="dialog__instruction" />
+
+            <!-- Options Container (buttons will be added dynamically) -->
+            <ui:VisualElement name="options-container" class="options-container" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

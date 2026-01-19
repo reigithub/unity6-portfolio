@@ -1,0 +1,42 @@
+/* Countdown Dialog Styles */
+
+.countdown-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.countdown-container {
+    justify-content: center;
+    align-items: center;
+}
+
+.countdown-label {
+    font-size: 200px;
+    -unity-font-style: bold;
+    color: white;
+    -unity-text-align: middle-center;
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+    transition-property: scale, opacity;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+}
+
+.countdown-number {
+    color: #FFD700;
+    scale: 1 1;
+}
+
+.countdown-go {
+    color: #00FF88;
+    font-size: 180px;
+}
+
+.countdown-pulse {
+    scale: 1.2 1.2;
+}

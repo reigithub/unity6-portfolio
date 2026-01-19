@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorStageSelectScene.uss" />
+
+    <ui:VisualElement name="stage-item" class="stage-item">
+        <!-- Stage Number -->
+        <ui:Label text="01" name="stage-number" class="stage-item__number" />
+
+        <!-- Stage Info -->
+        <ui:VisualElement name="stage-info" class="stage-item__info">
+            <ui:Label text="Stage Name" name="stage-name" class="stage-item__name" />
+            <ui:Label text="Difficulty: ★" name="stage-difficulty" class="stage-item__difficulty" />
+        </ui:VisualElement>
+
+        <!-- Status Badge / Lock Icon -->
+        <ui:Label text="CLEARED" name="status-badge" class="stage-item__badge stage-item__badge--cleared" />
+        <ui:Label text="🔒" name="lock-icon" class="stage-item__lock-icon" />
+    </ui:VisualElement>
+</ui:UXML>

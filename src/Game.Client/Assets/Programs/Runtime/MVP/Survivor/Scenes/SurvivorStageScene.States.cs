@@ -1,4 +1,6 @@
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.UI;
 using Game.MVP.Survivor.Weapon;
@@ -53,6 +55,7 @@ namespace Game.MVP.Survivor.Scenes
         private abstract class StageStateBase : State<SurvivorStageScene, StageEvent>
         {
             protected IGameSceneService SceneService => Context._sceneService;
+            protected IGameRootController GameRootController => Context._gameRunner.GameRootController;
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
@@ -66,36 +69,67 @@ namespace Game.MVP.Survivor.Scenes
 
         private class ReadyState : StageStateBase
         {
-            private float _countdownTimer;
-            private const float CountdownDuration = 1f;
+            private bool _countdownComplete;
 
             public override void Enter()
             {
                 Debug.Log("[ReadyState] Enter");
 
-                ApplicationEvents.ResumeTime();
-                _countdownTimer = CountdownDuration;
+                // 時間は動かしておく（Cinemachineカメラ追従のため）
+                // カウントダウン開始時に停止する
+                _countdownComplete = false;
+
+                // 暗転状態を維持（ステージ裏側が見えないように）
+                GameRootController.SetFadeImmediate(1f);
 
                 // StageModel, WaveManagerはSurvivorStageScene.Startup()で初期化済み
-                View.InitializePlayer(StageModel.PlayerMaster);
+                View.InitializePlayer(StageModel.PlayerMaster, GameRootController.MainCamera);
 
-                InitializeAsync().Forget();
+                InitializeAndCountdownAsync().Forget();
             }
 
-            private async UniTaskVoid InitializeAsync()
+            private async UniTaskVoid InitializeAndCountdownAsync()
             {
+                // ゲームコンポーネントの初期化
                 await View.InitializeWeaponManagerAsync(
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
                 );
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeExperienceOrbSpawnerAsync();
+
+                Debug.Log("[ReadyState] Initialization complete, waiting for camera follow");
+
+                await UniTask.Yield();
+
+                Debug.Log("[ReadyState] Camera ready, fading in");
+
+                // フェードイン
+                var fadeTweener = GameRootController.FadeIn(0.5f);
+                if (fadeTweener != null)
+                {
+                    await fadeTweener.ToUniTask();
+                }
+
+                Debug.Log("[ReadyState] Showing countdown");
+
+                // カウントダウン中は時間を停止（敵スポーンやゲーム進行を防ぐ）
+                ApplicationEvents.PauseTime();
+
+                // カウントダウンダイアログを表示（3, 2, 1, GO!）
+                await SceneService.TransitionDialogAsync<
+                    SurvivorCountdownDialog,
+                    SurvivorCountdownDialogComponent,
+                    SurvivorCountdownResult>();
+
+                Debug.Log("[ReadyState] Countdown complete");
+                _countdownComplete = true;
             }
 
             public override void Update()
             {
-                _countdownTimer -= Time.deltaTime;
-                if (_countdownTimer <= 0f)
+                // カウントダウン完了後にゲーム開始
+                if (_countdownComplete)
                 {
                     Transition(StageEvent.StartGame);
                 }
@@ -231,7 +265,7 @@ namespace Game.MVP.Survivor.Scenes
                     SurvivorPlayerLevelUpDialog,
                     SurvivorPlayerLevelUpDialogComponent,
                     SurvivorPlayerLevelUpDialogArg,
-                    WeaponUpgradeOption
+                    SurvivorWeaponUpgradeOption
                 >(new(options, StageModel.Level.Value));
 
                 if (result != null)

@@ -1,0 +1,88 @@
+/* ===========================================
+   Survivor Pause Dialog Styles
+   Centered dialog without character
+   =========================================== */
+
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog {
+    width: 450px;
+    background-color: rgba(25, 25, 40, 0.98);
+    border-radius: 20px;
+    padding: 40px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    align-items: center;
+}
+
+.dialog__title {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.dialog__buttons {
+    width: 100%;
+    align-items: stretch;
+}
+
+.dialog-button {
+    height: 64px;
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    transition-duration: 0.12s;
+    scale: 1;
+}
+
+.dialog-button:last-child {
+    margin-bottom: 0;
+}
+
+.dialog-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.03;
+}
+
+.dialog-button:active {
+    scale: 0.97;
+}
+
+.dialog-button--primary {
+    background-color: rgba(60, 180, 100, 0.8);
+    border-color: rgb(80, 220, 120);
+}
+
+.dialog-button--primary:hover {
+    background-color: rgba(80, 200, 120, 0.9);
+    scale: 1.05;
+}
+
+.dialog-button--danger {
+    background-color: rgba(180, 60, 60, 0.6);
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.dialog-button--danger:hover {
+    background-color: rgba(200, 70, 70, 0.8);
+    border-color: rgba(240, 100, 100, 0.8);
+}

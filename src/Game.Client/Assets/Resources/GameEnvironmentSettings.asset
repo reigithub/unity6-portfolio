@@ -9,40 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 9471648ad196c884282ee28e583fde6e, type: 3}
   m_Name: GameEnvironmentSettings
-  m_EditorClassIdentifier: Game.Shared:Game.Shared:GameEnvironmentSettings
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.GameEnvironmentSettings
   _environment: 0
   _configs:
   - _environment: 0
-    _dependencyResolverMode: 0
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 1
-    _dependencyResolverMode: 1
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 1000
-    _dependencyResolverMode: 1
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 2000
-    _dependencyResolverMode: 1
-    _apiBaseUrl: 
-    _webSocketUrl: 
-    _enableDebugLog: 0
-    _enableAnalytics: 0
-    _useLocalMasterData: 0
-  - _environment: 3000
     _dependencyResolverMode: 1
     _apiBaseUrl: 
     _webSocketUrl: 

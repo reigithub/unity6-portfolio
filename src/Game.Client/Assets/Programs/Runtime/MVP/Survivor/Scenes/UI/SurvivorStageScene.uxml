@@ -1,0 +1,64 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorStageScene.uss" />
+
+    <ui:VisualElement name="root" class="root">
+        <!-- Top HUD Bar -->
+        <ui:VisualElement name="top-bar" class="top-bar">
+            <!-- Left: Wave & Time -->
+            <ui:VisualElement class="top-bar__left">
+                <ui:Label text="WAVE 1" name="wave-text" class="wave-text" />
+                <ui:Label text="00:00" name="time-text" class="time-text" />
+            </ui:VisualElement>
+
+            <!-- Center: Level -->
+            <ui:VisualElement class="top-bar__center">
+                <ui:Label text="Lv.1" name="level-text" class="level-text" />
+            </ui:VisualElement>
+
+            <!-- Right: Pause Button -->
+            <ui:VisualElement class="top-bar__right">
+                <ui:Button text="II" name="pause-button" class="pause-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Spacer for gameplay area -->
+        <ui:VisualElement class="gameplay-area" />
+
+        <!-- Bottom HUD Bar -->
+        <ui:VisualElement name="bottom-bar" class="bottom-bar">
+            <!-- HP Bar -->
+            <ui:VisualElement class="hp-container">
+                <ui:VisualElement class="hp-bar__background">
+                    <ui:VisualElement name="hp-bar-fill" class="hp-bar__fill" />
+                </ui:VisualElement>
+                <ui:Label text="100/100" name="hp-text" class="hp-text" />
+            </ui:VisualElement>
+
+            <!-- EXP Bar -->
+            <ui:VisualElement class="exp-container">
+                <ui:VisualElement class="exp-bar__background">
+                    <ui:VisualElement name="exp-bar-fill" class="exp-bar__fill" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Stats -->
+            <ui:VisualElement class="stats-container">
+                <ui:Label text="KILLS: 0" name="kills-text" class="kills-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Game Over Panel (hidden by default) -->
+        <ui:VisualElement name="game-over-panel" class="result-overlay result-overlay--hidden">
+            <ui:VisualElement class="result-panel result-panel--gameover">
+                <ui:Label text="GAME OVER" class="result-panel__title result-panel__title--gameover" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Victory Panel (hidden by default) -->
+        <ui:VisualElement name="victory-panel" class="result-overlay result-overlay--hidden">
+            <ui:VisualElement class="result-panel result-panel--victory">
+                <ui:Label text="VICTORY!" class="result-panel__title result-panel__title--victory" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,11 +1,12 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
-using Game.MVC.ScoreTimeAttack.Scenes;
+using Game.Library.Shared.Enums;
+using Game.ScoreTimeAttack.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 
-namespace Game.MVC.ScoreTimeAttack
+namespace Game.ScoreTimeAttack
 {
     /// <summary>
     /// GameServiceManagerを使用した従来の起動方式（MVC用）
@@ -26,18 +27,22 @@ namespace Game.MVC.ScoreTimeAttack
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 3. 共通オブジェクト読み込み
-            await GameRootController.LoadAssetAsync();
+            await GameResidentsManager.LoadAssetAsync();
 
             // 4. マスターデータ読み込み
             await masterDataService.LoadMasterDataAsync();
 
             // 5. 初期シーン遷移
-            await gameSceneService.TransitionAsync<GameTitleScene>();
+            await gameSceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
         }
 
         public async UniTask ShutdownAsync()
         {
-            await GameRootController.UnloadAsync();
+            var audioService = GameServiceManager.Get<AudioService>();
+            audioService.StopBgmAsync().Forget();
+            await audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit);
+
+            await GameResidentsManager.UnloadAsync();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
             await gameSceneService.TerminateAllAsync();
             GameServiceManager.Instance.Shutdown();

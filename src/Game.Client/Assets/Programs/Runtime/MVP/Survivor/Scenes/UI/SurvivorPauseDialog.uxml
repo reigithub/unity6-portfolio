@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorPauseDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <ui:Label text="PAUSED" name="title" class="dialog__title" />
+
+            <ui:VisualElement class="dialog__buttons">
+                <ui:Button text="RESUME" name="resume-button" class="dialog-button dialog-button--primary" />
+                <ui:Button text="RETRY" name="retry-button" class="dialog-button" />
+                <ui:Button text="QUIT" name="quit-button" class="dialog-button dialog-button--danger" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

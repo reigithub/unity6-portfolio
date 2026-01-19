@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 6ef1e970ec6e5a2458c2a758a36c11c6
+timeCreated: 1540394165
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 131677
+  packageName: Low Poly Mini Village Free
+  packageVersion: 1.0
+  assetPath: Assets/Low_Poly_Mini_Village/PostProcessingprofiles/Profile3.asset
+  uploadId: 275189

@@ -25,8 +25,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: b2b30f520a4253049a2d34c84c214a15
-    m_Address: CartoonTrack
+  - m_GUID: 6d056664bba7098499bf497585c080bd
+    m_Address: AncientVillageDay
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8dda08b4fb6fb704182957c4fe2041f9
+    m_Address: StylizedNature
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

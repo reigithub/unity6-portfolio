@@ -102,7 +102,7 @@ namespace Game.MVP.Survivor.Scenes
         public int Difficulty { get; set; }
         public int TimeLimit { get; set; }
         public bool IsUnlocked { get; set; }
-        public StageClearRecord Record { get; set; }
+        public SurvivorStageClearRecord Record { get; set; }
 
         public bool IsCleared => Record?.IsCleared ?? false;
         public int StarRating => Record?.StarRating ?? 0;

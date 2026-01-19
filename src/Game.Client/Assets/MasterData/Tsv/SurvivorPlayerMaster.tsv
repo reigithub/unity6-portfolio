@@ -1,0 +1,2 @@
+Id	Name	AssetName	MaxHp	MoveSpeed	PickupRange	StartingWeaponId	CriticalRate	CriticalDamage
+1	ユニティちゃん	SDUnityChan	100	5	3	1	5	150

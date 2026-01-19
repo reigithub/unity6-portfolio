@@ -214,7 +214,7 @@ namespace Game.Editor.Survivor
             collider.isTrigger = true;
 
             // ExperienceOrb
-            var orb = orbGo.AddComponent<ExperienceOrb>();
+            var orb = orbGo.AddComponent<SurvivorExperienceOrb>();
 
             // Visual (Sphere with emission)
             var visualGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -315,12 +315,12 @@ namespace Game.Editor.Survivor
             // Weapon Manager
             var weaponGo = new GameObject("WeaponManager");
             weaponGo.transform.SetParent(sceneGo.transform);
-            weaponGo.AddComponent<WeaponManager>();
+            weaponGo.AddComponent<SurvivorWeaponManager>();
 
             // Experience Orb Spawner
             var orbSpawnerGo = new GameObject("ExperienceOrbSpawner");
             orbSpawnerGo.transform.SetParent(sceneGo.transform);
-            orbSpawnerGo.AddComponent<ExperienceOrbSpawner>();
+            orbSpawnerGo.AddComponent<SurvivorExperienceOrbSpawner>();
 
             // プレハブ保存
             var prefabPath = $"{BasePath}/Scenes/SurvivorStageScene.prefab";

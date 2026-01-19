@@ -1181,6 +1181,7 @@ namespace Game.Editor.Tests
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public int Result { get; set; }
             public UniTaskCompletionSource<int> ResultTcs { get; set; }
 
             public UniTask PreInitialize() => UniTask.CompletedTask;
@@ -1222,6 +1223,7 @@ namespace Game.Editor.Tests
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
             public TArg ReceivedArg { get; private set; }
@@ -1360,6 +1362,7 @@ namespace Game.Editor.Tests
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
             public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
+            public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
             public TComponent SceneComponent { get; private set; }
@@ -1464,6 +1467,7 @@ namespace Game.Editor.Tests
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
             public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
+            public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
             public TComponent SceneComponent { get; private set; }
@@ -1592,6 +1596,7 @@ namespace Game.Editor.Tests
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
             public Func<MockSceneComponent, IGameSceneResult<bool>, UniTask> DialogInitializer { get; set; }
+            public bool Result { get; set; }
             public UniTaskCompletionSource<bool> ResultTcs { get; set; }
 
             public MockSceneComponent SceneComponent { get; private set; }
@@ -1639,6 +1644,7 @@ namespace Game.Editor.Tests
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
             public Func<MockSceneComponent, IGameSceneResult<int>, UniTask> DialogInitializer { get; set; }
+            public int Result { get; set; }
             public UniTaskCompletionSource<int> ResultTcs { get; set; }
 
             public MockSceneComponent SceneComponent { get; private set; }

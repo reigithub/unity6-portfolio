@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Models;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
@@ -45,9 +46,33 @@ namespace Game.MVP.Survivor.Scenes
 
         #endregion
 
+        /// <summary>
+        /// SceneComponent内のSpawner/ManagerにVContainer依存を注入
+        /// </summary>
+        private void InjectSceneComponents()
+        {
+            if (SceneComponent.EnemySpawner != null)
+            {
+                ScopedResolver.Inject(SceneComponent.EnemySpawner);
+            }
+
+            if (SceneComponent.SurvivorItemSpawner != null)
+            {
+                ScopedResolver.Inject(SceneComponent.SurvivorItemSpawner);
+            }
+
+            if (SceneComponent.WeaponManager != null)
+            {
+                ScopedResolver.Inject(SceneComponent.WeaponManager);
+            }
+        }
+
         public override async UniTask Startup()
         {
             await base.Startup();
+
+            // SceneComponent内のSpawner/ManagerにDI注入
+            InjectSceneComponents();
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -68,11 +93,17 @@ namespace Game.MVP.Survivor.Scenes
             // インゲームフィールドをロード
             await LoadUnitySceneAsync();
 
+            // プレイヤーを動的生成
+            await SpawnPlayerAsync();
+
             BuildStateMachine();
             SubscribeEvents();
             BindModelToView();
 
             SceneComponent.Initialize(_stageModel);
+
+            // ReadyState開始前に暗転状態にしておく（ステージ裏側が見えないように）
+            _gameRunner.GameRootController?.SetFadeImmediate(1f);
         }
 
         private async UniTask LoadUnitySceneAsync()
@@ -85,12 +116,51 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log($"[SurvivorStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用
-                var skybox = GameSceneHelper.GetComponentInChildren<Skybox>(_stageSceneInstance.Value.Scene);
+                var skybox = SurvivorStageSceneHelper.GetSkybox(_stageSceneInstance.Value.Scene);
                 if (skybox != null && skybox.material != null)
                 {
                     _gameRunner.GameRootController?.SetSkyboxMaterial(skybox.material);
                     Debug.Log($"[SurvivorStageScene] Applied stage skybox: {skybox.material.name}");
                 }
+            }
+        }
+
+        private async UniTask SpawnPlayerAsync()
+        {
+            if (!_stageSceneInstance.HasValue)
+            {
+                Debug.LogWarning("[SurvivorStageScene] Stage scene not loaded, skipping player spawn");
+                return;
+            }
+
+            // ステージシーン内のPlayerStartを検索
+            var playerStart = SurvivorStageSceneHelper.GetPlayerStart(_stageSceneInstance.Value.Scene);
+            if (playerStart == null)
+            {
+                Debug.LogWarning("[SurvivorStageScene] PlayerStart not found in stage scene, player spawn skipped");
+                return;
+            }
+
+            // VContainerのスコープからインジェクション
+            ScopedResolver.Inject(playerStart);
+
+            // プレイヤー生成
+            var playerMaster = _stageModel.PlayerMaster;
+            if (playerMaster == null)
+            {
+                Debug.LogError("[SurvivorStageScene] PlayerMaster is null!");
+                return;
+            }
+
+            var playerController = await playerStart.LoadPlayerAsync(playerMaster);
+            if (playerController != null)
+            {
+                // VContainerからプレイヤーにもインジェクション
+                ScopedResolver.Inject(playerController);
+
+                // SceneComponentにプレイヤーを設定
+                SceneComponent.SetPlayerController(playerController);
+                Debug.Log($"[SurvivorStageScene] Player spawned and assigned to SceneComponent");
             }
         }
 
@@ -115,9 +185,9 @@ namespace Game.MVP.Survivor.Scenes
                     .AddTo(Disposables);
             }
 
-            if (SceneComponent.ExperienceOrbSpawner != null)
+            if (SceneComponent.SurvivorItemSpawner != null)
             {
-                SceneComponent.ExperienceOrbSpawner.OnExperienceCollected
+                SceneComponent.SurvivorItemSpawner.OnExperienceCollected
                     .Subscribe(exp => _stageModel.AddExperience(exp))
                     .AddTo(Disposables);
             }
@@ -179,7 +249,7 @@ namespace Game.MVP.Survivor.Scenes
             // HP
             _stageModel.CurrentHp
                 .CombineLatest(_stageModel.MaxHp, (current, max) => (current, max))
-                .Subscribe(hp => SceneComponent.UpdateHP(hp.current, hp.max))
+                .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
                 .AddTo(Disposables);
 
             // 経験値
@@ -210,12 +280,13 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Ready()
         {
-            // 基底クラスでグローバルフェードイン
-            await base.Ready();
+            // グローバルフェードインはスキップ（ReadyStateでカメラ追従後にフェードイン）
+            // await base.Ready();
 
-            await UniTask.Delay(500);
-
+            // ステートマシン開始（ReadyStateへ）
             _stateMachine.Update();
+
+            await UniTask.CompletedTask;
         }
 
         public override async UniTask Terminate()

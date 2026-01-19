@@ -14,7 +14,7 @@ namespace Game.Shared.Services
         void Shutdown();
 
         UniTask PlayBgmAsync(string assetName, CancellationToken token = default);
-        UniTask StopBgmAsync();
+        UniTask StopBgmAsync(CancellationToken token = default);
         UniTask PlayVoiceAsync(string assetName, CancellationToken token = default);
         UniTask PlaySoundEffectAsync(string assetName, CancellationToken token = default);
         UniTask PlayAsync(AudioCategory audioCategory, string audioName, CancellationToken token = default);

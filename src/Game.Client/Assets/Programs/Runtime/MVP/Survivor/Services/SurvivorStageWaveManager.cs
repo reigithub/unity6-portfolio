@@ -75,14 +75,13 @@ namespace Game.MVP.Survivor.Services
             }
 
             var wave = _waves[_currentWaveIndex];
-            _currentWave.Value = wave.WaveNumber;
 
             // ウェーブに紐づく敵スポーン情報を取得
             var waveEnemies = _masterDataService.MemoryDatabase.SurvivorStageWaveEnemyMasterTable
                 .FindByWaveId(wave.Id)
                 .ToArray();
 
-            // スポーン情報を構築
+            // スポーン情報を構築（CurrentWave更新前に設定）
             _currentSpawnInfo = new WaveSpawnInfo
             {
                 WaveId = wave.Id,
@@ -109,6 +108,9 @@ namespace Game.MVP.Survivor.Services
             _enemiesThisWave.Value = _currentSpawnInfo.EnemyCount;
 
             Debug.Log($"[SurvivorStageWaveManager] Wave {wave.WaveNumber} started. Enemies: {_enemiesThisWave.Value}");
+
+            // 最後にCurrentWaveを更新（サブスクライバーに通知）
+            _currentWave.Value = wave.WaveNumber;
         }
 
         public void OnEnemyKilled()

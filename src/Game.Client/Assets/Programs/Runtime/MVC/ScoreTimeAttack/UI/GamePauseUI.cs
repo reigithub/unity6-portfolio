@@ -1,29 +1,34 @@
 using Cysharp.Threading.Tasks;
 using Game.Shared.Extensions;
-using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Bootstrap;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Contents.UI
+namespace Game.ScoreTimeAttack.UI
 {
-    public class GamePauseUIDialog : GameDialogScene<GamePauseUIDialog, GamePauseUI, bool>
+    public enum PauseDialogResult
+    {
+        Resume,
+        Retry,
+        ReturnToTitle,
+        Quit
+    }
+
+    public class GamePauseUIDialog : GameDialogScene<GamePauseUIDialog, GamePauseUI, PauseDialogResult>
     {
         protected override string AssetPathOrAddress => "GamePauseUI";
 
         private AudioService _audioService;
         private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
-        public static UniTask<bool> RunAsync()
+        public static UniTask<PauseDialogResult> RunAsync()
         {
             var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, bool>(
+            return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, PauseDialogResult>(
                 initializer: (component, result) =>
                 {
                     component.Initialize(result);
@@ -33,8 +38,8 @@ namespace Game.Contents.UI
 
         public override UniTask Startup()
         {
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, false);
-            MessagePipeService.PublishForget(MessageKey.System.Cursor, true);
+            ApplicationEvents.PauseTime();
+            ApplicationEvents.ShowCursor();
             return base.Startup();
         }
 
@@ -47,17 +52,19 @@ namespace Game.Contents.UI
         public override UniTask Terminate()
         {
             AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIClose).Forget();
-            MessagePipeService.PublishForget(MessageKey.System.TimeScale, true);
-            MessagePipeService.PublishForget(MessageKey.System.Cursor, false);
+
+            if (Result != PauseDialogResult.ReturnToTitle)
+            {
+                ApplicationEvents.ResumeTime();
+                ApplicationEvents.HideCursor();
+            }
+
             return base.Terminate();
         }
     }
 
     public class GamePauseUI : GameSceneComponent
     {
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
         [SerializeField]
         private Button _resumeButton;
 
@@ -70,39 +77,38 @@ namespace Game.Contents.UI
         [SerializeField]
         private Button _quitButton;
 
-        public void Initialize(IGameSceneResult<bool> result)
+        public void Initialize(IGameSceneResult<PauseDialogResult> result)
         {
             _resumeButton.OnClickAsObservableThrottleFirst()
-                .SubscribeAwait(async (_, token) =>
+                .Subscribe(_ =>
                 {
-                    SetInteractiveAllButton(false);
-                    await MessagePipeService.PublishAsync(MessageKey.GameStage.Resume, true, token);
-                    result.TrySetResult(false);
+                    SetInteractables(false);
+                    result.TrySetResult(PauseDialogResult.Resume);
                 })
                 .AddTo(this);
             _retryButton.OnClickAsObservableThrottleFirst()
-                .SubscribeAwait(async (_, token) =>
+                .Subscribe(_ =>
                 {
-                    SetInteractiveAllButton(false);
-                    await MessagePipeService.PublishAsync(MessageKey.GameStage.Retry, true, token);
+                    SetInteractables(false);
+                    result.TrySetResult(PauseDialogResult.Retry);
                 })
                 .AddTo(this);
             _returnButton.OnClickAsObservableThrottleFirst()
-                .SubscribeAwait(async (_, token) =>
+                .Subscribe(_ =>
                 {
-                    SetInteractiveAllButton(false);
-                    await MessagePipeService.PublishAsync(MessageKey.GameStage.ReturnTitle, true, token);
+                    SetInteractables(false);
+                    result.TrySetResult(PauseDialogResult.ReturnToTitle);
                 })
                 .AddTo(this);
             _quitButton.OnClickAsObservableThrottleFirst()
-                .SubscribeAwait(async (_, token) =>
+                .Subscribe(_ =>
                 {
-                    SetInteractiveAllButton(false);
-                    await MessagePipeService.PublishAsync(MessageKey.Game.Quit, true, token);
+                    SetInteractables(false);
+                    result.TrySetResult(PauseDialogResult.Quit);
                 })
                 .AddTo(this);
 
-            SetInteractiveAllButton(true);
+            SetInteractables(true);
         }
     }
 }

@@ -1,0 +1,38 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Programs/Runtime/MVP/Survivor/Scenes/UI/SurvivorTotalResultScene.uss?fileID=7433441132597879392&amp;guid=9c1dc096525ebef478fc319d4b9bfdb2&amp;type=3#SurvivorTotalResultScene"/>
+    <ui:VisualElement name="root" class="root">
+        <ui:VisualElement name="header" class="header" style="width: auto; align-content: flex-start;">
+            <ui:VisualElement name="victory-icon" class="result-icon result-icon--victory result-icon--hidden"/>
+            <ui:Label text="VICTORY!" name="result-title" class="header__title header__title--victory" style="-unity-font-style: bold;"/>
+            <ui:VisualElement name="gameover-icon" class="result-icon result-icon--gameover result-icon--hidden"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="content" class="content">
+            <ui:VisualElement name="stats-panel" class="stats-panel" style="justify-content: flex-start; height: 480px;">
+                <ui:Label text="TOTAL RESULTS" class="panel__title"/>
+                <ui:VisualElement class="stat-item">
+                    <ui:Label text="SCORE" class="stat-item__label" style="font-size: 36px;"/>
+                    <ui:Label text="0" name="total-score" class="stat-item__value stat-item__value--score"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-item">
+                    <ui:Label text="KILLS" class="stat-item__label" style="font-size: 36px;"/>
+                    <ui:Label text="0" name="total-kills" class="stat-item__value stat-item__value--kills"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-item">
+                    <ui:Label text="TIME" class="stat-item__label" style="font-size: 36px;"/>
+                    <ui:Label text="00:00" name="total-time" class="stat-item__value stat-item__value--time"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="character-space" class="character-space"/>
+            <ui:VisualElement name="stages-panel" class="stages-panel" style="height: 480px;">
+                <ui:Label text="STAGE RESULTS" class="panel__title"/>
+                <ui:ScrollView name="stage-results-scroll" class="stage-results-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
+                    <ui:VisualElement name="stage-results-container" class="stage-results-container"/>
+                </ui:ScrollView>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="footer" class="footer">
+            <ui:Button text="RETRY" name="retry-button" class="action-button action-button--primary"/>
+            <ui:Button text="RETURN TO TITLE" name="return-button" class="action-button action-button--secondary"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -49,7 +49,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
         }
 
-        private bool IsOverallVictory(StageSession session)
+        private bool IsOverallVictory(SurvivorStageSession session)
         {
             if (session.StageResults.Count == 0) return false;
             return session.StageResults.All(r => r.IsVictory);

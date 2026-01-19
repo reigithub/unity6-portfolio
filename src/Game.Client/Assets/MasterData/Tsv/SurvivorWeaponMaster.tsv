@@ -1,0 +1,10 @@
+Id	WeaponType	Rarity	Name	IconAssetName	Description
+1	1	1	下級魔法ファイア(緑)	Magic fire 0	最も近い敵に魔法弾を発射する
+2	1	1	下級魔法ファイア(赤)	Magic fire 1	最も近い敵に魔法弾を発射する
+3	1	1	下級魔法ファイア(紫)	Magic fire 2	最も近い敵に魔法弾を発射する
+4	1	1	下級魔法ファイア(青)	Magic fire 3	最も近い敵に魔法弾を発射する
+5	1	2	上級魔法ファイア(青)	Magic fire pro blue	最も近い敵に魔法弾を発射する
+6	1	2	上級魔法ファイア(緑)	Magic fire pro green	最も近い敵に魔法弾を発射する
+7	1	2	上級魔法ファイア(橙)	Magic fire pro orange	最も近い敵に魔法弾を発射する
+8	1	2	上級魔法ファイア(赤)	Magic fire pro red	最も近い敵に魔法弾を発射する
+9	1	2	上級魔法ファイア(黄)	Magic fire pro yellow	最も近い敵に魔法弾を発射する

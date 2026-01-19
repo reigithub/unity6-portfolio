@@ -72,7 +72,7 @@ PrefabInstance:
       addedObject: {fileID: 7432476277711163577}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 85c36c7b89cce1e48bfb44ae5c1fdc84, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -1722545277930100253}
+      addedObject: {fileID: 1178057483160792804}
   m_SourcePrefab: {fileID: 100100000, guid: 85c36c7b89cce1e48bfb44ae5c1fdc84, type: 3}
 --- !u!1 &8398601021662225049 stripped
 GameObject:
@@ -86,7 +86,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8398601021662225049}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 845c415f3181b4840ab566c40e714752, type: 3}
   m_Name: 
@@ -96,10 +96,10 @@ MonoBehaviour:
   rotateY: 1
   rotateZ: 0
   rotationSpeed: 85.67
-  isFloating: 1
-  useEasingForFloating: 1
-  floatHeight: 1.93
-  floatSpeed: 0.4
+  isFloating: 0
+  useEasingForFloating: 0
+  floatHeight: 0.5
+  floatSpeed: 0.5
   startScale: {x: 1, y: 1, z: 1}
   endScale: {x: 1.1, y: 1.1, z: 1.1}
   isScaling: 1
@@ -127,7 +127,7 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 621515191993185766, guid: 85c36c7b89cce1e48bfb44ae5c1fdc84, type: 3}
---- !u!114 &-1722545277930100253
+--- !u!114 &1178057483160792804
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -136,6 +136,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 8398601021662225049}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ee7a0d9725fbfd4f81ae21cec80fedf, type: 3}
+  m_Script: {fileID: 11500000, guid: 425979943d008cb41b3250345ad71cee, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Sample.Rotator
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Item.SurvivorItem
+  _itemId: 30
+  _itemType: 2
+  _effectValue: 50
+  _effectRange: 0
+  _effectDuration: 0
+  _rarity: 3
+  _scale: 1
+  _attractDistance: 5
+  _attractSpeed: 10
+  _collectDistance: 0.5
+  _floatAmplitude: 0.2
+  _floatSpeed: 2

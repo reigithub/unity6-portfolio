@@ -5,6 +5,7 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Shared.Input;
 using R3;
 using R3.Triggers;
 using UnityChan;
@@ -46,12 +47,17 @@ namespace Game.ScoreTimeAttack.Player
         private MessagePipeService _messagePipeService;
         private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
-        private SDUnityChanInputSystem _inputSystem;
-        private SDUnityChanInputSystem.PlayerActions _player;
+        private ProjectDefaultInputSystem _inputSystem;
+        private ProjectDefaultInputSystem.PlayerActions _player;
 
         private Animator _animator;
         private Rigidbody _rigidbody;
         private RaycastChecker _groundedRaycastChecker;
+        private CapsuleCollider _capsuleCollider;
+
+        // Sweep-based移動用の定数
+        private const float SkinWidth = 0.01f; // 壁との最小距離
+        private const float StepHeight = 0.3f; // この高さ以下の障害物は乗り越え可能
 
         // ステートマシーン
         private StateMachine<SDUnityChanPlayerController, StateEvent> _stateMachine;
@@ -85,6 +91,7 @@ namespace Game.ScoreTimeAttack.Player
             TryGetComponent(out _animator);
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
+            TryGetComponent(out _capsuleCollider);
 
             // ステートマシン初期化
             InitializeStateMachine();
@@ -130,7 +137,7 @@ namespace Game.ScoreTimeAttack.Player
 
         private void Awake()
         {
-            _inputSystem = new SDUnityChanInputSystem();
+            _inputSystem = new ProjectDefaultInputSystem();
             _player = _inputSystem.Player;
         }
 
@@ -154,12 +161,12 @@ namespace Game.ScoreTimeAttack.Player
         private void Update()
         {
             UpdateInput();
-            _stateMachine.Update();
+            _stateMachine?.Update();
         }
 
         private void FixedUpdate()
         {
-            _stateMachine.FixedUpdate();
+            _stateMachine?.FixedUpdate();
         }
 
         #endregion
@@ -255,6 +262,57 @@ namespace Game.ScoreTimeAttack.Player
             {
                 _animator.SetTrigger(_animatorHashDamaged);
             }
+        }
+
+        #endregion
+
+        #region Movement
+
+        /// <summary>
+        /// CapsuleCastで衝突チェックを行い、安全な移動量を計算
+        /// StepHeight以下の障害物は無視して乗り越え可能
+        /// </summary>
+        private Vector3 CalculateSafeMovement(Vector3 desiredMovement)
+        {
+            if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
+            {
+                return desiredMovement;
+            }
+
+            var moveDistance = desiredMovement.magnitude;
+            var moveDirection = desiredMovement.normalized;
+
+            // CapsuleColliderの上下端点を計算
+            // point2をStepHeight分上げることで、低い障害物を無視
+            var center = _rigidbody.position + _capsuleCollider.center;
+            var halfHeight = Mathf.Max(0f, _capsuleCollider.height * 0.5f - _capsuleCollider.radius);
+            var point1 = center + Vector3.up * halfHeight;
+            // StepHeightより上の位置から判定開始（低い障害物は無視）
+            var point2Bottom = center - Vector3.up * halfHeight;
+            var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
+
+            // point2がpoint1より上になってしまう場合は補正
+            if (point2.y > point1.y)
+            {
+                point2 = point1;
+            }
+
+            // CapsuleCastで衝突チェック
+            if (Physics.CapsuleCast(
+                point1, point2,
+                _capsuleCollider.radius,
+                moveDirection,
+                out var hit,
+                moveDistance + SkinWidth,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore))
+            {
+                // 衝突した場合、衝突点の手前までの移動に制限
+                var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
+                return moveDirection * safeDistance;
+            }
+
+            return desiredMovement;
         }
 
         #endregion
@@ -384,7 +442,10 @@ namespace Game.ScoreTimeAttack.Player
                     }
                 }
 
-                ctx._rigidbody.MovePosition(ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
+                // Sweep-based移動: 移動前にCapsuleCastで衝突チェック
+                var desiredMovement = ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime;
+                var safeMovement = ctx.CalculateSafeMovement(desiredMovement);
+                ctx._rigidbody.MovePosition(ctx._rigidbody.position + safeMovement);
 
                 if (ctx.IsMoveInput())
                 {
@@ -441,8 +502,10 @@ namespace Game.ScoreTimeAttack.Player
                     ctx._lookRotation = Quaternion.LookRotation(ctx._moveVector);
                 }
 
-                ctx._rigidbody.MovePosition(
-                    ctx._rigidbody.position + ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime);
+                // Sweep-based移動: 移動前にCapsuleCastで衝突チェック
+                var desiredMovement = ctx._moveVector * ctx._speed.Value * Time.fixedDeltaTime;
+                var safeMovement = ctx.CalculateSafeMovement(desiredMovement);
+                ctx._rigidbody.MovePosition(ctx._rigidbody.position + safeMovement);
 
                 if (ctx.IsMoveInput())
                 {
