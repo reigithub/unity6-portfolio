@@ -5,21 +5,20 @@ TagManager:
   serializedVersion: 3
   tags:
   - Enemy
-  - StageItem
-  - PlayerStart
-  - ExperienceOrb
   - Projectile
+  - Item
+  - PlayerStart
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
   - Player
-  - 
-  - 
-  - 
+  - Enemy
+  - Item
+  - Structure
   - 
   - 
   - 

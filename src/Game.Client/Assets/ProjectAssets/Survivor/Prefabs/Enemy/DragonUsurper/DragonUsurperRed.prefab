@@ -1225,7 +1225,7 @@ GameObject:
   - component: {fileID: 2737679039579240257}
   - component: {fileID: 6103365202581607082}
   - component: {fileID: 5113180855035363397}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: DragonUsurperRed
   m_TagString: Enemy
   m_Icon: {fileID: 0}

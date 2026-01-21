@@ -24,12 +24,12 @@ namespace Game.MVP.Survivor
         private readonly IAddressableAssetService _assetService;
         private readonly IMasterDataService _masterDataService;
         private readonly IAudioService _audioService;
+        private readonly IInputService _inputService;
         private readonly ISurvivorSaveService _saveService;
+        private readonly IPersistentObjectProvider _persistentObjectProvider;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
-
-        public IGameRootController GameRootController => _gameRootController;
 
         public SurvivorGameRunner(
             IObjectResolver container,
@@ -37,20 +37,25 @@ namespace Game.MVP.Survivor
             IAddressableAssetService assetService,
             IMasterDataService masterDataService,
             IAudioService audioService,
-            ISurvivorSaveService saveService)
+            IInputService inputService,
+            ISurvivorSaveService saveService,
+            IPersistentObjectProvider persistentObjectProvider)
         {
             _container = container;
             _sceneService = sceneService;
             _assetService = assetService;
             _masterDataService = masterDataService;
             _audioService = audioService;
+            _inputService = inputService;
             _saveService = saveService;
+            _persistentObjectProvider = persistentObjectProvider;
         }
 
         public async UniTask StartupAsync()
         {
             // 1. サービス起動
             _audioService.Startup();
+            _inputService.Startup();
 
             // 2. マスターデータ読み込み
             await _masterDataService.LoadMasterDataAsync();
@@ -87,6 +92,9 @@ namespace Game.MVP.Survivor
             if (_gameRootController != null)
             {
                 _gameRootController.Initialize();
+
+                // 永続オブジェクトとして登録
+                _persistentObjectProvider.Register<IGameRootController>(_gameRootController);
             }
             else
             {
@@ -99,11 +107,15 @@ namespace Game.MVP.Survivor
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();
 
-            // サービスシャットダウン
-            _audioService.Shutdown();
-
             // 全てのシーンを終了させる
             await _sceneService.TerminateAllAsync();
+
+            // サービスシャットダウン
+            _audioService.Shutdown();
+            _inputService.Shutdown();
+
+            // 永続オブジェクトの登録解除
+            _persistentObjectProvider.Clear();
 
             // 共通オブジェクト破棄
             if (_gameRootInstance != null)

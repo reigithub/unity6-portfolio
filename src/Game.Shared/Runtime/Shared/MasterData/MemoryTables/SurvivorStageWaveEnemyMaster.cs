@@ -34,5 +34,11 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         /// <summary>最大スポーン距離</summary>
         public int MaxSpawnDistance { get; set; }
+
+        /// <summary>アイテムドロップグループID（0=ドロップなし）</summary>
+        public int ItemDropGroupId { get; set; }
+
+        /// <summary>経験値ドロップグループID（0=ドロップなし）</summary>
+        public int ExpDropGroupId { get; set; }
     }
 }

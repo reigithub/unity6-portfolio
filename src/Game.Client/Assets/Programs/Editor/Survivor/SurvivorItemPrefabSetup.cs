@@ -70,77 +70,6 @@ namespace Game.Editor.Survivor
             Debug.Log($"[SurvivorItemPrefabSetup] Setup complete: {successCount} modified, {skipCount} skipped, {prefabPaths.Count} total prefabs.");
         }
 
-        [MenuItem("Tools/Survivor/Replace ExperienceOrb with SurvivorItem")]
-        public static void ReplaceExperienceOrbWithSurvivorItem()
-        {
-            var itemConfigs = LoadMasterData();
-            var prefabPaths = GetAllItemPrefabPaths();
-            int replacedCount = 0;
-
-            foreach (var prefabPath in prefabPaths)
-            {
-                var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (prefabAsset == null) continue;
-
-                // SurvivorExperienceOrbを持っているか確認
-#pragma warning disable 618
-                var oldComponent = prefabAsset.GetComponent<SurvivorExperienceOrb>();
-#pragma warning restore 618
-                if (oldComponent == null) continue;
-
-                var prefabName = Path.GetFileNameWithoutExtension(prefabPath);
-                var config = itemConfigs.FirstOrDefault(c => c.AssetName == prefabName);
-
-                // プレハブを編集用に開く
-                var prefabRoot = PrefabUtility.LoadPrefabContents(prefabPath);
-                if (prefabRoot == null) continue;
-
-                try
-                {
-                    // 古いコンポーネントを削除
-#pragma warning disable 618
-                    var oldComp = prefabRoot.GetComponent<SurvivorExperienceOrb>();
-#pragma warning restore 618
-                    if (oldComp != null)
-                    {
-                        Object.DestroyImmediate(oldComp);
-                    }
-
-                    // 新しいコンポーネントを追加
-                    var newItem = prefabRoot.AddComponent<SurvivorItem>();
-
-                    // 設定を適用
-                    if (config.AssetName != null)
-                    {
-                        ApplyConfig(newItem, config);
-                    }
-                    else
-                    {
-                        // マスタデータがない場合はデフォルト経験値として設定
-                        var so = new SerializedObject(newItem);
-                        so.FindProperty("_itemType").enumValueIndex = (int)SurvivorItemType.Experience;
-                        so.FindProperty("_effectValue").intValue = 5;
-                        so.FindProperty("_rarity").intValue = 1;
-                        so.ApplyModifiedPropertiesWithoutUndo();
-                    }
-
-                    PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
-                    replacedCount++;
-
-                    Debug.Log($"[SurvivorItemPrefabSetup] Replaced: {prefabName}");
-                }
-                finally
-                {
-                    PrefabUtility.UnloadPrefabContents(prefabRoot);
-                }
-            }
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            Debug.Log($"[SurvivorItemPrefabSetup] Replacement complete: {replacedCount} prefabs updated.");
-        }
-
         private static List<string> GetAllItemPrefabPaths()
         {
             var paths = new List<string>();
@@ -210,15 +139,6 @@ namespace Game.Editor.Survivor
                 var item = prefabRoot.GetComponent<SurvivorItem>();
                 if (item == null)
                 {
-                    // 古いExperienceOrbがあれば削除
-#pragma warning disable 618
-                    var oldComp = prefabRoot.GetComponent<SurvivorExperienceOrb>();
-#pragma warning restore 618
-                    if (oldComp != null)
-                    {
-                        Object.DestroyImmediate(oldComp);
-                    }
-
                     item = prefabRoot.AddComponent<SurvivorItem>();
                 }
 
@@ -226,7 +146,7 @@ namespace Game.Editor.Survivor
                 var meshCollider = prefabRoot.GetComponent<MeshCollider>();
                 if (meshCollider != null)
                 {
-                    meshCollider.convex = true;  // トリガーにはConvexが必要
+                    meshCollider.convex = true; // トリガーにはConvexが必要
                     meshCollider.isTrigger = true;
                 }
 

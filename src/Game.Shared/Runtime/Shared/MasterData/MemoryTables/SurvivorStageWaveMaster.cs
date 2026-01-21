@@ -37,5 +37,23 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         /// <summary>経験値倍率（%）</summary>
         public int ExperienceMultiplier { get; set; }
+
+        /// <summary>
+        /// ウェーブクリアに必要な撃破数
+        /// 0または未設定の場合はスポーン総数と同値（全撃破必要）
+        /// </summary>
+        public int TargetKillCount { get; set; }
+
+        /// <summary>
+        /// ウェーブクリアに必要なボス撃破数
+        /// 0の場合はボス撃破不要（通常敵のみでクリア可能）
+        /// </summary>
+        public int RequiredBossKills { get; set; }
+
+        /// <summary>
+        /// スコア倍率
+        /// Waveクリア時のスコア計算: 残り時間(秒) × ScoreMultiplier
+        /// </summary>
+        public int ScoreMultiplier { get; set; }
     }
 }

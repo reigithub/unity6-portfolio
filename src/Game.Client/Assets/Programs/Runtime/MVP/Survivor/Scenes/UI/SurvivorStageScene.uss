@@ -57,6 +57,28 @@
     color: rgb(100, 220, 255);
     -unity-font-style: bold;
     letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+/* Objective Display */
+.objective-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.objective-label {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 2px;
+    margin-right: 8px;
+}
+
+.enemies-text {
+    font-size: 24px;
+    color: rgb(255, 100, 100);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
 }
 
 .pause-button {
@@ -127,6 +149,32 @@
     -unity-font-style: bold;
     -unity-text-align: middle-center;
     margin-top: 4px;
+}
+
+/* Stamina Bar */
+.stamina-container {
+    margin-bottom: 8px;
+}
+
+.stamina-bar__background {
+    height: 16px;
+    background-color: rgba(60, 60, 20, 0.8);
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(200, 200, 60, 0.4);
+    overflow: hidden;
+}
+
+.stamina-bar__fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(200, 200, 60);
+    border-radius: 3px;
+    transition-duration: 0.1s;
+}
+
+.stamina-bar__fill--depleted {
+    background-color: rgb(150, 100, 60);
 }
 
 /* EXP Bar */
@@ -210,4 +258,49 @@
 
 .result-panel__title--victory {
     color: rgb(100, 220, 255);
+}
+
+/* ===========================================
+   Wave Banner
+   =========================================== */
+
+.wave-banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 25%;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: rgba(0, 0, 0, 0.7);
+    transition-duration: 0.3s;
+    transition-property: opacity, translate;
+    opacity: 1;
+    translate: 0 0;
+}
+
+.wave-banner--hidden {
+    opacity: 0;
+    translate: 0 -50px;
+    display: none;
+}
+
+.wave-banner--fade-out {
+    opacity: 0;
+    translate: 0 -30px;
+}
+
+.wave-banner__text {
+    font-size: 72px;
+    color: rgb(255, 200, 80);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+}
+
+.wave-banner__subtext {
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 4px;
+    margin-top: 8px;
 }

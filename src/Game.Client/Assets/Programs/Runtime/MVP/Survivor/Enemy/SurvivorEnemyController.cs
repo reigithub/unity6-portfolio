@@ -1,5 +1,6 @@
 using System;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
 using UnityEngine.AI;
@@ -20,10 +21,18 @@ namespace Game.MVP.Survivor.Enemy
 
         // マスターデータから設定される値
         private int _enemyId;
+        private int _enemyType;
         private int _maxHp;
         private int _attackDamage;
         private int _experienceValue;
         private float _moveSpeed;
+        private float _attackRange;
+        private float _attackCooldown;
+        private float _hitStunDuration;
+        private float _rotationSpeed;
+        private float _deathAnimDuration;
+        private int _itemDropGroupId;
+        private int _expDropGroupId;
 
         // State
         private int _currentHp;
@@ -36,9 +45,18 @@ namespace Game.MVP.Survivor.Enemy
 
         // Public properties
         public int EnemyId => _enemyId;
+        /// <summary>敵タイプ（1:通常, 2:エリート, 3:ボス）</summary>
+        public int EnemyType => _enemyType;
+        public bool IsBoss => _enemyType == 3;
         public int AttackDamage => _attackDamage;
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
+        /// <summary>死亡アニメーション時間（秒）</summary>
+        public float DeathAnimDuration => _deathAnimDuration;
+        /// <summary>アイテムドロップグループID（0=ドロップなし）</summary>
+        public int ItemDropGroupId => _itemDropGroupId;
+        /// <summary>経験値ドロップグループID（0=ドロップなし）</summary>
+        public int ExpDropGroupId => _expDropGroupId;
 
         // Animator hashes
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -72,16 +90,28 @@ namespace Game.MVP.Survivor.Enemy
             float speedMultiplier = 1f,
             float healthMultiplier = 1f,
             float damageMultiplier = 1f,
-            float experienceMultiplier = 1f)
+            float experienceMultiplier = 1f,
+            int itemDropGroupId = 0,
+            int expDropGroupId = 0)
         {
             _enemyId = master.Id;
+            _enemyType = master.EnemyType;
             _target = target;
+            _itemDropGroupId = itemDropGroupId;
+            _expDropGroupId = expDropGroupId;
 
             // マスターデータからパラメータ設定（倍率適用）
             _maxHp = Mathf.RoundToInt(master.BaseHp * healthMultiplier);
             _attackDamage = Mathf.RoundToInt(master.BaseDamage * damageMultiplier);
             _experienceValue = Mathf.RoundToInt(master.ExperienceValue * experienceMultiplier);
-            _moveSpeed = master.MoveSpeed * speedMultiplier;
+            _moveSpeed = master.MoveSpeed.ToUnit() * speedMultiplier;
+
+            // 戦闘パラメータ
+            _attackRange = master.AttackRange.ToUnit();
+            _attackCooldown = master.AttackCooldown.ToSeconds();
+            _hitStunDuration = master.HitStunDuration.ToSeconds();
+            _rotationSpeed = master.RotationSpeed;
+            _deathAnimDuration = master.DeathAnimDuration.ToSeconds();
 
             _currentHp = _maxHp;
             _isDead = false;

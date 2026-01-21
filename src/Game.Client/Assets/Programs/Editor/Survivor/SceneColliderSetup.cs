@@ -206,6 +206,153 @@ namespace Game.Editor.Survivor
             }
         }
 
+        [MenuItem("Project/Survivor/Setup Ground Layer Only")]
+        public static void SetupGroundLayerOnly()
+        {
+            int changedCount = 0;
+            var groundLayer = LayerMask.NameToLayer("Ground");
+
+            if (groundLayer == -1)
+            {
+                Debug.LogError("Layer 'Ground' not found. Please create it in Edit > Project Settings > Tags and Layers.");
+                return;
+            }
+
+            var allMeshRenderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
+
+            foreach (var meshRenderer in allMeshRenderers)
+            {
+                var go = meshRenderer.gameObject;
+                var nameLower = go.name.ToLower();
+                var parentNameLower = go.transform.parent != null ? go.transform.parent.name.ToLower() : "";
+
+                if (ShouldExclude(nameLower)) continue;
+
+                if (IsGroundObject(nameLower, parentNameLower))
+                {
+                    if (go.layer != groundLayer)
+                    {
+                        Undo.RecordObject(go, "Set Ground Layer");
+                        go.layer = groundLayer;
+                        changedCount++;
+                        Debug.Log($"Ground layer set: {go.name}");
+                    }
+                }
+            }
+
+            Debug.Log($"=== Ground Layer Setup Complete ===");
+            Debug.Log($"Changed: {changedCount} objects to 'Ground' layer");
+
+            if (changedCount > 0)
+            {
+                EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            }
+        }
+
+        [MenuItem("Project/Survivor/Setup Structure Layer Only")]
+        public static void SetupStructureLayerOnly()
+        {
+            int changedCount = 0;
+            var obstacleLayer = LayerMask.NameToLayer("Structure");
+
+            if (obstacleLayer == -1)
+            {
+                Debug.LogError("Layer 'Structure' not found. Please create it in Edit > Project Settings > Tags and Layers.");
+                return;
+            }
+
+            var allMeshRenderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
+
+            foreach (var meshRenderer in allMeshRenderers)
+            {
+                var go = meshRenderer.gameObject;
+                var nameLower = go.name.ToLower();
+                var parentNameLower = go.transform.parent != null ? go.transform.parent.name.ToLower() : "";
+
+                if (ShouldExclude(nameLower)) continue;
+
+                if (IsStructureObject(nameLower, parentNameLower))
+                {
+                    if (go.layer != obstacleLayer)
+                    {
+                        Undo.RecordObject(go, "Set Structure Layer");
+                        go.layer = obstacleLayer;
+                        changedCount++;
+                        Debug.Log($"Structure layer set: {go.name}");
+                    }
+                }
+            }
+
+            Debug.Log($"=== Structure Layer Setup Complete ===");
+            Debug.Log($"Changed: {changedCount} objects to 'Structure' layer");
+
+            if (changedCount > 0)
+            {
+                EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            }
+        }
+
+        [MenuItem("Project/Survivor/Setup All Layers (Ground + Structure)")]
+        public static void SetupAllLayers()
+        {
+            int groundCount = 0;
+            int structureCount = 0;
+
+            var groundLayer = LayerMask.NameToLayer("Ground");
+            var obstacleLayer = LayerMask.NameToLayer("Structure");
+
+            if (groundLayer == -1)
+            {
+                Debug.LogError("Layer 'Ground' not found. Please create it in Edit > Project Settings > Tags and Layers.");
+                return;
+            }
+
+            if (obstacleLayer == -1)
+            {
+                Debug.LogError("Layer 'Structure' not found. Please create it in Edit > Project Settings > Tags and Layers.");
+                return;
+            }
+
+            var allMeshRenderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
+
+            foreach (var meshRenderer in allMeshRenderers)
+            {
+                var go = meshRenderer.gameObject;
+                var nameLower = go.name.ToLower();
+                var parentNameLower = go.transform.parent != null ? go.transform.parent.name.ToLower() : "";
+
+                if (ShouldExclude(nameLower)) continue;
+
+                if (IsGroundObject(nameLower, parentNameLower))
+                {
+                    if (go.layer != groundLayer)
+                    {
+                        Undo.RecordObject(go, "Set Ground Layer");
+                        go.layer = groundLayer;
+                        groundCount++;
+                    }
+                }
+                else if (IsStructureObject(nameLower, parentNameLower))
+                {
+                    if (go.layer != obstacleLayer)
+                    {
+                        Undo.RecordObject(go, "Set Structure Layer");
+                        go.layer = obstacleLayer;
+                        structureCount++;
+                    }
+                }
+            }
+
+            Debug.Log($"=== All Layers Setup Complete ===");
+            Debug.Log($"Ground layer: {groundCount} objects");
+            Debug.Log($"Structure layer: {structureCount} objects");
+
+            if (groundCount > 0 || structureCount > 0)
+            {
+                EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            }
+        }
+
         [MenuItem("Project/Survivor/List Objects Without Colliders")]
         public static void ListObjectsWithoutColliders()
         {

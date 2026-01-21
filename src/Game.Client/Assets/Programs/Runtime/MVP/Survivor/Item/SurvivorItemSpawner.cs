@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData;
 using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVP.Survivor.Enemy;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -18,37 +20,63 @@ namespace Game.MVP.Survivor.Item
     {
         [Header("Settings")]
         [SerializeField] private int _poolSizePerItem = 50;
-        [SerializeField] private string _itemPrefabBasePath = "Assets/StoreAssets/BTM_Assets/BTM_Items_Gems/Prefabs/";
 
         // DI
         [Inject] private IAddressableAssetService _assetService;
         [Inject] private IMasterDataService _masterDataService;
-        private MemoryDatabase Database => _masterDataService.MemoryDatabase;
+        private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         // Pools (ItemId -> Pool)
         private readonly Dictionary<int, Queue<SurvivorItem>> _pools = new();
         private readonly Dictionary<int, List<SurvivorItem>> _activeItems = new();
         private readonly Dictionary<int, GameObject> _prefabCache = new();
         private readonly Dictionary<int, SurvivorItemMaster> _masterCache = new();
+        // ドロップグループキャッシュ (GroupId -> List<SurvivorItemDropMaster>)
+        private readonly Dictionary<int, List<SurvivorItemDropMaster>> _dropGroupCache = new();
 
         // Events
         private readonly Subject<SurvivorItem> _onItemCollected = new();
         public Observable<SurvivorItem> OnItemCollected => _onItemCollected;
 
-        // 経験値収集イベント（後方互換性）
-        private readonly Subject<int> _onExperienceCollected = new();
-        public Observable<int> OnExperienceCollected => _onExperienceCollected;
-
-        public async UniTask InitializeAsync()
+        public UniTask InitializeAsync()
         {
-            // マスタデータをキャッシュ
-            var items = Database.SurvivorItemMasterTable.All;
-            foreach (var item in items)
+            Debug.Log("[SurvivorItemSpawner] Initialized (lazy loading enabled)");
+            return UniTask.CompletedTask;
+        }
+
+        /// <summary>
+        /// アイテムマスターを取得（遅延読み込み＆キャッシュ）
+        /// </summary>
+        private SurvivorItemMaster GetOrAddItemMaster(int itemId)
+        {
+            if (_masterCache.TryGetValue(itemId, out var cached))
+                return cached;
+
+            if (MemoryDatabase.SurvivorItemMasterTable.TryFindById(itemId, out var master))
             {
-                _masterCache[item.Id] = item;
+                _masterCache[itemId] = master;
+                return master;
             }
 
-            Debug.Log($"[SurvivorItemSpawner] Initialized with {_masterCache.Count} item types");
+            return null;
+        }
+
+        /// <summary>
+        /// ドロップグループを取得（遅延読み込み＆キャッシュ）
+        /// </summary>
+        private List<SurvivorItemDropMaster> GetOrAddDropGroup(int groupId)
+        {
+            if (_dropGroupCache.TryGetValue(groupId, out var cached))
+                return cached;
+
+            var dropList = MemoryDatabase.SurvivorItemDropMasterTable.FindByGroupId(groupId).ToList();
+            if (dropList.Count > 0)
+            {
+                _dropGroupCache[groupId] = dropList;
+                return dropList;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -57,7 +85,9 @@ namespace Game.MVP.Survivor.Item
         public async UniTask PreloadItemAsync(int itemId)
         {
             if (_pools.ContainsKey(itemId)) return;
-            if (!_masterCache.TryGetValue(itemId, out var master)) return;
+
+            var master = GetOrAddItemMaster(itemId);
+            if (master == null) return;
 
             var prefab = await LoadPrefabAsync(master.AssetName);
             if (prefab == null) return;
@@ -71,21 +101,6 @@ namespace Game.MVP.Survivor.Item
                 var item = CreateItem(itemId, prefab, master);
                 item.gameObject.SetActive(false);
                 _pools[itemId].Enqueue(item);
-            }
-        }
-
-        /// <summary>
-        /// 経験値アイテム（デフォルト小）を事前読み込み
-        /// </summary>
-        public async UniTask PreloadExperienceOrbsAsync()
-        {
-            // 経験値アイテム（ItemType == 1）を全て読み込み
-            foreach (var kvp in _masterCache)
-            {
-                if (kvp.Value.ItemType == (int)SurvivorItemType.Experience)
-                {
-                    await PreloadItemAsync(kvp.Key);
-                }
             }
         }
 
@@ -121,7 +136,7 @@ namespace Game.MVP.Survivor.Item
                 master.EffectRange,
                 master.EffectDuration,
                 master.Rarity,
-                master.Scale
+                master.Scale.ToScale()
             );
 
             item.OnCollected += OnItemCollectedHandler;
@@ -134,7 +149,8 @@ namespace Game.MVP.Survivor.Item
         /// </summary>
         public void SpawnItem(int itemId, Vector3 position)
         {
-            if (!_masterCache.TryGetValue(itemId, out var master))
+            var master = GetOrAddItemMaster(itemId);
+            if (master == null)
             {
                 Debug.LogWarning($"[SurvivorItemSpawner] Unknown item ID: {itemId}");
                 return;
@@ -168,39 +184,69 @@ namespace Game.MVP.Survivor.Item
         }
 
         /// <summary>
-        /// 経験値をスポーン（後方互換性）
-        /// 経験値量に応じて適切なアイテムを選択
-        /// </summary>
-        public void SpawnExperience(Vector3 position, int experienceValue)
-        {
-            // 経験値量に最も近いアイテムを選択
-            int bestItemId = 1; // デフォルト
-            int bestDiff = int.MaxValue;
-
-            foreach (var kvp in _masterCache)
-            {
-                if (kvp.Value.ItemType == (int)SurvivorItemType.Experience)
-                {
-                    int diff = Mathf.Abs(kvp.Value.EffectValue - experienceValue);
-                    if (diff < bestDiff)
-                    {
-                        bestDiff = diff;
-                        bestItemId = kvp.Key;
-                    }
-                }
-            }
-
-            SpawnItem(bestItemId, position);
-        }
-
-        /// <summary>
         /// 敵の死亡イベントに接続
         /// </summary>
         public void ConnectToEnemySpawner(SurvivorEnemySpawner enemySpawner)
         {
             enemySpawner.OnEnemyKilled
-                .Subscribe(enemy => { SpawnExperience(enemy.transform.position, enemy.ExperienceValue); })
+                .Subscribe(enemy => OnEnemyKilledHandler(enemy))
                 .AddTo(this);
+        }
+
+        /// <summary>
+        /// 敵死亡時のドロップ処理
+        /// </summary>
+        private void OnEnemyKilledHandler(SurvivorEnemyController enemy)
+        {
+            var position = enemy.transform.position;
+
+            // アイテムドロップ抽選
+            TrySpawnFromDropGroup(enemy.ItemDropGroupId, position);
+
+            // 経験値ドロップ抽選
+            TrySpawnFromDropGroup(enemy.ExpDropGroupId, position);
+        }
+
+        /// <summary>
+        /// ドロップグループからアイテムをスポーン（抽選失敗の場合は何もしない）
+        /// </summary>
+        private void TrySpawnFromDropGroup(int dropGroupId, Vector3 position)
+        {
+            if (dropGroupId <= 0) return;
+
+            var dropList = GetOrAddDropGroup(dropGroupId);
+            if (dropList == null) return;
+
+            var itemId = RollDropFromGroup(dropList);
+            if (itemId > 0)
+            {
+                SpawnItem(itemId, position);
+            }
+        }
+
+        /// <summary>
+        /// ドロップグループからアイテムをロール
+        /// 確率が10000（100%）に満たない場合は不足分がドロップ失敗となる
+        /// </summary>
+        private int RollDropFromGroup(List<SurvivorItemDropMaster> dropList)
+        {
+            if (dropList == null || dropList.Count == 0) return 0;
+
+            // 0〜9999でロール（10000 = 100%）
+            var roll = Random.Range(0, 10000);
+            var cumulative = 0;
+
+            foreach (var drop in dropList)
+            {
+                cumulative += drop.DropRate;
+                if (roll < cumulative)
+                {
+                    return drop.ItemId;
+                }
+            }
+
+            // 確率不足分はドロップ失敗
+            return 0;
         }
 
         /// <summary>
@@ -256,13 +302,6 @@ namespace Game.MVP.Survivor.Item
         private void OnItemCollectedHandler(SurvivorItem item)
         {
             _onItemCollected.OnNext(item);
-
-            // 経験値の場合は後方互換イベントも発火
-            if (item.ItemType == SurvivorItemType.Experience)
-            {
-                _onExperienceCollected.OnNext(item.EffectValue);
-            }
-
             ReturnToPool(item);
         }
 
@@ -288,7 +327,6 @@ namespace Game.MVP.Survivor.Item
         private void OnDestroy()
         {
             _onItemCollected.Dispose();
-            _onExperienceCollected.Dispose();
         }
     }
 }

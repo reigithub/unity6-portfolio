@@ -128,6 +128,9 @@ namespace Game.MVP.Survivor.SaveData
         /// <summary>クリア時間（秒）</summary>
         public float ClearTime { get; set; }
 
+        /// <summary>残りHP割合（0.0〜1.0）</summary>
+        public float HpRatio { get; set; }
+
         /// <summary>勝利したか</summary>
         public bool IsVictory { get; set; }
 

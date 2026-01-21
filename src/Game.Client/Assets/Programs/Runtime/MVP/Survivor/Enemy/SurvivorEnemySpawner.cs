@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData;
-using Game.MVP.Core.Services;
+using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVP.Survivor.Services;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -18,8 +20,19 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class SurvivorEnemySpawner : MonoBehaviour
     {
+        // Constants
+        private const float SpawnRetryDelay = 0.5f;
+        private const float DefaultMinSpawnDistance = 12f;
+        private const float DefaultMaxSpawnDistance = 18f;
+        private const int MaxSpawnAttempts = 10;
+        private const float SpawnHeightOffset = 0.5f;
+
         [Header("Pool Settings")]
         [SerializeField] private int _poolSizePerEnemy = 20;
+
+        [Header("Spawn Settings")]
+        [Tooltip("スポーン時の衝突チェック対象レイヤー（Structureレイヤー推奨）")]
+        [SerializeField] private LayerMask _obstacleLayerMask;
 
         [Header("References")]
         [SerializeField] private Transform _playerTransform;
@@ -57,6 +70,22 @@ namespace Game.MVP.Survivor.Enemy
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
         {
             _waveManager = waveManager;
+
+            // レイヤーマスクが未設定の場合、Structureレイヤーを使用
+            if (_obstacleLayerMask == 0)
+            {
+                if (LayerConstants.Structure != -1)
+                {
+                    _obstacleLayerMask = LayerMaskConstants.Structure;
+                    Debug.Log($"[SurvivorEnemySpawner] Using 'Structure' layer for spawn collision check");
+                }
+                else
+                {
+                    // Structureレイヤーがない場合は全レイヤー（Defaultを除く）
+                    _obstacleLayerMask = ~LayerMaskConstants.Default;
+                    Debug.LogWarning("[SurvivorEnemySpawner] 'Structure' layer not found, using all layers except Default");
+                }
+            }
 
             // 全ての敵タイプのプレハブを事前読み込み
             var allEnemies = MemoryDatabase.SurvivorEnemyMasterTable.All;
@@ -123,11 +152,13 @@ namespace Game.MVP.Survivor.Enemy
             {
                 return;
             }
+
             if (_playerTransform == null)
             {
                 Debug.LogWarning("[SurvivorEnemySpawner] Update: _playerTransform is null");
                 return;
             }
+
             if (_enemySpawnList == null || _enemySpawnList.Count == 0)
             {
                 Debug.LogWarning($"[SurvivorEnemySpawner] Update: _enemySpawnList is null or empty. List={_enemySpawnList}, Count={_enemySpawnList?.Count ?? 0}");
@@ -158,6 +189,15 @@ namespace Game.MVP.Survivor.Enemy
                 return;
             }
 
+            // 同時存在数制限チェック（マスターデータのMaxConcurrentを参照）
+            if (!CanSpawnEnemy(enemyMaster))
+            {
+                // 制限に達している場合はスキップして次の敵タイプを試す
+                _spawnTimer = SpawnRetryDelay;
+                _currentSpawnIndex++;
+                return;
+            }
+
             var enemy = GetFromPool(spawnInfo.EnemyId);
             if (enemy == null)
             {
@@ -171,14 +211,22 @@ namespace Game.MVP.Survivor.Enemy
                 return;
             }
 
-            // スポーン位置計算
-            float minDist = spawnInfo.MinSpawnDistance > 0 ? spawnInfo.MinSpawnDistance : 10f;
-            float maxDist = spawnInfo.MaxSpawnDistance > 0 ? spawnInfo.MaxSpawnDistance : 15f;
-            Vector3 spawnPosition = GetRandomSpawnPosition(minDist, maxDist);
+            // スポーン位置計算（マスターデータのSpawnRadiusでコライダーチェック）
+            float minDist = spawnInfo.MinSpawnDistance > 0 ? spawnInfo.MinSpawnDistance : DefaultMinSpawnDistance;
+            float maxDist = spawnInfo.MaxSpawnDistance > 0 ? spawnInfo.MaxSpawnDistance : DefaultMaxSpawnDistance;
+            float spawnRadius = enemyMaster.SpawnRadius.ToUnit(); // 1000倍値から実数に変換
+
+            if (!TryGetValidSpawnPosition(minDist, maxDist, spawnRadius, out var spawnPosition))
+            {
+                // 有効なスポーン位置が見つからない場合は次回に延期
+                _spawnTimer = SpawnRetryDelay;
+                Debug.LogWarning($"[SurvivorEnemySpawner] Could not find valid spawn position for {enemyMaster.Name}, retrying later");
+                return;
+            }
 
             enemy.transform.position = spawnPosition;
             enemy.gameObject.SetActive(true);
-            Debug.Log($"[SurvivorEnemySpawner] Spawned enemy {enemyMaster.Name} at {spawnPosition}, Active={enemy.gameObject.activeSelf}");
+            Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
 
             // マスターデータから初期化
             enemy.Initialize(
@@ -187,7 +235,9 @@ namespace Game.MVP.Survivor.Enemy
                 _currentSpawnInfo.EnemySpeedMultiplier,
                 _currentSpawnInfo.EnemyHealthMultiplier,
                 _currentSpawnInfo.EnemyDamageMultiplier,
-                _currentSpawnInfo.ExperienceMultiplier
+                _currentSpawnInfo.ExperienceMultiplier,
+                spawnInfo.ItemDropGroupId,
+                spawnInfo.ExpDropGroupId
             );
 
             _activeEnemies.Add(enemy);
@@ -199,6 +249,65 @@ namespace Game.MVP.Survivor.Enemy
             {
                 _isSpawning = false;
             }
+        }
+
+        /// <summary>
+        /// 指定した敵がスポーン可能か（同時存在数制限チェック）
+        /// マスターデータのMaxConcurrentを参照（0=無制限）
+        /// </summary>
+        private bool CanSpawnEnemy(SurvivorEnemyMaster enemyMaster)
+        {
+            var maxConcurrent = enemyMaster.MaxConcurrent;
+
+            // 0は無制限
+            if (maxConcurrent <= 0)
+                return true;
+
+            // 同じ敵IDのアクティブ数をカウント
+            var activeCount = GetActiveCountByEnemyId(enemyMaster.Id);
+            return activeCount < maxConcurrent;
+        }
+
+        /// <summary>
+        /// 指定した敵IDのアクティブ数を取得
+        /// </summary>
+        private int GetActiveCountByEnemyId(int enemyId)
+        {
+            int count = 0;
+            foreach (var enemy in _activeEnemies)
+            {
+                if (enemy != null && !enemy.IsDead && enemy.EnemyId == enemyId)
+                    count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// 有効なスポーン位置を取得（コライダーチェック付き）
+        /// </summary>
+        /// <param name="minDistance">最小距離</param>
+        /// <param name="maxDistance">最大距離</param>
+        /// <param name="spawnRadius">敵の衝突判定半径</param>
+        /// <param name="position">有効なスポーン位置（成功時）</param>
+        /// <returns>有効な位置が見つかった場合true</returns>
+        private bool TryGetValidSpawnPosition(float minDistance, float maxDistance, float spawnRadius, out Vector3 position)
+        {
+            for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
+            {
+                var candidatePosition = GetRandomSpawnPosition(minDistance, maxDistance);
+
+                // スポーン位置が有効かチェック
+                if (IsValidSpawnPosition(candidatePosition, spawnRadius))
+                {
+                    position = candidatePosition;
+                    return true;
+                }
+            }
+
+            // 全ての試行が失敗した場合、コライダーチェックなしで位置を返す（フォールバック）
+            position = GetRandomSpawnPosition(minDistance, maxDistance);
+            return true; // フォールバックとして常に成功扱い
         }
 
         private Vector3 GetRandomSpawnPosition(float minDistance, float maxDistance)
@@ -213,6 +322,22 @@ namespace Game.MVP.Survivor.Enemy
             );
 
             return _playerTransform.position + offset;
+        }
+
+        /// <summary>
+        /// スポーン位置が有効かチェック（構造物との衝突判定）
+        /// </summary>
+        /// <param name="position">チェックする位置</param>
+        /// <param name="radius">敵の衝突判定半径</param>
+        /// <returns>有効な場合true</returns>
+        private bool IsValidSpawnPosition(Vector3 position, float radius)
+        {
+            // 地面より少し上からチェック（敵の中心位置）
+            var checkPosition = position + Vector3.up * SpawnHeightOffset;
+
+            // 指定半径の球でコライダーチェック（障害物がなければtrue）
+            // QueryTriggerInteraction.Ignoreでトリガーコライダーは無視
+            return !Physics.CheckSphere(checkPosition, radius, _obstacleLayerMask, QueryTriggerInteraction.Ignore);
         }
 
         private SurvivorEnemyController GetFromPool(int enemyId)
@@ -248,13 +373,14 @@ namespace Game.MVP.Survivor.Enemy
             _activeEnemies.Remove(enemy);
             _onEnemyKilled.OnNext(enemy);
 
-            // 少し待ってからプールに戻す（死亡アニメーション再生のため）
-            Observable.Timer(TimeSpan.FromSeconds(1f))
+            // 死亡アニメーション再生後にプールに戻す（マスターデータから時間を取得）
+            var deathDelay = enemy.DeathAnimDuration;
+            Observable.Timer(TimeSpan.FromSeconds(deathDelay))
                 .Subscribe(_ => ReturnToPool(enemy))
                 .AddTo(this);
 
-            // ウェーブサービスに通知
-            _waveManager.OnEnemyKilled();
+            // ウェーブサービスに通知（ボスかどうかも伝える）
+            _waveManager.OnEnemyKilled(enemy.IsBoss);
         }
 
         /// <summary>

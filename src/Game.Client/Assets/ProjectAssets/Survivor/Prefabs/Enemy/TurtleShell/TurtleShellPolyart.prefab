@@ -903,7 +903,7 @@ GameObject:
   - component: {fileID: 2878181655799567387}
   - component: {fileID: 4641017195633115336}
   - component: {fileID: 8303194171675301675}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: TurtleShellPolyart
   m_TagString: Enemy
   m_Icon: {fileID: 0}

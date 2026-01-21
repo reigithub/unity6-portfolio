@@ -1164,7 +1164,7 @@ GameObject:
   - component: {fileID: 4624385510383345130}
   - component: {fileID: 7874897740980750824}
   - component: {fileID: 1538592446192910689}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: DragonNightmareDarkBlue
   m_TagString: Enemy
   m_Icon: {fileID: 0}

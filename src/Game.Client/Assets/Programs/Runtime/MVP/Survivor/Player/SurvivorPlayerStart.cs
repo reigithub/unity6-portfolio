@@ -27,7 +27,10 @@ namespace Game.MVP.Survivor.Player
         /// <summary>
         /// プレイヤーを生成し初期化する
         /// </summary>
-        public async UniTask<SurvivorPlayerController> LoadPlayerAsync(SurvivorPlayerMaster playerMaster)
+        /// <param name="resolver"></param>
+        /// <param name="playerMaster">プレイヤー基本情報（AssetName取得用）</param>
+        /// <param name="levelMaster">レベル依存ステータス（初期化用）</param>
+        public async UniTask<SurvivorPlayerController> LoadPlayerAsync(IObjectResolver resolver, SurvivorPlayerMaster playerMaster, SurvivorPlayerLevelMaster levelMaster)
         {
             if (_addressableService == null)
             {
@@ -50,10 +53,12 @@ namespace Game.MVP.Survivor.Player
                 return null;
             }
 
+            resolver.Inject(playerController);
+
             _spawnedPlayer = playerController;
 
             // プレイヤー初期化（VContainerからのInjectは親スコープから行われる）
-            playerController.Initialize(playerMaster);
+            playerController.Initialize(levelMaster);
 
             Debug.Log($"[SurvivorPlayerStart] Player spawned: {playerMaster.Name} at {transform.position}");
 

@@ -1319,6 +1319,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemySpawner
   _poolSizePerEnemy: 20
+  _obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 119
   _playerTransform: {fileID: 0}
 --- !u!1 &4359839759534381487
 GameObject:

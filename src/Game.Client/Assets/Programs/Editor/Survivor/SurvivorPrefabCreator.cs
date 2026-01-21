@@ -29,7 +29,7 @@ namespace Game.Editor.Survivor
             CreatePlayerPrefab();
             CreateEnemyPrefabs();
             CreateProjectilePrefab();
-            CreateExperienceOrbPrefab();
+            // CreateItemPrefab();
             AssetDatabase.Refresh();
             Debug.Log("[SurvivorPrefabCreator] All prefabs created successfully!");
         }
@@ -200,50 +200,6 @@ namespace Game.Editor.Survivor
             Debug.Log($"[SurvivorPrefabCreator] Created: {prefabPath}");
         }
 
-        [MenuItem("Tools/Survivor/Create Experience Orb Prefab")]
-        public static void CreateExperienceOrbPrefab()
-        {
-            AddTag("ExperienceOrb"); // タグを確保
-            EnsureDirectories();
-
-            var orbGo = new GameObject("ExperienceOrb");
-
-            // Collider (トリガー)
-            var collider = orbGo.AddComponent<SphereCollider>();
-            collider.radius = 0.3f;
-            collider.isTrigger = true;
-
-            // ExperienceOrb
-            var orb = orbGo.AddComponent<SurvivorExperienceOrb>();
-
-            // Visual (Sphere with emission)
-            var visualGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            visualGo.name = "Visual";
-            visualGo.transform.SetParent(orbGo.transform);
-            visualGo.transform.localPosition = Vector3.zero;
-            visualGo.transform.localScale = Vector3.one * 0.4f;
-            Object.DestroyImmediate(visualGo.GetComponent<SphereCollider>());
-
-            // マテリアル設定（発光）
-            var renderer = visualGo.GetComponent<MeshRenderer>();
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            mat.color = new Color(0.2f, 0.8f, 1f);
-            mat.EnableKeyword("_EMISSION");
-            mat.SetColor("_EmissionColor", new Color(0.2f, 0.8f, 1f) * 2f);
-            renderer.sharedMaterial = mat;
-            AssetDatabase.CreateAsset(mat, $"{ItemPath}/ExperienceOrbMaterial.mat");
-
-            // Tag設定
-            orbGo.tag = "ExperienceOrb";
-
-            // プレハブ保存
-            var prefabPath = $"{ItemPath}/ExperienceOrb.prefab";
-            PrefabUtility.SaveAsPrefabAsset(orbGo, prefabPath);
-            Object.DestroyImmediate(orbGo);
-
-            Debug.Log($"[SurvivorPrefabCreator] Created: {prefabPath}");
-        }
-
         private static void EnsureDirectories()
         {
             CreateDirectoryIfNotExists(BasePath);
@@ -318,9 +274,9 @@ namespace Game.Editor.Survivor
             weaponGo.AddComponent<SurvivorWeaponManager>();
 
             // Experience Orb Spawner
-            var orbSpawnerGo = new GameObject("ExperienceOrbSpawner");
+            var orbSpawnerGo = new GameObject("ItemSpawner");
             orbSpawnerGo.transform.SetParent(sceneGo.transform);
-            orbSpawnerGo.AddComponent<SurvivorExperienceOrbSpawner>();
+            orbSpawnerGo.AddComponent<SurvivorItemSpawner>();
 
             // プレハブ保存
             var prefabPath = $"{BasePath}/Scenes/SurvivorStageScene.prefab";

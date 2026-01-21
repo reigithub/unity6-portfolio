@@ -1,6 +1,7 @@
 using System;
 using Game.Library.Shared.MasterData;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using VContainer;
@@ -18,6 +19,8 @@ namespace Game.MVP.Survivor.Models
 
         private SurvivorPlayerMaster _playerMaster;
         private SurvivorStageMaster _stageMaster;
+        private SurvivorPlayerLevelMaster _currentLevelMaster;
+        private int _playerId;
 
         // プレイヤー状態
         public ReactiveProperty<int> CurrentHp { get; } = new(100);
@@ -40,6 +43,7 @@ namespace Game.MVP.Survivor.Models
 
         public SurvivorPlayerMaster PlayerMaster => _playerMaster;
         public SurvivorStageMaster StageMaster => _stageMaster;
+        public SurvivorPlayerLevelMaster CurrentLevelMaster => _currentLevelMaster;
         public bool IsDead => CurrentHp.Value <= 0;
 
         /// <summary>制限時間（秒）。0以下は無制限</summary>
@@ -51,6 +55,7 @@ namespace Game.MVP.Survivor.Models
         public void Initialize(int playerId, int stageId)
         {
             var memoryDb = _masterDataService.MemoryDatabase;
+            _playerId = playerId;
 
             if (!memoryDb.SurvivorPlayerMasterTable.TryFindById(playerId, out _playerMaster))
             {
@@ -62,10 +67,9 @@ namespace Game.MVP.Survivor.Models
                 throw new InvalidOperationException($"Stage master not found: {stageId}");
             }
 
-            MaxHp.Value = _playerMaster.MaxHp;
-            CurrentHp.Value = _playerMaster.MaxHp;
-
+            // レベル1のステータスを取得
             UpdateLevelStats();
+            CurrentHp.Value = MaxHp.Value;
         }
 
         public void AddExperience(int amount)
@@ -82,20 +86,29 @@ namespace Game.MVP.Survivor.Models
 
         private void UpdateLevelStats()
         {
-            if (_masterDataService.MemoryDatabase.SurvivorLevelUpMasterTable.TryFindByLevel(Level.Value, out var levelMaster))
+            var memoryDb = _masterDataService.MemoryDatabase;
+
+            if (memoryDb.SurvivorPlayerLevelMasterTable.TryFindByPlayerIdAndLevel((_playerId, Level.Value), out var levelMaster))
             {
-                ExperienceToNextLevel.Value = levelMaster.RequiredExperience;
+                var previousMaxHp = _currentLevelMaster?.MaxHp ?? 0;
+                _currentLevelMaster = levelMaster;
+
+                // ステータス更新
+                MaxHp.Value = levelMaster.MaxHp;
+                ExperienceToNextLevel.Value = levelMaster.RequiredExp;
                 DamageBonus.Value = levelMaster.DamageBonus;
                 WeaponChoiceCount.Value = levelMaster.WeaponChoiceCount;
 
-                if (levelMaster.HpBonus > 0)
+                // レベルアップ時のHP増加（差分を回復）
+                if (previousMaxHp > 0 && levelMaster.MaxHp > previousMaxHp)
                 {
-                    MaxHp.Value += levelMaster.HpBonus;
-                    CurrentHp.Value = Math.Min(CurrentHp.Value + levelMaster.HpBonus, MaxHp.Value);
+                    var hpIncrease = levelMaster.MaxHp - previousMaxHp;
+                    CurrentHp.Value = Math.Min(CurrentHp.Value + hpIncrease, MaxHp.Value);
                 }
             }
             else
             {
+                // フォールバック（マスターデータが見つからない場合）
                 ExperienceToNextLevel.Value = 10 + (Level.Value * 5);
             }
         }
@@ -113,12 +126,35 @@ namespace Game.MVP.Survivor.Models
         public void AddKill()
         {
             TotalKills.Value++;
-            Score.Value += 100;
+            // スコアはWaveクリア時の残り時間で計算するため、ここでは加算しない
+        }
+
+        /// <summary>
+        /// Waveクリア時のスコアを加算
+        /// 残り時間とHP%が多いほど高スコア
+        /// </summary>
+        /// <param name="waveNumber">クリアしたWave番号</param>
+        /// <param name="remainingTime">残り時間（秒）</param>
+        /// <param name="scoreMultiplier">スコア倍率（マスターデータから取得）</param>
+        /// <param name="currentHp">現在HP</param>
+        /// <param name="maxHp">最大HP</param>
+        public void AddWaveClearScore(int waveNumber, float remainingTime, int scoreMultiplier, int currentHp, int maxHp)
+        {
+            if (remainingTime <= 0) return;
+
+            // HP% (0.0 ~ 1.0)
+            var hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 1f;
+
+            // スコア = 残り時間 × ScoreMultiplier × HP%
+            var waveScore = (int)(remainingTime * scoreMultiplier * hpRatio);
+            Score.Value += waveScore;
+
+            UnityEngine.Debug.Log($"[SurvivorStageModel] Wave {waveNumber} clear! +{waveScore} (Remaining: {remainingTime:F1}s, Multiplier: {scoreMultiplier}, HP: {hpRatio:P0})");
         }
 
         public float GetDamageMultiplier()
         {
-            return 1f + (DamageBonus.Value / 100f);
+            return 1f + DamageBonus.Value.ToRate();
         }
 
         public int GetStartingWeaponId()

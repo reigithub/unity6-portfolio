@@ -75,12 +75,6 @@ namespace Game.MVP.Core.DI
     {
         UniTask StartupAsync();
         UniTask ShutdownAsync();
-
-        /// <summary>
-        /// ゲーム全体で共有するルートコントローラー
-        /// カメラ、ライト、フェード等の操作に使用
-        /// </summary>
-        IGameRootController GameRootController { get; }
     }
 
     /// <summary>

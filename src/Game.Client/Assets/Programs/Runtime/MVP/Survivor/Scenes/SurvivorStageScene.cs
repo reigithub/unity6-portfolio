@@ -2,11 +2,12 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Models;
-using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
+using Game.Shared.Constants;
 using Game.Shared.Services;
 using R3;
 using R3.Triggers;
@@ -24,8 +25,9 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ISurvivorSaveService _saveService;
-        [Inject] private readonly ISurvivorGameRunner _gameRunner;
         [Inject] private readonly IAddressableAssetService _addressableService;
+        [Inject] private readonly IInputService _inputService;
+        [Inject] private readonly ILockOnService _lockOnService;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -39,40 +41,16 @@ namespace Game.MVP.Survivor.Scenes
 
         public void ConfigureScope(IContainerBuilder builder)
         {
-            // シーンスコープのモデルを登録（Terminate時にCompositeDisposable経由で自動破棄）
+            // ゲームシーンと共に寿命が終わる者たちを登録する
             builder.Register<SurvivorStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
         }
 
         #endregion
 
-        /// <summary>
-        /// SceneComponent内のSpawner/ManagerにVContainer依存を注入
-        /// </summary>
-        private void InjectSceneComponents()
-        {
-            if (SceneComponent.EnemySpawner != null)
-            {
-                ScopedResolver.Inject(SceneComponent.EnemySpawner);
-            }
-
-            if (SceneComponent.SurvivorItemSpawner != null)
-            {
-                ScopedResolver.Inject(SceneComponent.SurvivorItemSpawner);
-            }
-
-            if (SceneComponent.WeaponManager != null)
-            {
-                ScopedResolver.Inject(SceneComponent.WeaponManager);
-            }
-        }
-
         public override async UniTask Startup()
         {
             await base.Startup();
-
-            // SceneComponent内のSpawner/ManagerにDI注入
-            InjectSceneComponents();
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -83,7 +61,6 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // IGameSceneScopeのスコープから取得して初期化
-            // [Inject]によりIMasterDataServiceは自動インジェクションされる
             _stageModel = ScopedResolver.Resolve<SurvivorStageModel>();
             _stageModel.Initialize(session.PlayerId, session.StageId);
 
@@ -100,10 +77,14 @@ namespace Game.MVP.Survivor.Scenes
             SubscribeEvents();
             BindModelToView();
 
-            SceneComponent.Initialize(_stageModel);
+            SceneComponent.Initialize(_stageModel, _waveManager.TotalWaves);
 
             // ReadyState開始前に暗転状態にしておく（ステージ裏側が見えないように）
-            _gameRunner.GameRootController?.SetFadeImmediate(1f);
+            GameRootController?.SetFadeImmediate(1f);
+
+            _lockOnService.Initialize(GameRootController?.MainCamera, LayerConstants.Enemy);
+            _lockOnService.SetAutoTarget(SceneComponent.PlayerController?.transform);
+            await _lockOnService.PreloadAsync();
         }
 
         private async UniTask LoadUnitySceneAsync()
@@ -119,7 +100,7 @@ namespace Game.MVP.Survivor.Scenes
                 var skybox = SurvivorStageSceneHelper.GetSkybox(_stageSceneInstance.Value.Scene);
                 if (skybox != null && skybox.material != null)
                 {
-                    _gameRunner.GameRootController?.SetSkyboxMaterial(skybox.material);
+                    GameRootController?.SetSkyboxMaterial(skybox.material);
                     Debug.Log($"[SurvivorStageScene] Applied stage skybox: {skybox.material.name}");
                 }
             }
@@ -134,33 +115,31 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // ステージシーン内のPlayerStartを検索
-            var playerStart = SurvivorStageSceneHelper.GetPlayerStart(_stageSceneInstance.Value.Scene);
+            var playerStart = SurvivorStageSceneHelper.GetPlayerStart(Resolver, _stageSceneInstance.Value.Scene);
             if (playerStart == null)
             {
                 Debug.LogWarning("[SurvivorStageScene] PlayerStart not found in stage scene, player spawn skipped");
                 return;
             }
 
-            // VContainerのスコープからインジェクション
-            ScopedResolver.Inject(playerStart);
-
             // プレイヤー生成
             var playerMaster = _stageModel.PlayerMaster;
-            if (playerMaster == null)
+            var levelMaster = _stageModel.CurrentLevelMaster;
+            if (playerMaster == null || levelMaster == null)
             {
-                Debug.LogError("[SurvivorStageScene] PlayerMaster is null!");
+                Debug.LogError("[SurvivorStageScene] PlayerMaster or LevelMaster is null!");
                 return;
             }
 
-            var playerController = await playerStart.LoadPlayerAsync(playerMaster);
+            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster);
             if (playerController != null)
             {
-                // VContainerからプレイヤーにもインジェクション
-                ScopedResolver.Inject(playerController);
-
                 // SceneComponentにプレイヤーを設定
                 SceneComponent.SetPlayerController(playerController);
                 Debug.Log($"[SurvivorStageScene] Player spawned and assigned to SceneComponent");
+
+                // プレイヤー入力を一時的に無効化
+                _inputService.DisablePlayer();
             }
         }
 
@@ -187,8 +166,9 @@ namespace Game.MVP.Survivor.Scenes
 
             if (SceneComponent.SurvivorItemSpawner != null)
             {
-                SceneComponent.SurvivorItemSpawner.OnExperienceCollected
-                    .Subscribe(exp => _stageModel.AddExperience(exp))
+                SceneComponent.SurvivorItemSpawner.OnItemCollected
+                    .Where(item => item.ItemType == SurvivorItemType.Experience)
+                    .Subscribe(item => _stageModel.AddExperience(item.EffectValue))
                     .AddTo(Disposables);
             }
 
@@ -197,8 +177,42 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => _levelUpRequested = true)
                 .AddTo(Disposables);
 
+            // Waveクリア時のスコア加算
+            _waveManager.OnWaveCleared
+                .Subscribe(clearedWave =>
+                {
+                    // 残り時間 = 制限時間 - 経過時間
+                    var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
+                    var spawnInfo = _waveManager.GetSpawnInfo();
+                    _stageModel.AddWaveClearScore(
+                        clearedWave,
+                        remainingTime,
+                        spawnInfo.ScoreMultiplier,
+                        _stageModel.CurrentHp.Value,
+                        _stageModel.MaxHp.Value);
+                })
+                .AddTo(Disposables);
+
             SceneComponent.UpdateAsObservable()
                 .Subscribe(_ => _stateMachine?.Update())
+                .AddTo(Disposables);
+
+            // InputService
+            Observable.EveryUpdate(UnityFrameProvider.Update)
+                .Where(_ => Application.isPlaying)
+                .Subscribe(_ =>
+                {
+                    if (_inputService.UI.Escape.WasPressedThisFrame())
+                        _pauseRequested = true;
+
+                    if (_pauseRequested) return;
+
+                    if (_inputService.UI.Click.WasPressedThisFrame())
+                    {
+                        var point = _inputService.UI.Point.ReadValue<Vector2>();
+                        _lockOnService.SetTarget(point);
+                    }
+                })
                 .AddTo(Disposables);
 
             // 自動保存のセットアップ
@@ -252,6 +266,25 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
                 .AddTo(Disposables);
 
+            // スタミナ（PlayerControllerから）
+            if (SceneComponent.PlayerController != null)
+            {
+                SceneComponent.PlayerController.CurrentStamina
+                    .Subscribe(stamina =>
+                    {
+                        SceneComponent.UpdateStamina(stamina, SceneComponent.PlayerController.MaxStamina);
+
+                        if (_inputService.Player.enabled)
+                        {
+                            if (stamina > 0)
+                                _inputService.Player.LeftShift.Enable();
+                            else
+                                _inputService.Player.LeftShift.Disable();
+                        }
+                    })
+                    .AddTo(Disposables);
+            }
+
             // 経験値
             _stageModel.Experience
                 .CombineLatest(_stageModel.ExperienceToNextLevel, (current, max) => (current, max))
@@ -273,8 +306,21 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(wave =>
                 {
                     _stageModel.CurrentWave.Value = wave;
-                    SceneComponent.UpdateWave(wave);
+                    SceneComponent.UpdateWave(wave, _waveManager.TotalWaves);
+
+                    // Wave開始時にバナー表示（目標数を表示）
+                    if (wave > 0)
+                    {
+                        var spawnInfo = _waveManager.GetSpawnInfo();
+                        SceneComponent.ShowWaveBanner(wave, _waveManager.TotalWaves, spawnInfo.TargetKillCount);
+                    }
                 })
+                .AddTo(Disposables);
+
+            // 敵の撃破数（目標数に対する進捗を表示）
+            _waveManager.EnemiesKilled
+                .CombineLatest(_waveManager.TargetKillsThisWave, (killed, target) => (killed, target))
+                .Subscribe(enemies => SceneComponent.UpdateEnemies(enemies.killed, enemies.target))
                 .AddTo(Disposables);
         }
 
@@ -297,9 +343,14 @@ namespace Game.MVP.Survivor.Scenes
             var kills = _stageModel?.TotalKills.Value ?? 0;
             var clearTime = _stageModel?.GameTime.Value ?? 0f;
             var isVictory = _stageModel != null && !_stageModel.IsDead;
+            var isTimeUp = _stageModel?.IsTimeUp ?? false;
+            var currentHp = _stageModel?.CurrentHp.Value ?? 0;
+            var maxHp = _stageModel?.MaxHp.Value ?? 1;
+            var hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
 
             // セッションにステージ結果を記録（リザルト画面用＆永続化）
-            _saveService?.CompleteCurrentStage(score, kills, clearTime, isVictory);
+            // 星評価: 時間切れ=1星、全Waveクリア=2星、HP50%以上=3星
+            _saveService?.CompleteCurrentStage(score, kills, clearTime, isVictory, isTimeUp, hpRatio);
 
             // プレイ時間を加算
             _saveService?.AddPlayTime(clearTime);
@@ -308,7 +359,7 @@ namespace Game.MVP.Survivor.Scenes
             _saveService?.SaveAsync().Forget();
 
             // スカイボックスをデフォルトに戻す
-            _gameRunner.GameRootController?.ResetSkyboxMaterial();
+            GameRootController?.ResetSkyboxMaterial();
 
             // ステージ環境シーンをアンロード
             if (_stageSceneInstance.HasValue)
@@ -317,8 +368,6 @@ namespace Game.MVP.Survivor.Scenes
                 _stageSceneInstance = null;
                 Debug.Log("[SurvivorStageScene] Unloaded stage environment");
             }
-
-            // Note: ScopedResolver（_stageModel, _waveManager含む）はTerminateCore後に自動Dispose
 
             await base.Terminate();
         }

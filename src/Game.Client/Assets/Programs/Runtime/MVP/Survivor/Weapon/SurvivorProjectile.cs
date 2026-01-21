@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Shared.Extensions;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -110,7 +111,7 @@ namespace Game.MVP.Survivor.Weapon
             if (_homing > 0 && _homingTarget != null && _homingTarget.gameObject.activeInHierarchy)
             {
                 Vector3 targetDirection = (_homingTarget.position - transform.position).normalized;
-                float homingFactor = _homing / 100f;
+                float homingFactor = _homing.ToRate();
                 _direction = Vector3.Slerp(_direction, targetDirection, homingFactor * Time.deltaTime * 5f).normalized;
 
                 if (_direction.magnitude > 0.1f)
@@ -202,29 +203,6 @@ namespace Game.MVP.Survivor.Weapon
                 _remainingPierce--;
             }
 
-            if (_remainingPierce < 0)
-            {
-                _isActive = false;
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// [後方互換] ヒット回数をデクリメント（単純な貫通用）
-        /// </summary>
-        /// <returns>true: 弾を消す, false: 継続</returns>
-        public bool DecrementHitCount()
-        {
-            // Penetration=0 は貫通なし
-            if (_pierce <= 0)
-            {
-                _isActive = false;
-                return true;
-            }
-
-            _remainingPierce--;
             if (_remainingPierce < 0)
             {
                 _isActive = false;

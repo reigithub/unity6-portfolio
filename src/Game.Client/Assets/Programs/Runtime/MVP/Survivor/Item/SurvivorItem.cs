@@ -96,15 +96,6 @@ namespace Game.MVP.Survivor.Item
             transform.localScale = Vector3.one * _scale;
         }
 
-        /// <summary>
-        /// 経験値アイテム用の簡易初期化（後方互換性）
-        /// </summary>
-        public void InitializeAsExperience(int experienceValue)
-        {
-            _itemType = SurvivorItemType.Experience;
-            _effectValue = experienceValue;
-        }
-
         private void Start()
         {
             _initialPosition = transform.position;
@@ -190,23 +181,6 @@ namespace Game.MVP.Survivor.Item
         {
             transform.position = position;
             _initialPosition = position;
-        }
-
-        // ===== 後方互換性用プロパティ =====
-
-        /// <summary>
-        /// 経験値（後方互換性用）
-        /// </summary>
-        public int ExperienceValue
-        {
-            get => _itemType == SurvivorItemType.Experience ? _effectValue : 0;
-            set
-            {
-                if (_itemType == SurvivorItemType.Experience)
-                {
-                    _effectValue = value;
-                }
-            }
         }
     }
 }

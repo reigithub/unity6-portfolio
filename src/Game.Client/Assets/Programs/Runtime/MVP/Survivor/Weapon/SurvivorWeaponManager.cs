@@ -20,8 +20,10 @@ namespace Game.MVP.Survivor.Weapon
         [SerializeField] private int _maxWeaponSlots = 6;
 
         // DI
+        [Inject] private IObjectResolver _resolver;
         [Inject] private IMasterDataService _masterDataService;
         [Inject] private IAddressableAssetService _assetService;
+        [Inject] private ILockOnService _lockOnService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         // 装備中の武器
@@ -92,7 +94,7 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             // ファクトリーで武器を生成（純粋C#クラス）
-            var weapon = SurvivorWeaponFactory.Create(weaponMaster, _assetService, transform);
+            var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster, transform);
 
             // マスターデータから初期化（全レベル分を渡す）
             await weapon.InitializeAsync(weaponMaster, levelMasters, _owner, _damageMultiplier);

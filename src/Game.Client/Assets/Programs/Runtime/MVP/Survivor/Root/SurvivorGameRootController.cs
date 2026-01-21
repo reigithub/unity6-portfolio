@@ -5,8 +5,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using Game.MVP.Core.DI;
-using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Signals;
+using Game.Shared.Services;
 using Unity.Cinemachine;
 
 namespace Game.MVP.Survivor.Root
@@ -33,9 +33,11 @@ namespace Game.MVP.Survivor.Root
         [SerializeField] private Image _fadeImage;
 
         // VContainer Injection
+        [Inject] private IInputService _inputService;
         [Inject] private ISubscriber<SurvivorSignals.Player.Spawned> _playerSpawnedSubscriber;
 
         private Material _defaultSkyboxMaterial;
+        private CinemachineInputAxisController _inputAxisController;
         private readonly CompositeDisposable _disposables = new();
 
         /// <summary>
@@ -66,6 +68,8 @@ namespace Game.MVP.Survivor.Root
 
             // シグナル購読
             SubscribeSignals();
+
+            _playerFollowCamera.TryGetComponent(out _inputAxisController);
         }
 
         private void SubscribeSignals()
@@ -162,6 +166,19 @@ namespace Game.MVP.Survivor.Root
                 color.a = alpha;
                 _fadeImage.color = color;
             }
+        }
+
+        private bool _rightClick;
+
+        private void Update()
+        {
+            _rightClick = _inputService.UI.RightClick.IsPressed();
+        }
+
+        private void LateUpdate()
+        {
+            // Memo: CinemachineDefaultInputSystemへの干渉の仕方について再考の余地あり
+            _inputAxisController.enabled = _rightClick;
         }
 
         private void OnDestroy()

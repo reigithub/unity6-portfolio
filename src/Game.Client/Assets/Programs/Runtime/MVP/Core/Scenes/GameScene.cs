@@ -157,7 +157,13 @@ namespace Game.MVP.Core.Scenes
 
         protected override TGameSceneComponent GetSceneComponent()
         {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
+            if (SceneComponent == null)
+            {
+                SceneComponent = GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
+                Resolver?.Inject(SceneComponent);
+            }
+
+            return SceneComponent;
         }
 
         #region IGameSceneFader
@@ -171,7 +177,7 @@ namespace Game.MVP.Core.Scenes
                 _canvasGroup.interactable = false;
                 _canvasGroup.blocksRaycasts = false;
                 _instance.SetActive(true);
-                await _canvasGroup.DOFade(1f, duration).ToUniTask();
+                await _canvasGroup.DOFade(1f, duration).SetUpdate(true).ToUniTask();
                 _canvasGroup.interactable = true;
                 _canvasGroup.blocksRaycasts = true;
             }
@@ -195,7 +201,7 @@ namespace Game.MVP.Core.Scenes
                 // ローカルフェード（CanvasGroup）
                 _canvasGroup.interactable = false;
                 _canvasGroup.blocksRaycasts = false;
-                await _canvasGroup.DOFade(0f, duration).ToUniTask();
+                await _canvasGroup.DOFade(0f, duration).SetUpdate(true).ToUniTask();
                 _instance.SetActive(false);
             }
             else if (GameRootController != null)
@@ -253,7 +259,13 @@ namespace Game.MVP.Core.Scenes
 
         protected override TGameSceneComponent GetSceneComponent()
         {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
+            if (SceneComponent == null)
+            {
+                SceneComponent = GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
+                Resolver?.Inject(SceneComponent);
+            }
+
+            return SceneComponent;
         }
 
         /// <summary>

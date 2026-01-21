@@ -19,7 +19,7 @@
     justify-content: center;
     align-items: center;
     padding: 20px 40px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.85);
     border-radius: 16px;
     margin-bottom: 20px;
 }
@@ -37,26 +37,6 @@
 
 .header__title--gameover {
     color: rgb(255, 100, 100);
-}
-
-.result-icon {
-    width: 80px;
-    height: 80px;
-    margin: 0 24px;
-}
-
-.result-icon--victory {
-    background-color: rgb(100, 220, 255);
-    border-radius: 40px;
-}
-
-.result-icon--gameover {
-    background-color: rgb(255, 100, 100);
-    border-radius: 8px;
-}
-
-.result-icon--hidden {
-    display: none;
 }
 
 /* ===========================================
@@ -83,7 +63,7 @@
 .stats-panel {
     width: 35%;
     height: 640px;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.85);
     border-radius: 16px;
     padding: 28px;
     border-width: 2px;
@@ -149,6 +129,10 @@
     color: rgb(100, 200, 255);
 }
 
+.stat-item__value--hp {
+    color: rgb(100, 220, 100);
+}
+
 /* ===========================================
    Stages Panel (Right)
    =========================================== */
@@ -156,7 +140,7 @@
 .stages-panel {
     width: 35%;
     height: 640px;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.85);
     border-radius: 16px;
     padding: 28px;
     border-width: 2px;
@@ -175,7 +159,7 @@
 .stage-result-item {
     padding: 16px 20px;
     margin-bottom: 12px;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     border-width: 2px;
     border-color: transparent;
@@ -184,7 +168,7 @@
 }
 
 .stage-result-item:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.15);
     scale: 1.02;
 }
 
@@ -224,17 +208,22 @@
 }
 
 .stage-result-item__stats {
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    min-height: 40px;
+    flex-direction: column;
     margin-top: 8px;
 }
 
+.stage-result-item__stats-row {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
 .stage-result-item__stat {
-    font-size: 32px;
+    font-size: 28px;
     color: rgba(255, 255, 255, 0.8);
-    margin-right: 24px;
+    min-width: 45%;
+    margin-right: 16px;
 }
 
 /* ===========================================
@@ -250,13 +239,13 @@
 }
 
 .action-button {
-    height: 72px;
-    min-width: 240px;
-    font-size: 28px;
+    height: 88px;
+    min-width: 300px;
+    font-size: 32px;
     color: rgb(255, 255, 255);
-    border-radius: 14px;
+    border-radius: 16px;
     border-width: 3px;
-    margin: 0 16px;
+    margin: 0 20px;
     -unity-font-style: bold;
     letter-spacing: 4px;
     transition-duration: 0.15s;
@@ -272,19 +261,19 @@
 }
 
 .action-button--primary {
-    background-color: rgba(60, 180, 100, 0.8);
+    background-color: rgba(60, 180, 100, 0.85);
     border-color: rgb(80, 220, 120);
 }
 
 .action-button--primary:hover {
-    background-color: rgba(80, 200, 120, 0.9);
+    background-color: rgba(80, 200, 120, 0.95);
 }
 
 .action-button--secondary {
-    background-color: rgba(80, 120, 180, 0.6);
-    border-color: rgba(100, 150, 220, 0.7);
+    background-color: rgba(80, 120, 180, 0.75);
+    border-color: rgba(100, 150, 220, 0.8);
 }
 
 .action-button--secondary:hover {
-    background-color: rgba(100, 140, 200, 0.8);
+    background-color: rgba(100, 140, 200, 0.9);
 }

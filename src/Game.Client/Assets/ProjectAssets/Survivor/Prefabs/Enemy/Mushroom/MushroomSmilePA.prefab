@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4309976743334931749}
   - component: {fileID: 5912650298379996328}
   - component: {fileID: 1661586574973974190}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: MushroomSmilePA
   m_TagString: Enemy
   m_Icon: {fileID: 0}

@@ -334,7 +334,7 @@ GameObject:
   - component: {fileID: 2252044598026125500}
   - component: {fileID: 9216794355215116453}
   - component: {fileID: 4557729819858260715}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: DragonTerrorBringerPurple
   m_TagString: Enemy
   m_Icon: {fileID: 0}

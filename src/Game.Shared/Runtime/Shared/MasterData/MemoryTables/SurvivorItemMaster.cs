@@ -36,7 +36,7 @@ namespace Game.Library.Shared.MasterData.MemoryTables
         /// <summary>レアリティ（1:コモン, 2:レア, 3:エピック）</summary>
         public int Rarity { get; set; }
 
-        /// <summary>スポーン時のスケール（1.0 = 等倍）</summary>
-        public float Scale { get; set; }
+        /// <summary>スポーン時のスケール（100倍値、ToScale()で変換、100 = 1.0倍）</summary>
+        public int Scale { get; set; }
     }
 }

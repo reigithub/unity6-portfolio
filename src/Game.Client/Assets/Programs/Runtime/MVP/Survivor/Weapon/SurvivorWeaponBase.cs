@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
+using VContainer;
 
 namespace Game.MVP.Survivor.Weapon
 {
@@ -14,6 +17,8 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     public abstract class SurvivorWeaponBase : IDisposable
     {
+        [Inject] private readonly ILockOnService _lockOnService;
+
         // マスターデータ
         protected IReadOnlyList<SurvivorWeaponLevelMaster> _levelMasters;
 
@@ -35,10 +40,10 @@ namespace Game.MVP.Survivor.Weapon
         protected float _range = 10f;
         protected int _emitCount = 1;
         protected int _hitCount = 1;
-        protected int _moveSpeed = 10;
+        protected float _moveSpeed = 10f;
         protected int _duration = 0;
         protected int _emitDelay = 0;
-        protected int _hitBoxRate = 100;
+        protected int _hitBoxRate = 10000;
 
         #endregion
 
@@ -93,7 +98,7 @@ namespace Game.MVP.Survivor.Weapon
         public float Range => _range;
         public int EmitCount => _emitCount;
         public int HitCount => _hitCount;
-        public int MoveSpeed => _moveSpeed;
+        public float MoveSpeed => _moveSpeed;
         public float Duration => _duration / 1000f;
         public float EmitDelay => _emitDelay / 1000f;
         public int HitBoxRate => _hitBoxRate;
@@ -165,17 +170,17 @@ namespace Game.MVP.Survivor.Weapon
             _damage = levelMaster.Damage;
             _cooldown = levelMaster.Cooldown;
             _interval = levelMaster.ProcInterval;
-            _range = levelMaster.Range;
+            _range = levelMaster.Range.ToUnit();
             _emitCount = levelMaster.EmitCount;
             _hitCount = levelMaster.HitCount;
-            _moveSpeed = levelMaster.Speed;
+            _moveSpeed = levelMaster.Speed.ToUnit();
             _duration = levelMaster.Duration;
             _emitDelay = levelMaster.EmitDelay;
             _hitBoxRate = levelMaster.HitBoxRate;
 
             // 物理パラメータ
-            _knockback = levelMaster.Knockback;
-            _vacuum = levelMaster.Vacuum;
+            _knockback = levelMaster.Knockback.ToUnit();
+            _vacuum = levelMaster.Vacuum.ToUnit();
             _spinSpeed = levelMaster.Spin;
             _limit = levelMaster.EmitLimit;
 
@@ -243,6 +248,20 @@ namespace Game.MVP.Survivor.Weapon
             _damageMultiplier = multiplier;
         }
 
+        /// <summary>
+        /// ターゲットを取得（ロックオン優先、なければ自動選択を試みる）
+        /// 派生クラスでFindNearestEnemyをオーバーライドすること
+        /// </summary>
+        protected virtual bool TryGetTarget(out Transform target)
+        {
+            // ロックオン優先
+            if (_lockOnService.TryGetTarget(out target))
+                return true;
+
+            target = null;
+            return false;
+        }
+
         public virtual void SetEnabled(bool enabled)
         {
             _isEnabled = enabled;
@@ -273,31 +292,31 @@ namespace Game.MVP.Survivor.Weapon
         protected abstract bool TryAttack();
 
         /// <summary>
-        /// クリティカル判定
+        /// クリティカル判定（万分率）
         /// </summary>
         protected bool RollCritical()
         {
             if (_critChance <= 0) return false;
-            return UnityEngine.Random.Range(0, 100) < _critChance;
+            return _critChance.RollChance();
         }
 
         /// <summary>
-        /// クリティカルダメージを計算
+        /// クリティカルダメージを計算（万分率）
         /// </summary>
         protected int CalculateCriticalDamage(int baseDamage)
         {
-            return Mathf.RoundToInt(baseDamage * _critMultiplier / 100f);
+            return Mathf.RoundToInt(baseDamage * _critMultiplier.ToRate());
         }
 
         /// <summary>
-        /// ダメージ発生確率判定
-        /// ProcRate=100で100%ダメージ、ProcRate=0で常にfalse
+        /// ダメージ発生確率判定（万分率）
+        /// ProcRate=10000で100%ダメージ、ProcRate=0で常にfalse
         /// </summary>
         protected bool RollProcRate()
         {
             if (_procRate <= 0) return false;
-            if (_procRate >= 100) return true;
-            return UnityEngine.Random.Range(0, 100) < _procRate;
+            if (_procRate >= 10000) return true;
+            return _procRate.RollChance();
         }
 
         /// <summary>

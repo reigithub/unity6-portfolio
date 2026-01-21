@@ -6,19 +6,29 @@
         <ui:VisualElement name="top-bar" class="top-bar">
             <!-- Left: Wave & Time -->
             <ui:VisualElement class="top-bar__left">
-                <ui:Label text="WAVE 1" name="wave-text" class="wave-text" />
-                <ui:Label text="00:00" name="time-text" class="time-text" />
+                <ui:Label text="WAVE 1/3" name="wave-text" class="wave-text" />
+                <ui:Label text="00:00 / 03:00" name="time-text" class="time-text" />
             </ui:VisualElement>
 
-            <!-- Center: Level -->
+            <!-- Center: Objective -->
             <ui:VisualElement class="top-bar__center">
                 <ui:Label text="Lv.1" name="level-text" class="level-text" />
+                <ui:VisualElement class="objective-container">
+                    <ui:Label text="ENEMIES" class="objective-label" />
+                    <ui:Label text="0 / 30" name="enemies-text" class="enemies-text" />
+                </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- Right: Pause Button -->
             <ui:VisualElement class="top-bar__right">
                 <ui:Button text="II" name="pause-button" class="pause-button" />
             </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Wave Start Banner (hidden by default) -->
+        <ui:VisualElement name="wave-banner" class="wave-banner wave-banner--hidden">
+            <ui:Label text="WAVE 1" name="wave-banner-text" class="wave-banner__text" />
+            <ui:Label text="Defeat all enemies!" name="wave-banner-subtext" class="wave-banner__subtext" />
         </ui:VisualElement>
 
         <!-- Spacer for gameplay area -->
@@ -32,6 +42,13 @@
                     <ui:VisualElement name="hp-bar-fill" class="hp-bar__fill" />
                 </ui:VisualElement>
                 <ui:Label text="100/100" name="hp-text" class="hp-text" />
+            </ui:VisualElement>
+
+            <!-- Stamina Bar -->
+            <ui:VisualElement class="stamina-container">
+                <ui:VisualElement class="stamina-bar__background">
+                    <ui:VisualElement name="stamina-bar-fill" class="stamina-bar__fill" />
+                </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- EXP Bar -->

@@ -35,7 +35,9 @@ namespace Game.MVP.Survivor.SaveData
         #region ステージ記録
 
         /// <summary>ステージクリア記録を更新</summary>
-        void RecordStageClear(int stageId, int score, float clearTime, int kills, bool isVictory);
+        /// <param name="isTimeUp">時間切れでクリアしたか（時間切れの場合は強制1星）</param>
+        /// <param name="hpRatio">最終HP割合（0.0〜1.0）</param>
+        void RecordStageClear(int stageId, int score, float clearTime, int kills, bool isVictory, bool isTimeUp = false, float hpRatio = 1f);
 
         /// <summary>ステージをアンロック</summary>
         void UnlockStage(int stageId);
@@ -79,7 +81,9 @@ namespace Game.MVP.Survivor.SaveData
         /// <summary>
         /// 現在のステージ結果を記録（クリア/ゲームオーバー時）
         /// </summary>
-        void CompleteCurrentStage(int score, int kills, float clearTime, bool isVictory);
+        /// <param name="isTimeUp">時間切れでクリアしたか（時間切れの場合は強制1星）</param>
+        /// <param name="hpRatio">最終HP割合（0.0〜1.0）</param>
+        void CompleteCurrentStage(int score, int kills, float clearTime, bool isVictory, bool isTimeUp = false, float hpRatio = 1f);
 
         /// <summary>
         /// グループ内の次のステージに進む

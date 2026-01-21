@@ -238,7 +238,7 @@ GameObject:
   - component: {fileID: 3156367827074836842}
   - component: {fileID: 4692728895147909267}
   - component: {fileID: 6977514774450943729}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: MushroomAngryPA
   m_TagString: Enemy
   m_Icon: {fileID: 0}

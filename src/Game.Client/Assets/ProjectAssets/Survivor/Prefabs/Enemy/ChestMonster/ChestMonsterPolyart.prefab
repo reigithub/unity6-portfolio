@@ -294,7 +294,7 @@ GameObject:
   - component: {fileID: 265743996454212499}
   - component: {fileID: 5525626479704961198}
   - component: {fileID: 6889146175000571289}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: ChestMonsterPolyart
   m_TagString: Enemy
   m_Icon: {fileID: 0}

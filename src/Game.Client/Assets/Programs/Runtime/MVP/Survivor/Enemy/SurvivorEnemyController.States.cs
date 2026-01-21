@@ -8,10 +8,13 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public partial class SurvivorEnemyController
     {
-        // Combat Settings
-        private float _attackRange = 1.5f;
-        private float _attackCooldown = 1f;
-        private float _hitStunDuration = 0.2f;
+        // Combat Settings（値はInitialize()でマスターデータから設定）
+        // _attackRange, _attackCooldown, _hitStunDuration, _rotationSpeed は本体クラスで定義
+
+        // Constants
+        private const float AttackRangeExitMultiplier = 1.2f;
+
+        // Timers
         private float _attackTimer;
         private float _hitStunTimer;
 
@@ -229,7 +232,7 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 float distance = Vector3.Distance(ctx.transform.position, ctx._target.position);
-                if (distance > ctx._attackRange * 1.2f)
+                if (distance > ctx._attackRange * AttackRangeExitMultiplier)
                 {
                     StateMachine.Transition(EnemyEvent.ExitAttackRange);
                     return;
@@ -243,7 +246,7 @@ namespace Game.MVP.Survivor.Enemy
                     ctx.transform.rotation = Quaternion.Slerp(
                         ctx.transform.rotation,
                         Quaternion.LookRotation(direction),
-                        10f * Time.deltaTime);
+                        ctx._rotationSpeed * Time.deltaTime);
                 }
 
                 // 攻撃クールダウン

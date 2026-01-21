@@ -371,7 +371,7 @@ GameObject:
   - component: {fileID: 2117173688278736813}
   - component: {fileID: 5894480676861137156}
   - component: {fileID: 8031372807687591024}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: SlimePolyart
   m_TagString: Enemy
   m_Icon: {fileID: 0}

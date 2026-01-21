@@ -1,7 +1,10 @@
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.MVP.Core.DI;
 using Game.MVP.Survivor.Signals;
 using Game.Shared;
-using Game.Shared.Input;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
+using Game.Shared.Services;
 using MessagePipe;
 using R3;
 using UnityEngine;
@@ -33,9 +36,8 @@ namespace Game.MVP.Survivor.Player
         [SerializeField]
         private float _rotationRatio = 10.0f;
 
-        // InputSystem
-        private ProjectDefaultInputSystem _inputSystem;
-        private ProjectDefaultInputSystem.PlayerActions _player;
+        [Inject] private readonly IGameRootController _gameRootController;
+        [Inject] private readonly IInputService _inputService;
 
         // Components
         private Animator _animator;
@@ -49,8 +51,15 @@ namespace Game.MVP.Survivor.Player
 
         // マスターデータから設定される値
         private int _maxHp = 100;
+        private int _maxStamina = 100;
+        private int _staminaDepleteRate = 10;
+        private int _staminaRegenRate = 5;
+        private float _staminaAccumulator = 0f; // スタミナ変化の端数を蓄積
         private float _pickupRange = 2f;
         private float _invincibilityDuration = 0.5f;
+        private float _itemAttractDistance = 5f;
+        private float _itemAttractSpeed = 10f;
+        private float _itemCollectDistance = 1f;
 
         // 入力関連
         private Transform _mainCamera;
@@ -61,12 +70,18 @@ namespace Game.MVP.Survivor.Player
 
         // Reactive Properties
         private readonly ReactiveProperty<int> _currentHp = new();
+        private readonly ReactiveProperty<int> _currentStamina = new();
         private readonly ReactiveProperty<bool> _isInvincible = new();
 
         public ReadOnlyReactiveProperty<int> CurrentHp => _currentHp;
+        public ReadOnlyReactiveProperty<int> CurrentStamina => _currentStamina;
         public ReadOnlyReactiveProperty<bool> IsInvincible => _isInvincible;
         public int MaxHp => _maxHp;
+        public int MaxStamina => _maxStamina;
         public float PickupRange => _pickupRange;
+        public float ItemAttractDistance => _itemAttractDistance;
+        public float ItemAttractSpeed => _itemAttractSpeed;
+        public float ItemCollectDistance => _itemCollectDistance;
 
         // Events
         private readonly Subject<int> _onDamaged = new();
@@ -86,25 +101,10 @@ namespace Game.MVP.Survivor.Player
 
         private void Awake()
         {
-            _inputSystem = new ProjectDefaultInputSystem();
-            _player = _inputSystem.Player;
-
             TryGetComponent(out _animator);
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
-        }
-
-        private void OnEnable()
-        {
-            _inputSystem.Enable();
-            _player.Enable();
-        }
-
-        private void OnDisable()
-        {
-            _inputSystem.Disable();
-            _player.Disable();
         }
 
         private void Update()
@@ -120,9 +120,9 @@ namespace Game.MVP.Survivor.Player
 
         private void OnDestroy()
         {
-            _inputSystem?.Dispose();
             _speed.Dispose();
             _currentHp.Dispose();
+            _currentStamina.Dispose();
             _isInvincible.Dispose();
             _onDamaged.Dispose();
             _onDeath.Dispose();
@@ -133,23 +133,31 @@ namespace Game.MVP.Survivor.Player
         #region Initialize
 
         /// <summary>
-        /// マスターデータから初期化\
+        /// マスターデータから初期化
         /// </summary>
-        public void Initialize(SurvivorPlayerMaster master)
+        public void Initialize(SurvivorPlayerLevelMaster levelMaster)
         {
-            _maxHp = master.MaxHp;
-            _jogSpeed = master.MoveSpeed;
-            _runSpeed = master.MoveSpeed * 1.5f; // ダッシュは1.5倍速
-            _pickupRange = master.PickupRange;
+            _maxHp = levelMaster.MaxHp;
+            _maxStamina = levelMaster.MaxStamina;
+            _staminaDepleteRate = levelMaster.StaminaDepleteRate;
+            _staminaRegenRate = levelMaster.StaminaRegenRate;
+            _jogSpeed = levelMaster.MoveSpeed.ToUnit();
+            _runSpeed = levelMaster.RunSpeed.ToUnit();
+            _pickupRange = levelMaster.PickupRange.ToUnit();
+            _invincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
+            _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
+            _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
+            _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
 
             _currentHp.Value = _maxHp;
+            _currentStamina.Value = _maxStamina;
             _isInvincible.Value = false;
             _invincibilityTimer = 0f;
 
             // メインカメラを自動取得
-            if (_mainCamera == null && Camera.main != null)
+            if (_mainCamera == null)
             {
-                _mainCamera = Camera.main.transform;
+                _mainCamera = _gameRootController.MainCamera.transform;
             }
 
             // スピードが変わった時だけアニメーターを更新
@@ -166,6 +174,41 @@ namespace Game.MVP.Survivor.Player
         }
 
         /// <summary>
+        /// レベルアップ時にステータスを更新
+        /// </summary>
+        public void UpdateLevelStats(SurvivorPlayerLevelMaster levelMaster)
+        {
+            var previousMaxHp = _maxHp;
+            var previousMaxStamina = _maxStamina;
+
+            _maxHp = levelMaster.MaxHp;
+            _maxStamina = levelMaster.MaxStamina;
+            _staminaDepleteRate = levelMaster.StaminaDepleteRate;
+            _staminaRegenRate = levelMaster.StaminaRegenRate;
+            _jogSpeed = levelMaster.MoveSpeed.ToUnit();
+            _runSpeed = levelMaster.RunSpeed.ToUnit();
+            _pickupRange = levelMaster.PickupRange.ToUnit();
+            _invincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
+            _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
+            _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
+            _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
+
+            // レベルアップ時のHP増加（差分を回復）
+            if (_maxHp > previousMaxHp)
+            {
+                var hpIncrease = _maxHp - previousMaxHp;
+                _currentHp.Value = Mathf.Min(_currentHp.Value + hpIncrease, _maxHp);
+            }
+
+            // レベルアップ時のスタミナ増加（差分を回復）
+            if (_maxStamina > previousMaxStamina)
+            {
+                var staminaIncrease = _maxStamina - previousMaxStamina;
+                _currentStamina.Value = Mathf.Min(_currentStamina.Value + staminaIncrease, _maxStamina);
+            }
+        }
+
+        /// <summary>
         /// カメラ参照を設定（カメラ相対移動用）
         /// </summary>
         public void SetMainCamera(Transform mainCamera)
@@ -179,17 +222,56 @@ namespace Game.MVP.Survivor.Player
 
         private void UpdateInput()
         {
+            if (_inputService == null)
+                return;
+
             // 移動入力受付
-            _moveValue = _player.Move.ReadValue<Vector2>();
+            _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
-            // 移動速度更新（ダッシュ対応）
-            _speed.Value = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
+            // ダッシュ入力チェック
+            var wantToRun = _inputService.Player.LeftShift.IsPressed() && IsMoveInput();
+            var canRun = _currentStamina.Value > 0;
+
+            // 移動速度更新（スタミナがある場合のみダッシュ可能）
+            var isRunning = wantToRun && canRun;
+            _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
+
+            // スタミナ消費・回復（deltaTimeベース）
+            UpdateStamina(isRunning);
 
             // 回転入力受付
             if (IsMoveInput())
             {
                 _lookRotation = Quaternion.LookRotation(_moveVector);
+            }
+        }
+
+        private void UpdateStamina(bool isRunning)
+        {
+            if (isRunning)
+            {
+                // ダッシュ中: スタミナ消費（1秒毎にStaminaDepleteRate分消費）
+                _staminaAccumulator -= _staminaDepleteRate * Time.deltaTime;
+            }
+            else
+            {
+                // ダッシュしていない: スタミナ回復（1秒毎にStaminaRegenRate分回復）
+                _staminaAccumulator += _staminaRegenRate * Time.deltaTime;
+            }
+
+            // 蓄積された変化を整数として適用
+            if (_staminaAccumulator >= 1f)
+            {
+                var regenAmount = Mathf.FloorToInt(_staminaAccumulator);
+                _staminaAccumulator -= regenAmount;
+                _currentStamina.Value = Mathf.Min(_maxStamina, _currentStamina.Value + regenAmount);
+            }
+            else if (_staminaAccumulator <= -1f)
+            {
+                var depleteAmount = Mathf.FloorToInt(-_staminaAccumulator);
+                _staminaAccumulator += depleteAmount;
+                _currentStamina.Value = Mathf.Max(0, _currentStamina.Value - depleteAmount);
             }
         }
 
@@ -269,15 +351,16 @@ namespace Game.MVP.Survivor.Player
                 point2 = point1;
             }
 
-            // CapsuleCastで衝突チェック
+            // CapsuleCastで衝突チェック（Enemyレイヤーを除外して構造物のみ判定）
+            var obstacleLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
             if (Physics.CapsuleCast(
-                point1, point2,
-                _capsuleCollider.radius,
-                moveDirection,
-                out var hit,
-                moveDistance + SkinWidth,
-                Physics.DefaultRaycastLayers,
-                QueryTriggerInteraction.Ignore))
+                    point1, point2,
+                    _capsuleCollider.radius,
+                    moveDirection,
+                    out var hit,
+                    moveDistance + SkinWidth,
+                    obstacleLayerMask,
+                    QueryTriggerInteraction.Ignore))
             {
                 // 衝突した場合、衝突点の手前までの移動に制限
                 var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
@@ -318,12 +401,12 @@ namespace Game.MVP.Survivor.Player
             }
 
             // 経験値オーブとの衝突
-            if (other.CompareTag("ExperienceOrb"))
+            if (other.CompareTag("Item"))
             {
-                var orb = other.GetComponent<Item.SurvivorExperienceOrb>();
-                if (orb != null)
+                var item = other.GetComponent<Item.SurvivorItem>();
+                if (item != null)
                 {
-                    orb.Collect();
+                    item.Collect();
                 }
             }
         }

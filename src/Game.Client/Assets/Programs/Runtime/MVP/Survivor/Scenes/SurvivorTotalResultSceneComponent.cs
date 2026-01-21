@@ -29,11 +29,10 @@ namespace Game.MVP.Survivor.Scenes
         // UI Element References
         private VisualElement _root;
         private Label _resultTitleText;
-        private VisualElement _victoryIcon;
-        private VisualElement _gameOverIcon;
         private Label _totalScoreText;
         private Label _totalKillsText;
         private Label _totalTimeText;
+        private Label _totalHpText;
         private VisualElement _stageResultsContainer;
         private Button _retryButton;
         private Button _returnButton;
@@ -56,11 +55,10 @@ namespace Game.MVP.Survivor.Scenes
             _root = _uiDocument.rootVisualElement;
 
             _resultTitleText = _root.Q<Label>("result-title");
-            _victoryIcon = _root.Q<VisualElement>("victory-icon");
-            _gameOverIcon = _root.Q<VisualElement>("gameover-icon");
             _totalScoreText = _root.Q<Label>("total-score");
             _totalKillsText = _root.Q<Label>("total-kills");
             _totalTimeText = _root.Q<Label>("total-time");
+            _totalHpText = _root.Q<Label>("total-hp");
             _stageResultsContainer = _root.Q<VisualElement>("stage-results-container");
             _retryButton = _root.Q<Button>("retry-button");
             _returnButton = _root.Q<Button>("return-button");
@@ -89,23 +87,6 @@ namespace Game.MVP.Survivor.Scenes
                 _resultTitleText.AddToClassList(isVictory ? "header__title--victory" : "header__title--gameover");
             }
 
-            // アイコン表示切替
-            if (_victoryIcon != null)
-            {
-                if (isVictory)
-                    _victoryIcon.RemoveFromClassList("result-icon--hidden");
-                else
-                    _victoryIcon.AddToClassList("result-icon--hidden");
-            }
-
-            if (_gameOverIcon != null)
-            {
-                if (!isVictory)
-                    _gameOverIcon.RemoveFromClassList("result-icon--hidden");
-                else
-                    _gameOverIcon.AddToClassList("result-icon--hidden");
-            }
-
             // 総合スコア
             if (_totalScoreText != null)
                 _totalScoreText.text = $"{totalScore:N0}";
@@ -125,6 +106,14 @@ namespace Game.MVP.Survivor.Scenes
             var seconds = Mathf.FloorToInt(totalTime % 60f);
             if (_totalTimeText != null)
                 _totalTimeText.text = $"{minutes:00}:{seconds:00}";
+
+            // 最終HP%（最後のステージのHP割合）
+            if (_totalHpText != null && stageResults.Count > 0)
+            {
+                var lastResult = stageResults[stageResults.Count - 1];
+                var hpPercent = Mathf.RoundToInt(lastResult.HpRatio * 100f);
+                _totalHpText.text = $"{hpPercent}%";
+            }
 
             // ステージ別結果
             PopulateStageResults(stageResults);
@@ -191,6 +180,14 @@ namespace Game.MVP.Survivor.Scenes
             var timeLabel = item.Q<Label>("stage-time");
             if (timeLabel != null)
                 timeLabel.text = $"Time: {minutes:00}:{seconds:00}";
+
+            // HP%
+            var hpLabel = item.Q<Label>("stage-hp");
+            if (hpLabel != null)
+            {
+                var hpPercent = Mathf.RoundToInt(result.HpRatio * 100f);
+                hpLabel.text = $"HP: {hpPercent}%";
+            }
 
             return item;
         }

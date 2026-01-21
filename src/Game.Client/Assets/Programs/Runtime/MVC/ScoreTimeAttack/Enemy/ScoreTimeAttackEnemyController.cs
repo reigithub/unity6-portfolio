@@ -170,7 +170,7 @@ namespace Game.ScoreTimeAttack.Enemy
                 Vector3 eyePosition = transform.position + new Vector3(0f, 0.5f, 0f);
 
                 // 視線が遮られていないかチェック
-                var raycastHitCount = Physics.RaycastNonAlloc(new Ray(eyePosition, direction), _raycastHits, maxDistance, LayerMaskConstants.PlayerLayerMask);
+                var raycastHitCount = Physics.RaycastNonAlloc(new Ray(eyePosition, direction), _raycastHits, maxDistance, LayerMaskConstants.Player);
                 if (raycastHitCount > 0 && _raycastHits[0].transform.gameObject == _player)
                     return true;
             }
@@ -187,7 +187,7 @@ namespace Game.ScoreTimeAttack.Enemy
         private bool IsPlayerOverlap(float distance)
         {
             float radius = distance * 2f;
-            var hitCount = Physics.OverlapSphereNonAlloc(transform.position, radius, _overlapResults, LayerMaskConstants.PlayerLayerMask);
+            var hitCount = Physics.OverlapSphereNonAlloc(transform.position, radius, _overlapResults, LayerMaskConstants.Player);
             if (hitCount == 0)
                 return false;
 

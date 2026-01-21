@@ -400,7 +400,7 @@ GameObject:
   - component: {fileID: 8595312522768144512}
   - component: {fileID: 3808701797701180502}
   - component: {fileID: 4169729871406030682}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: BeholderPolyart
   m_TagString: Enemy
   m_Icon: {fileID: 0}

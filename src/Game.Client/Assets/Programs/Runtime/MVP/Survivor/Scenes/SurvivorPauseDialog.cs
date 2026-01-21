@@ -1,6 +1,8 @@
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
+using Game.Shared.Services;
 using R3;
+using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -22,6 +24,13 @@ namespace Game.MVP.Survivor.Scenes
     {
         protected override string AssetPathOrAddress => "SurvivorPauseDialog";
 
+        [Inject] private readonly IInputService _inputService;
+
+        public static UniTask<SurvivorPauseResult> RunAsync(IGameSceneService sceneService)
+        {
+            return sceneService.TransitionDialogAsync<SurvivorPauseDialog, SurvivorPauseDialogComponent, SurvivorPauseResult>();
+        }
+
         public override UniTask Startup()
         {
             // Viewのイベントを購読
@@ -30,6 +39,19 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             return base.Startup();
+        }
+
+        public override async UniTask Ready()
+        {
+            // 入力受付フレームをずらす
+            await UniTask.Yield();
+
+            Observable.EveryValueChanged(_inputService, x => x.UI.Escape.WasPressedThisFrame(), UnityFrameProvider.Update)
+                .Subscribe(escape =>
+                {
+                    if (escape) OnResultSelected(SurvivorPauseResult.Resume);
+                })
+                .AddTo(Disposables);
         }
 
         private void OnResultSelected(SurvivorPauseResult result)

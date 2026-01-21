@@ -4,6 +4,7 @@ using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Services;
 using UnityEngine;
+using VContainer;
 
 namespace Game.MVP.Survivor.Weapon
 {
@@ -14,7 +15,7 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     public class SurvivorAutoFireWeapon : SurvivorWeaponBase
     {
-        private readonly IAddressableAssetService _assetService;
+        [Inject] private readonly IAddressableAssetService _assetService;
         private readonly Transform _poolParent;
 
         // アセット名ごとのプールを管理（レベルアップ時の再利用のため）
@@ -25,9 +26,8 @@ namespace Game.MVP.Survivor.Weapon
         // Cache
         private readonly Collider[] _hitBuffer = new Collider[50];
 
-        public SurvivorAutoFireWeapon(IAddressableAssetService assetService, Transform poolParent)
+        public SurvivorAutoFireWeapon(Transform poolParent)
         {
-            _assetService = assetService;
             _poolParent = poolParent;
         }
 
@@ -121,9 +121,8 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (!_isInitialized || _currentPool == null) return false;
 
-            // 範囲内の敵を検索
-            var target = FindNearestEnemy();
-            if (target == null) return false;
+            // ターゲットを取得（ロックオン優先）
+            if (!TryGetTarget(out var target)) return false;
 
             // 発射方向（ターゲットに向かって真っ直ぐ）
             Vector3 baseDirection = (target.position - _owner.position).normalized;
@@ -156,6 +155,22 @@ namespace Game.MVP.Survivor.Weapon
             float angle = startAngle + (angleStep * index);
 
             return Quaternion.Euler(0f, angle, 0f) * baseDirection;
+        }
+
+        /// <summary>
+        /// ターゲットを取得（ロックオン優先、なければ最寄りの敵）
+        /// </summary>
+        protected override bool TryGetTarget(out Transform target)
+        {
+            // まず基底クラスでロックオンチェック
+            if (base.TryGetTarget(out target))
+            {
+                return true;
+            }
+
+            // ロックオンがなければ最寄りの敵を検索
+            target = FindNearestEnemy();
+            return target != null;
         }
 
         private Transform FindNearestEnemy()

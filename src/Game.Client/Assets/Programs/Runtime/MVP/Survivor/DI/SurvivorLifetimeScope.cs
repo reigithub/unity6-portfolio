@@ -6,7 +6,6 @@ using Game.MVP.Survivor.Signals;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
-using MessagePipe.VContainer;
 using VContainer;
 using VContainer.Unity;
 
@@ -29,6 +28,7 @@ namespace Game.MVP.Survivor
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
             builder.Register<AudioService>(Lifetime.Singleton).As<IAudioService>();
+            builder.Register<InputService>(Lifetime.Singleton).As<IInputService>();
             // memo: 必要な時に入れる
             // builder.Register<ScopedServiceContainer>(Lifetime.Singleton).As<IScopedServiceContainer>();
             // builder.RegisterEntryPoint<TickableService>().As<ITickableService>();
@@ -36,14 +36,20 @@ namespace Game.MVP.Survivor
             // Save Data Storage（共通のセーブデータI/O）
             builder.Register<SaveDataStorage>(Lifetime.Singleton).As<ISaveDataStorage>();
 
-            // Game Root Controller（ISurvivorGameRunnerから取得）
+            // Persistent Object Provider（ゲーム起動時に生成される永続オブジェクトを保持）
+            builder.Register<PersistentObjectProvider>(Lifetime.Singleton).As<IPersistentObjectProvider>();
+
+            // Game Root Controller（PersistentObjectProviderから取得）
             // Transient: StartupAsync完了後に有効になるため、毎回取得する
             builder.Register<IGameRootController>(
-                resolver => resolver.Resolve<ISurvivorGameRunner>().GameRootController,
+                resolver => resolver.Resolve<IPersistentObjectProvider>().Get<IGameRootController>(),
                 Lifetime.Transient);
 
             // Save Service（Survivor固有のセーブ機能）
             builder.Register<SurvivorSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
+
+            // Lock-On Service（ロックオン機能）
+            builder.Register<LockOnService>(Lifetime.Singleton).As<ILockOnService>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

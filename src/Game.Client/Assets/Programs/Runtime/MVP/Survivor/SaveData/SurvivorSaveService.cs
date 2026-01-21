@@ -29,7 +29,7 @@ namespace Game.MVP.Survivor.SaveData
 
         #region ステージ記録
 
-        public void RecordStageClear(int stageId, int score, float clearTime, int kills, bool isVictory)
+        public void RecordStageClear(int stageId, int score, float clearTime, int kills, bool isVictory, bool isTimeUp = false, float hpRatio = 1f)
         {
             if (Data == null) return;
 
@@ -53,7 +53,7 @@ namespace Game.MVP.Survivor.SaveData
                 record.HighScore = Math.Max(record.HighScore, score);
                 record.BestClearTime = Math.Min(record.BestClearTime, clearTime);
                 record.MaxKills = Math.Max(record.MaxKills, kills);
-                record.StarRating = Math.Max(record.StarRating, CalculateStarRating(stageId, score, clearTime));
+                record.StarRating = Math.Max(record.StarRating, CalculateStarRating(isTimeUp, hpRatio));
 
                 // 次ステージアンロック
                 UnlockNextStage(stageId);
@@ -62,7 +62,7 @@ namespace Game.MVP.Survivor.SaveData
             MarkDirty();
 
             Debug.Log($"[SurvivorSaveService] Stage {stageId} record updated. " +
-                      $"Victory: {isVictory}, Score: {score}, Stars: {record.StarRating}");
+                      $"Victory: {isVictory}, Score: {score}, Stars: {record.StarRating}, TimeUp: {isTimeUp}, HP: {hpRatio:P0}");
         }
 
         public void UnlockStage(int stageId)
@@ -146,7 +146,7 @@ namespace Game.MVP.Survivor.SaveData
             Debug.Log($"[SurvivorSaveService] Session updated. Wave: {currentWave}, Time: {elapsedTime:F1}s");
         }
 
-        public void CompleteCurrentStage(int score, int kills, float clearTime, bool isVictory)
+        public void CompleteCurrentStage(int score, int kills, float clearTime, bool isVictory, bool isTimeUp = false, float hpRatio = 1f)
         {
             if (Data?.CurrentSession == null) return;
 
@@ -159,6 +159,7 @@ namespace Game.MVP.Survivor.SaveData
                 Score = score,
                 Kills = kills,
                 ClearTime = clearTime,
+                HpRatio = hpRatio,
                 IsVictory = isVictory,
                 CompletedAt = DateTime.Now
             });
@@ -167,9 +168,9 @@ namespace Game.MVP.Survivor.SaveData
             session.UpdatedAt = DateTime.Now;
 
             // 永続記録にも保存
-            RecordStageClear(session.StageId, score, clearTime, kills, isVictory);
+            RecordStageClear(session.StageId, score, clearTime, kills, isVictory, isTimeUp, hpRatio);
 
-            Debug.Log($"[SurvivorSaveService] Stage completed. Victory: {isVictory}, Score: {score}");
+            Debug.Log($"[SurvivorSaveService] Stage completed. Victory: {isVictory}, Score: {score}, TimeUp: {isTimeUp}, HP: {hpRatio:P0}");
         }
 
         public void AdvanceToNextStage(int nextStageId)
@@ -266,22 +267,31 @@ namespace Game.MVP.Survivor.SaveData
 
         #region Private Methods
 
-        private int CalculateStarRating(int stageId, int score, float clearTime)
+        /// <summary>
+        /// 星評価を計算
+        /// ★☆☆ (1星): 時間切れでクリア（全Wave未クリア）
+        /// ★★☆ (2星): 全Waveクリア（ボス撃破含む）
+        /// ★★★ (3星): 全Waveクリア + 残りHP50%以上
+        /// </summary>
+        private int CalculateStarRating(bool isTimeUp, float hpRatio)
         {
-            // マスターデータから閾値を取得（将来的にSurvivorStageRatingMasterを追加）
-            // 現時点ではデフォルト値を使用
-
-            if (score >= 10000 && clearTime <= 180f)
+            // 時間切れクリアの場合は強制的に1星
+            if (isTimeUp)
             {
+                Debug.Log($"[SurvivorSaveService] TimeUp clear - 1 star");
+                return 1;
+            }
+
+            // 全Waveクリア + HP50%以上 → 3星
+            if (hpRatio >= 0.5f)
+            {
+                Debug.Log($"[SurvivorSaveService] All waves clear with HP {hpRatio:P0} - 3 stars");
                 return 3;
             }
 
-            if (score >= 5000)
-            {
-                return 2;
-            }
-
-            return 1;
+            // 全Waveクリア → 2星
+            Debug.Log($"[SurvivorSaveService] All waves clear with HP {hpRatio:P0} - 2 stars");
+            return 2;
         }
 
         private void UnlockNextStage(int clearedStageId)

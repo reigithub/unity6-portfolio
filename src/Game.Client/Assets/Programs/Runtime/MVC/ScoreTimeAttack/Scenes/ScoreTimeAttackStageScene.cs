@@ -144,7 +144,7 @@ namespace Game.ScoreTimeAttack.Scenes
             // プレイヤー設定
             MessagePipeService.Subscribe<Collider>(MessageKey.Player.OnTriggerEnter, other =>
                 {
-                    if (!other.gameObject.CompareTag("StageItem"))
+                    if (!other.gameObject.CompareTag("Item"))
                         return;
 
                     // 今はとりあえず一番近いやつでOK

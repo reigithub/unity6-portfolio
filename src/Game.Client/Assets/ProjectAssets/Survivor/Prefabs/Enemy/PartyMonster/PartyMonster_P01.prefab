@@ -2782,7 +2782,7 @@ GameObject:
   - component: {fileID: 5283057916122152221}
   - component: {fileID: 6607595481128036623}
   - component: {fileID: 2343108114834623282}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: PartyMonster_P01
   m_TagString: Enemy
   m_Icon: {fileID: 0}

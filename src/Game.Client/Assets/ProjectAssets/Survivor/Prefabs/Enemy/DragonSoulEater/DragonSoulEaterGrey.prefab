@@ -1548,7 +1548,7 @@ GameObject:
   - component: {fileID: 5142580594023096365}
   - component: {fileID: 5283254811147708373}
   - component: {fileID: 8345991338663050680}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: DragonSoulEaterGrey
   m_TagString: Enemy
   m_Icon: {fileID: 0}

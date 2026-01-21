@@ -24,6 +24,13 @@ namespace Game.Editor
             w.UpdateMemoryTables();
         }
 
+        [MenuItem("Project/MasterMemory/GenerateMasterDataBinary")]
+        public static void GenerateBinary()
+        {
+            MasterDataHelper.GenerateMasterDataBinary();
+            Debug.Log("[MasterDataWindow] MasterDataBinary generated.");
+        }
+
         private void UpdateMemoryTables()
         {
             _memoryTables = MasterDataHelper.GetMemoryTableTypes();

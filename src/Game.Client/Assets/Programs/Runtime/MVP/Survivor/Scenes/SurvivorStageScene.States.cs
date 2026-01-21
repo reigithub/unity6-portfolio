@@ -55,7 +55,7 @@ namespace Game.MVP.Survivor.Scenes
         private abstract class StageStateBase : State<SurvivorStageScene, StageEvent>
         {
             protected IGameSceneService SceneService => Context._sceneService;
-            protected IGameRootController GameRootController => Context._gameRunner.GameRootController;
+            protected IGameRootController GameRootController => Context.GameRootController;
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
@@ -83,7 +83,7 @@ namespace Game.MVP.Survivor.Scenes
                 GameRootController.SetFadeImmediate(1f);
 
                 // StageModel, WaveManagerはSurvivorStageScene.Startup()で初期化済み
-                View.InitializePlayer(StageModel.PlayerMaster, GameRootController.MainCamera);
+                View.InitializePlayer(StageModel.CurrentLevelMaster, GameRootController.MainCamera);
 
                 InitializeAndCountdownAsync().Forget();
             }
@@ -144,13 +144,23 @@ namespace Game.MVP.Survivor.Scenes
 
         private class PlayingState : StageStateBase
         {
+            private bool _isFirstEntry = true;
+
             public override void Enter()
             {
                 Debug.Log("[PlayingState] Enter");
                 ApplicationEvents.ResumeTime();
-                ApplicationEvents.HideCursor();
-                WaveManager.StartWave();
+                ApplicationEvents.ShowCursor();
 
+                // 初回（ReadyStateからの遷移）のみWaveを開始
+                // LevelUpStateやPausedStateからの復帰時はWaveを開始しない
+                if (_isFirstEntry)
+                {
+                    _isFirstEntry = false;
+                    WaveManager.StartWave();
+                }
+
+                Context._inputService.EnablePlayer();
                 Context._pauseRequested = false;
                 Context._levelUpRequested = false;
             }
@@ -208,7 +218,7 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid ShowPauseDialogAsync()
             {
-                var result = await SceneService.TransitionDialogAsync<SurvivorPauseDialog, SurvivorPauseDialogComponent, SurvivorPauseResult>();
+                var result = await SurvivorPauseDialog.RunAsync(SceneService);
 
                 switch (result)
                 {
@@ -247,6 +257,9 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid ShowLevelUpDialogAsync()
             {
+                // プレイヤーのステータスを更新（移動速度、ピックアップ範囲など）
+                UpdatePlayerStats();
+
                 if (View.WeaponManager == null)
                 {
                     Transition(StageEvent.LevelUpComplete);
@@ -275,6 +288,14 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 Transition(StageEvent.LevelUpComplete);
+            }
+
+            private void UpdatePlayerStats()
+            {
+                if (View.PlayerController != null && StageModel.CurrentLevelMaster != null)
+                {
+                    View.PlayerController.UpdateLevelStats(StageModel.CurrentLevelMaster);
+                }
             }
 
             public override void Exit()
