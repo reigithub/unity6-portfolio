@@ -3,7 +3,7 @@ using Game.MVP.Core.Scenes;
 using R3;
 using UnityEngine;
 
-namespace Game.MVP.Survivor.UI
+namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// カウントダウンダイアログの結果

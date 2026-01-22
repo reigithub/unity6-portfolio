@@ -4,7 +4,7 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Weapon;
 using R3;
 
-namespace Game.MVP.Survivor.UI
+namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// レベルアップダイアログ引数

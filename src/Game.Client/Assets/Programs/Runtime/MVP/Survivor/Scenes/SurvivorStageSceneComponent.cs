@@ -76,6 +76,10 @@ namespace Game.MVP.Survivor.Scenes
         private Label _waveBannerSubtext;
         private CancellationTokenSource _bannerCts;
 
+        // HUD Bars for visibility control
+        private VisualElement _topBar;
+        private VisualElement _bottomBar;
+
         // Cached values for bar calculations
         private int _maxHp = 100;
         private int _maxStamina = 100;
@@ -130,6 +134,13 @@ namespace Game.MVP.Survivor.Scenes
             _waveBanner = _root.Q<VisualElement>("wave-banner");
             _waveBannerText = _root.Q<Label>("wave-banner-text");
             _waveBannerSubtext = _root.Q<Label>("wave-banner-subtext");
+
+            // HUD Bars
+            _topBar = _root.Q<VisualElement>("top-bar");
+            _bottomBar = _root.Q<VisualElement>("bottom-bar");
+
+            // カウントダウン中は非表示にする
+            SetHudVisible(false, immediate: true);
         }
 
         private void SetupEventHandlers()
@@ -197,7 +208,7 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        public async UniTask InitializeExperienceOrbSpawnerAsync()
+        public async UniTask InitializeItemSpawnerAsync()
         {
             if (_itemSpawner != null)
             {
@@ -264,7 +275,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (_levelText != null)
             {
-                _levelText.text = $"Lv.{level}";
+                _levelText.text = $"PLAYER Lv.{level}";
             }
         }
 
@@ -373,6 +384,48 @@ namespace Game.MVP.Survivor.Scenes
             catch (System.OperationCanceledException)
             {
                 // キャンセルされた場合は何もしない
+            }
+        }
+
+        #endregion
+
+        #region HUD Visibility
+
+        /// <summary>
+        /// HUDの表示/非表示を切り替える
+        /// </summary>
+        /// <param name="visible">表示する場合はtrue</param>
+        /// <param name="immediate">トランジションなしで即座に切り替える場合はtrue</param>
+        public void SetHudVisible(bool visible, bool immediate = false)
+        {
+            if (_topBar != null)
+            {
+                if (visible)
+                {
+                    _topBar.RemoveFromClassList("hud--hidden");
+                    if (!immediate)
+                        _topBar.AddToClassList("hud--visible");
+                }
+                else
+                {
+                    _topBar.RemoveFromClassList("hud--visible");
+                    _topBar.AddToClassList("hud--hidden");
+                }
+            }
+
+            if (_bottomBar != null)
+            {
+                if (visible)
+                {
+                    _bottomBar.RemoveFromClassList("hud--hidden");
+                    if (!immediate)
+                        _bottomBar.AddToClassList("hud--visible");
+                }
+                else
+                {
+                    _bottomBar.RemoveFromClassList("hud--visible");
+                    _bottomBar.AddToClassList("hud--hidden");
+                }
             }
         }
 

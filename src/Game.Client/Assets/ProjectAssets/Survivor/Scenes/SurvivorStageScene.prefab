@@ -137,6 +137,51 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &877534556165900559
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8038917163004608683}
+  - component: {fileID: 3921217730291613555}
+  m_Layer: 0
+  m_Name: VfxSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8038917163004608683
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877534556165900559}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4288293738249389399}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3921217730291613555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 877534556165900559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba0e79a7eb7b054ea3f8e249ea5a3d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Weapon.SurvivorVfxSpawner
+  _poolSizePerEffect: 20
 --- !u!1 &1015316699989851940
 GameObject:
   m_ObjectHideFlags: 0
@@ -2239,7 +2284,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Item.SurvivorItemSpawner
   _poolSizePerItem: 50
-  _itemPrefabBasePath: Assets/StoreAssets/BTM_Assets/BTM_Items_Gems/Prefabs/
 --- !u!1 &8277584970297503895
 GameObject:
   m_ObjectHideFlags: 0
@@ -2276,6 +2320,7 @@ Transform:
   - {fileID: 494304967247310338}
   - {fileID: 803005887419603394}
   - {fileID: 1484873248788615315}
+  - {fileID: 8038917163004608683}
   - {fileID: 2100138876687453250}
   - {fileID: 7396773024931509600}
   m_Father: {fileID: 0}
@@ -2491,3 +2536,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Weapon.WeaponManager
   _maxWeaponSlots: 6
+  _vfxSpawner: {fileID: 3921217730291613555}

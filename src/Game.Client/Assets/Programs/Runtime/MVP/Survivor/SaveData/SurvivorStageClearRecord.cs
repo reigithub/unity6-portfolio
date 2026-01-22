@@ -21,8 +21,15 @@ namespace Game.MVP.Survivor.SaveData
         /// <summary>ベストスコア</summary>
         public int HighScore { get; set; }
 
-        /// <summary>最短クリアタイム（秒）</summary>
-        public float BestClearTime { get; set; } = float.MaxValue;
+        /// <summary>
+        /// 最短クリアタイム（秒）
+        /// 0以下は未記録を意味する（MemoryPackデシリアライズでデフォルト値が無視されるため）
+        /// </summary>
+        public float BestClearTime { get; set; }
+
+        /// <summary>BestClearTimeが有効（記録済み）かどうか</summary>
+        [MemoryPackIgnore]
+        public bool HasBestClearTime => BestClearTime > 0;
 
         /// <summary>最大キル数</summary>
         public int MaxKills { get; set; }

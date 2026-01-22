@@ -1,0 +1,90 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorOptionsDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Header -->
+            <ui:VisualElement class="dialog-header">
+                <ui:Label text="OPTIONS" class="dialog-title" />
+                <ui:Button text="X" name="close-button" class="close-button" />
+            </ui:VisualElement>
+
+            <!-- Main Container -->
+            <ui:VisualElement class="dialog-container">
+                <!-- Tab Navigation -->
+                <ui:VisualElement class="tab-navigation">
+                    <ui:Button text="SAVE DATA" name="tab-save-data" class="tab-button tab-button--active" />
+                    <ui:Button text="AUDIO" name="tab-audio" class="tab-button" />
+                </ui:VisualElement>
+
+                <!-- Content Area -->
+                <ui:VisualElement class="content-area">
+                    <!-- Save Data Tab Content -->
+                    <ui:VisualElement name="content-save-data" class="tab-content tab-content--active">
+                        <ui:Label text="Stage Records" class="content-title" />
+                        <ui:ScrollView name="stage-list" class="stage-list">
+                            <!-- Stage items will be generated dynamically -->
+                        </ui:ScrollView>
+                        <ui:Label text="No stage records found." name="no-records-label" class="no-records-label" />
+                    </ui:VisualElement>
+
+                    <!-- Audio Tab Content -->
+                    <ui:VisualElement name="content-audio" class="tab-content">
+                        <ui:Label text="Volume Settings" class="content-title" />
+                        <ui:VisualElement class="audio-settings">
+                            <!-- Master Volume -->
+                            <ui:VisualElement class="volume-row">
+                                <ui:Label text="MASTER" class="volume-label" />
+                                <ui:VisualElement name="master-slider" class="volume-slider">
+                                    <ui:VisualElement class="volume-track">
+                                        <ui:VisualElement name="master-fill" class="volume-fill" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement name="master-dragger" class="volume-dragger" />
+                                </ui:VisualElement>
+                                <ui:Label name="master-value" text="0" class="volume-value" />
+                            </ui:VisualElement>
+
+                            <!-- BGM Volume -->
+                            <ui:VisualElement class="volume-row">
+                                <ui:Label text="BGM" class="volume-label" />
+                                <ui:VisualElement name="bgm-slider" class="volume-slider">
+                                    <ui:VisualElement class="volume-track">
+                                        <ui:VisualElement name="bgm-fill" class="volume-fill" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement name="bgm-dragger" class="volume-dragger" />
+                                </ui:VisualElement>
+                                <ui:Label name="bgm-value" text="0" class="volume-value" />
+                            </ui:VisualElement>
+
+                            <!-- Voice Volume -->
+                            <ui:VisualElement class="volume-row">
+                                <ui:Label text="VOICE" class="volume-label" />
+                                <ui:VisualElement name="voice-slider" class="volume-slider">
+                                    <ui:VisualElement class="volume-track">
+                                        <ui:VisualElement name="voice-fill" class="volume-fill" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement name="voice-dragger" class="volume-dragger" />
+                                </ui:VisualElement>
+                                <ui:Label name="voice-value" text="0" class="volume-value" />
+                            </ui:VisualElement>
+
+                            <!-- SE Volume -->
+                            <ui:VisualElement class="volume-row">
+                                <ui:Label text="SE" class="volume-label" />
+                                <ui:VisualElement name="se-slider" class="volume-slider">
+                                    <ui:VisualElement class="volume-track">
+                                        <ui:VisualElement name="se-fill" class="volume-fill" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement name="se-dragger" class="volume-dragger" />
+                                </ui:VisualElement>
+                                <ui:Label name="se-value" text="0" class="volume-value" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -21,12 +21,12 @@ namespace Game.Shared.Services
         private AudioSource _voiceSource;
         private AudioSource _sfxSource;
 
-        private readonly float _bgmVolume = 0.3f;
-        private readonly float _bgmFadeDuration = 0.25f;
-        private readonly float _voiceVolume = 1f;
-        private readonly float _voiceFadeDuration = 0.1f;
-        private readonly float _sfxVolume = 0.7f;
-        private readonly float _sfxFadeDuration = 0.1f;
+        private float _bgmVolume = 0.3f;
+        private const float DefaultBgmFadeDuration = 0.25f;
+        private float _voiceVolume = 1f;
+        private const float DefaultVoiceFadeDuration = 0.1f;
+        private float _sfxVolume = 0.7f;
+        private const float DefaultSfxFadeDuration = 0.1f;
 
         /// <summary>
         /// マスターデータベースを取得（派生クラスで実装）
@@ -83,14 +83,14 @@ namespace Game.Shared.Services
             _bgmSource.mute = false;
             _bgmSource.loop = true;
             _bgmSource.Play();
-            await _bgmSource.DOFade(_bgmVolume, _bgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+            await _bgmSource.DOFade(_bgmVolume, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
         }
 
         public async UniTask StopBgmAsync(CancellationToken token = default)
         {
             if (_bgmSource.isPlaying)
             {
-                await _bgmSource.DOFade(0f, _bgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+                await _bgmSource.DOFade(0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
 
             _bgmSource.Stop();
@@ -104,7 +104,7 @@ namespace Game.Shared.Services
             var audioClip = await LoadAudioClipAsync(assetName);
 
             if (_voiceSource.isPlaying)
-                await _voiceSource.DOFade(0f, _voiceFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+                await _voiceSource.DOFade(0f, DefaultVoiceFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _voiceSource.Stop();
             _voiceSource.volume = _voiceVolume;
@@ -123,7 +123,7 @@ namespace Game.Shared.Services
 
             if (_sfxSource.isPlaying)
             {
-                await _sfxSource.DOFade(0f, _sfxFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+                await _sfxSource.DOFade(0f, DefaultSfxFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
 
             _sfxSource.Stop();
@@ -215,6 +215,29 @@ namespace Game.Shared.Services
             var index = UnityEngine.Random.Range(0, audioNames.Length);
             var audioName = audioNames[index];
             return PlayAsync(audioCategory, audioName, token);
+        }
+
+        public void SetVolume(float bgm, float voice, float sfx)
+        {
+            _bgmVolume = Mathf.Clamp01(bgm);
+            _voiceVolume = Mathf.Clamp01(voice);
+            _sfxVolume = Mathf.Clamp01(sfx);
+
+            // 再生中のソースにも即時適用
+            if (_bgmSource != null && _bgmSource.isPlaying)
+            {
+                _bgmSource.volume = _bgmVolume;
+            }
+
+            if (_voiceSource != null)
+            {
+                _voiceSource.volume = _voiceVolume;
+            }
+
+            if (_sfxSource != null)
+            {
+                _sfxSource.volume = _sfxVolume;
+            }
         }
     }
 }

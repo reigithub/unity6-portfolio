@@ -3,6 +3,11 @@
     <ui:VisualElement name="stage-result-item" class="stage-result-item">
         <ui:VisualElement name="header" class="stage-result-item__header">
             <ui:Label text="Stage 1" name="stage-name" class="stage-result-item__name"/>
+            <ui:VisualElement name="stars-container" class="stage-result-item__stars">
+                <ui:Label text="★" name="star-1" class="stage-result-item__star stage-result-item__star--empty"/>
+                <ui:Label text="★" name="star-2" class="stage-result-item__star stage-result-item__star--empty"/>
+                <ui:Label text="★" name="star-3" class="stage-result-item__star stage-result-item__star--empty"/>
+            </ui:VisualElement>
             <ui:Label text="CLEAR" name="stage-status" class="stage-result-item__status stage-result-item__status--clear"/>
         </ui:VisualElement>
         <ui:VisualElement name="stats" class="stage-result-item__stats">

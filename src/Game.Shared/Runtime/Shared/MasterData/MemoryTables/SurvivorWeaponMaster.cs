@@ -29,5 +29,11 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         /// <summary>武器の説明（大まかな説明）</summary>
         public string Description { get; set; }
+
+        /// <summary>ヒットエフェクトアセット名</summary>
+        public string HitEffectAssetName { get; set; }
+
+        /// <summary>ヒットエフェクトスケール（万分率: 10000 = 1.0x）</summary>
+        public int HitEffectScale { get; set; }
     }
 }

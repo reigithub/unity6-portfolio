@@ -1,0 +1,296 @@
+/* ===========================================
+   Survivor Options Dialog Styles
+   Full-screen dialog with tabs
+   =========================================== */
+
+/* Overlay - full screen dark background */
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.98);
+}
+
+/* Dialog Panel - full screen */
+.dialog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    padding: 60px;
+}
+
+/* Header */
+.dialog-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.dialog-title {
+    font-size: 56px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+}
+
+.close-button {
+    width: 64px;
+    height: 64px;
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    transition-duration: 0.15s;
+}
+
+.close-button:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: rgb(255, 255, 255);
+    scale: 1.1;
+}
+
+.close-button:active {
+    scale: 0.95;
+}
+
+/* Main Container */
+.dialog-container {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    width: 280px;
+    margin-right: 48px;
+}
+
+.tab-button {
+    height: 80px;
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: transparent;
+    margin-bottom: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    transition-duration: 0.15s;
+    -unity-text-align: middle-left;
+    padding-left: 32px;
+}
+
+.tab-button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.tab-button--active {
+    background-color: rgba(100, 160, 255, 0.25);
+    border-color: rgba(100, 160, 255, 0.7);
+    color: rgb(255, 255, 255);
+}
+
+.tab-button--active:hover {
+    background-color: rgba(100, 160, 255, 0.35);
+}
+
+/* Content Area */
+.content-area {
+    flex-grow: 1;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    padding: 40px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.tab-content {
+    display: none;
+    flex-grow: 1;
+}
+
+.tab-content--active {
+    display: flex;
+    flex-direction: column;
+}
+
+.content-title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-bottom: 32px;
+    letter-spacing: 2px;
+}
+
+/* Save Data Tab */
+.stage-list {
+    flex-grow: 1;
+    overflow: scroll;
+}
+
+.stage-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.stage-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.stage-info {
+    flex-direction: row;
+    align-items: center;
+}
+
+.stage-number {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.5);
+    width: 64px;
+    -unity-font-style: bold;
+}
+
+.stage-name {
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    margin-right: 32px;
+}
+
+.stage-record {
+    flex-direction: row;
+    align-items: center;
+}
+
+.record-label {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-right: 32px;
+}
+
+.delete-button {
+    width: 120px;
+    height: 52px;
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(180, 60, 60, 0.65);
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(220, 80, 80, 0.5);
+    -unity-font-style: bold;
+    transition-duration: 0.12s;
+}
+
+.delete-button:hover {
+    background-color: rgba(200, 70, 70, 0.85);
+    border-color: rgba(240, 100, 100, 0.7);
+}
+
+.delete-button:disabled {
+    background-color: rgba(80, 80, 80, 0.3);
+    border-color: rgba(100, 100, 100, 0.2);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.no-records-label {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.4);
+    -unity-text-align: middle-center;
+    margin-top: 60px;
+}
+
+/* Audio Tab */
+.audio-settings {
+    flex-grow: 1;
+    padding-top: 20px;
+    opacity: 0;
+    transition-duration: 0.15s;
+}
+
+.audio-settings--ready {
+    opacity: 1;
+}
+
+.volume-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 48px;
+}
+
+.volume-label {
+    width: 180px;
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+/* Custom Volume Slider */
+.volume-slider {
+    flex-grow: 1;
+    height: 56px;
+    margin: 0 32px;
+    justify-content: center;
+    align-items: center;
+}
+
+.volume-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.volume-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background-color: rgb(100, 200, 140);
+    border-radius: 10px 0 0 10px;
+}
+
+.volume-dragger {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: rgb(100, 200, 140);
+    border-width: 4px;
+    border-color: rgba(255, 255, 255, 0.95);
+    left: 0;
+    margin-left: -28px;
+    transition-duration: 0.08s;
+}
+
+.volume-dragger:hover {
+    scale: 1.1;
+    background-color: rgb(120, 220, 160);
+}
+
+.volume-value {
+    width: 80px;
+    font-size: 42px;
+    color: rgba(255, 255, 255, 0.95);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}

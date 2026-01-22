@@ -4,12 +4,12 @@
         <ui:VisualElement name="header" class="header">
             <ui:Button text="&lt; BACK" name="back-button" class="button button--back"/>
             <ui:Label text="STAGE SELECT" name="title" class="header__title"/>
-            <ui:VisualElement class="header__spacer"/>
+            <ui:Button text="OPTIONS" name="options-button" class="button button--options"/>
         </ui:VisualElement>
         <ui:VisualElement name="content" class="content">
             <ui:VisualElement name="stage-list-panel" class="stage-list-panel">
-                <ui:Label text="STAGES" class="panel-label" style="background-color: rgba(0, 0, 0, 0.5); -unity-font-style: bold; -unity-text-align: upper-center;"/>
-                <ui:ScrollView name="stage-scroll-view" class="stage-scroll-view">
+                <ui:Label text="STAGES" class="panel-label" style="background-color: rgba(0, 0, 0, 0.85); -unity-font-style: bold; -unity-text-align: upper-center;"/>
+                <ui:ScrollView name="stage-scroll-view" class="stage-scroll-view" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
                     <ui:VisualElement name="stage-list-container" class="stage-list-container"/>
                 </ui:ScrollView>
             </ui:VisualElement>

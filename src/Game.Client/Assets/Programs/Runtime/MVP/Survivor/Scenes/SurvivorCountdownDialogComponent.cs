@@ -3,7 +3,7 @@ using Game.MVP.Core.Scenes;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Game.MVP.Survivor.UI
+namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// Survivorカウントダウンダイアログのルートコンポーネント

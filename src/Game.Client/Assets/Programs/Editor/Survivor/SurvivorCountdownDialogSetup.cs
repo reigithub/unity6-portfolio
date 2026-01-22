@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Game.MVP.Survivor.UI;
+using Game.MVP.Survivor.Scenes;
 
 namespace Game.Editor.Survivor
 {
@@ -14,7 +14,7 @@ namespace Game.Editor.Survivor
         public static void SetupPrefab()
         {
             const string prefabPath = "Assets/ProjectAssets/Survivor/UI/SurvivorCountdownDialog.prefab";
-            const string uxmlPath = "Assets/Programs/Runtime/MVP/Survivor/UI/SurvivorCountdownDialog.uxml";
+            const string uxmlPath = "Assets/Programs/Runtime/MVP/Survivor/Scenes/UI/SurvivorCountdownDialog.uxml";
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab == null)

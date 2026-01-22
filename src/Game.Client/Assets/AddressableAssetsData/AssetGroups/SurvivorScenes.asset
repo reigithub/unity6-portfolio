@@ -15,11 +15,6 @@ MonoBehaviour:
   m_GroupName: SurvivorScenes
   m_GUID: 4a51c88ecef48f04aa0f33b64d432b2b
   m_SerializeEntries:
-  - m_GUID: 8b001e8653d185948b5fca02ac505089
-    m_Address: SurvivorCountdownDialog
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1ab0bb76c6f29464688a22ab4d9f670a
     m_Address: SurvivorPlayerLevelUpDialog
     m_ReadOnly: 0
@@ -27,6 +22,21 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3d92fd89bf3b0a14fa92a504d5465b24
     m_Address: SurvivorPauseDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8b001e8653d185948b5fca02ac505089
+    m_Address: SurvivorCountdownDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec21513afab119345989a912922a41dc
+    m_Address: SurvivorOptionsDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a61956815890d8642b048f0f2736dae5
+    m_Address: SurvivorConfirmDialog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

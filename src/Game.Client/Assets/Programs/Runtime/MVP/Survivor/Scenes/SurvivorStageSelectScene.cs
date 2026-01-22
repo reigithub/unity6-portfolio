@@ -39,6 +39,10 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => OnBack().Forget())
                 .AddTo(Disposables);
 
+            SceneComponent.OnOptionsClicked
+                .Subscribe(_ => OnOptions().Forget())
+                .AddTo(Disposables);
+
             // 中断セッションがあれば通知
             if (_saveService.HasActiveSession)
             {
@@ -89,6 +93,13 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.SetInteractables(false);
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
         }
+
+        private async UniTaskVoid OnOptions()
+        {
+            SceneComponent.SetInteractables(false);
+            await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
+        }
     }
 
     /// <summary>
@@ -108,6 +119,7 @@ namespace Game.MVP.Survivor.Scenes
         public int StarRating => Record?.StarRating ?? 0;
         public int HighScore => Record?.HighScore ?? 0;
         public float BestClearTime => Record?.BestClearTime ?? 0f;
+        public bool HasBestClearTime => Record?.HasBestClearTime ?? false;
         public int ClearCount => Record?.ClearCount ?? 0;
     }
 }

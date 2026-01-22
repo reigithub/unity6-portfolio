@@ -170,7 +170,7 @@ namespace Game.Shared.Services
             var canvasObj = new GameObject("LockOnCanvas");
             _overlayCanvas = canvasObj.AddComponent<Canvas>();
             _overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _overlayCanvas.sortingOrder = 100; // 他のUIより手前
+            _overlayCanvas.sortingOrder = 0; // 他のUIより手前
 
             // CanvasScalerを追加（スケーリング対応）
             var scaler = canvasObj.AddComponent<CanvasScaler>();

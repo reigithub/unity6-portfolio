@@ -20,9 +20,11 @@ namespace Game.MVP.Survivor.Scenes
 
         private readonly Subject<int> _onStageSelected = new();
         private readonly Subject<Unit> _onBackClicked = new();
+        private readonly Subject<Unit> _onOptionsClicked = new();
 
         public Observable<int> OnStageSelected => _onStageSelected;
         public Observable<Unit> OnBackClicked => _onBackClicked;
+        public Observable<Unit> OnOptionsClicked => _onOptionsClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -36,6 +38,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _starsContainer;
         private Button _playButton;
         private Button _backButton;
+        private Button _optionsButton;
         private Button _resumeButton;
         private Button _newGameButton;
         private Label _resumeInfo;
@@ -48,6 +51,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             _onStageSelected.Dispose();
             _onBackClicked.Dispose();
+            _onOptionsClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -68,6 +72,7 @@ namespace Game.MVP.Survivor.Scenes
             _stageListContainer = _root.Q<VisualElement>("stage-list-container");
             _detailPanel = _root.Q<VisualElement>("detail-panel");
             _backButton = _root.Q<Button>("back-button");
+            _optionsButton = _root.Q<Button>("options-button");
             _playButton = _root.Q<Button>("play-button");
 
             // Detail Panel
@@ -91,6 +96,9 @@ namespace Game.MVP.Survivor.Scenes
         {
             _backButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackClicked.OnNext(Unit.Default));
+
+            _optionsButton?.RegisterCallback<ClickEvent>(_ =>
+                _onOptionsClicked.OnNext(Unit.Default));
 
             _playButton?.RegisterCallback<ClickEvent>(_ =>
             {
@@ -288,7 +296,7 @@ namespace Game.MVP.Survivor.Scenes
 
             if (_detailBestTime != null)
             {
-                if (data.IsCleared && data.BestClearTime > 0)
+                if (data.IsCleared && data.HasBestClearTime)
                 {
                     var minutes = (int)(data.BestClearTime / 60);
                     var seconds = (int)(data.BestClearTime % 60);

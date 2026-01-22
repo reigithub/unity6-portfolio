@@ -26,6 +26,7 @@ namespace Game.MVP.Survivor
         private readonly IAudioService _audioService;
         private readonly IInputService _inputService;
         private readonly ISurvivorSaveService _saveService;
+        private readonly IAudioSaveService _audioSaveService;
         private readonly IPersistentObjectProvider _persistentObjectProvider;
 
         private GameObject _gameRootInstance;
@@ -39,6 +40,7 @@ namespace Game.MVP.Survivor
             IAudioService audioService,
             IInputService inputService,
             ISurvivorSaveService saveService,
+            IAudioSaveService audioSaveService,
             IPersistentObjectProvider persistentObjectProvider)
         {
             _container = container;
@@ -48,6 +50,7 @@ namespace Game.MVP.Survivor
             _audioService = audioService;
             _inputService = inputService;
             _saveService = saveService;
+            _audioSaveService = audioSaveService;
             _persistentObjectProvider = persistentObjectProvider;
         }
 
@@ -62,6 +65,7 @@ namespace Game.MVP.Survivor
 
             // 3. セーブデータ読み込み
             await _saveService.LoadAsync();
+            await _audioSaveService.LoadAsync();
 
             // 4. 共通オブジェクト読み込み（カメラ、UIルートなど）
             await LoadGameRootControllerAsync();
@@ -106,6 +110,7 @@ namespace Game.MVP.Survivor
         {
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();
+            await _audioSaveService.SaveIfDirtyAsync();
 
             // 全てのシーンを終了させる
             await _sceneService.TerminateAllAsync();

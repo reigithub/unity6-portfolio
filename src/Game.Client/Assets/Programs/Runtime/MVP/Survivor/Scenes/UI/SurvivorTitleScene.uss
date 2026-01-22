@@ -15,13 +15,54 @@
 }
 
 /* ===========================================
+   Header with Options Button
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-bottom: -20px;
+}
+
+.header__spacer {
+    flex-grow: 1;
+}
+
+.options-button {
+    height: 48px;
+    padding-left: 24px;
+    padding-right: 24px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.options-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: rgb(255, 255, 255);
+    scale: 1.05;
+}
+
+.options-button:active {
+    scale: 0.95;
+}
+
+/* ===========================================
    Title Area
    =========================================== */
 
 .title-area {
     align-items: center;
     padding: 24px 40px;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.85);
     border-radius: 16px;
     align-self: center;
 }
@@ -73,7 +114,7 @@
     min-width: 400px;
     max-width: 520px;
     padding: 40px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.85);
     border-radius: 16px;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.15);
@@ -88,7 +129,7 @@
     height: 80px;
     font-size: 30px;
     color: rgb(255, 255, 255);
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.5);
     border-radius: 14px;
     border-width: 2px;
     border-color: rgba(255, 255, 255, 0.2);

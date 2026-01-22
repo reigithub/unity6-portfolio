@@ -12,9 +12,9 @@
 
             <!-- Center: Objective -->
             <ui:VisualElement class="top-bar__center">
-                <ui:Label text="Lv.1" name="level-text" class="level-text" />
+                <ui:Label text="PLAYER Lv.1" name="level-text" class="level-text" />
                 <ui:VisualElement class="objective-container">
-                    <ui:Label text="ENEMIES" class="objective-label" />
+                    <ui:Label text="WAVE ENEMIES" class="objective-label" />
                     <ui:Label text="0 / 30" name="enemies-text" class="enemies-text" />
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -56,11 +56,6 @@
                 <ui:VisualElement class="exp-bar__background">
                     <ui:VisualElement name="exp-bar-fill" class="exp-bar__fill" />
                 </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Stats -->
-            <ui:VisualElement class="stats-container">
-                <ui:Label text="KILLS: 0" name="kills-text" class="kills-text" />
             </ui:VisualElement>
         </ui:VisualElement>
 

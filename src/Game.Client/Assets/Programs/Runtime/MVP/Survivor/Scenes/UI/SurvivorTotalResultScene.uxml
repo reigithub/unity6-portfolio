@@ -5,8 +5,16 @@
             <ui:Label text="VICTORY!" name="result-title" class="header__title header__title--victory" style="-unity-font-style: bold;"/>
         </ui:VisualElement>
         <ui:VisualElement name="content" class="content">
-            <ui:VisualElement name="stats-panel" class="stats-panel" style="justify-content: flex-start; height: 480px;">
+            <ui:VisualElement name="stats-panel" class="stats-panel" style="justify-content: flex-start; height: 560px;">
                 <ui:Label text="TOTAL RESULTS" class="panel__title"/>
+                <ui:VisualElement class="stat-item">
+                    <ui:Label text="RATING" class="stat-item__label" style="font-size: 36px;"/>
+                    <ui:VisualElement name="total-stars-container" class="total-stars-container">
+                        <ui:Label text="★" name="total-star-1" class="total-star total-star--empty"/>
+                        <ui:Label text="★" name="total-star-2" class="total-star total-star--empty"/>
+                        <ui:Label text="★" name="total-star-3" class="total-star total-star--empty"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:VisualElement class="stat-item">
                     <ui:Label text="SCORE" class="stat-item__label" style="font-size: 36px;"/>
                     <ui:Label text="0" name="total-score" class="stat-item__value stat-item__value--score"/>
@@ -25,7 +33,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="character-space" class="character-space"/>
-            <ui:VisualElement name="stages-panel" class="stages-panel" style="height: 480px;">
+            <ui:VisualElement name="stages-panel" class="stages-panel" style="height: 560px;">
                 <ui:Label text="STAGE RESULTS" class="panel__title"/>
                 <ui:ScrollView name="stage-results-scroll" class="stage-results-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
                     <ui:VisualElement name="stage-results-container" class="stage-results-container"/>

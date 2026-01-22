@@ -10,6 +10,7 @@
             <ui:VisualElement class="dialog__buttons">
                 <ui:Button text="RESUME" name="resume-button" class="dialog-button dialog-button--primary" />
                 <ui:Button text="RETRY" name="retry-button" class="dialog-button" />
+                <ui:Button text="OPTIONS" name="options-button" class="dialog-button" />
                 <ui:Button text="QUIT" name="quit-button" class="dialog-button dialog-button--danger" />
             </ui:VisualElement>
         </ui:VisualElement>

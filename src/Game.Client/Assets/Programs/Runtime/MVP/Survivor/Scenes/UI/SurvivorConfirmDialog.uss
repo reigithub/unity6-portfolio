@@ -1,0 +1,94 @@
+/* ===========================================
+   Survivor Confirm Dialog Styles
+   Simple confirmation dialog
+   =========================================== */
+
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog {
+    width: 500px;
+    background-color: rgba(25, 25, 40, 0.98);
+    border-radius: 20px;
+    padding: 40px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    align-items: center;
+}
+
+.dialog__title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    margin-bottom: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.dialog__message {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 40px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.dialog__buttons {
+    width: 100%;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.dialog-button {
+    width: 160px;
+    height: 56px;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    margin-left: 12px;
+    margin-right: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+    scale: 1;
+}
+
+.dialog-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.03;
+}
+
+.dialog-button:active {
+    scale: 0.97;
+}
+
+.dialog-button--confirm {
+    background-color: rgba(180, 60, 60, 0.8);
+    border-color: rgb(220, 80, 80);
+}
+
+.dialog-button--confirm:hover {
+    background-color: rgba(200, 70, 70, 0.9);
+    scale: 1.05;
+}
+
+.dialog-button--cancel {
+    background-color: rgba(80, 80, 80, 0.6);
+    border-color: rgba(120, 120, 120, 0.6);
+}
+
+.dialog-button--cancel:hover {
+    background-color: rgba(100, 100, 100, 0.8);
+}

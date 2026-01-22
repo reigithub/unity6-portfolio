@@ -5,7 +5,7 @@ using R3;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Game.MVP.Survivor.UI
+namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// レベルアップダイアログのルートコンポーネント
@@ -91,28 +91,64 @@ namespace Game.MVP.Survivor.UI
                 button.AddToClassList("option-button--new");
             }
 
-            // ヘッダー部分（武器名 + レベルバッジ）
+            // サムネイル領域
+            var thumbnail = new VisualElement();
+            thumbnail.AddToClassList("option__thumbnail");
+            thumbnail.AddToClassList("option__thumbnail--empty");
+
+            var placeholder = new Label("?");
+            placeholder.AddToClassList("option__thumbnail-placeholder");
+            thumbnail.Add(placeholder);
+
+            button.Add(thumbnail);
+
+            // コンテンツ領域
+            var content = new VisualElement();
+            content.AddToClassList("option__content");
+
+            // ヘッダー部分（武器名のみ）
             var header = new VisualElement();
             header.AddToClassList("option__header");
+
+            // バッジ（サムネイルの下、武器名の上に表示）
+            if (option.IsNewWeapon)
+            {
+                // NEWバッジ（新規武器の場合）
+                var newBadge = new Label("NEW");
+                newBadge.AddToClassList("option__new-badge");
+                header.Add(newBadge);
+            }
+            else
+            {
+                // レベルバッジ（既存武器のレベルアップ時）
+                var levelBadge = new Label($"Lv.{option.CurrentLevel} → Lv.{option.CurrentLevel + 1}");
+                levelBadge.AddToClassList("option__level-badge");
+                header.Add(levelBadge);
+            }
 
             var nameLabel = new Label(option.WeaponName);
             nameLabel.AddToClassList("option__name");
             header.Add(nameLabel);
 
-            var levelBadge = new Label(option.IsNewWeapon ? "NEW" : $"Lv.{option.CurrentLevel + 1}");
-            levelBadge.AddToClassList("option__level-badge");
-            if (option.IsNewWeapon)
-            {
-                levelBadge.AddToClassList("option__level-badge--new");
-            }
-            header.Add(levelBadge);
-
-            button.Add(header);
+            content.Add(header);
 
             // 説明文
-            var description = new Label(option.Description);
-            description.AddToClassList("option__description");
-            button.Add(description);
+            if (!string.IsNullOrEmpty(option.Description))
+            {
+                var description = new Label(option.Description);
+                description.AddToClassList("option__description");
+                content.Add(description);
+            }
+
+            // 追加性能テキスト（レベルアップ時のみ）
+            if (!string.IsNullOrEmpty(option.UpgradeEffect))
+            {
+                var upgradeEffect = new Label(option.UpgradeEffect);
+                upgradeEffect.AddToClassList("option__upgrade-effect");
+                content.Add(upgradeEffect);
+            }
+
+            button.Add(content);
 
             // クリックイベント
             button.clicked += () => _onOptionSelected.OnNext(option);

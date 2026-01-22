@@ -133,6 +133,31 @@
     color: rgb(100, 220, 100);
 }
 
+/* Total Stars */
+.total-stars-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 64px;
+    padding: 8px 0;
+}
+
+.total-star {
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-left: 8px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.total-star--empty {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.total-star--filled {
+    color: rgb(255, 200, 80);
+}
+
 /* ===========================================
    Stages Panel (Right)
    =========================================== */
@@ -191,6 +216,31 @@
     font-size: 36px;
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
+}
+
+/* Stage Result Stars */
+.stage-result-item__stars {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+    flex-shrink: 0;
+    justify-content: center;
+    margin: 0 16px;
+}
+
+.stage-result-item__star {
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-right: 4px;
+    -unity-font-style: bold;
+}
+
+.stage-result-item__star--empty {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.stage-result-item__star--filled {
+    color: rgb(255, 200, 80);
 }
 
 .stage-result-item__status {

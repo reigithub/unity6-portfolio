@@ -79,6 +79,14 @@ namespace Game.MVP.Survivor.Weapon
 
         #endregion
 
+        #region ヒットエフェクト
+
+        protected SurvivorVfxSpawner _vfxSpawner;
+        protected string _hitEffectAssetName;
+        protected float _hitEffectScale = 1f;
+
+        #endregion
+
         // State
         protected float _attackTimer;
         protected Transform _owner;
@@ -115,6 +123,8 @@ namespace Game.MVP.Survivor.Weapon
         public int Spread => _spread;
         public int ProcRate => _procRate;
         public bool IsEnabled => _isEnabled;
+        public string HitEffectAssetName => _hitEffectAssetName;
+        public float HitEffectScale => _hitEffectScale;
 
         #endregion
 
@@ -129,7 +139,8 @@ namespace Game.MVP.Survivor.Weapon
             SurvivorWeaponMaster weaponMaster,
             IReadOnlyList<SurvivorWeaponLevelMaster> levelMasters,
             Transform owner,
-            float damageMultiplier = 1f)
+            float damageMultiplier,
+            SurvivorVfxSpawner vfxSpawner)
         {
             _weaponId = weaponMaster.Id;
             _name = weaponMaster.Name;
@@ -138,6 +149,13 @@ namespace Game.MVP.Survivor.Weapon
             _owner = owner;
             _damageMultiplier = damageMultiplier;
             _attackTimer = 0f;
+
+            // ヒットエフェクト設定
+            _vfxSpawner = vfxSpawner;
+            _hitEffectAssetName = weaponMaster.HitEffectAssetName;
+            _hitEffectScale = weaponMaster.HitEffectScale > 0
+                ? weaponMaster.HitEffectScale / 10000f
+                : 1f;
 
             // レベル1を適用
             ApplyLevel(1);

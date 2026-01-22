@@ -21,16 +21,20 @@
 }
 
 .top-bar__left {
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.8);
     border-radius: 12px;
     padding: 12px 20px;
     align-items: flex-start;
 }
 
 .top-bar__center {
-    background-color: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+    background-color: rgba(0, 0, 0, 0.8);
     border-radius: 12px;
     padding: 12px 24px;
+    align-items: center;
 }
 
 .top-bar__right {
@@ -53,11 +57,11 @@
 }
 
 .level-text {
-    font-size: 32px;
+    font-size: 28px;
     color: rgb(100, 220, 255);
     -unity-font-style: bold;
     letter-spacing: 2px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 /* Objective Display */
@@ -68,17 +72,17 @@
 }
 
 .objective-label {
-    font-size: 18px;
+    font-size: 24px;
     color: rgba(255, 255, 255, 0.6);
     letter-spacing: 2px;
     margin-right: 8px;
 }
 
 .enemies-text {
-    font-size: 24px;
+    font-size: 36px;
     color: rgb(255, 100, 100);
     -unity-font-style: bold;
-    letter-spacing: 1px;
+    letter-spacing: 4px;
 }
 
 .pause-button {
@@ -86,7 +90,7 @@
     height: 56px;
     font-size: 24px;
     color: rgb(255, 255, 255);
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.8);
     border-radius: 12px;
     border-width: 2px;
     border-color: rgba(255, 255, 255, 0.3);
@@ -116,9 +120,7 @@
 
 .bottom-bar {
     padding: 20px 30px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    background-color: transparent;
 }
 
 /* HP Bar */
@@ -199,17 +201,6 @@
     transition-duration: 0.15s;
 }
 
-/* Stats */
-.stats-container {
-    flex-direction: row;
-    justify-content: center;
-}
-
-.kills-text {
-    font-size: 22px;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 2px;
-}
 
 /* ===========================================
    Result Overlays
@@ -303,4 +294,20 @@
     color: rgba(255, 255, 255, 0.8);
     letter-spacing: 4px;
     margin-top: 8px;
+}
+
+/* ===========================================
+   HUD Visibility
+   =========================================== */
+
+.hud--hidden {
+    opacity: 0;
+    transition-duration: 0.3s;
+    transition-property: opacity;
+}
+
+.hud--visible {
+    opacity: 1;
+    transition-duration: 0.3s;
+    transition-property: opacity;
 }

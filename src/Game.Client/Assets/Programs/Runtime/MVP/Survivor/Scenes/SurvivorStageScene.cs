@@ -157,12 +157,10 @@ namespace Game.MVP.Survivor.Scenes
                     .AddTo(Disposables);
             }
 
-            if (SceneComponent.EnemySpawner != null)
-            {
-                SceneComponent.EnemySpawner.OnEnemyKilled
-                    .Subscribe(_ => _stageModel.AddKill())
-                    .AddTo(Disposables);
-            }
+            // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
+            _waveManager.OnKillCounted
+                .Subscribe(_ => _stageModel.AddKill())
+                .AddTo(Disposables);
 
             if (SceneComponent.SurvivorItemSpawner != null)
             {
@@ -347,6 +345,10 @@ namespace Game.MVP.Survivor.Scenes
             var currentHp = _stageModel?.CurrentHp.Value ?? 0;
             var maxHp = _stageModel?.MaxHp.Value ?? 1;
             var hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
+
+            // 全Waveの合計目標キル数でキャップ（残弾によるオーバーキルを防ぐ）
+            var maxKills = _waveManager?.TotalTargetKills ?? kills;
+            kills = Math.Min(kills, maxKills);
 
             // セッションにステージ結果を記録（リザルト画面用＆永続化）
             // 星評価: 時間切れ=1星、全Waveクリア=2星、HP50%以上=3星

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8138456554934157102}
   - component: {fileID: 8187044136444103360}
   - component: {fileID: 1542295491411164638}
-  - component: {fileID: 8713295102270158444}
+  - component: {fileID: 4513485343637069686}
   m_Layer: 0
   m_Name: SurvivorCountdownDialog
   m_TagString: Untagged
@@ -60,7 +60,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
   m_PanelSettings: {fileID: 11400000, guid: 3486f74e6b273fd45ab889d24ad7b20a, type: 2}
   m_ParentUI: {fileID: 0}
-  sourceAsset: {fileID: 9197481963319205126, guid: fbcd32b787d2818469960bdec3492ba8, type: 3}
+  sourceAsset: {fileID: 9197481963319205126, guid: 724dc4c7018c26446943def1929ac2ca, type: 3}
   m_SortingOrder: 0
   m_Position: 0
   m_WorldSpaceSizeMode: 1
@@ -69,7 +69,7 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
---- !u!114 &8713295102270158444
+--- !u!114 &4513485343637069686
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -78,7 +78,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1318829942304784825}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 87a98c9e4a9c46e4c9b21cc6c7f7333a, type: 3}
+  m_Script: {fileID: 11500000, guid: b24a38d66311ca04e9bc92d803cc92ff, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.UI.SurvivorCountdownDialogComponent
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorCountdownDialogComponent
   _uiDocument: {fileID: 1542295491411164638}

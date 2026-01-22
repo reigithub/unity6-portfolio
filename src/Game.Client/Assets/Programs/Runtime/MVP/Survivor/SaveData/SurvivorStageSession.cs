@@ -134,6 +134,9 @@ namespace Game.MVP.Survivor.SaveData
         /// <summary>勝利したか</summary>
         public bool IsVictory { get; set; }
 
+        /// <summary>星評価（1-3星）</summary>
+        public int StarRating { get; set; }
+
         /// <summary>完了日時</summary>
         public DateTime CompletedAt { get; set; }
     }

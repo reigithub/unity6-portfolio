@@ -40,6 +40,31 @@
     -unity-font-style: bold;
 }
 
+/* Stars */
+.stage-result-item__stars {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+    flex-shrink: 0;
+    justify-content: center;
+    margin: 0 16px;
+}
+
+.stage-result-item__star {
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-right: 4px;
+    -unity-font-style: bold;
+}
+
+.stage-result-item__star--empty {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.stage-result-item__star--filled {
+    color: rgb(255, 200, 80);
+}
+
 .stage-result-item__status {
     font-size: 36px;
     -unity-font-style: bold;

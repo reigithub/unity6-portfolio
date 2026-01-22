@@ -35,9 +35,10 @@ namespace Game.MVP.Survivor.Weapon
             SurvivorWeaponMaster weaponMaster,
             IReadOnlyList<SurvivorWeaponLevelMaster> levelMasters,
             Transform owner,
-            float damageMultiplier = 1f)
+            float damageMultiplier,
+            SurvivorVfxSpawner vfxSpawner)
         {
-            await base.InitializeAsync(weaponMaster, levelMasters, owner, damageMultiplier);
+            await base.InitializeAsync(weaponMaster, levelMasters, owner, damageMultiplier, vfxSpawner);
 
             // 初期プールを作成
             if (!string.IsNullOrEmpty(_currentAssetName))
@@ -242,6 +243,13 @@ namespace Game.MVP.Survivor.Weapon
             if (RollProcRate())
             {
                 enemy.TakeDamage(projectile.Damage);
+
+                // ヒットエフェクト生成
+                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
+                {
+                    var hitPosition = other.ClosestPoint(projectile.transform.position);
+                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
+                }
 
                 // ノックバック適用
                 if (_knockback > 0)

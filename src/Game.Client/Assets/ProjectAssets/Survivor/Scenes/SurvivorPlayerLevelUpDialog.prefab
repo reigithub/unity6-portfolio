@@ -65,7 +65,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1379367130294483481}
   - component: {fileID: 5790525248201679497}
-  - component: {fileID: 1265956873516873864}
+  - component: {fileID: 2626095479710760488}
   m_Layer: 0
   m_Name: SurvivorPlayerLevelUpDialog
   m_TagString: Untagged
@@ -101,7 +101,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &1265956873516873864
+--- !u!114 &2626095479710760488
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -110,7 +110,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6501032025304435894}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a8cb970bed6f8742852d2648bbb1341, type: 3}
+  m_Script: {fileID: 11500000, guid: cacde1ebb2afe36438a37211594410b2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.UI.SurvivorPlayerLevelUpDialogComponent
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorPlayerLevelUpDialogComponent
   _uiDocument: {fileID: 308984181718709627}

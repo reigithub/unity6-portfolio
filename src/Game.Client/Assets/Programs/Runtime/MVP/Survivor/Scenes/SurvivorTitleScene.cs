@@ -32,6 +32,10 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnQuitClicked
                 .Subscribe(_ => OnQuit())
                 .AddTo(Disposables);
+
+            SceneComponent.OnOptionsClicked
+                .Subscribe(_ => OnOptions().Forget())
+                .AddTo(Disposables);
         }
 
         public override UniTask Terminate()
@@ -56,6 +60,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             ApplicationEvents.RequestShutdown();
+        }
+
+        private async UniTaskVoid OnOptions()
+        {
+            SceneComponent.SetInteractables(false);
+            await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
         }
     }
 }

@@ -115,8 +115,53 @@ namespace Game.MVP.Survivor.Scenes
                 _totalHpText.text = $"{hpPercent}%";
             }
 
+            // 総合星評価（クリアしたステージの最低評価値）
+            UpdateTotalStarRating(stageResults);
+
             // ステージ別結果
             PopulateStageResults(stageResults);
+        }
+
+        private void UpdateTotalStarRating(IReadOnlyList<SurvivorStageResultData> stageResults)
+        {
+            // クリアしたステージの最低星評価を計算
+            int minStarRating = 3;
+            bool hasVictory = false;
+
+            foreach (var result in stageResults)
+            {
+                if (result.IsVictory)
+                {
+                    hasVictory = true;
+                    if (result.StarRating < minStarRating)
+                    {
+                        minStarRating = result.StarRating;
+                    }
+                }
+            }
+
+            // 勝利がない場合は0星
+            int totalStarRating = hasVictory ? minStarRating : 0;
+
+            // 総合星評価を表示
+            for (int i = 1; i <= 3; i++)
+            {
+                var star = _root.Q<Label>($"total-star-{i}");
+                if (star != null)
+                {
+                    star.RemoveFromClassList("total-star--empty");
+                    star.RemoveFromClassList("total-star--filled");
+
+                    if (i <= totalStarRating)
+                    {
+                        star.AddToClassList("total-star--filled");
+                    }
+                    else
+                    {
+                        star.AddToClassList("total-star--empty");
+                    }
+                }
+            }
         }
 
         private void PopulateStageResults(IReadOnlyList<SurvivorStageResultData> stageResults)
@@ -189,7 +234,32 @@ namespace Game.MVP.Survivor.Scenes
                 hpLabel.text = $"HP: {hpPercent}%";
             }
 
+            // 星評価
+            UpdateStarRating(item, result.StarRating);
+
             return item;
+        }
+
+        private void UpdateStarRating(VisualElement item, int starRating)
+        {
+            for (int i = 1; i <= 3; i++)
+            {
+                var star = item.Q<Label>($"star-{i}");
+                if (star != null)
+                {
+                    star.RemoveFromClassList("stage-result-item__star--empty");
+                    star.RemoveFromClassList("stage-result-item__star--filled");
+
+                    if (i <= starRating)
+                    {
+                        star.AddToClassList("stage-result-item__star--filled");
+                    }
+                    else
+                    {
+                        star.AddToClassList("stage-result-item__star--empty");
+                    }
+                }
+            }
         }
 
         public override void SetInteractables(bool interactable)

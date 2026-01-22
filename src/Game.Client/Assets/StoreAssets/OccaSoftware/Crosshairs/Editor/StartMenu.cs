@@ -8,14 +8,16 @@ namespace OccaSoftware.Crosshairs.Editor
         // Source for UUID: https://shortunique.id/
         private static string modalId = "ShowCrosshairsModal=qtN0wW";
         private Texture2D logo;
+
         private GUIStyle header,
             button,
             contentSection;
+
         private GUILayoutOption[] contentLayoutOptions;
         private static bool listenToEditorUpdates;
         private static StartMenu startMenu;
 
-        [MenuItem("OccaSoftware/Start Menu (Crosshairs)")]
+        [MenuItem("Tools/OccaSoftware/Start Menu (Crosshairs)")]
         public static void SetupMenu()
         {
             startMenu = CreateWindow();
@@ -42,6 +44,7 @@ namespace OccaSoftware.Crosshairs.Editor
         }
 
         #region Setup
+
         private static StartMenu CreateWindow()
         {
             StartMenu startMenu = (StartMenu)GetWindow(typeof(StartMenu));
@@ -92,10 +95,12 @@ namespace OccaSoftware.Crosshairs.Editor
             startMenu.contentSection.padding = new RectOffset(0, 0, 0, 0);
             startMenu.contentLayoutOptions = new GUILayoutOption[] { GUILayout.MinWidth(230) };
         }
+
         #endregion
 
 
         #region Modal Handler
+
         private static void RegisterModal()
         {
             if (!listenToEditorUpdates && !EditorApplication.isPlayingOrWillChangePlaymode)
@@ -116,11 +121,12 @@ namespace OccaSoftware.Crosshairs.Editor
                 SetupMenu();
             }
         }
+
         #endregion
 
 
-
         #region UI Drawer
+
         private void DrawHeader()
         {
             GUILayout.BeginVertical(contentSection, contentLayoutOptions);
@@ -148,6 +154,7 @@ namespace OccaSoftware.Crosshairs.Editor
             {
                 Application.OpenURL("https://assetstore.unity.com/packages/slug/216732");
             }
+
             GUILayout.EndVertical();
         }
 
@@ -164,6 +171,7 @@ namespace OccaSoftware.Crosshairs.Editor
             {
                 Application.OpenURL("https://www.occasoftware.com/discord");
             }
+
             EditorGUILayout.EndVertical();
         }
 
@@ -176,12 +184,15 @@ namespace OccaSoftware.Crosshairs.Editor
             {
                 Application.OpenURL("https://assetstore.unity.com/packages/slug/239049");
             }
+
             if (EditorGUILayout.LinkButton("Join my Newsletter"))
             {
                 Application.OpenURL("https://www.occasoftware.com/newsletter");
             }
+
             EditorGUILayout.EndVertical();
         }
+
         #endregion
     }
 }

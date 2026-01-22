@@ -22,5 +22,10 @@ namespace Game.Shared.Services
         UniTask PlayAsync(int[] audioIds, CancellationToken token = default);
         UniTask PlayRandomOneAsync(AudioPlayTag audioPlayTag, CancellationToken token = default);
         UniTask PlayRandomOneAsync(AudioCategory audioCategory, AudioPlayTag audioPlayTag, CancellationToken token = default);
+
+        /// <summary>
+        /// 各カテゴリのボリュームを設定 (0.0-1.0)
+        /// </summary>
+        void SetVolume(float bgm, float voice, float sfx);
     }
 }

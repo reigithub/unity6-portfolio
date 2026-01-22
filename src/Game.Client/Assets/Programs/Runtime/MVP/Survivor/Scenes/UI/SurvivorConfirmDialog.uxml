@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorConfirmDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <ui:Label text="CONFIRM" name="title" class="dialog__title" />
+            <ui:Label text="Are you sure?" name="message" class="dialog__message" />
+
+            <ui:VisualElement class="dialog__buttons">
+                <ui:Button text="CANCEL" name="cancel-button" class="dialog-button dialog-button--cancel" />
+                <ui:Button text="DELETE" name="confirm-button" class="dialog-button dialog-button--confirm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

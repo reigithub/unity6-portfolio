@@ -15,17 +15,21 @@ namespace Game.MVP.Survivor.Scenes
         [SerializeField] private UIDocument _uiDocument;
 
         private readonly Subject<SurvivorPauseResult> _onResultSelected = new();
+        private readonly Subject<Unit> _onOptionsClicked = new();
         public Observable<SurvivorPauseResult> OnResultSelected => _onResultSelected;
+        public Observable<Unit> OnOptionsClicked => _onOptionsClicked;
 
         // UI Element References
         private VisualElement _root;
         private Button _resumeButton;
         private Button _retryButton;
+        private Button _optionsButton;
         private Button _quitButton;
 
         protected override void OnDestroy()
         {
             _onResultSelected.Dispose();
+            _onOptionsClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -41,6 +45,7 @@ namespace Game.MVP.Survivor.Scenes
 
             _resumeButton = _root.Q<Button>("resume-button");
             _retryButton = _root.Q<Button>("retry-button");
+            _optionsButton = _root.Q<Button>("options-button");
             _quitButton = _root.Q<Button>("quit-button");
         }
 
@@ -51,6 +56,9 @@ namespace Game.MVP.Survivor.Scenes
 
             _retryButton?.RegisterCallback<ClickEvent>(_ =>
                 _onResultSelected.OnNext(SurvivorPauseResult.Retry));
+
+            _optionsButton?.RegisterCallback<ClickEvent>(_ =>
+                _onOptionsClicked.OnNext(Unit.Default));
 
             _quitButton?.RegisterCallback<ClickEvent>(_ =>
                 _onResultSelected.OnNext(SurvivorPauseResult.Quit));

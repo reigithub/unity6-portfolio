@@ -32,6 +32,10 @@ namespace Game.MVP.Survivor.Services
         private readonly Subject<int> _onWaveCleared = new();
         public Observable<int> OnWaveCleared => _onWaveCleared;
 
+        // キルカウントイベント（目標数に達していない場合のみ発火）
+        private readonly Subject<Unit> _onKillCounted = new();
+        public Observable<Unit> OnKillCounted => _onKillCounted;
+
         public ReadOnlyReactiveProperty<int> CurrentWave => _currentWave;
         /// <summary>このWaveの総スポーン数</summary>
         public ReadOnlyReactiveProperty<int> EnemiesThisWave => _enemiesThisWave;
@@ -46,6 +50,16 @@ namespace Game.MVP.Survivor.Services
 
         /// <summary>全ウェーブ数</summary>
         public int TotalWaves => _waves?.Length ?? 0;
+
+        /// <summary>全Waveの合計目標キル数</summary>
+        public int TotalTargetKills
+        {
+            get
+            {
+                if (_waves == null || _waves.Length == 0) return 0;
+                return _waves.Sum(w => w.TargetKillCount > 0 ? w.TargetKillCount : 0);
+            }
+        }
 
         /// <summary>現在が最終ウェーブかどうか</summary>
         public bool IsLastWave => _currentWaveIndex >= 0 && _currentWaveIndex >= _waves.Length - 1;
@@ -146,8 +160,14 @@ namespace Game.MVP.Survivor.Services
 
         public void OnEnemyKilled(bool isBoss = false)
         {
-            _enemiesKilled.Value++;
+            // 目標数を超える加算をしない
+            if (_enemiesKilled.Value < _targetKillsThisWave.Value)
+            {
+                _enemiesKilled.Value++;
+                _onKillCounted.OnNext(Unit.Default);
+            }
 
+            // ボス撃破は別カウント（目標数とは独立）
             if (isBoss)
             {
                 _bossKills.Value++;
@@ -200,6 +220,7 @@ namespace Game.MVP.Survivor.Services
             _bossKills.Dispose();
             _isAllWavesCleared.Dispose();
             _onWaveCleared.Dispose();
+            _onKillCounted.Dispose();
         }
     }
 

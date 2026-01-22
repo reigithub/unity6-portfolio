@@ -1,0 +1,258 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Vfx
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Vfx
+  m_GUID: b6cbf1b9a8d40d842b769f6982d86d29
+  m_SerializeEntries:
+  - m_GUID: 043176b6a68be2b43b073aaaa4782c7d
+    m_Address: CFXR Fire
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 15483e51212e3d74886ea57291f4639a
+    m_Address: CFXR2 Blood Shape Splash
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 265d3a5ba69981a4698ceabcedf368b0
+    m_Address: CFXR Hit D 3D (Yellow)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2af5562ce69fc2d448481a1587a352a5
+    m_Address: CFXR2 Firewall A
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2e1e9506f5904a64b81744324fb7cd50
+    m_Address: CFXR2 WW Explosion
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 326e86d5729c54e479798cacab220bb2
+    m_Address: CFXR Water Splash (Smaller)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3801a320e9ae1bf44a14efa194c86c3f
+    m_Address: CFXR3 Ambient Glows
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3ed0d324122d7b24eaec75c55c74aafc
+    m_Address: CFXR3 Hit Fire B (Air)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3ef3ae421f71c5c4e97fe12dc2fc6312
+    m_Address: CFXR Explosion 1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 463cf9f7af4680240898f6aeba3fe3e6
+    m_Address: CFXR2 Skull Head Alt
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4bda94453d2ca7444a0fff05b2d425f5
+    m_Address: CFXR Explosion Smoke 2 Solo (HDR)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 59a35ab9f68edff40b6e5332bed330f5
+    m_Address: CFXR Flash
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5a8d99fb95262ea458a7b580f2a1611c
+    m_Address: CFXR Water Ripples
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5c755f9bc5253ea418e919994537dcc7
+    m_Address: CFXR Hit A (Red)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6398d43fe79ea0140913dc5530c646af
+    m_Address: CFXR Impact Glowing HDR (Blue)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6718dc24203da53468af9ada8fef7d6d
+    m_Address: CFXR3 Hit Electric C (Air)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6f34ef0d986e9db4199cf75805f79753
+    m_Address: CFXR3 Hit Ice B (Air)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 798157bad7358b04499c9d71cd3c0d9b
+    m_Address: CFXR2 Sparks Rain
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7c2a9b83b809a0848915fabd9596b68b
+    m_Address: CFXR2 Broken Heart
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7ec363c8df426644ea85f8d6d570561c
+    m_Address: CFXR2 WW Enemy Explosion
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7f906c77905876d488e88e99d13c3d7d
+    m_Address: CFXR4 Bubbles Breath Underwater Loop
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 83036083a4ebcd34f98131bd3cf6f4d2
+    m_Address: CFXR3 Hit Misc A
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 85b062a5517cf8345bb6784ffbed4877
+    m_Address: CFXR4 Falling Stars
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 87ee7299dd44ed747af24dbb91bcd33b
+    m_Address: CFXR2 Ground Hit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f8fe12323625f5499b2853dd2ad3e58
+    m_Address: CFXR2 Blood (Directional)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90375796f996bff4cabed66da5e558cb
+    m_Address: CFXR2 Cartoon Fight (Loop)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 99bc28c0d45f51c4fbac01080b73edc7
+    m_Address: CFXR3 Fire Explosion B
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9fe8f8b3288e45a44af36ff8aa04486e
+    m_Address: CFXR3 Hit Misc F Smoke
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a71be3e7990efb040a07565c43cbb198
+    m_Address: CFXR3 Magic Aura A (Runic)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ac009bb7498fcfb4b96614c4fd1f735c
+    m_Address: CFXR4 Rain Splashes
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: acdb90624a404aa438447006f1026065
+    m_Address: CFXR3 LightGlow A (Loop)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ae07f2a45f14a82428409cfe410e6002
+    m_Address: CFXR4 Firework 1 Cyan-Purple (HDR)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af6c1e3f046eecd4d81330aeb285600f
+    m_Address: CFXR4 Sun
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: afa54037ffe627545886e2741abb365d
+    m_Address: CFXR4 Firework HDR Shoot Single (Random Color)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5c8ca7ed10b61e499cce8ec3b6e2e4c
+    m_Address: CFXR2 Souls Escape
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bbeeb0ddc21369746aaaae5c5c1c09cf
+    m_Address: CFXR2 Poison Cloud
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bbf9e36a48d6c5648a13889afab076fd
+    m_Address: CFXR3 Hit Light B (Air)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c248f95ffea8b8543bc7ad0fffe0216d
+    m_Address: CFXR4 Wind Trails
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4ed38c72957f2241ad144a1614956d9
+    m_Address: CFXR Fire Breath
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4f829cb7dd4b864caf8832ec5b1ee55
+    m_Address: CFXR Magic Poof
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ceec7516237b4104b94300043ca39784
+    m_Address: CFXR3 Hit Leaves A (Lit)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e1385af346f4e624eb313ec1ea4fcd7e
+    m_Address: CFXR3 Shield Leaves A (Lit)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e2c1ac940434a5242b54d72b66654687
+    m_Address: CFXR2 Shiny Item (Loop)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e509867be4f82f246a95eca1ee5a2d61
+    m_Address: CFXR Smoke Source 3D
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: effb650189dc5714e9e9801b1cfb3991
+    m_Address: CFXR Electrified 3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f514474ff8e94554d8477de1f2f601b0
+    m_Address: CFXR4 Rain Falling
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f6fd568b816c64943a44efc3add3a881
+    m_Address: CFXR4 Bouncing Glows Bubble (Blue Purple)
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: ebb5bb727de06e04eb2a9deec5d66af1, type: 2}
+    - {fileID: 11400000, guid: cf4bb8f73b84ad3408ecac5714caad9a, type: 2}

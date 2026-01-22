@@ -25,6 +25,7 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorPauseDialog";
 
         [Inject] private readonly IInputService _inputService;
+        [Inject] private readonly IGameSceneService _sceneService;
 
         public static UniTask<SurvivorPauseResult> RunAsync(IGameSceneService sceneService)
         {
@@ -35,7 +36,11 @@ namespace Game.MVP.Survivor.Scenes
         {
             // Viewのイベントを購読
             SceneComponent.OnResultSelected
-                .Subscribe(x => OnResultSelected(x))
+                .Subscribe(OnResultSelected)
+                .AddTo(Disposables);
+
+            SceneComponent.OnOptionsClicked
+                .Subscribe(_ => OnOptionsClicked().Forget())
                 .AddTo(Disposables);
 
             return base.Startup();
@@ -58,6 +63,14 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             TrySetResult(result);
+        }
+
+        private async UniTaskVoid OnOptionsClicked()
+        {
+            // ポーズダイアログを開いたままオプションダイアログを表示
+            SceneComponent.SetInteractables(false);
+            await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
         }
     }
 }

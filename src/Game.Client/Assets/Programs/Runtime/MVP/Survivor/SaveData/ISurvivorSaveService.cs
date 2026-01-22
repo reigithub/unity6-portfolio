@@ -48,6 +48,9 @@ namespace Game.MVP.Survivor.SaveData
         /// <summary>ステージのクリア記録を取得</summary>
         SurvivorStageClearRecord GetStageRecord(int stageId);
 
+        /// <summary>ステージのクリア記録を削除</summary>
+        void DeleteStageRecord(int stageId);
+
         #endregion
 
         #region セッション管理

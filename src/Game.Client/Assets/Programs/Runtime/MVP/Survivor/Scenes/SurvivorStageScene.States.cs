@@ -2,7 +2,6 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Survivor.UI;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared;
 using Game.Shared.Bootstrap;
@@ -96,7 +95,7 @@ namespace Game.MVP.Survivor.Scenes
                     StageModel.GetDamageMultiplier()
                 );
                 await View.InitializeEnemySpawnerAsync(WaveManager);
-                await View.InitializeExperienceOrbSpawnerAsync();
+                await View.InitializeItemSpawnerAsync();
 
                 Debug.Log("[ReadyState] Initialization complete, waiting for camera follow");
 
@@ -158,6 +157,9 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     _isFirstEntry = false;
                     WaveManager.StartWave();
+
+                    // HUDをフェードイン表示（カウントダウン後、初めてPlayingStateに入った時）
+                    View.SetHudVisible(true);
                 }
 
                 Context._inputService.EnablePlayer();
@@ -218,6 +220,7 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid ShowPauseDialogAsync()
             {
+                // ポーズダイアログを表示（Optionsはダイアログ内で処理される）
                 var result = await SurvivorPauseDialog.RunAsync(SceneService);
 
                 switch (result)
@@ -316,7 +319,14 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[VictoryState] Enter");
-                ApplicationEvents.ResumeTime();
+
+                // ゲーム状態をフリーズ（スコア稼ぎ防止）
+                ApplicationEvents.PauseTime();
+                Context._inputService.DisablePlayer();
+
+                // HUDを非表示
+                View.SetHudVisible(false);
+
                 ApplicationEvents.ShowCursor();
                 View.ShowVictory();
                 TransitionToResultAsync().Forget();
@@ -324,7 +334,11 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid TransitionToResultAsync()
             {
-                await UniTask.Delay(ResultDisplayDuration);
+                // Realtimeを指定してtimeScale=0でも待機が動作するようにする
+                await UniTask.Delay(ResultDisplayDuration, DelayType.Realtime);
+
+                // 遷移前に時間を再開（Terminate処理でdeltaTimeが必要な場合に備える）
+                ApplicationEvents.ResumeTime();
                 await SceneService.TransitionAsync<SurvivorTotalResultScene>();
             }
 
@@ -342,7 +356,14 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[GameOverState] Enter");
-                ApplicationEvents.ResumeTime();
+
+                // ゲーム状態をフリーズ（スコア稼ぎ防止）
+                ApplicationEvents.PauseTime();
+                Context._inputService.DisablePlayer();
+
+                // HUDを非表示
+                View.SetHudVisible(false);
+
                 ApplicationEvents.ShowCursor();
                 View.ShowGameOver();
                 TransitionToResultAsync().Forget();
@@ -350,7 +371,11 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid TransitionToResultAsync()
             {
-                await UniTask.Delay(ResultDisplayDuration);
+                // Realtimeを指定してtimeScale=0でも待機が動作するようにする
+                await UniTask.Delay(ResultDisplayDuration, DelayType.Realtime);
+
+                // 遷移前に時間を再開
+                ApplicationEvents.ResumeTime();
                 await SceneService.TransitionAsync<SurvivorTotalResultScene>();
             }
 

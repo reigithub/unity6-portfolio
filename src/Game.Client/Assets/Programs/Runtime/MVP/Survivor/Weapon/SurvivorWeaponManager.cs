@@ -19,6 +19,9 @@ namespace Game.MVP.Survivor.Weapon
         [Header("Weapon Slots")]
         [SerializeField] private int _maxWeaponSlots = 6;
 
+        [Header("VFX")]
+        [SerializeField] private SurvivorVfxSpawner _vfxSpawner;
+
         // DI
         [Inject] private IObjectResolver _resolver;
         [Inject] private IMasterDataService _masterDataService;
@@ -97,7 +100,7 @@ namespace Game.MVP.Survivor.Weapon
             var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster, transform);
 
             // マスターデータから初期化（全レベル分を渡す）
-            await weapon.InitializeAsync(weaponMaster, levelMasters, _owner, _damageMultiplier);
+            await weapon.InitializeAsync(weaponMaster, levelMasters, _owner, _damageMultiplier, _vfxSpawner);
 
             _weapons.Add(weapon);
             _onWeaponAdded.OnNext(weapon);
@@ -165,8 +168,11 @@ namespace Game.MVP.Survivor.Weapon
                     continue;
 
                 // 次のレベルのマスターを取得
-                if (!MemoryDatabase.SurvivorWeaponLevelMasterTable.TryFindByWeaponIdAndLevel((weapon.WeaponId, weapon.Level), out var nextLevelMaster))
+                if (!MemoryDatabase.SurvivorWeaponLevelMasterTable.TryFindByWeaponIdAndLevel((weapon.WeaponId, weapon.Level + 1), out var nextLevelMaster))
                     continue;
+
+                // 武器マスターを取得
+                MemoryDatabase.SurvivorWeaponMasterTable.TryFindById(weapon.WeaponId, out var weaponMaster);
 
                 options.Add(new SurvivorWeaponUpgradeOption
                 {
@@ -174,7 +180,9 @@ namespace Game.MVP.Survivor.Weapon
                     WeaponName = weapon.Name,
                     IsNewWeapon = false,
                     CurrentLevel = weapon.Level,
-                    Description = nextLevelMaster.Description ?? $"{weapon.Name} Lv.{weapon.Level} → Lv.{weapon.Level + 1}"
+                    Description = weaponMaster?.Description,
+                    UpgradeEffect = nextLevelMaster.Description,
+                    IconAssetName = weaponMaster?.IconAssetName
                 });
             }
 
@@ -194,7 +202,9 @@ namespace Game.MVP.Survivor.Weapon
                         WeaponName = weaponMaster.Name,
                         IsNewWeapon = true,
                         CurrentLevel = 0,
-                        Description = weaponMaster.Description ?? $"New: {weaponMaster.Name}"
+                        Description = weaponMaster.Description,
+                        UpgradeEffect = null,
+                        IconAssetName = weaponMaster.IconAssetName
                     });
                 }
             }
@@ -262,6 +272,11 @@ namespace Game.MVP.Survivor.Weapon
         public string WeaponName { get; set; }
         public bool IsNewWeapon { get; set; }
         public int CurrentLevel { get; set; }
+        /// <summary>武器の基本説明</summary>
         public string Description { get; set; }
+        /// <summary>レベルアップ時の追加性能テキスト</summary>
+        public string UpgradeEffect { get; set; }
+        /// <summary>アイコンアセット名</summary>
+        public string IconAssetName { get; set; }
     }
 }

@@ -51,7 +51,11 @@ namespace Game.MVP.Survivor.SaveData
 
                 record.ClearCount++;
                 record.HighScore = Math.Max(record.HighScore, score);
-                record.BestClearTime = Math.Min(record.BestClearTime, clearTime);
+                // BestClearTime: 0以下は未記録として扱い、clearTimeを直接代入
+                // MemoryPackデシリアライズ時にデフォルト値が無視されるため
+                record.BestClearTime = record.HasBestClearTime
+                    ? Math.Min(record.BestClearTime, clearTime)
+                    : clearTime;
                 record.MaxKills = Math.Max(record.MaxKills, kills);
                 record.StarRating = Math.Max(record.StarRating, CalculateStarRating(isTimeUp, hpRatio));
 
@@ -85,6 +89,17 @@ namespace Game.MVP.Survivor.SaveData
         {
             if (Data == null) return null;
             return Data.StageRecords.GetValueOrDefault(stageId);
+        }
+
+        public void DeleteStageRecord(int stageId)
+        {
+            if (Data == null) return;
+
+            if (Data.StageRecords.Remove(stageId))
+            {
+                MarkDirty();
+                Debug.Log($"[SurvivorSaveService] Stage {stageId} record deleted.");
+            }
         }
 
         #endregion
@@ -152,6 +167,9 @@ namespace Game.MVP.Survivor.SaveData
 
             var session = Data.CurrentSession;
 
+            // 星評価を計算
+            var starRating = isVictory ? CalculateStarRating(isTimeUp, hpRatio) : 0;
+
             // 結果を記録
             session.StageResults.Add(new SurvivorStageResultData
             {
@@ -161,6 +179,7 @@ namespace Game.MVP.Survivor.SaveData
                 ClearTime = clearTime,
                 HpRatio = hpRatio,
                 IsVictory = isVictory,
+                StarRating = starRating,
                 CompletedAt = DateTime.Now
             });
 

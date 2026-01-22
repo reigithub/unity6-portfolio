@@ -45,8 +45,9 @@ namespace Game.MVP.Survivor
                 resolver => resolver.Resolve<IPersistentObjectProvider>().Get<IGameRootController>(),
                 Lifetime.Transient);
 
-            // Save Service（Survivor固有のセーブ機能）
+            // Save Services
             builder.Register<SurvivorSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
+            builder.Register<AudioSaveService>(Lifetime.Singleton).As<IAudioSaveService>();
 
             // Lock-On Service（ロックオン機能）
             builder.Register<LockOnService>(Lifetime.Singleton).As<ILockOnService>();

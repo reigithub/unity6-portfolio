@@ -204,7 +204,8 @@ namespace Game.MVP.Core.Scenes
                 await _canvasGroup.DOFade(0f, duration).SetUpdate(true).ToUniTask();
                 _instance.SetActive(false);
             }
-            else if (GameRootController != null)
+
+            if (GameRootController != null)
             {
                 // グローバルフェード（GameRootController）
                 var tweener = GameRootController.FadeOut(duration);
