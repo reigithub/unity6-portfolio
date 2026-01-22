@@ -26,6 +26,7 @@ namespace Game.MVP.Survivor.Weapon
 
         protected int _weaponId;
         protected string _name;
+        protected string _iconAssetName;
         protected int _level = 1;
         protected int _maxLevel = 10;
         protected string _currentAssetName;
@@ -98,6 +99,7 @@ namespace Game.MVP.Survivor.Weapon
 
         public int WeaponId => _weaponId;
         public string Name => _name;
+        public string IconAssetName => _iconAssetName;
         public int Level => _level;
         public int MaxLevel => _maxLevel;
         public int Damage => Mathf.RoundToInt(_damage * _damageMultiplier);
@@ -144,6 +146,7 @@ namespace Game.MVP.Survivor.Weapon
         {
             _weaponId = weaponMaster.Id;
             _name = weaponMaster.Name;
+            _iconAssetName = weaponMaster.IconAssetName;
             _maxLevel = levelMasters.Max(x => x.Level);
             _levelMasters = levelMasters;
             _owner = owner;

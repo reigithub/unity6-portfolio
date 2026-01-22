@@ -122,6 +122,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorTitleSceneComponent
   _uiDocument: {fileID: 7906697969956145495}
+  _animator: {fileID: 2923606163791741231}
 --- !u!1 &4958871894725185800
 GameObject:
   m_ObjectHideFlags: 0

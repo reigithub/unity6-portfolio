@@ -74,7 +74,7 @@ namespace Game.Shared.Services
 
             if (_bgmSource.isPlaying)
             {
-                await _bgmSource.DOFade(0f, 0.5f).SetUpdate(true).ToUniTask(cancellationToken: token);
+                await _bgmSource.DOFade(0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
             }
 
             _bgmSource.Stop();

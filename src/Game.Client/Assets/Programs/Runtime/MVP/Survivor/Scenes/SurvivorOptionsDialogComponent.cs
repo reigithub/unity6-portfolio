@@ -314,16 +314,30 @@ namespace Game.MVP.Survivor.Scenes
             SetSliderValue("voice", data.VoiceVolume);
             SetSliderValue("se", data.SeVolume);
 
-            // Schedule visual update after layout is calculated, then show
-            _root.schedule.Execute(() =>
+            // 各スライダーにGeometryChangedEventを登録してレイアウト確定後に更新
+            foreach (var slider in _volumeSliders)
             {
-                foreach (var slider in _volumeSliders)
+                RegisterSliderGeometryCallback(slider);
+            }
+
+            // Show audio settings after initialization
+            _audioSettings?.AddToClassList("audio-settings--ready");
+        }
+
+        private void RegisterSliderGeometryCallback(VolumeSliderData slider)
+        {
+            void OnGeometryChanged(GeometryChangedEvent evt)
+            {
+                var width = slider.Container.resolvedStyle.width;
+                if (width > 0)
                 {
                     UpdateSliderVisuals(slider);
+                    // 一度更新したらコールバックを解除
+                    slider.Container.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
                 }
-                // Show audio settings after initialization
-                _audioSettings?.AddToClassList("audio-settings--ready");
-            });
+            }
+
+            slider.Container.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
         }
 
         private void SetSliderValue(string category, int value)

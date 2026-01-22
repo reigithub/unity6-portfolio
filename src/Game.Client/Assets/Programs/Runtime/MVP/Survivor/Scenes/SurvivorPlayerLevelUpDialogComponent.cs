@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Weapon;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.UIElements;
+using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -16,8 +19,11 @@ namespace Game.MVP.Survivor.Scenes
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;
 
+        [Inject] private IAddressableAssetService _assetService;
+
         private readonly Subject<SurvivorWeaponUpgradeOption> _onOptionSelected = new();
         private readonly List<Button> _optionButtons = new();
+        private readonly Dictionary<string, Sprite> _iconCache = new();
 
         public Observable<SurvivorWeaponUpgradeOption> OnOptionSelected => _onOptionSelected;
 
@@ -94,12 +100,22 @@ namespace Game.MVP.Survivor.Scenes
             // サムネイル領域
             var thumbnail = new VisualElement();
             thumbnail.AddToClassList("option__thumbnail");
-            thumbnail.AddToClassList("option__thumbnail--empty");
 
             var placeholder = new Label("?");
             placeholder.AddToClassList("option__thumbnail-placeholder");
-            thumbnail.Add(placeholder);
 
+            // アイコンを非同期で読み込み
+            if (!string.IsNullOrEmpty(option.IconAssetName))
+            {
+                thumbnail.AddToClassList("option__thumbnail--loading");
+                LoadIconAsync(option.IconAssetName, thumbnail, placeholder).Forget();
+            }
+            else
+            {
+                thumbnail.AddToClassList("option__thumbnail--empty");
+            }
+
+            thumbnail.Add(placeholder);
             button.Add(thumbnail);
 
             // コンテンツ領域
@@ -155,6 +171,55 @@ namespace Game.MVP.Survivor.Scenes
 
             _optionsContainer.Add(button);
             _optionButtons.Add(button);
+        }
+
+        private async UniTaskVoid LoadIconAsync(string iconAssetName, VisualElement thumbnail, Label placeholder)
+        {
+            try
+            {
+                Sprite sprite;
+
+                // キャッシュチェック
+                if (_iconCache.TryGetValue(iconAssetName, out var cachedSprite))
+                {
+                    sprite = cachedSprite;
+                }
+                else
+                {
+                    // Addressablesから読み込み
+                    sprite = await _assetService.LoadAssetAsync<Sprite>(iconAssetName);
+                    if (sprite != null)
+                    {
+                        _iconCache[iconAssetName] = sprite;
+                    }
+                }
+
+                if (sprite != null && thumbnail != null)
+                {
+                    // 背景画像として設定
+                    thumbnail.style.backgroundImage = new StyleBackground(sprite);
+                    thumbnail.RemoveFromClassList("option__thumbnail--loading");
+                    thumbnail.RemoveFromClassList("option__thumbnail--empty");
+
+                    // プレースホルダーを非表示
+                    if (placeholder != null)
+                    {
+                        placeholder.style.display = DisplayStyle.None;
+                    }
+                }
+                else
+                {
+                    // 読み込み失敗時はプレースホルダーを表示
+                    thumbnail?.RemoveFromClassList("option__thumbnail--loading");
+                    thumbnail?.AddToClassList("option__thumbnail--empty");
+                }
+            }
+            catch
+            {
+                // エラー時はプレースホルダーを表示
+                thumbnail?.RemoveFromClassList("option__thumbnail--loading");
+                thumbnail?.AddToClassList("option__thumbnail--empty");
+            }
         }
 
         public override void SetInteractables(bool interactable)

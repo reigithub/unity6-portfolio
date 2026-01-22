@@ -1,6 +1,8 @@
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using R3;
 using VContainer;
 
@@ -13,6 +15,7 @@ namespace Game.MVP.Survivor.Scenes
     public class SurvivorTitleScene : GamePrefabScene<SurvivorTitleScene, SurvivorTitleSceneComponent>
     {
         [Inject] private readonly IGameSceneService _sceneService;
+        [Inject] private readonly IAudioService _audioService;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -30,7 +33,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             SceneComponent.OnQuitClicked
-                .Subscribe(_ => OnQuit())
+                .Subscribe(_ => OnQuit().Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnOptionsClicked
@@ -38,14 +41,16 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
         }
 
-        public override UniTask Terminate()
+        public override async UniTask Ready()
         {
-            return base.Terminate();
+            SceneComponent.PlayAnimation();
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameReady);
         }
 
         private async UniTaskVoid OnStartGame()
         {
             SceneComponent.SetInteractables(false);
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
             await UniTask.CompletedTask;
         }
@@ -53,12 +58,14 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnReturn()
         {
             SceneComponent.SetInteractables(false);
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameQuit);
             await ApplicationEvents.RequestReturnToTitleAsync();
         }
 
-        private void OnQuit()
+        private async UniTaskVoid OnQuit()
         {
             SceneComponent.SetInteractables(false);
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameQuit);
             ApplicationEvents.RequestShutdown();
         }
 

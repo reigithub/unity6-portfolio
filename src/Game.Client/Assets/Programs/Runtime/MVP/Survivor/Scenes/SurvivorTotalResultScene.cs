@@ -1,8 +1,9 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared.Services;
 using R3;
 using VContainer;
 
@@ -15,11 +16,13 @@ namespace Game.MVP.Survivor.Scenes
     public class SurvivorTotalResultScene : GamePrefabScene<SurvivorTotalResultScene, SurvivorTotalResultSceneComponent>
     {
         [Inject] private readonly IGameSceneService _sceneService;
+        [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISurvivorSaveService _saveService;
 
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
-        // ReSharper disable Unity.PerformanceAnalysis
+        private bool _isVictory;
+
         public override async UniTask Startup()
         {
             await base.Startup();
@@ -31,12 +34,14 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            _isVictory = IsOverallVictory(session);
+
             // リザルトデータをViewに反映
             SceneComponent.SetResultData(
                 totalScore: session.TotalGroupScore,
                 totalKills: session.TotalGroupKills,
                 stageResults: session.StageResults,
-                isVictory: IsOverallVictory(session)
+                isVictory: _isVictory
             );
 
             // Viewイベントを購読
@@ -47,6 +52,20 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnReturnToTitleClicked
                 .Subscribe(_ => OnReturnToTitle().Forget())
                 .AddTo(Disposables);
+        }
+
+        public override async UniTask Ready()
+        {
+            if (_isVictory)
+            {
+                SceneComponent.PlayAnimation("Salute");
+                await _audioService.PlayRandomOneAsync(AudioPlayTag.StageClear);
+            }
+            else
+            {
+                SceneComponent.PlayAnimation("KneelDown");
+                await _audioService.PlayRandomOneAsync(AudioPlayTag.StageFailed);
+            }
         }
 
         private bool IsOverallVictory(SurvivorStageSession session)

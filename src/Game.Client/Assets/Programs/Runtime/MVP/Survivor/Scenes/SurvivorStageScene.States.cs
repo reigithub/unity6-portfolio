@@ -1,10 +1,12 @@
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Scenes
@@ -54,6 +56,7 @@ namespace Game.MVP.Survivor.Scenes
         private abstract class StageStateBase : State<SurvivorStageScene, StageEvent>
         {
             protected IGameSceneService SceneService => Context._sceneService;
+            protected IAudioService AudioService => Context._audioService;
             protected IGameRootController GameRootController => Context.GameRootController;
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
@@ -89,11 +92,14 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid InitializeAndCountdownAsync()
             {
+                var readyAudioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
+
                 // ゲームコンポーネントの初期化
                 await View.InitializeWeaponManagerAsync(
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
                 );
+                View.InitializeWeaponDisplay();
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
 
@@ -121,7 +127,9 @@ namespace Game.MVP.Survivor.Scenes
                     SurvivorCountdownDialogComponent,
                     SurvivorCountdownResult>();
 
+                await readyAudioTask;
                 Debug.Log("[ReadyState] Countdown complete");
+                AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
                 _countdownComplete = true;
             }
 

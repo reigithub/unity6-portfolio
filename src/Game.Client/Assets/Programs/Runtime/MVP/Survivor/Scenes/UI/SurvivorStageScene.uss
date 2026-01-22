@@ -123,82 +123,74 @@
     background-color: transparent;
 }
 
-/* HP Bar */
-.hp-container {
-    margin-bottom: 8px;
+/* ===========================================
+   Stat Bars (HP, Stamina, EXP)
+   =========================================== */
+
+.stat-bar-container {
+    margin-bottom: 6px;
+    position: relative;
 }
 
-.hp-bar__background {
+.stat-bar__background {
     height: 28px;
-    background-color: rgba(80, 20, 20, 0.8);
     border-radius: 6px;
     border-width: 2px;
-    border-color: rgba(255, 100, 100, 0.4);
     overflow: hidden;
 }
 
-.hp-bar__fill {
+.stat-bar__background--hp {
+    background-color: rgba(80, 20, 20, 0.85);
+    border-color: rgba(255, 100, 100, 0.5);
+}
+
+.stat-bar__background--stamina {
+    background-color: rgba(60, 60, 20, 0.85);
+    border-color: rgba(200, 200, 60, 0.5);
+}
+
+.stat-bar__background--exp {
+    background-color: rgba(20, 60, 100, 0.85);
+    border-color: rgba(100, 180, 255, 0.5);
+}
+
+.stat-bar__fill {
     height: 100%;
+    border-radius: 4px;
+    transition-duration: 0.15s;
+}
+
+.stat-bar__fill--hp {
     width: 100%;
     background-color: rgb(220, 60, 60);
-    border-radius: 4px;
-    transition-duration: 0.2s;
 }
 
-.hp-text {
-    font-size: 20px;
-    color: rgb(255, 255, 255);
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-    margin-top: 4px;
-}
-
-/* Stamina Bar */
-.stamina-container {
-    margin-bottom: 8px;
-}
-
-.stamina-bar__background {
-    height: 16px;
-    background-color: rgba(60, 60, 20, 0.8);
-    border-radius: 4px;
-    border-width: 1px;
-    border-color: rgba(200, 200, 60, 0.4);
-    overflow: hidden;
-}
-
-.stamina-bar__fill {
-    height: 100%;
+.stat-bar__fill--stamina {
     width: 100%;
     background-color: rgb(200, 200, 60);
-    border-radius: 3px;
-    transition-duration: 0.1s;
 }
 
-.stamina-bar__fill--depleted {
+.stat-bar__fill--stamina-depleted {
     background-color: rgb(150, 100, 60);
 }
 
-/* EXP Bar */
-.exp-container {
-    margin-bottom: 12px;
-}
-
-.exp-bar__background {
-    height: 12px;
-    background-color: rgba(20, 60, 100, 0.8);
-    border-radius: 4px;
-    border-width: 1px;
-    border-color: rgba(100, 180, 255, 0.4);
-    overflow: hidden;
-}
-
-.exp-bar__fill {
-    height: 100%;
+.stat-bar__fill--exp {
     width: 0%;
     background-color: rgb(80, 180, 255);
-    border-radius: 3px;
-    transition-duration: 0.15s;
+}
+
+.stat-bar__text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 
@@ -310,4 +302,93 @@
     opacity: 1;
     transition-duration: 0.3s;
     transition-property: opacity;
+}
+
+/* ===========================================
+   Weapon Display
+   =========================================== */
+
+.weapon-display-container {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: 0 30px 20px 30px;
+}
+
+.weapon-card {
+    width: 240px;
+    height: 220px;
+    margin-left: 16px;
+    background-color: rgba(30, 40, 60, 0.9);
+    border-radius: 20px;
+    border-width: 3px;
+    border-color: rgba(100, 180, 255, 0.4);
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    position: relative;
+    transition-duration: 0.15s;
+    transition-property: scale, border-color;
+}
+
+.weapon-card__icon {
+    width: 96px;
+    height: 96px;
+    min-width: 96px;
+    min-height: 96px;
+    max-width: 96px;
+    max-height: 96px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    margin-bottom: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.weapon-card__icon-placeholder {
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.5);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.weapon-card__name {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    -unity-text-align: middle-center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 216px;
+}
+
+.weapon-card__level {
+    font-size: 22px;
+    color: rgb(100, 200, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.weapon-card__flash-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0);
+    border-radius: 16px;
+    transition-duration: 0.15s;
+    transition-property: background-color;
+}
+
+/* Flash animation state */
+.weapon-card--flash {
+    scale: 1.15 1.15;
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+.weapon-card--flash .weapon-card__flash-overlay {
+    background-color: rgba(255, 255, 255, 0.5);
 }

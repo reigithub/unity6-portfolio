@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using R3;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;
+
+        [SerializeField] private Animator _animator;
 
         private readonly Subject<Unit> _onStartGameClicked = new();
         private readonly Subject<Unit> _onReturnClicked = new();
@@ -75,6 +78,11 @@ namespace Game.MVP.Survivor.Scenes
 
             _optionsButton?.RegisterCallback<ClickEvent>(_ =>
                 _onOptionsClicked.OnNext(Unit.Default));
+        }
+
+        public void PlayAnimation()
+        {
+            _animator.Play("Salute");
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
@@ -40,6 +41,7 @@ namespace Game.MVP.Survivor.Scenes
         [SerializeField] private SurvivorItemSpawner _itemSpawner;
 
         [Inject] private IInputService _inputService;
+        [Inject] private IAddressableAssetService _assetService;
 
         private readonly Subject<Unit> _onPauseClicked = new();
         private readonly Subject<bool> _onApplicationPause = new();
@@ -61,6 +63,8 @@ namespace Game.MVP.Survivor.Scenes
         private Label _timeText;
         private Label _levelText;
         private Label _hpText;
+        private Label _staminaText;
+        private Label _expText;
         private Label _killsText;
         private Label _enemiesText;
         private VisualElement _hpBarFill;
@@ -80,6 +84,13 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _topBar;
         private VisualElement _bottomBar;
 
+        // Weapon Display
+        private VisualElement _weaponDisplayContainer;
+        private readonly Dictionary<int, VisualElement> _weaponCards = new();
+        private readonly Dictionary<int, IDisposable> _weaponAttackSubscriptions = new();
+        private readonly Dictionary<int, CancellationTokenSource> _flashCtsMap = new();
+        private readonly Dictionary<string, Sprite> _iconCache = new();
+
         // Cached values for bar calculations
         private int _maxHp = 100;
         private int _maxStamina = 100;
@@ -94,6 +105,24 @@ namespace Game.MVP.Survivor.Scenes
             _onPauseClicked.Dispose();
             _onApplicationPause.Dispose();
             _onApplicationQuit.Dispose();
+
+            // Weapon display cleanup
+            foreach (var subscription in _weaponAttackSubscriptions.Values)
+            {
+                subscription?.Dispose();
+            }
+
+            _weaponAttackSubscriptions.Clear();
+
+            foreach (var cts in _flashCtsMap.Values)
+            {
+                cts?.Cancel();
+                cts?.Dispose();
+            }
+
+            _flashCtsMap.Clear();
+            _weaponCards.Clear();
+
             base.OnDestroy();
         }
 
@@ -121,6 +150,8 @@ namespace Game.MVP.Survivor.Scenes
             _timeText = _root.Q<Label>("time-text");
             _levelText = _root.Q<Label>("level-text");
             _hpText = _root.Q<Label>("hp-text");
+            _staminaText = _root.Q<Label>("stamina-text");
+            _expText = _root.Q<Label>("exp-text");
             _killsText = _root.Q<Label>("kills-text");
             _enemiesText = _root.Q<Label>("enemies-text");
             _hpBarFill = _root.Q<VisualElement>("hp-bar-fill");
@@ -138,6 +169,9 @@ namespace Game.MVP.Survivor.Scenes
             // HUD Bars
             _topBar = _root.Q<VisualElement>("top-bar");
             _bottomBar = _root.Q<VisualElement>("bottom-bar");
+
+            // Weapon Display
+            _weaponDisplayContainer = _root.Q<VisualElement>("weapon-display-container");
 
             // カウントダウン中は非表示にする
             SetHudVisible(false, immediate: true);
@@ -229,7 +263,7 @@ namespace Game.MVP.Survivor.Scenes
 
             if (_hpText != null)
             {
-                _hpText.text = $"{current}/{max}";
+                _hpText.text = $"HP: {current}/{max}";
             }
 
             if (_hpBarFill != null)
@@ -243,6 +277,11 @@ namespace Game.MVP.Survivor.Scenes
         {
             _maxStamina = max;
 
+            if (_staminaText != null)
+            {
+                _staminaText.text = $"STAMINA: {current}/{max}";
+            }
+
             if (_staminaBarFill != null)
             {
                 var percent = max > 0 ? (float)current / max * 100f : 0f;
@@ -251,11 +290,11 @@ namespace Game.MVP.Survivor.Scenes
                 // スタミナが少ない時は色を変える
                 if (percent < 30f)
                 {
-                    _staminaBarFill.AddToClassList("stamina-bar__fill--depleted");
+                    _staminaBarFill.AddToClassList("stat-bar__fill--stamina-depleted");
                 }
                 else
                 {
-                    _staminaBarFill.RemoveFromClassList("stamina-bar__fill--depleted");
+                    _staminaBarFill.RemoveFromClassList("stat-bar__fill--stamina-depleted");
                 }
             }
         }
@@ -263,6 +302,11 @@ namespace Game.MVP.Survivor.Scenes
         public void UpdateExperience(int current, int max)
         {
             _maxExp = max;
+
+            if (_expText != null)
+            {
+                _expText.text = $"EXP: {current}/{max}";
+            }
 
             if (_expBarFill != null)
             {
@@ -398,34 +442,208 @@ namespace Game.MVP.Survivor.Scenes
         /// <param name="immediate">トランジションなしで即座に切り替える場合はtrue</param>
         public void SetHudVisible(bool visible, bool immediate = false)
         {
-            if (_topBar != null)
+            SetHudElementVisible(_topBar, visible, immediate);
+            SetHudElementVisible(_bottomBar, visible, immediate);
+            SetHudElementVisible(_weaponDisplayContainer, visible, immediate);
+        }
+
+        private void SetHudElementVisible(VisualElement element, bool visible, bool immediate)
+        {
+            if (element == null) return;
+
+            if (visible)
             {
-                if (visible)
-                {
-                    _topBar.RemoveFromClassList("hud--hidden");
-                    if (!immediate)
-                        _topBar.AddToClassList("hud--visible");
-                }
-                else
-                {
-                    _topBar.RemoveFromClassList("hud--visible");
-                    _topBar.AddToClassList("hud--hidden");
-                }
+                element.RemoveFromClassList("hud--hidden");
+                if (!immediate)
+                    element.AddToClassList("hud--visible");
+            }
+            else
+            {
+                element.RemoveFromClassList("hud--visible");
+                element.AddToClassList("hud--hidden");
+            }
+        }
+
+        #endregion
+
+        #region Weapon Display
+
+        /// <summary>
+        /// 武器表示の初期化
+        /// WeaponManagerのイベントを購読し、既存の武器カードを生成
+        /// </summary>
+        public void InitializeWeaponDisplay()
+        {
+            if (_weaponDisplayContainer == null || _weaponManager == null) return;
+
+            // 既存の武器をカード化
+            foreach (var weapon in _weaponManager.Weapons)
+            {
+                AddWeaponCard(weapon);
             }
 
-            if (_bottomBar != null)
+            // 武器追加イベントを購読
+            _weaponManager.OnWeaponAdded
+                .Subscribe(weapon => AddWeaponCard(weapon))
+                .AddTo(Disposables);
+
+            // 武器レベルアップイベントを購読
+            _weaponManager.OnWeaponUpgraded
+                .Subscribe(weapon => UpdateWeaponCard(weapon))
+                .AddTo(Disposables);
+        }
+
+        /// <summary>
+        /// 武器カードを追加
+        /// </summary>
+        private void AddWeaponCard(SurvivorWeaponBase weapon)
+        {
+            if (_weaponDisplayContainer == null || weapon == null) return;
+            if (_weaponCards.ContainsKey(weapon.WeaponId)) return;
+
+            // カードコンテナ
+            var card = new VisualElement();
+            card.name = $"weapon-card-{weapon.WeaponId}";
+            card.AddToClassList("weapon-card");
+
+            // フラッシュオーバーレイ
+            var flashOverlay = new VisualElement();
+            flashOverlay.AddToClassList("weapon-card__flash-overlay");
+            card.Add(flashOverlay);
+
+            // アイコン
+            var icon = new VisualElement();
+            icon.AddToClassList("weapon-card__icon");
+
+            // プレースホルダー
+            var iconPlaceholder = new Label("?");
+            iconPlaceholder.AddToClassList("weapon-card__icon-placeholder");
+            icon.Add(iconPlaceholder);
+
+            // アイコンを非同期で読み込み
+            if (!string.IsNullOrEmpty(weapon.IconAssetName))
             {
-                if (visible)
+                LoadWeaponIconAsync(weapon.IconAssetName, icon, iconPlaceholder).Forget();
+            }
+
+            card.Add(icon);
+
+            // 武器名
+            var nameLabel = new Label(weapon.Name);
+            nameLabel.AddToClassList("weapon-card__name");
+            card.Add(nameLabel);
+
+            // レベル
+            var levelLabel = new Label($"Lv.{weapon.Level}");
+            levelLabel.name = $"weapon-level-{weapon.WeaponId}";
+            levelLabel.AddToClassList("weapon-card__level");
+            card.Add(levelLabel);
+
+            _weaponDisplayContainer.Add(card);
+            _weaponCards[weapon.WeaponId] = card;
+
+            // 攻撃イベントを購読してフラッシュをトリガー
+            var subscription = weapon.OnAttack
+                .Subscribe(_ => TriggerFlashAnimation(weapon.WeaponId));
+            _weaponAttackSubscriptions[weapon.WeaponId] = subscription;
+        }
+
+        /// <summary>
+        /// 武器カードのレベル表示を更新
+        /// </summary>
+        private void UpdateWeaponCard(SurvivorWeaponBase weapon)
+        {
+            if (weapon == null) return;
+            if (!_weaponCards.TryGetValue(weapon.WeaponId, out var card)) return;
+
+            var levelLabel = card.Q<Label>($"weapon-level-{weapon.WeaponId}");
+            if (levelLabel != null)
+            {
+                levelLabel.text = $"Lv.{weapon.Level}";
+            }
+
+            // レベルアップ時もフラッシュ
+            TriggerFlashAnimation(weapon.WeaponId);
+        }
+
+        /// <summary>
+        /// 武器カードのフラッシュアニメーションをトリガー
+        /// </summary>
+        private void TriggerFlashAnimation(int weaponId)
+        {
+            if (!_weaponCards.TryGetValue(weaponId, out var card)) return;
+
+            // 前回のフラッシュをキャンセル
+            if (_flashCtsMap.TryGetValue(weaponId, out var existingCts))
+            {
+                existingCts?.Cancel();
+                existingCts?.Dispose();
+            }
+
+            var cts = new CancellationTokenSource();
+            _flashCtsMap[weaponId] = cts;
+
+            FlashAnimationAsync(card, cts.Token).Forget();
+        }
+
+        private async UniTaskVoid FlashAnimationAsync(VisualElement card, CancellationToken ct)
+        {
+            try
+            {
+                // フラッシュ開始
+                card.AddToClassList("weapon-card--flash");
+
+                await UniTask.Delay(100, cancellationToken: ct);
+
+                // フラッシュ終了
+                card.RemoveFromClassList("weapon-card--flash");
+            }
+            catch (OperationCanceledException)
+            {
+                // キャンセル時もクラスを削除
+                card.RemoveFromClassList("weapon-card--flash");
+            }
+        }
+
+        /// <summary>
+        /// 武器アイコンを非同期で読み込み
+        /// </summary>
+        private async UniTaskVoid LoadWeaponIconAsync(string iconAssetName, VisualElement icon, Label placeholder)
+        {
+            try
+            {
+                Sprite sprite;
+
+                // キャッシュチェック
+                if (_iconCache.TryGetValue(iconAssetName, out var cachedSprite))
                 {
-                    _bottomBar.RemoveFromClassList("hud--hidden");
-                    if (!immediate)
-                        _bottomBar.AddToClassList("hud--visible");
+                    sprite = cachedSprite;
                 }
                 else
                 {
-                    _bottomBar.RemoveFromClassList("hud--visible");
-                    _bottomBar.AddToClassList("hud--hidden");
+                    // Addressablesから読み込み
+                    sprite = await _assetService.LoadAssetAsync<Sprite>(iconAssetName);
+                    if (sprite != null)
+                    {
+                        _iconCache[iconAssetName] = sprite;
+                    }
                 }
+
+                if (sprite != null && icon != null)
+                {
+                    // 背景画像として設定
+                    icon.style.backgroundImage = new StyleBackground(sprite);
+
+                    // プレースホルダーを非表示
+                    if (placeholder != null)
+                    {
+                        placeholder.style.display = DisplayStyle.None;
+                    }
+                }
+            }
+            catch
+            {
+                // エラー時はプレースホルダーを表示したまま
             }
         }
 

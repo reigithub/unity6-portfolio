@@ -67,6 +67,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorTotalResultSceneComponent
   _uiDocument: {fileID: 808410779531900895}
+  _animator: {fileID: 2923606163791741231}
   _stageResultItemTemplate: {fileID: 9197481963319205126, guid: 9712cec5214eee4409d956e5c294b6a6, type: 3}
 --- !u!1 &4958871894725185800
 GameObject:

@@ -34,28 +34,35 @@
         <!-- Spacer for gameplay area -->
         <ui:VisualElement class="gameplay-area" />
 
+        <!-- Weapon Display Container -->
+        <ui:VisualElement name="weapon-display-container" class="weapon-display-container">
+            <!-- 武器カードは動的に生成 -->
+        </ui:VisualElement>
+
         <!-- Bottom HUD Bar -->
         <ui:VisualElement name="bottom-bar" class="bottom-bar">
             <!-- HP Bar -->
-            <ui:VisualElement class="hp-container">
-                <ui:VisualElement class="hp-bar__background">
-                    <ui:VisualElement name="hp-bar-fill" class="hp-bar__fill" />
+            <ui:VisualElement class="stat-bar-container">
+                <ui:VisualElement class="stat-bar__background stat-bar__background--hp">
+                    <ui:VisualElement name="hp-bar-fill" class="stat-bar__fill stat-bar__fill--hp" />
                 </ui:VisualElement>
-                <ui:Label text="100/100" name="hp-text" class="hp-text" />
+                <ui:Label text="HP: 100/100" name="hp-text" class="stat-bar__text" />
             </ui:VisualElement>
 
             <!-- Stamina Bar -->
-            <ui:VisualElement class="stamina-container">
-                <ui:VisualElement class="stamina-bar__background">
-                    <ui:VisualElement name="stamina-bar-fill" class="stamina-bar__fill" />
+            <ui:VisualElement class="stat-bar-container">
+                <ui:VisualElement class="stat-bar__background stat-bar__background--stamina">
+                    <ui:VisualElement name="stamina-bar-fill" class="stat-bar__fill stat-bar__fill--stamina" />
                 </ui:VisualElement>
+                <ui:Label text="STAMINA: 100/100" name="stamina-text" class="stat-bar__text" />
             </ui:VisualElement>
 
             <!-- EXP Bar -->
-            <ui:VisualElement class="exp-container">
-                <ui:VisualElement class="exp-bar__background">
-                    <ui:VisualElement name="exp-bar-fill" class="exp-bar__fill" />
+            <ui:VisualElement class="stat-bar-container">
+                <ui:VisualElement class="stat-bar__background stat-bar__background--exp">
+                    <ui:VisualElement name="exp-bar-fill" class="stat-bar__fill stat-bar__fill--exp" />
                 </ui:VisualElement>
+                <ui:Label text="EXP: 0/100" name="exp-text" class="stat-bar__text" />
             </ui:VisualElement>
         </ui:VisualElement>
 

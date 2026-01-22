@@ -1,0 +1,523 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: MagicIcons
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: MagicIcons
+  m_GUID: 56927c97116190547950555aaeff8bfa
+  m_SerializeEntries:
+  - m_GUID: 00d93e870e281474eaffc504915561f0
+    m_Address: Free RPG Icons Pack_Wind_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 07720b55bb7cb3c45a9e509ca5b5e01c
+    m_Address: Free RPG Icons Pack_Wind_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 081bf7bc3932a7f4f919e78217faff2e
+    m_Address: Free RPG Icons Pack_Debuff_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0b55b49bf61a0e14ab542ec69fe02786
+    m_Address: Free RPG Icons Pack_Debuff_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0e04e6492d9812f4190a44d74cc8990d
+    m_Address: Free RPG Icons Pack_Buff_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 10dc9c67ffb56dd4f800103585f26888
+    m_Address: Free RPG Icons Pack_Water_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 10f78dfca8c40f14dab0aba23f5cd3a6
+    m_Address: Free RPG Icons Pack_Water_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 11cff42fa3043894693c11bcf0c92b66
+    m_Address: Free RPG Icons Pack_Wind_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a862a305a44ca64e939c2b35b24e829
+    m_Address: Free RPG Icons Pack_Wind_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1c1b9a796c91c994e9ad81ad13d4d0d3
+    m_Address: Free RPG Icons Pack_Holy_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1e4842da06cf8de429f28d6fbe91663b
+    m_Address: Free RPG Icons Pack_Debuff_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2630aaca550cda44986260cb35cf1387
+    m_Address: Free RPG Icons Pack_Earth_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 28a795d1eb4bd1945a44d2b09dcce038
+    m_Address: Free RPG Icons Pack_Dark_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2ea306f25a4d7e24cb4d9a31393e8fa6
+    m_Address: Free RPG Icons Pack_Buff_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3110f6b4fa6cc4144a30d7f6c33720ad
+    m_Address: Free RPG Icons Pack_Wind_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 32695f1744f4a7f419b32569a46faa4e
+    m_Address: Free RPG Icons Pack_Fire_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 35ca820f87bb0384eb185d056b78ee2d
+    m_Address: Free RPG Icons Pack_Buff_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3886f19422e599f48aa06d11a84ed51e
+    m_Address: Free RPG Icons Pack_Cold_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 398c109ca83092e47acf169c3346d29c
+    m_Address: Free RPG Icons Pack_Buff_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3c477ccda59bc504fae19b784b96d25b
+    m_Address: Free RPG Icons Pack_Earth_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3d4455fbc99f65b49a27cf9a63eaa3d6
+    m_Address: Free RPG Icons Pack_Nature_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3d999f4125671fd41b3737d280b3e563
+    m_Address: Free RPG Icons Pack_Nature_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3fcde16e60de7e7438dadb0909775d6c
+    m_Address: Free RPG Icons Pack_Cold_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 40be8921eaa3c3d45980551b8b1bdc05
+    m_Address: Free RPG Icons Pack_Fire_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 45a544502f29c1d4e91d8150cfa1d9f6
+    m_Address: Free RPG Icons Pack_Wind_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 480b6fd098764e244bde8ee6274e6a45
+    m_Address: Free RPG Icons Pack_Cold_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4aa22006ddbdeda42a4577604c8ef34b
+    m_Address: Free RPG Icons Pack_Water_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b6407d5603798c478564165c39eb3de
+    m_Address: Free RPG Icons Pack_Holy_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b902e61d2a35864b899daaebfc8ee8c
+    m_Address: Free RPG Icons Pack_Nature_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4c0827473773009449cf0ef7d0a228f6
+    m_Address: Free RPG Icons Pack_Earth_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4c58b6297ff6825409d1897900f3dfc8
+    m_Address: Free RPG Icons Pack_Earth_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4fea7209b87bf684698342b7de78e2d0
+    m_Address: Free RPG Icons Pack_Earth_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 523bf6f3c1806ce48b9c36cf69041836
+    m_Address: Free RPG Icons Pack_Water_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 53861c79c9a204c448c91c82964dbe75
+    m_Address: Free RPG Icons Pack_Dark_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57dc60da6e682344680826a29342ad11
+    m_Address: Free RPG Icons Pack_Nature_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5bfd472c037342741850dbb209214aee
+    m_Address: Free RPG Icons Pack_Water_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5fe2f3254bfaf094eb738108e7eedb89
+    m_Address: Free RPG Icons Pack_Buff_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6220d67e58db4b74ebed750b4c5d1312
+    m_Address: Free RPG Icons Pack_Nature_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 64438ed25cc0a7c499cdd90a96ca019d
+    m_Address: Free RPG Icons Pack_Earth_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 652e292a1a97c9f4a9c4c95a57fa1112
+    m_Address: Free RPG Icons Pack_Water_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 66ea6d4dcfce95c4a98eba75acf30526
+    m_Address: Free RPG Icons Pack_Water_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6aeefc52ba5eef845add98a4de0a76ca
+    m_Address: Free RPG Icons Pack_Debuff_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6c6aec7a466170a4bad88a7afba35922
+    m_Address: Free RPG Icons Pack_Buff_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6cf658fed04e9ec4eb4dce5566ae2ac1
+    m_Address: Free RPG Icons Pack_Wind_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6f931b78208ef07489b2ae2cc422b02d
+    m_Address: Free RPG Icons Pack_Dark_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 731656c13aab04f42bc2a9e3576c0e3a
+    m_Address: Free RPG Icons Pack_Holy_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 766f414c439da9240b103dc468ae0ee5
+    m_Address: Free RPG Icons Pack_Nature_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 787177968aa32814989626c470b81f0f
+    m_Address: Free RPG Icons Pack_Fire_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7921aa767f473e641a5618e1a3d2dadd
+    m_Address: Free RPG Icons Pack_Holy_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7e920e169e7d9d24cbe2fac1f4424006
+    m_Address: Free RPG Icons Pack_Cold_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7f1214254adb5a44eb704d0f6d08386c
+    m_Address: Free RPG Icons Pack_Cold_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8013ced2516877c43b1e60720f52748f
+    m_Address: Free RPG Icons Pack_Debuff_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 835919401f538eb42b06914372123e8e
+    m_Address: Free RPG Icons Pack_Debuff_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 83da52182bc637e498b2e0da38d233a7
+    m_Address: Free RPG Icons Pack_Fire_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 84f3c6ba4f9bc8f4893d0fa95ac0a93a
+    m_Address: Free RPG Icons Pack_Dark_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8eb8cc2589d2dd64fb0b9ab9fbd6d8c6
+    m_Address: Free RPG Icons Pack_Buff_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9113d706c9b00364994c4bc4c779cc90
+    m_Address: Free RPG Icons Pack_Holy_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 981741db46bef014382003d572f6ef69
+    m_Address: Free RPG Icons Pack_Earth_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9a437a3235866a242a57615119d40c78
+    m_Address: Free RPG Icons Pack_Nature_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9d5e6df5cd79f8a4485aa4152859f189
+    m_Address: Free RPG Icons Pack_Wind_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a1e3951e1a03c124dbd4e9204787278f
+    m_Address: Free RPG Icons Pack_Earth_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a96f5f25e6b399d4ea75828a29498b73
+    m_Address: Free RPG Icons Pack_Water_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aa0a930fde5ba3546a0a4990da3c7958
+    m_Address: Free RPG Icons Pack_Dark_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ab5e57cf303d2b248bd0faa00f26e838
+    m_Address: Free RPG Icons Pack_Fire_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ad07527a07f828544b6f6a2a7f00e678
+    m_Address: Free RPG Icons Pack_Nature_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af540b54112c40642af9bf93acf0757c
+    m_Address: Free RPG Icons Pack_Water_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b0ef6f33eb7955148b46fd2c5879f8af
+    m_Address: Free RPG Icons Pack_Dark_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b12502ba5c973e3488a651f1e7634829
+    m_Address: Free RPG Icons Pack_Fire_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b227d0bda1c3d3744aaa9903dbc90d43
+    m_Address: Free RPG Icons Pack_Debuff_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5cd61390a56e5b4bae61c5aa39cc811
+    m_Address: Free RPG Icons Pack_Buff_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b63bf0edc1771ed4ab959c64452af058
+    m_Address: Free RPG Icons Pack_Wind_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b80ccb1011b61cc4382a8a4e4b0ac4d9
+    m_Address: Free RPG Icons Pack_Wind_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b99995a0f25801a4d9f648d8be6cf439
+    m_Address: Free RPG Icons Pack_Holy_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bd5565336885f3446975c585f1b70ddd
+    m_Address: Free RPG Icons Pack_Cold_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c2d50597d1937434c8aceb30a1980d18
+    m_Address: Free RPG Icons Pack_Fire_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c6ae35aa675f33d4eb9c57987f1f96e1
+    m_Address: Free RPG Icons Pack_Fire_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cb025973e7e3f114aa3db0378956aad8
+    m_Address: Free RPG Icons Pack_Cold_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc16da6188962544787f7f3b5c7f499f
+    m_Address: Free RPG Icons Pack_Fire_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ccb73df5fe270284a9801f5d9b2021e5
+    m_Address: Free RPG Icons Pack_Dark_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d576b620ca7c905439fbfaa6034c927d
+    m_Address: Free RPG Icons Pack_Dark_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d5a737419a8c8984f801831a4a6df992
+    m_Address: Free RPG Icons Pack_Holy_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d933067119a529448950545300f0d5c9
+    m_Address: Free RPG Icons Pack_Cold_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d975054387d42354a9363011bfb62bce
+    m_Address: Free RPG Icons Pack_Debuff_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: da2428cc0a18c1a4f97c365ed0f129ac
+    m_Address: Free RPG Icons Pack_Dark_5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dbdddf77c1951e842a3df1fda4baab87
+    m_Address: Free RPG Icons Pack_Cold_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ddfe6380e427a034c98cf286b332173c
+    m_Address: Free RPG Icons Pack_Fire_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e2215a243d5978e4d8b915e107b4979f
+    m_Address: Free RPG Icons Pack_Debuff_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e359cba75fdaf9e43a5e96e1485dfeb9
+    m_Address: Free RPG Icons Pack_Buff_6
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e7c66fb6bf0e75f47b713684aafe510a
+    m_Address: Free RPG Icons Pack_Water_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ea2fcfff1b6007641a93cdb51dffaa31
+    m_Address: Free RPG Icons Pack_Holy_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: edb5786cc8bba7743b10249e55b40796
+    m_Address: Free RPG Icons Pack_Earth_8
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: edb6c6f1eb55f4e43a992713db705866
+    m_Address: Free RPG Icons Pack_Buff_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f01caebbcd095ab4190c851b5cf0d0f8
+    m_Address: Free RPG Icons Pack_Nature_10
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f0866bfd46e46824c861c653550058ab
+    m_Address: Free RPG Icons Pack_Cold_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f24126fd673eeaf4789b71c88cf7c9f6
+    m_Address: Free RPG Icons Pack_Nature_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3e87f4aa00be774c9017322c9bd656c
+    m_Address: Free RPG Icons Pack_Earth_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f44bf062172d59b4db02b29c751aa67f
+    m_Address: Free RPG Icons Pack_Dark_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f4933b01621c8d943bd755751b7b75c2
+    m_Address: Free RPG Icons Pack_Holy_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f8ede25919673f349b3fae0378f44048
+    m_Address: Free RPG Icons Pack_Debuff_9
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fbeb45bb42bcf2546a9f883a2357d781
+    m_Address: Free RPG Icons Pack_Holy_7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: e4c876a7eaf241c4d819bd65c9367e43, type: 2}
+    - {fileID: 11400000, guid: 3087e20719efc954aa0853eda2eb1313, type: 2}

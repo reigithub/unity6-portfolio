@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks.Linq;
+using Cysharp.Threading.Tasks.Triggers;
 using Game.App.Launcher;
 using Game.App.Services;
 using Game.App.Title;
@@ -9,6 +11,7 @@ using Game.MVP.Core.DI;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Enums;
+using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
 
@@ -18,6 +21,7 @@ namespace Game.App.Bootstrap
     {
         private const string AppTitleAddress = "AppTitleScene";
 
+        private static GameObject _gameBootstrap;
         private static GameModeLauncherRegistry _registry;
         private static AppSceneLoader _sceneLoader;
         private static IAppServiceProvider _appServiceProvider;
@@ -61,6 +65,11 @@ namespace Game.App.Bootstrap
 
             // シーンローダー初期化
             _sceneLoader = new AppSceneLoader();
+
+            _gameBootstrap = new GameObject("GameBootstrap");
+            _gameBootstrap.GetAsyncApplicationQuitTrigger()
+                .SubscribeAwait(async (_, _) => { await ShutdownAsync(); })
+                .AddTo(_gameBootstrap);
 
             // タイトル画面表示
             await ShowTitleAsync();
@@ -143,6 +152,7 @@ namespace Game.App.Bootstrap
             _registry = null;
             _sceneLoader = null;
             _isInitialized = false;
+            _gameBootstrap.SafeDestroy();
 
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();

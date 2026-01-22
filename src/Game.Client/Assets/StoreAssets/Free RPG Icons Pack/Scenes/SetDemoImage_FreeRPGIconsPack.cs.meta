@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: bac7943e5a037b14c941a3b2267a916e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 267155
+  packageName: Free RPG Icons Pack
+  packageVersion: 2.0.0
+  assetPath: Assets/Free RPG Icons Pack/Scenes/SetDemoImage_FreeRPGIconsPack.cs
+  uploadId: 754808

@@ -9,6 +9,7 @@
         "Unity6Library",
         "UniTask",
         "UniTask.Addressables",
+        "UniTask.Linq",
         "Unity.Addressables",
         "Unity.ResourceManager",
         "R3.Unity",

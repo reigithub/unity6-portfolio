@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
 using R3;
@@ -17,6 +18,8 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;
+
+        [SerializeField] private Animator _animator;
 
         [SerializeField] private VisualTreeAsset _stageResultItemTemplate;
 
@@ -260,6 +263,11 @@ namespace Game.MVP.Survivor.Scenes
                     }
                 }
             }
+        }
+
+        public void PlayAnimation(string stateName)
+        {
+            _animator.Play(stateName);
         }
 
         public override void SetInteractables(bool interactable)

@@ -1,10 +1,10 @@
 Id	WeaponType	Rarity	Name	IconAssetName	Description	HitEffectAssetName	HitEffectScale
-1	1	1	下級魔法ファイア(緑)	Magic fire 0	最も近い敵に魔法弾を発射する	CFXR3 Hit Leaves A (Lit)	5000
-2	1	1	下級魔法ファイア(赤)	Magic fire 1	最も近い敵に魔法弾を発射する	CFXR Hit A (Red)	5000
-3	1	1	下級魔法ファイア(紫)	Magic fire 2	最も近い敵に魔法弾を発射する	CFXR Magic Poof	5000
-4	1	1	下級魔法ファイア(青)	Magic fire 3	最も近い敵に魔法弾を発射する	CFXR Impact Glowing HDR (Blue)	5000
-5	1	2	上級魔法ファイア(青)	Magic fire pro blue	最も近い敵に魔法弾を発射する	CFXR3 Hit Ice B (Air)	8000
-6	1	2	上級魔法ファイア(緑)	Magic fire pro green	最も近い敵に魔法弾を発射する	CFXR3 Hit Leaves A (Lit)	8000
-7	1	2	上級魔法ファイア(橙)	Magic fire pro orange	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
-8	1	2	上級魔法ファイア(赤)	Magic fire pro red	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
-9	1	2	上級魔法ファイア(黄)	Magic fire pro yellow	最も近い敵に魔法弾を発射する	CFXR3 Hit Electric C (Air)	8000
+1	1	1	下級魔法ファイア(緑)	Free RPG Icons Pack_Nature_1	最も近い敵に魔法弾を発射する	CFXR3 Hit Leaves A (Lit)	5000
+2	1	1	下級魔法ファイア(赤)	Free RPG Icons Pack_Fire_1	最も近い敵に魔法弾を発射する	CFXR Hit A (Red)	5000
+3	1	1	下級魔法ファイア(紫)	Free RPG Icons Pack_Dark_1	最も近い敵に魔法弾を発射する	CFXR Magic Poof	5000
+4	1	1	下級魔法ファイア(青)	Free RPG Icons Pack_Cold_1	最も近い敵に魔法弾を発射する	CFXR Impact Glowing HDR (Blue)	5000
+5	1	2	上級魔法ファイア(青)	Free RPG Icons Pack_Cold_5	最も近い敵に魔法弾を発射する	CFXR3 Hit Ice B (Air)	8000
+6	1	2	上級魔法ファイア(緑)	Free RPG Icons Pack_Nature_5	最も近い敵に魔法弾を発射する	CFXR3 Hit Leaves A (Lit)	8000
+7	1	2	上級魔法ファイア(橙)	Free RPG Icons Pack_Fire_4	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
+8	1	2	上級魔法ファイア(赤)	Free RPG Icons Pack_Fire_5	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
+9	1	2	上級魔法ファイア(黄)	Free RPG Icons Pack_Holy_1	最も近い敵に魔法弾を発射する	CFXR3 Hit Electric C (Air)	8000
