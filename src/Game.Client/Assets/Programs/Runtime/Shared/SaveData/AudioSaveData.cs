@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace Game.MVP.Survivor.SaveData
+namespace Game.Shared.SaveData
 {
     /// <summary>
     /// オーディオ設定のセーブデータ

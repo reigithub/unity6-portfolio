@@ -25,7 +25,7 @@
             ↓                                ↓
 ┌─────────────────────────────┐  ┌─────────────────────────────┐
 │  Game.MVC.ScoreTimeAttack   │  │    Game.MVP.Survivor        │
-│    (タイムアタックゲーム)     │  │   (サバイバーゲーム予定)      │
+│    (タイムアタックゲーム)     │  │   (サバイバーゲーム)          │
 └─────────────────────────────┘  └─────────────────────────────┘
             ↖                                ↗
                └──────────────┬──────────────┘
@@ -51,6 +51,12 @@
 * **マスターデータ管理**: TSV→バイナリ変換、エディタ拡張によるデータ駆動開発
 * **各種ゲームサービス**: オーディオ、シーン遷移、メッセージングなどの共通機能
 * **DIコンテナ対応**: VContainerによる依存性注入（MVPパターン用）
+* **戦闘システム**: ICombatTarget/IDamageable/IKnockbackableによる統一的な戦闘インターフェース
+* **武器システム**: 自動発射・地面設置型武器、汎用オブジェクトプール（WeaponObjectPool<T>）
+* **敵AIシステム**: ステートマシン駆動（Idle/Chase/Attack/HitStun/Death）、ウェーブスポーン
+* **アイテムシステム**: ドロップ抽選、吸引機能、オブジェクトプーリング
+* **ロックオンシステム**: 自動ターゲット追跡、射程管理
+* **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 ---
 ## 機能詳細
 <details><summary>ゲームモード選択システム</summary>
@@ -71,7 +77,7 @@
 | Game.MVC.Core | MVCパターン基盤、GameServiceManager | Shared, Unity6Library |
 | Game.MVC.ScoreTimeAttack | タイムアタックゲーム実装 | Shared, MVC.Core, Unity6Library |
 | Game.MVP.Core | MVPパターン基盤、VContainer | Shared |
-| Game.MVP.Survivor | サバイバーゲーム実装（予定） | Shared, MVP.Core |
+| Game.MVP.Survivor | サバイバーゲーム実装 | Shared, MVP.Core |
 | **com.rei.unity6library** | マスターデータ定義、共通Enum | なし（最下層） |
 
 </details>
@@ -88,6 +94,18 @@
 **含まれるコンテンツ:**
 - MasterMemory用マスターデータ定義クラス（AudioMaster, ScoreTimeAttackStageMaster等）
 - 共通Enum定義（AudioCategory, AudioPlayTag等）
+
+**Survivorマスターデータ（11種類）:**
+- `SurvivorStageMaster`: ステージ定義（制限時間、初期武器等）
+- `SurvivorStageWaveMaster`: ウェーブ定義（出現タイミング、敵数）
+- `SurvivorStageWaveEnemyMaster`: ウェーブ内敵構成
+- `SurvivorEnemyMaster`: 敵ステータス（HP、攻撃力、移動速度等）
+- `SurvivorPlayerMaster`: プレイヤー基本ステータス
+- `SurvivorPlayerLevelMaster`: レベル別ステータス（吸引範囲等）
+- `SurvivorWeaponMaster`: 武器定義（タイプ、ダメージ、クールダウン等）
+- `SurvivorWeaponLevelMaster`: 武器レベル別ステータス
+- `SurvivorItemMaster`: アイテム定義（効果値、レアリティ等）
+- `SurvivorItemDropMaster`: ドロップ抽選テーブル
 
 </details>
 
@@ -110,6 +128,44 @@
 4. 任意ステートから遷移先に指定できる特別なステートを設定可能で、適切な設定が遷移テーブルに無い場合に遷移が検証/実行されます。
 5. ジェネリック型のイベントキー型を指定でき、遷移イベント名をenum等で集約管理できます。遷移先ステート名と一致させると可読性/保守性が向上します。
 6. 通常のUpdateに加え、MonoBehaivior.FixedUpdate/LateUpdateにも対応。これにより物理演算やカメラ等の状態と相互に連携できます。
+</details>
+
+<details><summary>サバイバーゲームシステム（MVP）</summary>
+
+**戦闘システム**
+- `ICombatTarget`: ダメージ・ノックバック・ターゲット機能を統合した戦闘インターフェース
+- `IDamageable`, `IKnockbackable`, `ITargetable`: 個別機能のインターフェース
+- 敵・プレイヤー共通の戦闘ロジックを実現
+
+**武器システム**
+- `SurvivorWeaponBase`: 武器の基底クラス（ダメージ計算、クリティカル、発動率）
+- `SurvivorAutoFireWeapon`: 自動発射型武器（最寄りの敵に向けて弾を発射）
+- `SurvivorGroundWeapon`: 地面設置型武器（ターゲット位置に円形パターンでダメージエリア生成）
+- `WeaponObjectPool<T>`: 汎用オブジェクトプール（弾・エリア共通）
+- マスターデータ駆動（レベルごとのステータス・アセット変更対応）
+
+**敵AIシステム**
+- `SurvivorEnemyController`: ステートマシン駆動の敵AI
+- 状態遷移: Idle → Chase → Attack → HitStun → Death
+- `SurvivorEnemySpawner`: ウェーブ管理・スポーン制御
+- NavMeshAgentによる経路探索
+
+**アイテムシステム**
+- `SurvivorItemSpawner`: 敵撃破時のドロップ管理
+- ドロップグループ抽選（確率テーブルによるアイテム決定）
+- マグネット吸引機能（範囲内アイテムの自動回収）
+
+**プレイヤーシステム**
+- `SurvivorPlayerController`: 移動・HP・スタミナ・無敵管理
+- ステートマシン: Normal → Invincible → Dead
+- アイテム吸引範囲のレベル連動
+
+**セーブデータシステム**
+- `SurvivorSaveService`: ステージ進行状況・クリア記録の保存
+- MemoryPackによる高速バイナリシリアライズ
+- 自動保存（30秒間隔・バックグラウンド移行時）
+- 勝敗確定時の即時保存（データ整合性保証）
+
 </details>
 
 <details><summary>その他</summary>
@@ -144,6 +200,21 @@
 ### Game.MVP.Core（MVP基盤）
 * VContainerランチャー : [VContainerGameLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Core/DI/VContainerGameLauncher.cs)
 
+### Game.MVP.Survivor（サバイバーゲーム）
+* ステージシーン : [SurvivorStageScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Scenes/SurvivorStageScene.cs)
+* プレイヤー制御 : [SurvivorPlayerController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Player/SurvivorPlayerController.cs)
+* 敵AI : [SurvivorEnemyController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemyController.cs)
+* 敵スポーナー : [SurvivorEnemySpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemySpawner.cs)
+* 武器基底 : [SurvivorWeaponBase.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/SurvivorWeaponBase.cs)
+* 汎用プール : [WeaponObjectPool.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/WeaponObjectPool.cs)
+* アイテムスポーナー : [SurvivorItemSpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Item/SurvivorItemSpawner.cs)
+* セーブサービス : [SurvivorSaveService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/SaveData/SurvivorSaveService.cs)
+
+### Game.Shared（共通・追加）
+* 戦闘インターフェース : [ICombatTarget.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Combat/ICombatTarget.cs)
+* 死亡イベント : [IDeathNotifier.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Events/IDeathNotifier.cs)
+* ロックオン : [ILockOnService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/LockOn/ILockOnService.cs)
+
 ### Editor
 * マスターデータエディタ拡張 : [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/EditorWindow/MasterDataWindow.cs)
 
@@ -164,9 +235,13 @@
 │   │   └── Runtime
 │   │       ├── Shared      共通ユーティリティ、インターフェース
 │   │       │   ├── Bootstrap   IGameLauncher, ApplicationEvents
-│   │       │   ├── Constants   共通定数
+│   │       │   ├── Combat      ICombatTarget, IDamageable等
+│   │       │   ├── Constants   共通定数, LayerMaskConstants
 │   │       │   ├── Enums       GameMode等
-│   │       │   └── Extensions  拡張メソッド
+│   │       │   ├── Events      DeathEventData, IDeathNotifier
+│   │       │   ├── Extensions  拡張メソッド
+│   │       │   ├── LockOn      ロックオンサービス
+│   │       │   └── SaveData    セーブデータ基盤
 │   │       ├── App         エントリーポイント
 │   │       │   ├── Bootstrap   GameBootstrap
 │   │       │   ├── Launcher    GameModeLauncherRegistry
@@ -176,7 +251,16 @@
 │   │       │   └── ScoreTimeAttack  タイムアタックゲーム
 │   │       └── MVP         MVPパターン実装
 │   │           ├── Core        基盤(VContainer, Base)
-│   │           └── Survivor    サバイバーゲーム(予定)
+│   │           └── Survivor    サバイバーゲーム
+│   │               ├── DI          依存性注入設定
+│   │               ├── Enemy       敵システム(AI, スポーナー)
+│   │               ├── Item        アイテム(スポーナー, ドロップ)
+│   │               ├── Models      ゲームモデル
+│   │               ├── Player      プレイヤー制御
+│   │               ├── SaveData    セーブ機能
+│   │               ├── Scenes      シーン管理
+│   │               ├── Services    ゲームサービス
+│   │               └── Weapon      武器システム(プール, 弾)
 │   └── README.md
 └── Packages
     └── com.rei.unity6library   ローカルパッケージ
@@ -245,6 +329,7 @@
 | cysharp/UniTask      | 2.5.10     |
 | cysharp/MasterMemory | 3.0.4      |
 | cysharp/MessagePack  | 3.1.3      |
+| cysharp/MemoryPack   | 1.21.3     |
 | **hadashiA/VContainer** | **1.16.8** |
 | NSubstitute          | 5.3.0      |
 | DOTween              | 1.2.790    |
@@ -260,6 +345,7 @@
 * UniTask : Unityに最適化された非同期処理全般のため。現在は主にダイアログのエラーハンドリングに使用しており、随時利用範囲拡大予定。
 * MasterMemory: ゲームロジックとデータを分離し、ロジック修正を抑えつつ、開発サイクルを効率化するため。また、デモゲームが大量の音声ファイル(約400個)を使用するため。
 * MessagePack: 主にMasterMemoryのデータシリアライザーとして。
+* **MemoryPack**: セーブデータの高速バイナリシリアライズ。ゼロアロケーションでPlayerPrefsより高性能。
 * NSubstitute: テストコードでゲームサービス等のモック作成
 * Claude Code: テストコード生成、リファクタリング
 ---
@@ -268,11 +354,14 @@
 * Unityちゃん: https://unity-chan.com/ (© Unity Technologies Japan/UCL)
 ---
 ## 制作期間
-* 3週間程度 (2026/1/13時点)
+* 約4週間 (2026/1/24時点)
 ---
+## 実装済み機能（今後の予定から移動）
+* ✅ **サバイバーゲームモード実装（MVP/VContainer）** - 基本システム完成
+* ✅ **MemoryPackを用いたセーブ機能** - ステージ進行・クリア記録保存
+
 ## 今後の予定
-* **サバイバーゲームモード実装（MVP/VContainer）**
-* MemoryPackを用いた簡易的なセーブ機能(PlayerPrefs代替機能として)
+* サバイバーゲームモード追加機能（スキルシステム、ボス戦等）
 * PlayerLoopへの介入サンプル
 * EnhancedScroller実装サンプル
 * リストのソート／フィルタ機能サンプル
@@ -285,8 +374,16 @@
 * 動作環境: PC／マウス&キーボード
 * 操作: 移動(WASD), ジャンプ(Space), 走る(LShift+移動), カメラ操作(マウスドラッグ)
 
-### サバイバー（MVP）※開発予定
-* VContainerを用いたMVPパターンで実装予定
+### サバイバー（MVP）
+* VContainerを用いたMVPパターンで実装
+* ウェーブ制の敵を倒しながら生き残るサバイバーゲーム
+* 動作環境: PC／マウス&キーボード
+* 操作: 移動(WASD), ダッシュ(LShift+移動)
+* 主要機能:
+  - 自動攻撃武器システム（マスターデータ駆動）
+  - ウェーブ管理（敵の段階的出現）
+  - アイテムドロップ・吸引
+  - ステージクリア・記録保存
 
 ### ダウンロード
 * 実行形式: [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨

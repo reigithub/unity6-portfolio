@@ -8,3 +8,5 @@ Id	WeaponType	Rarity	Name	IconAssetName	Description	HitEffectAssetName	HitEffect
 7	1	2	上級魔法ファイア(橙)	Free RPG Icons Pack_Fire_4	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
 8	1	2	上級魔法ファイア(赤)	Free RPG Icons Pack_Fire_5	最も近い敵に魔法弾を発射する	CFXR3 Hit Fire B (Air)	8000
 9	1	2	上級魔法ファイア(黄)	Free RPG Icons Pack_Holy_1	最も近い敵に魔法弾を発射する	CFXR3 Hit Electric C (Air)	8000
+10	8	3	ファイアサークル(赤)	Free RPG Icons Pack_Fire_3	ターゲットを中心に爆発する炎を召喚する	CFXR3 Hit Fire B (Air)	8000
+11	8	3	ファイアサークル(虹)	Free RPG Icons Pack_Holy_5	ターゲットを中心に爆発する炎を召喚する	CFXR3 Hit Electric C (Air)	8000

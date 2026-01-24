@@ -33,11 +33,15 @@ namespace Game.MVP.Survivor.SaveData
         {
             if (Data == null) return;
 
-            if (!Data.StageRecords.TryGetValue(stageId, out var record))
+            var isNewRecord = !Data.StageRecords.TryGetValue(stageId, out var record);
+            if (isNewRecord)
             {
                 record = new SurvivorStageClearRecord { StageId = stageId };
                 Data.StageRecords[stageId] = record;
             }
+
+            Debug.Log($"[RecordStageClear] stageId={stageId}, clearTime={clearTime:F2}s, isNewRecord={isNewRecord}, " +
+                      $"existing: BestClearTime={record.BestClearTime:F2}s, HasBestClearTime={record.HasBestClearTime}");
 
             record.LastPlayedAt = DateTime.Now;
 
@@ -53,9 +57,12 @@ namespace Game.MVP.Survivor.SaveData
                 record.HighScore = Math.Max(record.HighScore, score);
                 // BestClearTime: 0以下は未記録として扱い、clearTimeを直接代入
                 // MemoryPackデシリアライズ時にデフォルト値が無視されるため
+                var oldBestClearTime = record.BestClearTime;
                 record.BestClearTime = record.HasBestClearTime
                     ? Math.Min(record.BestClearTime, clearTime)
                     : clearTime;
+                Debug.Log($"[RecordStageClear] BestClearTime: {oldBestClearTime:F2}s -> {record.BestClearTime:F2}s");
+
                 record.MaxKills = Math.Max(record.MaxKills, kills);
                 record.StarRating = Math.Max(record.StarRating, CalculateStarRating(isTimeUp, hpRatio));
 

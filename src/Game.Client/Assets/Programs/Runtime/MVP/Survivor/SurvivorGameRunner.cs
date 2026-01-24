@@ -5,6 +5,7 @@ using Game.MVP.Core.Services;
 using Game.MVP.Survivor.Root;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes;
+using Game.Shared.SaveData;
 using Game.Shared.Services;
 using UnityEngine;
 using VContainer;

@@ -263,9 +263,10 @@ GameObject:
   m_Component:
   - component: {fileID: 473272}
   - component: {fileID: 13723644}
-  m_Layer: 0
+  - component: {fileID: 6416595944455025566}
+  m_Layer: 7
   m_Name: NightMareDragon
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -415,6 +416,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -66.486176, y: -80.032745, z: -2.3920593}
     m_Extent: {x: 591.7075, y: 271.15985, z: 377.18967}
   m_DirtyAABB: 0
+--- !u!64 &6416595944455025566
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 107884}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 2f4e6492f506bbb4a8aeba850e3bb52f, type: 3}
 --- !u!1 &109730
 GameObject:
   m_ObjectHideFlags: 0
@@ -1162,7 +1185,6 @@ GameObject:
   - component: {fileID: 409566}
   - component: {fileID: 9533082}
   - component: {fileID: 4624385510383345130}
-  - component: {fileID: 7874897740980750824}
   - component: {fileID: 1538592446192910689}
   m_Layer: 7
   m_Name: DragonNightmareDarkBlue
@@ -1232,29 +1254,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &7874897740980750824
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 132742}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 1.5
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
 --- !u!114 &1538592446192910689
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1269,7 +1268,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 4624385510383345130}
   _animator: {fileID: 9533082}
-  _collider: {fileID: 7874897740980750824}
+  _collider: {fileID: 6416595944455025566}
 --- !u!1 &133434
 GameObject:
   m_ObjectHideFlags: 0

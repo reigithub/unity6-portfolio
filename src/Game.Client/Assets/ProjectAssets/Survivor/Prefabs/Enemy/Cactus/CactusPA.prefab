@@ -390,9 +390,10 @@ GameObject:
   m_Component:
   - component: {fileID: 2947016869698456476}
   - component: {fileID: 2900174197949582312}
-  m_Layer: 0
+  - component: {fileID: 4567662351657181125}
+  m_Layer: 7
   m_Name: Cactus
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -490,6 +491,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.5323887, y: 0.023120299, z: -0.0010211468}
     m_Extent: {x: 0.6477649, y: 0.4573908, z: 1.0422637}
   m_DirtyAABB: 0
+--- !u!64 &4567662351657181125
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7193471567334352223}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -4562530893379237289, guid: 5961b834d0b54fc9828d7c3ef7ac8279, type: 3}
 --- !u!1 &7427070853888570003
 GameObject:
   m_ObjectHideFlags: 0
@@ -501,7 +524,6 @@ GameObject:
   - component: {fileID: 7807431114919716905}
   - component: {fileID: 7769598065701365474}
   - component: {fileID: 2864699298536117679}
-  - component: {fileID: 3296924552425694644}
   - component: {fileID: 3626327263253841318}
   m_Layer: 7
   m_Name: CactusPA
@@ -571,29 +593,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &3296924552425694644
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7427070853888570003}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.35
-  m_Height: 1.6
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.8, z: 0}
 --- !u!114 &3626327263253841318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -608,7 +607,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2864699298536117679}
   _animator: {fileID: 7769598065701365474}
-  _collider: {fileID: 3296924552425694644}
+  _collider: {fileID: 4567662351657181125}
 --- !u!1 &7712155012871449178
 GameObject:
   m_ObjectHideFlags: 0

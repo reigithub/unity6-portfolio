@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Combat;
 using Game.Shared.LockOn;
 using R3;
 using UnityEngine;
@@ -289,7 +290,11 @@ namespace Game.Shared.Services
                 // 対象が有効かチェック（死亡チェックはコライダーのアクティブ状態で判断）
                 if (!collider.gameObject.activeInHierarchy) continue;
 
-                Vector3 toTarget = collider.transform.position - _owner.position;
+                // ITargetableからCenterPositionを取得
+                var targetable = collider.GetComponentInParent<ITargetable>();
+                Vector3 targetPos = targetable?.CenterPosition ?? collider.transform.position;
+
+                Vector3 toTarget = targetPos - _owner.position;
                 float distance = toTarget.magnitude;
 
                 // 距離が0の場合はスキップ

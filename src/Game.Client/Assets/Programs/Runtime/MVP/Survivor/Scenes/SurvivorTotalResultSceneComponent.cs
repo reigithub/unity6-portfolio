@@ -24,9 +24,11 @@ namespace Game.MVP.Survivor.Scenes
         [SerializeField] private VisualTreeAsset _stageResultItemTemplate;
 
         private readonly Subject<Unit> _onRetryClicked = new();
+        private readonly Subject<Unit> _onStageSelectClicked = new();
         private readonly Subject<Unit> _onReturnToTitleClicked = new();
 
         public Observable<Unit> OnRetryClicked => _onRetryClicked;
+        public Observable<Unit> OnStageSelectClicked => _onStageSelectClicked;
         public Observable<Unit> OnReturnToTitleClicked => _onReturnToTitleClicked;
 
         // UI Element References
@@ -38,11 +40,13 @@ namespace Game.MVP.Survivor.Scenes
         private Label _totalHpText;
         private VisualElement _stageResultsContainer;
         private Button _retryButton;
+        private Button _stageSelectButton;
         private Button _returnButton;
 
         protected override void OnDestroy()
         {
             _onRetryClicked.Dispose();
+            _onStageSelectClicked.Dispose();
             _onReturnToTitleClicked.Dispose();
             base.OnDestroy();
         }
@@ -64,6 +68,7 @@ namespace Game.MVP.Survivor.Scenes
             _totalHpText = _root.Q<Label>("total-hp");
             _stageResultsContainer = _root.Q<VisualElement>("stage-results-container");
             _retryButton = _root.Q<Button>("retry-button");
+            _stageSelectButton = _root.Q<Button>("stage-select-button");
             _returnButton = _root.Q<Button>("return-button");
         }
 
@@ -71,6 +76,9 @@ namespace Game.MVP.Survivor.Scenes
         {
             _retryButton?.RegisterCallback<ClickEvent>(_ =>
                 _onRetryClicked.OnNext(Unit.Default));
+
+            _stageSelectButton?.RegisterCallback<ClickEvent>(_ =>
+                _onStageSelectClicked.OnNext(Unit.Default));
 
             _returnButton?.RegisterCallback<ClickEvent>(_ =>
                 _onReturnToTitleClicked.OnNext(Unit.Default));

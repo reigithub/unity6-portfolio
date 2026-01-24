@@ -259,9 +259,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1695502807786446129}
   - component: {fileID: 1695502807775235091}
-  m_Layer: 0
+  - component: {fileID: 417886115427863853}
+  m_Layer: 7
   m_Name: BeholderMesh
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -275,7 +276,7 @@ Transform:
   m_GameObject: {fileID: 1695502807786733841}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 1.4546525, z: -1.4546525}
+  m_LocalPosition: {x: -0, y: 0, z: -1.4546525}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -387,6 +388,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.33862704, y: 0.14310592, z: 0.063367486}
     m_Extent: {x: 0.84097546, y: 0.95306545, z: 0.97063196}
   m_DirtyAABB: 0
+--- !u!64 &417886115427863853
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1695502807786733841}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 9e6376af45d044888914cb4041e67a21, type: 3}
 --- !u!1 &1695502807786733843
 GameObject:
   m_ObjectHideFlags: 0
@@ -398,7 +421,6 @@ GameObject:
   - component: {fileID: 1695502807786446131}
   - component: {fileID: 1695502807779455699}
   - component: {fileID: 8595312522768144512}
-  - component: {fileID: 3808701797701180502}
   - component: {fileID: 4169729871406030682}
   m_Layer: 7
   m_Name: BeholderPolyart
@@ -468,29 +490,6 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &3808701797701180502
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1695502807786733843}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: 1.5, z: 0}
 --- !u!114 &4169729871406030682
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -505,7 +504,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 8595312522768144512}
   _animator: {fileID: 1695502807779455699}
-  _collider: {fileID: 3808701797701180502}
+  _collider: {fileID: 417886115427863853}
 --- !u!1 &1695502807786733845
 GameObject:
   m_ObjectHideFlags: 0

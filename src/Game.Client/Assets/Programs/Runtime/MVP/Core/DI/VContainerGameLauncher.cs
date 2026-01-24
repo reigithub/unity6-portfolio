@@ -85,6 +85,7 @@ namespace Game.MVP.Core.DI
         UnityEngine.Camera MainCamera { get; }
         void SetFollowTarget(UnityEngine.Transform target);
         void ClearFollowTarget();
+        void SetCameraRadius(Vector2 scrollWheel);
         void SetDirectionalLightActive(bool active);
         void SetSkyboxMaterial(UnityEngine.Material material);
         void ResetSkyboxMaterial();

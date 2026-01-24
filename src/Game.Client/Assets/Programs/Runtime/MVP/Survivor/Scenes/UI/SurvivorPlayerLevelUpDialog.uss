@@ -15,7 +15,7 @@
 }
 
 .dialog {
-    width: 1300px;
+    width: 1680px;
     max-width: 95%;
     background-color: rgba(20, 30, 50, 0.98);
     border-radius: 24px;
@@ -23,6 +23,38 @@
     border-width: 3px;
     border-color: rgba(100, 200, 255, 0.5);
     align-items: center;
+    position: relative;
+}
+
+/* ===========================================
+   Close Button
+   =========================================== */
+
+.close-button {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    width: 48px;
+    height: 48px;
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(100, 100, 120, 0.5);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    -unity-font-style: bold;
+    transition-duration: 0.15s;
+}
+
+.close-button:hover {
+    color: rgb(255, 255, 255);
+    background-color: rgba(180, 80, 80, 0.8);
+    border-color: rgba(255, 100, 100, 0.6);
+}
+
+.close-button:active {
+    scale: 0.95;
+    background-color: rgba(200, 60, 60, 0.9);
 }
 
 .dialog__title {
@@ -49,11 +81,46 @@
 }
 
 /* ===========================================
+   Options ScrollView
+   =========================================== */
+
+.options-scroll {
+    width: 100%;
+    max-height: 500px;
+}
+
+.options-scroll #unity-content-container {
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    padding: 8px 0;
+}
+
+/* スクロールバーのスタイル */
+.options-scroll .unity-scroller--horizontal {
+    height: 12px;
+    margin-top: 8px;
+}
+
+.options-scroll .unity-scroller--horizontal .unity-slider {
+    margin: 0 8px;
+}
+
+.options-scroll .unity-base-slider__tracker {
+    background-color: rgba(100, 180, 255, 0.2);
+    border-radius: 6px;
+}
+
+.options-scroll .unity-base-slider__dragger {
+    background-color: rgba(100, 180, 255, 0.6);
+    border-radius: 6px;
+}
+
+/* ===========================================
    Options Container
    =========================================== */
 
 .options-container {
-    width: 100%;
     flex-direction: row;
     justify-content: center;
     align-items: stretch;

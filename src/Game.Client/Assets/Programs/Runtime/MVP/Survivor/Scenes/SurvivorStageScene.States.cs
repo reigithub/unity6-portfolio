@@ -29,6 +29,8 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         private StateMachine<SurvivorStageScene, StageEvent> _stateMachine;
+        private bool _isResultSaved;
+        private bool _retryOrQuit;
         private bool _pauseRequested;
         private bool _levelUpRequested;
 
@@ -42,7 +44,7 @@ namespace Game.MVP.Survivor.Scenes
             _stateMachine.AddTransition<PlayingState, VictoryState>(StageEvent.Victory);
             _stateMachine.AddTransition<PlayingState, GameOverState>(StageEvent.GameOver);
             _stateMachine.AddTransition<PausedState, PlayingState>(StageEvent.Resume);
-            _stateMachine.AddTransition<PausedState, ReadyState>(StageEvent.Retry);
+            _stateMachine.AddTransition<PausedState, RetryState>(StageEvent.Retry);
             _stateMachine.AddTransition<PausedState, QuitToTitleState>(StageEvent.QuitToTitle);
             _stateMachine.AddTransition<LevelUpState, PlayingState>(StageEvent.LevelUpComplete);
 
@@ -285,19 +287,51 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                var result = await SceneService.TransitionDialogAsync<
-                    SurvivorPlayerLevelUpDialog,
-                    SurvivorPlayerLevelUpDialogComponent,
-                    SurvivorPlayerLevelUpDialogArg,
-                    SurvivorWeaponUpgradeOption
-                >(new(options, StageModel.Level.Value));
-
-                if (result != null)
+                // 武器選択ループ（入れ替えキャンセル時に戻れるように）
+                while (true)
                 {
-                    await View.WeaponManager.ApplyUpgradeOptionAsync(result);
-                    View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
+                    var result = await SceneService.TransitionDialogAsync<
+                        SurvivorPlayerLevelUpDialog,
+                        SurvivorPlayerLevelUpDialogComponent,
+                        SurvivorPlayerLevelUpDialogArg,
+                        SurvivorWeaponUpgradeOption
+                    >(new(options, StageModel.Level.Value));
+
+                    // ×ボタンでキャンセル → 武器取得なしでゲーム続行
+                    if (result == null)
+                    {
+                        break;
+                    }
+
+                    // 新規武器 かつ スロット満杯の場合
+                    if (result.IsNewWeapon && !View.WeaponManager.HasEmptySlot)
+                    {
+                        // 武器入れ替えダイアログを表示
+                        var removeWeaponId = await SurvivorWeaponReplaceDialog.RunAsync(
+                            SceneService,
+                            new(result, View.WeaponManager.Weapons));
+
+                        if (removeWeaponId.HasValue)
+                        {
+                            // 入れ替え実行
+                            await View.WeaponManager.ReplaceWeaponAsync(
+                                removeWeaponId.Value,
+                                result.WeaponId);
+                            break; // 成功したらループを抜ける
+                        }
+
+                        // キャンセル時はループ継続（武器選択に戻る）
+                        continue;
+                    }
+                    else
+                    {
+                        // 通常の武器追加/アップグレード
+                        await View.WeaponManager.ApplyUpgradeOptionAsync(result);
+                        break; // 成功したらループを抜ける
+                    }
                 }
 
+                View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
                 Transition(StageEvent.LevelUpComplete);
             }
 
@@ -337,15 +371,32 @@ namespace Game.MVP.Survivor.Scenes
 
                 ApplicationEvents.ShowCursor();
                 View.ShowVictory();
-                TransitionToResultAsync().Forget();
+
+                // 保存完了を待機してからリザルト画面へ遷移
+                SaveAndTransitionToResultAsync().Forget();
             }
 
-            private async UniTaskVoid TransitionToResultAsync()
+            private async UniTaskVoid SaveAndTransitionToResultAsync()
             {
-                // Realtimeを指定してtimeScale=0でも待機が動作するようにする
+                // クリア記録を保存
+                var score = StageModel.Score.Value;
+                var kills = Context.GetCappedKills();
+                var clearTime = StageModel.GameTime.Value;
+                var isTimeUp = StageModel.IsTimeUp;
+                var hpRatio = Context.GetHpRatio();
+
+                Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
+
+                Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
+                await Context._saveService.SaveAsync();
+                Context._isResultSaved = true;
+
+                Debug.Log("[VictoryState] Result saved successfully");
+
+                // Victory表示の待機（保存処理と並行して最低2秒は表示）
                 await UniTask.Delay(ResultDisplayDuration, DelayType.Realtime);
 
-                // 遷移前に時間を再開（Terminate処理でdeltaTimeが必要な場合に備える）
+                // 遷移前に時間を再開
                 ApplicationEvents.ResumeTime();
                 await SceneService.TransitionAsync<SurvivorTotalResultScene>();
             }
@@ -365,7 +416,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[GameOverState] Enter");
 
-                // ゲーム状態をフリーズ（スコア稼ぎ防止）
+                // ゲーム状態をフリーズ
                 ApplicationEvents.PauseTime();
                 Context._inputService.DisablePlayer();
 
@@ -374,12 +425,29 @@ namespace Game.MVP.Survivor.Scenes
 
                 ApplicationEvents.ShowCursor();
                 View.ShowGameOver();
-                TransitionToResultAsync().Forget();
+
+                // 保存完了を待機してからリザルト画面へ遷移
+                SaveAndTransitionToResultAsync().Forget();
             }
 
-            private async UniTaskVoid TransitionToResultAsync()
+            private async UniTaskVoid SaveAndTransitionToResultAsync()
             {
-                // Realtimeを指定してtimeScale=0でも待機が動作するようにする
+                // ゲームオーバー記録を保存
+                var score = StageModel.Score.Value;
+                var kills = Context.GetCappedKills();
+                var clearTime = StageModel.GameTime.Value;
+                var hpRatio = 0f; // ゲームオーバーなのでHP=0
+
+                Debug.Log($"[GameOverState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, hpRatio={hpRatio:P0}");
+
+                Context._saveService.CompleteCurrentStage(score, kills, clearTime, false, false, hpRatio);
+                await Context._saveService.SaveAsync();
+
+                Context._isResultSaved = true;
+
+                Debug.Log("[GameOverState] Result saved successfully");
+
+                // GameOver表示の待機（保存処理と並行して最低2秒は表示）
                 await UniTask.Delay(ResultDisplayDuration, DelayType.Realtime);
 
                 // 遷移前に時間を再開
@@ -392,6 +460,48 @@ namespace Game.MVP.Survivor.Scenes
 
         #endregion
 
+        #region RetryState
+
+        private class RetryState : StageStateBase
+        {
+            public override void Enter()
+            {
+                Debug.Log("[RetryState] Enter");
+
+                // Retryフラグを設定（Terminate()でセーブデータ更新をスキップ）
+                Context._retryOrQuit = true;
+
+                // 現在のセッション情報を取得
+                var session = Context._saveService.CurrentSession;
+                if (session == null)
+                {
+                    Debug.LogError("[RetryState] No active session found!");
+                    return;
+                }
+
+                var stageId = session.StageId;
+                var playerId = session.PlayerId;
+                var stageGroupId = session.StageGroupId;
+
+                // 新しいセッションで上書き（古いセッションをリセット）
+                Context._saveService.StartSession(stageId, playerId, stageGroupId);
+
+                ApplicationEvents.ResumeTime();
+                ApplicationEvents.ShowCursor();
+                RetryStageAsync().Forget();
+            }
+
+            private async UniTaskVoid RetryStageAsync()
+            {
+                // 同じステージシーンに再遷移（Terminate→Startupで完全リセット）
+                await SceneService.TransitionAsync<SurvivorStageScene>();
+            }
+
+            public override void Exit() => Debug.Log("[RetryState] Exit");
+        }
+
+        #endregion
+
         #region QuitToTitleState
 
         private class QuitToTitleState : StageStateBase
@@ -399,15 +509,22 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[QuitToTitleState] Enter");
+
+                // Quitフラグを設定（Terminate()でセーブデータ更新をスキップ）
+                Context._retryOrQuit = true;
+
+                // セッションを終了（保存データを更新せずに破棄）
+                Context._saveService.EndSession();
+
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
-                TransitionToResultAsync().Forget();
+                TransitionToTitleAsync().Forget();
             }
 
-            private async UniTaskVoid TransitionToResultAsync()
+            private async UniTaskVoid TransitionToTitleAsync()
             {
-                // リザルト画面へ遷移（途中終了の結果も表示）
-                await SceneService.TransitionAsync<SurvivorTotalResultScene>();
+                // タイトル画面へ直接遷移（リザルト画面をスキップ）
+                await SceneService.TransitionAsync<SurvivorTitleScene>();
             }
 
             public override void Exit() => Debug.Log("[QuitToTitleState] Exit");

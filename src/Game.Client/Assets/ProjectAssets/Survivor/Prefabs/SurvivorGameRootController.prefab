@@ -382,7 +382,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Root.SurvivorGameRootController
   _mainCamera: {fileID: 321870069083936469}
-  _playerFollowCamera: {fileID: 2088877850172471809}
+  _playerFollowCamera: {fileID: 1596078786075389535}
   _directionalLight: {fileID: 4499381826427336989}
   _skybox: {fileID: 2623463733738073051}
   _fadeCanvas: {fileID: 1177329401761526011}
@@ -682,6 +682,7 @@ GameObject:
   - component: {fileID: 2439528188352901630}
   - component: {fileID: 5167106107462852943}
   - component: {fileID: 5990319458745378930}
+  - component: {fileID: 1596078786075389535}
   m_Layer: 0
   m_Name: FreeLook Camera
   m_TagString: Untagged
@@ -908,3 +909,19 @@ MonoBehaviour:
         DecelTime: 0
   PlayerIndex: -1
   AutoEnableInputs: 1
+--- !u!114 &1596078786075389535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8235477233175078871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20ce20ca400141e6bd24d3cd7fc11553, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.PlayerFollowCameraController
+  _playerFollowCamera: {fileID: 2088877850172471809}
+  _changeRadius: 0.5
+  _minRadius: 5
+  _maxRadius: 10

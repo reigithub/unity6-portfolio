@@ -39,6 +39,11 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(x => OnOptionSelected(x))
                 .AddTo(Disposables);
 
+            // ×ボタンクリック時
+            SceneComponent.OnCloseClicked
+                .Subscribe(_ => OnClose())
+                .AddTo(Disposables);
+
             return base.Startup();
         }
 
@@ -46,6 +51,12 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             TrySetResult(option);
+        }
+
+        private void OnClose()
+        {
+            SceneComponent.SetInteractables(false);
+            TrySetResult(null);
         }
     }
 }

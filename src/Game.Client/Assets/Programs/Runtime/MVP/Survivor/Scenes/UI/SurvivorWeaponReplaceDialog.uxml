@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorWeaponReplaceDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Title -->
+            <ui:Label text="WEAPON FULL" name="title-text" class="dialog__title" />
+            <ui:Label text="Select a weapon to replace" class="dialog__instruction" />
+
+            <!-- New Weapon Preview -->
+            <ui:VisualElement name="new-weapon-preview" class="new-weapon-preview">
+                <ui:Label text="NEW" class="preview__badge" />
+                <ui:VisualElement name="preview-icon" class="preview__icon" />
+                <ui:Label name="preview-name" class="preview__name" />
+            </ui:VisualElement>
+
+            <!-- Replace Arrow -->
+            <ui:Label text="REPLACE" class="replace-arrow" />
+
+            <!-- Current Weapons ScrollView -->
+            <ui:ScrollView name="weapons-scroll" mode="Horizontal" horizontal-scroller-visibility="Auto" class="weapons-scroll">
+                <ui:VisualElement name="weapons-container" class="weapons-container" />
+            </ui:ScrollView>
+
+            <!-- Cancel Button -->
+            <ui:Button text="CANCEL" name="cancel-button" class="cancel-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

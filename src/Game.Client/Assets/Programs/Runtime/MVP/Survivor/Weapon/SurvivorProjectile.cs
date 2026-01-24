@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     [RequireComponent(typeof(SphereCollider))]
     [RequireComponent(typeof(Rigidbody))]
-    public class SurvivorProjectile : MonoBehaviour
+    public class SurvivorProjectile : MonoBehaviour, IPoolableWeaponItem
     {
         [SerializeField] private TrailRenderer _trailRenderer;
         [SerializeField] private string _enemyTag = "Enemy";
@@ -144,7 +145,9 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (!_isActive) return;
 
-            if (other.CompareTag(_enemyTag))
+            // メッシュコライダーが子オブジェクトにある場合に対応
+            // 親を辿ってEnemyタグを確認
+            if (other.CompareLayer(LayerConstants.Enemy))
             {
                 OnHit?.Invoke(this, other);
             }
@@ -231,6 +234,15 @@ namespace Game.MVP.Survivor.Weapon
             {
                 _trailRenderer.Clear();
             }
+        }
+
+        /// <summary>
+        /// イベントリスナーをクリア（プール破棄時に呼ばれる）
+        /// </summary>
+        public void ClearListeners()
+        {
+            OnHit = null;
+            OnLifetimeExpired = null;
         }
     }
 }

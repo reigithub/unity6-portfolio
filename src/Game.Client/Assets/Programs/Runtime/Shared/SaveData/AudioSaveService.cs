@@ -1,8 +1,7 @@
-using Game.Shared.SaveData;
 using Game.Shared.Services;
 using UnityEngine;
 
-namespace Game.MVP.Survivor.SaveData
+namespace Game.Shared.SaveData
 {
     /// <summary>
     /// オーディオ設定セーブサービス

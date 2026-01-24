@@ -7,5 +7,6 @@ namespace Game.Shared.Constants
         public static readonly int Enemy = UnityEngine.LayerMask.NameToLayer("Enemy");
         public static readonly int Ground = UnityEngine.LayerMask.NameToLayer("Ground");
         public static readonly int Structure = UnityEngine.LayerMask.NameToLayer("Structure");
+        public static readonly int Item = UnityEngine.LayerMask.NameToLayer("Item");
     }
 }

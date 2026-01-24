@@ -1,3 +1,4 @@
+using System;
 using Game.Library.Shared.MasterData.MemoryTables;
 using UnityEngine;
 using VContainer;
@@ -25,7 +26,7 @@ namespace Game.MVP.Survivor.Weapon
     }
 
     /// <summary>
-    /// 武器ファクトリー（純粋C#クラス生成）
+    /// 武器ファクトリー
     /// WeaponTypeIdに基づいて適切なSurvivorWeaponBase派生クラスを生成
     /// </summary>
     public static class SurvivorWeaponFactory
@@ -35,17 +36,16 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         /// <param name="resolver"></param>
         /// <param name="weaponMaster">武器マスター</param>
-        /// <param name="poolParent">プールの親Transform</param>
         /// <returns>生成された武器インスタンス</returns>
         public static SurvivorWeaponBase Create(
             IObjectResolver resolver,
-            SurvivorWeaponMaster weaponMaster,
-            Transform poolParent)
+            SurvivorWeaponMaster weaponMaster)
         {
-            var weapon = (SurvivorWeaponType)weaponMaster.WeaponType switch
+            SurvivorWeaponBase weapon = (SurvivorWeaponType)weaponMaster.WeaponType switch
             {
-                SurvivorWeaponType.AutoFire => new SurvivorAutoFireWeapon(poolParent),
-                _ => new SurvivorAutoFireWeapon(poolParent)
+                SurvivorWeaponType.AutoFire => new SurvivorAutoFireWeapon(weaponMaster),
+                SurvivorWeaponType.Ground => new SurvivorGroundWeapon(weaponMaster),
+                _ => throw new NotImplementedException()
             };
             resolver.Inject(weapon);
             return weapon;

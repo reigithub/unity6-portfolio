@@ -5,6 +5,9 @@
     <ui:VisualElement name="overlay" class="overlay">
         <!-- Dialog Panel -->
         <ui:VisualElement name="dialog" class="dialog">
+            <!-- Close Button -->
+            <ui:Button text="×" name="close-button" class="close-button" />
+
             <!-- Title -->
             <ui:Label text="LEVEL UP!" name="title-text" class="dialog__title" />
             <ui:Label text="Lv.1" name="level-text" class="dialog__level" />
@@ -12,8 +15,10 @@
             <!-- Instruction -->
             <ui:Label text="Choose an upgrade" class="dialog__instruction" />
 
-            <!-- Options Container (buttons will be added dynamically) -->
-            <ui:VisualElement name="options-container" class="options-container" />
+            <!-- Options ScrollView (buttons will be added dynamically) -->
+            <ui:ScrollView name="options-scroll" mode="Horizontal" horizontal-scroller-visibility="Auto" class="options-scroll">
+                <ui:VisualElement name="options-container" class="options-container" />
+            </ui:ScrollView>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

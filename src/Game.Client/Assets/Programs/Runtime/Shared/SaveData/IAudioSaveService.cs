@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 
-namespace Game.MVP.Survivor.SaveData
+namespace Game.Shared.SaveData
 {
     /// <summary>
     /// オーディオ設定サービスのインターフェース

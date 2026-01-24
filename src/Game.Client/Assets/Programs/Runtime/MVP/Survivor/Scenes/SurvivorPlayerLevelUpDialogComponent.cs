@@ -22,13 +22,16 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private IAddressableAssetService _assetService;
 
         private readonly Subject<SurvivorWeaponUpgradeOption> _onOptionSelected = new();
+        private readonly Subject<Unit> _onCloseClicked = new();
         private readonly List<Button> _optionButtons = new();
         private readonly Dictionary<string, Sprite> _iconCache = new();
 
         public Observable<SurvivorWeaponUpgradeOption> OnOptionSelected => _onOptionSelected;
+        public Observable<Unit> OnCloseClicked => _onCloseClicked;
 
         // UI Elements
         private VisualElement _root;
+        private Button _closeButton;
         private Label _titleText;
         private Label _levelText;
         private VisualElement _optionsContainer;
@@ -36,6 +39,7 @@ namespace Game.MVP.Survivor.Scenes
         protected override void OnDestroy()
         {
             _onOptionSelected.Dispose();
+            _onCloseClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -47,9 +51,16 @@ namespace Game.MVP.Survivor.Scenes
         private void QueryUIElements()
         {
             _root = _uiDocument.rootVisualElement;
+            _closeButton = _root.Q<Button>("close-button");
             _titleText = _root.Q<Label>("title-text");
             _levelText = _root.Q<Label>("level-text");
             _optionsContainer = _root.Q<VisualElement>("options-container");
+
+            // ×ボタンのクリックイベント
+            if (_closeButton != null)
+            {
+                _closeButton.clicked += () => _onCloseClicked.OnNext(Unit.Default);
+            }
         }
 
         public void Initialize(List<SurvivorWeaponUpgradeOption> options, int playerLevel)

@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
-using Game.MVP.Survivor.Enemy;
-using Game.Shared.Services;
+using Game.Shared.Combat;
 using UnityEngine;
-using VContainer;
 
 namespace Game.MVP.Survivor.Weapon
 {
@@ -15,30 +13,25 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     public class SurvivorAutoFireWeapon : SurvivorWeaponBase
     {
-        [Inject] private readonly IAddressableAssetService _assetService;
-        private readonly Transform _poolParent;
-
         // アセット名ごとのプールを管理（レベルアップ時の再利用のため）
-        private readonly Dictionary<string, ProjectilePool> _poolsByAssetName = new();
-        private ProjectilePool _currentPool;
+        private readonly Dictionary<string, WeaponObjectPool<SurvivorProjectile>> _poolsByAssetName = new();
+        private WeaponObjectPool<SurvivorProjectile> _currentPool;
         private bool _isInitialized;
 
         // Cache
         private readonly Collider[] _hitBuffer = new Collider[50];
 
-        public SurvivorAutoFireWeapon(Transform poolParent)
+        public SurvivorAutoFireWeapon(SurvivorWeaponMaster weaponMaster) : base(weaponMaster)
         {
-            _poolParent = poolParent;
         }
 
         public override async UniTask InitializeAsync(
-            SurvivorWeaponMaster weaponMaster,
-            IReadOnlyList<SurvivorWeaponLevelMaster> levelMasters,
+            Transform poolParent,
             Transform owner,
             float damageMultiplier,
             SurvivorVfxSpawner vfxSpawner)
         {
-            await base.InitializeAsync(weaponMaster, levelMasters, owner, damageMultiplier, vfxSpawner);
+            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner);
 
             // 初期プールを作成
             if (!string.IsNullOrEmpty(_currentAssetName))
@@ -76,7 +69,7 @@ namespace Game.MVP.Survivor.Weapon
         /// <summary>
         /// 古いプールをアクティブなプロジェクタイルがなくなってから破棄
         /// </summary>
-        private async UniTask DisposeOldPoolAsync(string assetName, ProjectilePool pool)
+        private async UniTask DisposeOldPoolAsync(string assetName, WeaponObjectPool<SurvivorProjectile> pool)
         {
             // アクティブなプロジェクタイルが全て戻るまで待機（最大10秒）
             float timeout = 10f;
@@ -99,7 +92,7 @@ namespace Game.MVP.Survivor.Weapon
         /// アセット名に対応するプールを取得または作成
         /// 同じアセット名なら既存プールを再利用
         /// </summary>
-        private async UniTask<ProjectilePool> GetOrCreatePoolAsync(string assetName)
+        private async UniTask<WeaponObjectPool<SurvivorProjectile>> GetOrCreatePoolAsync(string assetName)
         {
             // 既存プールがあれば再利用
             if (_poolsByAssetName.TryGetValue(assetName, out var existingPool))
@@ -109,8 +102,16 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             // 新しいプールを作成（Limitをプールサイズとして使用）
-            var prefab = await _assetService.LoadAssetAsync<GameObject>(assetName);
-            var pool = new ProjectilePool(prefab, _limit, _poolParent, OnProjectileHit, ReturnToPool);
+            var prefab = await AssetService.LoadAssetAsync<GameObject>(assetName);
+            var pool = new WeaponObjectPool<SurvivorProjectile>(
+                prefab,
+                _limit,
+                _poolParent,
+                projectile =>
+                {
+                    projectile.OnHit += OnProjectileHit;
+                    projectile.OnLifetimeExpired += ReturnToPool;
+                });
 
             _poolsByAssetName[assetName] = pool;
             _currentPool = pool;
@@ -125,9 +126,13 @@ namespace Game.MVP.Survivor.Weapon
             // ターゲットを取得（ロックオン優先）
             if (!TryGetTarget(out var target)) return false;
 
-            // 発射方向（ターゲットに向かって真っ直ぐ）
-            Vector3 baseDirection = (target.position - _owner.position).normalized;
-            baseDirection.y = 0f;
+            // ICombatTargetからCenterPositionを取得
+            var combatTarget = target.GetComponentInParent<ICombatTarget>();
+            Vector3 targetCenter = combatTarget?.CenterPosition ?? target.position;
+
+            // 発射位置と発射方向（ターゲットの中心に向かって）
+            Vector3 spawnPosition = _owner.position + Vector3.up * 1f;
+            Vector3 baseDirection = (targetCenter - spawnPosition).normalized;
 
             // 全弾を発射
             for (int i = 0; i < _emitCount; i++)
@@ -179,18 +184,20 @@ namespace Game.MVP.Survivor.Weapon
             int hitCount = Physics.OverlapSphereNonAlloc(_owner.position, _range, _hitBuffer);
 
             Transform nearest = null;
-            float nearestDistance = float.MaxValue;
+            float nearestSqrDistance = float.MaxValue;
 
             for (int i = 0; i < hitCount; i++)
             {
-                var enemy = _hitBuffer[i].GetComponent<SurvivorEnemyController>();
-                if (enemy != null && !enemy.IsDead)
+                // メッシュコライダーが子オブジェクトにある場合に対応
+                var target = _hitBuffer[i].GetComponentInParent<ICombatTarget>();
+                if (target != null && !target.IsDead)
                 {
-                    float distance = Vector3.Distance(_owner.position, enemy.transform.position);
-                    if (distance < nearestDistance)
+                    // CenterPositionを使用して距離計算（sqrMagnitudeで高速化）
+                    float sqrDistance = (_owner.position - target.CenterPosition).sqrMagnitude;
+                    if (sqrDistance < nearestSqrDistance)
                     {
-                        nearestDistance = distance;
-                        nearest = enemy.transform;
+                        nearestSqrDistance = sqrDistance;
+                        nearest = (target as MonoBehaviour)?.transform ?? _hitBuffer[i].transform;
                     }
                 }
             }
@@ -234,15 +241,17 @@ namespace Game.MVP.Survivor.Weapon
 
         private void OnProjectileHit(SurvivorProjectile projectile, Collider other)
         {
-            var enemy = other.GetComponent<SurvivorEnemyController>();
-            if (enemy == null || enemy.IsDead) return;
+            // メッシュコライダーが子オブジェクトにある場合に対応
+            var target = other.GetComponentInParent<ICombatTarget>();
+            if (target == null || target.IsDead) return;
 
-            int enemyInstanceId = enemy.GetInstanceID();
+            // MonoBehaviourとしてのインスタンスIDを取得（ヒットカウント用）
+            int targetInstanceId = (target as MonoBehaviour)?.GetInstanceID() ?? other.GetInstanceID();
 
             // ProcRateでダメージ発生判定（100%で常にダメージ）
             if (RollProcRate())
             {
-                enemy.TakeDamage(projectile.Damage);
+                target.TakeDamage(projectile.Damage);
 
                 // ヒットエフェクト生成
                 if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
@@ -254,13 +263,13 @@ namespace Game.MVP.Survivor.Weapon
                 // ノックバック適用
                 if (_knockback > 0)
                 {
-                    Vector3 knockbackDir = (enemy.transform.position - _owner.position).normalized;
-                    enemy.ApplyKnockback(knockbackDir * _knockback);
+                    Vector3 knockbackDir = (other.transform.position - _owner.position).normalized;
+                    target.ApplyKnockback(knockbackDir * _knockback);
                 }
             }
 
             // ヒット/貫通チェック
-            if (projectile.ProcessHit(enemyInstanceId))
+            if (projectile.ProcessHit(targetInstanceId))
             {
                 ReturnToPool(projectile);
             }
@@ -279,119 +288,6 @@ namespace Game.MVP.Survivor.Weapon
             _poolsByAssetName.Clear();
 
             base.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// プロジェクタイル用オブジェクトプール
-    /// アセット名ごとに独立して管理
-    /// </summary>
-    internal class ProjectilePool
-    {
-        private readonly Queue<SurvivorProjectile> _pool = new();
-        private readonly HashSet<SurvivorProjectile> _activeProjectiles = new();
-        private readonly GameObject _prefab;
-        private readonly Transform _parent;
-        private readonly System.Action<SurvivorProjectile, Collider> _onHit;
-        private readonly System.Action<SurvivorProjectile> _onLifetimeExpired;
-
-        /// <summary>
-        /// 現在アクティブ（使用中）のプロジェクタイル数
-        /// </summary>
-        public int ActiveCount => _activeProjectiles.Count;
-
-        public ProjectilePool(
-            GameObject prefab,
-            int initialSize,
-            Transform parent,
-            System.Action<SurvivorProjectile, Collider> onHit,
-            System.Action<SurvivorProjectile> onLifetimeExpired)
-        {
-            _prefab = prefab;
-            _parent = parent;
-            _onHit = onHit;
-            _onLifetimeExpired = onLifetimeExpired;
-
-            // 初期プールを作成
-            for (int i = 0; i < initialSize; i++)
-            {
-                var projectile = CreateProjectile();
-                projectile.gameObject.SetActive(false);
-                _pool.Enqueue(projectile);
-            }
-        }
-
-        private SurvivorProjectile CreateProjectile()
-        {
-            var instance = Object.Instantiate(_prefab, _parent);
-            var projectile = instance.GetComponent<SurvivorProjectile>();
-
-            if (projectile == null)
-            {
-                projectile = instance.AddComponent<SurvivorProjectile>();
-            }
-
-            projectile.OnHit += _onHit;
-            projectile.OnLifetimeExpired += _onLifetimeExpired;
-
-            return projectile;
-        }
-
-        public SurvivorProjectile Get()
-        {
-            SurvivorProjectile projectile = null;
-
-            while (_pool.Count > 0)
-            {
-                projectile = _pool.Dequeue();
-                if (projectile != null)
-                {
-                    break;
-                }
-            }
-
-            if (projectile == null)
-            {
-                projectile = CreateProjectile();
-            }
-
-            _activeProjectiles.Add(projectile);
-            return projectile;
-        }
-
-        public bool TryReturn(SurvivorProjectile projectile)
-        {
-            if (!_activeProjectiles.Contains(projectile))
-            {
-                return false;
-            }
-
-            _activeProjectiles.Remove(projectile);
-            _pool.Enqueue(projectile);
-            return true;
-        }
-
-        public void Clear()
-        {
-            foreach (var projectile in _pool)
-            {
-                if (projectile != null)
-                {
-                    Object.Destroy(projectile.gameObject);
-                }
-            }
-
-            _pool.Clear();
-
-            foreach (var projectile in _activeProjectiles)
-            {
-                if (projectile != null)
-                {
-                    Object.Destroy(projectile.gameObject);
-                }
-            }
-
-            _activeProjectiles.Clear();
         }
     }
 }

@@ -25,13 +25,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 8b001e8653d185948b5fca02ac505089
-    m_Address: SurvivorCountdownDialog
+  - m_GUID: 47ee73b45bfd0244d8491c36f6502cfb
+    m_Address: SurvivorWeaponReplaceDialog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ec21513afab119345989a912922a41dc
-    m_Address: SurvivorOptionsDialog
+  - m_GUID: 8b001e8653d185948b5fca02ac505089
+    m_Address: SurvivorCountdownDialog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -57,6 +57,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eb7f8197432e0a94e9751c18dc6c399e
     m_Address: SurvivorTotalResultScene
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec21513afab119345989a912922a41dc
+    m_Address: SurvivorOptionsDialog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

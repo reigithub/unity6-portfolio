@@ -979,9 +979,10 @@ GameObject:
   m_Component:
   - component: {fileID: 446710}
   - component: {fileID: 13772040}
-  m_Layer: 0
+  - component: {fileID: 7997532273401686708}
+  m_Layer: 7
   m_Name: Dragon
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1180,6 +1181,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -33.476685, y: 41.865738, z: 26.524048}
     m_Extent: {x: 774.87854, y: 299.23724, z: 584.7963}
   m_DirtyAABB: 0
+--- !u!64 &7997532273401686708
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136948}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 79b50b34e44b5fd4db1cdc9535a3c86b, type: 3}
 --- !u!1 &137012
 GameObject:
   m_ObjectHideFlags: 0
@@ -1223,7 +1246,6 @@ GameObject:
   - component: {fileID: 485588}
   - component: {fileID: 9586004}
   - component: {fileID: 2737679039579240257}
-  - component: {fileID: 6103365202581607082}
   - component: {fileID: 5113180855035363397}
   m_Layer: 7
   m_Name: DragonUsurperRed
@@ -1293,29 +1315,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &6103365202581607082
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 139696}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 1.5
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
 --- !u!114 &5113180855035363397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1330,7 +1329,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2737679039579240257}
   _animator: {fileID: 9586004}
-  _collider: {fileID: 6103365202581607082}
+  _collider: {fileID: 7997532273401686708}
 --- !u!1 &139704
 GameObject:
   m_ObjectHideFlags: 0

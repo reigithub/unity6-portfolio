@@ -354,9 +354,10 @@ GameObject:
   m_Component:
   - component: {fileID: 3219824336992946466}
   - component: {fileID: 3005208582850972646}
-  m_Layer: 0
+  - component: {fileID: 4122492004935138289}
+  m_Layer: 7
   m_Name: mushroom
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -453,6 +454,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.58135295, y: 0.17860109, z: -0.0034438968}
     m_Extent: {x: 0.76219964, y: 0.78188795, z: 0.6265786}
   m_DirtyAABB: 0
+--- !u!64 &4122492004935138289
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5093889288529411952}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -7588155868070637639, guid: 1bb511c8a05be7d4aab86bc7439e73f3, type: 3}
 --- !u!1 &5347500461435612734
 GameObject:
   m_ObjectHideFlags: 0

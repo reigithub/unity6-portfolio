@@ -72,9 +72,10 @@ GameObject:
   m_Component:
   - component: {fileID: 6036988292253137531}
   - component: {fileID: 734471815632122533}
-  m_Layer: 0
+  - component: {fileID: 2514723860956597277}
+  m_Layer: 7
   m_Name: TurtleShell
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -184,6 +185,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.446875, y: 0.3599043, z: 0}
     m_Extent: {x: 0.7597805, y: 0.7337334, z: 0.7809485}
   m_DirtyAABB: 0
+--- !u!64 &2514723860956597277
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975630734615174291}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 7274137689646547217, guid: 942e6d5330e147fe84c5ab6ab2193ca1, type: 3}
 --- !u!1 &1526939585842620943
 GameObject:
   m_ObjectHideFlags: 0
@@ -901,7 +924,6 @@ GameObject:
   - component: {fileID: 6265206175713501824}
   - component: {fileID: 5162232971360506}
   - component: {fileID: 2878181655799567387}
-  - component: {fileID: 4641017195633115336}
   - component: {fileID: 8303194171675301675}
   m_Layer: 7
   m_Name: TurtleShellPolyart
@@ -971,29 +993,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &4641017195633115336
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6753617674297473082}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 0.8
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.4, z: 0}
 --- !u!114 &8303194171675301675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1008,7 +1007,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2878181655799567387}
   _animator: {fileID: 5162232971360506}
-  _collider: {fileID: 4641017195633115336}
+  _collider: {fileID: 2514723860956597277}
 --- !u!1 &6861681153245785469
 GameObject:
   m_ObjectHideFlags: 0

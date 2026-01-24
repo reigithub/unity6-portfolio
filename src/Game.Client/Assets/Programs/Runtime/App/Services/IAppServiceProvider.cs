@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Shared.SaveData;
 using Game.Shared.Services;
 
 namespace Game.App.Services
@@ -13,6 +14,7 @@ namespace Game.App.Services
         IMasterDataService MasterDataService { get; }
         IAddressableAssetService AddressableAssetService { get; }
         IAudioService AudioService { get; }
+        IAudioSaveService AudioSaveService { get; }
 
         /// <summary>
         /// サービスを初期化

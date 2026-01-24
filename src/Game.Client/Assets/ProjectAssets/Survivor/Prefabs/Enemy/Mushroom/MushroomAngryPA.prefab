@@ -236,7 +236,6 @@ GameObject:
   - component: {fileID: 3577922927071859781}
   - component: {fileID: 7442050115661319743}
   - component: {fileID: 3156367827074836842}
-  - component: {fileID: 4692728895147909267}
   - component: {fileID: 6977514774450943729}
   m_Layer: 7
   m_Name: MushroomAngryPA
@@ -306,29 +305,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &4692728895147909267
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4245915190017150719}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.35
-  m_Height: 0.8
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.4, z: 0}
 --- !u!114 &6977514774450943729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,7 +319,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 3156367827074836842}
   _animator: {fileID: 7442050115661319743}
-  _collider: {fileID: 4692728895147909267}
+  _collider: {fileID: 8223286669960190727}
 --- !u!1 &5632524212304190485
 GameObject:
   m_ObjectHideFlags: 0
@@ -672,9 +648,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1578851261135212671}
   - component: {fileID: 1221193201481847483}
-  m_Layer: 0
+  - component: {fileID: 8223286669960190727}
+  m_Layer: 7
   m_Name: mushroom
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -771,3 +748,25 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.58135295, y: 0.17860109, z: -0.0034438968}
     m_Extent: {x: 0.76219964, y: 0.78188795, z: 0.6265786}
   m_DirtyAABB: 0
+--- !u!64 &8223286669960190727
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9220848272049792557}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -7588155868070637639, guid: 1bb511c8a05be7d4aab86bc7439e73f3, type: 3}

@@ -5,9 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 using Game.MVP.Core.DI;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Signals;
 using Game.Shared.Services;
-using Unity.Cinemachine;
 
 namespace Game.MVP.Survivor.Root
 {
@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.Root
         [Header("Camera")]
         [SerializeField] private Camera _mainCamera;
 
-        [SerializeField] private CinemachineCamera _playerFollowCamera;
+        [SerializeField] private SurvivorPlayerFollowCameraController _playerFollowCamera;
 
         [Header("Lighting")]
         [SerializeField] private GameObject _directionalLight;
@@ -37,7 +37,6 @@ namespace Game.MVP.Survivor.Root
         [Inject] private ISubscriber<SurvivorSignals.Player.Spawned> _playerSpawnedSubscriber;
 
         private Material _defaultSkyboxMaterial;
-        private CinemachineInputAxisController _inputAxisController;
         private readonly CompositeDisposable _disposables = new();
 
         /// <summary>
@@ -46,15 +45,13 @@ namespace Game.MVP.Survivor.Root
         public Camera MainCamera => _mainCamera;
 
         /// <summary>
-        /// プレイヤー追従カメラ
-        /// </summary>
-        public CinemachineCamera PlayerFollowCamera => _playerFollowCamera;
-
-        /// <summary>
         /// 初期化
         /// </summary>
         public void Initialize()
         {
+            if (_playerFollowCamera != null)
+                _playerFollowCamera.Initialize();
+
             // 初期状態設定
             if (_fadeImage != null)
             {
@@ -68,8 +65,6 @@ namespace Game.MVP.Survivor.Root
 
             // シグナル購読
             SubscribeSignals();
-
-            _playerFollowCamera.TryGetComponent(out _inputAxisController);
         }
 
         private void SubscribeSignals()
@@ -86,10 +81,7 @@ namespace Game.MVP.Survivor.Root
         public void SetFollowTarget(Transform target)
         {
             if (_playerFollowCamera != null && target != null)
-            {
-                _playerFollowCamera.Follow = target;
-                _playerFollowCamera.LookAt = target;
-            }
+                _playerFollowCamera.SetFollowTarget(target);
         }
 
         /// <summary>
@@ -98,10 +90,13 @@ namespace Game.MVP.Survivor.Root
         public void ClearFollowTarget()
         {
             if (_playerFollowCamera != null)
-            {
-                _playerFollowCamera.Follow = null;
-                _playerFollowCamera.LookAt = null;
-            }
+                _playerFollowCamera.ClearFollowTarget();
+        }
+
+        public void SetCameraRadius(Vector2 scrollWheel)
+        {
+            if (_playerFollowCamera != null)
+                _playerFollowCamera.SetCameraRadius(scrollWheel);
         }
 
         /// <summary>
@@ -110,9 +105,7 @@ namespace Game.MVP.Survivor.Root
         public void SetDirectionalLightActive(bool active)
         {
             if (_directionalLight != null)
-            {
                 _directionalLight.SetActive(active);
-            }
         }
 
         /// <summary>
@@ -121,9 +114,7 @@ namespace Game.MVP.Survivor.Root
         public void SetSkyboxMaterial(Material material)
         {
             if (_skybox != null)
-            {
                 _skybox.material = material;
-            }
         }
 
         /// <summary>
@@ -132,9 +123,7 @@ namespace Game.MVP.Survivor.Root
         public void ResetSkyboxMaterial()
         {
             if (_skybox != null && _defaultSkyboxMaterial != null)
-            {
                 _skybox.material = _defaultSkyboxMaterial;
-            }
         }
 
         /// <summary>
@@ -178,7 +167,8 @@ namespace Game.MVP.Survivor.Root
         private void LateUpdate()
         {
             // Memo: CinemachineDefaultInputSystemへの干渉の仕方について再考の余地あり
-            _inputAxisController.enabled = _rightClick;
+            if (_playerFollowCamera != null)
+                _playerFollowCamera.SetInputAxisEnable(_rightClick);
         }
 
         private void OnDestroy()

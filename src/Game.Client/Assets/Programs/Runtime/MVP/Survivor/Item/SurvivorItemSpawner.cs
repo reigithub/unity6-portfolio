@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData;
 using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVP.Survivor.Enemy;
+using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
@@ -184,27 +185,39 @@ namespace Game.MVP.Survivor.Item
         }
 
         /// <summary>
-        /// 敵の死亡イベントに接続
+        /// 敵の死亡イベントに接続（EnemySpawner経由）
         /// </summary>
         public void ConnectToEnemySpawner(SurvivorEnemySpawner enemySpawner)
         {
             enemySpawner.OnEnemyKilled
-                .Subscribe(enemy => OnEnemyKilledHandler(enemy))
+                .Subscribe(enemy => OnDeathEventHandler(new DeathEventData(
+                    enemy.transform.position,
+                    enemy.ItemDropGroupId,
+                    enemy.ExpDropGroupId
+                )))
                 .AddTo(this);
         }
 
         /// <summary>
-        /// 敵死亡時のドロップ処理
+        /// IDeathNotifier経由で死亡イベントに接続
         /// </summary>
-        private void OnEnemyKilledHandler(SurvivorEnemyController enemy)
+        public void ConnectToDeathNotifier(IDeathNotifier notifier)
         {
-            var position = enemy.transform.position;
+            notifier.OnDeathEvent
+                .Subscribe(OnDeathEventHandler)
+                .AddTo(this);
+        }
 
+        /// <summary>
+        /// 死亡イベント処理（抽象化されたデータを使用）
+        /// </summary>
+        private void OnDeathEventHandler(DeathEventData data)
+        {
             // アイテムドロップ抽選
-            TrySpawnFromDropGroup(enemy.ItemDropGroupId, position);
+            TrySpawnFromDropGroup(data.ItemDropGroupId, data.Position);
 
             // 経験値ドロップ抽選
-            TrySpawnFromDropGroup(enemy.ExpDropGroupId, position);
+            TrySpawnFromDropGroup(data.ExpDropGroupId, data.Position);
         }
 
         /// <summary>
@@ -252,7 +265,11 @@ namespace Game.MVP.Survivor.Item
         /// <summary>
         /// 範囲内の全アイテムを吸引開始（マグネット効果）
         /// </summary>
-        public void AttractAllItemsInRange(Vector3 center, float range)
+        /// <param name="center">吸引の中心位置</param>
+        /// <param name="range">吸引範囲</param>
+        /// <param name="target">吸引先のTransform（プレイヤー）</param>
+        /// <param name="attractSpeed">吸引速度（PlayerLevelMasterから）</param>
+        public void AttractAllItemsInRange(Vector3 center, float range, Transform target, float attractSpeed)
         {
             foreach (var kvp in _activeItems)
             {
@@ -260,10 +277,10 @@ namespace Game.MVP.Survivor.Item
                 {
                     if (item.gameObject.activeSelf)
                     {
-                        float distance = Vector3.Distance(item.transform.position, center);
-                        if (distance <= range)
+                        float sqrDistance = (item.transform.position - center).sqrMagnitude;
+                        if (sqrDistance <= range * range)
                         {
-                            item.StartAttraction();
+                            item.StartAttraction(target, attractSpeed);
                         }
                     }
                 }

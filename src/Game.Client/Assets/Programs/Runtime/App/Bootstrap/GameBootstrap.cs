@@ -33,6 +33,9 @@ namespace Game.App.Bootstrap
             if (_isInitialized) return;
             _isInitialized = true;
 
+            // UniTask未観測例外をログ出力（Forget()で隠れる例外を検知）
+            UniTaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
             // アプリケーションイベント購読
             ApplicationEvents.OnShutdownRequested = ShutdownAsync;
             ApplicationEvents.OnReturnToTitleRequested = ReturnToTitleAsync;
@@ -109,7 +112,7 @@ namespace Game.App.Bootstrap
             finally
             {
                 // タイトル画面を閉じる
-                _sceneLoader.Unload();
+                _sceneLoader?.Unload();
                 // アプリサービスプロバイダーを破棄（各ゲームモードで再構築）
                 DisposeAppServiceProvider();
             }
@@ -154,11 +157,23 @@ namespace Game.App.Bootstrap
             _isInitialized = false;
             _gameBootstrap.SafeDestroy();
 
+            // グローバル例外ハンドラーを解除
+            UniTaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
 #else
             Application.Quit();
 #endif
+        }
+
+        /// <summary>
+        /// UniTaskの未観測例外ハンドラー
+        /// Forget()で発生した例外をログ出力
+        /// </summary>
+        private static void OnUnobservedTaskException(Exception ex)
+        {
+            Debug.LogError($"[UniTask] Unobserved exception: {ex}");
         }
     }
 }

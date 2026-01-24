@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
 using Game.Shared.Services;
 using R3;
@@ -18,6 +18,7 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IMasterDataService _masterDataService;
+        [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISurvivorSaveService _saveService;
 
         protected override string AssetPathOrAddress => "SurvivorStageSelectScene";
@@ -48,6 +49,11 @@ namespace Game.MVP.Survivor.Scenes
             {
                 SceneComponent.ShowResumeOption(_saveService.CurrentSession);
             }
+        }
+
+        public override async UniTask Ready()
+        {
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
         }
 
         private List<StageSelectItemData> BuildStageItems()

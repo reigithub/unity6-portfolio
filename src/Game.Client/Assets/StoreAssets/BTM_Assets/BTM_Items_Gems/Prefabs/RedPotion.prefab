@@ -57,8 +57,12 @@ PrefabInstance:
       value: RedPotion
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 251889413fcfbe841a4d11ea37dfe4fe, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 251889413fcfbe841a4d11ea37dfe4fe, type: 3}
       propertyPath: m_TagString
-      value: StageItem
+      value: Item
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -146,8 +150,5 @@ MonoBehaviour:
   _effectDuration: 0
   _rarity: 3
   _scale: 1
-  _attractDistance: 5
-  _attractSpeed: 10
-  _collectDistance: 0.5
   _floatAmplitude: 0.2
   _floatSpeed: 2

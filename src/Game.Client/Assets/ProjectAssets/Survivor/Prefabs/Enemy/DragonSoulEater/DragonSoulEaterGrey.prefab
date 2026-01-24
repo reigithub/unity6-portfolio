@@ -1546,7 +1546,6 @@ GameObject:
   - component: {fileID: 489222}
   - component: {fileID: 9590000}
   - component: {fileID: 5142580594023096365}
-  - component: {fileID: 5283254811147708373}
   - component: {fileID: 8345991338663050680}
   m_Layer: 7
   m_Name: DragonSoulEaterGrey
@@ -1616,29 +1615,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &5283254811147708373
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 174418}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 1.5
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
 --- !u!114 &8345991338663050680
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1653,7 +1629,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 5142580594023096365}
   _animator: {fileID: 9590000}
-  _collider: {fileID: 5283254811147708373}
+  _collider: {fileID: 1551944012958346679}
 --- !u!1 &176574
 GameObject:
   m_ObjectHideFlags: 0
@@ -1889,9 +1865,10 @@ GameObject:
   m_Component:
   - component: {fileID: 463148}
   - component: {fileID: 13775546}
-  m_Layer: 0
+  - component: {fileID: 1551944012958346679}
+  m_Layer: 7
   m_Name: DragonSoulEater
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1905,7 +1882,7 @@ Transform:
   m_GameObject: {fileID: 186996}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -226.65565, z: 0}
+  m_LocalPosition: {x: 0, y: 2.25, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2028,6 +2005,28 @@ SkinnedMeshRenderer:
     m_Center: {x: 17.107727, y: -41.969696, z: 15.215744}
     m_Extent: {x: 528.9893, y: 309.98465, z: 290.71405}
   m_DirtyAABB: 0
+--- !u!64 &1551944012958346679
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 186996}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 063e65bf9ea59ea44bb459f4b7490fd3, type: 3}
 --- !u!1 &187566
 GameObject:
   m_ObjectHideFlags: 0

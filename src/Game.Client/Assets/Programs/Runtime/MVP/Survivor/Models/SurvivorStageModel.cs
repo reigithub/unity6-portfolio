@@ -1,9 +1,11 @@
 using System;
 using Game.Library.Shared.MasterData;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.MVP.Survivor.Item;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
+using UnityEngine;
 using VContainer;
 
 namespace Game.MVP.Survivor.Models
@@ -121,6 +123,29 @@ namespace Game.MVP.Survivor.Models
         public void Heal(int amount)
         {
             CurrentHp.Value = Math.Min(MaxHp.Value, CurrentHp.Value + amount);
+        }
+
+        /// <summary>
+        /// アイテム収集処理
+        /// ItemTypeに応じて効果を適用
+        /// </summary>
+        public void CollectItem(SurvivorItem item)
+        {
+            switch (item.ItemType)
+            {
+                case SurvivorItemType.Experience:
+                    AddExperience(item.EffectValue);
+                    break;
+
+                case SurvivorItemType.Recovery:
+                    Heal(item.EffectValue);
+                    break;
+
+                default:
+                    // throw new NotImplementedException($"ItemType {item.ItemType} is not implemented.");
+                    Debug.LogWarning($"ItemType {item.ItemType} is not implemented.");
+                    break;
+            }
         }
 
         public void AddKill()

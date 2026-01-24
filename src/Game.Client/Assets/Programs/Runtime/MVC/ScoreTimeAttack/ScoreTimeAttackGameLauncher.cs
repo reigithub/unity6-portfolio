@@ -5,6 +5,7 @@ using Game.Library.Shared.Enums;
 using Game.ScoreTimeAttack.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
+using Game.Shared.SaveData;
 
 namespace Game.ScoreTimeAttack
 {
@@ -24,6 +25,7 @@ namespace Game.ScoreTimeAttack
             var masterDataService = GameServiceManager.Get<MasterDataService>();
             GameServiceManager.Add<MessagePipeService>();
             GameServiceManager.Add<AudioService>();
+            var audioService = GameServiceManager.Get<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 3. 共通オブジェクト読み込み
@@ -32,7 +34,12 @@ namespace Game.ScoreTimeAttack
             // 4. マスターデータ読み込み
             await masterDataService.LoadMasterDataAsync();
 
-            // 5. 初期シーン遷移
+            // 5. オーディオ設定読み込み
+            var saveDataStorage = new SaveDataStorage();
+            var audioSaveService = new AudioSaveService(saveDataStorage, audioService);
+            await audioSaveService.LoadAsync();
+
+            // 6. 初期シーン遷移
             await gameSceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
         }
 

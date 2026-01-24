@@ -1,4 +1,6 @@
 using Game.Shared;
+using Game.Shared.Combat;
+using Game.Shared.Events;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -13,6 +15,9 @@ namespace Game.MVP.Survivor.Enemy
 
         // Constants
         private const float AttackRangeExitMultiplier = 1.2f;
+
+        // Cached target reference
+        private IDamageable _damageableTarget;
 
         // Timers
         private float _attackTimer;
@@ -180,8 +185,8 @@ namespace Game.MVP.Survivor.Enemy
                     return;
                 }
 
-                float distance = Vector3.Distance(ctx.transform.position, ctx._target.position);
-                if (distance <= ctx._attackRange)
+                float sqrDistance = (ctx.transform.position - ctx._target.position).sqrMagnitude;
+                if (sqrDistance <= ctx._attackRange * ctx._attackRange)
                 {
                     StateMachine.Transition(EnemyEvent.EnterAttackRange);
                     return;
@@ -231,8 +236,9 @@ namespace Game.MVP.Survivor.Enemy
                     return;
                 }
 
-                float distance = Vector3.Distance(ctx.transform.position, ctx._target.position);
-                if (distance > ctx._attackRange * AttackRangeExitMultiplier)
+                float sqrDistance = (ctx.transform.position - ctx._target.position).sqrMagnitude;
+                float exitRange = ctx._attackRange * AttackRangeExitMultiplier;
+                if (sqrDistance > exitRange * exitRange)
                 {
                     StateMachine.Transition(EnemyEvent.ExitAttackRange);
                     return;
@@ -253,12 +259,40 @@ namespace Game.MVP.Survivor.Enemy
                 ctx._attackTimer -= Time.deltaTime;
                 if (ctx._attackTimer <= 0f)
                 {
-                    if (ctx._animator != null)
-                    {
-                        ctx._animator.SetTrigger(AttackHash);
-                    }
+                    // 攻撃実行
+                    ctx.PerformAttack();
                     ctx._attackTimer = ctx._attackCooldown;
                 }
+            }
+        }
+
+        /// <summary>
+        /// 攻撃実行（アニメーション + ダメージ）
+        /// </summary>
+        private void PerformAttack()
+        {
+            // 攻撃アニメーション
+            if (_animator != null)
+            {
+                _animator.SetTrigger(AttackHash);
+            }
+
+            // ターゲットへのダメージ
+            if (_target == null) return;
+
+            // IDamageableをキャッシュ
+            if (_damageableTarget == null)
+            {
+                _damageableTarget = _target.GetComponent<IDamageable>();
+            }
+
+            if (_damageableTarget == null || _damageableTarget.IsDead) return;
+
+            // 攻撃範囲内かチェック
+            float sqrDistance = (transform.position - _target.position).sqrMagnitude;
+            if (sqrDistance <= _attackRange * _attackRange)
+            {
+                _damageableTarget.TakeDamage(_attackDamage);
             }
         }
 
@@ -331,7 +365,15 @@ namespace Game.MVP.Survivor.Enemy
                 _animator.SetTrigger(DeathHash);
             }
 
+            // 既存イベント（後方互換性）
             _onDeath.OnNext(this);
+
+            // IDeathNotifier経由のイベント（抽象化されたデータ）
+            _onDeathEvent.OnNext(new DeathEventData(
+                transform.position,
+                _itemDropGroupId,
+                _expDropGroupId
+            ));
         }
 
         /// <summary>

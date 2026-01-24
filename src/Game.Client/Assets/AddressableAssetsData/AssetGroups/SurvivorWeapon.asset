@@ -21,11 +21,21 @@ MonoBehaviour:
     m_SerializedLabels:
     - Projectile
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1381b64ff1936ac4e80c3a00687081f3
+    m_Address: RotatorPS1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 25093a0593dc83043a7bc17ebba0e95d
     m_Address: Magic fire 1
     m_ReadOnly: 0
     m_SerializedLabels:
     - Projectile
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 26255240385821a4185c7163c7a7aec6
+    m_Address: RotatorPS2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3d35e81bdc5955041be098ef22e82a3b
     m_Address: Magic fire pro green

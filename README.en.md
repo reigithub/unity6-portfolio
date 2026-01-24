@@ -26,7 +26,7 @@
             ↓                                ↓
 ┌─────────────────────────────┐  ┌─────────────────────────────┐
 │  Game.MVC.ScoreTimeAttack   │  │    Game.MVP.Survivor        │
-│    (Time Attack Game)       │  │   (Survivor Game - Planned) │
+│    (Time Attack Game)       │  │   (Survivor Game)           │
 └─────────────────────────────┘  └─────────────────────────────┘
             ↖                                ↗
                └──────────────┬──────────────┘
@@ -52,6 +52,12 @@
 * **Master Data Management**: TSV to binary conversion, data-driven development with editor extensions
 * **Various Game Services**: Common features like audio, scene transitions, messaging
 * **DI Container Support**: Dependency injection via VContainer (for MVP pattern)
+* **Combat System**: Unified combat interfaces with ICombatTarget/IDamageable/IKnockbackable
+* **Weapon System**: Auto-fire and ground-based weapons with generic object pool (WeaponObjectPool<T>)
+* **Enemy AI System**: State machine driven (Idle/Chase/Attack/HitStun/Death) with wave spawning
+* **Item System**: Drop lottery, attraction feature, object pooling
+* **Lock-On System**: Automatic target tracking, range management
+* **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 ---
 ## Feature Details
 <details><summary>Game Mode Selection System</summary>
@@ -72,7 +78,7 @@
 | Game.MVC.Core | MVC pattern foundation, GameServiceManager | Shared, Unity6Library |
 | Game.MVC.ScoreTimeAttack | Time attack game implementation | Shared, MVC.Core, Unity6Library |
 | Game.MVP.Core | MVP pattern foundation, VContainer | Shared |
-| Game.MVP.Survivor | Survivor game implementation (Planned) | Shared, MVP.Core |
+| Game.MVP.Survivor | Survivor game implementation | Shared, MVP.Core |
 | **com.rei.unity6library** | Master data definitions, common enums | None (bottom layer) |
 
 </details>
@@ -89,6 +95,18 @@ Master data definition files are separated into a local package, providing these
 **Contents:**
 - MasterMemory master data definition classes (AudioMaster, ScoreTimeAttackStageMaster, etc.)
 - Common enum definitions (AudioCategory, AudioPlayTag, etc.)
+
+**Survivor Master Data (11 types):**
+- `SurvivorStageMaster`: Stage definitions (time limit, initial weapons, etc.)
+- `SurvivorStageWaveMaster`: Wave definitions (spawn timing, enemy count)
+- `SurvivorStageWaveEnemyMaster`: Enemy composition per wave
+- `SurvivorEnemyMaster`: Enemy stats (HP, attack power, movement speed, etc.)
+- `SurvivorPlayerMaster`: Player base stats
+- `SurvivorPlayerLevelMaster`: Level-based stats (attraction range, etc.)
+- `SurvivorWeaponMaster`: Weapon definitions (type, damage, cooldown, etc.)
+- `SurvivorWeaponLevelMaster`: Weapon level-based stats
+- `SurvivorItemMaster`: Item definitions (effect value, rarity, etc.)
+- `SurvivorItemDropMaster`: Drop lottery table
 
 </details>
 
@@ -111,6 +129,44 @@ Master data definition files are separated into a local package, providing these
 4. Special states can be set as transition targets from any state, validated and executed when appropriate settings are not in the transition table
 5. Generic event key type can be specified, managing transition event names with enums etc. Matching with target state names improves readability/maintainability
 6. Supports MonoBehaviour.FixedUpdate/LateUpdate in addition to regular Update, enabling coordination with physics calculations and camera states
+</details>
+
+<details><summary>Survivor Game System (MVP)</summary>
+
+**Combat System**
+- `ICombatTarget`: Unified combat interface integrating damage, knockback, and targeting
+- `IDamageable`, `IKnockbackable`, `ITargetable`: Individual feature interfaces
+- Enables shared combat logic between enemies and players
+
+**Weapon System**
+- `SurvivorWeaponBase`: Weapon base class (damage calculation, critical, proc rate)
+- `SurvivorAutoFireWeapon`: Auto-fire type (fires projectiles at nearest enemy)
+- `SurvivorGroundWeapon`: Ground-based type (creates damage areas in circular pattern at target position)
+- `WeaponObjectPool<T>`: Generic object pool (shared for projectiles and areas)
+- Master data driven (supports per-level stats and asset changes)
+
+**Enemy AI System**
+- `SurvivorEnemyController`: State machine driven enemy AI
+- State transitions: Idle → Chase → Attack → HitStun → Death
+- `SurvivorEnemySpawner`: Wave management and spawn control
+- NavMeshAgent pathfinding
+
+**Item System**
+- `SurvivorItemSpawner`: Drop management on enemy defeat
+- Drop group lottery (item determination via probability table)
+- Magnet attraction feature (automatic collection of items in range)
+
+**Player System**
+- `SurvivorPlayerController`: Movement, HP, stamina, invincibility management
+- State machine: Normal → Invincible → Dead
+- Item attraction range linked to level
+
+**Save Data System**
+- `SurvivorSaveService`: Save/load processing
+- High-speed binary serialization with MemoryPack
+- Auto-save (30-second intervals, on background transition)
+- Immediate save on Victory/GameOver confirmation (data integrity guarantee)
+
 </details>
 
 <details><summary>Others</summary>
@@ -145,6 +201,21 @@ Master data definition files are separated into a local package, providing these
 ### Game.MVP.Core (MVP Foundation)
 * VContainer Launcher: [VContainerGameLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Core/DI/VContainerGameLauncher.cs)
 
+### Game.MVP.Survivor (Survivor Game)
+* Stage Scene: [SurvivorStageScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Scenes/SurvivorStageScene.cs)
+* Player Controller: [SurvivorPlayerController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Player/SurvivorPlayerController.cs)
+* Enemy AI: [SurvivorEnemyController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemyController.cs)
+* Enemy Spawner: [SurvivorEnemySpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemySpawner.cs)
+* Weapon Base: [SurvivorWeaponBase.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/SurvivorWeaponBase.cs)
+* Generic Pool: [WeaponObjectPool.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/WeaponObjectPool.cs)
+* Item Spawner: [SurvivorItemSpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Item/SurvivorItemSpawner.cs)
+* Save Service: [SurvivorSaveService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/SaveData/SurvivorSaveService.cs)
+
+### Game.Shared (Additional)
+* Combat Interface: [ICombatTarget.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Combat/ICombatTarget.cs)
+* Death Event: [IDeathNotifier.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Events/IDeathNotifier.cs)
+* Lock-On: [ILockOnService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/LockOn/ILockOnService.cs)
+
 ### Editor
 * Master Data Editor Extension: [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/EditorWindow/MasterDataWindow.cs)
 
@@ -165,9 +236,13 @@ Master data definition files are separated into a local package, providing these
 │   │   └── Runtime
 │   │       ├── Shared      Common utilities, interfaces
 │   │       │   ├── Bootstrap   IGameLauncher, ApplicationEvents
-│   │       │   ├── Constants   Common constants
+│   │       │   ├── Combat      ICombatTarget, IDamageable, etc.
+│   │       │   ├── Constants   Common constants, LayerMaskConstants
 │   │       │   ├── Enums       GameMode, etc.
-│   │       │   └── Extensions  Extension methods
+│   │       │   ├── Events      DeathEventData, IDeathNotifier
+│   │       │   ├── Extensions  Extension methods
+│   │       │   ├── LockOn      Lock-on service
+│   │       │   └── SaveData    Save data foundation
 │   │       ├── App         Entry point
 │   │       │   ├── Bootstrap   GameBootstrap
 │   │       │   ├── Launcher    GameModeLauncherRegistry
@@ -177,7 +252,16 @@ Master data definition files are separated into a local package, providing these
 │   │       │   └── ScoreTimeAttack  Time attack game
 │   │       └── MVP         MVP pattern implementation
 │   │           ├── Core        Foundation (VContainer, Base)
-│   │           └── Survivor    Survivor game (Planned)
+│   │           └── Survivor    Survivor game
+│   │               ├── DI          Dependency injection settings
+│   │               ├── Enemy       Enemy system (AI, spawner)
+│   │               ├── Item        Items (spawner, drops)
+│   │               ├── Models      Game models
+│   │               ├── Player      Player control
+│   │               ├── SaveData    Save functionality
+│   │               ├── Scenes      Scene management
+│   │               ├── Services    Game services
+│   │               └── Weapon      Weapon system (pool, projectiles)
 │   └── README.md
 └── Packages
     └── com.rei.unity6library   Local package
@@ -246,6 +330,7 @@ Master data definition files are separated into a local package, providing these
 | cysharp/UniTask | 2.5.10 |
 | cysharp/MasterMemory | 3.0.4 |
 | cysharp/MessagePack | 3.1.3 |
+| cysharp/MemoryPack | 1.21.3 |
 | **hadashiA/VContainer** | **1.16.8** |
 | NSubstitute | 5.3.0 |
 | DOTween | 1.2.790 |
@@ -261,6 +346,7 @@ Master data definition files are separated into a local package, providing these
 * UniTask: For all Unity-optimized async processing. Currently mainly used for dialog error handling, with planned expansion.
 * MasterMemory: Separates game logic from data, minimizing logic modifications while streamlining development cycles. Also handles the demo game's large number of audio files (~400).
 * MessagePack: Primarily as data serializer for MasterMemory.
+* **MemoryPack**: High-speed binary serialization for save data. Zero-allocation and higher performance than PlayerPrefs.
 * NSubstitute: Creating mocks for game services in test code.
 * Claude Code: Test code generation, refactoring.
 ---
@@ -269,11 +355,14 @@ Master data definition files are separated into a local package, providing these
 * Unity-chan: https://unity-chan.com/ (© Unity Technologies Japan/UCL)
 ---
 ## Development Period
-* Approximately 3 weeks (as of 2026/1/13)
+* Approximately 4 weeks (as of 2026/1/24)
 ---
+## Implemented Features (Moved from Future Plans)
+* ✅ **Survivor Game Mode Implementation (MVP/VContainer)** - Core systems complete
+* ✅ **Save Functionality with MemoryPack** - Stage progress and clear record saving
+
 ## Future Plans
-* **Survivor Game Mode Implementation (MVP/VContainer)**
-* Simple save functionality using MemoryPack (as PlayerPrefs alternative)
+* Survivor game mode additional features (skill system, boss battles, etc.)
 * PlayerLoop intervention sample
 * EnhancedScroller implementation sample
 * List sort/filter functionality sample
@@ -286,8 +375,16 @@ Master data definition files are separated into a local package, providing these
 * Platform: PC / Mouse & Keyboard
 * Controls: Move (WASD), Jump (Space), Run (LShift+Move), Camera (Mouse Drag)
 
-### Survivor (MVP) *Planned*
-* Will be implemented using MVP pattern with VContainer
+### Survivor (MVP)
+* Implemented using MVP pattern with VContainer
+* A survivor game where you defeat waves of enemies while staying alive
+* Platform: PC / Mouse & Keyboard
+* Controls: Move (WASD), Dash (LShift+Move)
+* Key Features:
+  - Auto-attack weapon system (master data driven)
+  - Wave management (staged enemy spawning)
+  - Item drops and attraction
+  - Stage clear and record saving
 
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended

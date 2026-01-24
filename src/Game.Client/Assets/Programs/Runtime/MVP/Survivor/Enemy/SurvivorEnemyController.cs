@@ -1,5 +1,7 @@
 using System;
 using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Shared.Combat;
+using Game.Shared.Events;
 using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
@@ -11,7 +13,7 @@ namespace Game.MVP.Survivor.Enemy
     /// Survivor敵コントローラー
     /// マスターデータから初期化され、StateMachineでAI制御
     /// </summary>
-    public partial class SurvivorEnemyController : MonoBehaviour
+    public partial class SurvivorEnemyController : MonoBehaviour, ICombatTarget, IDeathNotifier
     {
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
@@ -43,20 +45,36 @@ namespace Game.MVP.Survivor.Enemy
         private readonly Subject<SurvivorEnemyController> _onDeath = new();
         public Observable<SurvivorEnemyController> OnDeath => _onDeath;
 
+        // IDeathNotifier implementation
+        private readonly Subject<DeathEventData> _onDeathEvent = new();
+        public Observable<DeathEventData> OnDeathEvent => _onDeathEvent;
+
         // Public properties
         public int EnemyId => _enemyId;
+
         /// <summary>敵タイプ（1:通常, 2:エリート, 3:ボス）</summary>
         public int EnemyType => _enemyType;
+
         public bool IsBoss => _enemyType == 3;
         public int AttackDamage => _attackDamage;
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
+
         /// <summary>死亡アニメーション時間（秒）</summary>
         public float DeathAnimDuration => _deathAnimDuration;
+
         /// <summary>アイテムドロップグループID（0=ドロップなし）</summary>
         public int ItemDropGroupId => _itemDropGroupId;
+
         /// <summary>経験値ドロップグループID（0=ドロップなし）</summary>
         public int ExpDropGroupId => _expDropGroupId;
+
+        /// <summary>
+        /// エンティティの中心位置（コライダーの中心）
+        /// </summary>
+        public Vector3 CenterPosition => _collider != null
+            ? _collider.bounds.center
+            : transform.position;
 
         // Animator hashes
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -77,7 +95,7 @@ namespace Game.MVP.Survivor.Enemy
 
             if (_collider == null)
             {
-                _collider = GetComponent<Collider>();
+                _collider = GetComponentInChildren<Collider>();
             }
         }
 
@@ -157,6 +175,7 @@ namespace Game.MVP.Survivor.Enemy
             _currentHp = _maxHp;
             _target = null;
             _stateMachine = null;
+            _damageableTarget = null;
 
             if (_navAgent != null)
             {
@@ -174,6 +193,7 @@ namespace Game.MVP.Survivor.Enemy
         private void OnDestroy()
         {
             _onDeath.Dispose();
+            _onDeathEvent.Dispose();
         }
     }
 }

@@ -63,7 +63,7 @@ PrefabInstance:
     - target: {fileID: 9500000, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: f3aab8c3758bee04082c41244026970e, type: 2}
+      objectReference: {fileID: 9100000, guid: 85a83a1601a1aa246ae713ea61571e27, type: 2}
     - target: {fileID: 9500000, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_AnimatePhysics
       value: 1
@@ -82,19 +82,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_bodyStateNames.Array.size
-      value: 6
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: 'm_bodyStateNames.Array.data[0]'
-      value: GoDown
+      value: Idle
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: 'm_bodyStateNames.Array.data[1]'
-      value: DownToUp
+      value: Locomotion
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: 'm_bodyStateNames.Array.data[2]'
-      value: KneelDown
+      value: Death
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: 'm_bodyStateNames.Array.data[3]'
@@ -302,11 +302,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adeb3d6bb3f4a414c8c3c72f430f3841, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.SurvivorPlayerController
-  _rotationSpeed: 10
-  _dashSpeedMultiplier: 1.5
-  _rigidbody: {fileID: 8852584683181521213}
-  _animator: {fileID: 322825930280499040}
-  _groundedRaycastChecker: {fileID: 1247257148557363326}
+  _jogSpeed: 5
+  _runSpeed: 8
+  _rotationRatio: 10
 --- !u!114 &1247257148557363326
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,8 +346,3 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!95 &322825930280499040 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 9500000, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
-  m_PrefabInstance: {fileID: 322825930273161728}
-  m_PrefabAsset: {fileID: 0}

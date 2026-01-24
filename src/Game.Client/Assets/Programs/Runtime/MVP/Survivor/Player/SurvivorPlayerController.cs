@@ -1,7 +1,9 @@
 using Game.Library.Shared.MasterData.MemoryTables;
 using Game.MVP.Core.DI;
 using Game.MVP.Survivor.Signals;
+using Game.Shared.Item;
 using Game.Shared;
+using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
@@ -19,7 +21,7 @@ namespace Game.MVP.Survivor.Player
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable
     {
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
@@ -83,6 +85,9 @@ namespace Game.MVP.Survivor.Player
         public float ItemAttractSpeed => _itemAttractSpeed;
         public float ItemCollectDistance => _itemCollectDistance;
 
+        // IDamageable
+        public bool IsDead => _currentHp.Value <= 0;
+
         // Events
         private readonly Subject<int> _onDamaged = new();
         private readonly Subject<Unit> _onDeath = new();
@@ -92,6 +97,11 @@ namespace Game.MVP.Survivor.Player
 
         // State
         private float _invincibilityTimer;
+
+        // アイテム吸引用
+        private readonly Collider[] _itemHitBuffer = new Collider[50];
+        private const float ItemCheckInterval = 0.1f;
+        private float _itemCheckTimer;
 
         // アニメータハッシュ
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
@@ -110,6 +120,7 @@ namespace Game.MVP.Survivor.Player
         private void Update()
         {
             UpdateInput();
+            UpdateItemAttraction();
             _stateMachine?.Update();
         }
 
@@ -292,6 +303,38 @@ namespace Game.MVP.Survivor.Player
 
         #endregion
 
+        #region Item Attraction
+
+        /// <summary>
+        /// 範囲内のアイテムを検知して吸引を開始する
+        /// </summary>
+        private void UpdateItemAttraction()
+        {
+            _itemCheckTimer -= Time.deltaTime;
+            if (_itemCheckTimer > 0f) return;
+            _itemCheckTimer = ItemCheckInterval;
+
+            // ItemレイヤーのみをOverlapSphereで検索
+            int hitCount = Physics.OverlapSphereNonAlloc(
+                transform.position,
+                _itemAttractDistance,
+                _itemHitBuffer,
+                LayerMaskConstants.Item
+            );
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var collectible = _itemHitBuffer[i].GetComponent<ICollectible>();
+                if (collectible != null && !collectible.IsCollected)
+                {
+                    // アイテムに吸引開始を通知（ターゲットと速度を渡す）
+                    collectible.StartAttraction(transform, _itemAttractSpeed);
+                }
+            }
+        }
+
+        #endregion
+
         #region Movement (Called from States)
 
         private void HandleMovement()
@@ -384,29 +427,27 @@ namespace Game.MVP.Survivor.Player
             _currentHp.Value = Mathf.Min(_maxHp, _currentHp.Value + amount);
         }
 
+        /// <summary>
+        /// 現在HPを設定（モデルとの同期用）
+        /// </summary>
+        public void SetCurrentHp(int value)
+        {
+            _currentHp.Value = Mathf.Clamp(value, 0, _maxHp);
+        }
+
         #endregion
 
         #region Collision
 
         private void OnTriggerEnter(Collider other)
         {
-            // 敵との衝突判定
-            if (other.CompareTag("Enemy"))
+            // アイテムとの衝突
+            if (other.CompareLayer(LayerConstants.Item))
             {
-                var enemy = other.GetComponent<Enemy.SurvivorEnemyController>();
-                if (enemy != null)
+                var collectible = other.GetComponent<ICollectible>();
+                if (collectible != null)
                 {
-                    TakeDamage(enemy.AttackDamage);
-                }
-            }
-
-            // 経験値オーブとの衝突
-            if (other.CompareTag("Item"))
-            {
-                var item = other.GetComponent<Item.SurvivorItem>();
-                if (item != null)
-                {
-                    item.Collect();
+                    collectible.Collect();
                 }
             }
         }

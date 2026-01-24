@@ -49,6 +49,10 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => OnRetry().Forget())
                 .AddTo(Disposables);
 
+            SceneComponent.OnStageSelectClicked
+                .Subscribe(_ => OnStageSelect().Forget())
+                .AddTo(Disposables);
+
             SceneComponent.OnReturnToTitleClicked
                 .Subscribe(_ => OnReturnToTitle().Forget())
                 .AddTo(Disposables);
@@ -88,6 +92,17 @@ namespace Game.MVP.Survivor.Scenes
             await _saveService.SaveIfDirtyAsync();
 
             await _sceneService.TransitionAsync<SurvivorStageScene>();
+        }
+
+        private async UniTaskVoid OnStageSelect()
+        {
+            SceneComponent.SetInteractables(false);
+
+            // ゲームセッション終了
+            _saveService.EndSession();
+            await _saveService.SaveIfDirtyAsync();
+
+            await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 
         private async UniTaskVoid OnReturnToTitle()

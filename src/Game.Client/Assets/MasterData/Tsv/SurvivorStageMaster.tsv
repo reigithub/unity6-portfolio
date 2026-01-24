@@ -1,4 +1,4 @@
 Id	Name	AssetName	ThumbnailAssetName	Description	TimeLimit	PlayerId	BgmAssetName	UnlockStageId	Difficulty
 1	古代の村	AncientVillageDay		古代の村	180	1			1
-2	深い森	StylizedNature		深い森	300	1		1	2
-3	市街地	PolyVania		市街地	600	1		2	3
+2	深い森	StylizedNature		深い森	480	1		1	2
+3	市街地	PolyVania		市街地	900	1		2	3

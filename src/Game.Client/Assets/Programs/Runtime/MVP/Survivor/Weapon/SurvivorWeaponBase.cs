@@ -17,10 +17,15 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     public abstract class SurvivorWeaponBase : IDisposable
     {
-        [Inject] private readonly ILockOnService _lockOnService;
+        [Inject] protected readonly IMasterDataService MasterDataService;
+        [Inject] protected readonly IAddressableAssetService AssetService;
+        [Inject] protected readonly ILockOnService LockOnService;
 
         // マスターデータ
+        protected SurvivorWeaponMaster _weaponMaster;
         protected IReadOnlyList<SurvivorWeaponLevelMaster> _levelMasters;
+
+        protected Transform _poolParent;
 
         #region 基本情報
 
@@ -90,6 +95,7 @@ namespace Game.MVP.Survivor.Weapon
 
         // State
         protected float _attackTimer;
+        protected float _cooldownTimer;
         protected Transform _owner;
         protected bool _isEnabled = true;
         protected float _damageMultiplier = 1f;
@@ -128,36 +134,49 @@ namespace Game.MVP.Survivor.Weapon
         public string HitEffectAssetName => _hitEffectAssetName;
         public float HitEffectScale => _hitEffectScale;
 
+        // 手動発動関連
+        public bool IsManualActivation => _cooldown > 0;
+        public bool IsOnCooldown => _cooldownTimer > 0f;
+        public float CooldownRemaining => _cooldownTimer;
+        public float CooldownProgress => _cooldown > 0 ? 1f - (_cooldownTimer / Cooldown) : 1f;
+
         #endregion
 
         // Events
         protected readonly Subject<int> _onAttack = new();
+        protected readonly Subject<float> _onCooldownChanged = new();
         public Observable<int> OnAttack => _onAttack;
+        public Observable<float> OnCooldownChanged => _onCooldownChanged;
+
+        public SurvivorWeaponBase(SurvivorWeaponMaster weaponMaster)
+        {
+            _weaponMaster = weaponMaster;
+        }
 
         /// <summary>
         /// マスターデータから初期化
         /// </summary>
         public virtual UniTask InitializeAsync(
-            SurvivorWeaponMaster weaponMaster,
-            IReadOnlyList<SurvivorWeaponLevelMaster> levelMasters,
+            Transform poolParent,
             Transform owner,
             float damageMultiplier,
             SurvivorVfxSpawner vfxSpawner)
         {
-            _weaponId = weaponMaster.Id;
-            _name = weaponMaster.Name;
-            _iconAssetName = weaponMaster.IconAssetName;
-            _maxLevel = levelMasters.Max(x => x.Level);
-            _levelMasters = levelMasters;
+            _poolParent = poolParent;
+            _weaponId = _weaponMaster.Id;
+            _name = _weaponMaster.Name;
+            _iconAssetName = _weaponMaster.IconAssetName;
+            _levelMasters = MasterDataService.MemoryDatabase.SurvivorWeaponLevelMasterTable.FindByWeaponId(_weaponMaster.Id);
+            _maxLevel = _levelMasters.Max(x => x.Level);
             _owner = owner;
             _damageMultiplier = damageMultiplier;
             _attackTimer = 0f;
 
             // ヒットエフェクト設定
             _vfxSpawner = vfxSpawner;
-            _hitEffectAssetName = weaponMaster.HitEffectAssetName;
-            _hitEffectScale = weaponMaster.HitEffectScale > 0
-                ? weaponMaster.HitEffectScale / 10000f
+            _hitEffectAssetName = _weaponMaster.HitEffectAssetName;
+            _hitEffectScale = _weaponMaster.HitEffectScale > 0
+                ? _weaponMaster.HitEffectScale / 10000f
                 : 1f;
 
             // レベル1を適用
@@ -190,6 +209,7 @@ namespace Game.MVP.Survivor.Weapon
             // 基本パラメータ
             _damage = levelMaster.Damage;
             _cooldown = levelMaster.Cooldown;
+            _procRate = levelMaster.ProcRate;
             _interval = levelMaster.ProcInterval;
             _range = levelMaster.Range.ToUnit();
             _emitCount = levelMaster.EmitCount;
@@ -215,9 +235,6 @@ namespace Game.MVP.Survivor.Weapon
             _chain = levelMaster.Chain;
             _homing = levelMaster.Homing;
             _spread = levelMaster.Spread;
-
-            // 状態異常パラメータ
-            _procRate = levelMaster.ProcRate;
 
             // アセット名の変更チェック
             var newAssetName = levelMaster.AssetName;
@@ -276,7 +293,7 @@ namespace Game.MVP.Survivor.Weapon
         protected virtual bool TryGetTarget(out Transform target)
         {
             // ロックオン優先
-            if (_lockOnService.TryGetTarget(out target))
+            if (LockOnService.TryGetTarget(out target))
                 return true;
 
             target = null;
@@ -295,6 +312,23 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (!_isEnabled || _owner == null) return;
 
+            // クールダウン更新（手動発動武器用）
+            if (_cooldownTimer > 0f)
+            {
+                _cooldownTimer -= deltaTime;
+                _onCooldownChanged.OnNext(_cooldownTimer);
+
+                if (_cooldownTimer <= 0f)
+                {
+                    _cooldownTimer = 0f;
+                    _onCooldownChanged.OnNext(0f);
+                }
+            }
+
+            // 手動発動武器は自動攻撃しない
+            if (IsManualActivation) return;
+
+            // 自動発動武器の処理
             _attackTimer -= deltaTime;
 
             if (_attackTimer <= 0f)
@@ -311,6 +345,44 @@ namespace Game.MVP.Survivor.Weapon
         /// 攻撃を試みる（派生クラスで実装）
         /// </summary>
         protected abstract bool TryAttack();
+
+        /// <summary>
+        /// 手動発動を試みる
+        /// </summary>
+        /// <returns>
+        /// true: 発動成功
+        /// false: クールダウン中または無効
+        /// null: 射程外（赤発光トリガー用）
+        /// </returns>
+        public virtual bool? TryManualActivate()
+        {
+            if (!IsManualActivation || IsOnCooldown || !_isEnabled) return false;
+
+            // 射程チェック（派生クラスでオーバーライド）
+            if (!IsTargetInRange())
+            {
+                return null; // 射程外
+            }
+
+            if (TryAttack())
+            {
+                _cooldownTimer = Cooldown;
+                _onCooldownChanged.OnNext(_cooldownTimer);
+                _onAttack.OnNext(Damage);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ターゲットが射程内かチェック（派生クラスでオーバーライド）
+        /// ターゲットがいない場合はtrue（フォールバック許可）
+        /// </summary>
+        protected virtual bool IsTargetInRange()
+        {
+            return true;
+        }
 
         /// <summary>
         /// クリティカル判定（万分率）
@@ -340,45 +412,13 @@ namespace Game.MVP.Survivor.Weapon
             return _procRate.RollChance();
         }
 
-        /// <summary>
-        /// 武器情報の取得
-        /// </summary>
-        public virtual SurvivorWeaponInfo GetInfo()
-        {
-            return new SurvivorWeaponInfo
-            {
-                WeaponId = _weaponId,
-                Name = GetType().Name,
-                Level = _level,
-                MaxLevel = _maxLevel,
-                Damage = Damage,
-                Interval = Interval,
-                SearchRange = _range,
-                EmitCount = _emitCount
-            };
-        }
-
         public virtual void Dispose()
         {
             if (_isDisposed) return;
             _isDisposed = true;
 
             _onAttack.Dispose();
+            _onCooldownChanged.Dispose();
         }
-    }
-
-    /// <summary>
-    /// 武器情報
-    /// </summary>
-    public class SurvivorWeaponInfo
-    {
-        public int WeaponId { get; set; }
-        public string Name { get; set; }
-        public int Level { get; set; }
-        public int MaxLevel { get; set; }
-        public int Damage { get; set; }
-        public float Interval { get; set; }
-        public float SearchRange { get; set; }
-        public int EmitCount { get; set; }
     }
 }

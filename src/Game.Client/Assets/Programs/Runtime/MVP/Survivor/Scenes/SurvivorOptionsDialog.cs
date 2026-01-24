@@ -3,6 +3,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared.SaveData;
 using Game.Shared.Services;
 using R3;
 using VContainer;

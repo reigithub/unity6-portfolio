@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
@@ -88,6 +89,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _weaponDisplayContainer;
         private readonly Dictionary<int, VisualElement> _weaponCards = new();
         private readonly Dictionary<int, IDisposable> _weaponAttackSubscriptions = new();
+        private readonly Dictionary<int, IDisposable> _weaponCooldownSubscriptions = new();
         private readonly Dictionary<int, CancellationTokenSource> _flashCtsMap = new();
         private readonly Dictionary<string, Sprite> _iconCache = new();
 
@@ -113,6 +115,13 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             _weaponAttackSubscriptions.Clear();
+
+            foreach (var subscription in _weaponCooldownSubscriptions.Values)
+            {
+                subscription?.Dispose();
+            }
+
+            _weaponCooldownSubscriptions.Clear();
 
             foreach (var cts in _flashCtsMap.Values)
             {
@@ -476,21 +485,62 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (_weaponDisplayContainer == null || _weaponManager == null) return;
 
-            // 既存の武器をカード化
-            foreach (var weapon in _weaponManager.Weapons)
+            // 既存の武器をカード化（ソート済み）
+            var sortedWeapons = _weaponManager.Weapons
+                .OrderBy(w => w.IsManualActivation ? 1 : 0)  // 自動発動が先
+                .ThenBy(w => w.WeaponId);  // 同じタイプ内ではID順
+
+            foreach (var weapon in sortedWeapons)
             {
                 AddWeaponCard(weapon);
             }
 
             // 武器追加イベントを購読
             _weaponManager.OnWeaponAdded
-                .Subscribe(weapon => AddWeaponCard(weapon))
+                .Subscribe(weapon =>
+                {
+                    AddWeaponCard(weapon);
+                    SortWeaponCards();  // カード追加後にソート
+                })
                 .AddTo(Disposables);
 
             // 武器レベルアップイベントを購読
             _weaponManager.OnWeaponUpgraded
                 .Subscribe(weapon => UpdateWeaponCard(weapon))
                 .AddTo(Disposables);
+
+            // 武器削除イベントを購読
+            _weaponManager.OnWeaponRemoved
+                .Subscribe(weapon => RemoveWeaponCard(weapon))
+                .AddTo(Disposables);
+        }
+
+        /// <summary>
+        /// 武器カードを自動発動→手動発動の順にソート
+        /// </summary>
+        private void SortWeaponCards()
+        {
+            if (_weaponDisplayContainer == null || _weaponManager == null) return;
+
+            var sortedWeapons = _weaponManager.Weapons
+                .OrderBy(w => w.IsManualActivation ? 1 : 0)
+                .ThenBy(w => w.WeaponId)
+                .ToList();
+
+            // コンテナから一旦全て削除
+            foreach (var kvp in _weaponCards)
+            {
+                kvp.Value.RemoveFromHierarchy();
+            }
+
+            // ソート順に再追加
+            foreach (var weapon in sortedWeapons)
+            {
+                if (_weaponCards.TryGetValue(weapon.WeaponId, out var card))
+                {
+                    _weaponDisplayContainer.Add(card);
+                }
+            }
         }
 
         /// <summary>
@@ -506,10 +556,23 @@ namespace Game.MVP.Survivor.Scenes
             card.name = $"weapon-card-{weapon.WeaponId}";
             card.AddToClassList("weapon-card");
 
-            // フラッシュオーバーレイ
+            // 手動発動武器の場合はクリック可能スタイルを追加
+            if (weapon.IsManualActivation)
+            {
+                card.AddToClassList("weapon-card--manual");
+            }
+
+            // フラッシュオーバーレイ（攻撃時の白フラッシュ）
             var flashOverlay = new VisualElement();
+            flashOverlay.name = $"flash-overlay-{weapon.WeaponId}";
             flashOverlay.AddToClassList("weapon-card__flash-overlay");
             card.Add(flashOverlay);
+
+            // 射程外エラーオーバーレイ（赤フラッシュ）
+            var errorOverlay = new VisualElement();
+            errorOverlay.name = $"error-overlay-{weapon.WeaponId}";
+            errorOverlay.AddToClassList("weapon-card__error-overlay");
+            card.Add(errorOverlay);
 
             // アイコン
             var icon = new VisualElement();
@@ -539,6 +602,37 @@ namespace Game.MVP.Survivor.Scenes
             levelLabel.AddToClassList("weapon-card__level");
             card.Add(levelLabel);
 
+            // クールダウンオーバーレイ（手動発動武器のみ）
+            if (weapon.IsManualActivation)
+            {
+                // クールダウン背景
+                var cooldownOverlay = new VisualElement();
+                cooldownOverlay.name = $"cooldown-overlay-{weapon.WeaponId}";
+                cooldownOverlay.AddToClassList("weapon-card__cooldown-overlay");
+                cooldownOverlay.style.display = DisplayStyle.None;
+                card.Add(cooldownOverlay);
+
+                // 円形プログレス背景
+                var cooldownBg = new VisualElement();
+                cooldownBg.AddToClassList("weapon-card__cooldown-bg");
+                cooldownOverlay.Add(cooldownBg);
+
+                // 残り時間テキスト
+                var cooldownText = new Label("0.0");
+                cooldownText.name = $"cooldown-text-{weapon.WeaponId}";
+                cooldownText.AddToClassList("weapon-card__cooldown-text");
+                cooldownOverlay.Add(cooldownText);
+
+                // クリックイベント（手動発動）
+                var weaponRef = weapon;
+                card.RegisterCallback<ClickEvent>(_ => OnWeaponCardClicked(weaponRef));
+
+                // クールダウン変更イベントを購読
+                var cooldownSubscription = weapon.OnCooldownChanged
+                    .Subscribe(remaining => UpdateCooldownDisplay(weapon.WeaponId, remaining, weapon.Cooldown));
+                _weaponCooldownSubscriptions[weapon.WeaponId] = cooldownSubscription;
+            }
+
             _weaponDisplayContainer.Add(card);
             _weaponCards[weapon.WeaponId] = card;
 
@@ -546,6 +640,93 @@ namespace Game.MVP.Survivor.Scenes
             var subscription = weapon.OnAttack
                 .Subscribe(_ => TriggerFlashAnimation(weapon.WeaponId));
             _weaponAttackSubscriptions[weapon.WeaponId] = subscription;
+        }
+
+        /// <summary>
+        /// 武器カードがクリックされた時（手動発動）
+        /// </summary>
+        private void OnWeaponCardClicked(SurvivorWeaponBase weapon)
+        {
+            var result = weapon.TryManualActivate();
+
+            if (result == true)
+            {
+                // 発動成功 → 白フラッシュ（OnAttackイベントで自動トリガーされる）
+            }
+            else if (result == null)
+            {
+                // 射程外 → 赤フラッシュ
+                TriggerErrorFlashAnimation(weapon.WeaponId);
+            }
+            // false（クールダウン中）は何もしない
+        }
+
+        /// <summary>
+        /// 射程外エラーの赤フラッシュ
+        /// </summary>
+        private void TriggerErrorFlashAnimation(int weaponId)
+        {
+            if (!_weaponCards.TryGetValue(weaponId, out var card)) return;
+
+            var errorOverlay = card.Q<VisualElement>($"error-overlay-{weaponId}");
+            if (errorOverlay == null) return;
+
+            // 前回のフラッシュをキャンセル（負のIDでエラー用）
+            var errorKey = -weaponId;
+            if (_flashCtsMap.TryGetValue(errorKey, out var existingCts))
+            {
+                existingCts?.Cancel();
+                existingCts?.Dispose();
+            }
+
+            var cts = new CancellationTokenSource();
+            _flashCtsMap[errorKey] = cts;
+
+            ErrorFlashAnimationAsync(errorOverlay, cts.Token).Forget();
+        }
+
+        private async UniTaskVoid ErrorFlashAnimationAsync(VisualElement overlay, CancellationToken ct)
+        {
+            try
+            {
+                overlay.AddToClassList("weapon-card__error-overlay--active");
+                await UniTask.Delay(200, cancellationToken: ct);
+                overlay.RemoveFromClassList("weapon-card__error-overlay--active");
+            }
+            catch (OperationCanceledException)
+            {
+                overlay.RemoveFromClassList("weapon-card__error-overlay--active");
+            }
+        }
+
+        /// <summary>
+        /// クールダウン表示を更新
+        /// </summary>
+        private void UpdateCooldownDisplay(int weaponId, float remaining, float total)
+        {
+            if (!_weaponCards.TryGetValue(weaponId, out var card)) return;
+
+            var overlay = card.Q<VisualElement>($"cooldown-overlay-{weaponId}");
+            var textLabel = card.Q<Label>($"cooldown-text-{weaponId}");
+
+            if (overlay == null) return;
+
+            if (remaining > 0f)
+            {
+                // クールダウン中
+                overlay.style.display = DisplayStyle.Flex;
+
+                // 残り時間テキスト
+                if (textLabel != null)
+                {
+                    textLabel.text = remaining.ToString("F1");
+                }
+            }
+            else
+            {
+                // クールダウン完了
+                overlay.style.display = DisplayStyle.None;
+            }
         }
 
         /// <summary>
@@ -564,6 +745,54 @@ namespace Game.MVP.Survivor.Scenes
 
             // レベルアップ時もフラッシュ
             TriggerFlashAnimation(weapon.WeaponId);
+        }
+
+        /// <summary>
+        /// 武器カードを削除
+        /// </summary>
+        private void RemoveWeaponCard(SurvivorWeaponBase weapon)
+        {
+            if (weapon == null) return;
+
+            var weaponId = weapon.WeaponId;
+
+            // カードをコンテナから削除
+            if (_weaponCards.TryGetValue(weaponId, out var card))
+            {
+                card.RemoveFromHierarchy();
+                _weaponCards.Remove(weaponId);
+            }
+
+            // 攻撃イベントのサブスクリプションを破棄
+            if (_weaponAttackSubscriptions.TryGetValue(weaponId, out var subscription))
+            {
+                subscription?.Dispose();
+                _weaponAttackSubscriptions.Remove(weaponId);
+            }
+
+            // クールダウンイベントのサブスクリプションを破棄
+            if (_weaponCooldownSubscriptions.TryGetValue(weaponId, out var cooldownSubscription))
+            {
+                cooldownSubscription?.Dispose();
+                _weaponCooldownSubscriptions.Remove(weaponId);
+            }
+
+            // フラッシュアニメーションのCTSを破棄
+            if (_flashCtsMap.TryGetValue(weaponId, out var cts))
+            {
+                cts?.Cancel();
+                cts?.Dispose();
+                _flashCtsMap.Remove(weaponId);
+            }
+
+            // エラーフラッシュのCTSも破棄
+            var errorKey = -weaponId;
+            if (_flashCtsMap.TryGetValue(errorKey, out var errorCts))
+            {
+                errorCts?.Cancel();
+                errorCts?.Dispose();
+                _flashCtsMap.Remove(errorKey);
+            }
         }
 
         /// <summary>

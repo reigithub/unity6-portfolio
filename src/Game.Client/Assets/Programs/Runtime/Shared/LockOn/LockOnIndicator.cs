@@ -1,3 +1,4 @@
+using Game.Shared.Combat;
 using UnityEngine;
 
 namespace Game.Shared.LockOn
@@ -12,9 +13,6 @@ namespace Game.Shared.LockOn
         [Header("Target")]
         [SerializeField] private Transform _target;
 
-        [Header("Settings")]
-        [SerializeField] private Vector3 _worldOffset = Vector3.zero;
-
         [Header("Animation")]
         [SerializeField] private float _rotationSpeed = 90f;
 
@@ -24,6 +22,7 @@ namespace Game.Shared.LockOn
         private RectTransform _rectTransform;
         private Camera _mainCamera;
         private Vector3 _baseScale;
+        private ITargetable _targetable;
 
         private void Awake()
         {
@@ -45,8 +44,8 @@ namespace Game.Shared.LockOn
                 return;
             }
 
-            // ワールド座標をスクリーン座標に変換
-            var worldPos = _target.position + _worldOffset;
+            // ワールド座標をスクリーン座標に変換（CenterPositionを使用）
+            var worldPos = _targetable?.CenterPosition ?? _target.position;
             var screenPos = _mainCamera.WorldToScreenPoint(worldPos);
 
             // カメラの後ろにいる場合は非表示
@@ -70,7 +69,7 @@ namespace Game.Shared.LockOn
         public void SetTarget(Transform target)
         {
             _target = target;
-            _worldOffset = new Vector3(0f, target.localScale.y / 2f, 0f);
+            _targetable = target.GetComponentInParent<ITargetable>();
         }
 
         public void SetCamera(Camera mainCamera)

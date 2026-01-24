@@ -42,6 +42,7 @@
         </ui:VisualElement>
         <ui:VisualElement name="footer" class="footer">
             <ui:Button text="RETRY" name="retry-button" class="action-button action-button--primary"/>
+            <ui:Button text="STAGE SELECT" name="stage-select-button" class="action-button action-button--secondary"/>
             <ui:Button text="RETURN TO TITLE" name="return-button" class="action-button action-button--secondary"/>
         </ui:VisualElement>
     </ui:VisualElement>

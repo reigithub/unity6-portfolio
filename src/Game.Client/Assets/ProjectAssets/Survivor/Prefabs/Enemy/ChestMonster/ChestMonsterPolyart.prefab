@@ -177,9 +177,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1512148224729488651}
   - component: {fileID: 1512148224724044841}
-  m_Layer: 0
+  - component: {fileID: 6906994811931841559}
+  m_Layer: 7
   m_Name: ChestMesh
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -281,6 +282,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.33805645, y: 0.30108458, z: 0}
     m_Extent: {x: 0.7146654, y: 0.8540221, z: 0.56799185}
   m_DirtyAABB: 0
+--- !u!64 &6906994811931841559
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1512148224729317675}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 05748777faed4b138a9efedfa00c10ad, type: 3}
 --- !u!1 &1512148224729317677
 GameObject:
   m_ObjectHideFlags: 0
@@ -292,7 +315,6 @@ GameObject:
   - component: {fileID: 1512148224729488653}
   - component: {fileID: 1512148224719975145}
   - component: {fileID: 265743996454212499}
-  - component: {fileID: 5525626479704961198}
   - component: {fileID: 6889146175000571289}
   m_Layer: 7
   m_Name: ChestMonsterPolyart
@@ -362,29 +384,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &5525626479704961198
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1512148224729317677}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.45
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!114 &6889146175000571289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -399,7 +398,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 265743996454212499}
   _animator: {fileID: 1512148224719975145}
-  _collider: {fileID: 5525626479704961198}
+  _collider: {fileID: 6906994811931841559}
 --- !u!1 &1512148224729317679
 GameObject:
   m_ObjectHideFlags: 0

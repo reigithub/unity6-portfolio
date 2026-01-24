@@ -165,8 +165,7 @@ namespace Game.MVP.Survivor.Scenes
             if (SceneComponent.SurvivorItemSpawner != null)
             {
                 SceneComponent.SurvivorItemSpawner.OnItemCollected
-                    .Where(item => item.ItemType == SurvivorItemType.Experience)
-                    .Subscribe(item => _stageModel.AddExperience(item.EffectValue))
+                    .Subscribe(item => _stageModel.CollectItem(item))
                     .AddTo(Disposables);
             }
 
@@ -210,6 +209,12 @@ namespace Game.MVP.Survivor.Scenes
                         var point = _inputService.UI.Point.ReadValue<Vector2>();
                         _lockOnService.SetTarget(point);
                     }
+
+                    if (_inputService.UI.ScrollWheel.WasPressedThisFrame())
+                    {
+                        var scrollWheel = _inputService.UI.ScrollWheel.ReadValue<Vector2>();
+                        GameRootController.SetCameraRadius(scrollWheel);
+                    }
                 })
                 .AddTo(Disposables);
 
@@ -219,7 +224,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private void SetupAutoSave()
         {
-            // 30秒ごとにセッションを保存
+            // 30秒ごとにセッションを保存（中断データ）
             Observable.Interval(TimeSpan.FromSeconds(30))
                 .Subscribe(_ => SaveCurrentSession())
                 .AddTo(Disposables);
@@ -230,21 +235,18 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => SaveCurrentSession())
                 .AddTo(Disposables);
 
-            // アプリ終了時に保存
-            SceneComponent.OnApplicationQuitObservable
-                .Subscribe(_ => SaveCurrentSession())
-                .AddTo(Disposables);
+            // OnApplicationQuit は削除（クリア記録はVictoryState/GameOverStateで保存済み）
         }
 
         private void SaveCurrentSession()
         {
-            if (_stageModel == null || _saveService?.CurrentSession == null) return;
+            if (_saveService.CurrentSession == null) return;
 
             // ゲームオーバーや勝利後は保存しない
             if (_stageModel.IsDead || _saveService.CurrentSession.IsCompleted) return;
 
             _saveService.UpdateSession(
-                currentWave: _waveManager?.CurrentWave.CurrentValue ?? 1,
+                currentWave: _waveManager.CurrentWave.CurrentValue,
                 elapsedTime: _stageModel.GameTime.Value,
                 currentHp: _stageModel.CurrentHp.Value,
                 experience: _stageModel.Experience.Value,
@@ -253,20 +255,35 @@ namespace Game.MVP.Survivor.Scenes
                 totalKills: _stageModel.TotalKills.Value
             );
 
-            _saveService.SaveAsync().Forget();
+            SaveCurrentSessionAsync().Forget();
+        }
+
+        private async UniTask SaveCurrentSessionAsync()
+        {
+            try
+            {
+                await _saveService.SaveAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorStageScene] Auto-save failed: {ex.Message}");
+            }
         }
 
         private void BindModelToView()
         {
-            // HP
+            // HP（View更新）
             _stageModel.CurrentHp
                 .CombineLatest(_stageModel.MaxHp, (current, max) => (current, max))
                 .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
                 .AddTo(Disposables);
 
-            // スタミナ（PlayerControllerから）
             if (SceneComponent.PlayerController != null)
             {
+                _stageModel.CurrentHp
+                    .Subscribe(hp => SceneComponent.PlayerController.SetCurrentHp(hp))
+                    .AddTo(Disposables);
+
                 SceneComponent.PlayerController.CurrentStamina
                     .Subscribe(stamina =>
                     {
@@ -337,28 +354,27 @@ namespace Game.MVP.Survivor.Scenes
         {
             ApplicationEvents.ResumeTime();
 
-            var score = _stageModel?.Score.Value ?? 0;
-            var kills = _stageModel?.TotalKills.Value ?? 0;
-            var clearTime = _stageModel?.GameTime.Value ?? 0f;
-            var isVictory = _stageModel != null && !_stageModel.IsDead;
-            var isTimeUp = _stageModel?.IsTimeUp ?? false;
-            var currentHp = _stageModel?.CurrentHp.Value ?? 0;
-            var maxHp = _stageModel?.MaxHp.Value ?? 1;
-            var hpRatio = maxHp > 0 ? (float)currentHp / maxHp : 0f;
+            Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
 
-            // 全Waveの合計目標キル数でキャップ（残弾によるオーバーキルを防ぐ）
-            var maxKills = _waveManager?.TotalTargetKills ?? kills;
-            kills = Math.Min(kills, maxKills);
+            // クリア記録保存済み or Retry/Quit時はスキップ
+            if (_isResultSaved)
+            {
+                Debug.Log("[SurvivorStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
 
-            // セッションにステージ結果を記録（リザルト画面用＆永続化）
-            // 星評価: 時間切れ=1星、全Waveクリア=2星、HP50%以上=3星
-            _saveService?.CompleteCurrentStage(score, kills, clearTime, isVictory, isTimeUp, hpRatio);
-
-            // プレイ時間を加算
-            _saveService?.AddPlayTime(clearTime);
-
-            // 非同期で保存（完了を待たない）
-            _saveService?.SaveAsync().Forget();
+                // プレイ時間だけ加算
+                _saveService.AddPlayTime(_stageModel.GameTime.Value);
+            }
+            else if (!_retryOrQuit)
+            {
+                // 中断データのみ保存（VictoryState/GameOverStateに到達していない場合）
+                Debug.Log("[SurvivorStageScene.Terminate] Saving interrupted session data");
+                SaveCurrentSession();
+                await _saveService.SaveAsync();
+            }
+            else
+            {
+                Debug.Log("[SurvivorStageScene.Terminate] Skipping save due to _retryOrQuit=true");
+            }
 
             // スカイボックスをデフォルトに戻す
             GameRootController?.ResetSkyboxMaterial();
@@ -372,6 +388,23 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await base.Terminate();
+        }
+
+        /// <summary>
+        /// HP割合を計算（0.0 ~ 1.0）
+        /// </summary>
+        private float GetHpRatio()
+        {
+            var maxHp = _stageModel.MaxHp.Value;
+            return maxHp > 0 ? (float)_stageModel.CurrentHp.Value / maxHp : 0f;
+        }
+
+        /// <summary>
+        /// キル数をキャップして取得
+        /// </summary>
+        private int GetCappedKills()
+        {
+            return Math.Min(_stageModel.TotalKills.Value, _waveManager.TotalTargetKills);
         }
     }
 }

@@ -39,9 +39,11 @@ namespace Game.MVP.Survivor.Weapon
         // Events
         private readonly Subject<SurvivorWeaponBase> _onWeaponAdded = new();
         private readonly Subject<SurvivorWeaponBase> _onWeaponUpgraded = new();
+        private readonly Subject<SurvivorWeaponBase> _onWeaponRemoved = new();
 
         public Observable<SurvivorWeaponBase> OnWeaponAdded => _onWeaponAdded;
         public Observable<SurvivorWeaponBase> OnWeaponUpgraded => _onWeaponUpgraded;
+        public Observable<SurvivorWeaponBase> OnWeaponRemoved => _onWeaponRemoved;
 
         public IReadOnlyList<SurvivorWeaponBase> Weapons => _weapons;
         public int MaxWeaponSlots => _maxWeaponSlots;
@@ -76,31 +78,16 @@ namespace Game.MVP.Survivor.Weapon
 
             // スロットが空いていない場合
             if (!HasEmptySlot)
-            {
                 return false;
-            }
 
-            // マスターデータ取得
             if (!MemoryDatabase.SurvivorWeaponMasterTable.TryFindById(weaponId, out var weaponMaster))
             {
                 Debug.LogError($"[SurvivorWeaponManager] Weapon master not found: {weaponId}");
                 return false;
             }
 
-            // 全レベルのマスターを取得
-            var levelMasters = MemoryDatabase.SurvivorWeaponLevelMasterTable
-                .FindByWeaponId(weaponId);
-            if (levelMasters.Count == 0)
-            {
-                Debug.LogError($"[SurvivorWeaponManager] Weapon level masters not found: weaponId={weaponId}");
-                return false;
-            }
-
-            // ファクトリーで武器を生成（純粋C#クラス）
-            var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster, transform);
-
-            // マスターデータから初期化（全レベル分を渡す）
-            await weapon.InitializeAsync(weaponMaster, levelMasters, _owner, _damageMultiplier, _vfxSpawner);
+            var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster);
+            await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner);
 
             _weapons.Add(weapon);
             _onWeaponAdded.OnNext(weapon);
@@ -186,27 +173,24 @@ namespace Game.MVP.Survivor.Weapon
                 });
             }
 
-            // 新規武器（空きスロットがある場合）
-            if (HasEmptySlot)
+            // 新規武器（満杯の場合も入れ替え可能なので常に含める）
+            var allWeapons = MemoryDatabase.SurvivorWeaponMasterTable.All;
+            foreach (var weaponMaster in allWeapons)
             {
-                var allWeapons = MemoryDatabase.SurvivorWeaponMasterTable.All;
-                foreach (var weaponMaster in allWeapons)
-                {
-                    // まだ持っていない武器のみ
-                    if (_weapons.Any(w => w.WeaponId == weaponMaster.Id))
-                        continue;
+                // まだ持っていない武器のみ
+                if (_weapons.Any(w => w.WeaponId == weaponMaster.Id))
+                    continue;
 
-                    options.Add(new SurvivorWeaponUpgradeOption
-                    {
-                        WeaponId = weaponMaster.Id,
-                        WeaponName = weaponMaster.Name,
-                        IsNewWeapon = true,
-                        CurrentLevel = 0,
-                        Description = weaponMaster.Description,
-                        UpgradeEffect = null,
-                        IconAssetName = weaponMaster.IconAssetName
-                    });
-                }
+                options.Add(new SurvivorWeaponUpgradeOption
+                {
+                    WeaponId = weaponMaster.Id,
+                    WeaponName = weaponMaster.Name,
+                    IsNewWeapon = true,
+                    CurrentLevel = 0,
+                    Description = weaponMaster.Description,
+                    UpgradeEffect = null,
+                    IconAssetName = weaponMaster.IconAssetName
+                });
             }
 
             // ランダムに選択
@@ -237,6 +221,37 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
+        /// 武器を入れ替え（削除して新規追加）
+        /// </summary>
+        public async UniTask<bool> ReplaceWeaponAsync(int removeWeaponId, int newWeaponId)
+        {
+            var removeWeapon = _weapons.FirstOrDefault(w => w.WeaponId == removeWeaponId);
+            if (removeWeapon == null)
+            {
+                Debug.LogError($"[SurvivorWeaponManager] Weapon to remove not found: {removeWeaponId}");
+                return false;
+            }
+
+            // 武器を削除
+            _weapons.Remove(removeWeapon);
+            _onWeaponRemoved.OnNext(removeWeapon);
+
+            Debug.Log($"[SurvivorWeaponManager] Removed weapon: {removeWeapon.Name}");
+
+            // 武器リソースを破棄
+            removeWeapon.Dispose();
+
+            // 新しい武器を追加
+            var result = await AddWeaponAsync(newWeaponId);
+            if (!result)
+            {
+                Debug.LogError($"[SurvivorWeaponManager] Failed to add new weapon: {newWeaponId}");
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// 毎フレーム全武器を更新
         /// </summary>
         private void Update()
@@ -260,6 +275,7 @@ namespace Game.MVP.Survivor.Weapon
 
             _onWeaponAdded.Dispose();
             _onWeaponUpgraded.Dispose();
+            _onWeaponRemoved.Dispose();
         }
     }
 
@@ -272,10 +288,13 @@ namespace Game.MVP.Survivor.Weapon
         public string WeaponName { get; set; }
         public bool IsNewWeapon { get; set; }
         public int CurrentLevel { get; set; }
+
         /// <summary>武器の基本説明</summary>
         public string Description { get; set; }
+
         /// <summary>レベルアップ時の追加性能テキスト</summary>
         public string UpgradeEffect { get; set; }
+
         /// <summary>アイコンアセット名</summary>
         public string IconAssetName { get; set; }
     }

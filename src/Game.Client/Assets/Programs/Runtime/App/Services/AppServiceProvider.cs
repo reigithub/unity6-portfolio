@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared;
+using Game.Shared.SaveData;
 using Game.Shared.Services;
 using UnityEngine;
 
@@ -18,7 +19,9 @@ namespace Game.App.Services
         public IMasterDataService MasterDataService { get; private set; }
         public IAddressableAssetService AddressableAssetService { get; private set; }
         public IAudioService AudioService { get; private set; }
+        public IAudioSaveService AudioSaveService { get; private set; }
 
+        private ISaveDataStorage _saveDataStorage;
         private bool _isInitialized;
         private bool _isDisposed;
 
@@ -48,6 +51,7 @@ namespace Game.App.Services
             CreateServices();
             await LoadMasterDataAsync();
             InitializeAudioService();
+            await LoadAudioSettingsAsync();
 
             _isInitialized = true;
             Debug.Log("[AppServiceProvider] Services initialized.");
@@ -55,6 +59,9 @@ namespace Game.App.Services
 
         private void CreateServices()
         {
+            // 共通のセーブデータストレージ
+            _saveDataStorage = new SaveDataStorage();
+
             switch (_mode)
             {
                 case DependencyResolverMode.ServiceLocator:
@@ -68,6 +75,9 @@ namespace Game.App.Services
                     throw new InvalidOperationException("[AppServiceProvider] Unknown mode: {_mode}");
                 // break;
             }
+
+            // オーディオ設定サービス（共通）
+            AudioSaveService = new AudioSaveService(_saveDataStorage, AudioService);
         }
 
         private void CreateMvcServices()
@@ -108,6 +118,12 @@ namespace Game.App.Services
         {
             AudioService?.Startup();
             Debug.Log("[AppServiceProvider] AudioService started.");
+        }
+
+        private async UniTask LoadAudioSettingsAsync()
+        {
+            await AudioSaveService.LoadAsync();
+            Debug.Log("[AppServiceProvider] Audio settings loaded.");
         }
 
         public void Dispose()

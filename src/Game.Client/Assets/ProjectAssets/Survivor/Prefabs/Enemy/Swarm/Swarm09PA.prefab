@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 833854997431449644}
   - component: {fileID: 871670616094634140}
   - component: {fileID: 5385569805065863378}
-  - component: {fileID: 1989302026500323280}
   - component: {fileID: 6989965091563144981}
   m_Layer: 7
   m_Name: Swarm09PA
@@ -81,29 +80,6 @@ NavMeshAgent:
   m_BaseOffset: 0.6
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!136 &1989302026500323280
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 61258325561811606}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.25
-  m_Height: 0.5
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.85, z: 0}
 --- !u!114 &6989965091563144981
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,7 +94,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 5385569805065863378}
   _animator: {fileID: 871670616094634140}
-  _collider: {fileID: 1989302026500323280}
+  _collider: {fileID: 3480157317415196920}
 --- !u!1 &429939428125753291
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,9 +456,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1530897500530277740}
   - component: {fileID: 5311182879800886956}
-  m_Layer: 0
+  - component: {fileID: 3480157317415196920}
+  m_Layer: 7
   m_Name: Swarm09
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -574,6 +551,28 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.7485279, y: -0.32041705, z: 0.015267372}
     m_Extent: {x: 0.7517066, y: 0.64350116, z: 0.6666688}
   m_DirtyAABB: 0
+--- !u!64 &3480157317415196920
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7804465017945570989}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 1045958729939877041, guid: e2b5dcaa727a2a94691bcefd666e2caa, type: 3}
 --- !u!1 &8667167350394717446
 GameObject:
   m_ObjectHideFlags: 0

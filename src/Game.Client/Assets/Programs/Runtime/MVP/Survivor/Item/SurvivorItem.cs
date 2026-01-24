@@ -1,4 +1,5 @@
 using System;
+using Game.Shared.Item;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Item
@@ -26,8 +27,9 @@ namespace Game.MVP.Survivor.Item
     /// <summary>
     /// Survivorアイテム
     /// マスタデータからItemTypeに応じた効果を持つ汎用アイテム
+    /// プレイヤーからStartAttractionを呼ばれることで吸引開始
     /// </summary>
-    public class SurvivorItem : MonoBehaviour
+    public class SurvivorItem : MonoBehaviour, ICollectible
     {
         [Header("Item Settings")]
         [SerializeField] private int _itemId;
@@ -39,23 +41,22 @@ namespace Game.MVP.Survivor.Item
         [SerializeField] private int _rarity = 1;
         [SerializeField] private float _scale = 1f;
 
-        [Header("Pickup Settings")]
-        [SerializeField] private float _attractDistance = 3f;
-
-        [SerializeField] private float _attractSpeed = 10f;
-        [SerializeField] private float _collectDistance = 0.5f;
-
         [Header("Visual")]
         [SerializeField] private float _floatAmplitude = 0.2f;
-
         [SerializeField] private float _floatSpeed = 2f;
 
-        // State
-        private Transform _target;
+        // 吸引状態
+        private Transform _attractTarget;
+        private float _attractSpeed;
+        private bool _isBeingAttracted;
+
+        // 浮遊アニメーション
         private Vector3 _initialPosition;
         private float _floatTimer;
+        private float _baseFloatAmplitude;
+
+        // 収集状態
         private bool _isCollected;
-        private bool _isBeingAttracted;
 
         // Events
         public event Action<SurvivorItem> OnCollected;
@@ -82,10 +83,7 @@ namespace Game.MVP.Survivor.Item
             _effectDuration = effectDuration;
             _rarity = rarity;
             _scale = scale > 0f ? scale : 1f;
-            _floatAmplitude *= _scale;
-
-            // レアリティに応じて吸引距離を調整（高レアリティは広い）
-            _attractDistance = 2f + rarity * 1f;
+            _baseFloatAmplitude = _floatAmplitude * _scale;
 
             ApplyTransform();
         }
@@ -99,54 +97,44 @@ namespace Game.MVP.Survivor.Item
         private void Start()
         {
             _initialPosition = transform.position;
+            _baseFloatAmplitude = _floatAmplitude * _scale;
         }
 
         private void Update()
         {
             if (_isCollected) return;
 
-            // プレイヤーを探す
-            if (_target == null)
+            if (_isBeingAttracted && _attractTarget != null)
             {
-                var player = GameObject.FindGameObjectWithTag("Player");
-                if (player != null)
-                {
-                    _target = player.transform;
-                }
+                // 吸引中：ターゲットに向かって移動
+                Vector3 direction = (_attractTarget.position - transform.position).normalized;
+                transform.position += direction * _attractSpeed * Time.deltaTime;
             }
-
-            if (_target != null)
+            else
             {
-                float distance = Vector3.Distance(transform.position, _target.position);
-
-                // 吸引範囲内または強制吸引中なら近づく
-                if (distance <= _attractDistance || _isBeingAttracted)
-                {
-                    _isBeingAttracted = true;
-                    Vector3 direction = (_target.position - transform.position).normalized;
-                    transform.position += direction * _attractSpeed * Time.deltaTime;
-
-                    // 収集判定
-                    if (distance <= _collectDistance)
-                    {
-                        Collect();
-                    }
-                }
-                else
-                {
-                    // 浮遊アニメーション
-                    _floatTimer += Time.deltaTime * _floatSpeed;
-                    float yOffset = Mathf.Sin(_floatTimer) * _floatAmplitude;
-                    transform.position = _initialPosition + Vector3.up * yOffset;
-                }
+                // 浮遊アニメーション
+                UpdateFloatAnimation();
             }
         }
 
-        /// <summary>
-        /// マグネット効果などで強制的に吸引開始
-        /// </summary>
-        public void StartAttraction()
+        private void UpdateFloatAnimation()
         {
+            _floatTimer += Time.deltaTime * _floatSpeed;
+            float yOffset = Mathf.Sin(_floatTimer) * _baseFloatAmplitude;
+            transform.position = _initialPosition + Vector3.up * yOffset;
+        }
+
+        /// <summary>
+        /// プレイヤーから呼ばれる：吸引開始
+        /// </summary>
+        /// <param name="target">吸引先のTransform（プレイヤー）</param>
+        /// <param name="speed">吸引速度（PlayerLevelMasterから）</param>
+        public void StartAttraction(Transform target, float speed)
+        {
+            if (_isBeingAttracted) return;
+
+            _attractTarget = target;
+            _attractSpeed = speed;
             _isBeingAttracted = true;
         }
 
@@ -170,7 +158,8 @@ namespace Game.MVP.Survivor.Item
         {
             _isCollected = false;
             _isBeingAttracted = false;
-            _target = null;
+            _attractTarget = null;
+            _attractSpeed = 0f;
             _floatTimer = 0f;
         }
 
