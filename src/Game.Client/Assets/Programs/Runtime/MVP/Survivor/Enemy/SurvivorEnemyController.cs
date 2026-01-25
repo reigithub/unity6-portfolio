@@ -17,9 +17,9 @@ namespace Game.MVP.Survivor.Enemy
     {
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
-
         [SerializeField] private Animator _animator;
         [SerializeField] private Collider _collider;
+        [SerializeField] private EnemyVisualEffectController _visualEffectController;
 
         // マスターデータから設定される値
         private int _enemyId;
@@ -97,6 +97,11 @@ namespace Game.MVP.Survivor.Enemy
             if (_collider == null)
             {
                 _collider = GetComponentInChildren<Collider>();
+            }
+
+            if (_visualEffectController == null)
+            {
+                TryGetComponent(out _visualEffectController);
             }
         }
 
@@ -187,6 +192,12 @@ namespace Game.MVP.Survivor.Enemy
             if (_collider != null)
             {
                 _collider.enabled = true;
+            }
+
+            // ビジュアルエフェクトをリセット
+            if (_visualEffectController != null)
+            {
+                _visualEffectController.ResetEffects();
             }
 
             gameObject.SetActive(false);

@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Events;
@@ -91,6 +92,12 @@ namespace Game.MVP.Survivor.Enemy
             if (_animator != null)
             {
                 _animator.SetTrigger(HitHash);
+            }
+
+            // ヒットフラッシュ再生
+            if (_visualEffectController != null)
+            {
+                _visualEffectController.PlayHitFlash();
             }
 
             shouldDie = _currentHp <= 0;
@@ -371,6 +378,12 @@ namespace Game.MVP.Survivor.Enemy
                 _itemDropGroupId,
                 _expDropGroupId
             ));
+
+            // ディゾルブエフェクト再生
+            if (_visualEffectController != null)
+            {
+                _visualEffectController.PlayDeathDissolveAsync(destroyCancellationToken).Forget();
+            }
         }
 
         /// <summary>
