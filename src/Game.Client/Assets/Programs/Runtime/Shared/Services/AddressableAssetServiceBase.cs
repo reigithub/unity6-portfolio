@@ -36,6 +36,22 @@ namespace Game.Shared.Services
             await Addressables.UnloadSceneAsync(sceneInstance);
         }
 
+        public void ReleaseAsset<T>(T asset) where T : UnityEngine.Object
+        {
+            if (asset != null)
+            {
+                Addressables.Release(asset);
+            }
+        }
+
+        public void ReleaseInstance(GameObject instance)
+        {
+            if (instance != null)
+            {
+                Addressables.ReleaseInstance(instance);
+            }
+        }
+
         private void ThrowExceptionIfNullAddress(string address)
         {
             if (string.IsNullOrEmpty(address))

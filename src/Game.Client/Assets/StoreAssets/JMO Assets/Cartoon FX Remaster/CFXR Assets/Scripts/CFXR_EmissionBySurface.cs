@@ -11,7 +11,10 @@ namespace CartoonFX
     {
         public bool active = true;
         public float particlesPerUnit = 10;
-        [Tooltip("This is to avoid slowdowns in the Editor if the value gets too high")] public float maxEmissionRate = 5000;
+
+        [Tooltip("This is to avoid slowdowns in the Editor if the value gets too high")]
+        public float maxEmissionRate = 5000;
+
         [HideInInspector] public float density = 0;
 
         bool attachedToEditor;
@@ -20,7 +23,8 @@ namespace CartoonFX
 #if UNITY_EDITOR
         void OnValidate()
         {
-            this.hideFlags = HideFlags.DontSaveInBuild;
+            this.hideFlags = HideFlags.None;
+            // this.hideFlags = HideFlags.DontSaveInBuild;
             CalculateAndUpdateEmission();
         }
 
@@ -80,6 +84,7 @@ namespace CartoonFX
                 scaleY = scaleY * localScale.y;
                 scaleZ = scaleZ * localScale.z;
             }
+
             scaleX = Mathf.Abs(scaleX);
             scaleY = Mathf.Abs(scaleY);
             scaleZ = Mathf.Abs(scaleZ);
@@ -100,12 +105,13 @@ namespace CartoonFX
                     {
                         volume /= 2.0f;
                     }
+
                     return volume * arcPercentage;
                 }
                 case ParticleSystemShapeType.Cone:
                 {
                     float innerDisk = shapeModule.radius * scaleX * thicknessPercentage * shapeModule.radius * scaleY * thicknessPercentage * Mathf.PI;
-                    float outerDisk = shapeModule.radius *scaleX * shapeModule.radius * scaleY * Mathf.PI;
+                    float outerDisk = shapeModule.radius * scaleX * shapeModule.radius * scaleY * Mathf.PI;
                     return outerDisk - innerDisk;
                 }
                 case ParticleSystemShapeType.ConeVolume:
@@ -149,14 +155,14 @@ namespace CartoonFX
                 case ParticleSystemShapeType.SkinnedMeshRenderer:
                 case ParticleSystemShapeType.MeshRenderer:
                 {
-                    Debug.LogWarning( string.Format("[{0}] Calculating volume for a mesh is unsupported.", nameof(CFXR_EmissionBySurface)));
+                    Debug.LogWarning(string.Format("[{0}] Calculating volume for a mesh is unsupported.", nameof(CFXR_EmissionBySurface)));
                     this.active = false;
                     return 0;
                 }
                 case ParticleSystemShapeType.Sprite:
                 case ParticleSystemShapeType.SpriteRenderer:
                 {
-                    Debug.LogWarning( string.Format("[{0}] Calculating volume for a sprite is unsupported.", nameof(CFXR_EmissionBySurface)));
+                    Debug.LogWarning(string.Format("[{0}] Calculating volume for a sprite is unsupported.", nameof(CFXR_EmissionBySurface)));
                     this.active = false;
                     return 0;
                 }
@@ -171,7 +177,10 @@ namespace CartoonFX
     [CustomEditor(typeof(CFXR_EmissionBySurface))]
     class CFXR_EmissionBySurface_Editor : Editor
     {
-        CFXR_EmissionBySurface Target { get { return target as CFXR_EmissionBySurface; } }
+        CFXR_EmissionBySurface Target
+        {
+            get { return target as CFXR_EmissionBySurface; }
+        }
 
         public override void OnInspectorGUI()
         {

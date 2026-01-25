@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -87,21 +88,28 @@ namespace Game.MVP.Survivor.Item
         {
             if (_pools.ContainsKey(itemId)) return;
 
-            var master = GetOrAddItemMaster(itemId);
-            if (master == null) return;
-
-            var prefab = await LoadPrefabAsync(master.AssetName);
-            if (prefab == null) return;
-
-            _prefabCache[itemId] = prefab;
-            _pools[itemId] = new Queue<SurvivorItem>();
-            _activeItems[itemId] = new List<SurvivorItem>();
-
-            for (int i = 0; i < _poolSizePerItem; i++)
+            try
             {
-                var item = CreateItem(itemId, prefab, master);
-                item.gameObject.SetActive(false);
-                _pools[itemId].Enqueue(item);
+                var master = GetOrAddItemMaster(itemId);
+                if (master == null) return;
+
+                var prefab = await LoadPrefabAsync(master.AssetName);
+                if (prefab == null) return;
+
+                _prefabCache[itemId] = prefab;
+                _pools[itemId] = new Queue<SurvivorItem>();
+                _activeItems[itemId] = new List<SurvivorItem>();
+
+                for (int i = 0; i < _poolSizePerItem; i++)
+                {
+                    var item = CreateItem(itemId, prefab, master);
+                    item.gameObject.SetActive(false);
+                    _pools[itemId].Enqueue(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorItemSpawner] PreloadItemAsync failed for itemId={itemId}: {ex.Message}");
             }
         }
 
@@ -122,9 +130,7 @@ namespace Game.MVP.Survivor.Item
         private SurvivorItem CreateItem(int itemId, GameObject prefab, SurvivorItemMaster master)
         {
             var instance = Instantiate(prefab, transform);
-            var item = instance.GetComponent<SurvivorItem>();
-
-            if (item == null)
+            if (!instance.TryGetComponent<SurvivorItem>(out var item))
             {
                 item = instance.AddComponent<SurvivorItem>();
             }
@@ -246,7 +252,7 @@ namespace Game.MVP.Survivor.Item
             if (dropList == null || dropList.Count == 0) return 0;
 
             // 0〜9999でロール（10000 = 100%）
-            var roll = Random.Range(0, 10000);
+            var roll = UnityEngine.Random.Range(0, 10000);
             var cumulative = 0;
 
             foreach (var drop in dropList)
@@ -344,6 +350,42 @@ namespace Game.MVP.Survivor.Item
         private void OnDestroy()
         {
             _onItemCollected.Dispose();
+
+            // プール内のアイテムを破棄
+            foreach (var pool in _pools.Values)
+            {
+                while (pool.Count > 0)
+                {
+                    var item = pool.Dequeue();
+                    if (item != null)
+                    {
+                        item.OnCollected -= OnItemCollectedHandler;
+                        Destroy(item.gameObject);
+                    }
+                }
+            }
+            _pools.Clear();
+
+            // アクティブなアイテムを破棄
+            foreach (var activeList in _activeItems.Values)
+            {
+                foreach (var item in activeList)
+                {
+                    if (item != null)
+                    {
+                        item.OnCollected -= OnItemCollectedHandler;
+                        Destroy(item.gameObject);
+                    }
+                }
+            }
+            _activeItems.Clear();
+
+            // ロードしたプレハブをリリース
+            foreach (var prefab in _prefabCache.Values)
+            {
+                _assetService.ReleaseAsset(prefab);
+            }
+            _prefabCache.Clear();
         }
     }
 }

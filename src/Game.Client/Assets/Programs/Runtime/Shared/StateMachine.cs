@@ -275,12 +275,12 @@ namespace Game.Shared
                     _currentPhase = StatePhase.Entering;
                     _currentState.Enter();
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     _nextState = _currentState;
                     _currentState = null;
                     _currentPhase = StatePhase.Idle;
-                    throw;
+                    throw new InvalidOperationException($"State.Enter() failed in {_currentState?.GetType().Name}: {e.Message}\\n{e.StackTrace}");
                 }
 
                 if (_nextState == null)
@@ -313,10 +313,10 @@ namespace Game.Shared
 
                 _currentPhase = StatePhase.Idle;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 _currentPhase = StatePhase.Idle;
-                throw;
+                throw new InvalidOperationException($"StateMachine.Update() failed in {_currentState?.GetType().Name}: {e.Message}\\n{e.StackTrace}");
             }
         }
 

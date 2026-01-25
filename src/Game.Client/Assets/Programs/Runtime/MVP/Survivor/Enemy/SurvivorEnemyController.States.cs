@@ -11,10 +11,7 @@ namespace Game.MVP.Survivor.Enemy
     public partial class SurvivorEnemyController
     {
         // Combat Settings（値はInitialize()でマスターデータから設定）
-        // _attackRange, _attackCooldown, _hitStunDuration, _rotationSpeed は本体クラスで定義
-
-        // Constants
-        private const float AttackRangeExitMultiplier = 1.2f;
+        // _attackRange, _attackCooldown, _hitStunDuration, _rotationSpeed, _attackRangeExitMultiplier は本体クラスで定義
 
         // Cached target reference
         private IDamageable _damageableTarget;
@@ -237,7 +234,7 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 float sqrDistance = (ctx.transform.position - ctx._target.position).sqrMagnitude;
-                float exitRange = ctx._attackRange * AttackRangeExitMultiplier;
+                float exitRange = ctx._attackRange * ctx._attackRangeExitMultiplier;
                 if (sqrDistance > exitRange * exitRange)
                 {
                     StateMachine.Transition(EnemyEvent.ExitAttackRange);

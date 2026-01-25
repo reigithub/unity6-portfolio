@@ -52,9 +52,16 @@ namespace Game.MVP.Survivor.Weapon
                 for (int i = 0; i < _poolSizePerEffect; i++)
                 {
                     var ps = CreateParticleSystem(assetName, prefab);
-                    ps.gameObject.SetActive(false);
-                    _pools[assetName].Enqueue(ps);
+                    if (ps != null)
+                    {
+                        ps.gameObject.SetActive(false);
+                        _pools[assetName].Enqueue(ps);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorVfxSpawner] PreloadEffectAsync failed for {assetName}: {ex.Message}");
             }
             finally
             {
@@ -78,9 +85,7 @@ namespace Game.MVP.Survivor.Weapon
         private ParticleSystem CreateParticleSystem(string assetName, GameObject prefab)
         {
             var instance = Instantiate(prefab, transform);
-            var ps = instance.GetComponent<ParticleSystem>();
-
-            if (ps == null)
+            if (!instance.TryGetComponent<ParticleSystem>(out var ps))
             {
                 Debug.LogWarning($"[SurvivorVfxSpawner] ParticleSystem not found: {assetName}");
                 Destroy(instance);
@@ -151,24 +156,35 @@ namespace Game.MVP.Survivor.Weapon
 
         private async UniTaskVoid ReturnToPoolAfterPlayAsync(string assetName, ParticleSystem ps)
         {
-            // パーティクルが生存している間待機
-            var main = ps.main;
-            var waitTime = main.duration + main.startLifetime.constantMax;
-
-            // destroyCancellationTokenでMonoBehaviour破棄時に自動キャンセル
-            await UniTask.Delay(TimeSpan.FromSeconds(waitTime), cancellationToken: destroyCancellationToken);
-
-            // シーン遷移などでオブジェクトが破棄されている可能性をチェック
-            if (ps == null) return;
-
-            // 念のため停止
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            ps.gameObject.SetActive(false);
-
-            // プールへ返却
-            if (_pools.TryGetValue(assetName, out var pool))
+            try
             {
-                pool.Enqueue(ps);
+                // パーティクルが生存している間待機
+                var main = ps.main;
+                var waitTime = main.duration + main.startLifetime.constantMax;
+
+                // destroyCancellationTokenでMonoBehaviour破棄時に自動キャンセル
+                await UniTask.Delay(TimeSpan.FromSeconds(waitTime), cancellationToken: destroyCancellationToken);
+
+                // シーン遷移などでオブジェクトが破棄されている可能性をチェック
+                if (ps == null) return;
+
+                // 念のため停止
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                ps.gameObject.SetActive(false);
+
+                // プールへ返却
+                if (_pools.TryGetValue(assetName, out var pool))
+                {
+                    pool.Enqueue(ps);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 正常なキャンセル（オブジェクト破棄時など）
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorVfxSpawner] ReturnToPoolAfterPlayAsync failed for {assetName}: {ex.Message}");
             }
         }
 
@@ -186,10 +202,18 @@ namespace Game.MVP.Survivor.Weapon
                     if (ps != null)
                     {
                         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                        ps.gameObject.SetActive(false);
+                        Destroy(ps.gameObject);
                     }
                 }
             }
+            _pools.Clear();
+
+            // ロードしたプレハブをリリース
+            foreach (var prefab in _prefabCache.Values)
+            {
+                _assetService.ReleaseAsset(prefab);
+            }
+            _prefabCache.Clear();
         }
 
         private void OnDestroy()

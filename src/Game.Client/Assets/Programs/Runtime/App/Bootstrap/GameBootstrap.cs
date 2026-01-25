@@ -105,8 +105,14 @@ namespace Game.App.Bootstrap
             {
                 selectedMode = await titleComponent.OnGameModeSelected.FirstAsync(cts.Token);
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
+                // 正常なキャンセル（シーン遷移など）
+                cts.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[GameBootstrap] Game mode selection failed: {ex.Message}");
                 cts.Cancel();
             }
             finally

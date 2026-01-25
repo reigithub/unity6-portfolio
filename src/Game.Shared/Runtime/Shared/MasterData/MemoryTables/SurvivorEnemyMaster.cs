@@ -59,5 +59,8 @@ namespace Game.Library.Shared.MasterData.MemoryTables
 
         /// <summary>スポーン時の衝突判定半径（1000倍値、ToUnit()で変換）</summary>
         public int SpawnRadius { get; set; }
+
+        /// <summary>攻撃範囲離脱倍率（100倍値、100=1.0倍、120=1.2倍）</summary>
+        public int AttackRangeExitMultiplier { get; set; }
     }
 }

@@ -33,6 +33,7 @@ namespace Game.MVP.Survivor.Enemy
         private float _hitStunDuration;
         private float _rotationSpeed;
         private float _deathAnimDuration;
+        private float _attackRangeExitMultiplier;
         private int _itemDropGroupId;
         private int _expDropGroupId;
 
@@ -85,7 +86,7 @@ namespace Game.MVP.Survivor.Enemy
         {
             if (_navAgent == null)
             {
-                _navAgent = GetComponent<NavMeshAgent>();
+                TryGetComponent(out _navAgent);
             }
 
             if (_animator == null)
@@ -130,6 +131,7 @@ namespace Game.MVP.Survivor.Enemy
             _hitStunDuration = master.HitStunDuration.ToSeconds();
             _rotationSpeed = master.RotationSpeed;
             _deathAnimDuration = master.DeathAnimDuration.ToSeconds();
+            _attackRangeExitMultiplier = master.AttackRangeExitMultiplier / 100f;
 
             _currentHp = _maxHp;
             _isDead = false;

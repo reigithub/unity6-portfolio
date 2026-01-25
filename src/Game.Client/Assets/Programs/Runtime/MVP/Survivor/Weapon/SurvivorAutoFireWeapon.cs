@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
@@ -7,19 +8,25 @@ using UnityEngine;
 namespace Game.MVP.Survivor.Weapon
 {
     /// <summary>
-    /// 自動発射武器（純粋C#）
+    /// 自動発射武器
     /// 最も近い敵に向かって自動的に弾を発射
-    /// マスターデータ駆動、レベル毎のアセット対応
     /// </summary>
     public class SurvivorAutoFireWeapon : SurvivorWeaponBase
     {
+        private const float ProjectileSpawnHeight = 1f;         // 弾の発射高さオフセット
+        private const float PoolDisposeTimeout = 10f;           // プール破棄タイムアウト（秒）
+        private const int PoolDisposeCheckInterval = 100;       // プール破棄チェック間隔（ミリ秒）
+        private const int NearbyEnemySearchBufferSize = 50;     // 近くの敵検索バッファサイズ
+
         // アセット名ごとのプールを管理（レベルアップ時の再利用のため）
         private readonly Dictionary<string, WeaponObjectPool<SurvivorProjectile>> _poolsByAssetName = new();
+        // ロードしたプレハブを追跡（Dispose時にリリース用）
+        private readonly Dictionary<string, GameObject> _loadedPrefabs = new();
         private WeaponObjectPool<SurvivorProjectile> _currentPool;
         private bool _isInitialized;
 
         // Cache
-        private readonly Collider[] _hitBuffer = new Collider[50];
+        private readonly Collider[] _hitBuffer = new Collider[NearbyEnemySearchBufferSize];
 
         public SurvivorAutoFireWeapon(SurvivorWeaponMaster weaponMaster) : base(weaponMaster)
         {
@@ -53,17 +60,24 @@ namespace Game.MVP.Survivor.Weapon
 
         private async UniTask SwitchPoolAsync(string oldAssetName, string newAssetName)
         {
-            // 新しいプールを作成/取得
-            _currentPool = await GetOrCreatePoolAsync(newAssetName);
-
-            // 古いプールを破棄（アクティブなプロジェクタイルがなくなってから）
-            if (!string.IsNullOrEmpty(oldAssetName) && _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
+            try
             {
-                // 遅延破棄を開始（アクティブなプロジェクタイルが全て戻るまで待つ）
-                DisposeOldPoolAsync(oldAssetName, oldPool).Forget();
-            }
+                // 新しいプールを作成/取得
+                _currentPool = await GetOrCreatePoolAsync(newAssetName);
 
-            Debug.Log($"[SurvivorAutoFireWeapon] Switched to pool: {newAssetName}");
+                // 古いプールを破棄（アクティブなプロジェクタイルがなくなってから）
+                if (!string.IsNullOrEmpty(oldAssetName) && _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
+                {
+                    // 遅延破棄を開始（アクティブなプロジェクタイルが全て戻るまで待つ）
+                    DisposeOldPoolAsync(oldAssetName, oldPool).Forget();
+                }
+
+                Debug.Log($"[SurvivorAutoFireWeapon] Switched to pool: {newAssetName}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorAutoFireWeapon] SwitchPoolAsync failed: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         /// <summary>
@@ -71,21 +85,35 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private async UniTask DisposeOldPoolAsync(string assetName, WeaponObjectPool<SurvivorProjectile> pool)
         {
-            // アクティブなプロジェクタイルが全て戻るまで待機（最大10秒）
-            float timeout = 10f;
-            float elapsed = 0f;
-
-            while (pool.ActiveCount > 0 && elapsed < timeout)
+            try
             {
-                await UniTask.Delay(100);
-                elapsed += 0.1f;
+                // アクティブなプロジェクタイルが全て戻るまで待機
+                float elapsed = 0f;
+                float checkIntervalSec = PoolDisposeCheckInterval / 1000f;
+
+                while (pool.ActiveCount > 0 && elapsed < PoolDisposeTimeout)
+                {
+                    await UniTask.Delay(PoolDisposeCheckInterval);
+                    elapsed += checkIntervalSec;
+                }
+
+                // プールを破棄
+                pool.Clear();
+                _poolsByAssetName.Remove(assetName);
+
+                // ロードしたプレハブをリリース
+                if (_loadedPrefabs.TryGetValue(assetName, out var prefab))
+                {
+                    AssetService.ReleaseAsset(prefab);
+                    _loadedPrefabs.Remove(assetName);
+                }
+
+                Debug.Log($"[SurvivorAutoFireWeapon] Disposed old pool: {assetName}");
             }
-
-            // プールを破棄
-            pool.Clear();
-            _poolsByAssetName.Remove(assetName);
-
-            Debug.Log($"[SurvivorAutoFireWeapon] Disposed old pool: {assetName}");
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SurvivorAutoFireWeapon] DisposeOldPoolAsync failed for {assetName}: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         /// <summary>
@@ -103,6 +131,8 @@ namespace Game.MVP.Survivor.Weapon
 
             // 新しいプールを作成（Limitをプールサイズとして使用）
             var prefab = await AssetService.LoadAssetAsync<GameObject>(assetName);
+            _loadedPrefabs[assetName] = prefab; // リリース用に追跡
+
             var pool = new WeaponObjectPool<SurvivorProjectile>(
                 prefab,
                 _limit,
@@ -131,7 +161,7 @@ namespace Game.MVP.Survivor.Weapon
             Vector3 targetCenter = combatTarget?.CenterPosition ?? target.position;
 
             // 発射位置と発射方向（ターゲットの中心に向かって）
-            Vector3 spawnPosition = _owner.position + Vector3.up * 1f;
+            Vector3 spawnPosition = _owner.position + Vector3.up * ProjectileSpawnHeight;
             Vector3 baseDirection = (targetCenter - spawnPosition).normalized;
 
             // 全弾を発射
@@ -210,7 +240,7 @@ namespace Game.MVP.Survivor.Weapon
             var projectile = _currentPool.Get();
             if (projectile == null) return;
 
-            Vector3 spawnPosition = _owner.position + Vector3.up * 1f;
+            Vector3 spawnPosition = _owner.position + Vector3.up * ProjectileSpawnHeight;
             projectile.transform.position = spawnPosition;
             projectile.gameObject.SetActive(true);
 
@@ -284,8 +314,14 @@ namespace Game.MVP.Survivor.Weapon
             {
                 pool.Clear();
             }
-
             _poolsByAssetName.Clear();
+
+            // ロードしたプレハブをリリース
+            foreach (var prefab in _loadedPrefabs.Values)
+            {
+                AssetService.ReleaseAsset(prefab);
+            }
+            _loadedPrefabs.Clear();
 
             base.Dispose();
         }

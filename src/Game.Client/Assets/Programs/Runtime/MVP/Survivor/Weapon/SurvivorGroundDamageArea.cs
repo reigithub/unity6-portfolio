@@ -15,7 +15,6 @@ namespace Game.MVP.Survivor.Weapon
 
         // 状態
         private int _damage;
-        private float _duration;
         private float _procInterval;
         private float _knockback;
         private float _remainingTime;
@@ -36,7 +35,6 @@ namespace Game.MVP.Survivor.Weapon
                              float knockback, float hitboxRadius)
         {
             _damage = damage;
-            _duration = duration;
             _procInterval = procInterval;
             _knockback = knockback;
             _remainingTime = duration;

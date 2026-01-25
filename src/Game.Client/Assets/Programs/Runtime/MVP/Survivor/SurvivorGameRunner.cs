@@ -93,8 +93,7 @@ namespace Game.MVP.Survivor
             _container.InjectGameObject(_gameRootInstance);
 
             // コントローラーを取得して初期化
-            _gameRootController = _gameRootInstance.GetComponent<SurvivorGameRootController>();
-            if (_gameRootController != null)
+            if (_gameRootInstance.TryGetComponent(out _gameRootController))
             {
                 _gameRootController.Initialize();
 

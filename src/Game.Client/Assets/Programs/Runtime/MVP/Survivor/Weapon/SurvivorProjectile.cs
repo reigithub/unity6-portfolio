@@ -16,8 +16,13 @@ namespace Game.MVP.Survivor.Weapon
     [RequireComponent(typeof(Rigidbody))]
     public class SurvivorProjectile : MonoBehaviour, IPoolableWeaponItem
     {
+        // 追尾補間係数（Homing値と掛け合わせて最終的な追尾強度を決定）
+        // 値を大きくすると追尾が鋭くなる
+        private const float HomingInterpolationFactor = 5f;
+
         [SerializeField] private TrailRenderer _trailRenderer;
-        [SerializeField] private string _enemyTag = "Enemy";
+
+        [Tooltip("弾の当たり判定半径（武器ごとにプレハブで調整可能）")]
         [SerializeField] private float _colliderRadius = 0.3f;
 
         // State
@@ -46,16 +51,14 @@ namespace Game.MVP.Survivor.Weapon
         private void Awake()
         {
             // コライダーをTriggerとして設定
-            var collider = GetComponent<SphereCollider>();
-            if (collider != null)
+            if (TryGetComponent<SphereCollider>(out var sc))
             {
-                collider.isTrigger = true;
-                collider.radius = _colliderRadius;
+                sc.isTrigger = true;
+                sc.radius = _colliderRadius;
             }
 
             // Rigidbodyを物理演算から除外（トリガー検出のみに使用）
-            var rb = GetComponent<Rigidbody>();
-            if (rb != null)
+            if (TryGetComponent<Rigidbody>(out var rb))
             {
                 rb.isKinematic = true;
                 rb.useGravity = false;
@@ -113,7 +116,7 @@ namespace Game.MVP.Survivor.Weapon
             {
                 Vector3 targetDirection = (_homingTarget.position - transform.position).normalized;
                 float homingFactor = _homing.ToRate();
-                _direction = Vector3.Slerp(_direction, targetDirection, homingFactor * Time.deltaTime * 5f).normalized;
+                _direction = Vector3.Slerp(_direction, targetDirection, homingFactor * Time.deltaTime * HomingInterpolationFactor).normalized;
 
                 if (_direction.magnitude > 0.1f)
                 {

@@ -324,8 +324,7 @@ namespace Game.MVP.Survivor.Player
 
             for (int i = 0; i < hitCount; i++)
             {
-                var collectible = _itemHitBuffer[i].GetComponent<ICollectible>();
-                if (collectible != null && !collectible.IsCollected)
+                if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
                 {
                     // アイテムに吸引開始を通知（ターゲットと速度を渡す）
                     collectible.StartAttraction(transform, _itemAttractSpeed);
@@ -444,8 +443,7 @@ namespace Game.MVP.Survivor.Player
             // アイテムとの衝突
             if (other.CompareLayer(LayerConstants.Item))
             {
-                var collectible = other.GetComponent<ICollectible>();
-                if (collectible != null)
+                if (other.TryGetComponent<ICollectible>(out var collectible))
                 {
                     collectible.Collect();
                 }

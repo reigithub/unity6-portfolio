@@ -143,8 +143,14 @@ namespace Game.Core
                 _fadeImage.DOFade(endValue, duration).SetUpdate(true)
                     .onComplete += () => { tcs.TrySetResult(true); };
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
+                // 正常なキャンセル
+                tcs.TrySetCanceled();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[GameResidentsManager] Fade animation failed: {ex.Message}");
                 tcs.TrySetCanceled();
             }
         }

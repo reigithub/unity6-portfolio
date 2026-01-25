@@ -207,7 +207,7 @@ namespace Game.MVP.Survivor.Services
 
         public IReadOnlyList<WaveEnemySpawnInfo> GetEnemySpawnList()
         {
-            return _currentEnemySpawnList ?? new List<WaveEnemySpawnInfo>();
+            return (IReadOnlyList<WaveEnemySpawnInfo>)_currentEnemySpawnList ?? Array.Empty<WaveEnemySpawnInfo>();
         }
 
         public void Dispose()

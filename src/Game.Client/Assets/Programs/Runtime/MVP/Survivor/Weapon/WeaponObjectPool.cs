@@ -54,9 +54,7 @@ namespace Game.MVP.Survivor.Weapon
         private T CreateItem()
         {
             var instance = UnityEngine.Object.Instantiate(_prefab, _parent);
-            var item = instance.GetComponent<T>();
-
-            if (item == null)
+            if (!instance.TryGetComponent<T>(out var item))
             {
                 item = instance.AddComponent<T>();
             }

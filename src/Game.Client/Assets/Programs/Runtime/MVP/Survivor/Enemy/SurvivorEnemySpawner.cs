@@ -20,12 +20,13 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class SurvivorEnemySpawner : MonoBehaviour
     {
-        // Constants
-        private const float SpawnRetryDelay = 0.5f;
-        private const float DefaultMinSpawnDistance = 12f;
-        private const float DefaultMaxSpawnDistance = 18f;
-        private const int MaxSpawnAttempts = 10;
-        private const float SpawnHeightOffset = 0.5f;
+        // スポーン設定定数
+        // フォールバック値: SurvivorStageWaveEnemyMaster.MinSpawnDistance/MaxSpawnDistanceが0の場合に使用
+        private const float SpawnRetryDelay = 0.5f;          // スポーン失敗時の再試行間隔（秒）
+        private const float DefaultMinSpawnDistance = 12f;   // フォールバック: 最小スポーン距離
+        private const float DefaultMaxSpawnDistance = 18f;   // フォールバック: 最大スポーン距離
+        private const int MaxSpawnAttempts = 10;             // コライダーチェックの最大試行回数
+        private const float SpawnHeightOffset = 0.5f;        // コライダーチェック時の高さオフセット
 
         [Header("Pool Settings")]
         [SerializeField] private int _poolSizePerEnemy = 20;
@@ -125,7 +126,12 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             var instance = Instantiate(prefab, transform);
-            var controller = instance.GetComponent<SurvivorEnemyController>();
+            if (!instance.TryGetComponent<SurvivorEnemyController>(out var controller))
+            {
+                Debug.LogError($"[SurvivorEnemySpawner] SurvivorEnemyController not found on prefab: {enemyId}");
+                Destroy(instance);
+                return null;
+            }
 
             controller.OnDeath
                 .Subscribe(OnEnemyDeath)
@@ -400,6 +406,37 @@ namespace Game.MVP.Survivor.Enemy
         private void OnDestroy()
         {
             _onEnemyKilled.Dispose();
+
+            // プール内の敵を破棄
+            foreach (var pool in _pools.Values)
+            {
+                while (pool.Count > 0)
+                {
+                    var enemy = pool.Dequeue();
+                    if (enemy != null)
+                    {
+                        Destroy(enemy.gameObject);
+                    }
+                }
+            }
+            _pools.Clear();
+
+            // アクティブな敵を破棄
+            foreach (var enemy in _activeEnemies)
+            {
+                if (enemy != null)
+                {
+                    Destroy(enemy.gameObject);
+                }
+            }
+            _activeEnemies.Clear();
+
+            // ロードしたプレハブをリリース
+            foreach (var prefab in _enemyPrefabs.Values)
+            {
+                _assetService.ReleaseAsset(prefab);
+            }
+            _enemyPrefabs.Clear();
         }
     }
 }
