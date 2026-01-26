@@ -73,6 +73,7 @@ namespace Game.App.Bootstrap
             _gameBootstrap.GetAsyncApplicationQuitTrigger()
                 .SubscribeAwait(async (_, _) => { await ShutdownAsync(); })
                 .AddTo(_gameBootstrap);
+            UnityEngine.Object.DontDestroyOnLoad(_gameBootstrap);
 
             // タイトル画面表示
             await ShowTitleAsync();

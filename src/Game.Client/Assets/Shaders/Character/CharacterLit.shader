@@ -20,7 +20,7 @@ Shader "Game/Character/CharacterLit"
         _OcclusionStrength("Strength", Range(0, 1)) = 1.0
 
         [Header(Emission)]
-        [HDR] _EmissionColor("Color", Color) = (0, 0, 0, 0)
+        [HDR] _EmissionColor("Color", Color) = (255, 255, 255, 255)
         _EmissionMap("Emission", 2D) = "white" {}
 
         [Header(Hit Flash)]
@@ -67,10 +67,25 @@ Shader "Game/Character/CharacterLit"
             HLSLPROGRAM
             #pragma target 3.5
 
+            // URP Lighting keywords (minimal set for character rendering)
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+
+            // Optional features (shader_feature = stripped if unused)
+            #pragma shader_feature_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma shader_feature_fragment _ _LIGHT_COOKIES
+
+            // GI keywords
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING SHADOWS_SHADOWMASK
+
+            // Reflection probes (shader_feature to reduce variants when not used)
+            #pragma shader_feature_fragment _ _REFLECTION_PROBE_BLENDING
+            #pragma shader_feature_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
+
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
@@ -78,6 +93,9 @@ Shader "Game/Character/CharacterLit"
             #pragma shader_feature_local _METALLICSPECGLOSSMAP
             #pragma shader_feature_local _OCCLUSIONMAP
             #pragma shader_feature_local _EMISSION
+            #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+            #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
 
             #pragma vertex CharacterLitVert
             #pragma fragment CharacterLitFrag
@@ -127,6 +145,7 @@ Shader "Game/Character/CharacterLit"
                 float3 normalOS : NORMAL;
                 float4 tangentOS : TANGENT;
                 float2 texcoord : TEXCOORD0;
+                float2 staticLightmapUV : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -137,8 +156,16 @@ Shader "Game/Character/CharacterLit"
                 float3 positionWS : TEXCOORD1;
                 float3 normalWS : TEXCOORD2;
                 float4 tangentWS : TEXCOORD3;
-                half fogFactor : TEXCOORD4;
                 float3 positionOS : TEXCOORD5;
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                float4 shadowCoord : TEXCOORD6;
+                #endif
+                DECLARE_LIGHTMAP_OR_SH(staticLightmapUV, vertexSH, 7);
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                half4 fogFactorAndVertexLight : TEXCOORD8;
+                #else
+                half fogFactor : TEXCOORD8;
+                #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -159,8 +186,24 @@ Shader "Game/Character/CharacterLit"
                 output.uv = TRANSFORM_TEX(input.texcoord, _BaseMap);
                 output.normalWS = normalInput.normalWS;
                 output.tangentWS = float4(normalInput.tangentWS, input.tangentOS.w);
-                output.fogFactor = ComputeFogFactor(vertexInput.positionCS.z);
                 output.positionOS = input.positionOS.xyz;
+
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                output.shadowCoord = GetShadowCoord(vertexInput);
+                #endif
+
+                // Lightmap UV transform
+                OUTPUT_LIGHTMAP_UV(input.staticLightmapUV, unity_LightmapST, output.staticLightmapUV);
+                OUTPUT_SH(normalInput.normalWS, output.vertexSH);
+
+                // Fog and vertex lighting
+                half fogFactor = ComputeFogFactor(vertexInput.positionCS.z);
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS);
+                output.fogFactorAndVertexLight = half4(fogFactor, vertexLight);
+                #else
+                output.fogFactor = fogFactor;
+                #endif
 
                 return output;
             }
@@ -196,6 +239,7 @@ Shader "Game/Character/CharacterLit"
                 // Sample textures
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
 
+                // Metallic/Smoothness
                 #ifdef _METALLICSPECGLOSSMAP
                 half4 metallicGloss = SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_MetallicGlossMap, input.uv);
                 half metallic = metallicGloss.r * _Metallic;
@@ -226,46 +270,66 @@ Shader "Game/Character/CharacterLit"
                 #ifdef _EMISSION
                 half3 emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, input.uv).rgb * _EmissionColor.rgb;
                 #else
-                half3 emission = 0;
+                half3 emission = half3(0, 0, 0);
                 #endif
 
-                // Main light
-                Light mainLight = GetMainLight();
-                half NdotL = saturate(dot(normalWS, mainLight.direction));
+                // Shadow coord - use vertex interpolated or calculate in fragment
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                float4 shadowCoord = input.shadowCoord;
+                #elif defined(_MAIN_LIGHT_SHADOWS) || defined(_MAIN_LIGHT_SHADOWS_CASCADE) || defined(_MAIN_LIGHT_SHADOWS_SCREEN)
+                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
+                #else
+                float4 shadowCoord = float4(0, 0, 0, 0);
+                #endif
 
-                // Half-Lambert for softer shading
-                half halfLambert = NdotL * 0.5 + 0.5;
+                // Fog factor
+                #ifdef _ADDITIONAL_LIGHTS_VERTEX
+                half fogFactor = input.fogFactorAndVertexLight.x;
+                half3 vertexLighting = input.fogFactorAndVertexLight.yzw;
+                #else
+                half fogFactor = input.fogFactor;
+                half3 vertexLighting = half3(0, 0, 0);
+                #endif
 
-                // 環境光（最低限の明るさを保証）
-                half3 ambient = SampleSH(normalWS);
-                ambient = max(ambient, 0.2); // 最低20%の明るさ
+                // Setup InputData for PBR lighting
+                InputData inputData = (InputData)0;
+                inputData.positionWS = input.positionWS;
+                inputData.positionCS = input.positionCS;
+                inputData.normalWS = normalWS;
+                inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+                inputData.shadowCoord = shadowCoord;
+                inputData.fogCoord = fogFactor;
+                inputData.vertexLighting = vertexLighting;
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                inputData.shadowMask = SAMPLE_SHADOWMASK(input.staticLightmapUV);
 
-                // Diffuse lighting
-                half3 diffuse = mainLight.color * halfLambert;
+                // Calculate bakedGI (ambient/indirect lighting)
+                half3 bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, normalWS);
+                inputData.bakedGI = bakedGI;
 
-                // Combine lighting
-                half3 lighting = ambient + diffuse * 0.7;
+                // Setup SurfaceData for PBR lighting
+                SurfaceData surfaceData = (SurfaceData)0;
+                surfaceData.albedo = albedo.rgb;
+                surfaceData.metallic = metallic;
+                surfaceData.specular = half3(0, 0, 0);
+                surfaceData.smoothness = smoothness;
+                surfaceData.normalTS = half3(0, 0, 1);
+                surfaceData.emission = emission;
+                surfaceData.occlusion = occlusion;
+                surfaceData.alpha = albedo.a;
+                surfaceData.clearCoatMask = 0;
+                surfaceData.clearCoatSmoothness = 0;
 
-                // Apply lighting to albedo
-                half3 litColor = albedo.rgb * lighting * occlusion;
+                // Calculate PBR lighting (same as URP/Lit)
+                half4 litColor = UniversalFragmentPBR(inputData, surfaceData);
 
-                // Simple specular (optional)
-                half3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                half3 halfDir = normalize(mainLight.direction + viewDir);
-                half NdotH = saturate(dot(normalWS, halfDir));
-                half specPower = exp2(10 * smoothness + 1);
-                half3 specular = mainLight.color * pow(NdotH, specPower) * smoothness * (1 - metallic) * 0.3;
+                // Hit flash effect - applied after PBR lighting
+                litColor.rgb = lerp(litColor.rgb, _FlashColor.rgb, _FlashAmount);
 
-                // Final color
-                half3 finalColor = litColor + specular + emission;
+                // Apply fog (UniversalFragmentPBR doesn't apply fog automatically)
+                litColor.rgb = MixFog(litColor.rgb, fogFactor);
 
-                // Hit flash effect
-                finalColor = lerp(finalColor, _FlashColor.rgb, _FlashAmount);
-
-                // Fog
-                finalColor = MixFog(finalColor, input.fogFactor);
-
-                return half4(finalColor, albedo.a);
+                return litColor;
             }
             ENDHLSL
         }
@@ -492,5 +556,8 @@ Shader "Game/Character/CharacterLit"
         }
     }
 
-    Fallback "Universal Render Pipeline/Lit"
+    // Fallback Off - we provide all required passes (ForwardLit, ShadowCaster, DepthOnly)
+    // Using URP/Lit as fallback would inherit all its passes and cause variant explosion
+    Fallback Off
+    CustomEditor "Game.Editor.Shaders.CharacterLitShaderGUI"
 }

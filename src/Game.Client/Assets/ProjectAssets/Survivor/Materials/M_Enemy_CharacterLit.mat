@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: a1fed925f1952484599c31a3a94c7cab, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _EMISSION
   m_InvalidKeywords:
   - _RECEIVESHADOWS_ON
   m_LightmapFlags: 4
@@ -50,6 +51,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AmbientBoost: 2
     - _BumpScale: 1
     - _Cull: 2
     - _DirectionalInfluence: 0.5

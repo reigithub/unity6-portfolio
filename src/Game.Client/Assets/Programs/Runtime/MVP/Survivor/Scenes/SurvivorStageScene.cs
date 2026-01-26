@@ -12,6 +12,7 @@ using R3;
 using R3.Triggers;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
 using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
@@ -94,6 +95,8 @@ namespace Game.MVP.Survivor.Scenes
             if (!string.IsNullOrEmpty(stageAssetName))
             {
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
+                SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
+                // LightProbes.TetrahedralizeAsync();
                 Debug.Log($"[SurvivorStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用
