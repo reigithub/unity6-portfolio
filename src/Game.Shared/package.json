@@ -1,8 +1,8 @@
 {
-  "name": "com.rei.unity6liblary",
+  "name": "com.rei.game.shared",
   "version": "1.0.0",
-  "displayName": "Unity6Library",
-  "description": "Unity6Library",
+  "displayName": "Game.Shared",
+  "description": "Game.Shared",
   "unity": "6000.3",
   "dependencies": {}
 }

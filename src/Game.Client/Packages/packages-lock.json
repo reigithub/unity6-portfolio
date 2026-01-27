@@ -60,7 +60,7 @@
       "dependencies": {},
       "hash": "34432703a177c97631a4eb1d908f086037c67969"
     },
-    "com.rei.unity6liblary": {
+    "com.rei.game.shared": {
       "version": "file:../../Game.Shared",
       "depth": 0,
       "source": "local",

@@ -1,77 +1,143 @@
+# Unity6Portfolio
+
+A game development portfolio project using Unity 6 (Monorepo Structure)
+
+## Project Structure
+
+```
+Unity6Portfolio/
+├── src/
+│   ├── Game.Client/        # Unity Client (Unity 6)
+│   ├── Game.Server/        # Game Server (ASP.NET Core 8)
+│   └── Game.Shared/        # Shared Library (.NET + Unity Package)
+└── test/
+    └── Game.Server.Tests/  # Server Tests
+```
+
+---
+
 ## TL;DR
 
 * This project is designed as a starter kit for individual or small-scale Unity game development
 * Built with emphasis on code reusability, ease of implementation, readability, and maintainability
-* Both in-game and out-game systems are driven by master data (data-driven design) (some parts still under adjustment)
+* Both in-game and out-game systems are driven by master data (data-driven design)
 * **Modular design with assembly separation** allows MVC/MVP pattern game modes to coexist
-* **Master data definitions separated into a local package** (com.rei.unity6library) for improved reusability
+* **Master data definitions separated into Game.Shared** for reusability between client and server
 * Different architecture game modes can be selected and launched from the title screen at startup
----
-
-[日本語版はこちら](https://github.com/reigithub/unity6-sample/blob/master/README.md)
 
 ---
+
+[日本語版はこちら](README.md)
+
+---
+
 ## Setup
 
 ### Requirements
+
 | Item | Version |
 |------|---------|
 | Unity | 6000.3.2f1 or later |
+| .NET SDK | 8.0 or later |
 | OS | Windows 10/11 |
 
 ### Setup Steps
+
+#### Client (Unity)
+
 1. Clone the repository
    ```bash
-   git clone https://github.com/reigithub/unity6-sample.git
+   git clone https://github.com/your-username/Unity6Portfolio.git
    ```
-2. Open the project in Unity Hub
+2. Open the `src/Game.Client/` folder in Unity Hub
 3. Package restoration may take a few minutes on first launch
 4. Open `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` and press Play
+
+#### Server
+
+```bash
+cd src/Game.Server
+dotnet restore
+dotnet run
+```
+
+#### Running Tests
+
+```bash
+# Server tests
+dotnet test
+
+# Unity tests (in Unity Editor)
+# Window > General > Test Runner
+```
 
 ### Notes
 * Some packages are installed via NuGetForUnity, so if errors occur on the first build, try building again
 * If Addressables build is required, run build from `Window > Asset Management > Addressables > Groups`
 
 ---
+
 ## Screenshots
 
 ### MVC: ScoreTimeAttack (Time Attack Game)
 | Title | Gameplay | Result |
 |-------|----------|--------|
-| ![Title](Documentation/Screenshots/mvc_title.png) | ![Gameplay](Documentation/Screenshots/mvc_gameplay.png) | ![Result](Documentation/Screenshots/mvc_result.png) |
+| ![Title](src/Game.Client/Documentation/Screenshots/mvc_title.png) | ![Gameplay](src/Game.Client/Documentation/Screenshots/mvc_gameplay.png) | ![Result](src/Game.Client/Documentation/Screenshots/mvc_result.png) |
 
 ### MVP: Survivor (Survivor Game)
 | Title | Gameplay | Level Up |
 |-------|----------|----------|
-| ![Title](Documentation/Screenshots/mvp_title.png) | ![Gameplay](Documentation/Screenshots/mvp_gameplay.png) | ![Level Up](Documentation/Screenshots/mvp_levelup.png) |
+| ![Title](src/Game.Client/Documentation/Screenshots/mvp_title.png) | ![Gameplay](src/Game.Client/Documentation/Screenshots/mvp_gameplay.png) | ![Level Up](src/Game.Client/Documentation/Screenshots/mvp_levelup.png) |
 
 ### Shaders & Effects
 | Toon Shader | Dissolve Effect |
 |-------------|-----------------|
-| ![Toon](Documentation/Screenshots/shader_toon.png) | ![Dissolve](Documentation/Screenshots/shader_dissolve.png) |
+| ![Toon](src/Game.Client/Documentation/Screenshots/shader_toon.png) | ![Dissolve](src/Game.Client/Documentation/Screenshots/shader_dissolve.png) |
 
 ### Editor Extensions
-![Editor Window](Documentation/Screenshots/editor_window.png)
+![Editor Window](src/Game.Client/Documentation/Screenshots/editor_window.png)
 
 ---
+
 ## Gameplay Videos
 
 ### MVC: ScoreTimeAttack
-![MVC Gameplay](Documentation/GIFs/mvc_gameplay.gif)
+![MVC Gameplay](src/Game.Client/Documentation/GIFs/mvc_gameplay.gif)
 
 ### MVP: Survivor
-![MVP Gameplay](Documentation/GIFs/mvp_gameplay.gif)
+![MVP Gameplay](src/Game.Client/Documentation/GIFs/mvp_gameplay.gif)
 
 ### Scene Transitions & Effects
 | Scene Transition | Effects Showcase |
 |-----------------|------------------|
-| ![Scene Transition](Documentation/GIFs/scene_transition.gif) | ![Effects](Documentation/GIFs/effects_showcase.gif) |
+| ![Scene Transition](src/Game.Client/Documentation/GIFs/scene_transition.gif) | ![Effects](src/Game.Client/Documentation/GIFs/effects_showcase.gif) |
 
 ### Editor Tools
-![Editor Tool](Documentation/GIFs/editor_tool.gif)
+![Editor Tool](src/Game.Client/Documentation/GIFs/editor_tool.gif)
 
 ---
+
 ## Architecture Overview
+
+### Monorepo Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Unity6Portfolio                          │
+│                       (Monorepo)                             │
+└─────────────────────────────────────────────────────────────┘
+        ↓                    ↓                    ↓
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   Game.Client   │  │   Game.Server   │  │   Game.Shared   │
+│  (Unity 6)      │  │ (ASP.NET Core)  │  │ (.NET + Unity)  │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+        ↘                    ↓                    ↙
+                    ┌─────────────────┐
+                    │  Shared DTO/IF  │
+                    │  (Game.Shared)  │
+                    └─────────────────┘
+```
+
+### Client Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Game.App                              │
@@ -93,20 +159,16 @@
                               ↓
               ┌─────────────────────────────┐
               │         Game.Shared         │
-              │    (Common Utilities)       │
-              └─────────────────────────────┘
-                              ↓
-              ┌─────────────────────────────┐
-              │  com.rei.unity6library      │
-              │  (Local Package)            │
-              │  Master Data Defs / Enums   │
+              │  (Common Utilities / DTO)   │
               └─────────────────────────────┘
 ```
+
 ---
+
 ## Features
 * **Game Mode Selection System**: Select different architecture game modes from the title screen at startup
 * **Assembly Separation Design**: Manage MVC/MVP patterns in independent assemblies to prevent circular references
-* **Local Package Separation**: Master data definitions separated into a local package (com.rei.unity6library) for improved reusability
+* **Client-Server Sharing**: Share master data definitions between client and server via Game.Shared
 * **Prefab Scene/Dialog Transition**: Asynchronous scene transitions using async/await
 * **State Machine Implementation**: Generic context support with transition table-based state management
 * **Master Data Management**: TSV to binary conversion, data-driven development with editor extensions
@@ -118,7 +180,9 @@
 * **Item System**: Drop lottery, attraction feature, object pooling
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
+
 ---
+
 ## Feature Details
 <details><summary>Game Mode Selection System</summary>
 
@@ -133,21 +197,21 @@
 
 | Assembly | Role | Dependencies |
 |----------|------|--------------|
-| Game.Shared | Common utilities, interfaces | Unity6Library |
+| Game.Shared | Common utilities, interfaces, DTOs | None (bottom layer) |
 | Game.App | Entry point, game mode selection | Shared, MVC.*, MVP.* |
-| Game.MVC.Core | MVC pattern foundation, GameServiceManager | Shared, Unity6Library |
-| Game.MVC.ScoreTimeAttack | Time attack game implementation | Shared, MVC.Core, Unity6Library |
+| Game.MVC.Core | MVC pattern foundation, GameServiceManager | Shared |
+| Game.MVC.ScoreTimeAttack | Time attack game implementation | Shared, MVC.Core |
 | Game.MVP.Core | MVP pattern foundation, VContainer | Shared |
 | Game.MVP.Survivor | Survivor game implementation | Shared, MVP.Core |
-| **com.rei.unity6library** | Master data definitions, common enums | None (bottom layer) |
+| **Game.Server** | ASP.NET Core API Server | Shared |
 
 </details>
 
-<details><summary>Local Package (com.rei.unity6library)</summary>
+<details><summary>Game.Shared (Shared Library)</summary>
 
-Master data definition files are separated into a local package, providing these benefits:
+Master data definition files are separated into a shared library, providing these benefits:
 
-1. **Reusability**: Share the same master data definitions across multiple projects
+1. **Client-Server Sharing**: Share the same DTOs between Unity and ASP.NET Core
 2. **Clear Dependencies**: Prevent circular references by placing at the bottom layer
 3. **Reduced Build Time**: Efficient incremental builds by separating infrequently changed code
 4. **Version Control**: Package-level version management
@@ -155,6 +219,7 @@ Master data definition files are separated into a local package, providing these
 **Contents:**
 - MasterMemory master data definition classes (AudioMaster, ScoreTimeAttackStageMaster, etc.)
 - Common enum definitions (AudioCategory, AudioPlayTag, etc.)
+- Shared interfaces, DTOs
 
 **Survivor Master Data (11 types):**
 - `SurvivorStageMaster`: Stage definitions (time limit, initial weapons, etc.)
@@ -185,10 +250,10 @@ Master data definition files are separated into a local package, providing these
 
 1. Has generic context, allowing any type to be specified
 2. Each state can reference context for state management
-3. Transition table can be built at initialization, setting rules for which states can transition from which. Transition rules are consolidated and visualized in one place, improving maintainability
-4. Special states can be set as transition targets from any state, validated and executed when appropriate settings are not in the transition table
-5. Generic event key type can be specified, managing transition event names with enums etc. Matching with target state names improves readability/maintainability
-6. Supports MonoBehaviour.FixedUpdate/LateUpdate in addition to regular Update, enabling coordination with physics calculations and camera states
+3. Transition table can be built at initialization, setting rules for which states can transition from which
+4. Special states can be set as transition targets from any state
+5. Generic event key type can be specified, managing transition event names with enums
+6. Supports MonoBehaviour.FixedUpdate/LateUpdate in addition to regular Update
 </details>
 
 <details><summary>Survivor Game System (MVP)</summary>
@@ -201,7 +266,7 @@ Master data definition files are separated into a local package, providing these
 **Weapon System**
 - `SurvivorWeaponBase`: Weapon base class (damage calculation, critical, proc rate)
 - `SurvivorAutoFireWeapon`: Auto-fire type (fires projectiles at nearest enemy)
-- `SurvivorGroundWeapon`: Ground-based type (creates damage areas in circular pattern at target position)
+- `SurvivorGroundWeapon`: Ground-based type (creates damage areas in circular pattern)
 - `WeaponObjectPool<T>`: Generic object pool (shared for projectiles and areas)
 - Master data driven (supports per-level stats and asset changes)
 
@@ -225,165 +290,106 @@ Master data definition files are separated into a local package, providing these
 - `SurvivorSaveService`: Save/load processing
 - High-speed binary serialization with MemoryPack
 - Auto-save (30-second intervals, on background transition)
-- Immediate save on Victory/GameOver confirmation (data integrity guarantee)
+- Immediate save on Victory/GameOver confirmation
 
 </details>
 
 <details><summary>Others</summary>
 
 * Common features like scene transitions and audio playback are primarily separated as game services
-* Master data editor extension easily creates binaries from TSV, allowing immediate testing after TSV updates, accelerating verification cycles. Tested binaries can be used directly for builds and asset distribution
-* In-game scenes consist of Prefab scenes + Unity scenes, with stage Unity scenes separated from logic. Therefore, new stages can be added without code modifications
+* Master data editor extension easily creates binaries from TSV, allowing immediate testing after TSV updates
+* In-game scenes consist of Prefab scenes + Unity scenes, with stage Unity scenes separated from logic
 * Out-game scenes all use Prefab scenes to ensure customizability of transition behavior
 </details>
 
 ---
-## Code Links
-### Game.App (Entry Point)
-* Game Bootstrap: [GameBootstrap.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Bootstrap/GameBootstrap.cs)
-* Game Mode Launcher Registry: [GameModeLauncherRegistry.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Launcher/GameModeLauncherRegistry.cs)
-* App Title Screen: [AppTitleSceneComponent.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/App/Title/AppTitleSceneComponent.cs)
 
-### Game.Shared (Common)
-* Application Events: [ApplicationEvents.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Bootstrap/ApplicationEvents.cs)
-* Game Mode Launcher Interface: [IGameModeLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Bootstrap/IGameModeLauncher.cs)
-* State Machine: [StateMachine.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/StateMachine.cs)
-
-### Game.MVC.Core (MVC Foundation)
-* Scene Transition Service: [GameSceneService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Services/GameSceneService.cs)
-* Scene Base Class: [GameScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Scenes/GameScene.cs)
-* Service Manager: [GameServiceManager.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/Core/Services/GameServiceManager.cs)
-
-### Game.MVC.ScoreTimeAttack (Time Attack Game)
-* Launcher: [ScoreTimeAttackLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/ScoreTimeAttack/ScoreTimeAttackLauncher.cs)
-* Player Controller: [SDUnityChanPlayerController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVC/ScoreTimeAttack/Player/SDUnityChanPlayerController.cs)
-
-### Game.MVP.Core (MVP Foundation)
-* VContainer Launcher: [VContainerGameLauncher.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Core/DI/VContainerGameLauncher.cs)
-
-### Game.MVP.Survivor (Survivor Game)
-* Stage Scene: [SurvivorStageScene.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Scenes/SurvivorStageScene.cs)
-* Player Controller: [SurvivorPlayerController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Player/SurvivorPlayerController.cs)
-* Enemy AI: [SurvivorEnemyController.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemyController.cs)
-* Enemy Spawner: [SurvivorEnemySpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemySpawner.cs)
-* Weapon Base: [SurvivorWeaponBase.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/SurvivorWeaponBase.cs)
-* Generic Pool: [WeaponObjectPool.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Weapon/WeaponObjectPool.cs)
-* Item Spawner: [SurvivorItemSpawner.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/Item/SurvivorItemSpawner.cs)
-* Save Service: [SurvivorSaveService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/MVP/Survivor/SaveData/SurvivorSaveService.cs)
-
-### Game.Shared (Additional)
-* Combat Interface: [ICombatTarget.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Combat/ICombatTarget.cs)
-* Death Event: [IDeathNotifier.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/Events/IDeathNotifier.cs)
-* Lock-On: [ILockOnService.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Runtime/Shared/LockOn/ILockOnService.cs)
-
-### Editor
-* Master Data Editor Extension: [MasterDataWindow.cs](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/EditorWindow/MasterDataWindow.cs)
-
-### com.rei.unity6library (Local Package)
-* Audio Master Definition: [AudioMaster.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/MasterData/MemoryTables/AudioMaster.cs)
-* Stage Master Definition: [ScoreTimeAttackStageMaster.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/MasterData/MemoryTables/ScoreTimeAttackStageMaster.cs)
-* Audio Enum Definition: [AudioEnums.cs](https://github.com/reigithub/unity6-sample/blob/master/Packages/com.rei.unity6library/Runtime/Shared/Enums/AudioEnums.cs)
-
----
 ## Folder Structure
 ```
-.
-├── Assets
-│   ├── MasterData          Master data (TSV, binary)
-│   ├── Programs
-│   │   ├── Editor          Editor extensions
-│   │   │   └── Tests       Unit tests / Performance improvement test tools
-│   │   └── Runtime
-│   │       ├── Shared      Common utilities, interfaces
-│   │       │   ├── Bootstrap   IGameLauncher, ApplicationEvents
-│   │       │   ├── Combat      ICombatTarget, IDamageable, etc.
-│   │       │   ├── Constants   Common constants, LayerMaskConstants
-│   │       │   ├── Enums       GameMode, etc.
-│   │       │   ├── Events      DeathEventData, IDeathNotifier
-│   │       │   ├── Extensions  Extension methods
-│   │       │   ├── LockOn      Lock-on service
-│   │       │   └── SaveData    Save data foundation
-│   │       ├── App         Entry point
-│   │       │   ├── Bootstrap   GameBootstrap
-│   │       │   ├── Launcher    GameModeLauncherRegistry
-│   │       │   └── Title       App title screen
-│   │       ├── MVC         MVC pattern implementation
-│   │       │   ├── Core        Foundation (Services, Scenes, MessagePipe)
-│   │       │   └── ScoreTimeAttack  Time attack game
-│   │       └── MVP         MVP pattern implementation
-│   │           ├── Core        Foundation (VContainer, Base)
-│   │           └── Survivor    Survivor game
-│   │               ├── DI          Dependency injection settings
-│   │               ├── Enemy       Enemy system (AI, spawner)
-│   │               ├── Item        Items (spawner, drops)
-│   │               ├── Models      Game models
-│   │               ├── Player      Player control
-│   │               ├── SaveData    Save functionality
-│   │               ├── Scenes      Scene management
-│   │               ├── Services    Game services
-│   │               └── Weapon      Weapon system (pool, projectiles)
-│   └── README.md
-└── Packages
-    └── com.rei.unity6library   Local package
-        └── Runtime
-            └── Shared
-                ├── Enums           AudioCategory, AudioPlayTag, etc.
-                └── MasterData
-                    └── MemoryTables Master data definition classes
+Unity6Portfolio/
+├── src/
+│   ├── Game.Client/                    # Unity Client
+│   │   ├── Assets/
+│   │   │   ├── MasterData/             Master data (TSV, binary)
+│   │   │   └── Programs/
+│   │   │       ├── Editor/             Editor extensions
+│   │   │       │   └── Tests/          Unit tests
+│   │   │       └── Runtime/
+│   │   │           ├── Shared/         Common utilities
+│   │   │           ├── App/            Entry point
+│   │   │           ├── MVC/            MVC pattern implementation
+│   │   │           │   ├── Core/       Foundation (Services, Scenes)
+│   │   │           │   └── ScoreTimeAttack/
+│   │   │           └── MVP/            MVP pattern implementation
+│   │   │               ├── Core/       Foundation (VContainer)
+│   │   │               └── Survivor/   Survivor game
+│   │   ├── Packages/
+│   │   ├── ProjectSettings/
+│   │   └── Documentation/              Screenshots, GIFs
+│   │
+│   ├── Game.Server/                    # ASP.NET Core Server
+│   │   ├── Controllers/
+│   │   ├── Services/
+│   │   └── Program.cs
+│   │
+│   └── Game.Shared/                    # Shared Library
+│       ├── Game.Shared.csproj          .NET Project
+│       ├── package.json                Unity Package Definition
+│       └── Runtime/
+│           └── Shared/
+│               ├── Enums/              AudioCategory, etc.
+│               └── MasterData/         Master data definitions
+│
+└── test/
+    └── Game.Server.Tests/              # Server Tests
 ```
+
+---
 
 ## Performance Improvement Samples
 <details><summary>Scene Transition</summary>
 
 * GameSceneService
-  - Verified performance improvements by changing various scene transition functions from Task to UniTask
+  - Verified performance improvements by changing scene transition functions from Task to UniTask
   - Iterations: 10,000
   - ~40% reduction in CPU execution time, zero allocation, 100% reduction in memory usage
-  - !["Test Results"](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/Tests/Logs/GameSceneServicePerformanceTests_2026-01-08_220131.png)
-  - !["Test Results"](https://github.com/reigithub/unity6-sample/blob/master/Assets/Programs/Editor/Tests/Logs/GameSceneServicePerformanceTests_2026-01-09_015400.png)
 
 </details>
 
 <details><summary>State Machine</summary>
 
 * Improvements
-  - Changed state management from HashSet to Dictionary, improving state lookup from O(n) to O(1) (constant time regardless of state count)
+  - Changed state management from HashSet to Dictionary, improving state lookup from O(n) to O(1)
   - Reduced Dictionary lookups during transitions, improved LINQ usage to reduce allocations
   - Reduced overhead through method inlining
 
 * State Transition Throughput Improvement
   - Iterations: 30,000
   - Average 15% reduction in transition time, average 15% improvement in throughput
-  - Benchmark results (overall results across game loops)
 
   | Item | Old StateMachine | New StateMachine | Improvement |
   |:-----|---------------:|---------------:|-------:|
   | Total Execution Time (ms) | 44.848 | 35.295 | 1.27x |
   | Avg Transition Time (μs) | 0.300 | 0.146 | 2.05x |
-  | P99 Transition Time (μs) | 0.500 | 0.300 | 1.67x |
-  | Max Transition Time (μs) | 9.500 | 5.100 | 1.86x |
   | Throughput (ops/s) | 668,934 | 849,991 | 1.27x |
-  | Transitions/sec | 200,680 | 254,997 | 1.27x |
-  | Memory (bytes) | 401,408 | 401,408 | 1.00x |
-  | GC Count | 1 | 1 | 0 |
 
 * State Transition Memory Allocation Improvement
   - Iterations: 10,000
-  - Memory allocation comparison results (pure transition request execution)
 
   | Item | Old StateMachine | New StateMachine | Improvement |
   |:-----|---------------:|---------------:|-------:|
   | Memory (bytes) | 2,760,704 | 1,290,240 | 2.14x |
-  | Bytes/Iteration | 276.07 | 129.02 | 2.14x |
 
 </details>
 
 ---
+
 ## Languages/Libraries/Tools
 
 | Language/Framework | Version |
 |-------------------|---------|
 | Unity | 6000.3.2f1 |
+| .NET SDK | 8.0 |
 | C# | 9.0 |
 | cysharp/MessagePipe | 1.8.1 |
 | cysharp/R3 | 1.3.0 |
@@ -391,54 +397,47 @@ Master data definition files are separated into a local package, providing these
 | cysharp/MasterMemory | 3.0.4 |
 | cysharp/MessagePack | 3.1.3 |
 | cysharp/MemoryPack | 1.21.3 |
-| **hadashiA/VContainer** | **1.16.8** |
+| hadashiA/VContainer | 1.16.8 |
 | NSubstitute | 5.3.0 |
+| xUnit | 2.x |
 | DOTween | 1.2.790 |
 | HotReload | 1.13.13 |
 | JetBrains Rider | 2025.3.0.2 |
-| VSCode | 1.107.1 |
 | Claude Code | - |
+
 ---
+
 ## Library/Tool Selection Rationale
-* **VContainer**: DI (Dependency Injection) container for MVP pattern. Improves testability through constructor injection and automates lifecycle management.
-* MessagePipe: Loosely coupled messaging (Pub/Sub) for UI events and game events using MessageBroker.
-* R3: Enables concise description of UI button press intervals, complex async event processing, and Animator state event composition. Improves maintainability/reusability.
-* UniTask: For all Unity-optimized async processing. Currently mainly used for dialog error handling, with planned expansion.
-* MasterMemory: Separates game logic from data, minimizing logic modifications while streamlining development cycles. Also handles the demo game's large number of audio files (~400).
-* MessagePack: Primarily as data serializer for MasterMemory.
-* **MemoryPack**: High-speed binary serialization for save data. Zero-allocation and higher performance than PlayerPrefs.
-* NSubstitute: Creating mocks for game services in test code.
-* Claude Code: Test code generation, refactoring.
-
-### Comparison with Alternatives
-| Technology | Reason for Selection | Alternatives Considered |
-|-----------|---------------------|------------------------|
-| VContainer | Lightweight, Source Generator support, fast | Zenject (heavy), Extenject |
-| UniTask | Zero allocation, Unity optimized | Task/async standard (GC), Coroutine (low readability) |
-| R3 | UniRx successor, UniTask integration, active development | UniRx (stagnant), System.Reactive |
-| MasterMemory | Fast reads, type-safe, IL2CPP compatible | ScriptableObject (inefficient for large data), JSON |
-| MemoryPack | Fastest serializer, zero allocation | MessagePack, JSON (slow) |
+* **VContainer**: DI (Dependency Injection) container for MVP pattern
+* **MessagePipe**: Loosely coupled messaging (Pub/Sub) for UI events and game events
+* **R3**: Complex async event processing, improves maintainability/reusability
+* **UniTask**: Unity-optimized async processing
+* **MasterMemory**: Separates game logic from data, streamlining development cycles
+* **MemoryPack**: High-speed binary serialization for save data
+* **xUnit**: Server-side test framework
 
 ---
+
 ## Assets
 * Primarily from Unity Asset Store, no self-made assets included
 * Unity-chan: https://unity-chan.com/ (© Unity Technologies Japan/UCL)
+
 ---
+
 ## Development Period
 * Approximately 4 weeks (as of 2026/1/24)
+
 ---
-## Implemented Features (Moved from Future Plans)
-* ✅ **Survivor Game Mode Implementation (MVP/VContainer)** - Core systems complete
-* ✅ **Save Functionality with MemoryPack** - Stage progress and clear record saving
 
 ## Future Plans
+* Network functionality (client-server communication)
 * Survivor game mode additional features (skill system, boss battles, etc.)
 * PlayerLoop intervention sample
-* EnhancedScroller implementation sample
 * List sort/filter functionality sample
-* Audio volume options screen
 * Multi-resolution support
+
 ---
+
 ## About the Demo Game
 ### Time Attack (MVC)
 * A time attack game where you collect a specified number of items placed across 3 stages within the time limit
@@ -458,3 +457,13 @@ Master data definition files are separated into a local package, providing these
 
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended
+
+---
+
+## Documentation
+- [Architecture Details](ARCHITECTURE.md)
+
+---
+
+## License
+[LICENSE](LICENSE)

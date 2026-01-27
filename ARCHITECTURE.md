@@ -212,7 +212,6 @@ graph TB
 | **メッセージング** | MessagePipe（直接参照） | MessagePipe（DI注入） |
 | **シーン読み込み** | Addressables直接呼び出し | IAddressableAssetService経由 |
 | **テスト容易性** | 中（サービスロケータ依存） | 高（完全DI） |
-| **採用理由** | レガシー環境スキル提示 | モダン開発スキル提示 |
 
 ### 4.2 DI方式の違い
 
