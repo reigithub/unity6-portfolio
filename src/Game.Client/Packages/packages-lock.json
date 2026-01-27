@@ -61,9 +61,9 @@
       "hash": "34432703a177c97631a4eb1d908f086037c67969"
     },
     "com.rei.unity6liblary": {
-      "version": "file:com.rei.unity6library",
+      "version": "file:../../Game.Shared",
       "depth": 0,
-      "source": "embedded",
+      "source": "local",
       "dependencies": {}
     },
     "com.singularitygroup.hotreload": {
