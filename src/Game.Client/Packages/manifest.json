@@ -8,7 +8,7 @@
     "com.cysharp.slnmerge": "https://github.com/Cysharp/SlnMerge.git?path=src#2.0.1",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
-    "com.rei.unity6liblary": "file:./com.rei.unity6liblary",
+    "com.rei.unity6liblary": "file:../Game.Shared",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.addressables": "2.7.4",
     "com.unity.ai.navigation": "2.0.9",
