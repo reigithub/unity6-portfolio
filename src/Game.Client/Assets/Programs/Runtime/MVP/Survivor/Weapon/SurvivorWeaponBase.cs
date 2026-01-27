@@ -148,6 +148,10 @@ namespace Game.MVP.Survivor.Weapon
         public Observable<int> OnAttack => _onAttack;
         public Observable<float> OnCooldownChanged => _onCooldownChanged;
 
+        /// <summary>
+        /// 武器インスタンスを生成する
+        /// </summary>
+        /// <param name="weaponMaster">武器マスターデータ</param>
         public SurvivorWeaponBase(SurvivorWeaponMaster weaponMaster)
         {
             _weaponMaster = weaponMaster;
@@ -281,6 +285,10 @@ namespace Game.MVP.Survivor.Weapon
             return true;
         }
 
+        /// <summary>
+        /// ダメージ倍率を設定する
+        /// </summary>
+        /// <param name="multiplier">ダメージ倍率（1.0 = 100%）</param>
         public virtual void SetDamageMultiplier(float multiplier)
         {
             _damageMultiplier = multiplier;
@@ -300,6 +308,11 @@ namespace Game.MVP.Survivor.Weapon
             return false;
         }
 
+        /// <summary>
+        /// 武器の有効/無効を設定する
+        /// 無効時はUpdateWeaponで攻撃処理がスキップされる
+        /// </summary>
+        /// <param name="enabled">有効にする場合true</param>
         public virtual void SetEnabled(bool enabled)
         {
             _isEnabled = enabled;
@@ -412,6 +425,10 @@ namespace Game.MVP.Survivor.Weapon
             return _procRate.RollChance();
         }
 
+        /// <summary>
+        /// 武器リソースを解放する
+        /// イベント購読の解除とSubjectの破棄を行う
+        /// </summary>
         public virtual void Dispose()
         {
             if (_isDisposed) return;

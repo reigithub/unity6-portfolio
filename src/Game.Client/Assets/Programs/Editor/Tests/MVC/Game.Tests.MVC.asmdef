@@ -1,0 +1,32 @@
+{
+    "name": "Game.Tests.MVC",
+    "rootNamespace": "Game.Tests.MVC",
+    "references": [
+        "Game.Shared",
+        "Game.MVC.Core",
+        "Game.MVC.ScoreTimeAttack",
+        "Game.Tests.Shared",
+        "UniTask",
+        "R3.Unity",
+        "MessagePipe",
+        "Unity.ResourceManager",
+        "Unity6Library"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NSubstitute.dll",
+        "R3.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

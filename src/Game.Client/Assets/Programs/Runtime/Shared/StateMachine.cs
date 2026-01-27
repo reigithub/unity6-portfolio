@@ -34,27 +34,40 @@ namespace Game.Shared
         public TContext Context { get; }
     }
 
+    /// <summary>
+    /// ステートマシンの各状態を表す抽象基底クラス
+    /// </summary>
+    /// <typeparam name="TContext">コンテキスト型（ステート間で共有するデータ）</typeparam>
+    /// <typeparam name="TEvent">遷移イベントの型（通常はenum）</typeparam>
     public abstract class State<TContext, TEvent> : IState, IStateMachineContext<TContext>
     {
+        /// <summary>所属するステートマシンへの参照</summary>
         protected internal StateMachine<TContext, TEvent> StateMachine { get; init; }
+
+        /// <summary>共有コンテキストへのアクセサ</summary>
         public TContext Context => StateMachine.Context;
 
+        /// <summary>ステート開始時に呼び出される</summary>
         public virtual void Enter()
         {
         }
 
+        /// <summary>毎フレーム呼び出される</summary>
         public virtual void Update()
         {
         }
 
+        /// <summary>物理演算タイミングで呼び出される（MonoBehaviour.FixedUpdate相当）</summary>
         public virtual void FixedUpdate()
         {
         }
 
+        /// <summary>フレーム終了時に呼び出される（MonoBehaviour.LateUpdate相当）</summary>
         public virtual void LateUpdate()
         {
         }
 
+        /// <summary>ステート終了時に呼び出される</summary>
         public virtual void Exit()
         {
         }
@@ -242,6 +255,12 @@ namespace Game.Shared
 
         #region Process
 
+        /// <summary>
+        /// 現在のステートが指定した型かどうかを判定
+        /// </summary>
+        /// <typeparam name="TState">判定するステート型</typeparam>
+        /// <returns>現在のステートが指定型の場合true</returns>
+        /// <exception cref="InvalidOperationException">ステートマシンが開始されていない場合</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsCurrentState<TState>() where TState : State<TContext, TEvent>
         {
@@ -250,12 +269,22 @@ namespace Game.Shared
             return _currentState.GetType() == typeof(TState);
         }
 
+        /// <summary>
+        /// ステートマシンが動作中かどうかを判定
+        /// </summary>
+        /// <returns>動作中の場合true</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsProcessing()
         {
             return _currentState != null;
         }
 
+        /// <summary>
+        /// ステートマシンを更新（毎フレーム呼び出し）
+        /// 初回呼び出し時に初期ステートのEnterを実行し、以降は現在ステートのUpdateを実行
+        /// 遷移リクエストがある場合は、Exit→Enterの順で遷移処理を行う
+        /// </summary>
+        /// <exception cref="InvalidOperationException">初期ステートが設定されていない場合</exception>
         public virtual void Update()
         {
             // プロセスが開始されていなければ、初期Stateをセットしてステートマシーンを起動する
@@ -320,12 +349,18 @@ namespace Game.Shared
             }
         }
 
+        /// <summary>
+        /// 物理演算タイミングで現在ステートのFixedUpdateを呼び出す
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void FixedUpdate()
         {
             _currentState?.FixedUpdate();
         }
 
+        /// <summary>
+        /// フレーム終了時に現在ステートのLateUpdateを呼び出す
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void LateUpdate()
         {

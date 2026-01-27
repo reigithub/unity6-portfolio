@@ -1,0 +1,32 @@
+{
+    "name": "Game.Tests.MVP",
+    "rootNamespace": "Game.Tests.MVP",
+    "references": [
+        "Game.Shared",
+        "Game.MVP.Core",
+        "Game.MVP.Survivor",
+        "Game.Tests.Shared",
+        "UniTask",
+        "R3.Unity",
+        "MessagePipe",
+        "VContainer",
+        "Unity6Library"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NSubstitute.dll",
+        "R3.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

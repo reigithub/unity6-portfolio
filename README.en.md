@@ -11,6 +11,66 @@
 [日本語版はこちら](https://github.com/reigithub/unity6-sample/blob/master/README.md)
 
 ---
+## Setup
+
+### Requirements
+| Item | Version |
+|------|---------|
+| Unity | 6000.3.2f1 or later |
+| OS | Windows 10/11 |
+
+### Setup Steps
+1. Clone the repository
+   ```bash
+   git clone https://github.com/reigithub/unity6-sample.git
+   ```
+2. Open the project in Unity Hub
+3. Package restoration may take a few minutes on first launch
+4. Open `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` and press Play
+
+### Notes
+* Some packages are installed via NuGetForUnity, so if errors occur on the first build, try building again
+* If Addressables build is required, run build from `Window > Asset Management > Addressables > Groups`
+
+---
+## Screenshots
+
+### MVC: ScoreTimeAttack (Time Attack Game)
+| Title | Gameplay | Result |
+|-------|----------|--------|
+| ![Title](Documentation/Screenshots/mvc_title.png) | ![Gameplay](Documentation/Screenshots/mvc_gameplay.png) | ![Result](Documentation/Screenshots/mvc_result.png) |
+
+### MVP: Survivor (Survivor Game)
+| Title | Gameplay | Level Up |
+|-------|----------|----------|
+| ![Title](Documentation/Screenshots/mvp_title.png) | ![Gameplay](Documentation/Screenshots/mvp_gameplay.png) | ![Level Up](Documentation/Screenshots/mvp_levelup.png) |
+
+### Shaders & Effects
+| Toon Shader | Dissolve Effect |
+|-------------|-----------------|
+| ![Toon](Documentation/Screenshots/shader_toon.png) | ![Dissolve](Documentation/Screenshots/shader_dissolve.png) |
+
+### Editor Extensions
+![Editor Window](Documentation/Screenshots/editor_window.png)
+
+---
+## Gameplay Videos
+
+### MVC: ScoreTimeAttack
+![MVC Gameplay](Documentation/GIFs/mvc_gameplay.gif)
+
+### MVP: Survivor
+![MVP Gameplay](Documentation/GIFs/mvp_gameplay.gif)
+
+### Scene Transitions & Effects
+| Scene Transition | Effects Showcase |
+|-----------------|------------------|
+| ![Scene Transition](Documentation/GIFs/scene_transition.gif) | ![Effects](Documentation/GIFs/effects_showcase.gif) |
+
+### Editor Tools
+![Editor Tool](Documentation/GIFs/editor_tool.gif)
+
+---
 ## Architecture Overview
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -349,6 +409,16 @@ Master data definition files are separated into a local package, providing these
 * **MemoryPack**: High-speed binary serialization for save data. Zero-allocation and higher performance than PlayerPrefs.
 * NSubstitute: Creating mocks for game services in test code.
 * Claude Code: Test code generation, refactoring.
+
+### Comparison with Alternatives
+| Technology | Reason for Selection | Alternatives Considered |
+|-----------|---------------------|------------------------|
+| VContainer | Lightweight, Source Generator support, fast | Zenject (heavy), Extenject |
+| UniTask | Zero allocation, Unity optimized | Task/async standard (GC), Coroutine (low readability) |
+| R3 | UniRx successor, UniTask integration, active development | UniRx (stagnant), System.Reactive |
+| MasterMemory | Fast reads, type-safe, IL2CPP compatible | ScriptableObject (inefficient for large data), JSON |
+| MemoryPack | Fastest serializer, zero allocation | MessagePack, JSON (slow) |
+
 ---
 ## Assets
 * Primarily from Unity Asset Store, no self-made assets included

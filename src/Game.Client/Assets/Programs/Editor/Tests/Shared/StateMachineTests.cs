@@ -355,7 +355,7 @@ namespace Game.Editor.Tests
         #region ForceTransition Tests
 
         [Test]
-        public void ForceTransition_WhenNotAllowed_DoesNotTransition()
+        public void ForceTransition_WhenNotAllowed_ThrowsException()
         {
             var context = new TestContext();
             var stateMachine = new StateMachine<TestContext, TestEvent>(context);
@@ -363,10 +363,7 @@ namespace Game.Editor.Tests
             stateMachine.SetInitState<StateA>();
             stateMachine.Update();
 
-            stateMachine.ForceTransition<StateB>();
-            stateMachine.Update();
-
-            Assert.That(stateMachine.IsCurrentState<StateA>(), Is.True);
+            Assert.Throws<InvalidOperationException>(() => stateMachine.ForceTransition<StateB>());
         }
 
         [Test]

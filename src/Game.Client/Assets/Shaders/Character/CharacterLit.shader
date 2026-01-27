@@ -20,8 +20,8 @@ Shader "Game/Character/CharacterLit"
         _OcclusionStrength("Strength", Range(0, 1)) = 1.0
 
         [Header(Emission)]
-        [HDR] _EmissionColor("Color", Color) = (255, 255, 255, 255)
         _EmissionMap("Emission", 2D) = "white" {}
+        [HDR] _EmissionColor("Color", Color) = (255, 255, 255, 255)
 
         [Header(Hit Flash)]
         [HDR] _FlashColor("Flash Color", Color) = (1, 1, 1, 1)
@@ -63,6 +63,7 @@ Shader "Game/Character/CharacterLit"
 
             Cull [_Cull]
             ZWrite On
+            Blend One Zero
 
             HLSLPROGRAM
             #pragma target 3.5
@@ -316,7 +317,7 @@ Shader "Game/Character/CharacterLit"
                 surfaceData.normalTS = half3(0, 0, 1);
                 surfaceData.emission = emission;
                 surfaceData.occlusion = occlusion;
-                surfaceData.alpha = albedo.a;
+                surfaceData.alpha = 1.0; // Force opaque
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 
@@ -551,6 +552,109 @@ Shader "Game/Character/CharacterLit"
                 }
 
                 return input.positionCS.z;
+            }
+            ENDHLSL
+        }
+
+        // DepthNormals Pass - Required for screen-space shadows and other effects in Unity 6
+        Pass
+        {
+            Name "DepthNormals"
+            Tags
+            {
+                "LightMode" = "DepthNormals"
+            }
+
+            ZWrite On
+            Cull [_Cull]
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma multi_compile_instancing
+
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseMap_ST;
+                half4 _BaseColor;
+                half _Smoothness;
+                half _Metallic;
+                half _BumpScale;
+                half _OcclusionStrength;
+                half4 _EmissionColor;
+                half4 _FlashColor;
+                half _FlashAmount;
+                half _DissolveAmount;
+                float4 _NoiseMap_ST;
+                half _NoiseScale;
+                half4 _EdgeColor;
+                half _EdgeWidth;
+                float4 _DissolveDirection;
+                half _DirectionalInfluence;
+            CBUFFER_END
+
+            TEXTURE2D(_NoiseMap);
+            SAMPLER(sampler_NoiseMap);
+            TEXTURE2D(_BumpMap);
+            SAMPLER(sampler_BumpMap);
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float4 tangentOS : TANGENT;
+                float2 texcoord : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float3 normalWS : TEXCOORD1;
+                float3 positionOS : TEXCOORD2;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            Varyings DepthNormalsVertex(Attributes input)
+            {
+                Varyings output = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
+                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                output.uv = TRANSFORM_TEX(input.texcoord, _BaseMap);
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                output.positionOS = input.positionOS.xyz;
+
+                return output;
+            }
+
+            float4 DepthNormalsFragment(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
+                // Dissolve clip
+                if (_DissolveAmount > 0.001)
+                {
+                    float2 noiseUV = input.uv * _NoiseScale;
+                    half noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noiseUV).r;
+
+                    float3 dissolveDir = normalize(_DissolveDirection.xyz);
+                    float directional = dot(input.positionOS, dissolveDir) * 0.5 + 0.5;
+                    float combined = lerp(noise, directional, _DirectionalInfluence);
+
+                    clip(combined - _DissolveAmount);
+                }
+
+                float3 normalWS = normalize(input.normalWS);
+                return float4(normalWS, 0.0);
             }
             ENDHLSL
         }

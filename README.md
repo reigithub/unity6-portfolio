@@ -10,6 +10,66 @@
 [English version is here](https://github.com/reigithub/unity6-sample/blob/master/README.en.md)
 
 ---
+## 環境構築
+
+### 必要環境
+| 項目 | バージョン |
+|-----|-----------|
+| Unity | 6000.3.2f1 以上 |
+| OS | Windows 10/11 |
+
+### セットアップ手順
+1. リポジトリをクローン
+   ```bash
+   git clone https://github.com/reigithub/unity6-sample.git
+   ```
+2. Unity Hub でプロジェクトを開く
+3. 初回起動時、パッケージの復元に数分かかる場合があります
+4. `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` を開いて再生
+
+### 注意事項
+* NuGetForUnity経由でインストールされるパッケージがあるため、初回ビルド時にエラーが出る場合は再度ビルドしてください
+* Addressablesのビルドが必要な場合は `Window > Asset Management > Addressables > Groups` からビルドを実行
+
+---
+## スクリーンショット
+
+### MVC: ScoreTimeAttack（スコアアタックゲーム）
+| タイトル | ゲームプレイ | リザルト |
+|---------|------------|---------|
+| ![タイトル](Documentation/Screenshots/mvc_title.png) | ![ゲームプレイ](Documentation/Screenshots/mvc_gameplay.png) | ![リザルト](Documentation/Screenshots/mvc_result.png) |
+
+### MVP: Survivor（サバイバーゲーム）
+| タイトル | ゲームプレイ | レベルアップ |
+|---------|------------|-------------|
+| ![タイトル](Documentation/Screenshots/mvp_title.png) | ![ゲームプレイ](Documentation/Screenshots/mvp_gameplay.png) | ![レベルアップ](Documentation/Screenshots/mvp_levelup.png) |
+
+### シェーダー・エフェクト
+| トゥーンシェーダー | ディゾルブエフェクト |
+|------------------|-------------------|
+| ![トゥーン](Documentation/Screenshots/shader_toon.png) | ![ディゾルブ](Documentation/Screenshots/shader_dissolve.png) |
+
+### エディター拡張
+![エディターウィンドウ](Documentation/Screenshots/editor_window.png)
+
+---
+## ゲームプレイ動画
+
+### MVC: ScoreTimeAttack
+![MVCゲームプレイ](Documentation/GIFs/mvc_gameplay.gif)
+
+### MVP: Survivor
+![MVPゲームプレイ](Documentation/GIFs/mvp_gameplay.gif)
+
+### シーン遷移・エフェクト
+| シーン遷移 | エフェクト集 |
+|-----------|-------------|
+| ![シーン遷移](Documentation/GIFs/scene_transition.gif) | ![エフェクト](Documentation/GIFs/effects_showcase.gif) |
+
+### エディターツール
+![エディターツール](Documentation/GIFs/editor_tool.gif)
+
+---
 ## アーキテクチャ概要
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -348,6 +408,16 @@
 * **MemoryPack**: セーブデータの高速バイナリシリアライズ。ゼロアロケーションでPlayerPrefsより高性能。
 * NSubstitute: テストコードでゲームサービス等のモック作成
 * Claude Code: テストコード生成、リファクタリング
+
+### 代替案との比較
+| 技術 | 採用理由 | 比較した代替案 |
+|-----|---------|---------------|
+| VContainer | 軽量、Source Generator対応、高速 | Zenject（重い）, Extenject |
+| UniTask | ゼロアロケーション、Unity最適化 | Task/async標準（GC発生）, Coroutine（可読性低） |
+| R3 | UniRx後継、UniTask統合、アクティブ開発 | UniRx（開発停滞）, System.Reactive |
+| MasterMemory | 高速読み取り、型安全、IL2CPP対応 | ScriptableObject（大量データ非効率）, JSON |
+| MemoryPack | 最速シリアライザ、ゼロアロケーション | MessagePack, JSON（低速） |
+
 ---
 ## アセット
 * 主にUnityAssetStoreのもので自作は含まれません

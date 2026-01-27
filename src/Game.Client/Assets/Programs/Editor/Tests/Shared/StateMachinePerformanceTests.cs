@@ -582,7 +582,7 @@ namespace Game.Editor.Tests
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            WriteLogFile();
+            // WriteLogFile();
             _logBuilder?.Clear();
             _logBuilder = null;
         }
