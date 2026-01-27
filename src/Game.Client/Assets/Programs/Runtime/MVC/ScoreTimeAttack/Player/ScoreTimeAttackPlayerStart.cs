@@ -21,13 +21,17 @@ namespace Game.ScoreTimeAttack.Player
         /// <summary>
         /// プレイヤーとHUDを生成する
         /// </summary>
-        public async UniTask<GameObject> LoadPlayerAsync(ScoreTimeAttackPlayerMaster playerMaster)
+        /// <param name="playerMaster">プレイヤーマスターデータ</param>
+        /// <param name="collisionHandler">衝突イベントハンドラー（オプション）</param>
+        public async UniTask<GameObject> LoadPlayerAsync(
+            ScoreTimeAttackPlayerMaster playerMaster,
+            IPlayerCollisionHandler collisionHandler = null)
         {
             // プレイヤー生成
             var player = await AssetService.InstantiateAsync(playerMaster.AssetName, transform);
             if (player.TryGetComponent<SDUnityChanPlayerController>(out var playerController))
             {
-                playerController.Initialize(playerMaster);
+                playerController.Initialize(playerMaster, collisionHandler);
             }
 
             // HUD生成

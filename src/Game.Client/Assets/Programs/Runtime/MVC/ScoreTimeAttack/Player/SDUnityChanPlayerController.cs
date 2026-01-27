@@ -1,5 +1,6 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Game.Core.Constants;
 using Game.Shared;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
@@ -55,10 +56,6 @@ namespace Game.ScoreTimeAttack.Player
         private RaycastChecker _groundedRaycastChecker;
         private CapsuleCollider _capsuleCollider;
 
-        // Sweep-based移動用の定数
-        private const float SkinWidth = 0.01f; // 壁との最小距離
-        private const float StepHeight = 0.3f; // この高さ以下の障害物は乗り越え可能
-
         // ステートマシーン
         private StateMachine<SDUnityChanPlayerController, StateEvent> _stateMachine;
 
@@ -81,12 +78,17 @@ namespace Game.ScoreTimeAttack.Player
         private readonly int _animatorHashSpeed = Animator.StringToHash("Speed");
         private readonly int _animatorHashDamaged = Animator.StringToHash("Damaged");
 
-        public void Initialize(ScoreTimeAttackPlayerMaster playerMaster)
+        // 衝突ハンドラー
+        private IPlayerCollisionHandler _collisionHandler;
+
+        public void Initialize(ScoreTimeAttackPlayerMaster playerMaster, IPlayerCollisionHandler handler)
         {
             _walkSpeed = playerMaster.WalkSpeed;
             _jogSpeed = playerMaster.JogSpeed;
             _runSpeed = playerMaster.RunSpeed;
             _jump = playerMaster.Jump;
+
+            _collisionHandler = handler;
 
             TryGetComponent(out _animator);
             TryGetComponent(out _rigidbody);
@@ -234,7 +236,7 @@ namespace Game.ScoreTimeAttack.Player
 
         private bool IsMoveInput()
         {
-            return _moveValue.magnitude > 0.1f;
+            return _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
         }
 
         public void SetRunInput(bool canRun)
@@ -251,12 +253,14 @@ namespace Game.ScoreTimeAttack.Player
 
         private void OnTriggerEnter(Collider other)
         {
-            MessagePipeService.Publish(MessageKey.Player.OnTriggerEnter, other);
+            // 直接参照によるハンドラー呼び出し（MessagePipe置き換え）
+            _collisionHandler?.HandlePlayerTriggerEnter(other);
         }
 
         private void OnCollisionEnter(Collision other)
         {
-            MessagePipeService.Publish(MessageKey.Player.OnCollisionEnter, other);
+            // 直接参照によるハンドラー呼び出し（MessagePipe置き換え）
+            _collisionHandler?.HandlePlayerCollisionEnter(other);
 
             if (other.gameObject.CompareTag("Enemy"))
             {
@@ -274,7 +278,7 @@ namespace Game.ScoreTimeAttack.Player
         /// </summary>
         private Vector3 CalculateSafeMovement(Vector3 desiredMovement)
         {
-            if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
+            if (_capsuleCollider == null || desiredMovement.sqrMagnitude < PlayerPhysicsConstants.MinMovementThreshold)
             {
                 return desiredMovement;
             }
@@ -289,7 +293,7 @@ namespace Game.ScoreTimeAttack.Player
             var point1 = center + Vector3.up * halfHeight;
             // StepHeightより上の位置から判定開始（低い障害物は無視）
             var point2Bottom = center - Vector3.up * halfHeight;
-            var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
+            var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + PlayerPhysicsConstants.StepHeight + _capsuleCollider.radius, point2Bottom.z);
 
             // point2がpoint1より上になってしまう場合は補正
             if (point2.y > point1.y)
@@ -303,12 +307,12 @@ namespace Game.ScoreTimeAttack.Player
                 _capsuleCollider.radius,
                 moveDirection,
                 out var hit,
-                moveDistance + SkinWidth,
+                moveDistance + PlayerPhysicsConstants.SkinWidth,
                 Physics.DefaultRaycastLayers,
                 QueryTriggerInteraction.Ignore))
             {
                 // 衝突した場合、衝突点の手前までの移動に制限
-                var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
+                var safeDistance = Mathf.Max(0f, hit.distance - PlayerPhysicsConstants.SkinWidth);
                 return moveDirection * safeDistance;
             }
 
