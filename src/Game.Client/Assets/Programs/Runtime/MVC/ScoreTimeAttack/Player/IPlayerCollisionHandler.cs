@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace Game.ScoreTimeAttack.Player
 {
+    /// <summary>
+    /// プレイヤーの衝突イベントを処理するインターフェース
+    /// </summary>
     public interface IPlayerCollisionHandler
     {
         /// <summary>
