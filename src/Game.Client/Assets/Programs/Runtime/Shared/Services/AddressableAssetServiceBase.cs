@@ -1,5 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Exceptions;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -13,22 +15,40 @@ namespace Game.Shared.Services
     /// </summary>
     public abstract class AddressableAssetServiceBase : IAddressableAssetService
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_loadAssetMarker = new("ProfilerMarker.Asset.Load");
+        private static readonly ProfilerMarker s_instantiateMarker = new("ProfilerMarker.Asset.Instantiate");
+        private static readonly ProfilerMarker s_loadSceneMarker = new("ProfilerMarker.Asset.LoadScene");
+
+        // Constants
+        private const int DefaultMaxRetries = 3;
+        private const int DefaultRetryDelayMs = 500;
+
         public async UniTask<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
-            ThrowExceptionIfNullAddress(address);
-            return await Addressables.LoadAssetAsync<T>(address);
+            using (s_loadAssetMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+                return await Addressables.LoadAssetAsync<T>(address);
+            }
         }
 
         public async UniTask<GameObject> InstantiateAsync(string address, Transform parent = null)
         {
-            ThrowExceptionIfNullAddress(address);
-            return await Addressables.InstantiateAsync(address, parent);
+            using (s_instantiateMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+                return await Addressables.InstantiateAsync(address, parent);
+            }
         }
 
         public async UniTask<SceneInstance> LoadSceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
-            ThrowExceptionIfNullAddress(sceneName);
-            return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
+            using (s_loadSceneMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(sceneName);
+                return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
+            }
         }
 
         public async UniTask UnloadSceneAsync(SceneInstance sceneInstance)
@@ -56,8 +76,183 @@ namespace Game.Shared.Services
         {
             if (string.IsNullOrEmpty(address))
             {
-                throw new InvalidOperationException("Address is Null.");
+                throw new GameAssetLoadException(address, typeof(object), "Address is null or empty");
             }
+        }
+
+        /// <summary>
+        /// アセットを安全に読み込む（nullチェック付き）
+        /// 読み込み失敗時はGameAssetLoadExceptionをスロー
+        /// </summary>
+        /// <typeparam name="T">アセットの型</typeparam>
+        /// <param name="address">アセットアドレス</param>
+        /// <returns>読み込まれたアセット</returns>
+        public async UniTask<T> LoadAssetSafeAsync<T>(string address) where T : UnityEngine.Object
+        {
+            using (s_loadAssetMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+
+                try
+                {
+                    var asset = await Addressables.LoadAssetAsync<T>(address);
+
+                    if (asset == null)
+                    {
+                        throw new GameAssetLoadException(
+                            address,
+                            typeof(T),
+                            $"Asset loaded but returned null: {address}");
+                    }
+
+                    return asset;
+                }
+                catch (GameAssetLoadException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new GameAssetLoadException(
+                        address,
+                        typeof(T),
+                        $"Failed to load asset: {address}",
+                        ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// リトライ付きでアセットを読み込む
+        /// ネットワーク不安定時などに使用
+        /// </summary>
+        /// <typeparam name="T">アセットの型</typeparam>
+        /// <param name="address">アセットアドレス</param>
+        /// <param name="maxRetries">最大リトライ回数</param>
+        /// <param name="retryDelayMs">リトライ間隔（ミリ秒）</param>
+        /// <returns>読み込まれたアセット</returns>
+        public async UniTask<T> LoadAssetWithRetryAsync<T>(
+            string address,
+            int maxRetries = DefaultMaxRetries,
+            int retryDelayMs = DefaultRetryDelayMs) where T : UnityEngine.Object
+        {
+            ThrowExceptionIfNullAddress(address);
+
+            Exception lastException = null;
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    using (s_loadAssetMarker.Auto())
+                    {
+                        var asset = await Addressables.LoadAssetAsync<T>(address);
+
+                        if (asset == null)
+                        {
+                            throw new GameAssetLoadException(
+                                address,
+                                typeof(T),
+                                $"Asset loaded but returned null: {address}",
+                                retryCount: attempt);
+                        }
+
+                        if (attempt > 0)
+                        {
+                            Debug.Log($"[AddressableAsset] Successfully loaded {address} after {attempt} retries");
+                        }
+
+                        return asset;
+                    }
+                }
+                catch (GameAssetLoadException ex)
+                {
+                    lastException = ex;
+                }
+                catch (Exception ex)
+                {
+                    lastException = new GameAssetLoadException(
+                        address,
+                        typeof(T),
+                        $"Failed to load asset: {address}",
+                        ex,
+                        attempt);
+                }
+
+                if (attempt < maxRetries)
+                {
+                    Debug.LogWarning($"[AddressableAsset] Attempt {attempt + 1}/{maxRetries + 1} failed for {address}. Retrying...");
+                    await UniTask.Delay(retryDelayMs);
+                }
+            }
+
+            Debug.LogError($"[AddressableAsset] All {maxRetries + 1} attempts failed for {address}");
+            throw lastException;
+        }
+
+        /// <summary>
+        /// アセットを安全にインスタンス化する（nullチェック付き）
+        /// </summary>
+        /// <param name="address">アセットアドレス</param>
+        /// <param name="parent">親Transform</param>
+        /// <returns>インスタンス化されたGameObject</returns>
+        public async UniTask<GameObject> InstantiateSafeAsync(string address, Transform parent = null)
+        {
+            using (s_instantiateMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+
+                try
+                {
+                    var instance = await Addressables.InstantiateAsync(address, parent);
+
+                    if (instance == null)
+                    {
+                        throw new GameAssetLoadException(
+                            address,
+                            typeof(GameObject),
+                            $"Instantiate returned null: {address}");
+                    }
+
+                    return instance;
+                }
+                catch (GameAssetLoadException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new GameAssetLoadException(
+                        address,
+                        typeof(GameObject),
+                        $"Failed to instantiate: {address}",
+                        ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// アセットを安全にインスタンス化し、指定コンポーネントを取得する
+        /// </summary>
+        /// <typeparam name="T">取得するコンポーネントの型</typeparam>
+        /// <param name="address">アセットアドレス</param>
+        /// <param name="parent">親Transform</param>
+        /// <returns>コンポーネント</returns>
+        public async UniTask<T> InstantiateWithComponentAsync<T>(string address, Transform parent = null) where T : Component
+        {
+            var instance = await InstantiateSafeAsync(address, parent);
+
+            if (!instance.TryGetComponent<T>(out var component))
+            {
+                Addressables.ReleaseInstance(instance);
+                throw new GameAssetLoadException(
+                    address,
+                    typeof(T),
+                    $"Component {typeof(T).Name} not found on instantiated prefab: {address}");
+            }
+
+            return component;
         }
     }
 }
+

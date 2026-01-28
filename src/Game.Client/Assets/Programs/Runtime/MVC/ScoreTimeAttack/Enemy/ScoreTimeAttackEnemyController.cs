@@ -29,17 +29,12 @@ namespace Game.ScoreTimeAttack.Enemy
         // 目的地更新の最適化（震え防止）
         private Vector3 _lastDestination;
         private float _destinationUpdateTimer;
-        private const float DestinationUpdateInterval = 0.2f;  // 更新間隔（秒）
-        private const float DestinationUpdateThreshold = 0.5f; // この距離以上移動したら即更新
-
-        // 位置補間（カメラ操作時の震え防止）
-        private const float RotationSmoothSpeed = 10f; // 回転補間速度
 
         // パトロール関連
         private readonly float _rotationSpeed = 5.0f;
         private float _rotationInterval = 5.0f;
         private float _rotationIntervalCount;
-        private float _remainingDistance = 0.5f;
+        private float _remainingDistance = EnemyConstants.Patrol.DefaultRemainingDistance;
 
         // アニメータハッシュ
         private readonly int _animatorHashSpeed = Animator.StringToHash("Speed");
@@ -103,13 +98,13 @@ namespace Game.ScoreTimeAttack.Enemy
             transform.position = _navMeshAgent.nextPosition;
 
             // 回転の同期（移動方向を向く）
-            if (_navMeshAgent.velocity.sqrMagnitude > 0.01f)
+            if (_navMeshAgent.velocity.sqrMagnitude > EnemyConstants.Navigation.VelocityThreshold)
             {
                 var targetRotation = Quaternion.LookRotation(_navMeshAgent.velocity.normalized);
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     targetRotation,
-                    RotationSmoothSpeed * Time.deltaTime
+                    EnemyConstants.Navigation.RotationSmoothSpeed * Time.deltaTime
                 );
             }
 
@@ -141,7 +136,7 @@ namespace Game.ScoreTimeAttack.Enemy
             if (!_animator || !_navMeshAgent) return;
 
             // NavMeshAgentが実際に移動しているかを判定
-            bool isMoving = _navMeshAgent.velocity.sqrMagnitude > 0.01f;
+            bool isMoving = _navMeshAgent.velocity.sqrMagnitude > EnemyConstants.Navigation.VelocityThreshold;
 
             // 移動中なら目標速度、停止中なら0
             float animSpeed = isMoving ? _currentTargetSpeed : 0f;
@@ -161,13 +156,13 @@ namespace Game.ScoreTimeAttack.Enemy
             // 視野角チェック
             Vector3 viewDistance = transform.position - _player.transform.position;
             Vector3 viewCross = Vector3.Cross(transform.forward, viewDistance);
-            var viewAngle = Vector3.Angle(transform.forward, viewDistance) * (viewCross.y < 0f ? -1f : 1f) + 180f;
-            if (viewAngle <= 45f || viewAngle >= 315f)
+            var viewAngle = Vector3.Angle(transform.forward, viewDistance) * (viewCross.y < 0f ? -1f : 1f) + EnemyConstants.Vision.AngleOffset;
+            if (viewAngle <= EnemyConstants.Vision.ForwardAngleMin || viewAngle >= EnemyConstants.Vision.ForwardAngleMax)
             {
                 Vector3 distance = _player.transform.position - transform.position;
                 float maxDistance = distance.magnitude;
                 Vector3 direction = distance.normalized;
-                Vector3 eyePosition = transform.position + new Vector3(0f, 0.5f, 0f);
+                Vector3 eyePosition = transform.position + new Vector3(0f, EnemyConstants.Vision.EyeHeightOffset, 0f);
 
                 // 視線が遮られていないかチェック
                 var raycastHitCount = Physics.RaycastNonAlloc(new Ray(eyePosition, direction), _raycastHits, maxDistance, LayerMaskConstants.Player);
@@ -186,7 +181,7 @@ namespace Game.ScoreTimeAttack.Enemy
 
         private bool IsPlayerOverlap(float distance)
         {
-            float radius = distance * 2f;
+            float radius = distance * EnemyConstants.Detection.RadiusMultiplier;
             var hitCount = Physics.OverlapSphereNonAlloc(transform.position, radius, _overlapResults, LayerMaskConstants.Player);
             if (hitCount == 0)
                 return false;
@@ -238,14 +233,14 @@ namespace Game.ScoreTimeAttack.Enemy
 
             // プレイヤーが大きく移動した場合は即座に更新
             float distanceFromLastDest = Vector3.Distance(position, _lastDestination);
-            if (distanceFromLastDest > DestinationUpdateThreshold)
+            if (distanceFromLastDest > EnemyConstants.Navigation.DestinationUpdateThreshold)
             {
                 return TrySetDestination(position, ignoreDistance: true);
             }
 
             // 一定間隔でのみ更新
             _destinationUpdateTimer += Time.deltaTime;
-            if (_destinationUpdateTimer >= DestinationUpdateInterval)
+            if (_destinationUpdateTimer >= EnemyConstants.Navigation.DestinationUpdateInterval)
             {
                 _destinationUpdateTimer = 0f;
                 return TrySetDestination(position, ignoreDistance: true);
@@ -267,8 +262,8 @@ namespace Game.ScoreTimeAttack.Enemy
         private void ResetPatrolRotation()
         {
             _rotationIntervalCount = 0f;
-            _rotationInterval = Random.Range(3f, 8f);
-            _remainingDistance = Random.Range(0.3f, 0.8f);
+            _rotationInterval = Random.Range(EnemyConstants.Patrol.RotationIntervalMin, EnemyConstants.Patrol.RotationIntervalMax);
+            _remainingDistance = Random.Range(EnemyConstants.Patrol.RemainingDistanceMin, EnemyConstants.Patrol.RemainingDistanceMax);
         }
 
         #endregion
@@ -341,14 +336,17 @@ namespace Game.ScoreTimeAttack.Enemy
                 // ランダムパトロール
                 ctx._rotationIntervalCount += Time.deltaTime;
 
-                var randomPos = ctx.transform.position + new Vector3(Random.Range(-10f, 10f), 0f, Random.Range(-10f, 10f));
+                var randomPos = ctx.transform.position + new Vector3(
+                    Random.Range(-EnemyConstants.Patrol.RandomMoveRange, EnemyConstants.Patrol.RandomMoveRange),
+                    0f,
+                    Random.Range(-EnemyConstants.Patrol.RandomMoveRange, EnemyConstants.Patrol.RandomMoveRange));
                 ctx.TrySetDestination(randomPos, remainingDistance: ctx._remainingDistance);
 
                 if (ctx._rotationIntervalCount > ctx._rotationInterval)
                 {
-                    var forward = new Vector3(0f, Random.Range(0f, 180f), 0f);
+                    var forward = new Vector3(0f, Random.Range(0f, EnemyConstants.Patrol.RandomRotationAngleMax), 0f);
                     var lookRotation = Quaternion.LookRotation(forward);
-                    var slerp = Quaternion.Slerp(ctx.transform.rotation, lookRotation, 10f * Time.deltaTime);
+                    var slerp = Quaternion.Slerp(ctx.transform.rotation, lookRotation, EnemyConstants.Patrol.PatrolRotationSpeed * Time.deltaTime);
                     ctx.transform.rotation = slerp;
                     ctx.ResetPatrolRotation();
                 }
@@ -369,7 +367,7 @@ namespace Game.ScoreTimeAttack.Enemy
             {
                 var ctx = Context;
                 ctx.SetSpeed(ctx.EnemyMaster.RunSpeed);
-                ctx._destinationUpdateTimer = DestinationUpdateInterval; // 即座に目的地を設定
+                ctx._destinationUpdateTimer = EnemyConstants.Navigation.DestinationUpdateInterval; // 即座に目的地を設定
             }
 
             public override void Update()
@@ -413,7 +411,7 @@ namespace Game.ScoreTimeAttack.Enemy
             {
                 var ctx = Context;
                 ctx.SetSpeed(ctx.EnemyMaster.WalkSpeed);
-                ctx._destinationUpdateTimer = DestinationUpdateInterval; // 即座に目的地を設定
+                ctx._destinationUpdateTimer = EnemyConstants.Navigation.DestinationUpdateInterval; // 即座に目的地を設定
             }
 
             public override void Update()

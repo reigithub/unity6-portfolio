@@ -7,6 +7,9 @@ namespace Game.Shared.Bootstrap
     /// </summary>
     public interface IGameModeLauncher : IGameLauncher
     {
+        /// <summary>
+        /// このランチャーが担当するゲームモード（MVC/MVP）
+        /// </summary>
         GameMode Mode { get; }
     }
 }

@@ -4,6 +4,7 @@ using Game.Shared.Combat;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
 using R3;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -15,6 +16,10 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public partial class SurvivorEnemyController : MonoBehaviour, ICombatTarget, IDeathNotifier
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_enemyUpdateMarker = new("ProfilerMarker.Enemy.Update");
+        private static readonly ProfilerMarker s_takeDamageMarker = new("ProfilerMarker.Enemy.TakeDamage");
+
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
         [SerializeField] private Animator _animator;
@@ -157,12 +162,18 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
-            _stateMachine?.Update();
+            using (s_enemyUpdateMarker.Auto())
+            {
+                _stateMachine?.Update();
+            }
         }
 
         public void TakeDamage(int damage)
         {
-            TakeDamageWithStateMachine(damage);
+            using (s_takeDamageMarker.Auto())
+            {
+                TakeDamageWithStateMachine(damage);
+            }
         }
 
         public void ApplyKnockback(Vector3 knockback)

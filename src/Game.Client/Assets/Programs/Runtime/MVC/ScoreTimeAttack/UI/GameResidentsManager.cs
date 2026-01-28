@@ -4,6 +4,7 @@ using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.ScoreTimeAttack.Player;
+using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
 using R3;
@@ -65,7 +66,7 @@ namespace Game.Core
 
         private void Initialize()
         {
-            _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, 1f);
+            _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, UIAnimationConstants.AlphaOpaque);
             if (_skybox) _defaultSkyboxMaterial = _skybox.material;
             SubscribeEvents();
         }
@@ -92,14 +93,14 @@ namespace Game.Core
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.TransitionEnter, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
-                    DoFade(1f, 0.5f, tcs);
+                    DoFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration, tcs);
                     await tcs.Task;
                 })
                 .AddTo(this);
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.TransitionFinish, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
-                    DoFade(0f, 1f, tcs);
+                    DoFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration, tcs);
                     await tcs.Task;
                 })
                 .AddTo(this);

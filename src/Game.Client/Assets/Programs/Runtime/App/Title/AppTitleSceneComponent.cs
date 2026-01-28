@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.App.Services;
 using Game.Library.Shared.Enums;
 using Game.Shared.Enums;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -75,7 +76,7 @@ namespace Game.App.Title
                     }).AddTo(this);
             }
 
-            PlayGameReadySoundAsync().Forget();
+            PlayGameReadySoundAsync().ForgetWithHandler("AppTitleSceneComponent.PlayGameReadySound");
         }
 
         private async UniTask PlayGameReadySoundAsync()
@@ -92,7 +93,7 @@ namespace Game.App.Title
         {
             if (AudioService != null)
             {
-                AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token).Forget();
+                AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token).ForgetWithHandler("AppTitleSceneComponent.PlayUIButtonSound");
                 await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
             }
         }

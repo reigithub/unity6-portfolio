@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.MVC.Core.Scenes;
 using R3;
@@ -28,17 +29,17 @@ namespace Game.ScoreTimeAttack.Scenes
 
         private void Awake()
         {
-            _uiCanvasGroup.alpha = 0f;
+            _uiCanvasGroup.alpha = UIAnimationConstants.AlphaTransparent;
         }
 
         public void DoFadeIn()
         {
-            _uiCanvasGroup.DOFade(1f, 0.25f);
+            _uiCanvasGroup.DOFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.StandardFadeDuration);
         }
 
         public void DoFadeOut()
         {
-            _uiCanvasGroup.DOFade(0f, 0.25f);
+            _uiCanvasGroup.DOFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.StandardFadeDuration);
         }
     }
 }

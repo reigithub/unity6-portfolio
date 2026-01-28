@@ -30,10 +30,7 @@
         {
             public const int PlayAnimation = Offset.Player + 0;
             public const int SpawnPlayer = Offset.Player + 1;
-            public const int OnTriggerEnter = Offset.Player + 10;
-            public const int OnCollisionEnter = Offset.Player + 20;
 
-            // HUD Communication
             public const int HudFadeIn = Offset.Player + 30;
             public const int HudFadeOut = Offset.Player + 31;
             public const int HpChanged = Offset.Player + 32;

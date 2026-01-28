@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Constants;
 using Game.MVP.Core.Enums;
+using Unity.Profiling;
 using VContainer;
 
 namespace Game.MVP.Core.Scenes
@@ -13,6 +14,10 @@ namespace Game.MVP.Core.Scenes
     /// </summary>
     public class GameSceneService : IGameSceneService
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_transitionMarker = new("ProfilerMarker.Scene.TransitionMVP");
+        private static readonly ProfilerMarker s_terminateMarker = new("ProfilerMarker.Scene.TerminateMVP");
+
         private readonly IObjectResolver _resolver;
         private readonly List<IGameScene> _gameScenes = new(16);
 
@@ -167,17 +172,20 @@ namespace Game.MVP.Core.Scenes
         /// </summary>
         private async UniTask TransitionCore(IGameScene gameScene, bool isDialog = false)
         {
-            gameScene.State = GameSceneState.Processing;
+            using (s_transitionMarker.Auto())
+            {
+                gameScene.State = GameSceneState.Processing;
 
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
+                if (gameScene.ArgHandler != null)
+                    await gameScene.ArgHandler.Invoke(gameScene);
 
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            CreateSceneScope(gameScene);
-            await gameScene.Startup();
-            await DoFadeInAsync(gameScene);
-            await gameScene.Ready();
+                await gameScene.PreInitialize();
+                await gameScene.LoadAsset();
+                CreateSceneScope(gameScene);
+                await gameScene.Startup();
+                await DoFadeInAsync(gameScene);
+                await gameScene.Ready();
+            }
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
@@ -289,12 +297,15 @@ namespace Game.MVP.Core.Scenes
 
         private async UniTask TerminateCore(IGameScene gameScene)
         {
-            if (gameScene != null)
+            using (s_terminateMarker.Auto())
             {
-                gameScene.State = GameSceneState.Terminate;
-                await DoFadeOutAsync(gameScene);
-                await gameScene.Terminate();
-                gameScene.Disposables?.Dispose();
+                if (gameScene != null)
+                {
+                    gameScene.State = GameSceneState.Terminate;
+                    await DoFadeOutAsync(gameScene);
+                    await gameScene.Terminate();
+                    gameScene.Disposables?.Dispose();
+                }
             }
         }
 

@@ -9,6 +9,11 @@ namespace Game.Shared.Services
     /// </summary>
     public interface ILockOnService
     {
+        /// <summary>
+        /// ロックオンサービスを初期化する
+        /// </summary>
+        /// <param name="camera">レイキャストに使用するカメラ</param>
+        /// <param name="layer">ターゲット検出に使用するレイヤーマスク</param>
         void Initialize(Camera camera, int layer);
 
         /// <summary>ロックオン中かどうか（対象が有効かつアクティブ）</summary>

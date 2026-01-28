@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Game.Shared.Exceptions;
 using Game.Shared.Services;
 using UnityEngine;
 
@@ -32,6 +33,15 @@ namespace Game.Core.Services
         protected override async UniTask<TextAsset> LoadMasterDataBinaryAsync()
         {
             _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+
+            if (_assetService == null)
+            {
+                throw new DependencyInjectionException(
+                    typeof(IAddressableAssetService),
+                    DIErrorType.ServiceNotRegistered,
+                    "IAddressableAssetService not available in MasterDataService");
+            }
+
             return await _assetService.LoadAssetAsync<TextAsset>("MasterDataBinary");
         }
     }

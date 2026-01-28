@@ -8,6 +8,7 @@ using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 using Random = UnityEngine.Random;
@@ -20,6 +21,12 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class SurvivorEnemySpawner : MonoBehaviour
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_spawnEnemyMarker = new("ProfilerMarker.Spawn.Enemy");
+        private static readonly ProfilerMarker s_validatePositionMarker = new("ProfilerMarker.Spawn.ValidatePosition");
+        private static readonly ProfilerMarker s_getFromPoolMarker = new("ProfilerMarker.Pool.GetEnemy");
+        private static readonly ProfilerMarker s_returnToPoolMarker = new("ProfilerMarker.Pool.ReturnEnemy");
+
         // スポーン設定定数
         // フォールバック値: SurvivorStageWaveEnemyMaster.MinSpawnDistance/MaxSpawnDistanceが0の場合に使用
         private const float SpawnRetryDelay = 0.5f;          // スポーン失敗時の再試行間隔（秒）
@@ -181,79 +188,82 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SpawnNextEnemy()
         {
-            if (_currentSpawnIndex >= _enemySpawnList.Count)
+            using (s_spawnEnemyMarker.Auto())
             {
-                _currentSpawnIndex = 0; // ループ
-            }
+                if (_currentSpawnIndex >= _enemySpawnList.Count)
+                {
+                    _currentSpawnIndex = 0; // ループ
+                }
 
-            var spawnInfo = _enemySpawnList[_currentSpawnIndex];
+                var spawnInfo = _enemySpawnList[_currentSpawnIndex];
 
-            // 敵マスターデータ取得
-            if (!MemoryDatabase.SurvivorEnemyMasterTable.TryFindById(spawnInfo.EnemyId, out var enemyMaster))
-            {
-                Debug.LogError($"[SurvivorEnemySpawner] Enemy master not found: {spawnInfo.EnemyId}");
-                return;
-            }
+                // 敵マスターデータ取得
+                if (!MemoryDatabase.SurvivorEnemyMasterTable.TryFindById(spawnInfo.EnemyId, out var enemyMaster))
+                {
+                    Debug.LogError($"[SurvivorEnemySpawner] Enemy master not found: {spawnInfo.EnemyId}");
+                    return;
+                }
 
-            // 同時存在数制限チェック（マスターデータのMaxConcurrentを参照）
-            if (!CanSpawnEnemy(enemyMaster))
-            {
-                // 制限に達している場合はスキップして次の敵タイプを試す
-                _spawnTimer = SpawnRetryDelay;
+                // 同時存在数制限チェック（マスターデータのMaxConcurrentを参照）
+                if (!CanSpawnEnemy(enemyMaster))
+                {
+                    // 制限に達している場合はスキップして次の敵タイプを試す
+                    _spawnTimer = SpawnRetryDelay;
+                    _currentSpawnIndex++;
+                    return;
+                }
+
+                var enemy = GetFromPool(spawnInfo.EnemyId);
+                if (enemy == null)
+                {
+                    Debug.LogWarning($"[SurvivorEnemySpawner] Pool exhausted for enemy {spawnInfo.EnemyId}, creating new");
+                    enemy = CreateEnemy(spawnInfo.EnemyId);
+                }
+
+                if (enemy == null)
+                {
+                    Debug.LogError($"[SurvivorEnemySpawner] Failed to get/create enemy {spawnInfo.EnemyId}");
+                    return;
+                }
+
+                // スポーン位置計算（マスターデータのSpawnRadiusでコライダーチェック）
+                float minDist = spawnInfo.MinSpawnDistance > 0 ? spawnInfo.MinSpawnDistance : DefaultMinSpawnDistance;
+                float maxDist = spawnInfo.MaxSpawnDistance > 0 ? spawnInfo.MaxSpawnDistance : DefaultMaxSpawnDistance;
+                float spawnRadius = enemyMaster.SpawnRadius.ToUnit(); // 1000倍値から実数に変換
+
+                if (!TryGetValidSpawnPosition(minDist, maxDist, spawnRadius, out var spawnPosition))
+                {
+                    // 有効なスポーン位置が見つからない場合は次回に延期
+                    _spawnTimer = SpawnRetryDelay;
+                    Debug.LogWarning($"[SurvivorEnemySpawner] Could not find valid spawn position for {enemyMaster.Name}, retrying later");
+                    return;
+                }
+
+                enemy.transform.position = spawnPosition;
+                enemy.gameObject.SetActive(true);
+                Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
+
+                // マスターデータから初期化
+                enemy.Initialize(
+                    enemyMaster,
+                    _playerTransform,
+                    _currentSpawnInfo.EnemySpeedMultiplier,
+                    _currentSpawnInfo.EnemyHealthMultiplier,
+                    _currentSpawnInfo.EnemyDamageMultiplier,
+                    _currentSpawnInfo.ExperienceMultiplier,
+                    spawnInfo.ItemDropGroupId,
+                    spawnInfo.ExpDropGroupId
+                );
+
+                _activeEnemies.Add(enemy);
+                _remainingSpawnCount--;
+                _spawnTimer = spawnInfo.SpawnInterval;
                 _currentSpawnIndex++;
-                return;
-            }
 
-            var enemy = GetFromPool(spawnInfo.EnemyId);
-            if (enemy == null)
-            {
-                Debug.LogWarning($"[SurvivorEnemySpawner] Pool exhausted for enemy {spawnInfo.EnemyId}, creating new");
-                enemy = CreateEnemy(spawnInfo.EnemyId);
-            }
-
-            if (enemy == null)
-            {
-                Debug.LogError($"[SurvivorEnemySpawner] Failed to get/create enemy {spawnInfo.EnemyId}");
-                return;
-            }
-
-            // スポーン位置計算（マスターデータのSpawnRadiusでコライダーチェック）
-            float minDist = spawnInfo.MinSpawnDistance > 0 ? spawnInfo.MinSpawnDistance : DefaultMinSpawnDistance;
-            float maxDist = spawnInfo.MaxSpawnDistance > 0 ? spawnInfo.MaxSpawnDistance : DefaultMaxSpawnDistance;
-            float spawnRadius = enemyMaster.SpawnRadius.ToUnit(); // 1000倍値から実数に変換
-
-            if (!TryGetValidSpawnPosition(minDist, maxDist, spawnRadius, out var spawnPosition))
-            {
-                // 有効なスポーン位置が見つからない場合は次回に延期
-                _spawnTimer = SpawnRetryDelay;
-                Debug.LogWarning($"[SurvivorEnemySpawner] Could not find valid spawn position for {enemyMaster.Name}, retrying later");
-                return;
-            }
-
-            enemy.transform.position = spawnPosition;
-            enemy.gameObject.SetActive(true);
-            Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
-
-            // マスターデータから初期化
-            enemy.Initialize(
-                enemyMaster,
-                _playerTransform,
-                _currentSpawnInfo.EnemySpeedMultiplier,
-                _currentSpawnInfo.EnemyHealthMultiplier,
-                _currentSpawnInfo.EnemyDamageMultiplier,
-                _currentSpawnInfo.ExperienceMultiplier,
-                spawnInfo.ItemDropGroupId,
-                spawnInfo.ExpDropGroupId
-            );
-
-            _activeEnemies.Add(enemy);
-            _remainingSpawnCount--;
-            _spawnTimer = spawnInfo.SpawnInterval;
-            _currentSpawnIndex++;
-
-            if (_remainingSpawnCount <= 0)
-            {
-                _isSpawning = false;
+                if (_remainingSpawnCount <= 0)
+                {
+                    _isSpawning = false;
+                }
             }
         }
 
@@ -299,21 +309,24 @@ namespace Game.MVP.Survivor.Enemy
         /// <returns>有効な位置が見つかった場合true</returns>
         private bool TryGetValidSpawnPosition(float minDistance, float maxDistance, float spawnRadius, out Vector3 position)
         {
-            for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
+            using (s_validatePositionMarker.Auto())
             {
-                var candidatePosition = GetRandomSpawnPosition(minDistance, maxDistance);
-
-                // スポーン位置が有効かチェック
-                if (IsValidSpawnPosition(candidatePosition, spawnRadius))
+                for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
                 {
-                    position = candidatePosition;
-                    return true;
-                }
-            }
+                    var candidatePosition = GetRandomSpawnPosition(minDistance, maxDistance);
 
-            // 全ての試行が失敗した場合、コライダーチェックなしで位置を返す（フォールバック）
-            position = GetRandomSpawnPosition(minDistance, maxDistance);
-            return true; // フォールバックとして常に成功扱い
+                    // スポーン位置が有効かチェック
+                    if (IsValidSpawnPosition(candidatePosition, spawnRadius))
+                    {
+                        position = candidatePosition;
+                        return true;
+                    }
+                }
+
+                // 全ての試行が失敗した場合、コライダーチェックなしで位置を返す（フォールバック）
+                position = GetRandomSpawnPosition(minDistance, maxDistance);
+                return true; // フォールバックとして常に成功扱い
+            }
         }
 
         private Vector3 GetRandomSpawnPosition(float minDistance, float maxDistance)
@@ -348,29 +361,35 @@ namespace Game.MVP.Survivor.Enemy
 
         private SurvivorEnemyController GetFromPool(int enemyId)
         {
-            if (!_pools.TryGetValue(enemyId, out var pool))
-                return null;
-
-            while (pool.Count > 0)
+            using (s_getFromPoolMarker.Auto())
             {
-                var enemy = pool.Dequeue();
-                if (enemy != null)
-                {
-                    return enemy;
-                }
-            }
+                if (!_pools.TryGetValue(enemyId, out var pool))
+                    return null;
 
-            return null;
+                while (pool.Count > 0)
+                {
+                    var enemy = pool.Dequeue();
+                    if (enemy != null)
+                    {
+                        return enemy;
+                    }
+                }
+
+                return null;
+            }
         }
 
         private void ReturnToPool(SurvivorEnemyController enemy)
         {
-            var enemyId = enemy.EnemyId;
-            enemy.ResetForPool();
-
-            if (_pools.TryGetValue(enemyId, out var pool))
+            using (s_returnToPoolMarker.Auto())
             {
-                pool.Enqueue(enemy);
+                var enemyId = enemy.EnemyId;
+                enemy.ResetForPool();
+
+                if (_pools.TryGetValue(enemyId, out var pool))
+                {
+                    pool.Enqueue(enemy);
+                }
             }
         }
 

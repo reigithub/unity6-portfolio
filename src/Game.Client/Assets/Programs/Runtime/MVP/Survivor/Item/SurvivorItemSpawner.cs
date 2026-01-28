@@ -9,6 +9,7 @@ using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 
@@ -20,6 +21,11 @@ namespace Game.MVP.Survivor.Item
     /// </summary>
     public class SurvivorItemSpawner : MonoBehaviour
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_spawnItemMarker = new("ProfilerMarker.Item.Spawn");
+        private static readonly ProfilerMarker s_dropRollMarker = new("ProfilerMarker.Item.DropRoll");
+        private static readonly ProfilerMarker s_getFromPoolMarker = new("ProfilerMarker.Item.GetFromPool");
+
         [Header("Settings")]
         [SerializeField] private int _poolSizePerItem = 50;
 
@@ -156,38 +162,41 @@ namespace Game.MVP.Survivor.Item
         /// </summary>
         public void SpawnItem(int itemId, Vector3 position)
         {
-            var master = GetOrAddItemMaster(itemId);
-            if (master == null)
+            using (s_spawnItemMarker.Auto())
             {
-                Debug.LogWarning($"[SurvivorItemSpawner] Unknown item ID: {itemId}");
-                return;
-            }
-
-            // プールがなければ動的に作成
-            if (!_pools.ContainsKey(itemId))
-            {
-                PreloadItemAsync(itemId).Forget();
-                return;
-            }
-
-            var item = GetFromPool(itemId);
-            if (item == null)
-            {
-                if (_prefabCache.TryGetValue(itemId, out var prefab))
+                var master = GetOrAddItemMaster(itemId);
+                if (master == null)
                 {
-                    item = CreateItem(itemId, prefab, master);
-                }
-                else
-                {
+                    Debug.LogWarning($"[SurvivorItemSpawner] Unknown item ID: {itemId}");
                     return;
                 }
+
+                // プールがなければ動的に作成
+                if (!_pools.ContainsKey(itemId))
+                {
+                    PreloadItemAsync(itemId).ForgetWithHandler("SurvivorItemSpawner.PreloadItem");
+                    return;
+                }
+
+                var item = GetFromPool(itemId);
+                if (item == null)
+                {
+                    if (_prefabCache.TryGetValue(itemId, out var prefab))
+                    {
+                        item = CreateItem(itemId, prefab, master);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
+                item.Reset();
+                item.SetPosition(position);
+                item.gameObject.SetActive(true);
+
+                _activeItems[itemId].Add(item);
             }
-
-            item.Reset();
-            item.SetPosition(position);
-            item.gameObject.SetActive(true);
-
-            _activeItems[itemId].Add(item);
         }
 
         /// <summary>
@@ -249,23 +258,26 @@ namespace Game.MVP.Survivor.Item
         /// </summary>
         private int RollDropFromGroup(List<SurvivorItemDropMaster> dropList)
         {
-            if (dropList == null || dropList.Count == 0) return 0;
-
-            // 0〜9999でロール（10000 = 100%）
-            var roll = UnityEngine.Random.Range(0, 10000);
-            var cumulative = 0;
-
-            foreach (var drop in dropList)
+            using (s_dropRollMarker.Auto())
             {
-                cumulative += drop.DropRate;
-                if (roll < cumulative)
-                {
-                    return drop.ItemId;
-                }
-            }
+                if (dropList == null || dropList.Count == 0) return 0;
 
-            // 確率不足分はドロップ失敗
-            return 0;
+                // 0〜9999でロール（10000 = 100%）
+                var roll = UnityEngine.Random.Range(0, 10000);
+                var cumulative = 0;
+
+                foreach (var drop in dropList)
+                {
+                    cumulative += drop.DropRate;
+                    if (roll < cumulative)
+                    {
+                        return drop.ItemId;
+                    }
+                }
+
+                // 確率不足分はドロップ失敗
+                return 0;
+            }
         }
 
         /// <summary>
@@ -295,18 +307,21 @@ namespace Game.MVP.Survivor.Item
 
         private SurvivorItem GetFromPool(int itemId)
         {
-            if (!_pools.TryGetValue(itemId, out var pool)) return null;
-
-            while (pool.Count > 0)
+            using (s_getFromPoolMarker.Auto())
             {
-                var item = pool.Dequeue();
-                if (item != null)
-                {
-                    return item;
-                }
-            }
+                if (!_pools.TryGetValue(itemId, out var pool)) return null;
 
-            return null;
+                while (pool.Count > 0)
+                {
+                    var item = pool.Dequeue();
+                    if (item != null)
+                    {
+                        return item;
+                    }
+                }
+
+                return null;
+            }
         }
 
         private void ReturnToPool(SurvivorItem item)

@@ -9,6 +9,7 @@ using Game.Shared.Extensions;
 using Game.Shared.Services;
 using MessagePipe;
 using R3;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 
@@ -23,6 +24,11 @@ namespace Game.MVP.Survivor.Player
     [RequireComponent(typeof(RaycastChecker))]
     public partial class SurvivorPlayerController : MonoBehaviour, IDamageable
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
+        private static readonly ProfilerMarker s_attractItemsMarker = new("ProfilerMarker.Player.AttractItems");
+        private static readonly ProfilerMarker s_safeMovementMarker = new("ProfilerMarker.Player.SafeMovement");
+
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
 
@@ -233,28 +239,31 @@ namespace Game.MVP.Survivor.Player
 
         private void UpdateInput()
         {
-            if (_inputService == null)
-                return;
-
-            // 移動入力受付
-            _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
-            _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
-
-            // ダッシュ入力チェック
-            var wantToRun = _inputService.Player.LeftShift.IsPressed() && IsMoveInput();
-            var canRun = _currentStamina.Value > 0;
-
-            // 移動速度更新（スタミナがある場合のみダッシュ可能）
-            var isRunning = wantToRun && canRun;
-            _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
-
-            // スタミナ消費・回復（deltaTimeベース）
-            UpdateStamina(isRunning);
-
-            // 回転入力受付
-            if (IsMoveInput())
+            using (s_updateInputMarker.Auto())
             {
-                _lookRotation = Quaternion.LookRotation(_moveVector);
+                if (_inputService == null)
+                    return;
+
+                // 移動入力受付
+                _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
+                _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
+
+                // ダッシュ入力チェック
+                var wantToRun = _inputService.Player.LeftShift.IsPressed() && IsMoveInput();
+                var canRun = _currentStamina.Value > 0;
+
+                // 移動速度更新（スタミナがある場合のみダッシュ可能）
+                var isRunning = wantToRun && canRun;
+                _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
+
+                // スタミナ消費・回復（deltaTimeベース）
+                UpdateStamina(isRunning);
+
+                // 回転入力受付
+                if (IsMoveInput())
+                {
+                    _lookRotation = Quaternion.LookRotation(_moveVector);
+                }
             }
         }
 
@@ -310,24 +319,27 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         private void UpdateItemAttraction()
         {
-            _itemCheckTimer -= Time.deltaTime;
-            if (_itemCheckTimer > 0f) return;
-            _itemCheckTimer = ItemCheckInterval;
-
-            // ItemレイヤーのみをOverlapSphereで検索
-            int hitCount = Physics.OverlapSphereNonAlloc(
-                transform.position,
-                _itemAttractDistance,
-                _itemHitBuffer,
-                LayerMaskConstants.Item
-            );
-
-            for (int i = 0; i < hitCount; i++)
+            using (s_attractItemsMarker.Auto())
             {
-                if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
+                _itemCheckTimer -= Time.deltaTime;
+                if (_itemCheckTimer > 0f) return;
+                _itemCheckTimer = ItemCheckInterval;
+
+                // ItemレイヤーのみをOverlapSphereで検索
+                int hitCount = Physics.OverlapSphereNonAlloc(
+                    transform.position,
+                    _itemAttractDistance,
+                    _itemHitBuffer,
+                    LayerMaskConstants.Item
+                );
+
+                for (int i = 0; i < hitCount; i++)
                 {
-                    // アイテムに吸引開始を通知（ターゲットと速度を渡す）
-                    collectible.StartAttraction(transform, _itemAttractSpeed);
+                    if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
+                    {
+                        // アイテムに吸引開始を通知（ターゲットと速度を渡す）
+                        collectible.StartAttraction(transform, _itemAttractSpeed);
+                    }
                 }
             }
         }
@@ -370,46 +382,49 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         private Vector3 CalculateSafeMovement(Vector3 desiredMovement)
         {
-            if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
+            using (s_safeMovementMarker.Auto())
             {
+                if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
+                {
+                    return desiredMovement;
+                }
+
+                var moveDistance = desiredMovement.magnitude;
+                var moveDirection = desiredMovement.normalized;
+
+                // CapsuleColliderの上下端点を計算
+                // point2をStepHeight分上げることで、低い障害物を無視
+                var center = _rigidbody.position + _capsuleCollider.center;
+                var halfHeight = Mathf.Max(0f, _capsuleCollider.height * 0.5f - _capsuleCollider.radius);
+                var point1 = center + Vector3.up * halfHeight;
+                // StepHeightより上の位置から判定開始（低い障害物は無視）
+                var point2Bottom = center - Vector3.up * halfHeight;
+                var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
+
+                // point2がpoint1より上になってしまう場合は補正
+                if (point2.y > point1.y)
+                {
+                    point2 = point1;
+                }
+
+                // CapsuleCastで衝突チェック（Enemyレイヤーを除外して構造物のみ判定）
+                var obstacleLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
+                if (Physics.CapsuleCast(
+                        point1, point2,
+                        _capsuleCollider.radius,
+                        moveDirection,
+                        out var hit,
+                        moveDistance + SkinWidth,
+                        obstacleLayerMask,
+                        QueryTriggerInteraction.Ignore))
+                {
+                    // 衝突した場合、衝突点の手前までの移動に制限
+                    var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
+                    return moveDirection * safeDistance;
+                }
+
                 return desiredMovement;
             }
-
-            var moveDistance = desiredMovement.magnitude;
-            var moveDirection = desiredMovement.normalized;
-
-            // CapsuleColliderの上下端点を計算
-            // point2をStepHeight分上げることで、低い障害物を無視
-            var center = _rigidbody.position + _capsuleCollider.center;
-            var halfHeight = Mathf.Max(0f, _capsuleCollider.height * 0.5f - _capsuleCollider.radius);
-            var point1 = center + Vector3.up * halfHeight;
-            // StepHeightより上の位置から判定開始（低い障害物は無視）
-            var point2Bottom = center - Vector3.up * halfHeight;
-            var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
-
-            // point2がpoint1より上になってしまう場合は補正
-            if (point2.y > point1.y)
-            {
-                point2 = point1;
-            }
-
-            // CapsuleCastで衝突チェック（Enemyレイヤーを除外して構造物のみ判定）
-            var obstacleLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-            if (Physics.CapsuleCast(
-                    point1, point2,
-                    _capsuleCollider.radius,
-                    moveDirection,
-                    out var hit,
-                    moveDistance + SkinWidth,
-                    obstacleLayerMask,
-                    QueryTriggerInteraction.Ignore))
-            {
-                // 衝突した場合、衝突点の手前までの移動に制限
-                var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
-                return moveDirection * safeDistance;
-            }
-
-            return desiredMovement;
         }
 
         #endregion

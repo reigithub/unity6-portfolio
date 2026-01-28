@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.ScoreTimeAttack.Enemy;
+using Game.ScoreTimeAttack.Player;
 using Game.ScoreTimeAttack.UI;
 using Game.ScoreTimeAttack.Enums;
 using Game.Shared.Extensions;
@@ -18,7 +19,7 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 
 namespace Game.ScoreTimeAttack.Scenes
 {
-    public class ScoreTimeAttackStageScene : GamePrefabScene<ScoreTimeAttackStageScene, ScoreTimeAttackStageSceneComponent>, IGameSceneArg<int>
+    public class ScoreTimeAttackStageScene : GamePrefabScene<ScoreTimeAttackStageScene, ScoreTimeAttackStageSceneComponent>, IGameSceneArg<int>, IPlayerCollisionHandler
     {
         protected override string AssetPathOrAddress => "ScoreTimeAttackStageScene";
 
@@ -74,9 +75,9 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             RegisterEvents();
 
-            // プレイヤー爆誕の儀
+            // プレイヤー爆誕の儀（衝突ハンドラーとしてthisを渡す）
             var playerStart = ScoreTimeAttackStageSceneHelper.GetPlayerStart(_stageSceneInstance.Scene);
-            var player = await playerStart.LoadPlayerAsync(SceneModel.PlayerMaster);
+            var player = await playerStart.LoadPlayerAsync(SceneModel.PlayerMaster, this);
 
             // エネミー生成
             var enemyStarts = ScoreTimeAttackStageSceneHelper.GetEnemyStarts(_stageSceneInstance.Scene);
@@ -141,51 +142,59 @@ namespace Game.ScoreTimeAttack.Scenes
                 })
                 .AddTo(SceneComponent);
 
-            // プレイヤー設定
-            MessagePipeService.Subscribe<Collider>(MessageKey.Player.OnTriggerEnter, other =>
-                {
-                    if (!other.gameObject.CompareTag("Item"))
-                        return;
-
-                    // 今はとりあえず一番近いやつでOK
-                    var itemMaster = MemoryDatabase.ScoreTimeAttackStageItemMasterTable.FindClosestByAssetName(other.name);
-                    var point = itemMaster?.Point ?? 1;
-
-                    other.gameObject.SafeDestroy();
-
-                    AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.PlayerGetPoint).Forget();
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetPoint).Forget();
-
-                    SceneModel.AddPoint(point);
-
-                    TryShowResultAsync().Forget();
-                })
-                .AddTo(SceneComponent);
-            MessagePipeService.Subscribe<Collision>(MessageKey.Player.OnCollisionEnter, other =>
-                {
-                    if (!other.gameObject.CompareTag("Enemy"))
-                        return;
-
-                    if (!other.gameObject.TryGetComponent<ScoreTimeAttackEnemyController>(out var enemyController))
-                        return;
-
-                    var hpDamage = enemyController.EnemyMaster.HpAttack;
-
-                    other.gameObject.SafeDestroy();
-
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
-
-                    SceneModel.PlayerHpDamaged(hpDamage);
-
-                    MessagePipeService.Publish(MessageKey.Player.HpChanged, SceneModel.PlayerCurrentHp);
-
-                    TryShowResultAsync().Forget();
-                })
-                .AddTo(SceneComponent);
-
             MessagePipeService.SubscribeAsync<bool>(MessageKey.UI.Escape, async (_, token) => { await ShowPauseAsync(token); })
                 .AddTo(SceneComponent);
         }
+
+        #region IPlayerCollisionHandler Implementation
+
+        /// <summary>
+        /// プレイヤーがトリガーに入った時の処理（アイテム取得）
+        /// </summary>
+        public void HandlePlayerTriggerEnter(Collider other)
+        {
+            if (!other.gameObject.CompareTag("Item"))
+                return;
+
+            // 今はとりあえず一番近いやつでOK
+            var itemMaster = MemoryDatabase.ScoreTimeAttackStageItemMasterTable.FindClosestByAssetName(other.name);
+            var point = itemMaster?.Point ?? 1;
+
+            other.gameObject.SafeDestroy();
+
+            AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.PlayerGetPoint).Forget();
+            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetPoint).Forget();
+
+            SceneModel.AddPoint(point);
+
+            TryShowResultAsync().Forget();
+        }
+
+        /// <summary>
+        /// プレイヤーが衝突した時の処理（敵との衝突ダメージ）
+        /// </summary>
+        public void HandlePlayerCollisionEnter(Collision collision)
+        {
+            if (!collision.gameObject.CompareTag("Enemy"))
+                return;
+
+            if (!collision.gameObject.TryGetComponent<ScoreTimeAttackEnemyController>(out var enemyController))
+                return;
+
+            var hpDamage = enemyController.EnemyMaster.HpAttack;
+
+            collision.gameObject.SafeDestroy();
+
+            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
+
+            SceneModel.PlayerHpDamaged(hpDamage);
+
+            MessagePipeService.Publish(MessageKey.Player.HpChanged, SceneModel.PlayerCurrentHp);
+
+            TryShowResultAsync().Forget();
+        }
+
+        #endregion
 
         private async UniTask ShowPauseAsync(CancellationToken token = default)
         {
