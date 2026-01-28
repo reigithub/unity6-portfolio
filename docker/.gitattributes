@@ -1,0 +1,7 @@
+# Shell scripts must use LF line endings for Linux containers
+*.sh text eol=lf
+
+# Keep these files with LF
+entrypoint*.sh text eol=lf
+cleanup.sh text eol=lf
+github-app-token.sh text eol=lf
