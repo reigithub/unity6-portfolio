@@ -7,6 +7,7 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using R3.Triggers;
@@ -258,7 +259,7 @@ namespace Game.MVP.Survivor.Scenes
                 totalKills: _stageModel.TotalKills.Value
             );
 
-            SaveCurrentSessionAsync().Forget();
+            SaveCurrentSessionAsync().ForgetWithHandler("SurvivorStageScene.SaveCurrentSession");
         }
 
         private async UniTask SaveCurrentSessionAsync()

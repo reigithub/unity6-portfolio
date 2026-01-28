@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData;
+using Game.Shared.Exceptions;
 using MessagePack;
 using MessagePack.Resolvers;
 using UnityEngine;
@@ -45,15 +46,37 @@ namespace Game.Shared.Services
 
         public async UniTask LoadMasterDataAsync()
         {
-            var asset = await LoadMasterDataBinaryAsync();
-            if (asset == null)
+            try
             {
-                Debug.LogError($"[{GetType().Name}] Failed to load master data binary.");
-                return;
-            }
+                var asset = await LoadMasterDataBinaryAsync();
+                if (asset == null)
+                {
+                    throw new MasterDataLoadException(
+                        "MasterDataBinary",
+                        "Master data binary asset returned null");
+                }
 
-            MemoryDatabase = new MemoryDatabase(asset.bytes, maxDegreeOfParallelism: Environment.ProcessorCount);
-            Debug.Log($"[{GetType().Name}] Master data loaded successfully.");
+                if (asset.bytes == null || asset.bytes.Length == 0)
+                {
+                    throw new MasterDataLoadException(
+                        "MasterDataBinary",
+                        "Master data binary is empty or corrupted");
+                }
+
+                MemoryDatabase = new MemoryDatabase(asset.bytes, maxDegreeOfParallelism: Environment.ProcessorCount);
+                Debug.Log($"[{GetType().Name}] Master data loaded successfully.");
+            }
+            catch (MasterDataLoadException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new MasterDataLoadException(
+                    "MasterDataBinary",
+                    $"Failed to load or parse master data: {ex.Message}",
+                    ex);
+            }
         }
     }
 }

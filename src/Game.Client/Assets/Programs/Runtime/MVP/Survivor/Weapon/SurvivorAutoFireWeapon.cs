@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.MasterData.MemoryTables;
 using Game.Shared.Combat;
+using Game.Shared.Extensions;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -62,7 +63,7 @@ namespace Game.MVP.Survivor.Weapon
         protected override void OnAssetNameChanged(string oldAssetName, string newAssetName)
         {
             // 非同期でプールを切り替え、古いプールは破棄
-            SwitchPoolAsync(oldAssetName, newAssetName).Forget();
+            SwitchPoolAsync(oldAssetName, newAssetName).ForgetWithHandler("SurvivorAutoFireWeapon.SwitchPool");
         }
 
         private async UniTask SwitchPoolAsync(string oldAssetName, string newAssetName)
@@ -76,7 +77,7 @@ namespace Game.MVP.Survivor.Weapon
                 if (!string.IsNullOrEmpty(oldAssetName) && _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
                 {
                     // 遅延破棄を開始（アクティブなプロジェクタイルが全て戻るまで待つ）
-                    DisposeOldPoolAsync(oldAssetName, oldPool).Forget();
+                    DisposeOldPoolAsync(oldAssetName, oldPool).ForgetWithHandler("SurvivorAutoFireWeapon.DisposeOldPool");
                 }
 
                 Debug.Log($"[SurvivorAutoFireWeapon] Switched to pool: {newAssetName}");
