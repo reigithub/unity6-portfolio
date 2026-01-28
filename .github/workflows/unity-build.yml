@@ -82,15 +82,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
-          clean: true
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-Test-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -152,14 +149,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-Windows-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -215,14 +210,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-Linux-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -278,14 +271,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-macOS-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -341,14 +332,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-WebGL-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -404,14 +393,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-Android-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
@@ -467,14 +454,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-iOS-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |

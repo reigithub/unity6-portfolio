@@ -16,7 +16,7 @@ on:
     paths:
       - 'src/Game.Client/**'
       - '.github/workflows/unity-test.yml'
-      - '.github/unity-ci.config'
+      - '.github/unity-ci.ini'
 
 jobs:
   # ============================================
@@ -59,52 +59,20 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
-          clean: true
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-EditMode-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-EditMode-
-            ${{ env.CACHE_KEY_PREFIX }}-
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
 
       - name: Setup directories
         run: |
           mkdir -p "${{ github.workspace }}/Logs"
           mkdir -p "${{ github.workspace }}/TestResults"
 
-      - name: Check Unity license
-        run: |
-          echo "=== Checking Unity license ==="
-          ls -la /unity-license/ || echo "License directory not found"
-          if [ -f /unity-license/*.ulf ]; then
-            echo "License file found"
-            ls -la /unity-license/*.ulf
-          else
-            echo "WARNING: No .ulf license file found!"
-          fi
-
-      - name: Check Library cache status
-        run: |
-          echo "=== Library cache status ==="
-          if [ -d "${{ env.UNITY_PROJECT_PATH }}/Library" ]; then
-            echo "Library folder exists"
-            ls -la "${{ env.UNITY_PROJECT_PATH }}/Library/" | head -20
-            du -sh "${{ env.UNITY_PROJECT_PATH }}/Library/" || true
-          else
-            echo "WARNING: Library folder not found - full reimport will occur"
-          fi
-
       - name: Run EditMode tests
         run: |
-          echo "=== Starting Unity Editor ==="
-          # ログをリアルタイムで出力するためバックグラウンドで tail
-          touch "${{ github.workspace }}/Logs/editmode-test.log"
-          tail -f "${{ github.workspace }}/Logs/editmode-test.log" &
-          TAIL_PID=$!
-
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -runTests \
@@ -114,10 +82,6 @@ jobs:
               -testResults "${{ github.workspace }}/TestResults/editmode-results.xml" \
               -testPlatform EditMode \
               -logFile "${{ github.workspace }}/Logs/editmode-test.log"
-
-          EXIT_CODE=$?
-          kill $TAIL_PID 2>/dev/null || true
-          exit $EXIT_CODE
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -155,20 +119,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: false
+          clean: false
 
-      - name: Restore Library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: ${{ env.CACHE_KEY_PREFIX }}-PlayMode-${{ hashFiles('**/Packages/manifest.json') }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-PlayMode-
-            ${{ env.CACHE_KEY_PREFIX }}-
-
-      - name: Setup X11 and directories
+      - name: Setup Library cache (persistent volume)
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+
+      - name: Setup directories
+        run: |
           mkdir -p "${{ github.workspace }}/Logs"
           mkdir -p "${{ github.workspace }}/TestResults"
 

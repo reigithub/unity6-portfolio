@@ -49,10 +49,10 @@ services:
       # Unity license file
       - ${UNITY_LICENSE_PATH:-/var/lib/unity-license}:/unity-license:ro
 
-      # Library cache (persist between runs)
-      - unity-library-cache:/home/runner/actions-runner/_work
+      # Project Library cache (persist between runs)
+      - unity-library-cache:/home/runner/.unity-library-cache
 
-      # Unity global cache
+      # Unity global cache (packages, shader cache, etc.)
       - unity-global-cache:/home/runner/.local/share/unity3d
 
     # Resource limits

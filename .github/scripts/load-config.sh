@@ -4,7 +4,7 @@
 
 set -e
 
-CONFIG_FILE=".github/unity-ci.config"
+CONFIG_FILE=".github/unity-ci.ini"
 
 # 必須の設定キー
 REQUIRED_KEYS=(
