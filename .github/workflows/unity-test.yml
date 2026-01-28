@@ -70,12 +70,8 @@ jobs:
             ${{ env.CACHE_KEY_PREFIX }}-EditMode-
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          # X11 ソケットディレクトリの権限を修正
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
-          # ログディレクトリを作成
           mkdir -p "${{ github.workspace }}/Logs"
           mkdir -p "${{ github.workspace }}/TestResults"
 
