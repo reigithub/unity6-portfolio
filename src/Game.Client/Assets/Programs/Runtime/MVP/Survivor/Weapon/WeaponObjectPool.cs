@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -11,6 +12,10 @@ namespace Game.MVP.Survivor.Weapon
     /// <typeparam name="T">プール対象のMonoBehaviour型（IPoolableWeaponItem実装）</typeparam>
     internal class WeaponObjectPool<T> where T : MonoBehaviour, IPoolableWeaponItem
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_getItemMarker = new("ProfilerMarker.Pool.GetItem");
+        private static readonly ProfilerMarker s_returnItemMarker = new("ProfilerMarker.Pool.ReturnItem");
+
         private readonly Queue<T> _pool = new();
         private readonly HashSet<T> _activeItems = new();
         private readonly GameObject _prefab;
@@ -70,26 +75,29 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public T Get()
         {
-            T item = null;
-
-            // nullチェックしながらデキュー
-            while (_pool.Count > 0)
+            using (s_getItemMarker.Auto())
             {
-                item = _pool.Dequeue();
-                if (item != null)
+                T item = null;
+
+                // nullチェックしながらデキュー
+                while (_pool.Count > 0)
                 {
-                    break;
+                    item = _pool.Dequeue();
+                    if (item != null)
+                    {
+                        break;
+                    }
                 }
-            }
 
-            // プールが空なら新規作成
-            if (item == null)
-            {
-                item = CreateItem();
-            }
+                // プールが空なら新規作成
+                if (item == null)
+                {
+                    item = CreateItem();
+                }
 
-            _activeItems.Add(item);
-            return item;
+                _activeItems.Add(item);
+                return item;
+            }
         }
 
         /// <summary>
@@ -98,14 +106,17 @@ namespace Game.MVP.Survivor.Weapon
         /// <returns>true: 返却成功, false: このプールに属していない</returns>
         public bool TryReturn(T item)
         {
-            if (!_activeItems.Contains(item))
+            using (s_returnItemMarker.Auto())
             {
-                return false;
-            }
+                if (!_activeItems.Contains(item))
+                {
+                    return false;
+                }
 
-            _activeItems.Remove(item);
-            _pool.Enqueue(item);
-            return true;
+                _activeItems.Remove(item);
+                _pool.Enqueue(item);
+                return true;
+            }
         }
 
         /// <summary>

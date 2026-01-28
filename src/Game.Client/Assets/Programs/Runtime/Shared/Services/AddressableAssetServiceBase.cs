@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -13,22 +14,36 @@ namespace Game.Shared.Services
     /// </summary>
     public abstract class AddressableAssetServiceBase : IAddressableAssetService
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_loadAssetMarker = new("ProfilerMarker.Asset.Load");
+        private static readonly ProfilerMarker s_instantiateMarker = new("ProfilerMarker.Asset.Instantiate");
+        private static readonly ProfilerMarker s_loadSceneMarker = new("ProfilerMarker.Asset.LoadScene");
+
         public async UniTask<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
-            ThrowExceptionIfNullAddress(address);
-            return await Addressables.LoadAssetAsync<T>(address);
+            using (s_loadAssetMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+                return await Addressables.LoadAssetAsync<T>(address);
+            }
         }
 
         public async UniTask<GameObject> InstantiateAsync(string address, Transform parent = null)
         {
-            ThrowExceptionIfNullAddress(address);
-            return await Addressables.InstantiateAsync(address, parent);
+            using (s_instantiateMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(address);
+                return await Addressables.InstantiateAsync(address, parent);
+            }
         }
 
         public async UniTask<SceneInstance> LoadSceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
-            ThrowExceptionIfNullAddress(sceneName);
-            return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
+            using (s_loadSceneMarker.Auto())
+            {
+                ThrowExceptionIfNullAddress(sceneName);
+                return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
+            }
         }
 
         public async UniTask UnloadSceneAsync(SceneInstance sceneInstance)

@@ -6,6 +6,7 @@ using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Services;
+using Unity.Profiling;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
@@ -16,6 +17,10 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_transitionMarker = new("ProfilerMarker.Scene.TransitionMVC");
+        private static readonly ProfilerMarker s_terminateMarker = new("ProfilerMarker.Scene.TerminateMVC");
+
         private IAddressableAssetService _assetService;
         private IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
         private IMessagePipeService _messagePipeService;
@@ -195,17 +200,20 @@ namespace Game.Core.Services
         /// </summary>
         private async UniTask TransitionCore(IGameScene gameScene, bool isDialog = false)
         {
-            gameScene.State = GameSceneState.Processing;
+            using (s_transitionMarker.Auto())
+            {
+                gameScene.State = GameSceneState.Processing;
 
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
+                if (gameScene.ArgHandler != null)
+                    await gameScene.ArgHandler.Invoke(gameScene);
 
-            if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionEnter, true);
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            await gameScene.Startup();
-            if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionFinish, true);
-            await gameScene.Ready();
+                if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionEnter, true);
+                await gameScene.PreInitialize();
+                await gameScene.LoadAsset();
+                await gameScene.Startup();
+                if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionFinish, true);
+                await gameScene.Ready();
+            }
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
@@ -317,10 +325,13 @@ namespace Game.Core.Services
 
         private async UniTask TerminateCore(IGameScene gameScene)
         {
-            if (gameScene != null)
+            using (s_terminateMarker.Auto())
             {
-                gameScene.State = GameSceneState.Terminate;
-                await gameScene.Terminate();
+                if (gameScene != null)
+                {
+                    gameScene.State = GameSceneState.Terminate;
+                    await gameScene.Terminate();
+                }
             }
         }
 

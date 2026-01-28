@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Services;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 
@@ -13,6 +14,10 @@ namespace Game.MVP.Survivor.Weapon
     /// </summary>
     public class SurvivorVfxSpawner : MonoBehaviour
     {
+        // Profiler markers
+        private static readonly ProfilerMarker s_spawnEffectMarker = new("ProfilerMarker.Vfx.SpawnEffect");
+        private static readonly ProfilerMarker s_getFromPoolMarker = new("ProfilerMarker.Vfx.GetFromPool");
+
         [Header("Settings")]
         [SerializeField] private int _poolSizePerEffect = 20;
 
@@ -104,54 +109,60 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public void SpawnEffect(string assetName, Vector3 position, float scale = 1f)
         {
-            if (string.IsNullOrEmpty(assetName)) return;
-
-            // プールがなければ動的に作成開始
-            if (!_pools.ContainsKey(assetName))
+            using (s_spawnEffectMarker.Auto())
             {
-                PreloadEffectAsync(assetName).Forget();
-                return;
-            }
+                if (string.IsNullOrEmpty(assetName)) return;
 
-            var ps = GetFromPool(assetName);
-            if (ps == null)
-            {
-                // プールが空の場合は新規作成
-                if (_prefabCache.TryGetValue(assetName, out var prefab))
+                // プールがなければ動的に作成開始
+                if (!_pools.ContainsKey(assetName))
                 {
-                    ps = CreateParticleSystem(assetName, prefab);
+                    PreloadEffectAsync(assetName).Forget();
+                    return;
                 }
 
-                if (ps == null) return;
+                var ps = GetFromPool(assetName);
+                if (ps == null)
+                {
+                    // プールが空の場合は新規作成
+                    if (_prefabCache.TryGetValue(assetName, out var prefab))
+                    {
+                        ps = CreateParticleSystem(assetName, prefab);
+                    }
+
+                    if (ps == null) return;
+                }
+
+                // 位置とスケール設定
+                ps.transform.position = position;
+                ps.transform.localScale = Vector3.one * scale;
+
+                // 再生開始
+                ps.gameObject.SetActive(true);
+                ps.Clear();
+                ps.Play();
+
+                // 再生終了後にプールへ返却
+                ReturnToPoolAfterPlayAsync(assetName, ps).Forget();
             }
-
-            // 位置とスケール設定
-            ps.transform.position = position;
-            ps.transform.localScale = Vector3.one * scale;
-
-            // 再生開始
-            ps.gameObject.SetActive(true);
-            ps.Clear();
-            ps.Play();
-
-            // 再生終了後にプールへ返却
-            ReturnToPoolAfterPlayAsync(assetName, ps).Forget();
         }
 
         private ParticleSystem GetFromPool(string assetName)
         {
-            if (!_pools.TryGetValue(assetName, out var pool)) return null;
-
-            while (pool.Count > 0)
+            using (s_getFromPoolMarker.Auto())
             {
-                var ps = pool.Dequeue();
-                if (ps != null)
-                {
-                    return ps;
-                }
-            }
+                if (!_pools.TryGetValue(assetName, out var pool)) return null;
 
-            return null;
+                while (pool.Count > 0)
+                {
+                    var ps = pool.Dequeue();
+                    if (ps != null)
+                    {
+                        return ps;
+                    }
+                }
+
+                return null;
+            }
         }
 
         private async UniTaskVoid ReturnToPoolAfterPlayAsync(string assetName, ParticleSystem ps)
