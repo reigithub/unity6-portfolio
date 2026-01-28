@@ -2,17 +2,11 @@ name: Unity Test
 
 # ============================================
 # テスト専用ワークフロー
-# Push/PR 時に自動実行されます
+# PR 時に自動実行されます
 # ビルドは unity-build.yml で手動実行してください
 # ============================================
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'src/Game.Client/**'
-      - '.github/workflows/unity-test.yml'
-      - '.github/unity-ci.config'
   pull_request:
     branches: [main, develop]
     paths:
@@ -60,7 +54,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
           clean: true
 
       - name: Restore Library cache
@@ -118,7 +112,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
 
       - name: Restore Library cache
         uses: actions/cache@v4

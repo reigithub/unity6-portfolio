@@ -24,6 +24,55 @@ namespace Game.Editor.Build
         private static string ProjectPath => Path.GetDirectoryName(Application.dataPath);
         private static string BuildsPath => Path.Combine(ProjectPath, "Builds");
 
+        /// <summary>
+        /// コマンドライン引数からビルドタイムスタンプを取得
+        /// -buildTimestamp YYYYMMDD_HHMMSS 形式で指定
+        /// </summary>
+        private static string BuildTimestamp
+        {
+            get
+            {
+                var args = Environment.GetCommandLineArgs();
+                for (int i = 0; i < args.Length - 1; i++)
+                {
+                    if (args[i] == "-buildTimestamp")
+                    {
+                        return args[i + 1];
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// タイムスタンプ付きのビルドパスを生成
+        /// CI ビルド時: Builds/CiBuilds/Platform/YYYYMMDD_HHMMSS/
+        /// 手動ビルド時: Builds/Platform/
+        /// </summary>
+        private static string GetBuildPath(string platform, string fileName = null)
+        {
+            var timestamp = BuildTimestamp;
+            string basePath;
+
+            if (!string.IsNullOrEmpty(timestamp))
+            {
+                // CI ビルド: Builds/CiBuilds/Platform/Timestamp/
+                basePath = Path.Combine(BuildsPath, "CiBuilds", platform, timestamp);
+            }
+            else
+            {
+                // 手動ビルド: Builds/Platform/
+                basePath = Path.Combine(BuildsPath, platform);
+            }
+
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return basePath;
+            }
+
+            return Path.Combine(basePath, fileName);
+        }
+
         #region Public Build Methods
 
         /// <summary>
@@ -33,7 +82,7 @@ namespace Game.Editor.Build
         public static void BuildWebGL()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "WebGL");
+            var buildPath = GetBuildPath("WebGL");
 
             // WebGL用の設定を適用
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
@@ -49,7 +98,7 @@ namespace Game.Editor.Build
         public static void BuildWindows()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Windows", $"{Application.productName}.exe");
+            var buildPath = GetBuildPath("Windows", $"{Application.productName}.exe");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64, BuildOptions.None);
         }
@@ -61,7 +110,7 @@ namespace Game.Editor.Build
         public static void BuildWindowsDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Windows-Dev", $"{Application.productName}.exe");
+            var buildPath = GetBuildPath("Windows-Dev", $"{Application.productName}.exe");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64,
                 BuildOptions.Development | BuildOptions.AllowDebugging);
@@ -75,7 +124,7 @@ namespace Game.Editor.Build
         public static void BuildLinux()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Linux", Application.productName);
+            var buildPath = GetBuildPath("Linux", Application.productName);
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64, BuildOptions.None);
         }
@@ -87,7 +136,7 @@ namespace Game.Editor.Build
         public static void BuildLinuxDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Linux-Dev", Application.productName);
+            var buildPath = GetBuildPath("Linux-Dev", Application.productName);
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
                 BuildOptions.Development | BuildOptions.AllowDebugging);
@@ -100,7 +149,7 @@ namespace Game.Editor.Build
         public static void BuildMacOS()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "macOS", $"{Application.productName}.app");
+            var buildPath = GetBuildPath("macOS", $"{Application.productName}.app");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneOSX, BuildOptions.None);
         }
@@ -112,7 +161,7 @@ namespace Game.Editor.Build
         public static void BuildMacOSDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "macOS-Dev", $"{Application.productName}.app");
+            var buildPath = GetBuildPath("macOS-Dev", $"{Application.productName}.app");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneOSX,
                 BuildOptions.Development | BuildOptions.AllowDebugging);
@@ -125,7 +174,7 @@ namespace Game.Editor.Build
         public static void BuildAndroid()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Android", $"{Application.productName}.apk");
+            var buildPath = GetBuildPath("Android", $"{Application.productName}.apk");
 
             // Android用の設定
             EditorUserBuildSettings.buildAppBundle = false;
@@ -141,7 +190,7 @@ namespace Game.Editor.Build
         public static void BuildAndroidAAB()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Android", $"{Application.productName}.aab");
+            var buildPath = GetBuildPath("Android", $"{Application.productName}.aab");
 
             // Android App Bundle を有効化
             EditorUserBuildSettings.buildAppBundle = true;
@@ -156,7 +205,7 @@ namespace Game.Editor.Build
         public static void BuildAndroidDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "Android-Dev", $"{Application.productName}.apk");
+            var buildPath = GetBuildPath("Android-Dev", $"{Application.productName}.apk");
 
             EditorUserBuildSettings.buildAppBundle = false;
 
@@ -172,7 +221,7 @@ namespace Game.Editor.Build
         public static void BuildIOS()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "iOS");
+            var buildPath = GetBuildPath("iOS");
 
             BuildPlayer(scenes, buildPath, BuildTarget.iOS, BuildOptions.None);
         }
@@ -184,7 +233,7 @@ namespace Game.Editor.Build
         public static void BuildIOSDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = Path.Combine(BuildsPath, "iOS-Dev");
+            var buildPath = GetBuildPath("iOS-Dev");
 
             BuildPlayer(scenes, buildPath, BuildTarget.iOS,
                 BuildOptions.Development | BuildOptions.AllowDebugging);
