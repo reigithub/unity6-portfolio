@@ -92,10 +92,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
           mkdir -p "${{ github.workspace }}/TestResults"
 
@@ -163,10 +161,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build Windows
@@ -228,10 +224,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build Linux
@@ -293,10 +287,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build macOS
@@ -358,10 +350,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build WebGL
@@ -423,10 +413,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build Android
@@ -488,10 +476,8 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
-      - name: Setup X11 and directories
+      - name: Setup directories
         run: |
-          sudo mkdir -p /tmp/.X11-unix
-          sudo chmod 1777 /tmp/.X11-unix
           mkdir -p "${{ github.workspace }}/Logs"
 
       - name: Build iOS
