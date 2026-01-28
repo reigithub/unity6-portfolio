@@ -4,7 +4,17 @@
 ## Get latest from `dotnet new gitignore`
 
 # dotenv files
-.env
+*.env*
+docker/.env
+docker/volumes/
+
+# Unity license files
+*.ulf
+*.alf
+Unity_lic.ulf
+
+# secret
+*.pem
 
 # User-specific files
 *.rsuser
