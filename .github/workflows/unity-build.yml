@@ -92,6 +92,13 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+          mkdir -p "${{ github.workspace }}/TestResults"
+
       - name: Run EditMode tests
         run: |
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
@@ -156,17 +163,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build Windows
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget Win64 \
-            -executeMethod Game.Editor.Build.BuildScript.BuildWindows \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-windows.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget Win64 \
+              -executeMethod Game.Editor.Build.BuildScript.BuildWindows \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-windows.log"
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
@@ -214,17 +228,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build Linux
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget Linux64 \
-            -executeMethod Game.Editor.Build.BuildScript.BuildLinux \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-linux.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget Linux64 \
+              -executeMethod Game.Editor.Build.BuildScript.BuildLinux \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-linux.log"
 
       - name: Upload Linux build
         uses: actions/upload-artifact@v4
@@ -272,17 +293,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build macOS
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget OSXUniversal \
-            -executeMethod Game.Editor.Build.BuildScript.BuildMacOS \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-macos.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget OSXUniversal \
+              -executeMethod Game.Editor.Build.BuildScript.BuildMacOS \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-macos.log"
 
       - name: Upload macOS build
         uses: actions/upload-artifact@v4
@@ -330,17 +358,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build WebGL
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget WebGL \
-            -executeMethod Game.Editor.Build.BuildScript.BuildWebGL \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-webgl.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget WebGL \
+              -executeMethod Game.Editor.Build.BuildScript.BuildWebGL \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-webgl.log"
 
       - name: Upload WebGL build
         uses: actions/upload-artifact@v4
@@ -388,17 +423,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build Android
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget Android \
-            -executeMethod Game.Editor.Build.BuildScript.BuildAndroid \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-android.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget Android \
+              -executeMethod Game.Editor.Build.BuildScript.BuildAndroid \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-android.log"
 
       - name: Upload Android build
         uses: actions/upload-artifact@v4
@@ -446,17 +488,24 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
 
+      - name: Setup X11 and directories
+        run: |
+          sudo mkdir -p /tmp/.X11-unix
+          sudo chmod 1777 /tmp/.X11-unix
+          mkdir -p "${{ github.workspace }}/Logs"
+
       - name: Build iOS
         run: |
-          unity-editor \
-            -batchmode \
-            -nographics \
-            -quit \
-            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-            -buildTarget iOS \
-            -executeMethod Game.Editor.Build.BuildScript.BuildIOS \
-            -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
-            -logFile "${{ github.workspace }}/Logs/build-ios.log"
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget iOS \
+              -executeMethod Game.Editor.Build.BuildScript.BuildIOS \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-ios.log"
 
       - name: Upload iOS build (Xcode Project)
         uses: actions/upload-artifact@v4
