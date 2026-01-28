@@ -2,11 +2,15 @@ name: Unity Test
 
 # ============================================
 # テスト専用ワークフロー
-# PR 時に自動実行されます
+# PR 時に自動実行、または手動実行
 # ビルドは unity-build.yml で手動実行してください
 # ============================================
 
 on:
+  # 手動実行
+  workflow_dispatch:
+
+  # PR 時に自動実行
   pull_request:
     branches: [main, develop]
     paths:
