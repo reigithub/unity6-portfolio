@@ -20,7 +20,7 @@
 # 設定方法: .env ファイルで UNITY_MODULE を変更
 
 # ビルド引数でプラットフォームを指定可能
-ARG UNITY_VERSION=6000.0.34f1
+ARG UNITY_VERSION=6000.3.2f1
 ARG UNITY_MODULE=windows-mono
 ARG IMAGE_VERSION=3
 
@@ -84,6 +84,10 @@ RUN mkdir -p /unity-cache \
     && mkdir -p /home/runner/.local/share/unity3d/Unity \
     && mkdir -p /home/runner/actions-runner/_work \
     && chown -R runner:runner /unity-cache /home/runner/.local /home/runner/actions-runner
+
+# X11 ソケットディレクトリのセットアップ（xvfb-run 用）
+RUN mkdir -p /tmp/.X11-unix \
+    && chmod 1777 /tmp/.X11-unix
 
 # Switch to runner user
 USER runner

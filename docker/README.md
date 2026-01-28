@@ -37,7 +37,7 @@ GitHub App を使用した認証を行います。
 
 ```bash
 # .env ファイル
-UNITY_VERSION=6000.0.34f1
+UNITY_VERSION=6000.3.2f1
 UNITY_MODULE=windows-mono   # ここを変更
 IMAGE_VERSION=3
 ```
@@ -55,9 +55,13 @@ cp .env.example .env
 # 秘密鍵を Base64 エンコード
 cat private-key.pem | base64 -w 0
 
-# 2. Unity ライセンスを配置
-sudo mkdir -p /var/lib/unity-license
-sudo cp /path/to/Unity_v6000.x.ulf /var/lib/unity-license/
+# 2. Docker コンテナ用 Unity ライセンスを生成・配置
+mkdir -p unity-license
+docker run --rm -v "$(pwd)/unity-license:/output" -w /output \
+  unityci/editor:ubuntu-6000.3.2f1-base-3 \
+  unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout
+# → https://license.unity3d.com/manual でアクティベーション
+# → ダウンロードした .ulf を unity-license/ に配置
 
 # 3. イメージをビルドして起動
 docker compose build
@@ -67,23 +71,27 @@ docker compose up -d
 docker compose logs -f
 ```
 
-## クイックスタート (Windows)
+## クイックスタート (Windows / Git Bash)
 
-```powershell
+```bash
 # 1. 環境変数を設定
-copy .env.example .env
+cp .env.example .env
 # .env ファイルを編集
 # - GITHUB_REPOSITORY を設定
 # - GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID を設定
 # - GITHUB_APP_PRIVATE_KEY_BASE64 を設定
-# - UNITY_LICENSE_PATH=C:/unity-license に変更
 
-# 秘密鍵を Base64 エンコード
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("private-key.pem"))
+# 秘密鍵を Base64 エンコード (PowerShell で実行)
+# [Convert]::ToBase64String([IO.File]::ReadAllBytes("private-key.pem"))
 
-# 2. Unity ライセンスを配置
-mkdir C:\unity-license
-copy "C:\path\to\Unity_v6000.x.ulf" "C:\unity-license\"
+# 2. Docker コンテナ用 Unity ライセンスを生成・配置
+mkdir -p unity-license
+MSYS_NO_PATHCONV=1 docker run --rm \
+  -v "$(pwd)/unity-license:/output" -w /output \
+  unityci/editor:ubuntu-6000.3.2f1-base-3 \
+  unity-editor -batchmode -nographics -createManualActivationFile -logFile /dev/stdout
+# → https://license.unity3d.com/manual でアクティベーション
+# → ダウンロードした .ulf を unity-license/ に配置
 
 # 3. イメージをビルドして起動
 docker compose build
@@ -92,6 +100,9 @@ docker compose up -d
 # 4. ログを確認
 docker compose logs -f
 ```
+
+> **重要**: Windows でアクティベーション済みの既存 `.ulf` ファイルは Docker コンテナでは使用できません。
+> 上記の手順で Docker コンテナ用のライセンスを生成してください。
 
 ## 複数プラットフォーム対応
 
@@ -111,8 +122,11 @@ UNITY_MODULE=webgl docker compose -p unity-webgl up -d
 docker/
 ├── Dockerfile              # Runner イメージ定義
 ├── docker-compose.yml      # Docker Compose 設定
+├── .env                    # 環境変数（※コミット禁止）
 ├── .env.example            # 環境変数テンプレート
 ├── README.md               # このファイル
+├── unity-license/          # Unity ライセンス（※コミット禁止）
+│   └── Unity_v6000.x.ulf
 ├── scripts/
 │   ├── entrypoint.sh       # コンテナ起動スクリプト
 │   ├── github-app-token.sh # GitHub App トークン生成
