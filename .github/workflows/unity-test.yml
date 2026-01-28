@@ -130,7 +130,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: EditMode Test Report
@@ -194,7 +194,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: PlayMode Test Report
