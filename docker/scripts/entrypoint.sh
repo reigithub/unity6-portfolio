@@ -22,6 +22,13 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
+# X11 ディレクトリのセットアップ（xvfb-run 用）
+log_info "Setting up X11 socket directory..."
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
+chown root:root /tmp/.X11-unix
+log_info "X11 socket directory configured"
+
 # Validate required environment variables
 if [ -z "$GITHUB_REPOSITORY" ]; then
     log_error "GITHUB_REPOSITORY is required (e.g., owner/repo)"
