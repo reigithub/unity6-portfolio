@@ -1,0 +1,90 @@
+# Unity 6 GitHub Actions Self-hosted Runner
+#
+# GitHub App を使用した認証を行います。
+# - より細かい権限制御が可能
+# - ユーザーに紐づかないため、担当者変更時も影響なし
+# - 監査ログでアプリアクションとして記録
+#
+# 使用方法:
+#   docker compose up -d
+#
+# ビルドプラットフォームを変更する場合:
+#   .env ファイルで UNITY_MODULE を設定してください
+#   例: UNITY_MODULE=webgl
+
+version: '3.8'
+
+services:
+  unity-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UNITY_VERSION: ${UNITY_VERSION:-6000.0.34f1}
+        UNITY_MODULE: ${UNITY_MODULE:-windows-mono}
+        IMAGE_VERSION: ${IMAGE_VERSION:-3}
+    image: unity-github-runner:${UNITY_VERSION:-6000.0.34f1}-${UNITY_MODULE:-windows-mono}
+    container_name: unity-runner
+    restart: unless-stopped
+
+    environment:
+      # Required - Repository
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+
+      # GitHub App authentication
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_INSTALLATION_ID=${GITHUB_APP_INSTALLATION_ID}
+
+      # Private key (choose one method)
+      # Method 1: PEM string with \n for newlines
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY:-}
+      # Method 2: Base64 encoded (recommended)
+      - GITHUB_APP_PRIVATE_KEY_BASE64=${GITHUB_APP_PRIVATE_KEY_BASE64:-}
+
+      # Runner configuration
+      - RUNNER_NAME=${RUNNER_NAME:-unity-runner}
+      - RUNNER_LABELS=${RUNNER_LABELS:-self-hosted,linux,unity,docker}
+
+    volumes:
+      # Unity license file
+      - ${UNITY_LICENSE_PATH:-/var/lib/unity-license}:/unity-license:ro
+
+      # Library cache (persist between runs)
+      - unity-library-cache:/home/runner/actions-runner/_work
+
+      # Unity global cache
+      - unity-global-cache:/home/runner/.local/share/unity3d
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 12G
+        reservations:
+          cpus: '2'
+          memory: 8G
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+    networks:
+      - runner-network
+
+networks:
+  runner-network:
+    driver: bridge
+
+volumes:
+  unity-library-cache:
+    driver: local
+  unity-global-cache:
+    driver: local

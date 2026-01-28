@@ -1,0 +1,159 @@
+name: Unity Test
+
+# ============================================
+# テスト専用ワークフロー
+# Push/PR 時に自動実行されます
+# ビルドは unity-build.yml で手動実行してください
+# ============================================
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/Game.Client/**'
+      - '.github/workflows/unity-test.yml'
+      - '.github/unity-ci.config'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/Game.Client/**'
+      - '.github/workflows/unity-test.yml'
+      - '.github/unity-ci.config'
+
+jobs:
+  # ============================================
+  # 設定読み込み
+  # ============================================
+  load-config:
+    name: Load Configuration
+    runs-on: [self-hosted, linux, unity, docker]
+    outputs:
+      unity_project_path: ${{ steps.config.outputs.UNITY_PROJECT_PATH }}
+      cache_key_prefix: ${{ steps.config.outputs.CACHE_KEY_PREFIX }}
+      artifact_retention_days: ${{ steps.config.outputs.ARTIFACT_RETENTION_DAYS }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+
+      - name: Load configuration
+        id: config
+        run: |
+          chmod +x .github/scripts/load-config.sh
+          .github/scripts/load-config.sh
+
+  # ============================================
+  # EditMode テスト
+  # ============================================
+  test-editmode:
+    name: EditMode Tests
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: load-config
+    timeout-minutes: 30
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
+      ARTIFACT_RETENTION_DAYS: ${{ needs.load-config.outputs.artifact_retention_days }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          clean: true
+
+      - name: Restore Library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          key: ${{ env.CACHE_KEY_PREFIX }}-EditMode-${{ hashFiles('**/Packages/manifest.json') }}
+          restore-keys: |
+            ${{ env.CACHE_KEY_PREFIX }}-EditMode-
+            ${{ env.CACHE_KEY_PREFIX }}-
+
+      - name: Run EditMode tests
+        run: |
+          unity-editor \
+            -runTests \
+            -batchmode \
+            -nographics \
+            -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+            -testResults "${{ github.workspace }}/TestResults/editmode-results.xml" \
+            -testPlatform EditMode \
+            -logFile "${{ github.workspace }}/Logs/editmode-test.log"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EditMode-Test-Results
+          path: |
+            TestResults/
+            Logs/
+          retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: EditMode Test Report
+          path: TestResults/editmode-results.xml
+          reporter: java-junit
+
+  # ============================================
+  # PlayMode テスト
+  # ============================================
+  test-playmode:
+    name: PlayMode Tests
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: [load-config, test-editmode]
+    timeout-minutes: 45
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
+      ARTIFACT_RETENTION_DAYS: ${{ needs.load-config.outputs.artifact_retention_days }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Restore Library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          key: ${{ env.CACHE_KEY_PREFIX }}-PlayMode-${{ hashFiles('**/Packages/manifest.json') }}
+          restore-keys: |
+            ${{ env.CACHE_KEY_PREFIX }}-PlayMode-
+            ${{ env.CACHE_KEY_PREFIX }}-
+
+      - name: Run PlayMode tests
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -runTests \
+              -batchmode \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -testResults "${{ github.workspace }}/TestResults/playmode-results.xml" \
+              -testPlatform PlayMode \
+              -logFile "${{ github.workspace }}/Logs/playmode-test.log"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PlayMode-Test-Results
+          path: |
+            TestResults/
+            Logs/
+          retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: PlayMode Test Report
+          path: TestResults/playmode-results.xml
+          reporter: java-junit
