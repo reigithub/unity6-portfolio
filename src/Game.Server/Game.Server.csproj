@@ -8,7 +8,24 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
+
+  <!--
+  <PropertyGroup>
+     // 警告をエラーとして扱う（オプション）
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+     // 特定の警告のみエラーとして扱う
+    <WarningsAsErrors>CA2000;CA2007</WarningsAsErrors>
+  </PropertyGroup>
+  -->
 
   <ItemGroup>
     <ProjectReference Include="..\Game.Shared\Game.Shared.csproj" />

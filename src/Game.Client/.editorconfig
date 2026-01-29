@@ -1,0 +1,74 @@
+# EditorConfig - Unity Project Specific Overrides
+# ルート設定を継承し、Unity 固有ルールを追加
+# https://editorconfig.org
+
+# root = true は設定しない（親の設定を継承）
+
+[*.cs]
+
+# ========================================
+# Unity 固有設定（オーバーライド）
+# ========================================
+
+# ConfigureAwait は Unity では不要
+dotnet_diagnostic.CA2007.severity = none
+
+# ========================================
+# Unity Analyzer (Microsoft.Unity.Analyzers)
+# ========================================
+
+# Update/FixedUpdate
+dotnet_diagnostic.UNT0001.severity = warning        # 空の Update メソッド
+
+# null チェック（Unity オブジェクトは == null を使用すべき）
+dotnet_diagnostic.UNT0002.severity = error          # null 比較に == を使用
+dotnet_diagnostic.UNT0007.severity = warning        # null 合体演算子の誤用
+dotnet_diagnostic.UNT0008.severity = warning        # null 伝播演算子の誤用
+dotnet_diagnostic.UNT0029.severity = warning        # パターンマッチングと null
+
+# GetComponent
+dotnet_diagnostic.UNT0003.severity = warning        # 非ジェネリック GetComponent
+dotnet_diagnostic.UNT0006.severity = warning        # GetComponent 結果のキャッシュ
+dotnet_diagnostic.UNT0014.severity = warning        # GetComponent<T> の型引数
+dotnet_diagnostic.UNT0026.severity = warning        # GetComponent の代替
+
+# Time
+dotnet_diagnostic.UNT0004.severity = warning        # Time.fixedDeltaTime の誤用
+dotnet_diagnostic.UNT0005.severity = warning        # Time.deltaTime の誤用
+
+# MonoBehaviour / ScriptableObject
+dotnet_diagnostic.UNT0009.severity = warning        # ScriptableObject の誤用
+dotnet_diagnostic.UNT0010.severity = warning        # MonoBehaviour の誤用
+dotnet_diagnostic.UNT0011.severity = warning        # ScriptableObject.CreateInstance
+dotnet_diagnostic.UNT0012.severity = warning        # StartCoroutine の戻り値
+
+# Serialization
+dotnet_diagnostic.UNT0013.severity = warning        # SerializeField の誤用
+dotnet_diagnostic.UNT0027.severity = warning        # 非 readonly SerializeReference
+dotnet_diagnostic.UNT0028.severity = warning        # 非 readonly SerializeField
+
+# パフォーマンス
+dotnet_diagnostic.UNT0015.severity = warning        # タグ比較に CompareTag を使用
+dotnet_diagnostic.UNT0016.severity = warning        # Mathf.Approximately の使用
+dotnet_diagnostic.UNT0017.severity = warning        # SetPixels の代わりに SetPixels32
+dotnet_diagnostic.UNT0022.severity = warning        # Position/Rotation の効率的設定
+dotnet_diagnostic.UNT0030.severity = warning        # Camera.main のキャッシュ
+
+# その他
+dotnet_diagnostic.UNT0018.severity = warning        # Reflection の System.Type
+dotnet_diagnostic.UNT0019.severity = warning        # GameObject.SendMessage
+dotnet_diagnostic.UNT0020.severity = warning        # MenuItem の静的メソッド
+dotnet_diagnostic.UNT0021.severity = warning        # MessageSender の保護
+dotnet_diagnostic.UNT0023.severity = warning        # Coalescing assignment
+dotnet_diagnostic.UNT0024.severity = warning        # Quaternion * Vector3 の順序
+dotnet_diagnostic.UNT0025.severity = none           # Input.GetKey（InputSystem使用のため無効）
+dotnet_diagnostic.UNT0031.severity = warning        # Asset の読み込み
+
+# ========================================
+# Unity 固有の命名規則調整
+# ========================================
+
+# SerializeField の private フィールドは _ プレフィックスなしも許容
+# （Unity の慣習として [SerializeField] private int health; のような記述がある）
+# 必要に応じて以下をコメント解除:
+# dotnet_naming_rule.private_fields_should_be_camel_case.severity = suggestion
