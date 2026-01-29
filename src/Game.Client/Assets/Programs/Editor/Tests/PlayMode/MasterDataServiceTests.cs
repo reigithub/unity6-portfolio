@@ -184,6 +184,7 @@ namespace Game.Tests.PlayMode
                 {
                     // 期待される動作 - エラーがスローされる
                     Assert.Pass("Invalid key correctly throws exception");
+                    // Assert.Throws<InvalidKeyException>(() => throw new InvalidKeyException("Invalid key correctly throws exception"));
                 }
                 finally
                 {

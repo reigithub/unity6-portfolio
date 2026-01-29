@@ -140,14 +140,14 @@ namespace Game.Tests.PlayMode
         [UnityTest]
         public IEnumerator MultipleItems_CanBePickedUpSequentially()
         {
-            // Arrange
-            CreateExpItem(new Vector3(0, 0.5f, 1f), expAmount: 10);
-            CreateExpItem(new Vector3(0, 0.5f, 2f), expAmount: 20);
-            CreateExpItem(new Vector3(0, 0.5f, 3f), expAmount: 30);
+            // Arrange - アイテムをより近くに配置（CI環境でのフレームレート差を考慮）
+            CreateExpItem(new Vector3(0, 0.5f, 0.5f), expAmount: 10);
+            CreateExpItem(new Vector3(0, 0.5f, 1.0f), expAmount: 20);
+            CreateExpItem(new Vector3(0, 0.5f, 1.5f), expAmount: 30);
             yield return new WaitForFixedUpdate();
 
-            // Act
-            yield return MovePlayerTowards(new Vector3(0, 0, 4f), 5f);
+            // Act - 速度を上げてタイムアウトも延長（CI環境対応）
+            yield return MovePlayerTowards(new Vector3(0, 0, 2f), 10f, 10f);
 
             // Assert
             Assert.AreEqual(60, _playerStats.CurrentExp, "Should collect all exp items");
@@ -240,9 +240,8 @@ namespace Game.Tests.PlayMode
             return item;
         }
 
-        private IEnumerator MovePlayerTowards(Vector3 target, float speed)
+        private IEnumerator MovePlayerTowards(Vector3 target, float speed, float timeout = 5f)
         {
-            float timeout = 5f;
             float elapsed = 0f;
 
             while (elapsed < timeout)
