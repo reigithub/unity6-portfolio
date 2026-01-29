@@ -35,31 +35,40 @@ jobs:
         id: count
         run: |
           # 変更された C# ファイルをカウント
-          cs_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.cs$' || true)
-          cs_count=$(echo "$cs_files" | grep -c '\.cs$' || echo "0")
+          # Note: YAML では $ が変数展開されるため、grep -E と [.]cs で回避
+          cs_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '[.]cs$' || true)
+
+          # 空の場合は 0、そうでなければ行数をカウント
+          if [ -z "$cs_files" ]; then
+            cs_count=0
+          else
+            cs_count=$(echo "$cs_files" | wc -l | tr -d ' ')
+          fi
           echo "cs_files=$cs_count" >> $GITHUB_OUTPUT
 
           # プロジェクト別の変更を検出
-          if echo "$cs_files" | grep -q "src/Game.Client/"; then
+          if [ -n "$cs_files" ] && echo "$cs_files" | grep -q "src/Game.Client/"; then
             echo "has_unity=true" >> $GITHUB_OUTPUT
           else
             echo "has_unity=false" >> $GITHUB_OUTPUT
           fi
 
-          if echo "$cs_files" | grep -q "src/Game.Server/"; then
+          if [ -n "$cs_files" ] && echo "$cs_files" | grep -q "src/Game.Server/"; then
             echo "has_server=true" >> $GITHUB_OUTPUT
           else
             echo "has_server=false" >> $GITHUB_OUTPUT
           fi
 
-          if echo "$cs_files" | grep -q "src/Game.Shared/"; then
+          if [ -n "$cs_files" ] && echo "$cs_files" | grep -q "src/Game.Shared/"; then
             echo "has_shared=true" >> $GITHUB_OUTPUT
           else
             echo "has_shared=false" >> $GITHUB_OUTPUT
           fi
 
           echo "Changed C# files: $cs_count"
-          echo "$cs_files"
+          if [ -n "$cs_files" ]; then
+            echo "$cs_files"
+          fi
 
   # ============================================
   # PR コメント投稿
