@@ -291,7 +291,7 @@ Unity6Portfolio/
 | 観点 | MVC (ScoreTimeAttack) | MVP (Survivor) |
 |-----|----------------------|----------------|
 | **DI方式** | GameServiceManager（手動） | VContainer（自動） |
-| **UI技術** | uGUI + TextMeshPro | uGUI + TextMeshPro |
+| **UI技術** | uGUI + TextMeshPro | UIToolkit + TextMeshPro |
 | **状態管理** | StateMachine | StateMachine + R3 Reactive |
 | **メッセージング** | MessagePipe（直接参照） | MessagePipe（DI注入） |
 | **シーン読み込み** | Addressables直接呼び出し | IAddressableAssetService経由 |
