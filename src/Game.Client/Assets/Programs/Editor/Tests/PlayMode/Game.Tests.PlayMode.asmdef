@@ -1,0 +1,41 @@
+{
+    "name": "Game.Tests.PlayMode",
+    "rootNamespace": "Game.Tests.PlayMode",
+    "references": [
+        "UnityEngine.TestRunner",
+        "Game.Shared",
+        "Game.App",
+        "Game.MVC.Core",
+        "Game.MVC.ScoreTimeAttack",
+        "Game.MVP.Core",
+        "Game.MVP.Survivor",
+        "Game.Tests.Shared",
+        "UniTask",
+        "UniTask.Addressables",
+        "UniTask.Linq",
+        "R3.Unity",
+        "MessagePipe",
+        "MemoryPack.Unity",
+        "VContainer",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NSubstitute.dll",
+        "R3.dll",
+        "MemoryPack.Core.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
