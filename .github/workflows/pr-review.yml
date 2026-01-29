@@ -1,0 +1,198 @@
+name: PR Review
+
+# ============================================
+# PR コメント自動投稿ワークフロー
+# C# ファイルが変更された PR にチェックリストを投稿
+# ============================================
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '**.cs'
+      - '.editorconfig'
+      - 'src/Game.Client/.editorconfig'
+
+jobs:
+  # ============================================
+  # 変更ファイル分析
+  # ============================================
+  analyze-changes:
+    name: Analyze Changes
+    runs-on: ubuntu-latest
+    outputs:
+      cs_files_count: ${{ steps.count.outputs.cs_files }}
+      has_unity_changes: ${{ steps.count.outputs.has_unity }}
+      has_server_changes: ${{ steps.count.outputs.has_server }}
+      has_shared_changes: ${{ steps.count.outputs.has_shared }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count changed files
+        id: count
+        run: |
+          # 変更された C# ファイルをカウント
+          cs_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.cs$' || true)
+          cs_count=$(echo "$cs_files" | grep -c '\.cs$' || echo "0")
+          echo "cs_files=$cs_count" >> $GITHUB_OUTPUT
+
+          # プロジェクト別の変更を検出
+          if echo "$cs_files" | grep -q "src/Game.Client/"; then
+            echo "has_unity=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_unity=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$cs_files" | grep -q "src/Game.Server/"; then
+            echo "has_server=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_server=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$cs_files" | grep -q "src/Game.Shared/"; then
+            echo "has_shared=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_shared=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Changed C# files: $cs_count"
+          echo "$cs_files"
+
+  # ============================================
+  # PR コメント投稿
+  # ============================================
+  post-review:
+    name: Post Review Comment
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.cs_files_count > 0
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post checklist comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasUnity = '${{ needs.analyze-changes.outputs.has_unity_changes }}' === 'true';
+            const hasServer = '${{ needs.analyze-changes.outputs.has_server_changes }}' === 'true';
+            const hasShared = '${{ needs.analyze-changes.outputs.has_shared_changes }}' === 'true';
+            const csCount = '${{ needs.analyze-changes.outputs.cs_files_count }}';
+
+            // チェックリストを構築
+            let checklist = `## 🔍 コード品質チェックリスト
+
+            **${csCount} 個の C# ファイルが変更されています。**
+
+            ### 共通チェック
+            - [ ] .editorconfig に従ったフォーマット
+            - [ ] 命名規則の遵守（\`_\` プレフィックス、PascalCase）
+            - [ ] 不要な using の削除
+            `;
+
+            if (hasUnity) {
+              checklist += `
+            ### Unity プロジェクト (Game.Client)
+            - [ ] Unity Analyzer の警告対応
+            - [ ] GetComponent のキャッシュ（UNT0006）
+            - [ ] null チェックに \`==\` 演算子を使用（UNT0002）
+            - [ ] Camera.main のキャッシュ（UNT0030）
+            - [ ] CompareTag の使用（UNT0015）
+            `;
+            }
+
+            if (hasServer) {
+              checklist += `
+            ### サーバープロジェクト (Game.Server)
+            - [ ] ConfigureAwait(false) の使用
+            - [ ] 例外処理の確認
+            - [ ] ログ出力の確認
+            `;
+            }
+
+            if (hasShared) {
+              checklist += `
+            ### 共有ライブラリ (Game.Shared)
+            - [ ] Unity/Server 両方で動作することを確認
+            - [ ] Unity 依存コードが含まれていないことを確認
+            `;
+            }
+
+            checklist += `
+            ---
+            📖 詳細は [CODE_QUALITY_SETUP.md](../docs/CODE_QUALITY_SETUP.md) を参照してください。
+            `;
+
+            // 既存のボットコメントを検索
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(
+              c => c.user.login === 'github-actions[bot]' &&
+                   c.body.includes('コード品質チェックリスト')
+            );
+
+            if (botComment) {
+              // 既存のコメントを更新
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: checklist
+              });
+              console.log('Updated existing comment');
+            } else {
+              // 新規コメントを投稿
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: checklist
+              });
+              console.log('Created new comment');
+            }
+
+  # ============================================
+  # ラベル自動付与
+  # ============================================
+  add-labels:
+    name: Add Labels
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.cs_files_count > 0
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add project labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasUnity = '${{ needs.analyze-changes.outputs.has_unity_changes }}' === 'true';
+            const hasServer = '${{ needs.analyze-changes.outputs.has_server_changes }}' === 'true';
+            const hasShared = '${{ needs.analyze-changes.outputs.has_shared_changes }}' === 'true';
+
+            const labels = [];
+
+            if (hasUnity) labels.push('unity');
+            if (hasServer) labels.push('server');
+            if (hasShared) labels.push('shared');
+
+            if (labels.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: labels
+                });
+                console.log(`Added labels: ${labels.join(', ')}`);
+              } catch (error) {
+                // ラベルが存在しない場合はスキップ
+                console.log(`Could not add labels: ${error.message}`);
+              }
+            }

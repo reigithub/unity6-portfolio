@@ -1,0 +1,296 @@
+name: Code Quality
+
+# ============================================
+# コード品質チェックワークフロー
+# - フォーマットチェック（改行コード、末尾空白）
+# - .editorconfig 準拠チェック
+# - Roslyn Analyzer チェック（Unity）
+# ============================================
+
+on:
+  # 手動実行
+  workflow_dispatch:
+
+  # PR 時に自動実行（C# ファイル変更時）
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**.cs'
+      - '.editorconfig'
+      - 'src/Game.Client/.editorconfig'
+      - '.github/workflows/code-quality.yml'
+
+  # main/develop への push 時
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.cs'
+
+jobs:
+  # ============================================
+  # フォーマットチェック（軽量・高速）
+  # ============================================
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check line endings (LF only)
+        run: |
+          echo "::group::Checking line endings..."
+
+          # CRLF を含むファイルを検出
+          crlf_files=$(find . -name "*.cs" -type f -exec file {} \; | grep -l "CRLF" || true)
+
+          if [ -n "$crlf_files" ]; then
+            echo "::error::Found files with CRLF line endings:"
+            echo "$crlf_files"
+            echo ""
+            echo "Please convert to LF. You can use:"
+            echo "  git config core.autocrlf input"
+            echo "  dos2unix <file>"
+            exit 1
+          fi
+
+          echo "Line endings check passed."
+          echo "::endgroup::"
+
+      - name: Check trailing whitespace
+        run: |
+          echo "::group::Checking trailing whitespace..."
+
+          # 末尾空白を含むファイルを検出
+          trailing_files=$(grep -rlE " +$" --include="*.cs" . || true)
+
+          if [ -n "$trailing_files" ]; then
+            echo "::warning::Found files with trailing whitespace:"
+            echo "$trailing_files"
+            echo ""
+            # 警告のみ（エラーにはしない）
+            # 段階的に修正していくため
+          fi
+
+          echo "Trailing whitespace check completed."
+          echo "::endgroup::"
+
+      - name: Check file encoding (UTF-8)
+        run: |
+          echo "::group::Checking file encoding..."
+
+          # UTF-8 以外のエンコーディングを検出
+          non_utf8=$(find . -name "*.cs" -type f -exec file --mime-encoding {} \; | grep -v "utf-8\|ascii\|us-ascii" || true)
+
+          if [ -n "$non_utf8" ]; then
+            echo "::warning::Found files with non-UTF-8 encoding:"
+            echo "$non_utf8"
+          fi
+
+          echo "Encoding check completed."
+          echo "::endgroup::"
+
+  # ============================================
+  # dotnet format チェック（.editorconfig 準拠）
+  # Server/Shared プロジェクト向け
+  # ============================================
+  dotnet-format:
+    name: dotnet format Check
+    runs-on: ubuntu-latest
+    # Server/Shared が存在する場合のみ実行
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Check for .NET projects
+        id: check-projects
+        run: |
+          if [ -f "src/Game.Server/Game.Server.csproj" ] || [ -f "src/Game.Shared/Game.Shared.csproj" ]; then
+            echo "has_dotnet_projects=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_dotnet_projects=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run dotnet format (Game.Shared)
+        if: steps.check-projects.outputs.has_dotnet_projects == 'true'
+        run: |
+          if [ -f "src/Game.Shared/Game.Shared.csproj" ]; then
+            echo "::group::Checking Game.Shared formatting..."
+            cd src/Game.Shared
+            dotnet format --verify-no-changes --verbosity diagnostic 2>&1 || echo "::warning::Format issues found in Game.Shared"
+            echo "::endgroup::"
+          fi
+
+      - name: Run dotnet format (Game.Server)
+        if: steps.check-projects.outputs.has_dotnet_projects == 'true'
+        run: |
+          if [ -f "src/Game.Server/Game.Server.csproj" ]; then
+            echo "::group::Checking Game.Server formatting..."
+            cd src/Game.Server
+            dotnet format --verify-no-changes --verbosity diagnostic 2>&1 || echo "::warning::Format issues found in Game.Server"
+            echo "::endgroup::"
+          fi
+
+  # ============================================
+  # Unity Analyzer チェック
+  # self-hosted runner + Docker 環境で実行
+  # ============================================
+  unity-analyze:
+    name: Unity Analyzer
+    runs-on: [self-hosted, linux, unity, docker]
+    # PR 時のみ実行（リソース節約）
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          clean: false
+
+      - name: Setup Library cache
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "src/Game.Client"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+          mkdir -p "${{ github.workspace }}/AnalyzerResults"
+
+      - name: Generate solution file
+        run: |
+          echo "::group::Generating solution..."
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -projectPath src/Game.Client \
+              -executeMethod UnityEditor.SyncVS.SyncSolution \
+              -quit \
+              -batchmode \
+              -nographics \
+              -logFile "${{ github.workspace }}/Logs/generate-solution.log" || true
+          echo "::endgroup::"
+
+      - name: Run Roslyn Analyzers
+        run: |
+          echo "::group::Running analyzers..."
+          cd src/Game.Client
+
+          # .sln ファイルを検索（プロジェクト名を優先）
+          if [ -f "Game.Client.sln" ]; then
+            sln_file="Game.Client.sln"
+          else
+            sln_file=$(find . -maxdepth 1 -name "*.sln" | head -1)
+          fi
+
+          if [ -z "$sln_file" ]; then
+            echo "::warning::No solution file found. Skipping analyzer check."
+            exit 0
+          fi
+
+          echo "Building $sln_file with analyzers..."
+
+          # ビルドして警告を収集
+          dotnet build "$sln_file" \
+            --verbosity normal \
+            -p:TreatWarningsAsErrors=false \
+            2>&1 | tee "${{ github.workspace }}/AnalyzerResults/build_output.log" || true
+
+          echo "::endgroup::"
+
+      - name: Analyze results
+        run: |
+          echo "::group::Analyzing results..."
+
+          log_file="${{ github.workspace }}/AnalyzerResults/build_output.log"
+
+          if [ ! -f "$log_file" ]; then
+            echo "No build output found."
+            exit 0
+          fi
+
+          # Unity Analyzer の警告をカウント
+          unt_warnings=$(grep -c "UNT[0-9]" "$log_file" || echo "0")
+          ca_warnings=$(grep -c ": warning CA" "$log_file" || echo "0")
+
+          echo "## Analyzer Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unity Analyzer (UNT*) | $unt_warnings |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Analysis (CA*) | $ca_warnings |" >> $GITHUB_STEP_SUMMARY
+
+          # 重大なエラーをチェック
+          if grep -q "error UNT0002" "$log_file"; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Found UNT0002 errors (null comparison issue)"
+            echo "### Critical Issues" >> $GITHUB_STEP_SUMMARY
+            echo "- UNT0002: Use == operator for null checks on Unity objects" >> $GITHUB_STEP_SUMMARY
+            grep "error UNT0002" "$log_file" | head -5 >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "::endgroup::"
+
+      - name: Upload analyzer results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Analyzer-Results
+          path: |
+            AnalyzerResults/
+            Logs/
+          retention-days: 7
+
+  # ============================================
+  # サマリーレポート
+  # ============================================
+  summary:
+    name: Quality Summary
+    runs-on: ubuntu-latest
+    needs: [format-check, dotnet-format, unity-analyze]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Format Check
+          if [ "${{ needs.format-check.result }}" == "success" ]; then
+            echo "| Format Check | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.format-check.result }}" == "skipped" ]; then
+            echo "| Format Check | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Format Check | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # dotnet format
+          if [ "${{ needs.dotnet-format.result }}" == "success" ]; then
+            echo "| dotnet format | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.dotnet-format.result }}" == "skipped" ]; then
+            echo "| dotnet format | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| dotnet format | ⚠️ Issues Found |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Unity Analyzer
+          if [ "${{ needs.unity-analyze.result }}" == "success" ]; then
+            echo "| Unity Analyzer | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.unity-analyze.result }}" == "skipped" ]; then
+            echo "| Unity Analyzer | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Unity Analyzer | ⚠️ Issues Found |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See [CODE_QUALITY_SETUP.md](../docs/CODE_QUALITY_SETUP.md) for details." >> $GITHUB_STEP_SUMMARY
