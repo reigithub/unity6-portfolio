@@ -68,9 +68,7 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
-#
 # Re-enable items that have been ignored in the gitignore of the parent directory
-#
 # Unity
 !*.meta
 
@@ -83,6 +81,9 @@ crashlytics-build.properties
 
 # Plugins
 [Aa]ssets/[Pp]lugins/**/*.meta
+
+# csc.rsp
+[Aa]ssets/**/*.rsp*
 
 # UPM & NuGetForUnity
 !**/[Pp]ackages/*
