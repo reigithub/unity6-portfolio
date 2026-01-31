@@ -1,6 +1,6 @@
-namespace Game.Server.Entities;
+namespace Game.Server.Tables;
 
-public class ScoreEntity
+public class UserScore
 {
     public long Id { get; set; }
 
@@ -21,5 +21,5 @@ public class ScoreEntity
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation (populated by Dapper multi-mapping)
-    public UserEntity? User { get; set; }
+    public UserInfo? User { get; set; }
 }

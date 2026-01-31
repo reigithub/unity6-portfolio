@@ -1,4 +1,4 @@
-using Game.Server.Entities;
+using Game.Server.Tables;
 
 namespace Game.Server.Repositories.Interfaces;
 
@@ -6,11 +6,11 @@ public interface IAuthRepository
 {
     Task<bool> ExistsByDisplayNameAsync(string displayName);
 
-    Task<UserEntity> CreateUserAsync(UserEntity user);
+    Task<UserInfo> CreateUserAsync(UserInfo user);
 
-    Task<UserEntity?> GetByDisplayNameAsync(string displayName);
+    Task<UserInfo?> GetByDisplayNameAsync(string displayName);
 
-    Task<UserEntity?> GetByIdAsync(string userId);
+    Task<UserInfo?> GetByIdAsync(string userId);
 
     Task UpdateLastLoginAsync(string userId, DateTime lastLoginAt);
 }

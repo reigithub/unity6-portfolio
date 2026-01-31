@@ -1,6 +1,6 @@
-namespace Game.Server.Entities;
+namespace Game.Server.Tables;
 
-public class UserEntity
+public class UserInfo
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 

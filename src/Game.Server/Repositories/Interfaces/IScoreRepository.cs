@@ -1,10 +1,10 @@
-using Game.Server.Entities;
+using Game.Server.Tables;
 
 namespace Game.Server.Repositories.Interfaces;
 
 public interface IScoreRepository
 {
-    Task<ScoreEntity> AddAsync(ScoreEntity score);
+    Task<UserScore> AddAsync(UserScore score);
 
-    Task<List<ScoreEntity>> GetUserScoresAsync(string userId, string? gameMode, int? stageId, int limit);
+    Task<List<UserScore>> GetUserScoresAsync(string userId, string? gameMode, int? stageId, int limit);
 }

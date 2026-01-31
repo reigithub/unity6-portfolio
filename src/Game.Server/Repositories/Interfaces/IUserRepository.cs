@@ -1,12 +1,12 @@
-using Game.Server.Entities;
+using Game.Server.Tables;
 
 namespace Game.Server.Repositories.Interfaces;
 
 public interface IUserRepository
 {
-    Task<UserEntity?> GetByIdAsync(string userId);
+    Task<UserInfo?> GetByIdAsync(string userId);
 
-    Task<UserEntity?> GetByDisplayNameAsync(string displayName);
+    Task<UserInfo?> GetByDisplayNameAsync(string displayName);
 
-    Task UpdateAsync(UserEntity user);
+    Task UpdateAsync(UserInfo user);
 }

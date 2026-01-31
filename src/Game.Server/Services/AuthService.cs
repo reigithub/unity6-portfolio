@@ -4,7 +4,7 @@ using System.Text;
 using Game.Server.Configuration;
 using Game.Server.Dto.Requests;
 using Game.Server.Dto.Responses;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -31,7 +31,7 @@ public class AuthService : Interfaces.IAuthService
             return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
         }
 
-        var user = new UserEntity
+        var user = new UserInfo
         {
             DisplayName = request.DisplayName,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
@@ -86,7 +86,7 @@ public class AuthService : Interfaces.IAuthService
         };
     }
 
-    private string GenerateJwtToken(UserEntity user)
+    private string GenerateJwtToken(UserInfo user)
     {
         var claims = new[]
         {

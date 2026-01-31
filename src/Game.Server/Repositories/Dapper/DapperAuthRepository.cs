@@ -1,6 +1,6 @@
 using Dapper;
 using Game.Server.Data;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
 namespace Game.Server.Repositories.Dapper;
@@ -24,7 +24,7 @@ public class DapperAuthRepository : IAuthRepository
             new { DisplayName = displayName });
     }
 
-    public async Task<UserEntity> CreateUserAsync(UserEntity user)
+    public async Task<UserInfo> CreateUserAsync(UserInfo user)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
@@ -34,19 +34,19 @@ public class DapperAuthRepository : IAuthRepository
         return user;
     }
 
-    public async Task<UserEntity?> GetByDisplayNameAsync(string displayName)
+    public async Task<UserInfo?> GetByDisplayNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserEntity>(
+        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
               FROM ""Users"" WHERE ""DisplayName"" = @DisplayName",
             new { DisplayName = displayName });
     }
 
-    public async Task<UserEntity?> GetByIdAsync(string userId)
+    public async Task<UserInfo?> GetByIdAsync(string userId)
     {
         using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserEntity>(
+        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
               FROM ""Users"" WHERE ""Id"" = @Id",
             new { Id = userId });

@@ -1,6 +1,6 @@
 using Dapper;
 using Game.Server.Data;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
 namespace Game.Server.Repositories.Dapper;
@@ -14,7 +14,7 @@ public class DapperRankingRepository : IRankingRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<List<ScoreEntity>> GetTopScoresAsync(
+    public async Task<List<UserScore>> GetTopScoresAsync(
         string gameMode, int stageId, int limit, int offset)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -29,7 +29,7 @@ public class DapperRankingRepository : IRankingRepository
               ORDER BY s.""Score"" DESC, s.""ClearTime"" ASC
               LIMIT @Limit OFFSET @Offset";
 
-        var results = await connection.QueryAsync<ScoreEntity, UserEntity, ScoreEntity>(
+        var results = await connection.QueryAsync<UserScore, UserInfo, UserScore>(
             sql,
             (score, user) =>
             {
@@ -42,7 +42,7 @@ public class DapperRankingRepository : IRankingRepository
         return results.AsList();
     }
 
-    public async Task<ScoreEntity?> GetUserBestScoreAsync(
+    public async Task<UserScore?> GetUserBestScoreAsync(
         string gameMode, int stageId, string userId)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -55,7 +55,7 @@ public class DapperRankingRepository : IRankingRepository
               ORDER BY ""Score"" DESC, ""ClearTime"" ASC
               LIMIT 1";
 
-        return await connection.QueryFirstOrDefaultAsync<ScoreEntity>(
+        return await connection.QueryFirstOrDefaultAsync<UserScore>(
             sql,
             new { UserId = userId, GameMode = gameMode, StageId = stageId });
     }

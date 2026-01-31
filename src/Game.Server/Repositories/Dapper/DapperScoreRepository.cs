@@ -2,7 +2,7 @@ using System.Data;
 using System.Text;
 using Dapper;
 using Game.Server.Data;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Npgsql;
 
@@ -17,7 +17,7 @@ public class DapperScoreRepository : IScoreRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<ScoreEntity> AddAsync(ScoreEntity score)
+    public async Task<UserScore> AddAsync(UserScore score)
     {
         using var connection = _connectionFactory.CreateConnection();
 
@@ -41,7 +41,7 @@ public class DapperScoreRepository : IScoreRepository
         return score;
     }
 
-    public async Task<List<ScoreEntity>> GetUserScoresAsync(
+    public async Task<List<UserScore>> GetUserScoresAsync(
         string userId, string? gameMode, int? stageId, int limit)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -68,7 +68,7 @@ public class DapperScoreRepository : IScoreRepository
         sb.Append(@" ORDER BY ""RecordedAt"" DESC LIMIT @Limit");
         parameters.Add("Limit", limit);
 
-        var results = await connection.QueryAsync<ScoreEntity>(sb.ToString(), parameters);
+        var results = await connection.QueryAsync<UserScore>(sb.ToString(), parameters);
         return results.AsList();
     }
 }

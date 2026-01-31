@@ -1,12 +1,12 @@
-using Game.Server.Entities;
+using Game.Server.Tables;
 
 namespace Game.Server.Repositories.Interfaces;
 
 public interface IRankingRepository
 {
-    Task<List<ScoreEntity>> GetTopScoresAsync(string gameMode, int stageId, int limit, int offset);
+    Task<List<UserScore>> GetTopScoresAsync(string gameMode, int stageId, int limit, int offset);
 
-    Task<ScoreEntity?> GetUserBestScoreAsync(string gameMode, int stageId, string userId);
+    Task<UserScore?> GetUserBestScoreAsync(string gameMode, int stageId, string userId);
 
     Task<int> GetUserRankAsync(string gameMode, int stageId, string userId);
 }
