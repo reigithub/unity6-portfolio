@@ -1,41 +1,76 @@
-var builder = WebApplication.CreateBuilder(args);
+using FluentMigrator.Runner;
+using Game.Server.Extensions;
+using Game.Server.Middleware;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+namespace Game.Server;
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+public partial class Program
 {
-    app.MapOpenApi();
-}
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-app.UseHttpsRedirection();
+        // Controllers
+        builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy =
+                    System.Text.Json.JsonNamingPolicy.CamelCase;
+            });
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddOpenApi();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+        // Database
+        builder.Services.AddDatabase(builder.Configuration, builder.Environment);
 
-app.Run();
+        // Authentication
+        builder.Services.AddJwtAuthentication(builder.Configuration);
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        // Application Services
+        builder.Services.AddApplicationServices();
+
+        // CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
+        // Response Caching
+        builder.Services.AddResponseCaching();
+
+        var app = builder.Build();
+
+        // Middleware Pipeline
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+        }
+
+        app.UseMiddleware<RequestLoggingMiddleware>();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+        app.UseHttpsRedirection();
+        app.UseCors();
+        app.UseResponseCaching();
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        // FluentMigrator: auto-apply migrations in Development
+        if (app.Environment.IsDevelopment())
+        {
+            using var scope = app.Services.CreateScope();
+            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+            runner.MigrateUp();
+        }
+
+        app.Run();
+    }
 }

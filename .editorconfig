@@ -156,6 +156,67 @@ csharp_space_between_method_declaration_parameter_list_parentheses = false
 csharp_space_between_method_call_parameter_list_parentheses = false
 
 # ========================================
+# StyleCop.Analyzers 無効化
+# ========================================
+# 参照: docs/StyleCop_CommonlyDisabledRules.md
+
+# --- Documentation (一括無効化: 内部プロジェクト、XMLドキュメント出力不要) ---
+dotnet_diagnostic.SA0001.severity = none       # XML comment analysis disabled
+dotnet_diagnostic.SA1600.severity = none       # Elements must be documented
+dotnet_diagnostic.SA1601.severity = none       # Partial elements must be documented
+dotnet_diagnostic.SA1602.severity = none       # Enumeration items must be documented
+dotnet_diagnostic.SA1611.severity = none       # Element parameters must be documented
+dotnet_diagnostic.SA1615.severity = none       # Element return value must be documented
+dotnet_diagnostic.SA1623.severity = none       # Property summary must match accessors
+dotnet_diagnostic.SA1633.severity = none       # File must have header
+dotnet_diagnostic.SA1634.severity = none       # File header must show copyright
+dotnet_diagnostic.SA1635.severity = none       # File header must have copyright text
+dotnet_diagnostic.SA1636.severity = none       # File header copyright text must match
+dotnet_diagnostic.SA1637.severity = none       # File header must contain file name
+dotnet_diagnostic.SA1638.severity = none       # File header file name must match
+dotnet_diagnostic.SA1639.severity = none       # File header must have summary
+dotnet_diagnostic.SA1640.severity = none       # File header must have valid company text
+dotnet_diagnostic.SA1641.severity = none       # File header company name text must match
+dotnet_diagnostic.SA1642.severity = none       # Constructor summary must begin with standard text
+dotnet_diagnostic.SA1643.severity = none       # Destructor summary must begin with standard text
+
+# --- Readability ---
+dotnet_diagnostic.SA1101.severity = none       # this. 強制 → 本プロジェクトは this. 不使用 (dotnet/runtime 準拠)
+dotnet_diagnostic.SA1118.severity = none       # パラメータの複数行禁止 → ラムダ・LINQ で頻出
+dotnet_diagnostic.SA1122.severity = none       # string.Empty 強制 → "" を許容
+dotnet_diagnostic.SA1124.severity = none       # #region 禁止 → 用途を限定して許容
+dotnet_diagnostic.SA1127.severity = none       # ジェネリック制約の改行強制 → 短い制約は同一行で可
+dotnet_diagnostic.SA1128.severity = none       # コンストラクタ初期化子の改行強制 → 短い初期化子は同一行で可
+
+# --- Naming (本プロジェクトの命名規約と競合) ---
+dotnet_diagnostic.SA1309.severity = none       # _ プレフィックス禁止 → 本プロジェクトは _camelCase 採用
+dotnet_diagnostic.SA1310.severity = none       # フィールド名のアンダースコア禁止 → s_ 等と競合
+dotnet_diagnostic.SA1312.severity = none       # ローカル変数の小文字開始 → 破棄変数 _ で誤検知
+dotnet_diagnostic.SA1313.severity = none       # パラメータの小文字開始 → ラムダ破棄 (_, e) で誤検知
+
+# --- Ordering ---
+dotnet_diagnostic.SA1200.severity = none       # using を namespace 内に → 本プロジェクトは外に配置
+dotnet_diagnostic.SA1201.severity = none       # メンバー種別順の強制 → 機能単位グループ化を許容
+dotnet_diagnostic.SA1202.severity = none       # アクセスレベル順の強制 → 機能単位グループ化を許容
+dotnet_diagnostic.SA1204.severity = none       # static メンバーを先に → 機能単位グループ化を許容
+
+# --- Spacing (モダン C# との競合) ---
+dotnet_diagnostic.SA1010.severity = none       # 開き角括弧 → C# 12 コレクション式 [1,2,3] で誤検知
+dotnet_diagnostic.SA1011.severity = none       # 閉じ角括弧 → Nullable 配列 byte[]? で誤検知
+
+# --- Layout ---
+dotnet_diagnostic.SA1503.severity = none       # ブレース省略禁止 → ガード節 if (...) return; を許容
+dotnet_diagnostic.SA1516.severity = none       # 要素間の空行強制 → 連続 auto-property で過剰
+
+# --- Maintainability ---
+dotnet_diagnostic.SA1402.severity = none       # 1ファイル1型 → 小さい関連型の同居を許容
+dotnet_diagnostic.SA1413.severity = none       # 末尾カンマ強制 → チームの好みで任意
+
+# --- 代替ルール有効化 (SA→SX 置換) ---
+dotnet_diagnostic.SX1101.severity = warning    # this. 使用を禁止 (SA1101 の逆)
+dotnet_diagnostic.SX1309.severity = warning    # private フィールドに _ プレフィックス必須 (SA1309 の逆)
+
+# ========================================
 # Analyzer 設定（共通）
 # ========================================
 

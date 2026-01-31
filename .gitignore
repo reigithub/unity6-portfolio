@@ -5,9 +5,9 @@
 
 # dotenv files
 *.env*
-docker/.env
-docker/volumes/
-docker/unity-license/
+docker/unity-ci/.env
+docker/unity-ci/volumes/
+docker/unity-ci/unity-license/
 
 # Unity license files
 *.ulf

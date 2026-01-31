@@ -82,8 +82,9 @@ RUN dos2unix /entrypoint.sh /github-app-token.sh /cleanup.sh && chmod +x /entryp
 # Also create _work directory for runner updates
 RUN mkdir -p /unity-cache \
     && mkdir -p /home/runner/.local/share/unity3d/Unity \
+    && mkdir -p /home/runner/.unity-library-cache \
     && mkdir -p /home/runner/actions-runner/_work \
-    && chown -R runner:runner /unity-cache /home/runner/.local /home/runner/actions-runner
+    && chown -R runner:runner /unity-cache /home/runner/.local /home/runner/.unity-library-cache /home/runner/actions-runner
 
 # X11 ソケットディレクトリのセットアップ（xvfb-run 用）
 RUN mkdir -p /tmp/.X11-unix \

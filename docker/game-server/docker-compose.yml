@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17
+    container_name: game-server-db
+    environment:
+      POSTGRES_DB: gameserver
+      POSTGRES_USER: gameuser
+      POSTGRES_PASSWORD: gamepassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gameuser -d gameserver"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    image: game-server-app
+    container_name: game-server-app
+    build:
+      context: ../..
+      dockerfile: docker/game-server/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Host=db;Database=gameserver;Username=gameuser;Password=gamepassword
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
