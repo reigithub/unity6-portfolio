@@ -2,11 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Game.Server.Configuration;
-using Game.Server.Data;
 using Game.Server.Dto.Requests;
 using Game.Server.Dto.Responses;
 using Game.Server.Entities;
-using Microsoft.EntityFrameworkCore;
+using Game.Server.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -14,19 +13,18 @@ namespace Game.Server.Services;
 
 public class AuthService : Interfaces.IAuthService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IAuthRepository _authRepository;
     private readonly JwtSettings _jwtSettings;
 
-    public AuthService(AppDbContext dbContext, IOptions<JwtSettings> jwtSettings)
+    public AuthService(IAuthRepository authRepository, IOptions<JwtSettings> jwtSettings)
     {
-        _dbContext = dbContext;
+        _authRepository = authRepository;
         _jwtSettings = jwtSettings.Value;
     }
 
     public async Task<Result<LoginResponse, ApiError>> RegisterAsync(RegisterRequest request)
     {
-        bool exists = await _dbContext.Users
-            .AnyAsync(u => u.DisplayName == request.DisplayName);
+        bool exists = await _authRepository.ExistsByDisplayNameAsync(request.DisplayName);
 
         if (exists)
         {
@@ -39,8 +37,7 @@ public class AuthService : Interfaces.IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
         };
 
-        _dbContext.Users.Add(user);
-        await _dbContext.SaveChangesAsync();
+        await _authRepository.CreateUserAsync(user);
 
         string token = GenerateJwtToken(user);
         return new LoginResponse
@@ -53,16 +50,14 @@ public class AuthService : Interfaces.IAuthService
 
     public async Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request)
     {
-        var user = await _dbContext.Users
-            .FirstOrDefaultAsync(u => u.DisplayName == request.DisplayName);
+        var user = await _authRepository.GetByDisplayNameAsync(request.DisplayName);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return new ApiError("Invalid credentials", "INVALID_CREDENTIALS", StatusCodes.Status401Unauthorized);
         }
 
-        user.LastLoginAt = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync();
+        await _authRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
 
         string token = GenerateJwtToken(user);
         return new LoginResponse
@@ -75,7 +70,7 @@ public class AuthService : Interfaces.IAuthService
 
     public async Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string userId)
     {
-        var user = await _dbContext.Users.FindAsync(userId);
+        var user = await _authRepository.GetByIdAsync(userId);
 
         if (user == null)
         {

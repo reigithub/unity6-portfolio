@@ -154,7 +154,7 @@ Unity6Portfolio/
 │   │   │   └── Programs/   # ゲームコード
 │   │   └── Packages/
 │   │
-│   ├── Game.Server/        # ゲームサーバー (ASP.NET Core 8)
+│   ├── Game.Server/        # ゲームサーバー (ASP.NET Core 9)
 │   │   ├── Controllers/
 │   │   ├── Services/
 │   │   └── Program.cs
@@ -171,7 +171,9 @@ Unity6Portfolio/
 │   └── Game.Server.Tests/  # サーバーテスト
 │
 ├── docs/                   # ドキュメント
-├── docker/                 # Docker設定
+├── docker/
+│   ├── unity-ci/           # Unity CI Runner (Docker + GitHub Actions)
+│   └── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
 ├── scripts/                # ビルド・フォーマットスクリプト
 └── .github/
     └── workflows/          # GitHub Actions

@@ -1,19 +1,34 @@
 using Game.Server.Dto.Requests;
 using Game.Server.Dto.Responses;
+using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
 using Game.Server.Tests.Fixtures;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Game.Server.Tests.Services;
 
-public class AuthServiceTests
+public class AuthServiceTests : IDisposable
 {
+    private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
+    private readonly Game.Server.Data.IDbConnectionFactory _connectionFactory;
+
+    public AuthServiceTests()
+    {
+        _connection = TestDataFixture.CreateSqliteConnection();
+        _connectionFactory = TestDataFixture.CreateConnectionFactory(_connection);
+    }
+
+    public void Dispose()
+    {
+        _connection.Dispose();
+    }
+
     [Fact]
     public async Task RegisterAsync_ValidRequest_ReturnsLoginResponse()
     {
         // Arrange
-        using var context = TestDataFixture.CreateInMemoryContext();
-        var service = new AuthService(context, TestDataFixture.GetJwtOptions());
+        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new RegisterRequest { DisplayName = "NewUser", Password = "Password123!" };
 
         // Act
@@ -31,8 +46,10 @@ public class AuthServiceTests
     public async Task RegisterAsync_DuplicateName_ReturnsConflictError()
     {
         // Arrange
-        using var context = await TestDataFixture.CreateSeededContextAsync();
-        var service = new AuthService(context, TestDataFixture.GetJwtOptions());
+        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
+        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
+        var authRepo = new DapperAuthRepository(factory);
+        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new RegisterRequest { DisplayName = "Player1", Password = "Password123!" };
 
         // Act
@@ -43,14 +60,18 @@ public class AuthServiceTests
         Assert.NotNull(error);
         Assert.Equal("DUPLICATE_NAME", error.ErrorCode);
         Assert.Equal(409, error.StatusCode);
+
+        seededConnection.Dispose();
     }
 
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
         // Arrange
-        using var context = await TestDataFixture.CreateSeededContextAsync();
-        var service = new AuthService(context, TestDataFixture.GetJwtOptions());
+        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
+        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
+        var authRepo = new DapperAuthRepository(factory);
+        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
 
         // Act
@@ -61,14 +82,18 @@ public class AuthServiceTests
         Assert.NotNull(response);
         Assert.Equal("Player1", response.DisplayName);
         Assert.NotEmpty(response.Token);
+
+        seededConnection.Dispose();
     }
 
     [Fact]
     public async Task LoginAsync_InvalidPassword_ReturnsUnauthorized()
     {
         // Arrange
-        using var context = await TestDataFixture.CreateSeededContextAsync();
-        var service = new AuthService(context, TestDataFixture.GetJwtOptions());
+        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
+        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
+        var authRepo = new DapperAuthRepository(factory);
+        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new LoginRequest { DisplayName = "Player1", Password = "WrongPassword" };
 
         // Act
@@ -79,14 +104,16 @@ public class AuthServiceTests
         Assert.NotNull(error);
         Assert.Equal("INVALID_CREDENTIALS", error.ErrorCode);
         Assert.Equal(401, error.StatusCode);
+
+        seededConnection.Dispose();
     }
 
     [Fact]
     public async Task LoginAsync_NonExistentUser_ReturnsUnauthorized()
     {
         // Arrange
-        using var context = TestDataFixture.CreateInMemoryContext();
-        var service = new AuthService(context, TestDataFixture.GetJwtOptions());
+        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new LoginRequest { DisplayName = "NoSuchUser", Password = "Password123!" };
 
         // Act

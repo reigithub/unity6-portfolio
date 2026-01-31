@@ -20,6 +20,6 @@ public class ScoreEntity
 
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation
-    public UserEntity User { get; set; } = null!;
+    // Navigation (populated by Dapper multi-mapping)
+    public UserEntity? User { get; set; }
 }

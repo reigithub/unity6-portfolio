@@ -1,13 +1,12 @@
-using Game.Server.Data;
+using FluentMigrator.Runner;
 using Game.Server.Extensions;
 using Game.Server.Middleware;
-using Microsoft.EntityFrameworkCore;
 
 namespace Game.Server;
 
 public partial class Program
 {
-    public static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -64,19 +63,12 @@ public partial class Program
 
         app.MapControllers();
 
-        // DB Migration (auto-apply in Development, skip for InMemory)
+        // FluentMigrator: auto-apply migrations in Development
         if (app.Environment.IsDevelopment())
         {
             using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            if (db.Database.IsRelational())
-            {
-                await db.Database.MigrateAsync();
-            }
-            else
-            {
-                await db.Database.EnsureCreatedAsync();
-            }
+            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+            runner.MigrateUp();
         }
 
         app.Run();

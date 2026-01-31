@@ -1,0 +1,24 @@
+**/bin/
+**/obj/
+.git/
+docker/unity-ci/
+test/
+
+# Unity project files
+Assets/
+Library/
+Logs/
+Temp/
+UserSettings/
+Packages/
+ProjectSettings/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# Misc
+*.md
+!src/**/*.md

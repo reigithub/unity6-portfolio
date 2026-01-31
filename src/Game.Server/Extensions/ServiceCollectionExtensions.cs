@@ -1,12 +1,13 @@
 using System.Text;
+using FluentMigrator.Runner;
 using Game.Server.Configuration;
 using Game.Server.Data;
-using Game.Server.Repositories;
+using Game.Server.Data.Migrations;
+using Game.Server.Repositories.Dapper;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Game.Server.Extensions;
@@ -18,44 +19,28 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-        {
-            var config = serviceProvider.GetRequiredService<IConfiguration>();
-            string provider = config.GetValue<string>("Database:Provider") ?? "PostgreSQL";
-            string? connectionString = config.GetConnectionString("Default");
+        services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
-            switch (provider)
+        string provider = configuration.GetValue<string>("Database:Provider") ?? "PostgreSQL";
+        string connectionString = configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+
+        services.AddFluentMigratorCore()
+            .ConfigureRunner(runner =>
             {
-                case "PostgreSQL":
-                    options.UseNpgsql(connectionString, npgsql =>
-                    {
-                        npgsql.EnableRetryOnFailure(
-                            maxRetryCount: 3,
-                            maxRetryDelay: TimeSpan.FromSeconds(5),
-                            errorCodesToAdd: null);
-                    });
-                    break;
+                if (provider == "SQLite")
+                {
+                    runner.AddSQLite();
+                }
+                else
+                {
+                    runner.AddPostgres();
+                }
 
-                case "SQLite":
-                    options.UseSqlite(connectionString ?? "Data Source=gameserver.db");
-                    break;
-
-                case "InMemory":
-                    options.UseInMemoryDatabase(connectionString ?? "GameServer");
-                    break;
-
-                default:
-                    throw new InvalidOperationException(
-                        $"Unsupported database provider: {provider}");
-            }
-
-            var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
-            if (env.IsDevelopment())
-            {
-                options.EnableSensitiveDataLogging();
-                options.EnableDetailedErrors();
-            }
-        });
+                runner.WithGlobalConnectionString(connectionString);
+                runner.ScanIn(typeof(M0001_InitialCreate).Assembly).For.Migrations();
+            })
+            .AddLogging(lb => lb.AddFluentMigratorConsole());
 
         return services;
     }
@@ -100,9 +85,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMasterDataService, MasterDataService>();
 
         // Repositories
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IRankingRepository, RankingRepository>();
-        services.AddScoped<IScoreRepository, ScoreRepository>();
+        services.AddScoped<IAuthRepository, DapperAuthRepository>();
+        services.AddScoped<IUserRepository, DapperUserRepository>();
+        services.AddScoped<IRankingRepository, DapperRankingRepository>();
+        services.AddScoped<IScoreRepository, DapperScoreRepository>();
 
         return services;
     }

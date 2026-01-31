@@ -13,7 +13,4 @@ public class UserEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
-
-    // Navigation
-    public ICollection<ScoreEntity> Scores { get; set; } = new List<ScoreEntity>();
 }
