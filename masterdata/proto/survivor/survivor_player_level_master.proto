@@ -1,0 +1,27 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorPlayerLevelMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 player_id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY, (masterdata.options.primary_key_order) = 0];
+  int32 level = 2 [(masterdata.options.index_type) = INDEX_PRIMARY, (masterdata.options.primary_key_order) = 1];
+  int32 required_exp = 3;
+  int32 max_hp = 4;
+  int32 max_stamina = 5;
+  int32 stamina_deplete_rate = 6;
+  int32 stamina_regen_rate = 7;
+  int32 move_speed = 8;
+  int32 run_speed = 9;
+  int32 pickup_range = 10;
+  int32 crit_rate = 11;
+  int32 crit_damage = 12;
+  int32 invincibility_duration = 13;
+  int32 item_attract_distance = 14;
+  int32 item_attract_speed = 15;
+  int32 item_collect_distance = 16;
+  int32 damage_bonus = 17;
+  int32 weapon_choice_count = 18;
+}

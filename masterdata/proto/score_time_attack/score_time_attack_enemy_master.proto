@@ -1,0 +1,17 @@
+syntax = "proto3";
+package masterdata.score_time_attack;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.ScoreTimeAttack";
+
+message ScoreTimeAttackEnemyMaster {
+    option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+    int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+    string name = 2;
+    string asset_name = 3;
+    int32 walk_speed = 4;
+    int32 run_speed = 5;
+    int32 visual_distance = 6;
+    int32 auditory_distance = 7;
+    int32 hp_attack = 8;
+}

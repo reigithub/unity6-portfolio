@@ -1,0 +1,13 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorItemDropMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  int32 group_id = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+  int32 item_id = 3;
+  int32 drop_rate = 4;
+}

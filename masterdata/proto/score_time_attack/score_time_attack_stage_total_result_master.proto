@@ -1,0 +1,16 @@
+syntax = "proto3";
+package masterdata.score_time_attack;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.ScoreTimeAttack";
+
+message ScoreTimeAttackStageTotalResultMaster {
+    option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+    int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+    int32 total_score = 2;
+    string total_rank = 3;
+    string animator_state_name = 4;
+    int32 bgm_audio_id = 5;
+    int32 voice_audio_id = 6;
+    int32 sound_effect_audio_id = 7;
+}

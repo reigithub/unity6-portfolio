@@ -1,0 +1,15 @@
+syntax = "proto3";
+package masterdata.audio;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Audio";
+
+message AudioMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+  option (masterdata.options.table_name) = "AudioMaster";
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  string name = 2;
+  string asset_name = 3;
+  string desc = 4;
+  int32 audio_category = 5 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+}

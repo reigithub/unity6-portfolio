@@ -1,0 +1,13 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorPlayerMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  string name = 2;
+  string asset_name = 3;
+  int32 starting_weapon_id = 4;
+}

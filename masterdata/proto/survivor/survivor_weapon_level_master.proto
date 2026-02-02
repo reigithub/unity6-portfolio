@@ -1,0 +1,38 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorWeaponLevelMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+  option (masterdata.options.secondary_keys) = {field_name: "weapon_id", secondary_index: 1, key_order: 0, non_unique: false};
+  option (masterdata.options.secondary_keys) = {field_name: "level", secondary_index: 1, key_order: 1, non_unique: false};
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  int32 weapon_id = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+  int32 level = 3;
+  string asset_name = 4;
+  string description = 5;
+  int32 damage = 6;
+  int32 range = 7;
+  int32 speed = 8;
+  int32 duration = 9;
+  int32 cooldown = 10;
+  int32 proc_rate = 11;
+  int32 proc_interval = 12;
+  int32 emit_count = 13;
+  int32 emit_delay = 14;
+  int32 emit_limit = 15;
+  int32 hit_count = 16;
+  int32 hit_box_rate = 17;
+  int32 crit_hit_rate = 18;
+  int32 crit_hit_multiplier = 19;
+  int32 knockback = 20;
+  int32 vacuum = 21;
+  int32 spin = 22;
+  int32 penetration = 23;
+  int32 bounce = 24;
+  int32 chain = 25;
+  int32 homing = 26;
+  int32 spread = 27;
+}

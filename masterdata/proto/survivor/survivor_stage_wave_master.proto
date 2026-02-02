@@ -1,0 +1,21 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorStageWaveMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  int32 stage_id = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+  int32 wave_number = 3;
+  int32 start_time = 4;
+  int32 duration = 5;
+  int32 enemy_speed_multiplier = 6;
+  int32 enemy_health_multiplier = 7;
+  int32 enemy_damage_multiplier = 8;
+  int32 experience_multiplier = 9;
+  int32 target_kill_count = 10;
+  int32 required_boss_kills = 11;
+  int32 score_multiplier = 12;
+}

@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package masterdata.options;
+
+import "google/protobuf/descriptor.proto";
+
+option csharp_namespace = "Game.Tools.Proto.Options";
+
+// Deploy target bitmask values
+enum DeployTarget {
+  DEPLOY_TARGET_ALL = 0;
+  DEPLOY_TARGET_CLIENT = 1;
+  DEPLOY_TARGET_SERVER = 2;
+  DEPLOY_TARGET_CLIENT_SERVER = 3;
+  DEPLOY_TARGET_REALTIME = 4;
+  DEPLOY_TARGET_CLIENT_REALTIME = 5;
+  DEPLOY_TARGET_SERVER_REALTIME = 6;
+  DEPLOY_TARGET_CLIENT_SERVER_REALTIME = 7;
+}
+
+// Index type for fields
+enum IndexType {
+  INDEX_NONE = 0;
+  INDEX_PRIMARY = 1;
+  INDEX_SECONDARY = 2;
+}
+
+// Secondary key definition for complex multi-field scenarios
+// (e.g., same field participating in multiple SecondaryKey indices)
+message SecondaryKeyDef {
+  string field_name = 1;
+  int32 secondary_index = 2;
+  int32 key_order = 3;
+  bool non_unique = 4;
+}
+
+// Field-level extensions
+extend google.protobuf.FieldOptions {
+  DeployTarget field_target = 50001;
+  IndexType index_type = 50002;
+  int32 primary_key_order = 50003;
+  int32 secondary_index = 50004;
+  int32 key_order = 50005;
+  bool non_unique = 50006;
+}
+
+// Message-level extensions
+extend google.protobuf.MessageOptions {
+  DeployTarget table_target = 50001;
+  string table_name = 50002;
+  repeated SecondaryKeyDef secondary_keys = 50003;
+}

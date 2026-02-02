@@ -1,0 +1,19 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorStageMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  string name = 2;
+  string asset_name = 3;
+  string thumbnail_asset_name = 4;
+  string description = 5;
+  int32 time_limit = 6;
+  int32 player_id = 7;
+  string bgm_asset_name = 8;
+  optional int32 unlock_stage_id = 9;
+  int32 difficulty = 10;
+}
