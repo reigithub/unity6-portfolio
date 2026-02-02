@@ -1,7 +1,7 @@
 using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using R3;
 using TMPro;
 using UnityEngine;

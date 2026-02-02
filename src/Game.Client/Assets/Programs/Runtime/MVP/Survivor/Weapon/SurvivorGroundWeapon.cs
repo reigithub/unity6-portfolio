@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Shared.Combat;
 using UnityEngine;
 

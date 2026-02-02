@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using UnityEngine;
 
 namespace Game.ScoreTimeAttack.Player

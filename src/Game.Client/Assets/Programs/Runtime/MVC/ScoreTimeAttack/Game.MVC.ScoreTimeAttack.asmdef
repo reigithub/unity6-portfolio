@@ -11,6 +11,7 @@
         "Unity.Addressables",
         "Unity.ResourceManager",
         "Unity6Library",
+        "Game.Client.MasterData",
         "Unity.TextMeshPro",
         "DOTween.Modules",
         "UnityChan.Common",

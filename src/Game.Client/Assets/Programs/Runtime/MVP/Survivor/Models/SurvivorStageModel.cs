@@ -1,6 +1,5 @@
 using System;
-using Game.Library.Shared.MasterData;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Survivor.Item;
 using Game.Shared.Extensions;
 using Game.Shared.Services;

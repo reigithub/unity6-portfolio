@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using Game.Shared.Exceptions;
 using MessagePack;
 using MessagePack.Resolvers;

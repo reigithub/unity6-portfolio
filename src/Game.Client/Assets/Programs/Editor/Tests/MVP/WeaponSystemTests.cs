@@ -1,6 +1,6 @@
 using System;
 using System.Reflection;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Survivor.Weapon;
 using NUnit.Framework;
 using UnityEngine;

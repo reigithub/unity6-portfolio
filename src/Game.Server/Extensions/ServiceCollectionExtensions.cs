@@ -1,8 +1,8 @@
 using System.Text;
 using FluentMigrator.Runner;
 using Game.Server.Configuration;
-using Game.Server.Data;
-using Game.Server.Data.Migrations;
+using Game.Server.Database;
+using Game.Server.Database.Migrations;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
@@ -28,17 +28,9 @@ public static class ServiceCollectionExtensions
         services.AddFluentMigratorCore()
             .ConfigureRunner(runner =>
             {
-                if (provider == "SQLite")
-                {
-                    runner.AddSQLite();
-                }
-                else
-                {
-                    runner.AddPostgres();
-                }
-
+                runner.AddPostgres();
                 runner.WithGlobalConnectionString(connectionString);
-                runner.ScanIn(typeof(M0001_InitialCreate).Assembly).For.Migrations();
+                runner.ScanIn(typeof(M0001_CreateMasterSchema).Assembly).For.Migrations();
             })
             .AddLogging(lb => lb.AddFluentMigratorConsole());
 
@@ -75,14 +67,18 @@ public static class ServiceCollectionExtensions
     }
 
     public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services)
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        // MasterData
+        services.Configure<MasterDataSettings>(configuration.GetSection("MasterData"));
+        services.AddSingleton<IMasterDataService, MasterDataService>();
+
         // Services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRankingService, RankingService>();
         services.AddScoped<IScoreService, ScoreService>();
-        services.AddSingleton<IMasterDataService, MasterDataService>();
 
         // Repositories
         services.AddScoped<IAuthRepository, DapperAuthRepository>();

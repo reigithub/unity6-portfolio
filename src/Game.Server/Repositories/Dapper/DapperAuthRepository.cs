@@ -1,7 +1,7 @@
 using Dapper;
-using Game.Server.Data;
-using Game.Server.Tables;
+using Game.Server.Database;
 using Game.Server.Repositories.Interfaces;
+using Game.Server.Tables;
 
 namespace Game.Server.Repositories.Dapper;
 
@@ -19,7 +19,7 @@ public class DapperAuthRepository : IAuthRepository
         using var connection = _connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
             @"SELECT CASE WHEN EXISTS (
-                SELECT 1 FROM ""Users"" WHERE ""DisplayName"" = @DisplayName
+                SELECT 1 FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName
               ) THEN 1 ELSE 0 END",
             new { DisplayName = displayName });
     }
@@ -28,7 +28,7 @@ public class DapperAuthRepository : IAuthRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            @"INSERT INTO ""Users"" (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"")
+            @"INSERT INTO ""User"".""UserInfo"" (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"")
               VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt)",
             user);
         return user;
@@ -39,7 +39,7 @@ public class DapperAuthRepository : IAuthRepository
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
-              FROM ""Users"" WHERE ""DisplayName"" = @DisplayName",
+              FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
             new { DisplayName = displayName });
     }
 
@@ -48,7 +48,7 @@ public class DapperAuthRepository : IAuthRepository
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
-              FROM ""Users"" WHERE ""Id"" = @Id",
+              FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
             new { Id = userId });
     }
 
@@ -56,7 +56,7 @@ public class DapperAuthRepository : IAuthRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            @"UPDATE ""Users"" SET ""LastLoginAt"" = @LastLoginAt WHERE ""Id"" = @Id",
+            @"UPDATE ""User"".""UserInfo"" SET ""LastLoginAt"" = @LastLoginAt WHERE ""Id"" = @Id",
             new { Id = userId, LastLoginAt = lastLoginAt });
     }
 }

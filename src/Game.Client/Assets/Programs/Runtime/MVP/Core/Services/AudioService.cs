@@ -1,5 +1,5 @@
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using Game.Shared.Services;
 using UnityEngine;
 using VContainer;

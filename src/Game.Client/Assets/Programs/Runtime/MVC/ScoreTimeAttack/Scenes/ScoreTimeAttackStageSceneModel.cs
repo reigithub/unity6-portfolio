@@ -1,8 +1,7 @@
 using System;
 using System.Linq;
 using Game.ScoreTimeAttack.Enums;
-using Game.Library.Shared.MasterData;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Core.Services;
 using Game.ScoreTimeAttack.Data;
 using Game.ScoreTimeAttack.Services;

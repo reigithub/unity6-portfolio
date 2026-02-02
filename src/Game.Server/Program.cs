@@ -28,7 +28,7 @@ public partial class Program
         builder.Services.AddJwtAuthentication(builder.Configuration);
 
         // Application Services
-        builder.Services.AddApplicationServices();
+        builder.Services.AddApplicationServices(builder.Configuration);
 
         // CORS
         builder.Services.AddCors(options =>

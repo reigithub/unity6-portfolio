@@ -90,7 +90,7 @@ namespace Game.Editor.Survivor
         private static List<ItemConfig> LoadMasterData()
         {
             var configs = new List<ItemConfig>();
-            var tsvPath = "Assets/MasterData/Tsv/SurvivorItemMaster.tsv";
+            var tsvPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", "masterdata", "raw", "SurvivorItemMaster.tsv"));
 
             if (!File.Exists(tsvPath))
             {

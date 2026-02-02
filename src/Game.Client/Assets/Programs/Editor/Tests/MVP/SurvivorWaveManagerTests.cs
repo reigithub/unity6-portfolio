@@ -338,7 +338,7 @@ namespace Game.Tests.MVP
         {
             // Set empty waves array to prevent null reference in StartWave
             var field = typeof(SurvivorStageWaveManager).GetField("_waves", BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(_manager, new Game.Library.Shared.MasterData.MemoryTables.SurvivorStageWaveMaster[0]);
+            field?.SetValue(_manager, new Game.Client.MasterData.SurvivorStageWaveMaster[0]);
 
             // Set wave index to -1 so StartWave will set IsAllWavesCleared
             var indexField = typeof(SurvivorStageWaveManager).GetField("_currentWaveIndex", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -348,7 +348,7 @@ namespace Game.Tests.MVP
         private void SetupWavesArray(int count)
         {
             // Create wave array with specified count
-            var waves = new Game.Library.Shared.MasterData.MemoryTables.SurvivorStageWaveMaster[count];
+            var waves = new Game.Client.MasterData.SurvivorStageWaveMaster[count];
             var field = typeof(SurvivorStageWaveManager).GetField("_waves", BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(_manager, waves);
         }

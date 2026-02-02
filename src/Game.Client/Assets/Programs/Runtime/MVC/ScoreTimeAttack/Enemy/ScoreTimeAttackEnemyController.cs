@@ -1,7 +1,7 @@
 using Game.Shared;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using UnityEngine;
 using UnityEngine.AI;
 

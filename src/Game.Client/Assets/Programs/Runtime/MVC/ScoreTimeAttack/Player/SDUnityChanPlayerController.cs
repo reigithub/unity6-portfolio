@@ -5,7 +5,7 @@ using Game.Shared;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Shared.Input;
 using R3;
 using R3.Triggers;

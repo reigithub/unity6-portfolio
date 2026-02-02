@@ -10,7 +10,8 @@
         "R3.Unity",
         "MessagePipe",
         "VContainer",
-        "Unity6Library"
+        "Unity6Library",
+        "Game.Client.MasterData"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,10 +1,9 @@
 using System.Data;
 using System.Text;
 using Dapper;
-using Game.Server.Data;
+using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
-using Npgsql;
 
 namespace Game.Server.Repositories.Dapper;
 
@@ -21,22 +20,11 @@ public class DapperScoreRepository : IScoreRepository
     {
         using var connection = _connectionFactory.CreateConnection();
 
-        if (connection is NpgsqlConnection)
-        {
-            score.Id = await connection.ExecuteScalarAsync<long>(
-                @"INSERT INTO ""Scores"" (""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
-                  VALUES (@UserId, @GameMode, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)
-                  RETURNING ""Id""",
-                score);
-        }
-        else
-        {
-            await connection.ExecuteAsync(
-                @"INSERT INTO ""Scores"" (""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
-                  VALUES (@UserId, @GameMode, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)",
-                score);
-            score.Id = await connection.ExecuteScalarAsync<long>("SELECT last_insert_rowid()");
-        }
+        score.Id = await connection.ExecuteScalarAsync<long>(
+            @"INSERT INTO ""User"".""UserScore"" (""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
+              VALUES (@UserId, @GameMode, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)
+              RETURNING ""Id""",
+            score);
 
         return score;
     }
@@ -48,7 +36,7 @@ public class DapperScoreRepository : IScoreRepository
 
         var sb = new StringBuilder(
             @"SELECT ""Id"", ""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt""
-              FROM ""Scores"" WHERE ""UserId"" = @UserId");
+              FROM ""User"".""UserScore"" WHERE ""UserId"" = @UserId");
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", userId);

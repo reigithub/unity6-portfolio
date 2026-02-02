@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;

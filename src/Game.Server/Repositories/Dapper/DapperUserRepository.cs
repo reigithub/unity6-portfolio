@@ -1,5 +1,5 @@
 using Dapper;
-using Game.Server.Data;
+using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
@@ -19,7 +19,7 @@ public class DapperUserRepository : IUserRepository
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
-              FROM ""Users"" WHERE ""Id"" = @Id",
+              FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
             new { Id = userId });
     }
 
@@ -28,7 +28,7 @@ public class DapperUserRepository : IUserRepository
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
-              FROM ""Users"" WHERE ""DisplayName"" = @DisplayName",
+              FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
             new { DisplayName = displayName });
     }
 
@@ -36,7 +36,7 @@ public class DapperUserRepository : IUserRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
-            @"UPDATE ""Users""
+            @"UPDATE ""User"".""UserInfo""
               SET ""DisplayName"" = @DisplayName,
                   ""PasswordHash"" = @PasswordHash,
                   ""Level"" = @Level,

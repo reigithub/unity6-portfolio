@@ -1,6 +1,6 @@
 using System;
 using System.Reflection;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Survivor.Models;
 using NUnit.Framework;
 

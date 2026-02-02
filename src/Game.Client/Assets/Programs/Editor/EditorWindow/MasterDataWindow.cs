@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using UnityEditor;
 using UnityEngine;
 

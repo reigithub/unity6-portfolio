@@ -1,5 +1,5 @@
 using System;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Shared.Combat;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
