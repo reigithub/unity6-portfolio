@@ -177,7 +177,38 @@ public class MasterDataCommands
     /// </summary>
     public void Scaffold(string className, string outDir = "masterdata/proto/")
     {
-        AnsiConsole.MarkupLine("[yellow]masterdata scaffold[/] - not yet implemented");
+        var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
+        var memoryTableTypes = assembly.GetTypes()
+            .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
+            .ToArray();
+
+        var type = memoryTableTypes.FirstOrDefault(t =>
+            t.Name.Equals(className, StringComparison.OrdinalIgnoreCase));
+
+        if (type == null)
+        {
+            AnsiConsole.MarkupLine($"[red]Class not found:[/] {className}");
+            AnsiConsole.MarkupLine("[blue]Available MemoryTable classes:[/]");
+            foreach (var t in memoryTableTypes.OrderBy(t => t.Name))
+            {
+                AnsiConsole.MarkupLine($"  {t.Name}");
+            }
+
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        var absoluteOutDir = Path.GetFullPath(outDir);
+        var subDir = ProtoFileGenerator.EstimateSubDirectory(type.Name, absoluteOutDir);
+        var generator = new ProtoFileGenerator();
+        var protoText = generator.Generate(type, subDir);
+
+        var snakeName = CodeGen.NameConverter.ToSnakeCase(type.Name);
+        var outputPath = Path.Combine(absoluteOutDir, subDir, $"{snakeName}.proto");
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        File.WriteAllText(outputPath, protoText);
+
+        AnsiConsole.MarkupLine($"[green]Generated:[/] {outputPath}");
     }
 
     /// <summary>
@@ -389,10 +420,31 @@ public class MasterDataCommands
     }
 
     /// <summary>
-    /// Export MasterData to various formats.
+    /// Export MasterData to various formats (json, tsv).
     /// </summary>
     public void Export(string format, string inputPath, string outDir)
     {
-        AnsiConsole.MarkupLine("[yellow]masterdata export[/] - not yet implemented");
+        if (format != "json" && format != "tsv")
+        {
+            AnsiConsole.MarkupLine($"[red]Unsupported format:[/] {format}. Use 'json' or 'tsv'.");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        if (!File.Exists(inputPath))
+        {
+            AnsiConsole.MarkupLine($"[red]File not found:[/] {inputPath}");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        AnsiConsole.MarkupLine($"[blue]Reading binary:[/] {Path.GetFullPath(inputPath)}");
+        var binary = File.ReadAllBytes(inputPath);
+
+        var formatterResolver = CompositeResolver.Create(Game.Server.MasterData.MasterMemoryResolver.Instance, StandardResolver.Instance);
+        var db = new Game.Server.MasterData.MemoryDatabase(binary, formatterResolver: formatterResolver, maxDegreeOfParallelism: Environment.ProcessorCount);
+
+        AnsiConsole.MarkupLine($"[blue]Exporting as {format} to:[/] {Path.GetFullPath(outDir)}");
+        MasterDataExporter.Export(db, format, outDir);
     }
 }
