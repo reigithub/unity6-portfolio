@@ -1,54 +1,34 @@
-using System.Reflection;
 using Dapper;
-using Game.Tools.Proto;
-using MasterMemory;
 using Npgsql;
 using Spectre.Console;
 
 namespace Game.Tools.Data;
 
 /// <summary>
-/// Seeds PostgreSQL database from TSV files.
+/// Seeds PostgreSQL database from TSV files using information_schema metadata.
 /// </summary>
 public class DatabaseSeeder
 {
-    private static readonly Type[] UserTableTypes =
-    [
-        typeof(Game.Server.Tables.UserInfo),
-        typeof(Game.Server.Tables.UserScore),
-    ];
-
     /// <summary>
     /// Seed database from TSV files.
     /// </summary>
-    public void Seed(string connectionString, string tsvDir, string protoDir, bool userOnly, bool masterOnly)
+    public void Seed(string connectionString, string tsvDir, bool userOnly, bool masterOnly)
     {
         var absoluteTsvDir = Path.GetFullPath(tsvDir);
-        var masterTables = new List<(string Schema, string TableName, Type Type)>();
-        var userTables = new List<(string Schema, string TableName, Type Type)>();
+        var masterTables = new List<TableSchema>();
+        var userTables = new List<TableSchema>();
 
-        // Collect Master tables from MemoryTable types
+        using var connection = new NpgsqlConnection(connectionString);
+        connection.Open();
+
         if (!userOnly)
         {
-            var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
-            var memoryTableTypes = assembly.GetTypes()
-                .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
-                .OrderBy(t => t.Name)
-                .ToArray();
-
-            foreach (var type in memoryTableTypes)
-            {
-                masterTables.Add(("Master", type.Name, type));
-            }
+            masterTables.AddRange(SchemaIntrospector.GetTables(connection, "Master"));
         }
 
-        // Collect User tables
         if (!masterOnly)
         {
-            foreach (var type in UserTableTypes)
-            {
-                userTables.Add(("User", type.Name, type));
-            }
+            userTables.AddRange(SchemaIntrospector.GetTables(connection, "User"));
         }
 
         var allTables = masterTables.Concat(userTables).ToList();
@@ -58,12 +38,9 @@ public class DatabaseSeeder
             return;
         }
 
-        using var connection = new NpgsqlConnection(connectionString);
-        connection.Open();
-
         // TRUNCATE all tables with CASCADE
         AnsiConsole.MarkupLine("[blue]Truncating tables...[/]");
-        var truncateList = allTables.Select(t => $"\"{t.Schema}\".\"{t.TableName}\"");
+        var truncateList = allTables.Select(t => $"\"{t.SchemaName}\".\"{t.TableName}\"");
         var truncateSql = $"TRUNCATE TABLE {string.Join(", ", truncateList)} CASCADE";
         connection.Execute(truncateSql);
         AnsiConsole.MarkupLine("[green]Truncated all target tables.[/]");
@@ -72,84 +49,61 @@ public class DatabaseSeeder
         int totalRows = 0;
         var insertOrder = masterTables.Concat(userTables);
 
-        foreach (var (schema, tableName, type) in insertOrder)
+        foreach (var table in insertOrder)
         {
-            var tsvPath = Path.Combine(absoluteTsvDir, $"{tableName}.tsv");
+            var tsvPath = Path.Combine(absoluteTsvDir, $"{table.TableName}.tsv");
             if (!File.Exists(tsvPath))
             {
-                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {schema}.{tableName} - TSV not found");
+                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.SchemaName}.{table.TableName} - TSV not found");
                 continue;
             }
 
-            var rows = TsvReader.ReadTsv(type, tsvPath);
+            var (headers, rows) = TsvReader.ReadTsvRaw(tsvPath);
             if (rows.Length == 0)
             {
-                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {schema}.{tableName} - no rows");
+                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.SchemaName}.{table.TableName} - no rows");
                 continue;
             }
 
-            var props = GetColumnProperties(type);
-            var columns = string.Join(", ", props.Select(p => $"\"{p.Name}\""));
-            var parameters = string.Join(", ", props.Select(p => $"@{p.Name}"));
-            var sql = $"INSERT INTO \"{schema}\".\"{tableName}\" ({columns}) VALUES ({parameters})";
+            // Intersect TSV headers with DB columns, excluding identity columns
+            var dbColumnMap = table.Columns.ToDictionary(c => c.ColumnName);
+            var insertColumns = new List<(int TsvIndex, ColumnInfo Column)>();
 
-            // Convert object[] to DynamicParameters for Dapper
+            for (int i = 0; i < headers.Length; i++)
+            {
+                if (dbColumnMap.TryGetValue(headers[i], out var col) && !col.IsIdentity)
+                {
+                    insertColumns.Add((i, col));
+                }
+            }
+
+            if (insertColumns.Count == 0)
+            {
+                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.SchemaName}.{table.TableName} - no matching columns");
+                continue;
+            }
+
+            var columnList = string.Join(", ", insertColumns.Select(c => $"\"{c.Column.ColumnName}\""));
+            var paramList = string.Join(", ", insertColumns.Select(c => $"@{c.Column.ColumnName}"));
+            var sql = $"INSERT INTO \"{table.SchemaName}\".\"{table.TableName}\" ({columnList}) VALUES ({paramList})";
+
             foreach (var row in rows)
             {
                 var dp = new DynamicParameters();
-                foreach (var prop in props)
+                foreach (var (tsvIndex, column) in insertColumns)
                 {
-                    dp.Add(prop.Name, prop.GetValue(row));
+                    var rawValue = tsvIndex < row.Length ? row[tsvIndex] : "";
+                    var value = TsvReader.ParseValueByUdtName(column.UdtName, rawValue, column.IsNullable);
+                    dp.Add(column.ColumnName, value);
                 }
 
                 connection.Execute(sql, dp);
             }
 
-            AnsiConsole.MarkupLine($"  [green]OK:[/] {schema}.{tableName} ({rows.Length} rows)");
+            AnsiConsole.MarkupLine($"  [green]OK:[/] {table.SchemaName}.{table.TableName} ({rows.Length} rows)");
             totalRows += rows.Length;
         }
 
         AnsiConsole.MarkupLine($"\n[green]Seed completed: {totalRows} total rows inserted.[/]");
-    }
-
-    /// <summary>
-    /// Get properties that map to database columns (excluding navigation properties).
-    /// </summary>
-    internal static PropertyInfo[] GetColumnProperties(Type type)
-    {
-        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite && IsColumnProperty(p))
-            .ToArray();
-    }
-
-    /// <summary>
-    /// Determine if a property is a database column (not a navigation property).
-    /// Navigation properties are reference types that are not string or byte[].
-    /// </summary>
-    private static bool IsColumnProperty(PropertyInfo prop)
-    {
-        var propType = prop.PropertyType;
-
-        // Nullable<T> — check the underlying type
-        var underlying = Nullable.GetUnderlyingType(propType);
-        if (underlying != null)
-        {
-            propType = underlying;
-        }
-
-        // string and byte[] are column types
-        if (propType == typeof(string) || propType == typeof(byte[]))
-        {
-            return true;
-        }
-
-        // Value types (int, long, float, DateTime, etc.) are column types
-        if (propType.IsValueType)
-        {
-            return true;
-        }
-
-        // Reference types (other classes) are navigation properties
-        return false;
     }
 }

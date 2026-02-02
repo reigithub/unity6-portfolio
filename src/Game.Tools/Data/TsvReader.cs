@@ -67,6 +67,91 @@ public static class TsvReader
     }
 
     /// <summary>
+    /// Read the header row of a TSV file and return column names.
+    /// </summary>
+    public static string[] ReadHeaders(string tsvPath)
+    {
+        if (!File.Exists(tsvPath))
+        {
+            return [];
+        }
+
+        using var reader = new StreamReader(tsvPath);
+        var headerLine = reader.ReadLine();
+        if (string.IsNullOrWhiteSpace(headerLine))
+        {
+            return [];
+        }
+
+        return headerLine.Split(ColumnSeparator);
+    }
+
+    /// <summary>
+    /// Read a TSV file as raw strings (no type conversion).
+    /// Returns headers and all data rows.
+    /// </summary>
+    public static (string[] Headers, string[][] Rows) ReadTsvRaw(string tsvPath)
+    {
+        if (!File.Exists(tsvPath))
+        {
+            return ([], []);
+        }
+
+        var lines = File.ReadAllLines(tsvPath);
+        if (lines.Length < 2)
+        {
+            return (lines.Length == 1 ? lines[0].Split(ColumnSeparator) : [], []);
+        }
+
+        var headers = lines[0].Split(ColumnSeparator);
+        var rows = lines.Skip(1)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.Split(ColumnSeparator))
+            .ToArray();
+
+        return (headers, rows);
+    }
+
+    /// <summary>
+    /// Parse a raw string value based on PostgreSQL udt_name.
+    /// When the column is NOT NULL, empty strings are preserved for text types
+    /// and default values are used for numeric/other types.
+    /// </summary>
+    public static object? ParseValueByUdtName(string udtName, string rawValue, bool isNullable)
+    {
+        if (string.IsNullOrEmpty(rawValue))
+        {
+            if (isNullable)
+            {
+                return null;
+            }
+
+            // NOT NULL column: return type-appropriate default
+            return udtName switch
+            {
+                "varchar" or "text" or "bpchar" => string.Empty,
+                _ => null,
+            };
+        }
+
+        return udtName switch
+        {
+            "int4" => int.Parse(rawValue, CultureInfo.InvariantCulture),
+            "int2" => short.Parse(rawValue, CultureInfo.InvariantCulture),
+            "int8" => long.Parse(rawValue, CultureInfo.InvariantCulture),
+            "float4" => float.Parse(rawValue, CultureInfo.InvariantCulture),
+            "float8" => double.Parse(rawValue, CultureInfo.InvariantCulture),
+            "numeric" => decimal.Parse(rawValue, CultureInfo.InvariantCulture),
+            "varchar" or "text" or "bpchar" => rawValue,
+            "bool" => rawValue is "1" or "true" or "True" or "TRUE",
+            "timestamp" => DateTime.Parse(rawValue, CultureInfo.InvariantCulture),
+            "timestamptz" => DateTimeOffset.Parse(rawValue, CultureInfo.InvariantCulture),
+            "uuid" => Guid.Parse(rawValue),
+            _ => rawValue,
+        };
+    }
+
+    /// <summary>
     /// Parse a string value into the target type.
     /// Mirrors the logic in MasterDataHelper.ParseValue from the Unity client.
     /// </summary>

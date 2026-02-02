@@ -9,7 +9,8 @@ public class M0002_CreateUserSchema : Migration
 
     public override void Up()
     {
-        Create.Schema(UserSchema);
+        if (!Schema.Schema(UserSchema).Exists())
+            Create.Schema(UserSchema);
 
         Create.Table("UserInfo").InSchema(UserSchema)
             .WithColumn("Id").AsString(36).PrimaryKey()
@@ -56,6 +57,9 @@ public class M0002_CreateUserSchema : Migration
 
     public override void Down()
     {
+        if (!Schema.Schema(UserSchema).Exists())
+            return;
+
         Delete.Table("UserScore").InSchema(UserSchema);
         Delete.Table("UserInfo").InSchema(UserSchema);
         Delete.Schema(UserSchema);

@@ -10,6 +10,7 @@ public partial class Program
         var app = ConsoleApp.Create();
         app.Add<MasterDataCommands>("masterdata");
         app.Add<MigrateCommands>("migrate");
+        app.Add<SeedDataCommands>("seeddata");
         app.Run(args);
     }
 }

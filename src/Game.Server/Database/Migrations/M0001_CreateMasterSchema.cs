@@ -9,7 +9,8 @@ public class M0001_CreateMasterSchema : Migration
 
     public override void Up()
     {
-        Create.Schema(MasterSchema);
+        if (!Schema.Schema(MasterSchema).Exists())
+            Create.Schema(MasterSchema);
 
         // ── Audio ──────────────────────────────────────────────
         Create.Table("AudioMaster").InSchema(MasterSchema)
@@ -296,6 +297,8 @@ public class M0001_CreateMasterSchema : Migration
 
     public override void Down()
     {
+        if (!Schema.Schema(MasterSchema).Exists())
+
         Delete.Table("ScoreTimeAttackStageTotalResultMaster").InSchema(MasterSchema);
         Delete.Table("ScoreTimeAttackStageItemSpawnMaster").InSchema(MasterSchema);
         Delete.Table("ScoreTimeAttackStageItemMaster").InSchema(MasterSchema);

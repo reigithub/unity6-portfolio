@@ -1,24 +1,16 @@
 using System.Globalization;
-using System.Reflection;
 using System.Text;
 using Dapper;
-using MasterMemory;
 using Npgsql;
 using Spectre.Console;
 
 namespace Game.Tools.Data;
 
 /// <summary>
-/// Dumps PostgreSQL database tables to TSV files.
+/// Dumps PostgreSQL database tables to TSV files using information_schema metadata.
 /// </summary>
 public class DatabaseDumper
 {
-    private static readonly Type[] UserTableTypes =
-    [
-        typeof(Game.Server.Tables.UserInfo),
-        typeof(Game.Server.Tables.UserScore),
-    ];
-
     /// <summary>
     /// Dump database tables to TSV files.
     /// </summary>
@@ -26,30 +18,19 @@ public class DatabaseDumper
     {
         Directory.CreateDirectory(outDir);
 
-        var tables = new List<(string Schema, string TableName, Type Type)>();
+        var tables = new List<TableSchema>();
 
-        // Collect Master tables
+        using var connection = new NpgsqlConnection(connectionString);
+        connection.Open();
+
         if (!userOnly)
         {
-            var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
-            var memoryTableTypes = assembly.GetTypes()
-                .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
-                .OrderBy(t => t.Name)
-                .ToArray();
-
-            foreach (var type in memoryTableTypes)
-            {
-                tables.Add(("Master", type.Name, type));
-            }
+            tables.AddRange(SchemaIntrospector.GetTables(connection, "Master"));
         }
 
-        // Collect User tables
         if (!masterOnly)
         {
-            foreach (var type in UserTableTypes)
-            {
-                tables.Add(("User", type.Name, type));
-            }
+            tables.AddRange(SchemaIntrospector.GetTables(connection, "User"));
         }
 
         if (tables.Count == 0)
@@ -58,15 +39,12 @@ public class DatabaseDumper
             return;
         }
 
-        using var connection = new NpgsqlConnection(connectionString);
-        connection.Open();
-
         int totalRows = 0;
-        foreach (var (schema, tableName, type) in tables)
+        foreach (var table in tables)
         {
-            var props = DatabaseSeeder.GetColumnProperties(type);
-            var columns = string.Join(", ", props.Select(p => $"\"{p.Name}\""));
-            var sql = $"SELECT {columns} FROM \"{schema}\".\"{tableName}\"";
+            var columns = table.Columns;
+            var columnList = string.Join(", ", columns.Select(c => $"\"{c.ColumnName}\""));
+            var sql = $"SELECT {columnList} FROM \"{table.SchemaName}\".\"{table.TableName}\"";
 
             IEnumerable<dynamic> rows;
             try
@@ -75,39 +53,39 @@ public class DatabaseDumper
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {schema}.{tableName} - {ex.Message}");
+                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.SchemaName}.{table.TableName} - {ex.Message}");
                 continue;
             }
 
             var rowList = rows.ToList();
             if (rowList.Count == 0)
             {
-                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {schema}.{tableName} - no rows");
+                AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.SchemaName}.{table.TableName} - no rows");
                 continue;
             }
 
-            var filePath = Path.Combine(outDir, $"{tableName}.tsv");
-            WriteTsv(filePath, props, rowList);
+            var filePath = Path.Combine(outDir, $"{table.TableName}.tsv");
+            WriteTsv(filePath, columns, rowList);
 
-            AnsiConsole.MarkupLine($"  [green]OK:[/] {schema}.{tableName} ({rowList.Count} rows)");
+            AnsiConsole.MarkupLine($"  [green]OK:[/] {table.SchemaName}.{table.TableName} ({rowList.Count} rows)");
             totalRows += rowList.Count;
         }
 
         AnsiConsole.MarkupLine($"\n[green]Dump completed: {totalRows} total rows exported to {outDir}[/]");
     }
 
-    private static void WriteTsv(string filePath, PropertyInfo[] props, List<dynamic> rows)
+    private static void WriteTsv(string filePath, ColumnInfo[] columns, List<dynamic> rows)
     {
         var sb = new StringBuilder();
 
         // Header
-        sb.AppendLine(string.Join("\t", props.Select(p => p.Name)));
+        sb.AppendLine(string.Join("\t", columns.Select(c => c.ColumnName)));
 
         // Data rows
         foreach (var row in rows)
         {
             var dict = (IDictionary<string, object>)row;
-            var values = props.Select(p => FormatValue(dict.TryGetValue(p.Name, out var v) ? v : null));
+            var values = columns.Select(c => FormatValue(dict.TryGetValue(c.ColumnName, out var v) ? v : null));
             sb.AppendLine(string.Join("\t", values));
         }
 
