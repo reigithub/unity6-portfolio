@@ -1,9 +1,7 @@
-using System.Reflection;
 using System.Security.Cryptography;
 using Game.Tools.CodeGen;
 using Game.Tools.Data;
 using Game.Tools.Proto;
-using MasterMemory;
 using MessagePack;
 using MessagePack.Resolvers;
 using Spectre.Console;
@@ -175,29 +173,37 @@ public class MasterDataCommands
     /// <summary>
     /// Scaffold a new .proto file from an existing C# MemoryTable class.
     /// </summary>
-    public void Scaffold(string className, string outDir = "masterdata/proto/")
+    public void Scaffold(string className, string outDir = "masterdata/proto/", string target = "server")
     {
-        var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
-        var memoryTableTypes = assembly.GetTypes()
-            .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
-            .ToArray();
+        if (target != "server" && target != "client")
+        {
+            AnsiConsole.MarkupLine($"[red]Unsupported target:[/] {target}. Use 'server' or 'client'.");
+            Environment.ExitCode = 1;
+            return;
+        }
 
-        var type = memoryTableTypes.FirstOrDefault(t =>
-            t.Name.Equals(className, StringComparison.OrdinalIgnoreCase));
+        var metaDb = target == "client"
+            ? Game.Client.MasterData.MemoryDatabase.GetMetaDatabase()
+            : Game.Server.MasterData.MemoryDatabase.GetMetaDatabase();
+        var tableInfos = metaDb.GetTableInfos().ToArray();
 
-        if (type == null)
+        var tableInfo = tableInfos.FirstOrDefault(t =>
+            t.DataType.Name.Equals(className, StringComparison.OrdinalIgnoreCase));
+
+        if (tableInfo == null)
         {
             AnsiConsole.MarkupLine($"[red]Class not found:[/] {className}");
             AnsiConsole.MarkupLine("[blue]Available MemoryTable classes:[/]");
-            foreach (var t in memoryTableTypes.OrderBy(t => t.Name))
+            foreach (var t in tableInfos.OrderBy(t => t.DataType.Name))
             {
-                AnsiConsole.MarkupLine($"  {t.Name}");
+                AnsiConsole.MarkupLine($"  {t.DataType.Name}");
             }
 
             Environment.ExitCode = 1;
             return;
         }
 
+        var type = tableInfo.DataType;
         var absoluteOutDir = Path.GetFullPath(outDir);
         var subDir = ProtoFileGenerator.EstimateSubDirectory(type.Name, absoluteOutDir);
         var generator = new ProtoFileGenerator();
@@ -224,11 +230,13 @@ public class MasterDataCommands
         var absoluteTsvDir = Path.GetFullPath(tsvDir);
         AnsiConsole.MarkupLine($"[blue]TSV directory:[/] {absoluteTsvDir}");
 
-        // Discover generated MemoryTable types from Game.Server.MasterData
-        var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
-        var tableTypeMap = assembly.GetTypes()
-            .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
-            .ToDictionary(t => t.Name, t => t);
+        // Discover generated MemoryTable types via MetaDatabase
+        var serverTableTypeMap = Game.Server.MasterData.MemoryDatabase.GetMetaDatabase()
+            .GetTableInfos()
+            .ToDictionary(t => t.DataType.Name, t => t.DataType);
+        var clientTableTypeMap = Game.Client.MasterData.MemoryDatabase.GetMetaDatabase()
+            .GetTableInfos()
+            .ToDictionary(t => t.DataType.Name, t => t.DataType);
 
         var targets = new List<(string Label, string? OutPath, int Bit)>();
         if (outClient != null)
@@ -252,16 +260,25 @@ public class MasterDataCommands
             return;
         }
 
-        // Initialize MessagePack with MasterMemory resolver
-        var formatterResolver = CompositeResolver.Create(
+        // Initialize MessagePack resolvers
+        var serverResolver = CompositeResolver.Create(
             Game.Server.MasterData.MasterMemoryResolver.Instance,
+            StandardResolver.Instance);
+        var clientResolver = CompositeResolver.Create(
+            Game.Client.MasterData.MasterMemoryResolver.Instance,
             StandardResolver.Instance);
 
         foreach (var (label, outPath, bit) in targets)
         {
             AnsiConsole.MarkupLine($"\n[blue]Building binary for:[/] {label} → {outPath}");
 
-            var databaseBuilder = new Game.Server.MasterData.DatabaseBuilder(formatterResolver);
+            var isClient = bit == DeployTargetHelper.Client;
+            var tableTypeMap = isClient ? clientTableTypeMap : serverTableTypeMap;
+            var formatterResolver = isClient ? clientResolver : serverResolver;
+
+            object databaseBuilder = isClient
+                ? new Game.Client.MasterData.DatabaseBuilder(formatterResolver)
+                : new Game.Server.MasterData.DatabaseBuilder(formatterResolver);
             var appendMethods = databaseBuilder.GetType()
                 .GetMethods()
                 .Where(m => m.Name == "Append" && m.GetParameters().Length == 1)
@@ -307,7 +324,7 @@ public class MasterDataCommands
                 }
             }
 
-            var binary = databaseBuilder.Build();
+            var binary = (byte[])databaseBuilder.GetType().GetMethod("Build")!.Invoke(databaseBuilder, null)!;
 
             var outDir = Path.GetDirectoryName(outPath!);
             if (outDir != null)
@@ -334,10 +351,9 @@ public class MasterDataCommands
         AnsiConsole.MarkupLine($"[blue]Validating TSV files in:[/] {absoluteTsvDir}");
         AnsiConsole.MarkupLine($"[blue]Against {tables.Count} proto definitions[/]");
 
-        var assembly = typeof(Game.Server.MasterData.SurvivorPlayerMaster).Assembly;
-        var tableTypeMap = assembly.GetTypes()
-            .Where(t => t.GetCustomAttribute<MemoryTableAttribute>() != null)
-            .ToDictionary(t => t.Name, t => t);
+        var tableTypeMap = Game.Server.MasterData.MemoryDatabase.GetMetaDatabase()
+            .GetTableInfos()
+            .ToDictionary(t => t.DataType.Name, t => t.DataType);
 
         int valid = 0;
         int errors = 0;
@@ -422,7 +438,7 @@ public class MasterDataCommands
     /// <summary>
     /// Export MasterData to various formats (json, tsv).
     /// </summary>
-    public void Export(string format, string inputPath, string outDir)
+    public void Export(string format, string inputPath, string outDir, string target = "server")
     {
         if (format != "json" && format != "tsv")
         {
@@ -438,11 +454,32 @@ public class MasterDataCommands
             return;
         }
 
+        if (target != "server" && target != "client")
+        {
+            AnsiConsole.MarkupLine($"[red]Unsupported target:[/] {target}. Use 'server' or 'client'.");
+            Environment.ExitCode = 1;
+            return;
+        }
+
         AnsiConsole.MarkupLine($"[blue]Reading binary:[/] {Path.GetFullPath(inputPath)}");
+        AnsiConsole.MarkupLine($"[blue]Target:[/] {target}");
         var binary = File.ReadAllBytes(inputPath);
 
-        var formatterResolver = CompositeResolver.Create(Game.Server.MasterData.MasterMemoryResolver.Instance, StandardResolver.Instance);
-        var db = new Game.Server.MasterData.MemoryDatabase(binary, formatterResolver: formatterResolver, maxDegreeOfParallelism: Environment.ProcessorCount);
+        object db;
+        if (target == "client")
+        {
+            var resolver = CompositeResolver.Create(
+                Game.Client.MasterData.MasterMemoryResolver.Instance,
+                StandardResolver.Instance);
+            db = new Game.Client.MasterData.MemoryDatabase(binary, formatterResolver: resolver, maxDegreeOfParallelism: Environment.ProcessorCount);
+        }
+        else
+        {
+            var resolver = CompositeResolver.Create(
+                Game.Server.MasterData.MasterMemoryResolver.Instance,
+                StandardResolver.Instance);
+            db = new Game.Server.MasterData.MemoryDatabase(binary, formatterResolver: resolver, maxDegreeOfParallelism: Environment.ProcessorCount);
+        }
 
         AnsiConsole.MarkupLine($"[blue]Exporting as {format} to:[/] {Path.GetFullPath(outDir)}");
         MasterDataExporter.Export(db, format, outDir);

@@ -41,6 +41,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Game.Shared\Game.Shared.csproj" />
     <ProjectReference Include="..\Game.Server\Game.Server.csproj" />
+    <ProjectReference Include="..\Game.Client.Linked\Game.Client.Linked.csproj" />
   </ItemGroup>
 
 </Project>
