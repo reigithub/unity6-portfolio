@@ -7,21 +7,24 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Game.Server.Tests.Services;
 
-public class AuthServiceTests : IDisposable
+[Collection("Database")]
+public class AuthServiceTests : IAsyncLifetime
 {
-    private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
-    private readonly Game.Server.Data.IDbConnectionFactory _connectionFactory;
+    private readonly PostgresContainerFixture _postgres;
+    private Game.Server.Database.IDbConnectionFactory _connectionFactory = null!;
 
-    public AuthServiceTests()
+    public AuthServiceTests(PostgresContainerFixture postgres)
     {
-        _connection = TestDataFixture.CreateSqliteConnection();
-        _connectionFactory = TestDataFixture.CreateConnectionFactory(_connection);
+        _postgres = postgres;
     }
 
-    public void Dispose()
+    public async Task InitializeAsync()
     {
-        _connection.Dispose();
+        await _postgres.ResetUserDataAsync();
+        _connectionFactory = TestDataFixture.CreateConnectionFactory(_postgres.ConnectionString);
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task RegisterAsync_ValidRequest_ReturnsLoginResponse()
@@ -46,9 +49,8 @@ public class AuthServiceTests : IDisposable
     public async Task RegisterAsync_DuplicateName_ReturnsConflictError()
     {
         // Arrange
-        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
-        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
-        var authRepo = new DapperAuthRepository(factory);
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var authRepo = new DapperAuthRepository(_connectionFactory);
         var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new RegisterRequest { DisplayName = "Player1", Password = "Password123!" };
 
@@ -60,17 +62,14 @@ public class AuthServiceTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal("DUPLICATE_NAME", error.ErrorCode);
         Assert.Equal(409, error.StatusCode);
-
-        seededConnection.Dispose();
     }
 
     [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
         // Arrange
-        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
-        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
-        var authRepo = new DapperAuthRepository(factory);
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var authRepo = new DapperAuthRepository(_connectionFactory);
         var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
 
@@ -82,17 +81,14 @@ public class AuthServiceTests : IDisposable
         Assert.NotNull(response);
         Assert.Equal("Player1", response.DisplayName);
         Assert.NotEmpty(response.Token);
-
-        seededConnection.Dispose();
     }
 
     [Fact]
     public async Task LoginAsync_InvalidPassword_ReturnsUnauthorized()
     {
         // Arrange
-        var seededConnection = await TestDataFixture.CreateSeededConnectionAsync();
-        var factory = TestDataFixture.CreateConnectionFactory(seededConnection);
-        var authRepo = new DapperAuthRepository(factory);
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var authRepo = new DapperAuthRepository(_connectionFactory);
         var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
         var request = new LoginRequest { DisplayName = "Player1", Password = "WrongPassword" };
 
@@ -104,8 +100,6 @@ public class AuthServiceTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal("INVALID_CREDENTIALS", error.ErrorCode);
         Assert.Equal(401, error.StatusCode);
-
-        seededConnection.Dispose();
     }
 
     [Fact]
