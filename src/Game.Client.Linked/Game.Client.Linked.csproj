@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <!-- Client Generated MemoryTable types -->
-    <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\Generated\**\*.cs"
+    <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\*.Generated.cs"
              LinkBase="Generated" />
     <!-- MasterMemoryGeneratorOptions (Source Generator 用) -->
     <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\MasterMemoryGeneratorOptions.cs"
