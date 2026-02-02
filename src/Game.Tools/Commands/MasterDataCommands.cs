@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Game.Tools.CodeGen;
 using Game.Tools.Data;
 using Game.Tools.Proto;
+using MasterMemory;
 using MessagePack;
 using MessagePack.Resolvers;
 using Spectre.Console;
@@ -65,7 +66,7 @@ public class MasterDataCommands
                 }
 
                 var source = generator.Generate(table, ns, label, bit);
-                var filePath = Path.Combine(outDir!, $"{table.TableName}.cs");
+                var filePath = Path.Combine(outDir!, $"{table.TableName}.Generated.cs");
                 File.WriteAllText(filePath, source);
                 count++;
             }
@@ -94,10 +95,10 @@ public class MasterDataCommands
             // Generate with the original namespace for comparison
             var source = generator.Generate(table, "Game.Library.Shared.MasterData.MemoryTables", "Shared", 0);
 
-            var existingFile = Path.Combine(existingDir, $"{table.TableName}.cs");
+            var existingFile = Path.Combine(existingDir, $"{table.TableName}.Generated.cs");
             if (!File.Exists(existingFile))
             {
-                AnsiConsole.MarkupLine($"  [yellow]MISSING:[/] {table.TableName}.cs not found in existing directory");
+                AnsiConsole.MarkupLine($"  [yellow]MISSING:[/] {table.TableName}.Generated.cs not found in existing directory");
                 missing++;
                 continue;
             }
@@ -276,13 +277,9 @@ public class MasterDataCommands
             var tableTypeMap = isClient ? clientTableTypeMap : serverTableTypeMap;
             var formatterResolver = isClient ? clientResolver : serverResolver;
 
-            object databaseBuilder = isClient
+            DatabaseBuilderBase databaseBuilder = isClient
                 ? new Game.Client.MasterData.DatabaseBuilder(formatterResolver)
                 : new Game.Server.MasterData.DatabaseBuilder(formatterResolver);
-            var appendMethods = databaseBuilder.GetType()
-                .GetMethods()
-                .Where(m => m.Name == "Append" && m.GetParameters().Length == 1)
-                .ToDictionary(m => m.GetParameters()[0].ParameterType.GetGenericArguments()[0]);
 
             int tableCount = 0;
             int rowCount = 0;
@@ -308,23 +305,13 @@ public class MasterDataCommands
                 }
 
                 var elements = TsvReader.ReadTsv(type, tsvPath);
-                var typedArray = Array.CreateInstance(type, elements.Length);
-                Array.Copy(elements, typedArray, elements.Length);
-
-                if (appendMethods.TryGetValue(type, out var appendMethod))
-                {
-                    appendMethod.Invoke(databaseBuilder, [typedArray]);
-                    tableCount++;
-                    rowCount += elements.Length;
-                    AnsiConsole.MarkupLine($"  [green]OK:[/] {table.TableName} ({elements.Length} rows)");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"  [yellow]SKIP:[/] {table.TableName} - no Append method found");
-                }
+                databaseBuilder.AppendDynamic(type, elements);
+                tableCount++;
+                rowCount += elements.Length;
+                AnsiConsole.MarkupLine($"  [green]OK:[/] {table.TableName} ({elements.Length} rows)");
             }
 
-            var binary = (byte[])databaseBuilder.GetType().GetMethod("Build")!.Invoke(databaseBuilder, null)!;
+            var binary = databaseBuilder.Build();
 
             var outDir = Path.GetDirectoryName(outPath!);
             if (outDir != null)
