@@ -1,5 +1,5 @@
 using Game.Server.Dto.Requests;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Moq;
@@ -34,9 +34,9 @@ public class ScoreServiceTests
         };
 
         _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "user-1"))
-            .ReturnsAsync((ScoreEntity?)null);
-        _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<ScoreEntity>()))
-            .ReturnsAsync((ScoreEntity s) => { s.Id = 1; return s; });
+            .ReturnsAsync((UserScore?)null);
+        _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<UserScore>()))
+            .ReturnsAsync((UserScore s) => { s.Id = 1; return s; });
         _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, "user-1"))
             .ReturnsAsync(1);
 
@@ -90,11 +90,11 @@ public class ScoreServiceTests
             GameMode = "Survivor",
         };
 
-        var previousBest = new ScoreEntity { Score = 5000 };
+        var previousBest = new UserScore { Score = 5000 };
         _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "user-1"))
             .ReturnsAsync(previousBest);
-        _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<ScoreEntity>()))
-            .ReturnsAsync((ScoreEntity s) => { s.Id = 2; return s; });
+        _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<UserScore>()))
+            .ReturnsAsync((UserScore s) => { s.Id = 2; return s; });
         _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, "user-1"))
             .ReturnsAsync(3);
 
@@ -115,7 +115,7 @@ public class ScoreServiceTests
     public async Task GetUserScoresAsync_ReturnsFilteredResults()
     {
         // Arrange
-        var scores = new List<ScoreEntity>
+        var scores = new List<UserScore>
         {
             new() { Id = 1, GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f },
             new() { Id = 2, GameMode = "Survivor", StageId = 1, Score = 3000, ClearTime = 60f },

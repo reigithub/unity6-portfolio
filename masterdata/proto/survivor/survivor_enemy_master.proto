@@ -1,0 +1,27 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorEnemyMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  string name = 2;
+  string asset_name = 3;
+  int32 enemy_type = 4 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+  int32 base_hp = 5;
+  int32 base_damage = 6;
+  int32 move_speed = 7;
+  int32 attack_range = 8;
+  int32 attack_cooldown = 9;
+  int32 hit_stun_duration = 10;
+  int32 rotation_speed = 11;
+  int32 death_anim_duration = 12;
+  int32 experience_value = 13;
+  optional int32 drop_item_id = 14;
+  int32 drop_rate = 15;
+  int32 max_concurrent = 16;
+  int32 spawn_radius = 17;
+  int32 attack_range_exit_multiplier = 18;
+}

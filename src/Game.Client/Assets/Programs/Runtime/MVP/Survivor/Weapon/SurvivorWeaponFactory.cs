@@ -1,5 +1,5 @@
 using System;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using UnityEngine;
 using VContainer;
 

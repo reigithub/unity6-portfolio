@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;

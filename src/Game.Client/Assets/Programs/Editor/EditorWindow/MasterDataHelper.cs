@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using MessagePack;
 using MessagePack.Resolvers;
 using UnityEngine;
@@ -15,9 +15,7 @@ namespace Game.Editor
 {
     public static class MasterDataHelper
     {
-        private const string TsvPathFormat = "Assets/MasterData/Tsv/{0}.tsv";
-        private const string TsvTempPathFormat = "Assets/MasterData/Tsv/{0}.temp.tsv";
-        private const string TsvBackupPathFormat = "Assets/MasterData/Tsv/{0}.bak.tsv";
+        private static readonly string TsvDirectory = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", "masterdata", "raw"));
         private const char TsvColumnSeparator = '\t';
 
         private const string MasterDataBinaryPath = "Assets/MasterData/MasterDataBinary.bytes";
@@ -269,17 +267,17 @@ namespace Game.Editor
 
         private static string GetTsvPath(string memoryTableName)
         {
-            return string.Format(TsvPathFormat, memoryTableName);
+            return Path.Combine(TsvDirectory, $"{memoryTableName}.tsv");
         }
 
         private static string GetTsvTempPath(string memoryTableName)
         {
-            return string.Format(TsvTempPathFormat, memoryTableName);
+            return Path.Combine(TsvDirectory, $"{memoryTableName}.temp.tsv");
         }
 
         private static string GetTsvBackupPath(string memoryTableName)
         {
-            return string.Format(TsvBackupPathFormat, memoryTableName);
+            return Path.Combine(TsvDirectory, $"{memoryTableName}.bak.tsv");
         }
 
         public static bool TryCreateDirectoryIfNotExists(string path)

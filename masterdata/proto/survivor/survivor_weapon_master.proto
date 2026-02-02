@@ -1,0 +1,17 @@
+syntax = "proto3";
+package masterdata.survivor;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Survivor";
+
+message SurvivorWeaponMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  int32 weapon_type = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+  int32 rarity = 3;
+  string name = 4;
+  string icon_asset_name = 5;
+  string description = 6;
+  string hit_effect_asset_name = 7;
+  int32 hit_effect_scale = 8;
+}

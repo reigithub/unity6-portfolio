@@ -1,6 +1,6 @@
 using Game.Server.Dto.Requests;
 using Game.Server.Dto.Responses;
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services.Interfaces;
 
@@ -37,7 +37,7 @@ public class ScoreService : IScoreService
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
             request.GameMode, request.StageId, userId);
 
-        var score = new ScoreEntity
+        var score = new UserScore
         {
             UserId = userId,
             GameMode = request.GameMode,

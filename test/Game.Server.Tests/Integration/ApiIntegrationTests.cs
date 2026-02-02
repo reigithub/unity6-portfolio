@@ -2,18 +2,33 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Game.Server.Dto.Responses;
+using Game.Server.Tests.Fixtures;
 
 namespace Game.Server.Tests.Integration;
 
-public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+[Collection("Database")]
+public class ApiIntegrationTests : IAsyncLifetime
 {
-    private readonly CustomWebApplicationFactory _factory;
-    private readonly HttpClient _client;
+    private readonly PostgresContainerFixture _postgres;
+    private CustomWebApplicationFactory _factory = null!;
+    private HttpClient _client = null!;
 
-    public ApiIntegrationTests(CustomWebApplicationFactory factory)
+    public ApiIntegrationTests(PostgresContainerFixture postgres)
     {
-        _factory = factory;
-        _client = factory.CreateClient();
+        _postgres = postgres;
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _postgres.ResetUserDataAsync();
+        _factory = new CustomWebApplicationFactory(_postgres.ConnectionString);
+        _client = _factory.CreateClient();
+    }
+
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Fact]
@@ -98,13 +113,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 
         var rankingResponse = await _client.GetAsync("/api/rankings/Survivor/1");
         Assert.Equal(HttpStatusCode.OK, rankingResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task MasterData_Version_Returns200()
-    {
-        var response = await _client.GetAsync("/api/masterdata/version");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private async Task<string> RegisterAndGetToken(string displayName)

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="3.1.3" />
+    <PackageReference Include="MasterMemory" Version="3.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Client Generated MemoryTable types -->
+    <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\*.Generated.cs"
+             LinkBase="Generated" />
+    <!-- MasterMemoryGeneratorOptions (Source Generator 用) -->
+    <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\MasterMemoryGeneratorOptions.cs"
+             Link="MasterMemoryGeneratorOptions.cs" />
+    <!-- ExternalInit.cs は .NET 9 では不要なので除外 -->
+  </ItemGroup>
+
+</Project>

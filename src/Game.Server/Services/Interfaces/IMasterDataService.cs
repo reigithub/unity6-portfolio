@@ -1,12 +1,9 @@
-using Game.Library.Shared.Dto;
+using Game.Server.MasterData;
+using MasterMemory;
 
 namespace Game.Server.Services.Interfaces;
 
 public interface IMasterDataService
 {
-    MasterDataVersionDto GetCurrentVersion();
-
-    string? GetTableEtag(string tableName);
-
-    byte[]? GetTableBinary(string tableName);
+    MemoryDatabase MemoryDatabase { get; }
 }

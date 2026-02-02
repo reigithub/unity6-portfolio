@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Library.Shared.Enums;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using Game.Shared.Extensions;
 using UnityEngine;
 

@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Game.Library.Shared.MasterData;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;

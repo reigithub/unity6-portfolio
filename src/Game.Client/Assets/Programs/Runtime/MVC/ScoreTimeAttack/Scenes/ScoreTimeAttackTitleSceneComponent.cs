@@ -4,7 +4,7 @@ using Game.Core.Constants;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
-using Game.Library.Shared.MasterData;
+using Game.Client.MasterData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;

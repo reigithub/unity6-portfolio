@@ -1,4 +1,4 @@
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Core.DI;
 using Game.MVP.Survivor.Signals;
 using Game.Shared.Item;

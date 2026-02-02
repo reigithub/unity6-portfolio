@@ -1,0 +1,13 @@
+syntax = "proto3";
+package masterdata.audio;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.Audio";
+
+message AudioPlayTagsMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+  option (masterdata.options.table_name) = "AudioPlayTagsMaster";
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  int32 audio_id = 2;
+  int32 audio_play_tag = 3 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+}

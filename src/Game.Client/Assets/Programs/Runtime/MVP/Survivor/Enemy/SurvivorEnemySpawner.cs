@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Library.Shared.MasterData;
-using Game.Library.Shared.MasterData.MemoryTables;
+using Game.Client.MasterData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;

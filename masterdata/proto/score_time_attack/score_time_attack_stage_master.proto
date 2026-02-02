@@ -1,0 +1,18 @@
+syntax = "proto3";
+package masterdata.score_time_attack;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.ScoreTimeAttack";
+
+message ScoreTimeAttackStageMaster {
+    option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+    int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+    int32 group_id = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+    int32 order = 3;
+    string name = 4;
+    string asset_name = 5;
+    int32 total_time = 6;
+    int32 max_point = 7;
+    optional int32 player_id = 8;
+    optional int32 next_stage_id = 9;
+}

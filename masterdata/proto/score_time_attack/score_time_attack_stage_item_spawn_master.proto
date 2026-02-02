@@ -1,0 +1,18 @@
+syntax = "proto3";
+package masterdata.score_time_attack;
+import "options/masterdata_options.proto";
+option csharp_namespace = "Game.Tools.Proto.ScoreTimeAttack";
+
+message ScoreTimeAttackStageItemSpawnMaster {
+    option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+    int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+    int32 stage_id = 2 [(masterdata.options.index_type) = INDEX_SECONDARY, (masterdata.options.secondary_index) = 0, (masterdata.options.non_unique) = true];
+    int32 group_id = 3;
+    int32 stage_item_id = 4;
+    int32 x = 5;
+    int32 y = 6;
+    int32 z = 7;
+    int32 min_spawn_count = 8;
+    int32 max_spawn_count = 9;
+}

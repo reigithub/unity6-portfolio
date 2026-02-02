@@ -286,7 +286,7 @@ namespace Game.Editor.Survivor
                 bool modified = false;
 
                 // タグを "Enemy" に設定
-                if (prefabRoot.tag != "Enemy")
+                if (!prefabRoot.CompareTag("Enemy"))
                 {
                     prefabRoot.tag = "Enemy";
                     modified = true;

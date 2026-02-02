@@ -1,4 +1,4 @@
-using Game.Server.Entities;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Moq;
@@ -20,7 +20,7 @@ public class RankingServiceTests
     public async Task GetRankingAsync_ReturnsOrderedByScore()
     {
         // Arrange
-        var scores = new List<ScoreEntity>
+        var scores = new List<UserScore>
         {
             new() { UserId = "2", Score = 200, ClearTime = 90f, User = new() { DisplayName = "B" } },
             new() { UserId = "1", Score = 100, ClearTime = 120f, User = new() { DisplayName = "A" } },
@@ -44,7 +44,7 @@ public class RankingServiceTests
     {
         // Arrange
         _mockRepo.Setup(r => r.GetTopScoresAsync("Survivor", 99, 100, 0))
-            .ReturnsAsync(new List<ScoreEntity>());
+            .ReturnsAsync(new List<UserScore>());
 
         // Act
         var result = await _service.GetRankingAsync("Survivor", 99, 100, 0);
@@ -58,7 +58,7 @@ public class RankingServiceTests
     public async Task GetUserRankAsync_ExistingUser_ReturnsCorrectRank()
     {
         // Arrange
-        var bestScore = new ScoreEntity
+        var bestScore = new UserScore
         {
             UserId = "user-1",
             Score = 5000,
@@ -85,7 +85,7 @@ public class RankingServiceTests
     {
         // Arrange
         _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "no-user"))
-            .ReturnsAsync((ScoreEntity?)null);
+            .ReturnsAsync((UserScore?)null);
 
         // Act
         var result = await _service.GetUserRankAsync("Survivor", 1, "no-user");

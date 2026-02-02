@@ -1,6 +1,6 @@
 using Dapper;
-using Game.Server.Data;
-using Game.Server.Entities;
+using Game.Server.Database;
+using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
 namespace Game.Server.Repositories.Dapper;
@@ -14,7 +14,7 @@ public class DapperRankingRepository : IRankingRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<List<ScoreEntity>> GetTopScoresAsync(
+    public async Task<List<UserScore>> GetTopScoresAsync(
         string gameMode, int stageId, int limit, int offset)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -23,13 +23,13 @@ public class DapperRankingRepository : IRankingRepository
             @"SELECT s.""Id"", s.""UserId"", s.""GameMode"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
                      u.""Id"", u.""DisplayName"", u.""PasswordHash"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
-              FROM ""Scores"" s
-              INNER JOIN ""Users"" u ON s.""UserId"" = u.""Id""
+              FROM ""User"".""UserScore"" s
+              INNER JOIN ""User"".""UserInfo"" u ON s.""UserId"" = u.""Id""
               WHERE s.""GameMode"" = @GameMode AND s.""StageId"" = @StageId
               ORDER BY s.""Score"" DESC, s.""ClearTime"" ASC
               LIMIT @Limit OFFSET @Offset";
 
-        var results = await connection.QueryAsync<ScoreEntity, UserEntity, ScoreEntity>(
+        var results = await connection.QueryAsync<UserScore, UserInfo, UserScore>(
             sql,
             (score, user) =>
             {
@@ -42,7 +42,7 @@ public class DapperRankingRepository : IRankingRepository
         return results.AsList();
     }
 
-    public async Task<ScoreEntity?> GetUserBestScoreAsync(
+    public async Task<UserScore?> GetUserBestScoreAsync(
         string gameMode, int stageId, string userId)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -50,12 +50,12 @@ public class DapperRankingRepository : IRankingRepository
         const string sql =
             @"SELECT ""Id"", ""UserId"", ""GameMode"", ""StageId"", ""Score"",
                      ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt""
-              FROM ""Scores""
+              FROM ""User"".""UserScore""
               WHERE ""UserId"" = @UserId AND ""GameMode"" = @GameMode AND ""StageId"" = @StageId
               ORDER BY ""Score"" DESC, ""ClearTime"" ASC
               LIMIT 1";
 
-        return await connection.QueryFirstOrDefaultAsync<ScoreEntity>(
+        return await connection.QueryFirstOrDefaultAsync<UserScore>(
             sql,
             new { UserId = userId, GameMode = gameMode, StageId = stageId });
     }
@@ -73,7 +73,7 @@ public class DapperRankingRepository : IRankingRepository
 
         const string sql =
             @"SELECT COUNT(DISTINCT ""UserId"")
-              FROM ""Scores""
+              FROM ""User"".""UserScore""
               WHERE ""GameMode"" = @GameMode AND ""StageId"" = @StageId
                 AND (""Score"" > @Score
                      OR (""Score"" = @Score AND ""ClearTime"" < @ClearTime))";
