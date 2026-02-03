@@ -1,3 +1,4 @@
+using Game.Server.Database;
 using Game.Tools.Data;
 using Spectre.Console;
 
@@ -10,24 +11,17 @@ public class SeedDataCommands
     /// </summary>
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
     /// <param name="tsvDir">Directory containing TSV files.</param>
-    /// <param name="userOnly">Only seed User schema tables.</param>
-    /// <param name="masterOnly">Only seed Master schema tables.</param>
-    public void Seed(string connectionString = "", string tsvDir = "masterdata/raw/", bool userOnly = false, bool masterOnly = false)
+    /// <param name="schema">Target schema (master, user). Omit for master only.</param>
+    public void Seed(string connectionString = "", string tsvDir = "masterdata/raw/", string schema = "master")
     {
-        if (userOnly && masterOnly)
-        {
-            AnsiConsole.MarkupLine("[red]Cannot specify both --user-only and --master-only.[/]");
-            Environment.ExitCode = 1;
-            return;
-        }
-
         var cs = AppConfig.ResolveConnectionString(connectionString);
+        var schemas = MigrationSchema.ResolveSchemas(schema);
 
         AnsiConsole.MarkupLine($"[blue]TSV directory:[/] {Path.GetFullPath(tsvDir)}");
         AnsiConsole.MarkupLine($"[blue]Connection:[/] {MaskConnectionString(cs)}");
 
         var seeder = new DatabaseSeeder();
-        seeder.Seed(cs, tsvDir, userOnly, masterOnly);
+        seeder.Seed(cs, tsvDir, schemas);
     }
 
     /// <summary>
@@ -35,24 +29,17 @@ public class SeedDataCommands
     /// </summary>
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
     /// <param name="outDir">Output directory for TSV files.</param>
-    /// <param name="userOnly">Only dump User schema tables.</param>
-    /// <param name="masterOnly">Only dump Master schema tables.</param>
-    public void Dump(string connectionString = "", string outDir = "output/dump/", bool userOnly = false, bool masterOnly = false)
+    /// <param name="schema">Target schema (master, user). Omit for master only.</param>
+    public void Dump(string connectionString = "", string outDir = "output/dump/", string schema = "master")
     {
-        if (userOnly && masterOnly)
-        {
-            AnsiConsole.MarkupLine("[red]Cannot specify both --user-only and --master-only.[/]");
-            Environment.ExitCode = 1;
-            return;
-        }
-
         var cs = AppConfig.ResolveConnectionString(connectionString);
+        var schemas = MigrationSchema.ResolveSchemas(schema);
 
         AnsiConsole.MarkupLine($"[blue]Output directory:[/] {Path.GetFullPath(outDir)}");
         AnsiConsole.MarkupLine($"[blue]Connection:[/] {MaskConnectionString(cs)}");
 
         var dumper = new DatabaseDumper();
-        dumper.Dump(cs, outDir, userOnly, masterOnly);
+        dumper.Dump(cs, outDir, schemas);
     }
 
     /// <summary>

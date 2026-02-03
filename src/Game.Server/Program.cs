@@ -1,4 +1,4 @@
-using FluentMigrator.Runner;
+using Game.Server.Database;
 using Game.Server.Extensions;
 using Game.Server.Middleware;
 
@@ -66,9 +66,13 @@ public partial class Program
         // FluentMigrator: auto-apply migrations in Development
         if (app.Environment.IsDevelopment())
         {
-            using var scope = app.Services.CreateScope();
-            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-            runner.MigrateUp();
+            var connectionString = app.Configuration.GetConnectionString("Default")
+                ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+
+            foreach (var schema in MigrationSchema.All)
+            {
+                MigrationRunnerFactory.MigrateUp(connectionString, schema);
+            }
         }
 
         app.Run();

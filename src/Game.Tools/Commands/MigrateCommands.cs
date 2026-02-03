@@ -1,7 +1,5 @@
-using FluentMigrator.Runner;
-using Game.Server.Database.Migrations;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Game.Server.Database;
+using Game.Tools.Data;
 using Spectre.Console;
 
 namespace Game.Tools.Commands;
@@ -12,12 +10,15 @@ public class MigrateCommands
     /// Run pending database migrations.
     /// </summary>
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
-    public void Up(string connectionString = "")
+    /// <param name="schema">Target schema (master, user, all). Omit for all schemas.</param>
+    public void Up(string connectionString = "", string schema = "")
     {
         var cs = AppConfig.ResolveConnectionString(connectionString);
-        using var sp = BuildServiceProvider(cs);
-        var runner = sp.GetRequiredService<IMigrationRunner>();
-        runner.MigrateUp();
+        foreach (var s in ResolveSchemas(schema))
+        {
+            AnsiConsole.MarkupLine($"[blue]Running migrations for schema '{s}'...[/]");
+            MigrationRunnerFactory.MigrateUp(cs, s);
+        }
         AnsiConsole.MarkupLine("[green]Migration completed successfully.[/]");
     }
 
@@ -26,17 +27,16 @@ public class MigrateCommands
     /// </summary>
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
     /// <param name="steps">Number of migrations to rollback.</param>
-    public void Down(string connectionString = "", int steps = 1)
+    /// <param name="schema">Target schema (master, user, all). Omit for all schemas.</param>
+    public void Down(string connectionString = "", int steps = 1, string schema = "")
     {
         var cs = AppConfig.ResolveConnectionString(connectionString);
-        using var sp = BuildServiceProvider(cs);
-        var runner = sp.GetRequiredService<IMigrationRunner>();
-
-        for (int i = 0; i < steps; i++)
+        // Down は逆順で実行
+        foreach (var s in ResolveSchemas(schema).Reverse())
         {
-            runner.Rollback(1);
+            AnsiConsole.MarkupLine($"[blue]Rolling back schema '{s}' ({steps} step(s))...[/]");
+            MigrationRunnerFactory.Rollback(cs, s, steps);
         }
-
         AnsiConsole.MarkupLine($"[green]Rolled back {steps} migration(s).[/]");
     }
 
@@ -44,23 +44,69 @@ public class MigrateCommands
     /// Show current migration status.
     /// </summary>
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
-    public void Status(string connectionString = "")
+    /// <param name="schema">Target schema (master, user, all). Omit for all schemas.</param>
+    public void Status(string connectionString = "", string schema = "")
     {
         var cs = AppConfig.ResolveConnectionString(connectionString);
-        using var sp = BuildServiceProvider(cs);
-        var runner = sp.GetRequiredService<IMigrationRunner>();
-        runner.ListMigrations();
+        foreach (var s in ResolveSchemas(schema))
+        {
+            AnsiConsole.MarkupLine($"[bold]── Schema: {s} ──[/]");
+            MigrationRunnerFactory.ListMigrations(cs, s);
+        }
     }
 
-    private static ServiceProvider BuildServiceProvider(string connectionString)
+    /// <summary>
+    /// Reset database by dropping schemas and optionally re-applying migrations.
+    /// </summary>
+    /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
+    /// <param name="version">Target migration version to re-apply up to. 0 = drop only (skip MigrateUp).</param>
+    /// <param name="seed">Re-seed master data after reset.</param>
+    /// <param name="force">Skip confirmation prompt.</param>
+    /// <param name="schema">Target schema (master, user, all). Omit for all schemas.</param>
+    public void Reset(string connectionString = "", long version = 0, bool seed = false, bool force = false, string schema = "")
     {
-        return new ServiceCollection()
-            .AddFluentMigratorCore()
-            .ConfigureRunner(rb => rb
-                .AddPostgres()
-                .WithGlobalConnectionString(connectionString)
-                .ScanIn(typeof(M0001_CreateMasterSchema).Assembly).For.Migrations())
-            .AddLogging(lb => lb.AddFluentMigratorConsole())
-            .BuildServiceProvider(false);
+        if (!force)
+        {
+            var confirmed = AnsiConsole.Confirm(
+                "[yellow]This will drop all tables and re-create them. Continue?[/]",
+                defaultValue: false);
+            if (!confirmed)
+            {
+                AnsiConsole.MarkupLine("[yellow]Aborted.[/]");
+                return;
+            }
+        }
+
+        var cs = AppConfig.ResolveConnectionString(connectionString);
+        var schemas = ResolveSchemas(schema);
+
+        // Drop schemas via raw SQL (逆順)
+        foreach (var s in schemas.Reverse())
+        {
+            AnsiConsole.MarkupLine($"[yellow]Dropping schema '{s}'...[/]");
+            MigrationRunnerFactory.DropSchema(cs, s);
+        }
+
+        // Re-apply: 正順
+        if (version > 0)
+        {
+            foreach (var s in schemas)
+            {
+                AnsiConsole.MarkupLine($"[blue]Re-applying migrations for schema '{s}' up to version {version}...[/]");
+                MigrationRunnerFactory.MigrateUp(cs, s, version);
+            }
+        }
+
+        if (seed)
+        {
+            AnsiConsole.MarkupLine("[blue]Seeding master data...[/]");
+            var seeder = new DatabaseSeeder();
+            seeder.Seed(cs, "masterdata/raw/", [MigrationSchema.Master]);
+        }
+
+        AnsiConsole.MarkupLine("[green]Database reset completed successfully.[/]");
     }
+
+    private static string[] ResolveSchemas(string schema)
+        => MigrationSchema.ResolveSchemas(schema);
 }

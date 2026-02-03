@@ -50,7 +50,7 @@ public class PostgresContainerFixture : IAsyncLifetime
             {
                 runner.AddPostgres();
                 runner.WithGlobalConnectionString(ConnectionString);
-                runner.ScanIn(typeof(M0001_CreateMasterSchema).Assembly).For.Migrations();
+                runner.ScanIn(typeof(_2026020100010001_CreateMasterSchema).Assembly).For.Migrations();
             })
             .AddLogging(lb => lb.AddFluentMigratorConsole())
             .BuildServiceProvider(false);

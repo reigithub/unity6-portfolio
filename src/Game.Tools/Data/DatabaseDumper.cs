@@ -14,7 +14,7 @@ public class DatabaseDumper
     /// <summary>
     /// Dump database tables to TSV files.
     /// </summary>
-    public void Dump(string connectionString, string outDir, bool userOnly, bool masterOnly)
+    public void Dump(string connectionString, string outDir, string[] schemas)
     {
         Directory.CreateDirectory(outDir);
 
@@ -23,14 +23,10 @@ public class DatabaseDumper
         using var connection = new NpgsqlConnection(connectionString);
         connection.Open();
 
-        if (!userOnly)
+        foreach (var schema in schemas)
         {
-            tables.AddRange(SchemaIntrospector.GetTables(connection, "Master"));
-        }
-
-        if (!masterOnly)
-        {
-            tables.AddRange(SchemaIntrospector.GetTables(connection, "User"));
+            tables.AddRange(SchemaIntrospector.GetTables(connection, schema)
+                .Where(t => t.TableName != "VersionInfo"));
         }
 
         if (tables.Count == 0)
