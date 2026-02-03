@@ -1,7 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Exceptions;
-using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -15,40 +14,26 @@ namespace Game.Shared.Services
     /// </summary>
     public abstract class AddressableAssetServiceBase : IAddressableAssetService
     {
-        // Profiler markers
-        private static readonly ProfilerMarker s_loadAssetMarker = new("ProfilerMarker.Asset.Load");
-        private static readonly ProfilerMarker s_instantiateMarker = new("ProfilerMarker.Asset.Instantiate");
-        private static readonly ProfilerMarker s_loadSceneMarker = new("ProfilerMarker.Asset.LoadScene");
-
         // Constants
         private const int DefaultMaxRetries = 3;
         private const int DefaultRetryDelayMs = 500;
 
         public async UniTask<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
         {
-            using (s_loadAssetMarker.Auto())
-            {
-                ThrowExceptionIfNullAddress(address);
-                return await Addressables.LoadAssetAsync<T>(address);
-            }
+            ThrowExceptionIfNullAddress(address);
+            return await Addressables.LoadAssetAsync<T>(address);
         }
 
         public async UniTask<GameObject> InstantiateAsync(string address, Transform parent = null)
         {
-            using (s_instantiateMarker.Auto())
-            {
-                ThrowExceptionIfNullAddress(address);
-                return await Addressables.InstantiateAsync(address, parent);
-            }
+            ThrowExceptionIfNullAddress(address);
+            return await Addressables.InstantiateAsync(address, parent);
         }
 
         public async UniTask<SceneInstance> LoadSceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {
-            using (s_loadSceneMarker.Auto())
-            {
-                ThrowExceptionIfNullAddress(sceneName);
-                return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
-            }
+            ThrowExceptionIfNullAddress(sceneName);
+            return await Addressables.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
         }
 
         public async UniTask UnloadSceneAsync(SceneInstance sceneInstance)
@@ -89,36 +74,33 @@ namespace Game.Shared.Services
         /// <returns>読み込まれたアセット</returns>
         public async UniTask<T> LoadAssetSafeAsync<T>(string address) where T : UnityEngine.Object
         {
-            using (s_loadAssetMarker.Auto())
+            ThrowExceptionIfNullAddress(address);
+
+            try
             {
-                ThrowExceptionIfNullAddress(address);
+                var asset = await Addressables.LoadAssetAsync<T>(address);
 
-                try
-                {
-                    var asset = await Addressables.LoadAssetAsync<T>(address);
-
-                    if (asset == null)
-                    {
-                        throw new GameAssetLoadException(
-                            address,
-                            typeof(T),
-                            $"Asset loaded but returned null: {address}");
-                    }
-
-                    return asset;
-                }
-                catch (GameAssetLoadException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
+                if (asset == null)
                 {
                     throw new GameAssetLoadException(
                         address,
                         typeof(T),
-                        $"Failed to load asset: {address}",
-                        ex);
+                        $"Asset loaded but returned null: {address}");
                 }
+
+                return asset;
+            }
+            catch (GameAssetLoadException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new GameAssetLoadException(
+                    address,
+                    typeof(T),
+                    $"Failed to load asset: {address}",
+                    ex);
             }
         }
 
@@ -144,26 +126,23 @@ namespace Game.Shared.Services
             {
                 try
                 {
-                    using (s_loadAssetMarker.Auto())
+                    var asset = await Addressables.LoadAssetAsync<T>(address);
+
+                    if (asset == null)
                     {
-                        var asset = await Addressables.LoadAssetAsync<T>(address);
-
-                        if (asset == null)
-                        {
-                            throw new GameAssetLoadException(
-                                address,
-                                typeof(T),
-                                $"Asset loaded but returned null: {address}",
-                                retryCount: attempt);
-                        }
-
-                        if (attempt > 0)
-                        {
-                            Debug.Log($"[AddressableAsset] Successfully loaded {address} after {attempt} retries");
-                        }
-
-                        return asset;
+                        throw new GameAssetLoadException(
+                            address,
+                            typeof(T),
+                            $"Asset loaded but returned null: {address}",
+                            retryCount: attempt);
                     }
+
+                    if (attempt > 0)
+                    {
+                        Debug.Log($"[AddressableAsset] Successfully loaded {address} after {attempt} retries");
+                    }
+
+                    return asset;
                 }
                 catch (GameAssetLoadException ex)
                 {
@@ -198,36 +177,33 @@ namespace Game.Shared.Services
         /// <returns>インスタンス化されたGameObject</returns>
         public async UniTask<GameObject> InstantiateSafeAsync(string address, Transform parent = null)
         {
-            using (s_instantiateMarker.Auto())
+            ThrowExceptionIfNullAddress(address);
+
+            try
             {
-                ThrowExceptionIfNullAddress(address);
+                var instance = await Addressables.InstantiateAsync(address, parent);
 
-                try
-                {
-                    var instance = await Addressables.InstantiateAsync(address, parent);
-
-                    if (instance == null)
-                    {
-                        throw new GameAssetLoadException(
-                            address,
-                            typeof(GameObject),
-                            $"Instantiate returned null: {address}");
-                    }
-
-                    return instance;
-                }
-                catch (GameAssetLoadException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
+                if (instance == null)
                 {
                     throw new GameAssetLoadException(
                         address,
                         typeof(GameObject),
-                        $"Failed to instantiate: {address}",
-                        ex);
+                        $"Instantiate returned null: {address}");
                 }
+
+                return instance;
+            }
+            catch (GameAssetLoadException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new GameAssetLoadException(
+                    address,
+                    typeof(GameObject),
+                    $"Failed to instantiate: {address}",
+                    ex);
             }
         }
 
