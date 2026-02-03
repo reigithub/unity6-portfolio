@@ -1,17 +1,13 @@
-using FluentMigrator;
-
 namespace Game.Server.Database.Migrations;
 
-[Migration(1)]
-public class M0001_CreateMasterSchema : Migration
+[FluentMigrator.Tags("Master")]
+[FluentMigrator.Migration(2026020100010001)]
+public class _2026020100010001_CreateMasterSchema : FluentMigrator.Migration
 {
-    private const string MasterSchema = "Master";
+    private const string MasterSchema = MigrationSchema.Master;
 
     public override void Up()
     {
-        if (!Schema.Schema(MasterSchema).Exists())
-            Create.Schema(MasterSchema);
-
         // ── Audio ──────────────────────────────────────────────
         Create.Table("AudioMaster").InSchema(MasterSchema)
             .WithColumn("Id").AsInt32().PrimaryKey()
@@ -297,8 +293,6 @@ public class M0001_CreateMasterSchema : Migration
 
     public override void Down()
     {
-        if (!Schema.Schema(MasterSchema).Exists())
-
         Delete.Table("ScoreTimeAttackStageTotalResultMaster").InSchema(MasterSchema);
         Delete.Table("ScoreTimeAttackStageItemSpawnMaster").InSchema(MasterSchema);
         Delete.Table("ScoreTimeAttackStageItemMaster").InSchema(MasterSchema);
@@ -318,6 +312,5 @@ public class M0001_CreateMasterSchema : Migration
         Delete.Table("SurvivorPlayerMaster").InSchema(MasterSchema);
         Delete.Table("AudioPlayTagsMaster").InSchema(MasterSchema);
         Delete.Table("AudioMaster").InSchema(MasterSchema);
-        Delete.Schema(MasterSchema);
     }
 }

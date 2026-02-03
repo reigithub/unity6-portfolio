@@ -12,26 +12,20 @@ public class DatabaseSeeder
     /// <summary>
     /// Seed database from TSV files.
     /// </summary>
-    public void Seed(string connectionString, string tsvDir, bool userOnly, bool masterOnly)
+    public void Seed(string connectionString, string tsvDir, string[] schemas)
     {
         var absoluteTsvDir = Path.GetFullPath(tsvDir);
-        var masterTables = new List<TableSchema>();
-        var userTables = new List<TableSchema>();
 
         using var connection = new NpgsqlConnection(connectionString);
         connection.Open();
 
-        if (!userOnly)
+        var allTables = new List<TableSchema>();
+        foreach (var schema in schemas)
         {
-            masterTables.AddRange(SchemaIntrospector.GetTables(connection, "Master"));
+            allTables.AddRange(SchemaIntrospector.GetTables(connection, schema)
+                .Where(t => t.TableName != "VersionInfo"));
         }
 
-        if (!masterOnly)
-        {
-            userTables.AddRange(SchemaIntrospector.GetTables(connection, "User"));
-        }
-
-        var allTables = masterTables.Concat(userTables).ToList();
         if (allTables.Count == 0)
         {
             AnsiConsole.MarkupLine("[yellow]No tables to seed.[/]");
@@ -45,11 +39,9 @@ public class DatabaseSeeder
         connection.Execute(truncateSql);
         AnsiConsole.MarkupLine("[green]Truncated all target tables.[/]");
 
-        // INSERT: Master first, then User (FK constraint order)
         int totalRows = 0;
-        var insertOrder = masterTables.Concat(userTables);
 
-        foreach (var table in insertOrder)
+        foreach (var table in allTables)
         {
             var tsvPath = Path.Combine(absoluteTsvDir, $"{table.TableName}.tsv");
             if (!File.Exists(tsvPath))

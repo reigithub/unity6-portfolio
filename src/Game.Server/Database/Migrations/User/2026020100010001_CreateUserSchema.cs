@@ -1,17 +1,13 @@
-using FluentMigrator;
-
 namespace Game.Server.Database.Migrations;
 
-[Migration(2)]
-public class M0002_CreateUserSchema : Migration
+[FluentMigrator.Tags("User")]
+[FluentMigrator.Migration(2026020100010001)]
+public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
 {
-    private const string UserSchema = "User";
+    private const string UserSchema = MigrationSchema.User;
 
     public override void Up()
     {
-        if (!Schema.Schema(UserSchema).Exists())
-            Create.Schema(UserSchema);
-
         Create.Table("UserInfo").InSchema(UserSchema)
             .WithColumn("Id").AsString(36).PrimaryKey()
             .WithColumn("DisplayName").AsString(50).NotNullable()
@@ -57,11 +53,7 @@ public class M0002_CreateUserSchema : Migration
 
     public override void Down()
     {
-        if (!Schema.Schema(UserSchema).Exists())
-            return;
-
         Delete.Table("UserScore").InSchema(UserSchema);
         Delete.Table("UserInfo").InSchema(UserSchema);
-        Delete.Schema(UserSchema);
     }
 }

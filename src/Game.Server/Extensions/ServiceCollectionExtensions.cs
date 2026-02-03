@@ -1,8 +1,6 @@
 using System.Text;
-using FluentMigrator.Runner;
 using Game.Server.Configuration;
 using Game.Server.Database;
-using Game.Server.Database.Migrations;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
@@ -20,20 +18,6 @@ public static class ServiceCollectionExtensions
         IWebHostEnvironment environment)
     {
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
-
-        string provider = configuration.GetValue<string>("Database:Provider") ?? "PostgreSQL";
-        string connectionString = configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
-
-        services.AddFluentMigratorCore()
-            .ConfigureRunner(runner =>
-            {
-                runner.AddPostgres();
-                runner.WithGlobalConnectionString(connectionString);
-                runner.ScanIn(typeof(M0001_CreateMasterSchema).Assembly).For.Migrations();
-            })
-            .AddLogging(lb => lb.AddFluentMigratorConsole());
-
         return services;
     }
 
