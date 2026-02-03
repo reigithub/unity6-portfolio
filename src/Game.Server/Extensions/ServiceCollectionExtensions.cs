@@ -54,9 +54,24 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Auth & Resend
+        services.Configure<AuthSettings>(configuration.GetSection("Auth"));
+        services.Configure<ResendSettings>(configuration.GetSection("Resend"));
+
         // MasterData
         services.Configure<MasterDataSettings>(configuration.GetSection("MasterData"));
         services.AddSingleton<IMasterDataService, MasterDataService>();
+
+        // Resend client
+        services.AddHttpClient<Resend.ResendClient>();
+        services.Configure<Resend.ResendClientOptions>(o =>
+        {
+            o.ApiToken = configuration.GetSection("Resend")["ApiKey"] ?? string.Empty;
+        });
+        services.AddTransient<Resend.IResend, Resend.ResendClient>();
+
+        // Email
+        services.AddScoped<IEmailService, ResendEmailService>();
 
         // Services
         services.AddScoped<IAuthService, AuthService>();

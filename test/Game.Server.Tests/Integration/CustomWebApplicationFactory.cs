@@ -40,6 +40,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var mockMasterData = new Mock<IMasterDataService>();
             services.RemoveAll<IMasterDataService>();
             services.AddSingleton(mockMasterData.Object);
+
+            // Replace IEmailService with a mock so that tests
+            // don't require Resend API credentials.
+            var mockEmailService = new Mock<IEmailService>();
+            mockEmailService
+                .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(true);
+            mockEmailService
+                .Setup(e => e.SendPasswordResetEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(true);
+            services.RemoveAll<IEmailService>();
+            services.AddSingleton(mockEmailService.Object);
         });
 
         builder.UseEnvironment("Development");

@@ -18,6 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    // Legacy endpoint - use /api/auth/email/register instead
     [HttpPost("register")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -31,6 +32,7 @@ public class AuthController : ControllerBase
             error => error.ToActionResult());
     }
 
+    // Legacy endpoint - use /api/auth/email/login instead
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -59,6 +61,81 @@ public class AuthController : ControllerBase
 
         return result.Match(
             success => Ok(success),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("guest")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GuestLogin([FromBody] GuestLoginRequest request)
+    {
+        var result = await _authService.GuestLoginAsync(request);
+
+        return result.Match(
+            success => success.IsNewUser
+                ? StatusCode(StatusCodes.Status201Created, success)
+                : Ok(success),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("email/register")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> EmailRegister([FromBody] EmailRegisterRequest request)
+    {
+        var result = await _authService.EmailRegisterAsync(request);
+
+        return result.Match(
+            success => StatusCode(StatusCodes.Status201Created, success),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("email/login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> EmailLogin([FromBody] EmailLoginRequest request)
+    {
+        var result = await _authService.EmailLoginAsync(request);
+
+        return result.Match(
+            success => Ok(success),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("email/verify")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        var result = await _authService.VerifyEmailAsync(request);
+
+        return result.Match(
+            success => Ok(new { message = "Email verified successfully" }),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("email/forgot-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var result = await _authService.ForgotPasswordAsync(request);
+
+        return result.Match(
+            success => Ok(new { message = "If the email exists, a reset link has been sent" }),
+            error => error.ToActionResult());
+    }
+
+    [HttpPost("email/reset-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
+
+        return result.Match(
+            success => Ok(new { message = "Password has been reset successfully" }),
             error => error.ToActionResult());
     }
 }

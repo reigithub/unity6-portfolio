@@ -18,9 +18,22 @@ public static class TestDataFixture
         RefreshExpirationDays = 30,
     };
 
+    public static readonly AuthSettings TestAuthSettings = new()
+    {
+        MaxFailedLoginAttempts = 5,
+        LockoutMinutes = 15,
+        EmailVerificationExpiryHours = 24,
+        PasswordResetExpiryMinutes = 30,
+    };
+
     public static IOptions<JwtSettings> GetJwtOptions()
     {
         return Options.Create(TestJwtSettings);
+    }
+
+    public static IOptions<AuthSettings> GetAuthOptions()
+    {
+        return Options.Create(TestAuthSettings);
     }
 
     public static IDbConnectionFactory CreateConnectionFactory(string connectionString)
@@ -41,6 +54,7 @@ public static class TestDataFixture
                 DisplayName = "Player1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
                 Level = 5,
+                AuthType = "Password",
             },
             new UserInfo
             {
@@ -48,6 +62,7 @@ public static class TestDataFixture
                 DisplayName = "Player2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password2!"),
                 Level = 3,
+                AuthType = "Password",
             },
             new UserInfo
             {
@@ -55,14 +70,24 @@ public static class TestDataFixture
                 DisplayName = "Player3",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password3!"),
                 Level = 1,
+                AuthType = "Password",
             },
         };
 
         foreach (var user in users)
         {
             await connection.ExecuteAsync(
-                @"INSERT INTO ""User"".""UserInfo"" (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"")
-                  VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt)",
+                @"INSERT INTO ""User"".""UserInfo""
+                  (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+                   ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+                   ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+                   ""PasswordResetToken"", ""PasswordResetExpiry"",
+                   ""FailedLoginAttempts"", ""LockoutEndAt"")
+                  VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                          @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                          @EmailVerificationToken, @EmailVerificationExpiry,
+                          @PasswordResetToken, @PasswordResetExpiry,
+                          @FailedLoginAttempts, @LockoutEndAt)",
                 user);
         }
 

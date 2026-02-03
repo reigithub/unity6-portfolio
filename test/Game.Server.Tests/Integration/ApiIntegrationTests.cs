@@ -47,7 +47,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             DisplayName = name,
-            Password = "TestPassword123",
+            Password = "TestPassword123!",
         });
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
 
@@ -71,13 +71,13 @@ public class ApiIntegrationTests : IAsyncLifetime
         await _client.PostAsJsonAsync("/api/auth/register", new
         {
             DisplayName = name,
-            Password = "Password123",
+            Password = "Password123!",
         });
 
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             DisplayName = name,
-            Password = "Password456",
+            Password = "Password456!",
         });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -120,7 +120,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             DisplayName = displayName,
-            Password = "Password123",
+            Password = "Password123!",
         });
         var data = await response.Content.ReadFromJsonAsync<LoginResponse>();
         return data!.Token;

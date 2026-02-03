@@ -10,4 +10,16 @@ public interface IAuthService
     Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request);
 
     Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string userId);
+
+    Task<Result<LoginResponse, ApiError>> GuestLoginAsync(GuestLoginRequest request);
+
+    Task<Result<LoginResponse, ApiError>> EmailRegisterAsync(EmailRegisterRequest request);
+
+    Task<Result<LoginResponse, ApiError>> EmailLoginAsync(EmailLoginRequest request);
+
+    Task<Result<bool, ApiError>> VerifyEmailAsync(VerifyEmailRequest request);
+
+    Task<Result<bool, ApiError>> ForgotPasswordAsync(ForgotPasswordRequest request);
+
+    Task<Result<bool, ApiError>> ResetPasswordAsync(ResetPasswordRequest request);
 }

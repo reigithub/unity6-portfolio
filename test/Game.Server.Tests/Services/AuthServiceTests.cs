@@ -2,8 +2,10 @@ using Game.Server.Dto.Requests;
 using Game.Server.Dto.Responses;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
+using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace Game.Server.Tests.Services;
 
@@ -30,8 +32,7 @@ public class AuthServiceTests : IAsyncLifetime
     public async Task RegisterAsync_ValidRequest_ReturnsLoginResponse()
     {
         // Arrange
-        var authRepo = new DapperAuthRepository(_connectionFactory);
-        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
+        var service = CreateAuthService();
         var request = new RegisterRequest { DisplayName = "NewUser", Password = "Password123!" };
 
         // Act
@@ -50,8 +51,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
-        var authRepo = new DapperAuthRepository(_connectionFactory);
-        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
+        var service = CreateAuthService();
         var request = new RegisterRequest { DisplayName = "Player1", Password = "Password123!" };
 
         // Act
@@ -69,8 +69,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
-        var authRepo = new DapperAuthRepository(_connectionFactory);
-        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
+        var service = CreateAuthService();
         var request = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
 
         // Act
@@ -88,8 +87,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
-        var authRepo = new DapperAuthRepository(_connectionFactory);
-        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
+        var service = CreateAuthService();
         var request = new LoginRequest { DisplayName = "Player1", Password = "WrongPassword" };
 
         // Act
@@ -106,8 +104,7 @@ public class AuthServiceTests : IAsyncLifetime
     public async Task LoginAsync_NonExistentUser_ReturnsUnauthorized()
     {
         // Arrange
-        var authRepo = new DapperAuthRepository(_connectionFactory);
-        var service = new AuthService(authRepo, TestDataFixture.GetJwtOptions());
+        var service = CreateAuthService();
         var request = new LoginRequest { DisplayName = "NoSuchUser", Password = "Password123!" };
 
         // Act
@@ -119,7 +116,25 @@ public class AuthServiceTests : IAsyncLifetime
         Assert.Equal("INVALID_CREDENTIALS", error.ErrorCode);
     }
 
-    private static TSuccess? ExtractSuccess<TSuccess, TError>(Result<TSuccess, TError> result)
+    private AuthService CreateAuthService()
+    {
+        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var mockEmailService = new Mock<IEmailService>();
+        mockEmailService
+            .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        mockEmailService
+            .Setup(e => e.SendPasswordResetEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        return new AuthService(
+            authRepo,
+            TestDataFixture.GetJwtOptions(),
+            TestDataFixture.GetAuthOptions(),
+            mockEmailService.Object);
+    }
+
+    internal static TSuccess? ExtractSuccess<TSuccess, TError>(Result<TSuccess, TError> result)
     {
         TSuccess? success = default;
         result.Match(
@@ -128,7 +143,7 @@ public class AuthServiceTests : IAsyncLifetime
         return success;
     }
 
-    private static TError? ExtractError<TSuccess, TError>(Result<TSuccess, TError> result)
+    internal static TError? ExtractError<TSuccess, TError>(Result<TSuccess, TError> result)
     {
         TError? error = default;
         result.Match(
