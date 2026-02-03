@@ -16,6 +16,7 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAudioService _audioService;
+        [Inject] private readonly ISessionService _sessionService;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -51,8 +52,17 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
-            await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
-            await UniTask.CompletedTask;
+
+            if (_sessionService.IsAuthenticated)
+            {
+                // 認証済み → 直接ステージ選択へ
+                await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+            }
+            else
+            {
+                // 未認証 → 認証画面へ
+                await _sceneService.TransitionAsync<SurvivorAuthScene>();
+            }
         }
 
         private async UniTaskVoid OnReturn()

@@ -16,7 +16,7 @@ MonoBehaviour:
   _configs:
   - _environment: 0
     _dependencyResolverMode: 1
-    _apiBaseUrl: 
+    _apiBaseUrl: http://localhost:5000
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
