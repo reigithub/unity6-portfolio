@@ -138,4 +138,45 @@ public class AuthController : ControllerBase
             success => Ok(new { message = "Password has been reset successfully" }),
             error => error.ToActionResult());
     }
+
+    [HttpPost("link/email")]
+    [Authorize]
+    [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> LinkEmail([FromBody] LinkEmailRequest request)
+    {
+        string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authService.LinkEmailAsync(userId, request);
+
+        return result.Match(
+            success => Ok(success),
+            error => error.ToActionResult());
+    }
+
+    [HttpDelete("link/email")]
+    [Authorize]
+    [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UnlinkEmail([FromQuery] string deviceFingerprint)
+    {
+        string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authService.UnlinkEmailAsync(userId, deviceFingerprint);
+
+        return result.Match(
+            success => Ok(success),
+            error => error.ToActionResult());
+    }
 }

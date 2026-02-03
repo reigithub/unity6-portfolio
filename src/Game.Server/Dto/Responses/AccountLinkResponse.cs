@@ -1,14 +1,12 @@
 namespace Game.Server.Dto.Responses;
 
-public class UserResponse
+public class AccountLinkResponse
 {
     public string UserId { get; set; } = string.Empty;
 
     public string DisplayName { get; set; } = string.Empty;
 
-    public int Level { get; set; }
-
-    public long CreatedAt { get; set; }
+    public string Token { get; set; } = string.Empty;
 
     public string AuthType { get; set; } = string.Empty;
 

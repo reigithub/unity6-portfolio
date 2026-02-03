@@ -59,6 +59,19 @@ namespace Game.Shared.Services
             return await SendRequest<TResponse>(request);
         }
 
+        public async UniTask<ApiResponse<TResponse>> DeleteAsync<TResponse>(string path)
+        {
+            var url = $"{BaseUrl}/{path.TrimStart('/')}";
+
+            using var request = UnityWebRequest.Delete(url);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.timeout = TimeoutSeconds;
+
+            SetAuthHeader(request);
+
+            return await SendRequest<TResponse>(request);
+        }
+
         private void SetAuthHeader(UnityWebRequest request)
         {
             if (!string.IsNullOrEmpty(_authToken))

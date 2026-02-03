@@ -1,0 +1,78 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorAccountLinkDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Header -->
+            <ui:VisualElement class="dialog-header">
+                <ui:Label text="DATA LINK" class="dialog-title" />
+                <ui:Button text="X" name="close-button" class="close-button" />
+            </ui:VisualElement>
+
+            <!-- Content Area -->
+            <ui:VisualElement class="dialog-content">
+
+                <!-- Status View (initial) -->
+                <ui:VisualElement name="status-view" class="view-panel">
+                    <ui:Label text="Account Status" class="section-title" />
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="Type" class="status-label" />
+                        <ui:Label text="Guest" name="status-auth-type" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="Name" class="status-label" />
+                        <ui:Label text="-" name="status-display-name" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="status-email-row" class="status-row">
+                        <ui:Label text="Email" class="status-label" />
+                        <ui:Label text="-" name="status-email" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="action-buttons">
+                        <ui:Button text="LINK TO EMAIL" name="link-email-button" class="action-button action-button--primary" />
+                        <ui:Button text="UNLINK EMAIL" name="unlink-email-button" class="action-button action-button--danger" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Link Form View -->
+                <ui:VisualElement name="link-form-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Link to Email Account" class="section-title" />
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Email" class="form-label" />
+                        <ui:TextField name="form-email" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Password" class="form-label" />
+                        <ui:TextField name="form-password" password="true" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Display Name" class="form-label" />
+                        <ui:TextField name="form-display-name" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="LINK" name="submit-link-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK" name="back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Loading Indicator -->
+                <ui:VisualElement name="loading-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Processing..." class="loading-text" />
+                </ui:VisualElement>
+
+                <!-- Message Area (error / success) -->
+                <ui:Label name="message-label" class="message-label" />
+
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

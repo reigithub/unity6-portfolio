@@ -91,6 +91,55 @@ public static class TestDataFixture
                 user);
         }
 
+        // Guest user for account linking tests
+        var guestUser = new UserInfo
+        {
+            Id = "guest-user-1",
+            DisplayName = "Guest_12345678",
+            PasswordHash = null,
+            Level = 1,
+            AuthType = "Guest",
+            DeviceFingerprint = "test-device-fingerprint-0123456789abcdef",
+        };
+        await connection.ExecuteAsync(
+            @"INSERT INTO ""User"".""UserInfo""
+              (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+               ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+               ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+               ""PasswordResetToken"", ""PasswordResetExpiry"",
+               ""FailedLoginAttempts"", ""LockoutEndAt"")
+              VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                      @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                      @EmailVerificationToken, @EmailVerificationExpiry,
+                      @PasswordResetToken, @PasswordResetExpiry,
+                      @FailedLoginAttempts, @LockoutEndAt)",
+            guestUser);
+
+        // Email user for unlink tests
+        var emailUser = new UserInfo
+        {
+            Id = "email-user-1",
+            DisplayName = "EmailPlayer",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
+            Level = 2,
+            AuthType = "Email",
+            Email = "existing@example.com",
+            IsEmailVerified = true,
+        };
+        await connection.ExecuteAsync(
+            @"INSERT INTO ""User"".""UserInfo""
+              (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+               ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+               ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+               ""PasswordResetToken"", ""PasswordResetExpiry"",
+               ""FailedLoginAttempts"", ""LockoutEndAt"")
+              VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                      @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                      @EmailVerificationToken, @EmailVerificationExpiry,
+                      @PasswordResetToken, @PasswordResetExpiry,
+                      @FailedLoginAttempts, @LockoutEndAt)",
+            emailUser);
+
         var scores = new[]
         {
             new UserScore { UserId = "user-1", GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f, WaveReached = 10, EnemiesDefeated = 50 },

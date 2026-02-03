@@ -325,6 +325,96 @@ public class AuthService : IAuthService
         return true;
     }
 
+    public async Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(string userId, LinkEmailRequest request)
+    {
+        var user = await _authRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
+        }
+
+        if (user.AuthType != "Guest")
+        {
+            return new ApiError("Only guest accounts can link to email", "NOT_GUEST", StatusCodes.Status400BadRequest);
+        }
+
+        var (isValid, errorMessage) = PasswordValidator.Validate(request.Password);
+        if (!isValid)
+        {
+            return new ApiError(errorMessage!, "WEAK_PASSWORD", StatusCodes.Status400BadRequest);
+        }
+
+        if (await _authRepository.ExistsByEmailAsync(request.Email))
+        {
+            return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
+        }
+
+        if (await _authRepository.ExistsByDisplayNameAsync(request.DisplayName) &&
+            request.DisplayName != user.DisplayName)
+        {
+            return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+        }
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var verificationToken = GenerateSecureToken();
+        var verificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours);
+
+        await _authRepository.LinkEmailAsync(
+            userId, request.Email, passwordHash, request.DisplayName,
+            verificationToken, verificationExpiry);
+
+        await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
+
+        // Re-fetch user to get updated state for JWT
+        var updatedUser = await _authRepository.GetByIdAsync(userId);
+        string token = GenerateJwtToken(updatedUser!);
+
+        return new AccountLinkResponse
+        {
+            UserId = updatedUser!.Id,
+            DisplayName = updatedUser.DisplayName,
+            Token = token,
+            AuthType = updatedUser.AuthType,
+            Email = updatedUser.Email,
+        };
+    }
+
+    public async Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(string userId, string deviceFingerprint)
+    {
+        var user = await _authRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
+        }
+
+        if (user.AuthType != "Email")
+        {
+            return new ApiError("Only email accounts can unlink", "NOT_EMAIL", StatusCodes.Status400BadRequest);
+        }
+
+        if (string.IsNullOrWhiteSpace(deviceFingerprint) || deviceFingerprint.Length < 16)
+        {
+            return new ApiError("Invalid device fingerprint", "INVALID_FINGERPRINT", StatusCodes.Status400BadRequest);
+        }
+
+        await _authRepository.UnlinkEmailAsync(userId, deviceFingerprint);
+
+        // Re-fetch user to get updated state for JWT
+        var updatedUser = await _authRepository.GetByIdAsync(userId);
+        string token = GenerateJwtToken(updatedUser!);
+
+        return new AccountLinkResponse
+        {
+            UserId = updatedUser!.Id,
+            DisplayName = updatedUser.DisplayName,
+            Token = token,
+            AuthType = updatedUser.AuthType,
+            Email = null,
+        };
+    }
+
     private string GenerateJwtToken(UserInfo user)
     {
         var claims = new[]

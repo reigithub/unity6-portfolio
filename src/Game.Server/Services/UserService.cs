@@ -28,6 +28,8 @@ public class UserService : IUserService
             DisplayName = user.DisplayName,
             Level = user.Level,
             CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            AuthType = user.AuthType,
+            Email = user.Email,
         };
     }
 
@@ -59,6 +61,8 @@ public class UserService : IUserService
             DisplayName = user.DisplayName,
             Level = user.Level,
             CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            AuthType = user.AuthType,
+            Email = user.Email,
         };
     }
 }

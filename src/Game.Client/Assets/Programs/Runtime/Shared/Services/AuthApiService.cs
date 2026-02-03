@@ -116,9 +116,61 @@ namespace Game.Shared.Services
             return response;
         }
 
+        public async UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(
+            string email, string password, string displayName)
+        {
+            var request = new LinkEmailRequest
+            {
+                email = email,
+                password = password,
+                displayName = displayName
+            };
+
+            var response = await _apiClient.PostAsync<LinkEmailRequest, AccountLinkResponse>(
+                "api/auth/link/email", request);
+
+            if (response.IsSuccess)
+            {
+                OnLinkSuccess(response.Data);
+            }
+
+            return response;
+        }
+
+        public async UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync()
+        {
+            var fingerprint = _sessionService.GetOrCreateDeviceFingerprint();
+            var response = await _apiClient.DeleteAsync<AccountLinkResponse>(
+                $"api/auth/link/email?deviceFingerprint={UnityEngine.Networking.UnityWebRequest.EscapeURL(fingerprint)}");
+
+            if (response.IsSuccess)
+            {
+                OnLinkSuccess(response.Data);
+            }
+
+            return response;
+        }
+
+        public async UniTask<ApiResponse<UserProfileResponse>> GetMyProfileAsync()
+        {
+            return await _apiClient.GetAsync<UserProfileResponse>("api/users/me");
+        }
+
         private void OnLoginSuccess(LoginResponse data, string authType)
         {
             _sessionService.SaveSession(data, authType);
+            _apiClient.SetAuthToken(data.token);
+        }
+
+        private void OnLinkSuccess(AccountLinkResponse data)
+        {
+            var loginData = new LoginResponse
+            {
+                userId = data.userId,
+                displayName = data.displayName,
+                token = data.token
+            };
+            _sessionService.SaveSession(loginData, data.authType?.ToLower() ?? "guest");
             _apiClient.SetAuthToken(data.token);
         }
 

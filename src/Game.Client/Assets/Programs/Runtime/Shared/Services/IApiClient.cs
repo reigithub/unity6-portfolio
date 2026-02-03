@@ -10,6 +10,7 @@ namespace Game.Shared.Services
     {
         UniTask<ApiResponse<TResponse>> PostAsync<TRequest, TResponse>(string path, TRequest body);
         UniTask<ApiResponse<TResponse>> GetAsync<TResponse>(string path);
+        UniTask<ApiResponse<TResponse>> DeleteAsync<TResponse>(string path);
         void SetAuthToken(string token);
         void ClearAuthToken();
     }

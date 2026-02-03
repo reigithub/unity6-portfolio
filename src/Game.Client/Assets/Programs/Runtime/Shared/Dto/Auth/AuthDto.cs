@@ -46,6 +46,14 @@ namespace Game.Shared.Dto.Auth
         public string newPassword;
     }
 
+    [Serializable]
+    public class LinkEmailRequest
+    {
+        public string email;
+        public string password;
+        public string displayName;
+    }
+
     // ============================================================
     // Response DTOs
     // ============================================================
@@ -57,6 +65,27 @@ namespace Game.Shared.Dto.Auth
         public string displayName;
         public string token;
         public bool isNewUser;
+    }
+
+    [Serializable]
+    public class AccountLinkResponse
+    {
+        public string userId;
+        public string displayName;
+        public string token;
+        public string authType;
+        public string email;
+    }
+
+    [Serializable]
+    public class UserProfileResponse
+    {
+        public string userId;
+        public string displayName;
+        public int level;
+        public long createdAt;
+        public string authType;
+        public string email;
     }
 
     [Serializable]

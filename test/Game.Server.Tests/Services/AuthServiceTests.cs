@@ -134,6 +134,112 @@ public class AuthServiceTests : IAsyncLifetime
             mockEmailService.Object);
     }
 
+    [Fact]
+    public async Task LinkEmailAsync_GuestUser_ReturnsAccountLinkResponse()
+    {
+        // Arrange
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var service = CreateAuthService();
+        var request = new LinkEmailRequest
+        {
+            Email = "newlink@example.com",
+            Password = "LinkPassword123!",
+            DisplayName = "LinkedUser"
+        };
+
+        // Act
+        var result = await service.LinkEmailAsync("guest-user-1", request);
+
+        // Assert
+        AccountLinkResponse? response = ExtractSuccess(result);
+        Assert.NotNull(response);
+        Assert.Equal("Email", response.AuthType);
+        Assert.Equal("LinkedUser", response.DisplayName);
+        Assert.Equal("newlink@example.com", response.Email);
+        Assert.NotEmpty(response.Token);
+    }
+
+    [Fact]
+    public async Task LinkEmailAsync_NonGuestUser_ReturnsBadRequest()
+    {
+        // Arrange
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var service = CreateAuthService();
+        var request = new LinkEmailRequest
+        {
+            Email = "link@example.com",
+            Password = "LinkPassword123!",
+            DisplayName = "LinkUser"
+        };
+
+        // Act
+        var result = await service.LinkEmailAsync("user-1", request);
+
+        // Assert
+        ApiError? error = ExtractError(result);
+        Assert.NotNull(error);
+        Assert.Equal("NOT_GUEST", error.ErrorCode);
+        Assert.Equal(400, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task LinkEmailAsync_DuplicateEmail_ReturnsConflict()
+    {
+        // Arrange
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var service = CreateAuthService();
+        var request = new LinkEmailRequest
+        {
+            Email = "existing@example.com",
+            Password = "LinkPassword123!",
+            DisplayName = "LinkUser"
+        };
+
+        // Act
+        var result = await service.LinkEmailAsync("guest-user-1", request);
+
+        // Assert
+        ApiError? error = ExtractError(result);
+        Assert.NotNull(error);
+        Assert.Equal("DUPLICATE_EMAIL", error.ErrorCode);
+        Assert.Equal(409, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnlinkEmailAsync_EmailUser_ReturnsGuestResponse()
+    {
+        // Arrange
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var service = CreateAuthService();
+
+        // Act
+        var result = await service.UnlinkEmailAsync("email-user-1", "device-fingerprint-0123456789abcdef");
+
+        // Assert
+        AccountLinkResponse? response = ExtractSuccess(result);
+        Assert.NotNull(response);
+        Assert.Equal("Guest", response.AuthType);
+        Assert.Null(response.Email);
+        Assert.NotEmpty(response.Token);
+    }
+
+    [Fact]
+    public async Task UnlinkEmailAsync_GuestUser_ReturnsBadRequest()
+    {
+        // Arrange
+        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
+        var service = CreateAuthService();
+
+        // Act
+        var result = await service.UnlinkEmailAsync("guest-user-1", "device-fingerprint-0123456789abcdef");
+
+        // Assert
+        ApiError? error = ExtractError(result);
+        Assert.NotNull(error);
+        Assert.Equal("NOT_EMAIL", error.ErrorCode);
+        Assert.Equal(400, error.StatusCode);
+    }
+
     internal static TSuccess? ExtractSuccess<TSuccess, TError>(Result<TSuccess, TError> result)
     {
         TSuccess? success = default;

@@ -97,6 +97,28 @@ Content-Type: {{contentType}}
 
 
 ### ===========================================
+### Auth - Account Link
+### ===========================================
+
+### Link Guest to Email (認証必要 - ゲストトークン使用)
+POST {{host}}/api/auth/link/email
+Content-Type: {{contentType}}
+Authorization: Bearer {{guestLogin.response.body.$.token}}
+
+{
+  "email": "linked@example.com",
+  "password": "LinkPassword123!",
+  "displayName": "LinkedPlayer"
+}
+
+###
+
+### Unlink Email to Guest (認証必要 - メールトークン使用)
+DELETE {{host}}/api/auth/link/email?deviceFingerprint=test-device-fingerprint-1234567890abcdef
+Authorization: Bearer {{guestLogin.response.body.$.token}}
+
+
+### ===========================================
 ### Auth - Token Refresh
 ### ===========================================
 

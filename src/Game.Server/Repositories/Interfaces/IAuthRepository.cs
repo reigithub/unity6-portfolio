@@ -33,4 +33,9 @@ public interface IAuthRepository
     Task UpdatePasswordResetTokenAsync(string userId, string? token, DateTime? expiry);
 
     Task UpdatePasswordHashAsync(string userId, string passwordHash);
+
+    Task LinkEmailAsync(string userId, string email, string passwordHash, string displayName,
+        string? emailVerificationToken, DateTime? emailVerificationExpiry);
+
+    Task UnlinkEmailAsync(string userId, string deviceFingerprint);
 }

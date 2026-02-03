@@ -16,5 +16,8 @@ namespace Game.Shared.Services
         UniTask<ApiResponse<MessageResponse>> ForgotPasswordAsync(string email);
         UniTask<ApiResponse<MessageResponse>> ResetPasswordAsync(string token, string newPassword);
         UniTask<ApiResponse<LoginResponse>> RefreshTokenAsync();
+        UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(string email, string password, string displayName);
+        UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync();
+        UniTask<ApiResponse<UserProfileResponse>> GetMyProfileAsync();
     }
 }

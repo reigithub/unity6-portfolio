@@ -1,0 +1,250 @@
+/* ===========================================
+   Survivor Account Link Dialog Styles
+   Full-screen dialog
+   =========================================== */
+
+/* Overlay - full screen dark background */
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.98);
+}
+
+/* Dialog Panel - full screen */
+.dialog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    padding: 60px;
+}
+
+/* Header */
+.dialog-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.dialog-title {
+    font-size: 56px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+}
+
+.close-button {
+    width: 64px;
+    height: 64px;
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    transition-duration: 0.15s;
+}
+
+.close-button:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: rgb(255, 255, 255);
+    scale: 1.1;
+}
+
+.close-button:active {
+    scale: 0.95;
+}
+
+/* Content Area */
+.dialog-content {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+/* View Panel */
+.view-panel {
+    width: 600px;
+    padding: 48px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.view-panel--hidden {
+    display: none;
+}
+
+/* Section Title */
+.section-title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-bottom: 36px;
+    letter-spacing: 2px;
+}
+
+/* Status View */
+.status-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+}
+
+.status-label {
+    width: 140px;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.status-value {
+    flex-grow: 1;
+    font-size: 26px;
+    color: rgb(255, 255, 255);
+}
+
+/* Action Buttons */
+.action-buttons {
+    margin-top: 36px;
+    align-items: stretch;
+}
+
+.action-button {
+    height: 68px;
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    transition-duration: 0.12s;
+}
+
+.action-button:last-child {
+    margin-bottom: 0;
+}
+
+.action-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.02;
+}
+
+.action-button:active {
+    scale: 0.97;
+}
+
+.action-button--primary {
+    background-color: rgba(60, 140, 255, 0.7);
+    border-color: rgba(100, 180, 255, 0.8);
+}
+
+.action-button--primary:hover {
+    background-color: rgba(80, 160, 255, 0.85);
+    border-color: rgb(130, 200, 255);
+}
+
+.action-button--danger {
+    background-color: rgba(180, 60, 60, 0.6);
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.action-button--danger:hover {
+    background-color: rgba(200, 70, 70, 0.8);
+    border-color: rgba(240, 100, 100, 0.8);
+}
+
+/* Link Form View */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.form-input {
+    height: 56px;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.form-input:focus {
+    border-color: rgba(100, 180, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.form-input > .unity-text-field__input {
+    color: rgb(255, 255, 255);
+    background-color: transparent;
+    border-width: 0;
+    padding: 0;
+    font-size: 22px;
+}
+
+.form-buttons {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 32px;
+}
+
+.form-buttons .action-button {
+    flex-grow: 1;
+    margin-right: 16px;
+}
+
+.form-buttons .action-button:last-child {
+    margin-right: 0;
+}
+
+/* Loading View */
+.loading-text {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-text-align: middle-center;
+    -unity-font-style: italic;
+}
+
+/* Message Label */
+.message-label {
+    font-size: 22px;
+    -unity-text-align: middle-center;
+    margin-top: 20px;
+    padding: 12px 20px;
+    display: none;
+}
+
+.message-label--error {
+    display: flex;
+    color: rgb(255, 120, 120);
+}
+
+.message-label--success {
+    display: flex;
+    color: rgb(120, 255, 160);
+}

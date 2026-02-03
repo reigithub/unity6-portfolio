@@ -1,0 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Game.Server.Dto.Requests;
+
+public class LinkEmailRequest
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 8)]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50, MinimumLength = 2)]
+    public string DisplayName { get; set; } = string.Empty;
+}

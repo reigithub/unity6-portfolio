@@ -40,6 +40,10 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnOptionsClicked
                 .Subscribe(_ => OnOptions().Forget())
                 .AddTo(Disposables);
+
+            SceneComponent.OnDataLinkClicked
+                .Subscribe(_ => OnDataLink().Forget())
+                .AddTo(Disposables);
         }
 
         public override async UniTask Ready()
@@ -83,6 +87,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
+        }
+
+        private async UniTaskVoid OnDataLink()
+        {
+            SceneComponent.SetInteractables(false);
+            await SurvivorAccountLinkDialog.RunAsync(_sceneService);
             SceneComponent.SetInteractables(true);
         }
     }

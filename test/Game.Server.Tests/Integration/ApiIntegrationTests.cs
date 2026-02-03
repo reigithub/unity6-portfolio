@@ -115,6 +115,52 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, rankingResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task LinkEmail_And_UnlinkEmail_Flow()
+    {
+        // 1. Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "link-test-device-" + Guid.NewGuid().ToString("N")
+        });
+        Assert.Equal(HttpStatusCode.OK, guestResponse.StatusCode);
+
+        var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(guestData?.Token);
+
+        // 2. Link to email
+        using var authClient = _factory.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", guestData.Token);
+
+        var linkResponse = await authClient.PostAsJsonAsync("/api/auth/link/email", new
+        {
+            Email = $"link-{Guid.NewGuid():N}@example.com",
+            Password = "LinkPassword123!",
+            DisplayName = $"Linked_{Guid.NewGuid().ToString()[..8]}"
+        });
+        Assert.Equal(HttpStatusCode.OK, linkResponse.StatusCode);
+
+        var linkData = await linkResponse.Content.ReadFromJsonAsync<AccountLinkResponse>();
+        Assert.NotNull(linkData);
+        Assert.Equal("Email", linkData.AuthType);
+        Assert.NotEmpty(linkData.Token);
+
+        // 3. Unlink back to guest
+        using var linkedClient = _factory.CreateClient();
+        linkedClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", linkData.Token);
+
+        var unlinkResponse = await linkedClient.DeleteAsync(
+            "/api/auth/link/email?deviceFingerprint=unlink-device-fingerprint-0123456789abcdef");
+        Assert.Equal(HttpStatusCode.OK, unlinkResponse.StatusCode);
+
+        var unlinkData = await unlinkResponse.Content.ReadFromJsonAsync<AccountLinkResponse>();
+        Assert.NotNull(unlinkData);
+        Assert.Equal("Guest", unlinkData.AuthType);
+        Assert.Null(unlinkData.Email);
+    }
+
     private async Task<string> RegisterAndGetToken(string displayName)
     {
         var response = await _client.PostAsJsonAsync("/api/auth/register", new

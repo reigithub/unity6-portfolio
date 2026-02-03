@@ -177,4 +177,45 @@ public class DapperAuthRepository : IAuthRepository
               WHERE ""Id"" = @Id",
             new { Id = userId, PasswordHash = passwordHash });
     }
+
+    public async Task LinkEmailAsync(string userId, string email, string passwordHash, string displayName,
+        string? emailVerificationToken, DateTime? emailVerificationExpiry)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            @"UPDATE ""User"".""UserInfo""
+              SET ""AuthType"" = 'Email',
+                  ""Email"" = @Email,
+                  ""PasswordHash"" = @PasswordHash,
+                  ""DisplayName"" = @DisplayName,
+                  ""DeviceFingerprint"" = NULL,
+                  ""EmailVerificationToken"" = @EmailVerificationToken,
+                  ""EmailVerificationExpiry"" = @EmailVerificationExpiry
+              WHERE ""Id"" = @Id",
+            new
+            {
+                Id = userId,
+                Email = email,
+                PasswordHash = passwordHash,
+                DisplayName = displayName,
+                EmailVerificationToken = emailVerificationToken,
+                EmailVerificationExpiry = emailVerificationExpiry
+            });
+    }
+
+    public async Task UnlinkEmailAsync(string userId, string deviceFingerprint)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            @"UPDATE ""User"".""UserInfo""
+              SET ""AuthType"" = 'Guest',
+                  ""Email"" = NULL,
+                  ""PasswordHash"" = NULL,
+                  ""DeviceFingerprint"" = @DeviceFingerprint,
+                  ""IsEmailVerified"" = FALSE,
+                  ""EmailVerificationToken"" = NULL,
+                  ""EmailVerificationExpiry"" = NULL
+              WHERE ""Id"" = @Id",
+            new { Id = userId, DeviceFingerprint = deviceFingerprint });
+    }
 }
