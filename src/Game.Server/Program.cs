@@ -1,6 +1,7 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
 using Game.Server.Middleware;
+using Scalar.AspNetCore;
 
 namespace Game.Server;
 
@@ -50,6 +51,12 @@ public partial class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
+            app.MapScalarApiReference(options =>
+            {
+                options.WithTitle("Game Server API")
+                       .WithTheme(ScalarTheme.DeepSpace)
+                       .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+            });
         }
 
         app.UseMiddleware<RequestLoggingMiddleware>();
