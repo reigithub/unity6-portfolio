@@ -66,6 +66,26 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnBackToStatusClicked
                 .Subscribe(_ => OnBackToStatus().Forget())
                 .AddTo(Disposables);
+
+            SceneComponent.OnEmailLoginClicked
+                .Subscribe(_ => OnEmailLoginButton())
+                .AddTo(Disposables);
+
+            SceneComponent.OnEmailLoginSubmitted
+                .Subscribe(x => OnEmailLogin(x.email, x.password).Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnForgotPasswordClicked
+                .Subscribe(_ => OnForgotPasswordButton())
+                .AddTo(Disposables);
+
+            SceneComponent.OnForgotPasswordSubmitted
+                .Subscribe(email => OnForgotPassword(email).Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnResetPasswordSubmitted
+                .Subscribe(x => OnResetPassword(x.token, x.newPassword).Forget())
+                .AddTo(Disposables);
         }
 
         public override async UniTask Ready()
@@ -208,6 +228,94 @@ namespace Game.MVP.Survivor.Scenes
             {
                 await RefreshStatusViewAsync();
                 SceneComponent.ShowError(response.Error?.Message ?? "Failed to unlink account.");
+            }
+        }
+
+        private void OnEmailLoginButton()
+        {
+            SceneComponent.ShowEmailLoginView();
+        }
+
+        private void OnForgotPasswordButton()
+        {
+            SceneComponent.ShowForgotPasswordView();
+        }
+
+        private async UniTaskVoid OnEmailLogin(string email, string password)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                SceneComponent.ShowError("Please enter email and password.");
+                return;
+            }
+
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.EmailLoginAsync(email, password);
+
+            if (response.IsSuccess)
+            {
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowSuccess("Logged in successfully!");
+            }
+            else
+            {
+                SceneComponent.ShowEmailLoginView();
+                SceneComponent.ShowError(response.Error?.Message ?? "Login failed.");
+            }
+        }
+
+        private async UniTaskVoid OnForgotPassword(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                SceneComponent.ShowError("Please enter your email.");
+                return;
+            }
+
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.ForgotPasswordAsync(email);
+
+            if (response.IsSuccess)
+            {
+                SceneComponent.ShowResetPasswordView();
+                SceneComponent.ShowSuccess(response.Data?.message ?? "Reset token sent to your email.");
+            }
+            else
+            {
+                SceneComponent.ShowForgotPasswordView();
+                SceneComponent.ShowError(response.Error?.Message ?? "Failed to send reset token.");
+            }
+        }
+
+        private async UniTaskVoid OnResetPassword(string token, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(newPassword))
+            {
+                SceneComponent.ShowError("Please enter token and new password.");
+                return;
+            }
+
+            if (newPassword.Length < 8)
+            {
+                SceneComponent.ShowError("Password must be at least 8 characters.");
+                return;
+            }
+
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.ResetPasswordAsync(token, newPassword);
+
+            if (response.IsSuccess)
+            {
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowSuccess("Password reset successfully!");
+            }
+            else
+            {
+                SceneComponent.ShowResetPasswordView();
+                SceneComponent.ShowError(response.Error?.Message ?? "Password reset failed.");
             }
         }
     }
