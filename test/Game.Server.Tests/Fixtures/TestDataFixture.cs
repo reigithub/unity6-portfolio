@@ -59,7 +59,7 @@ public static class TestDataFixture
             {
                 Id = User1Id,
                 UserId = "testuser01",
-                DisplayName = "Player1",
+                UserName = "Player1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
                 Level = 5,
                 AuthType = "Password",
@@ -68,7 +68,7 @@ public static class TestDataFixture
             {
                 Id = User2Id,
                 UserId = "testuser02",
-                DisplayName = "Player2",
+                UserName = "Player2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password2!"),
                 Level = 3,
                 AuthType = "Password",
@@ -77,7 +77,7 @@ public static class TestDataFixture
             {
                 Id = User3Id,
                 UserId = "testuser03",
-                DisplayName = "Player3",
+                UserName = "Player3",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password3!"),
                 Level = 1,
                 AuthType = "Password",
@@ -88,12 +88,12 @@ public static class TestDataFixture
         {
             await connection.ExecuteAsync(
                 @"INSERT INTO ""User"".""UserInfo""
-                  (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+                  (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                    ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                    ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                    ""PasswordResetToken"", ""PasswordResetExpiry"",
                    ""FailedLoginAttempts"", ""LockoutEndAt"")
-                  VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                  VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                           @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                           @EmailVerificationToken, @EmailVerificationExpiry,
                           @PasswordResetToken, @PasswordResetExpiry,
@@ -106,7 +106,7 @@ public static class TestDataFixture
         {
             Id = GuestUserId,
             UserId = "guestuser01",
-            DisplayName = "Guest_12345678",
+            UserName = "Guest_12345678",
             PasswordHash = null,
             Level = 1,
             AuthType = "Guest",
@@ -114,12 +114,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -131,7 +131,7 @@ public static class TestDataFixture
         {
             Id = EmailUserId,
             UserId = "emailuser01",
-            DisplayName = "EmailPlayer",
+            UserName = "EmailPlayer",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
             Level = 2,
             AuthType = "Email",
@@ -140,12 +140,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,

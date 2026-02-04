@@ -18,20 +18,20 @@ public class DapperUserRepository : IUserRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType""
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
             new { Id = id });
     }
 
-    public async Task<UserInfo?> GetByDisplayNameAsync(string displayName)
+    public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType""
-              FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
-            new { DisplayName = displayName });
+              FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
+            new { UserName = displayName });
     }
 
     public async Task UpdateAsync(UserInfo user)
@@ -39,7 +39,7 @@ public class DapperUserRepository : IUserRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
-              SET ""DisplayName"" = @DisplayName,
+              SET ""UserName"" = @UserName,
                   ""PasswordHash"" = @PasswordHash,
                   ""Level"" = @Level,
                   ""CreatedAt"" = @CreatedAt,

@@ -11,25 +11,25 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
         Create.Table("UserInfo").InSchema(UserSchema)
             .WithColumn("Id").AsGuid().PrimaryKey()
             .WithColumn("UserId").AsString(36).NotNullable().Unique()
-            .WithColumn("DisplayName").AsString(50).NotNullable()
+            .WithColumn("UserName").AsString(50).NotNullable()
             .WithColumn("PasswordHash").AsString(255).Nullable()
             .WithColumn("Level").AsInt32().NotNullable().WithDefaultValue(1)
-            .WithColumn("CreatedAt").AsDateTime2().NotNullable()
-            .WithColumn("LastLoginAt").AsDateTime2().NotNullable()
+            .WithColumn("CreatedAt").AsCustom("timestamptz").NotNullable()
+            .WithColumn("LastLoginAt").AsCustom("timestamptz").NotNullable()
             .WithColumn("Email").AsString(255).Nullable()
             .WithColumn("AuthType").AsString(20).NotNullable().WithDefaultValue("Password")
             .WithColumn("DeviceFingerprint").AsString(255).Nullable()
             .WithColumn("IsEmailVerified").AsBoolean().NotNullable().WithDefaultValue(false)
             .WithColumn("EmailVerificationToken").AsString(255).Nullable()
-            .WithColumn("EmailVerificationExpiry").AsDateTime2().Nullable()
+            .WithColumn("EmailVerificationExpiry").AsCustom("timestamptz").Nullable()
             .WithColumn("PasswordResetToken").AsString(255).Nullable()
-            .WithColumn("PasswordResetExpiry").AsDateTime2().Nullable()
+            .WithColumn("PasswordResetExpiry").AsCustom("timestamptz").Nullable()
             .WithColumn("FailedLoginAttempts").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("LockoutEndAt").AsDateTime2().Nullable();
+            .WithColumn("LockoutEndAt").AsCustom("timestamptz").Nullable();
 
-        Create.Index("IX_User_UserInfo_DisplayName")
+        Create.Index("IX_User_UserInfo_UserName")
             .OnTable("UserInfo").InSchema(UserSchema)
-            .OnColumn("DisplayName")
+            .OnColumn("UserName")
             .Ascending()
             .WithOptions().Unique();
 
@@ -54,7 +54,7 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("ClearTime").AsFloat().NotNullable()
             .WithColumn("WaveReached").AsInt32().NotNullable()
             .WithColumn("EnemiesDefeated").AsInt32().NotNullable()
-            .WithColumn("RecordedAt").AsDateTime2().NotNullable();
+            .WithColumn("RecordedAt").AsCustom("timestamptz").NotNullable();
 
         Create.ForeignKey("FK_User_UserScore_UserInfo_UserId")
             .FromTable("UserScore").InSchema(UserSchema).ForeignColumn("UserId")
@@ -79,7 +79,7 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("Provider").AsString(50).NotNullable()
             .WithColumn("ProviderUserId").AsString(255).NotNullable()
             .WithColumn("ProviderData").AsCustom("text").Nullable()
-            .WithColumn("LinkedAt").AsDateTime2().NotNullable();
+            .WithColumn("LinkedAt").AsCustom("timestamptz").NotNullable();
 
         Create.ForeignKey("FK_User_UserExternalIdentity_UserInfo_UserId")
             .FromTable("UserExternalIdentity").InSchema(UserSchema).ForeignColumn("UserId")

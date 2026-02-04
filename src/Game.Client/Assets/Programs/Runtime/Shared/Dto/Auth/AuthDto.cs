@@ -17,7 +17,7 @@ namespace Game.Shared.Dto.Auth
     {
         public string email;
         public string password;
-        public string displayName;
+        public string userName;
     }
 
     [Serializable]
@@ -51,7 +51,7 @@ namespace Game.Shared.Dto.Auth
     {
         public string email;
         public string password;
-        public string displayName;
+        public string userName;
     }
 
     // ============================================================
@@ -62,7 +62,7 @@ namespace Game.Shared.Dto.Auth
     public class LoginResponse
     {
         public string userId;
-        public string displayName;
+        public string userName;
         public string token;
         public bool isNewUser;
     }
@@ -71,7 +71,7 @@ namespace Game.Shared.Dto.Auth
     public class AccountLinkResponse
     {
         public string userId;
-        public string displayName;
+        public string userName;
         public string token;
         public string authType;
         public string email;
@@ -81,7 +81,7 @@ namespace Game.Shared.Dto.Auth
     public class UserProfileResponse
     {
         public string userId;
-        public string displayName;
+        public string userName;
         public int level;
         public long createdAt;
         public string authType;

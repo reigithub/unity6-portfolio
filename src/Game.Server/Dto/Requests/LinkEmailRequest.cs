@@ -14,5 +14,5 @@ public class LinkEmailRequest
 
     [Required]
     [StringLength(50, MinimumLength = 2)]
-    public string DisplayName { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
 }

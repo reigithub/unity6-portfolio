@@ -12,26 +12,26 @@ namespace Game.Shared.Services
     {
         private const string KeyAuthToken = "auth_token";
         private const string KeyUserId = "auth_user_id";
-        private const string KeyDisplayName = "auth_display_name";
+        private const string KeyUserName = "auth_user_name";
         private const string KeyAuthType = "auth_type";
         private const string KeyDeviceFingerprint = "device_fingerprint";
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(AuthToken);
         public string AuthToken { get; private set; }
         public string UserId { get; private set; }
-        public string DisplayName { get; private set; }
+        public string UserName { get; private set; }
         public string AuthType { get; private set; }
 
         public void SaveSession(LoginResponse response, string authType = "guest")
         {
             AuthToken = response.token;
             UserId = response.userId;
-            DisplayName = response.displayName;
+            UserName = response.userName;
             AuthType = authType;
 
             PlayerPrefs.SetString(KeyAuthToken, AuthToken);
             PlayerPrefs.SetString(KeyUserId, UserId);
-            PlayerPrefs.SetString(KeyDisplayName, DisplayName);
+            PlayerPrefs.SetString(KeyUserName, UserName);
             PlayerPrefs.SetString(KeyAuthType, AuthType);
             PlayerPrefs.Save();
         }
@@ -46,7 +46,7 @@ namespace Game.Shared.Services
 
             AuthToken = token;
             UserId = PlayerPrefs.GetString(KeyUserId, "");
-            DisplayName = PlayerPrefs.GetString(KeyDisplayName, "");
+            UserName = PlayerPrefs.GetString(KeyUserName, "");
             AuthType = PlayerPrefs.GetString(KeyAuthType, "");
 
             return true;
@@ -56,12 +56,12 @@ namespace Game.Shared.Services
         {
             AuthToken = null;
             UserId = null;
-            DisplayName = null;
+            UserName = null;
             AuthType = null;
 
             PlayerPrefs.DeleteKey(KeyAuthToken);
             PlayerPrefs.DeleteKey(KeyUserId);
-            PlayerPrefs.DeleteKey(KeyDisplayName);
+            PlayerPrefs.DeleteKey(KeyUserName);
             PlayerPrefs.DeleteKey(KeyAuthType);
             PlayerPrefs.Save();
         }

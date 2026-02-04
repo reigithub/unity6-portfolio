@@ -33,7 +33,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         var service = CreateAuthService();
-        var request = new RegisterRequest { DisplayName = "NewUser", Password = "Password123!" };
+        var request = new RegisterRequest { UserName = "NewUser", Password = "Password123!" };
 
         // Act
         var result = await service.RegisterAsync(request);
@@ -41,7 +41,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Assert
         LoginResponse? response = ExtractSuccess(result);
         Assert.NotNull(response);
-        Assert.Equal("NewUser", response.DisplayName);
+        Assert.Equal("NewUser", response.UserName);
         Assert.NotEmpty(response.Token);
         Assert.NotEmpty(response.UserId);
     }
@@ -52,7 +52,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var request = new RegisterRequest { DisplayName = "Player1", Password = "Password123!" };
+        var request = new RegisterRequest { UserName = "Player1", Password = "Password123!" };
 
         // Act
         var result = await service.RegisterAsync(request);
@@ -70,7 +70,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var request = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
+        var request = new LoginRequest { UserName = "Player1", Password = "Password1!" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -78,7 +78,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Assert
         LoginResponse? response = ExtractSuccess(result);
         Assert.NotNull(response);
-        Assert.Equal("Player1", response.DisplayName);
+        Assert.Equal("Player1", response.UserName);
         Assert.NotEmpty(response.Token);
     }
 
@@ -88,7 +88,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var request = new LoginRequest { DisplayName = "Player1", Password = "WrongPassword" };
+        var request = new LoginRequest { UserName = "Player1", Password = "WrongPassword" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -105,7 +105,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         var service = CreateAuthService();
-        var request = new LoginRequest { DisplayName = "NoSuchUser", Password = "Password123!" };
+        var request = new LoginRequest { UserName = "NoSuchUser", Password = "Password123!" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -144,7 +144,7 @@ public class AuthServiceTests : IAsyncLifetime
         {
             Email = "newlink@example.com",
             Password = "LinkPassword123!",
-            DisplayName = "LinkedUser"
+            UserName = "LinkedUser"
         };
 
         // Act
@@ -154,7 +154,7 @@ public class AuthServiceTests : IAsyncLifetime
         AccountLinkResponse? response = ExtractSuccess(result);
         Assert.NotNull(response);
         Assert.Equal("Email", response.AuthType);
-        Assert.Equal("LinkedUser", response.DisplayName);
+        Assert.Equal("LinkedUser", response.UserName);
         Assert.Equal("newlink@example.com", response.Email);
         Assert.NotEmpty(response.Token);
     }
@@ -169,7 +169,7 @@ public class AuthServiceTests : IAsyncLifetime
         {
             Email = "link@example.com",
             Password = "LinkPassword123!",
-            DisplayName = "LinkUser"
+            UserName = "LinkUser"
         };
 
         // Act
@@ -192,7 +192,7 @@ public class AuthServiceTests : IAsyncLifetime
         {
             Email = "existing@example.com",
             Password = "LinkPassword123!",
-            DisplayName = "LinkUser"
+            UserName = "LinkUser"
         };
 
         // Act

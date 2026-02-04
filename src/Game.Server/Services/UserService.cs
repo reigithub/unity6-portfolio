@@ -25,7 +25,7 @@ public class UserService : IUserService
         return new UserResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Level = user.Level,
             CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,
@@ -42,15 +42,15 @@ public class UserService : IUserService
             return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
         }
 
-        if (!string.IsNullOrEmpty(request.DisplayName))
+        if (!string.IsNullOrEmpty(request.UserName))
         {
-            var existing = await _userRepository.GetByDisplayNameAsync(request.DisplayName);
+            var existing = await _userRepository.GetByUserNameAsync(request.UserName);
             if (existing != null && existing.Id != id)
             {
-                return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+                return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
             }
 
-            user.DisplayName = request.DisplayName;
+            user.UserName = request.UserName;
         }
 
         await _userRepository.UpdateAsync(user);
@@ -58,7 +58,7 @@ public class UserService : IUserService
         return new UserResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Level = user.Level,
             CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,

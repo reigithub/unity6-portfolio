@@ -35,7 +35,7 @@ public class AccountLockoutTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var wrongRequest = new LoginRequest { DisplayName = "Player1", Password = "WrongPass1!" };
+        var wrongRequest = new LoginRequest { UserName = "Player1", Password = "WrongPass1!" };
 
         // Act - fail 5 times
         for (int i = 0; i < 5; i++)
@@ -44,7 +44,7 @@ public class AccountLockoutTests : IAsyncLifetime
         }
 
         // Try with correct password - should be locked
-        var correctRequest = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
+        var correctRequest = new LoginRequest { UserName = "Player1", Password = "Password1!" };
         var result = await service.LoginAsync(correctRequest);
 
         // Assert
@@ -60,7 +60,7 @@ public class AccountLockoutTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var wrongRequest = new LoginRequest { DisplayName = "Player1", Password = "WrongPass1!" };
+        var wrongRequest = new LoginRequest { UserName = "Player1", Password = "WrongPass1!" };
 
         // Act - fail 3 times
         for (int i = 0; i < 3; i++)
@@ -69,13 +69,13 @@ public class AccountLockoutTests : IAsyncLifetime
         }
 
         // Login with correct password
-        var correctRequest = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
+        var correctRequest = new LoginRequest { UserName = "Player1", Password = "Password1!" };
         var successResult = await service.LoginAsync(correctRequest);
 
         // Assert - should succeed
         var response = AuthServiceTests.ExtractSuccess(successResult);
         Assert.NotNull(response);
-        Assert.Equal("Player1", response.DisplayName);
+        Assert.Equal("Player1", response.UserName);
 
         // After success, fail 4 more times - should still not be locked (counter was reset)
         for (int i = 0; i < 4; i++)
@@ -101,7 +101,7 @@ public class AccountLockoutTests : IAsyncLifetime
             LockoutMinutes = 0, // 0 minutes = immediate expiry
         };
         var service = CreateAuthService(Options.Create(authSettings));
-        var wrongRequest = new LoginRequest { DisplayName = "Player1", Password = "WrongPass1!" };
+        var wrongRequest = new LoginRequest { UserName = "Player1", Password = "WrongPass1!" };
 
         // Act - fail 5 times to trigger lockout
         for (int i = 0; i < 5; i++)
@@ -110,13 +110,13 @@ public class AccountLockoutTests : IAsyncLifetime
         }
 
         // With 0-minute lockout, the lock has already expired
-        var correctRequest = new LoginRequest { DisplayName = "Player1", Password = "Password1!" };
+        var correctRequest = new LoginRequest { UserName = "Player1", Password = "Password1!" };
         var result = await service.LoginAsync(correctRequest);
 
         // Assert - should succeed because lockout expired
         var response = AuthServiceTests.ExtractSuccess(result);
         Assert.NotNull(response);
-        Assert.Equal("Player1", response.DisplayName);
+        Assert.Equal("Player1", response.UserName);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class AccountLockoutTests : IAsyncLifetime
     {
         // Arrange
         var service = CreateAuthService();
-        var request = new RegisterRequest { DisplayName = "WeakUser", Password = "weak" };
+        var request = new RegisterRequest { UserName = "WeakUser", Password = "weak" };
 
         // Act
         var result = await service.RegisterAsync(request);

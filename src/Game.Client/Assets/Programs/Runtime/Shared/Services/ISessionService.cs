@@ -9,7 +9,7 @@ namespace Game.Shared.Services
         bool IsAuthenticated { get; }
         string AuthToken { get; }
         string UserId { get; }
-        string DisplayName { get; }
+        string UserName { get; }
         string AuthType { get; }
 
         void SaveSession(Dto.Auth.LoginResponse response, string authType = "guest");

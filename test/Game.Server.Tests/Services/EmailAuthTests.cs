@@ -49,14 +49,14 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "test@example.com",
             Password = "Password1!",
-            DisplayName = "EmailUser",
+            UserName = "EmailUser",
         };
 
         var result = await service.EmailRegisterAsync(request);
 
         var response = AuthServiceTests.ExtractSuccess(result);
         Assert.NotNull(response);
-        Assert.Equal("EmailUser", response.DisplayName);
+        Assert.Equal("EmailUser", response.UserName);
         Assert.True(response.IsNewUser);
         Assert.NotEmpty(response.Token);
         _mockEmailService.Verify(
@@ -71,7 +71,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "dup@example.com",
             Password = "Password1!",
-            DisplayName = "User1",
+            UserName = "User1",
         };
 
         await service.EmailRegisterAsync(request);
@@ -80,7 +80,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "dup@example.com",
             Password = "Password1!",
-            DisplayName = "User2",
+            UserName = "User2",
         };
         var result = await service.EmailRegisterAsync(request2);
 
@@ -91,14 +91,14 @@ public class EmailAuthTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task EmailRegisterAsync_DuplicateDisplayName_ReturnsError()
+    public async Task EmailRegisterAsync_DuplicateUserName_ReturnsError()
     {
         var service = CreateAuthService();
         var request = new EmailRegisterRequest
         {
             Email = "first@example.com",
             Password = "Password1!",
-            DisplayName = "SameName",
+            UserName = "SameName",
         };
 
         await service.EmailRegisterAsync(request);
@@ -107,7 +107,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "second@example.com",
             Password = "Password1!",
-            DisplayName = "SameName",
+            UserName = "SameName",
         };
         var result = await service.EmailRegisterAsync(request2);
 
@@ -124,7 +124,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "weak@example.com",
             Password = "weak",
-            DisplayName = "WeakPwUser",
+            UserName = "WeakPwUser",
         };
 
         var result = await service.EmailRegisterAsync(request);
@@ -144,7 +144,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "login@example.com",
             Password = "Password1!",
-            DisplayName = "LoginUser",
+            UserName = "LoginUser",
         });
 
         var result = await service.EmailLoginAsync(new EmailLoginRequest
@@ -155,7 +155,7 @@ public class EmailAuthTests : IAsyncLifetime
 
         var response = AuthServiceTests.ExtractSuccess(result);
         Assert.NotNull(response);
-        Assert.Equal("LoginUser", response.DisplayName);
+        Assert.Equal("LoginUser", response.UserName);
         Assert.NotEmpty(response.Token);
     }
 
@@ -167,7 +167,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "wrongpw@example.com",
             Password = "Password1!",
-            DisplayName = "WrongPwUser",
+            UserName = "WrongPwUser",
         });
 
         var result = await service.EmailLoginAsync(new EmailLoginRequest
@@ -205,7 +205,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "locked@example.com",
             Password = "Password1!",
-            DisplayName = "LockedUser",
+            UserName = "LockedUser",
         });
 
         for (int i = 0; i < 5; i++)
@@ -239,7 +239,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "verify@example.com",
             Password = "Password1!",
-            DisplayName = "VerifyUser",
+            UserName = "VerifyUser",
         });
 
         // Get the token from the database
@@ -260,7 +260,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "expired@example.com",
             Password = "Password1!",
-            DisplayName = "ExpiredUser",
+            UserName = "ExpiredUser",
         });
 
         // Manually set expiry to the past
@@ -296,7 +296,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "forgot@example.com",
             Password = "Password1!",
-            DisplayName = "ForgotUser",
+            UserName = "ForgotUser",
         });
 
         var result = await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "forgot@example.com" });
@@ -330,7 +330,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "reset@example.com",
             Password = "Password1!",
-            DisplayName = "ResetUser",
+            UserName = "ResetUser",
         });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "reset@example.com" });
@@ -365,7 +365,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "resetexp@example.com",
             Password = "Password1!",
-            DisplayName = "ResetExpUser",
+            UserName = "ResetExpUser",
         });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "resetexp@example.com" });
@@ -392,7 +392,7 @@ public class EmailAuthTests : IAsyncLifetime
         {
             Email = "resetweak@example.com",
             Password = "Password1!",
-            DisplayName = "ResetWeakUser",
+            UserName = "ResetWeakUser",
         });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "resetweak@example.com" });

@@ -46,7 +46,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         // Register
         var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            DisplayName = name,
+            UserName = name,
             Password = "TestPassword123!",
         });
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
@@ -70,13 +70,13 @@ public class ApiIntegrationTests : IAsyncLifetime
 
         await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            DisplayName = name,
+            UserName = name,
             Password = "Password123!",
         });
 
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            DisplayName = name,
+            UserName = name,
             Password = "Password456!",
         });
 
@@ -137,7 +137,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         {
             Email = $"link-{Guid.NewGuid():N}@example.com",
             Password = "LinkPassword123!",
-            DisplayName = $"Linked_{Guid.NewGuid().ToString()[..8]}"
+            UserName = $"Linked_{Guid.NewGuid().ToString()[..8]}"
         });
         Assert.Equal(HttpStatusCode.OK, linkResponse.StatusCode);
 
@@ -161,11 +161,11 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.Null(unlinkData.Email);
     }
 
-    private async Task<string> RegisterAndGetToken(string displayName)
+    private async Task<string> RegisterAndGetToken(string userName)
     {
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            DisplayName = displayName,
+            UserName = userName,
             Password = "Password123!",
         });
         var data = await response.Content.ReadFromJsonAsync<LoginResponse>();

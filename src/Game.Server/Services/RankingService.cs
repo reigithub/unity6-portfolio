@@ -22,7 +22,7 @@ public class RankingService : IRankingService
         {
             Rank = offset + index + 1,
             UserId = s.User?.UserId ?? string.Empty,
-            DisplayName = s.User?.DisplayName ?? string.Empty,
+            UserName = s.User?.UserName ?? string.Empty,
             Score = s.Score,
             ClearTime = s.ClearTime,
             RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
@@ -52,7 +52,7 @@ public class RankingService : IRankingService
         {
             Rank = rank,
             UserId = bestScore.User?.UserId ?? string.Empty,
-            DisplayName = bestScore.User?.DisplayName ?? string.Empty,
+            UserName = bestScore.User?.UserName ?? string.Empty,
             Score = bestScore.Score,
             ClearTime = bestScore.ClearTime,
             RecordedAt = new DateTimeOffset(bestScore.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),

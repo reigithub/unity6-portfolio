@@ -34,7 +34,7 @@ namespace Game.MVP.Survivor.Scenes
             bool sessionValid = await EnsureValidSessionAsync();
             if (!sessionValid)
             {
-                SceneComponent.ShowStatusView(true, _sessionService.DisplayName ?? "-", null);
+                SceneComponent.ShowStatusView(true, _sessionService.UserName ?? "-", null);
                 SceneComponent.ShowError("Session expired. Please restart the game and log in again.");
                 // Close のみ受け付ける
                 SceneComponent.OnCloseClicked
@@ -56,7 +56,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             SceneComponent.OnSubmitLinkClicked
-                .Subscribe(x => OnSubmitLink(x.email, x.password, x.displayName).Forget())
+                .Subscribe(x => OnSubmitLink(x.email, x.password, x.userName).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnUnlinkClicked
@@ -139,14 +139,14 @@ namespace Game.MVP.Survivor.Scenes
                 var profile = profileResult.Data;
                 var isGuest = string.IsNullOrEmpty(profile.authType) ||
                               profile.authType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, profile.displayName, profile.email);
+                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email);
             }
             else
             {
                 // フォールバック: セッション情報のみで表示
                 var isGuest = _sessionService.AuthType == null ||
                               _sessionService.AuthType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, _sessionService.DisplayName, null);
+                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null);
             }
         }
 
@@ -158,7 +158,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private void OnLinkEmail()
         {
-            SceneComponent.ShowLinkForm(_sessionService.DisplayName);
+            SceneComponent.ShowLinkForm(_sessionService.UserName);
         }
 
         private async UniTaskVoid OnBackToStatus()
@@ -166,12 +166,12 @@ namespace Game.MVP.Survivor.Scenes
             await RefreshStatusViewAsync();
         }
 
-        private async UniTaskVoid OnSubmitLink(string email, string password, string displayName)
+        private async UniTaskVoid OnSubmitLink(string email, string password, string userName)
         {
             // Basic client-side validation
             if (string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(password) ||
-                string.IsNullOrWhiteSpace(displayName))
+                string.IsNullOrWhiteSpace(userName))
             {
                 SceneComponent.ShowError("All fields are required.");
                 return;
@@ -185,7 +185,7 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.ShowLoading();
 
-            var response = await _authApiService.LinkEmailAsync(email, password, displayName);
+            var response = await _authApiService.LinkEmailAsync(email, password, userName);
 
             if (response.IsSuccess)
             {
@@ -195,7 +195,7 @@ namespace Game.MVP.Survivor.Scenes
             else
             {
                 // Return to form on error
-                SceneComponent.ShowLinkForm(displayName);
+                SceneComponent.ShowLinkForm(userName);
                 SceneComponent.ShowError(response.Error?.Message ?? "Failed to link account.");
             }
         }

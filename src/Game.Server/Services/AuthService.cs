@@ -41,16 +41,16 @@ public class AuthService : IAuthService
             return new ApiError(errorMessage!, "WEAK_PASSWORD", StatusCodes.Status400BadRequest);
         }
 
-        bool exists = await _authRepository.ExistsByDisplayNameAsync(request.DisplayName);
+        bool exists = await _authRepository.ExistsByUserNameAsync(request.UserName);
 
         if (exists)
         {
-            return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
         }
 
         var user = new UserInfo
         {
-            DisplayName = request.DisplayName,
+            UserName = request.UserName,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             AuthType = "Password",
         };
@@ -61,14 +61,14 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = token,
         };
     }
 
     public async Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request)
     {
-        var user = await _authRepository.GetByDisplayNameAsync(request.DisplayName);
+        var user = await _authRepository.GetByUserNameAsync(request.UserName);
 
         if (user == null)
         {
@@ -108,7 +108,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = token,
         };
     }
@@ -126,7 +126,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = token,
         };
     }
@@ -143,7 +143,7 @@ public class AuthService : IAuthService
             return new LoginResponse
             {
                 UserId = existingUser.UserId,
-                DisplayName = existingUser.DisplayName,
+                UserName = existingUser.UserName,
                 Token = token,
                 IsNewUser = false,
             };
@@ -152,7 +152,7 @@ public class AuthService : IAuthService
         var randomSuffix = RandomNumberGenerator.GetInt32(10000000, 99999999).ToString();
         var user = new UserInfo
         {
-            DisplayName = $"Guest_{randomSuffix}",
+            UserName = $"Guest_{randomSuffix}",
             PasswordHash = null,
             AuthType = "Guest",
             DeviceFingerprint = request.DeviceFingerprint,
@@ -164,7 +164,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = newToken,
             IsNewUser = true,
         };
@@ -183,16 +183,16 @@ public class AuthService : IAuthService
             return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
         }
 
-        if (await _authRepository.ExistsByDisplayNameAsync(request.DisplayName))
+        if (await _authRepository.ExistsByUserNameAsync(request.UserName))
         {
-            return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
         }
 
         var verificationToken = GenerateSecureToken();
 
         var user = new UserInfo
         {
-            DisplayName = request.DisplayName,
+            UserName = request.UserName,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             AuthType = "Email",
@@ -208,7 +208,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = token,
             IsNewUser = true,
         };
@@ -256,7 +256,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.UserId,
-            DisplayName = user.DisplayName,
+            UserName = user.UserName,
             Token = token,
         };
     }
@@ -350,10 +350,10 @@ public class AuthService : IAuthService
             return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
         }
 
-        if (await _authRepository.ExistsByDisplayNameAsync(request.DisplayName) &&
-            request.DisplayName != user.DisplayName)
+        if (await _authRepository.ExistsByUserNameAsync(request.UserName) &&
+            request.UserName != user.UserName)
         {
-            return new ApiError("DisplayName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
         }
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -361,7 +361,7 @@ public class AuthService : IAuthService
         var verificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours);
 
         await _authRepository.LinkEmailAsync(
-            id, request.Email, passwordHash, request.DisplayName,
+            id, request.Email, passwordHash, request.UserName,
             verificationToken, verificationExpiry);
 
         await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
@@ -373,7 +373,7 @@ public class AuthService : IAuthService
         return new AccountLinkResponse
         {
             UserId = updatedUser!.UserId,
-            DisplayName = updatedUser.DisplayName,
+            UserName = updatedUser.UserName,
             Token = token,
             AuthType = updatedUser.AuthType,
             Email = updatedUser.Email,
@@ -408,7 +408,7 @@ public class AuthService : IAuthService
         return new AccountLinkResponse
         {
             UserId = updatedUser!.UserId,
-            DisplayName = updatedUser.DisplayName,
+            UserName = updatedUser.UserName,
             Token = token,
             AuthType = updatedUser.AuthType,
             Email = null,
@@ -420,7 +420,7 @@ public class AuthService : IAuthService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.DisplayName),
+            new Claim(ClaimTypes.Name, user.UserName),
             new Claim("level", user.Level.ToString()),
             new Claim("authType", user.AuthType),
         };

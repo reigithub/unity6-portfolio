@@ -36,13 +36,13 @@ namespace Game.Shared.Services
         }
 
         public async UniTask<ApiResponse<LoginResponse>> EmailRegisterAsync(
-            string email, string password, string displayName)
+            string email, string password, string userName)
         {
             var request = new EmailRegisterRequest
             {
                 email = email,
                 password = password,
-                displayName = displayName
+                userName = userName
             };
 
             var response = await _apiClient.PostAsync<EmailRegisterRequest, LoginResponse>(
@@ -117,13 +117,13 @@ namespace Game.Shared.Services
         }
 
         public async UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(
-            string email, string password, string displayName)
+            string email, string password, string userName)
         {
             var request = new LinkEmailRequest
             {
                 email = email,
                 password = password,
-                displayName = displayName
+                userName = userName
             };
 
             var response = await _apiClient.PostAsync<LinkEmailRequest, AccountLinkResponse>(
@@ -167,7 +167,7 @@ namespace Game.Shared.Services
             var loginData = new LoginResponse
             {
                 userId = data.userId,
-                displayName = data.displayName,
+                userName = data.userName,
                 token = data.token
             };
             _sessionService.SaveSession(loginData, data.authType?.ToLower() ?? "guest");

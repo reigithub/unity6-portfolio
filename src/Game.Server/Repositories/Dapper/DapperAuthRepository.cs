@@ -8,7 +8,7 @@ namespace Game.Server.Repositories.Dapper;
 public class DapperAuthRepository : IAuthRepository
 {
     private const string SelectColumns =
-        @"""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+        @"""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
           ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
           ""EmailVerificationToken"", ""EmailVerificationExpiry"",
           ""PasswordResetToken"", ""PasswordResetExpiry"",
@@ -21,14 +21,14 @@ public class DapperAuthRepository : IAuthRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<bool> ExistsByDisplayNameAsync(string displayName)
+    public async Task<bool> ExistsByUserNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<bool>(
             @"SELECT CASE WHEN EXISTS (
-                SELECT 1 FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName
+                SELECT 1 FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName
               ) THEN 1 ELSE 0 END",
-            new { DisplayName = displayName });
+            new { UserName = displayName });
     }
 
     public async Task<UserInfo> CreateUserAsync(UserInfo user)
@@ -36,12 +36,12 @@ public class DapperAuthRepository : IAuthRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -50,13 +50,13 @@ public class DapperAuthRepository : IAuthRepository
         return user;
     }
 
-    public async Task<UserInfo?> GetByDisplayNameAsync(string displayName)
+    public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
-              FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
-            new { DisplayName = displayName });
+              FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
+            new { UserName = displayName });
     }
 
     public async Task<UserInfo?> GetByIdAsync(Guid id)
@@ -187,7 +187,7 @@ public class DapperAuthRepository : IAuthRepository
               SET ""AuthType"" = 'Email',
                   ""Email"" = @Email,
                   ""PasswordHash"" = @PasswordHash,
-                  ""DisplayName"" = @DisplayName,
+                  ""UserName"" = @UserName,
                   ""DeviceFingerprint"" = NULL,
                   ""EmailVerificationToken"" = @EmailVerificationToken,
                   ""EmailVerificationExpiry"" = @EmailVerificationExpiry
@@ -197,7 +197,7 @@ public class DapperAuthRepository : IAuthRepository
                 Id = id,
                 Email = email,
                 PasswordHash = passwordHash,
-                DisplayName = displayName,
+                UserName = displayName,
                 EmailVerificationToken = emailVerificationToken,
                 EmailVerificationExpiry = emailVerificationExpiry
             });

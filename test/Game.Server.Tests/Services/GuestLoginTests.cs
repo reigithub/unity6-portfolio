@@ -43,7 +43,7 @@ public class GuestLoginTests : IAsyncLifetime
         Assert.True(response.IsNewUser);
         Assert.NotEmpty(response.Token);
         Assert.NotEmpty(response.UserId);
-        Assert.StartsWith("Guest_", response.DisplayName);
+        Assert.StartsWith("Guest_", response.UserName);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public class DapperRankingRepository : IRankingRepository
         const string sql =
             @"SELECT s.""Id"", s.""UserId"", s.""GameMode"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
-                     u.""Id"", u.""UserId"", u.""DisplayName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
+                     u.""Id"", u.""UserId"", u.""UserName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
               FROM ""User"".""UserScore"" s
               INNER JOIN ""User"".""UserInfo"" u ON s.""UserId"" = u.""Id""
               WHERE s.""GameMode"" = @GameMode AND s.""StageId"" = @StageId
@@ -50,7 +50,7 @@ public class DapperRankingRepository : IRankingRepository
         const string sql =
             @"SELECT s.""Id"", s.""UserId"", s.""GameMode"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
-                     u.""Id"", u.""UserId"", u.""DisplayName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
+                     u.""Id"", u.""UserId"", u.""UserName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
               FROM ""User"".""UserScore"" s
               INNER JOIN ""User"".""UserInfo"" u ON s.""UserId"" = u.""Id""
               WHERE s.""UserId"" = @UserId AND s.""GameMode"" = @GameMode AND s.""StageId"" = @StageId

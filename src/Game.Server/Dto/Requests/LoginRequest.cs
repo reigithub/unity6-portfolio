@@ -5,7 +5,7 @@ namespace Game.Server.Dto.Requests;
 public class LoginRequest
 {
     [Required]
-    public string DisplayName { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
 
     [Required]
     public string Password { get; set; } = string.Empty;

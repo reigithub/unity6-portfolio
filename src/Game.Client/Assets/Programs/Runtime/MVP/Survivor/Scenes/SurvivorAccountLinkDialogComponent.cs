@@ -15,7 +15,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private readonly Subject<Unit> _onCloseClicked = new();
         private readonly Subject<Unit> _onLinkEmailClicked = new();
-        private readonly Subject<(string email, string password, string displayName)> _onSubmitLinkClicked = new();
+        private readonly Subject<(string email, string password, string userName)> _onSubmitLinkClicked = new();
         private readonly Subject<Unit> _onUnlinkClicked = new();
         private readonly Subject<Unit> _onBackToStatusClicked = new();
         private readonly Subject<Unit> _onEmailLoginClicked = new();
@@ -26,7 +26,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public Observable<Unit> OnCloseClicked => _onCloseClicked;
         public Observable<Unit> OnLinkEmailClicked => _onLinkEmailClicked;
-        public Observable<(string email, string password, string displayName)> OnSubmitLinkClicked => _onSubmitLinkClicked;
+        public Observable<(string email, string password, string userName)> OnSubmitLinkClicked => _onSubmitLinkClicked;
         public Observable<Unit> OnUnlinkClicked => _onUnlinkClicked;
         public Observable<Unit> OnBackToStatusClicked => _onBackToStatusClicked;
         public Observable<Unit> OnEmailLoginClicked => _onEmailLoginClicked;
@@ -42,7 +42,7 @@ namespace Game.MVP.Survivor.Scenes
         // Status View
         private VisualElement _statusView;
         private Label _statusAuthType;
-        private Label _statusDisplayName;
+        private Label _statusUserName;
         private VisualElement _statusEmailRow;
         private Label _statusEmail;
         private Button _linkEmailButton;
@@ -53,7 +53,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _linkFormView;
         private TextField _formEmail;
         private TextField _formPassword;
-        private TextField _formDisplayName;
+        private TextField _formUserName;
         private Button _submitLinkButton;
         private Button _backButton;
 
@@ -115,7 +115,7 @@ namespace Game.MVP.Survivor.Scenes
             // Status View
             _statusView = _root.Q<VisualElement>("status-view");
             _statusAuthType = _root.Q<Label>("status-auth-type");
-            _statusDisplayName = _root.Q<Label>("status-display-name");
+            _statusUserName = _root.Q<Label>("status-display-name");
             _statusEmailRow = _root.Q<VisualElement>("status-email-row");
             _statusEmail = _root.Q<Label>("status-email");
             _linkEmailButton = _root.Q<Button>("link-email-button");
@@ -126,7 +126,7 @@ namespace Game.MVP.Survivor.Scenes
             _linkFormView = _root.Q<VisualElement>("link-form-view");
             _formEmail = _root.Q<TextField>("form-email");
             _formPassword = _root.Q<TextField>("form-password");
-            _formDisplayName = _root.Q<TextField>("form-display-name");
+            _formUserName = _root.Q<TextField>("form-display-name");
             _submitLinkButton = _root.Q<Button>("submit-link-button");
             _backButton = _root.Q<Button>("back-button");
 
@@ -178,7 +178,7 @@ namespace Game.MVP.Survivor.Scenes
                 _onSubmitLinkClicked.OnNext((
                     _formEmail?.value ?? "",
                     _formPassword?.value ?? "",
-                    _formDisplayName?.value ?? "")));
+                    _formUserName?.value ?? "")));
 
             _backButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
@@ -218,7 +218,7 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// StatusView を表示
         /// </summary>
-        public void ShowStatusView(bool isGuest, string displayName, string email)
+        public void ShowStatusView(bool isGuest, string userName, string email)
         {
             HideAllViews();
             _statusView?.RemoveFromClassList("view-panel--hidden");
@@ -226,8 +226,8 @@ namespace Game.MVP.Survivor.Scenes
             if (_statusAuthType != null)
                 _statusAuthType.text = isGuest ? "Guest" : "Email";
 
-            if (_statusDisplayName != null)
-                _statusDisplayName.text = displayName ?? "-";
+            if (_statusUserName != null)
+                _statusUserName.text = userName ?? "-";
 
             if (_statusEmailRow != null)
                 _statusEmailRow.style.display = isGuest ? DisplayStyle.None : DisplayStyle.Flex;
@@ -250,13 +250,13 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// LinkFormView を表示
         /// </summary>
-        public void ShowLinkForm(string currentDisplayName)
+        public void ShowLinkForm(string currentUserName)
         {
             HideAllViews();
             _linkFormView?.RemoveFromClassList("view-panel--hidden");
 
-            if (_formDisplayName != null)
-                _formDisplayName.value = currentDisplayName ?? "";
+            if (_formUserName != null)
+                _formUserName.value = currentUserName ?? "";
 
             if (_formEmail != null)
                 _formEmail.value = "";

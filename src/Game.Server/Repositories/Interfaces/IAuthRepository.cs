@@ -4,11 +4,11 @@ namespace Game.Server.Repositories.Interfaces;
 
 public interface IAuthRepository
 {
-    Task<bool> ExistsByDisplayNameAsync(string displayName);
+    Task<bool> ExistsByUserNameAsync(string displayName);
 
     Task<UserInfo> CreateUserAsync(UserInfo user);
 
-    Task<UserInfo?> GetByDisplayNameAsync(string displayName);
+    Task<UserInfo?> GetByUserNameAsync(string displayName);
 
     Task<UserInfo?> GetByIdAsync(Guid id);
 
