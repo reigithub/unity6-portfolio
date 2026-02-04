@@ -27,7 +27,7 @@ public class UserService : IUserService
             UserId = user.UserId,
             UserName = user.UserName,
             Level = user.Level,
-            CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            RegisteredAt = new DateTimeOffset(user.RegisteredAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,
             Email = user.Email,
         };
@@ -60,7 +60,7 @@ public class UserService : IUserService
             UserId = user.UserId,
             UserName = user.UserName,
             Level = user.Level,
-            CreatedAt = new DateTimeOffset(user.CreatedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            RegisteredAt = new DateTimeOffset(user.RegisteredAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,
             Email = user.Email,
         };

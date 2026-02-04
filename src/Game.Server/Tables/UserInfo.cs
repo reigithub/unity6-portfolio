@@ -14,7 +14,7 @@ public class UserInfo
 
     public int Level { get; set; } = 1;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
 
@@ -37,4 +37,8 @@ public class UserInfo
     public int FailedLoginAttempts { get; set; }
 
     public DateTime? LockoutEndAt { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 }

@@ -8,7 +8,7 @@ public class UserResponse
 
     public int Level { get; set; }
 
-    public long CreatedAt { get; set; }
+    public long RegisteredAt { get; set; }
 
     public string AuthType { get; set; } = string.Empty;
 

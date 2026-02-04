@@ -88,12 +88,12 @@ public static class TestDataFixture
         {
             await connection.ExecuteAsync(
                 @"INSERT INTO ""User"".""UserInfo""
-                  (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+                  (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                    ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                    ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                    ""PasswordResetToken"", ""PasswordResetExpiry"",
                    ""FailedLoginAttempts"", ""LockoutEndAt"")
-                  VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                  VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                           @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                           @EmailVerificationToken, @EmailVerificationExpiry,
                           @PasswordResetToken, @PasswordResetExpiry,
@@ -114,12 +114,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -140,12 +140,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,

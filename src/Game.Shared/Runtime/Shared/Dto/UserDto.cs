@@ -11,6 +11,6 @@ namespace Game.Library.Shared.Dto
 
         public int Level { get; set; }
 
-        public long CreatedAt { get; set; }
+        public long RegisteredAt { get; set; }
     }
 }

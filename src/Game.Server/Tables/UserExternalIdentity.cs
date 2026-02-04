@@ -13,4 +13,8 @@ public class UserExternalIdentity
     public string? ProviderData { get; set; }
 
     public DateTime LinkedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 }

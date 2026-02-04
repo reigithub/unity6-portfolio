@@ -14,7 +14,7 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("UserName").AsString(50).NotNullable()
             .WithColumn("PasswordHash").AsString(255).Nullable()
             .WithColumn("Level").AsInt32().NotNullable().WithDefaultValue(1)
-            .WithColumn("CreatedAt").AsCustom("timestamptz").NotNullable()
+            .WithColumn("RegisteredAt").AsCustom("timestamptz").NotNullable()
             .WithColumn("LastLoginAt").AsCustom("timestamptz").NotNullable()
             .WithColumn("Email").AsString(255).Nullable()
             .WithColumn("AuthType").AsString(20).NotNullable().WithDefaultValue("Password")
@@ -25,7 +25,9 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("PasswordResetToken").AsString(255).Nullable()
             .WithColumn("PasswordResetExpiry").AsCustom("timestamptz").Nullable()
             .WithColumn("FailedLoginAttempts").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("LockoutEndAt").AsCustom("timestamptz").Nullable();
+            .WithColumn("LockoutEndAt").AsCustom("timestamptz").Nullable()
+            .WithColumn("CreatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime)
+            .WithColumn("UpdatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime);
 
         Create.Index("IX_User_UserInfo_UserName")
             .OnTable("UserInfo").InSchema(UserSchema)
@@ -54,7 +56,9 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("ClearTime").AsFloat().NotNullable()
             .WithColumn("WaveReached").AsInt32().NotNullable()
             .WithColumn("EnemiesDefeated").AsInt32().NotNullable()
-            .WithColumn("RecordedAt").AsCustom("timestamptz").NotNullable();
+            .WithColumn("RecordedAt").AsCustom("timestamptz").NotNullable()
+            .WithColumn("CreatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime)
+            .WithColumn("UpdatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime);
 
         Create.ForeignKey("FK_User_UserScore_UserInfo_UserId")
             .FromTable("UserScore").InSchema(UserSchema).ForeignColumn("UserId")
@@ -79,7 +83,9 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("Provider").AsString(50).NotNullable()
             .WithColumn("ProviderUserId").AsString(255).NotNullable()
             .WithColumn("ProviderData").AsCustom("text").Nullable()
-            .WithColumn("LinkedAt").AsCustom("timestamptz").NotNullable();
+            .WithColumn("LinkedAt").AsCustom("timestamptz").NotNullable()
+            .WithColumn("CreatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime)
+            .WithColumn("UpdatedAt").AsCustom("timestamptz").NotNullable().WithDefault(FluentMigrator.SystemMethods.CurrentDateTime);
 
         Create.ForeignKey("FK_User_UserExternalIdentity_UserInfo_UserId")
             .FromTable("UserExternalIdentity").InSchema(UserSchema).ForeignColumn("UserId")
@@ -91,10 +97,37 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .OnColumn("Provider").Ascending()
             .OnColumn("ProviderUserId").Ascending()
             .WithOptions().Unique();
+
+        // Trigger function for auto-updating UpdatedAt
+        Execute.Sql(
+            @"CREATE OR REPLACE FUNCTION ""User"".set_updated_at()
+              RETURNS TRIGGER AS $$
+              BEGIN
+                  NEW.""UpdatedAt"" = now();
+                  RETURN NEW;
+              END;
+              $$ LANGUAGE plpgsql");
+
+        Execute.Sql(
+            @"CREATE TRIGGER trg_userinfo_updated_at BEFORE UPDATE ON ""User"".""UserInfo""
+              FOR EACH ROW EXECUTE FUNCTION ""User"".set_updated_at()");
+
+        Execute.Sql(
+            @"CREATE TRIGGER trg_userscore_updated_at BEFORE UPDATE ON ""User"".""UserScore""
+              FOR EACH ROW EXECUTE FUNCTION ""User"".set_updated_at()");
+
+        Execute.Sql(
+            @"CREATE TRIGGER trg_userexternalidentity_updated_at BEFORE UPDATE ON ""User"".""UserExternalIdentity""
+              FOR EACH ROW EXECUTE FUNCTION ""User"".set_updated_at()");
     }
 
     public override void Down()
     {
+        Execute.Sql(@"DROP TRIGGER IF EXISTS trg_userexternalidentity_updated_at ON ""User"".""UserExternalIdentity""");
+        Execute.Sql(@"DROP TRIGGER IF EXISTS trg_userscore_updated_at ON ""User"".""UserScore""");
+        Execute.Sql(@"DROP TRIGGER IF EXISTS trg_userinfo_updated_at ON ""User"".""UserInfo""");
+        Execute.Sql(@"DROP FUNCTION IF EXISTS ""User"".set_updated_at()");
+
         Delete.Table("UserExternalIdentity").InSchema(UserSchema);
         Delete.Table("UserScore").InSchema(UserSchema);
         Delete.Table("UserInfo").InSchema(UserSchema);

@@ -18,8 +18,8 @@ public class DapperUserRepository : IUserRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
-                     ""Email"", ""AuthType""
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                     ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
             new { Id = id });
     }
@@ -28,8 +28,8 @@ public class DapperUserRepository : IUserRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
-                     ""Email"", ""AuthType""
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                     ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
             new { UserName = displayName });
     }
@@ -42,7 +42,6 @@ public class DapperUserRepository : IUserRepository
               SET ""UserName"" = @UserName,
                   ""PasswordHash"" = @PasswordHash,
                   ""Level"" = @Level,
-                  ""CreatedAt"" = @CreatedAt,
                   ""LastLoginAt"" = @LastLoginAt
               WHERE ""Id"" = @Id",
             user);

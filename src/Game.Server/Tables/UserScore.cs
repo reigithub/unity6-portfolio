@@ -20,6 +20,10 @@ public class UserScore
 
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
 
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
     // Navigation (populated by Dapper multi-mapping)
     public UserInfo? User { get; set; }
 }
