@@ -32,19 +32,17 @@ namespace Game.MVP.Survivor.Scenes
             // セッションの有効性を確認（トークン期限切れ対策）
             SceneComponent.ShowLoading();
             bool sessionValid = await EnsureValidSessionAsync();
-            if (!sessionValid)
-            {
-                SceneComponent.ShowStatusView(true, _sessionService.UserName ?? "-", null);
-                SceneComponent.ShowError("Session expired. Please restart the game and log in again.");
-                // Close のみ受け付ける
-                SceneComponent.OnCloseClicked
-                    .Subscribe(_ => OnClose().Forget())
-                    .AddTo(Disposables);
-                return;
-            }
 
-            // 初期表示（サーバーからプロフィール取得）
-            await RefreshStatusViewAsync();
+            if (sessionValid)
+            {
+                // セッション有効 → サーバーからプロフィール取得して表示
+                await RefreshStatusViewAsync();
+            }
+            else
+            {
+                // セッションなし → ログインオプションのみ表示
+                SceneComponent.ShowStatusView(true, "-", null, "-", hasSession: false);
+            }
 
             // イベント購読
             SceneComponent.OnCloseClicked
@@ -56,7 +54,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             SceneComponent.OnSubmitLinkClicked
-                .Subscribe(x => OnSubmitLink(x.email, x.password, x.userName).Forget())
+                .Subscribe(x => OnSubmitLink(x.email, x.password).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnUnlinkClicked
@@ -67,12 +65,12 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => OnBackToStatus().Forget())
                 .AddTo(Disposables);
 
-            SceneComponent.OnEmailLoginClicked
-                .Subscribe(_ => OnEmailLoginButton())
+            SceneComponent.OnUserIdLoginClicked
+                .Subscribe(_ => OnUserIdLoginButton())
                 .AddTo(Disposables);
 
-            SceneComponent.OnEmailLoginSubmitted
-                .Subscribe(x => OnEmailLogin(x.email, x.password).Forget())
+            SceneComponent.OnUserIdLoginSubmitted
+                .Subscribe(x => OnUserIdLogin(x.userId, x.password).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnForgotPasswordClicked
@@ -86,6 +84,7 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnResetPasswordSubmitted
                 .Subscribe(x => OnResetPassword(x.token, x.newPassword).Forget())
                 .AddTo(Disposables);
+
         }
 
         public override async UniTask Ready()
@@ -103,26 +102,12 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// セッションの有効性を確認し、期限切れの場合はリフレッシュまたは再ログインを試みる
+        /// セッションの有効性を確認（トークンリフレッシュのみ）
         /// </summary>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
-            // 1. トークンリフレッシュを試みる
             var refreshResult = await _authApiService.RefreshTokenAsync();
-            if (refreshResult.IsSuccess)
-            {
-                return true;
-            }
-
-            // 2. リフレッシュ失敗（401）→ ゲストなら再ログインを試みる
-            var authType = _sessionService.AuthType?.ToLower();
-            if (authType == "guest" || string.IsNullOrEmpty(authType))
-            {
-                var guestResult = await _authApiService.GuestLoginAsync();
-                return guestResult.IsSuccess;
-            }
-
-            return false;
+            return refreshResult.IsSuccess;
         }
 
         /// <summary>
@@ -139,14 +124,14 @@ namespace Game.MVP.Survivor.Scenes
                 var profile = profileResult.Data;
                 var isGuest = string.IsNullOrEmpty(profile.authType) ||
                               profile.authType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email);
+                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email, _sessionService.FormatUserId());
             }
             else
             {
                 // フォールバック: セッション情報のみで表示
                 var isGuest = _sessionService.AuthType == null ||
                               _sessionService.AuthType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null);
+                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null, _sessionService.FormatUserId());
             }
         }
 
@@ -158,7 +143,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private void OnLinkEmail()
         {
-            SceneComponent.ShowLinkForm(_sessionService.UserName);
+            SceneComponent.ShowLinkForm();
         }
 
         private async UniTaskVoid OnBackToStatus()
@@ -166,12 +151,11 @@ namespace Game.MVP.Survivor.Scenes
             await RefreshStatusViewAsync();
         }
 
-        private async UniTaskVoid OnSubmitLink(string email, string password, string userName)
+        private async UniTaskVoid OnSubmitLink(string email, string password)
         {
             // Basic client-side validation
             if (string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(password) ||
-                string.IsNullOrWhiteSpace(userName))
+                string.IsNullOrWhiteSpace(password))
             {
                 SceneComponent.ShowError("All fields are required.");
                 return;
@@ -185,7 +169,7 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.ShowLoading();
 
-            var response = await _authApiService.LinkEmailAsync(email, password, userName);
+            var response = await _authApiService.LinkEmailAsync(email, password);
 
             if (response.IsSuccess)
             {
@@ -194,8 +178,8 @@ namespace Game.MVP.Survivor.Scenes
             }
             else
             {
-                // Return to form on error
-                SceneComponent.ShowLinkForm(userName);
+                // 入力値を保持したままフォームを再表示
+                SceneComponent.RevealLinkFormView();
                 SceneComponent.ShowError(response.Error?.Message ?? "Failed to link account.");
             }
         }
@@ -231,9 +215,9 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private void OnEmailLoginButton()
+        private void OnUserIdLoginButton()
         {
-            SceneComponent.ShowEmailLoginView();
+            SceneComponent.ShowUserIdLoginView();
         }
 
         private void OnForgotPasswordButton()
@@ -241,35 +225,11 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ShowForgotPasswordView();
         }
 
-        private async UniTaskVoid OnEmailLogin(string email, string password)
-        {
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            {
-                SceneComponent.ShowError("Please enter email and password.");
-                return;
-            }
-
-            SceneComponent.ShowLoading();
-
-            var response = await _authApiService.EmailLoginAsync(email, password);
-
-            if (response.IsSuccess)
-            {
-                await RefreshStatusViewAsync();
-                SceneComponent.ShowSuccess("Logged in successfully!");
-            }
-            else
-            {
-                SceneComponent.ShowEmailLoginView();
-                SceneComponent.ShowError(response.Error?.Message ?? "Login failed.");
-            }
-        }
-
         private async UniTaskVoid OnForgotPassword(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
             {
-                SceneComponent.ShowError("Please enter your email.");
+                SceneComponent.ShowError("Please enter your email address.");
                 return;
             }
 
@@ -279,13 +239,14 @@ namespace Game.MVP.Survivor.Scenes
 
             if (response.IsSuccess)
             {
+                // メール送信成功 → リセットトークン入力画面へ遷移
                 SceneComponent.ShowResetPasswordView();
-                SceneComponent.ShowSuccess(response.Data?.message ?? "Reset token sent to your email.");
+                SceneComponent.ShowSuccess("Reset link sent! Check your email for the token.");
             }
             else
             {
                 SceneComponent.ShowForgotPasswordView();
-                SceneComponent.ShowError(response.Error?.Message ?? "Failed to send reset token.");
+                SceneComponent.ShowError(response.Error?.Message ?? "Failed to send reset email.");
             }
         }
 
@@ -293,7 +254,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(newPassword))
             {
-                SceneComponent.ShowError("Please enter token and new password.");
+                SceneComponent.ShowError("Please enter the reset token and new password.");
                 return;
             }
 
@@ -315,8 +276,36 @@ namespace Game.MVP.Survivor.Scenes
             else
             {
                 SceneComponent.ShowResetPasswordView();
-                SceneComponent.ShowError(response.Error?.Message ?? "Password reset failed.");
+                SceneComponent.ShowError(response.Error?.Message ?? "Failed to reset password.");
             }
         }
+
+        private async UniTaskVoid OnUserIdLogin(string userId, string password)
+        {
+            // Remove spaces from UserId input (UI displays "0000 0000 0000" format)
+            var cleanUserId = userId?.Replace(" ", "") ?? "";
+
+            if (string.IsNullOrWhiteSpace(cleanUserId) || string.IsNullOrWhiteSpace(password))
+            {
+                SceneComponent.ShowError("Please enter User ID and password.");
+                return;
+            }
+
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.UserIdLoginAsync(cleanUserId, password);
+
+            if (response.IsSuccess)
+            {
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowSuccess("Logged in successfully!");
+            }
+            else
+            {
+                SceneComponent.ShowUserIdLoginView();
+                SceneComponent.ShowError(response.Error?.Message ?? "Login failed.");
+            }
+        }
+
     }
 }

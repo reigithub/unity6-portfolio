@@ -60,6 +60,15 @@ public class DapperAuthRepository : IAuthRepository
             new { UserName = displayName });
     }
 
+    public async Task<UserInfo?> GetByUserIdStringAsync(string userId)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+            $@"SELECT {SelectColumns}
+              FROM ""User"".""UserInfo"" WHERE ""UserId"" = @UserId",
+            new { UserId = userId });
+    }
+
     public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -179,7 +188,7 @@ public class DapperAuthRepository : IAuthRepository
             new { Id = id, PasswordHash = passwordHash });
     }
 
-    public async Task LinkEmailAsync(Guid id, string email, string passwordHash, string displayName,
+    public async Task LinkEmailAsync(Guid id, string email, string passwordHash,
         string? emailVerificationToken, DateTime? emailVerificationExpiry)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -188,7 +197,6 @@ public class DapperAuthRepository : IAuthRepository
               SET ""AuthType"" = 'Email',
                   ""Email"" = @Email,
                   ""PasswordHash"" = @PasswordHash,
-                  ""UserName"" = @UserName,
                   ""DeviceFingerprint"" = NULL,
                   ""EmailVerificationToken"" = @EmailVerificationToken,
                   ""EmailVerificationExpiry"" = @EmailVerificationExpiry
@@ -198,7 +206,6 @@ public class DapperAuthRepository : IAuthRepository
                 Id = id,
                 Email = email,
                 PasswordHash = passwordHash,
-                UserName = displayName,
                 EmailVerificationToken = emailVerificationToken,
                 EmailVerificationExpiry = emailVerificationExpiry
             });

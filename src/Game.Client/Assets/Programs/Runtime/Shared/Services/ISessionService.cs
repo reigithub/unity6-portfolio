@@ -16,5 +16,10 @@ namespace Game.Shared.Services
         bool TryRestoreSession();
         void ClearSession();
         string GetOrCreateDeviceFingerprint();
+
+        /// <summary>
+        /// UserId を "0000 0000 0000" 形式にフォーマットして返す
+        /// </summary>
+        string FormatUserId();
     }
 }

@@ -29,48 +29,12 @@ public class AuthServiceTests : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task RegisterAsync_ValidRequest_ReturnsLoginResponse()
-    {
-        // Arrange
-        var service = CreateAuthService();
-        var request = new RegisterRequest { UserName = "NewUser", Password = "Password123!" };
-
-        // Act
-        var result = await service.RegisterAsync(request);
-
-        // Assert
-        LoginResponse? response = ExtractSuccess(result);
-        Assert.NotNull(response);
-        Assert.Equal("NewUser", response.UserName);
-        Assert.NotEmpty(response.Token);
-        Assert.NotEmpty(response.UserId);
-    }
-
-    [Fact]
-    public async Task RegisterAsync_DuplicateName_ReturnsConflictError()
-    {
-        // Arrange
-        await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
-        var service = CreateAuthService();
-        var request = new RegisterRequest { UserName = "Player1", Password = "Password123!" };
-
-        // Act
-        var result = await service.RegisterAsync(request);
-
-        // Assert
-        ApiError? error = ExtractError(result);
-        Assert.NotNull(error);
-        Assert.Equal("DUPLICATE_NAME", error.ErrorCode);
-        Assert.Equal(409, error.StatusCode);
-    }
-
-    [Fact]
     public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var request = new LoginRequest { UserName = "Player1", Password = "Password1!" };
+        var request = new LoginRequest { UserId = "000000000001", Password = "Password1!" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -88,7 +52,7 @@ public class AuthServiceTests : IAsyncLifetime
         // Arrange
         await TestDataFixture.SeedTestDataAsync(_postgres.ConnectionString);
         var service = CreateAuthService();
-        var request = new LoginRequest { UserName = "Player1", Password = "WrongPassword" };
+        var request = new LoginRequest { UserId = "000000000001", Password = "WrongPassword" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -105,7 +69,7 @@ public class AuthServiceTests : IAsyncLifetime
     {
         // Arrange
         var service = CreateAuthService();
-        var request = new LoginRequest { UserName = "NoSuchUser", Password = "Password123!" };
+        var request = new LoginRequest { UserId = "999999999999", Password = "Password123!" };
 
         // Act
         var result = await service.LoginAsync(request);
@@ -143,8 +107,7 @@ public class AuthServiceTests : IAsyncLifetime
         var request = new LinkEmailRequest
         {
             Email = "newlink@example.com",
-            Password = "LinkPassword123!",
-            UserName = "LinkedUser"
+            Password = "LinkPassword123!"
         };
 
         // Act
@@ -154,7 +117,6 @@ public class AuthServiceTests : IAsyncLifetime
         AccountLinkResponse? response = ExtractSuccess(result);
         Assert.NotNull(response);
         Assert.Equal("Email", response.AuthType);
-        Assert.Equal("LinkedUser", response.UserName);
         Assert.Equal("newlink@example.com", response.Email);
         Assert.NotEmpty(response.Token);
     }
@@ -168,8 +130,7 @@ public class AuthServiceTests : IAsyncLifetime
         var request = new LinkEmailRequest
         {
             Email = "link@example.com",
-            Password = "LinkPassword123!",
-            UserName = "LinkUser"
+            Password = "LinkPassword123!"
         };
 
         // Act
@@ -191,8 +152,7 @@ public class AuthServiceTests : IAsyncLifetime
         var request = new LinkEmailRequest
         {
             Email = "existing@example.com",
-            Password = "LinkPassword123!",
-            UserName = "LinkUser"
+            Password = "LinkPassword123!"
         };
 
         // Act

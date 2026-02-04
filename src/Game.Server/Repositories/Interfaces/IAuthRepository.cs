@@ -10,6 +10,8 @@ public interface IAuthRepository
 
     Task<UserInfo?> GetByUserNameAsync(string displayName);
 
+    Task<UserInfo?> GetByUserIdStringAsync(string userId);
+
     Task<UserInfo?> GetByIdAsync(Guid id);
 
     Task UpdateLastLoginAsync(Guid id, DateTime lastLoginAt);
@@ -34,7 +36,7 @@ public interface IAuthRepository
 
     Task UpdatePasswordHashAsync(Guid id, string passwordHash);
 
-    Task LinkEmailAsync(Guid id, string email, string passwordHash, string displayName,
+    Task LinkEmailAsync(Guid id, string email, string passwordHash,
         string? emailVerificationToken, DateTime? emailVerificationExpiry);
 
     Task UnlinkEmailAsync(Guid id, string deviceFingerprint);

@@ -66,6 +66,16 @@ namespace Game.Shared.Services
             PlayerPrefs.Save();
         }
 
+        public string FormatUserId()
+        {
+            if (string.IsNullOrEmpty(UserId) || UserId.Length != 12)
+            {
+                return UserId ?? "";
+            }
+
+            return $"{UserId.Substring(0, 4)} {UserId.Substring(4, 4)} {UserId.Substring(8)}";
+        }
+
         public string GetOrCreateDeviceFingerprint()
         {
             var fingerprint = PlayerPrefs.GetString(KeyDeviceFingerprint, "");

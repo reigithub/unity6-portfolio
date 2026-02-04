@@ -58,7 +58,7 @@ public static class TestDataFixture
             new UserInfo
             {
                 Id = User1Id,
-                UserId = "testuser01",
+                UserId = "000000000001",
                 UserName = "Player1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
                 Level = 5,
@@ -67,7 +67,7 @@ public static class TestDataFixture
             new UserInfo
             {
                 Id = User2Id,
-                UserId = "testuser02",
+                UserId = "000000000002",
                 UserName = "Player2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password2!"),
                 Level = 3,
@@ -76,7 +76,7 @@ public static class TestDataFixture
             new UserInfo
             {
                 Id = User3Id,
-                UserId = "testuser03",
+                UserId = "000000000003",
                 UserName = "Player3",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password3!"),
                 Level = 1,
@@ -105,7 +105,7 @@ public static class TestDataFixture
         var guestUser = new UserInfo
         {
             Id = GuestUserId,
-            UserId = "guestuser01",
+            UserId = "000000000004",
             UserName = "Guest_12345678",
             PasswordHash = null,
             Level = 1,
@@ -130,7 +130,7 @@ public static class TestDataFixture
         var emailUser = new UserInfo
         {
             Id = EmailUserId,
-            UserId = "emailuser01",
+            UserId = "000000000005",
             UserName = "EmailPlayer",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
             Level = 2,

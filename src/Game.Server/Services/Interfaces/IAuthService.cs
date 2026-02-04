@@ -5,15 +5,11 @@ namespace Game.Server.Services.Interfaces;
 
 public interface IAuthService
 {
-    Task<Result<LoginResponse, ApiError>> RegisterAsync(RegisterRequest request);
-
     Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request);
 
     Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(Guid id);
 
     Task<Result<LoginResponse, ApiError>> GuestLoginAsync(GuestLoginRequest request);
-
-    Task<Result<LoginResponse, ApiError>> EmailRegisterAsync(EmailRegisterRequest request);
 
     Task<Result<LoginResponse, ApiError>> EmailLoginAsync(EmailLoginRequest request);
 

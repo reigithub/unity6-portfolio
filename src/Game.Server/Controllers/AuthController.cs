@@ -18,21 +18,6 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    // Legacy endpoint - use /api/auth/email/register instead
-    [HttpPost("register")]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    {
-        var result = await _authService.RegisterAsync(request);
-
-        return result.Match(
-            success => StatusCode(StatusCodes.Status201Created, success),
-            error => error.ToActionResult());
-    }
-
-    // Legacy endpoint - use /api/auth/email/login instead
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -74,19 +59,6 @@ public class AuthController : ControllerBase
             success => success.IsNewUser
                 ? StatusCode(StatusCodes.Status201Created, success)
                 : Ok(success),
-            error => error.ToActionResult());
-    }
-
-    [HttpPost("email/register")]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> EmailRegister([FromBody] EmailRegisterRequest request)
-    {
-        var result = await _authService.EmailRegisterAsync(request);
-
-        return result.Match(
-            success => StatusCode(StatusCodes.Status201Created, success),
             error => error.ToActionResult());
     }
 

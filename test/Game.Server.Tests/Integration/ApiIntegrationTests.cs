@@ -136,8 +136,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         var linkResponse = await authClient.PostAsJsonAsync("/api/auth/link/email", new
         {
             Email = $"link-{Guid.NewGuid():N}@example.com",
-            Password = "LinkPassword123!",
-            UserName = $"Linked_{Guid.NewGuid().ToString()[..8]}"
+            Password = "LinkPassword123!"
         });
         Assert.Equal(HttpStatusCode.OK, linkResponse.StatusCode);
 

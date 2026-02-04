@@ -24,6 +24,11 @@
                     </ui:VisualElement>
 
                     <ui:VisualElement class="status-row">
+                        <ui:Label text="User ID" class="status-label" />
+                        <ui:Label text="-" name="status-user-id" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="status-row">
                         <ui:Label text="Name" class="status-label" />
                         <ui:Label text="-" name="status-display-name" class="status-value" />
                     </ui:VisualElement>
@@ -35,8 +40,9 @@
 
                     <ui:VisualElement class="action-buttons">
                         <ui:Button text="LINK TO EMAIL" name="link-email-button" class="action-button action-button--primary" />
-                        <ui:Button text="EMAIL LOGIN" name="email-login-button" class="action-button" />
+                        <ui:Button text="LOGIN WITH USER ID" name="userid-login-button" class="action-button" />
                         <ui:Button text="UNLINK EMAIL" name="unlink-email-button" class="action-button action-button--danger" />
+                        <ui:Button text="Forgot password?" name="forgot-password-button" class="text-link-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 
@@ -54,51 +60,43 @@
                         <ui:TextField name="form-password" password="true" class="form-input" />
                     </ui:VisualElement>
 
-                    <ui:VisualElement class="form-group">
-                        <ui:Label text="Display Name" class="form-label" />
-                        <ui:TextField name="form-display-name" class="form-input" />
-                    </ui:VisualElement>
-
                     <ui:VisualElement class="form-buttons">
                         <ui:Button text="LINK" name="submit-link-button" class="action-button action-button--primary" />
                         <ui:Button text="BACK" name="back-button" class="action-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 
-                <!-- Email Login View -->
-                <ui:VisualElement name="email-login-view" class="view-panel view-panel--hidden">
-                    <ui:Label text="Email Login" class="section-title" />
+                <!-- UserId Login View -->
+                <ui:VisualElement name="userid-login-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="User ID Login" class="section-title" />
 
                     <ui:VisualElement class="form-group">
-                        <ui:Label text="Email" class="form-label" />
-                        <ui:TextField name="login-email" class="form-input" />
+                        <ui:Label text="User ID" class="form-label" />
+                        <ui:TextField name="userid-input" class="form-input form-input--mono" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-group">
                         <ui:Label text="Password" class="form-label" />
-                        <ui:TextField name="login-password" password="true" class="form-input" />
+                        <ui:TextField name="userid-password" password="true" class="form-input" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-buttons">
-                        <ui:Button text="LOGIN" name="login-submit-button" class="action-button action-button--primary" />
-                        <ui:Button text="BACK" name="login-back-button" class="action-button" />
+                        <ui:Button text="LOGIN" name="userid-login-submit-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK" name="userid-login-back-button" class="action-button" />
                     </ui:VisualElement>
-
-                    <ui:Button text="Forgot Password?" name="forgot-password-button" class="text-link-button" />
                 </ui:VisualElement>
 
                 <!-- Forgot Password View -->
                 <ui:VisualElement name="forgot-password-view" class="view-panel view-panel--hidden">
                     <ui:Label text="Forgot Password" class="section-title" />
-                    <ui:Label text="Enter your email to receive a reset token" class="form-label" style="margin-bottom: 24px;" />
 
                     <ui:VisualElement class="form-group">
-                        <ui:Label text="Email" class="form-label" />
+                        <ui:Label text="Email Address" class="form-label" />
                         <ui:TextField name="forgot-email" class="form-input" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-buttons">
-                        <ui:Button text="SEND" name="forgot-submit-button" class="action-button action-button--primary" />
+                        <ui:Button text="SEND RESET LINK" name="forgot-submit-button" class="action-button action-button--primary" />
                         <ui:Button text="BACK" name="forgot-back-button" class="action-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -109,23 +107,17 @@
 
                     <ui:VisualElement class="form-group">
                         <ui:Label text="Reset Token" class="form-label" />
-                        <ui:TextField name="reset-token" class="form-input" />
+                        <ui:TextField name="reset-token" class="form-input form-input--mono" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-group">
                         <ui:Label text="New Password" class="form-label" />
                         <ui:TextField name="reset-new-password" password="true" class="form-input" />
-                        <ui:VisualElement class="password-strength-container">
-                            <ui:VisualElement class="password-strength-bar-bg">
-                                <ui:VisualElement name="reset-password-strength-bar" class="password-strength-bar" />
-                            </ui:VisualElement>
-                            <ui:Label name="reset-password-strength-label" class="password-strength-label" />
-                        </ui:VisualElement>
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-buttons">
                         <ui:Button text="RESET PASSWORD" name="reset-submit-button" class="action-button action-button--primary" />
-                        <ui:Button text="BACK" name="reset-back-button" class="action-button" />
+                        <ui:Button text="BACK TO LOGIN" name="reset-back-button" class="action-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 

@@ -15,22 +15,22 @@ namespace Game.MVP.Survivor.Scenes
 
         private readonly Subject<Unit> _onCloseClicked = new();
         private readonly Subject<Unit> _onLinkEmailClicked = new();
-        private readonly Subject<(string email, string password, string userName)> _onSubmitLinkClicked = new();
+        private readonly Subject<(string email, string password)> _onSubmitLinkClicked = new();
         private readonly Subject<Unit> _onUnlinkClicked = new();
         private readonly Subject<Unit> _onBackToStatusClicked = new();
-        private readonly Subject<Unit> _onEmailLoginClicked = new();
-        private readonly Subject<(string email, string password)> _onEmailLoginSubmitted = new();
+        private readonly Subject<Unit> _onUserIdLoginClicked = new();
+        private readonly Subject<(string userId, string password)> _onUserIdLoginSubmitted = new();
         private readonly Subject<Unit> _onForgotPasswordClicked = new();
         private readonly Subject<string> _onForgotPasswordSubmitted = new();
         private readonly Subject<(string token, string newPassword)> _onResetPasswordSubmitted = new();
 
         public Observable<Unit> OnCloseClicked => _onCloseClicked;
         public Observable<Unit> OnLinkEmailClicked => _onLinkEmailClicked;
-        public Observable<(string email, string password, string userName)> OnSubmitLinkClicked => _onSubmitLinkClicked;
+        public Observable<(string email, string password)> OnSubmitLinkClicked => _onSubmitLinkClicked;
         public Observable<Unit> OnUnlinkClicked => _onUnlinkClicked;
         public Observable<Unit> OnBackToStatusClicked => _onBackToStatusClicked;
-        public Observable<Unit> OnEmailLoginClicked => _onEmailLoginClicked;
-        public Observable<(string email, string password)> OnEmailLoginSubmitted => _onEmailLoginSubmitted;
+        public Observable<Unit> OnUserIdLoginClicked => _onUserIdLoginClicked;
+        public Observable<(string userId, string password)> OnUserIdLoginSubmitted => _onUserIdLoginSubmitted;
         public Observable<Unit> OnForgotPasswordClicked => _onForgotPasswordClicked;
         public Observable<string> OnForgotPasswordSubmitted => _onForgotPasswordSubmitted;
         public Observable<(string token, string newPassword)> OnResetPasswordSubmitted => _onResetPasswordSubmitted;
@@ -42,28 +42,28 @@ namespace Game.MVP.Survivor.Scenes
         // Status View
         private VisualElement _statusView;
         private Label _statusAuthType;
+        private Label _statusUserId;
         private Label _statusUserName;
         private VisualElement _statusEmailRow;
         private Label _statusEmail;
         private Button _linkEmailButton;
-        private Button _emailLoginButton;
+        private Button _userIdLoginButton;
         private Button _unlinkEmailButton;
+        private Button _forgotPasswordButton;
 
         // Link Form View
         private VisualElement _linkFormView;
         private TextField _formEmail;
         private TextField _formPassword;
-        private TextField _formUserName;
         private Button _submitLinkButton;
         private Button _backButton;
 
-        // Email Login View
-        private VisualElement _emailLoginView;
-        private TextField _loginEmail;
-        private TextField _loginPassword;
-        private Button _loginSubmitButton;
-        private Button _forgotPasswordButton;
-        private Button _loginBackButton;
+        // UserId Login View
+        private VisualElement _userIdLoginView;
+        private TextField _userIdInput;
+        private TextField _userIdPassword;
+        private Button _userIdLoginSubmitButton;
+        private Button _userIdLoginBackButton;
 
         // Forgot Password View
         private VisualElement _forgotPasswordView;
@@ -75,8 +75,6 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _resetPasswordView;
         private TextField _resetToken;
         private TextField _resetNewPassword;
-        private VisualElement _resetPasswordStrengthBar;
-        private Label _resetPasswordStrengthLabel;
         private Button _resetSubmitButton;
         private Button _resetBackButton;
 
@@ -93,8 +91,8 @@ namespace Game.MVP.Survivor.Scenes
             _onSubmitLinkClicked.Dispose();
             _onUnlinkClicked.Dispose();
             _onBackToStatusClicked.Dispose();
-            _onEmailLoginClicked.Dispose();
-            _onEmailLoginSubmitted.Dispose();
+            _onUserIdLoginClicked.Dispose();
+            _onUserIdLoginSubmitted.Dispose();
             _onForgotPasswordClicked.Dispose();
             _onForgotPasswordSubmitted.Dispose();
             _onResetPasswordSubmitted.Dispose();
@@ -115,28 +113,28 @@ namespace Game.MVP.Survivor.Scenes
             // Status View
             _statusView = _root.Q<VisualElement>("status-view");
             _statusAuthType = _root.Q<Label>("status-auth-type");
+            _statusUserId = _root.Q<Label>("status-user-id");
             _statusUserName = _root.Q<Label>("status-display-name");
             _statusEmailRow = _root.Q<VisualElement>("status-email-row");
             _statusEmail = _root.Q<Label>("status-email");
             _linkEmailButton = _root.Q<Button>("link-email-button");
-            _emailLoginButton = _root.Q<Button>("email-login-button");
+            _userIdLoginButton = _root.Q<Button>("userid-login-button");
             _unlinkEmailButton = _root.Q<Button>("unlink-email-button");
+            _forgotPasswordButton = _root.Q<Button>("forgot-password-button");
 
             // Link Form View
             _linkFormView = _root.Q<VisualElement>("link-form-view");
             _formEmail = _root.Q<TextField>("form-email");
             _formPassword = _root.Q<TextField>("form-password");
-            _formUserName = _root.Q<TextField>("form-display-name");
             _submitLinkButton = _root.Q<Button>("submit-link-button");
             _backButton = _root.Q<Button>("back-button");
 
-            // Email Login View
-            _emailLoginView = _root.Q<VisualElement>("email-login-view");
-            _loginEmail = _root.Q<TextField>("login-email");
-            _loginPassword = _root.Q<TextField>("login-password");
-            _loginSubmitButton = _root.Q<Button>("login-submit-button");
-            _forgotPasswordButton = _root.Q<Button>("forgot-password-button");
-            _loginBackButton = _root.Q<Button>("login-back-button");
+            // UserId Login View
+            _userIdLoginView = _root.Q<VisualElement>("userid-login-view");
+            _userIdInput = _root.Q<TextField>("userid-input");
+            _userIdPassword = _root.Q<TextField>("userid-password");
+            _userIdLoginSubmitButton = _root.Q<Button>("userid-login-submit-button");
+            _userIdLoginBackButton = _root.Q<Button>("userid-login-back-button");
 
             // Forgot Password View
             _forgotPasswordView = _root.Q<VisualElement>("forgot-password-view");
@@ -148,8 +146,6 @@ namespace Game.MVP.Survivor.Scenes
             _resetPasswordView = _root.Q<VisualElement>("reset-password-view");
             _resetToken = _root.Q<TextField>("reset-token");
             _resetNewPassword = _root.Q<TextField>("reset-new-password");
-            _resetPasswordStrengthBar = _root.Q<VisualElement>("reset-password-strength-bar");
-            _resetPasswordStrengthLabel = _root.Q<Label>("reset-password-strength-label");
             _resetSubmitButton = _root.Q<Button>("reset-submit-button");
             _resetBackButton = _root.Q<Button>("reset-back-button");
 
@@ -168,8 +164,8 @@ namespace Game.MVP.Survivor.Scenes
             _linkEmailButton?.RegisterCallback<ClickEvent>(_ =>
                 _onLinkEmailClicked.OnNext(Unit.Default));
 
-            _emailLoginButton?.RegisterCallback<ClickEvent>(_ =>
-                _onEmailLoginClicked.OnNext(Unit.Default));
+            _userIdLoginButton?.RegisterCallback<ClickEvent>(_ =>
+                _onUserIdLoginClicked.OnNext(Unit.Default));
 
             _unlinkEmailButton?.RegisterCallback<ClickEvent>(_ =>
                 _onUnlinkClicked.OnNext(Unit.Default));
@@ -177,54 +173,54 @@ namespace Game.MVP.Survivor.Scenes
             _submitLinkButton?.RegisterCallback<ClickEvent>(_ =>
                 _onSubmitLinkClicked.OnNext((
                     _formEmail?.value ?? "",
-                    _formPassword?.value ?? "",
-                    _formUserName?.value ?? "")));
+                    _formPassword?.value ?? "")));
 
             _backButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
 
-            // Email Login View
-            _loginSubmitButton?.RegisterCallback<ClickEvent>(_ =>
-                _onEmailLoginSubmitted.OnNext((
-                    _loginEmail?.value ?? "",
-                    _loginPassword?.value ?? "")));
+            // UserId Login View
+            _userIdLoginSubmitButton?.RegisterCallback<ClickEvent>(_ =>
+                _onUserIdLoginSubmitted.OnNext((
+                    _userIdInput?.value ?? "",
+                    _userIdPassword?.value ?? "")));
 
-            _forgotPasswordButton?.RegisterCallback<ClickEvent>(_ =>
-                _onForgotPasswordClicked.OnNext(Unit.Default));
-
-            _loginBackButton?.RegisterCallback<ClickEvent>(_ =>
+            _userIdLoginBackButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
 
             // Forgot Password View
+            _forgotPasswordButton?.RegisterCallback<ClickEvent>(_ =>
+                _onForgotPasswordClicked.OnNext(Unit.Default));
+
             _forgotSubmitButton?.RegisterCallback<ClickEvent>(_ =>
                 _onForgotPasswordSubmitted.OnNext(_forgotEmail?.value ?? ""));
 
             _forgotBackButton?.RegisterCallback<ClickEvent>(_ =>
-                _onEmailLoginClicked.OnNext(Unit.Default));
+                _onBackToStatusClicked.OnNext(Unit.Default));
 
             // Reset Password View
-            _resetNewPassword?.RegisterValueChangedCallback(evt =>
-                UpdatePasswordStrength(evt.newValue));
-
             _resetSubmitButton?.RegisterCallback<ClickEvent>(_ =>
                 _onResetPasswordSubmitted.OnNext((
                     _resetToken?.value ?? "",
                     _resetNewPassword?.value ?? "")));
 
             _resetBackButton?.RegisterCallback<ClickEvent>(_ =>
-                _onForgotPasswordClicked.OnNext(Unit.Default));
+                _onBackToStatusClicked.OnNext(Unit.Default));
         }
 
         /// <summary>
         /// StatusView を表示
         /// </summary>
-        public void ShowStatusView(bool isGuest, string userName, string email)
+        public void ShowStatusView(bool isGuest, string userName, string email,
+            string formattedUserId = null, bool hasSession = true)
         {
             HideAllViews();
             _statusView?.RemoveFromClassList("view-panel--hidden");
 
             if (_statusAuthType != null)
                 _statusAuthType.text = isGuest ? "Guest" : "Email";
+
+            if (_statusUserId != null)
+                _statusUserId.text = formattedUserId ?? "-";
 
             if (_statusUserName != null)
                 _statusUserName.text = userName ?? "-";
@@ -238,25 +234,26 @@ namespace Game.MVP.Survivor.Scenes
             if (_linkEmailButton != null)
                 _linkEmailButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
 
-            if (_emailLoginButton != null)
-                _emailLoginButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
+            // LOGIN WITH USER ID / Forgot password はセッションがある Guest のみ表示
+            if (_userIdLoginButton != null)
+                _userIdLoginButton.style.display = (isGuest && hasSession) ? DisplayStyle.Flex : DisplayStyle.None;
 
             if (_unlinkEmailButton != null)
                 _unlinkEmailButton.style.display = isGuest ? DisplayStyle.None : DisplayStyle.Flex;
+
+            if (_forgotPasswordButton != null)
+                _forgotPasswordButton.style.display = (isGuest && hasSession) ? DisplayStyle.Flex : DisplayStyle.None;
 
             HideMessage();
         }
 
         /// <summary>
-        /// LinkFormView を表示
+        /// LinkFormView を表示（初期遷移用、フィールドをクリア）
         /// </summary>
-        public void ShowLinkForm(string currentUserName)
+        public void ShowLinkForm()
         {
             HideAllViews();
             _linkFormView?.RemoveFromClassList("view-panel--hidden");
-
-            if (_formUserName != null)
-                _formUserName.value = currentUserName ?? "";
 
             if (_formEmail != null)
                 _formEmail.value = "";
@@ -268,18 +265,27 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// EmailLoginView を表示
+        /// LinkFormView を表示（入力値を保持したまま再表示）
         /// </summary>
-        public void ShowEmailLoginView()
+        public void RevealLinkFormView()
         {
             HideAllViews();
-            _emailLoginView?.RemoveFromClassList("view-panel--hidden");
+            _linkFormView?.RemoveFromClassList("view-panel--hidden");
+        }
 
-            if (_loginEmail != null)
-                _loginEmail.value = "";
+        /// <summary>
+        /// UserIdLoginView を表示
+        /// </summary>
+        public void ShowUserIdLoginView()
+        {
+            HideAllViews();
+            _userIdLoginView?.RemoveFromClassList("view-panel--hidden");
 
-            if (_loginPassword != null)
-                _loginPassword.value = "";
+            if (_userIdInput != null)
+                _userIdInput.value = "";
+
+            if (_userIdPassword != null)
+                _userIdPassword.value = "";
 
             HideMessage();
         }
@@ -332,7 +338,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             _statusView?.AddToClassList("view-panel--hidden");
             _linkFormView?.AddToClassList("view-panel--hidden");
-            _emailLoginView?.AddToClassList("view-panel--hidden");
+            _userIdLoginView?.AddToClassList("view-panel--hidden");
             _forgotPasswordView?.AddToClassList("view-panel--hidden");
             _resetPasswordView?.AddToClassList("view-panel--hidden");
             _loadingView?.AddToClassList("view-panel--hidden");
@@ -368,54 +374,6 @@ namespace Game.MVP.Survivor.Scenes
             if (_messageLabel == null) return;
             _messageLabel.RemoveFromClassList("message-label--error");
             _messageLabel.RemoveFromClassList("message-label--success");
-        }
-
-        /// <summary>
-        /// パスワード強度インジケーターの更新
-        /// </summary>
-        private void UpdatePasswordStrength(string password)
-        {
-            if (_resetPasswordStrengthBar == null || _resetPasswordStrengthLabel == null) return;
-
-            if (string.IsNullOrEmpty(password))
-            {
-                _resetPasswordStrengthBar.style.width = new StyleLength(new Length(0, LengthUnit.Percent));
-                _resetPasswordStrengthLabel.text = "";
-                return;
-            }
-
-            int score = 0;
-            if (password.Length >= 8) score++;
-            if (password.Length >= 12) score++;
-            if (System.Text.RegularExpressions.Regex.IsMatch(password, @"[A-Z]")) score++;
-            if (System.Text.RegularExpressions.Regex.IsMatch(password, @"[0-9]")) score++;
-            if (System.Text.RegularExpressions.Regex.IsMatch(password, @"[^a-zA-Z0-9]")) score++;
-
-            float percentage = score / 5f * 100f;
-            string label;
-            Color barColor;
-
-            switch (score)
-            {
-                case 0:
-                case 1:
-                    label = "Weak";
-                    barColor = new Color(0.7f, 0.23f, 0.23f);
-                    break;
-                case 2:
-                case 3:
-                    label = "Fair";
-                    barColor = new Color(0.85f, 0.65f, 0.13f);
-                    break;
-                default:
-                    label = "Strong";
-                    barColor = new Color(0.2f, 0.7f, 0.3f);
-                    break;
-            }
-
-            _resetPasswordStrengthBar.style.width = new StyleLength(new Length(percentage, LengthUnit.Percent));
-            _resetPasswordStrengthBar.style.backgroundColor = new StyleColor(barColor);
-            _resetPasswordStrengthLabel.text = label;
         }
 
         public override void SetInteractables(bool interactable)

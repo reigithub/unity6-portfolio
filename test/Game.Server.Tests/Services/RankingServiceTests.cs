@@ -65,7 +65,7 @@ public class RankingServiceTests
             UserId = userId,
             Score = 5000,
             ClearTime = 120f,
-            User = new() { UserId = "testuser01", UserName = "Player1" },
+            User = new() { UserId = "000000000001", UserName = "Player1" },
         };
         _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, userId))
             .ReturnsAsync(bestScore);

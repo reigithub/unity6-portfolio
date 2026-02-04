@@ -13,24 +13,10 @@ namespace Game.Shared.Dto.Auth
     }
 
     [Serializable]
-    public class EmailRegisterRequest
+    public class UserIdLoginRequest
     {
-        public string email;
+        public string userId;
         public string password;
-        public string userName;
-    }
-
-    [Serializable]
-    public class EmailLoginRequest
-    {
-        public string email;
-        public string password;
-    }
-
-    [Serializable]
-    public class VerifyEmailRequest
-    {
-        public string token;
     }
 
     [Serializable]
@@ -51,7 +37,6 @@ namespace Game.Shared.Dto.Auth
     {
         public string email;
         public string password;
-        public string userName;
     }
 
     // ============================================================
@@ -83,7 +68,7 @@ namespace Game.Shared.Dto.Auth
         public string userId;
         public string userName;
         public int level;
-        public long createdAt;
+        public long registeredAt;
         public string authType;
         public string email;
     }

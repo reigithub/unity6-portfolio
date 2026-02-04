@@ -115,6 +115,10 @@
     color: rgb(255, 255, 255);
 }
 
+.status-value--mono {
+    letter-spacing: 3px;
+}
+
 /* Action Buttons */
 .action-buttons {
     margin-top: 36px;
@@ -194,6 +198,10 @@
     padding-right: 16px;
 }
 
+.form-input--mono {
+    letter-spacing: 4px;
+}
+
 .form-input:focus {
     border-color: rgba(100, 180, 255, 0.8);
     background-color: rgba(255, 255, 255, 0.12);
@@ -249,53 +257,24 @@
     color: rgb(120, 255, 160);
 }
 
-/* Text Link Button (Forgot Password) */
+/* Text Link Button */
 .text-link-button {
+    margin-top: 12px;
+    padding: 4px 0;
+    font-size: 22px;
+    color: rgba(100, 180, 255, 0.8);
     background-color: transparent;
     border-width: 0;
-    color: rgba(100, 180, 255, 0.9);
-    font-size: 20px;
-    -unity-font-style: normal;
-    padding: 8px 0;
-    margin-top: 12px;
+    -unity-text-align: middle-center;
     align-self: center;
-    cursor: link;
+    transition-duration: 0.12s;
 }
 
 .text-link-button:hover {
-    color: rgb(140, 200, 255);
-    -unity-font-style: underline;
+    color: rgb(130, 200, 255);
 }
 
 .text-link-button:active {
     color: rgba(100, 180, 255, 0.6);
 }
 
-/* Password Strength Bar */
-.password-strength-container {
-    margin-top: 8px;
-    flex-direction: row;
-    align-items: center;
-}
-
-.password-strength-bar-bg {
-    flex-grow: 1;
-    height: 6px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.password-strength-bar {
-    height: 100%;
-    width: 0;
-    border-radius: 3px;
-    transition-duration: 0.2s;
-}
-
-.password-strength-label {
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.6);
-    margin-left: 12px;
-    min-width: 60px;
-}

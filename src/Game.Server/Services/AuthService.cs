@@ -33,42 +33,9 @@ public class AuthService : IAuthService
         _emailService = emailService;
     }
 
-    public async Task<Result<LoginResponse, ApiError>> RegisterAsync(RegisterRequest request)
-    {
-        var (isValid, errorMessage) = PasswordValidator.Validate(request.Password);
-        if (!isValid)
-        {
-            return new ApiError(errorMessage!, "WEAK_PASSWORD", StatusCodes.Status400BadRequest);
-        }
-
-        bool exists = await _authRepository.ExistsByUserNameAsync(request.UserName);
-
-        if (exists)
-        {
-            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
-        }
-
-        var user = new UserInfo
-        {
-            UserName = request.UserName,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            AuthType = "Password",
-        };
-
-        await _authRepository.CreateUserAsync(user);
-
-        string token = GenerateJwtToken(user);
-        return new LoginResponse
-        {
-            UserId = user.UserId,
-            UserName = user.UserName,
-            Token = token,
-        };
-    }
-
     public async Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request)
     {
-        var user = await _authRepository.GetByUserNameAsync(request.UserName);
+        var user = await _authRepository.GetByUserIdStringAsync(request.UserId);
 
         if (user == null)
         {
@@ -166,50 +133,6 @@ public class AuthService : IAuthService
             UserId = user.UserId,
             UserName = user.UserName,
             Token = newToken,
-            IsNewUser = true,
-        };
-    }
-
-    public async Task<Result<LoginResponse, ApiError>> EmailRegisterAsync(EmailRegisterRequest request)
-    {
-        var (isValid, errorMessage) = PasswordValidator.Validate(request.Password);
-        if (!isValid)
-        {
-            return new ApiError(errorMessage!, "WEAK_PASSWORD", StatusCodes.Status400BadRequest);
-        }
-
-        if (await _authRepository.ExistsByEmailAsync(request.Email))
-        {
-            return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
-        }
-
-        if (await _authRepository.ExistsByUserNameAsync(request.UserName))
-        {
-            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
-        }
-
-        var verificationToken = GenerateSecureToken();
-
-        var user = new UserInfo
-        {
-            UserName = request.UserName,
-            Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            AuthType = "Email",
-            EmailVerificationToken = verificationToken,
-            EmailVerificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours),
-        };
-
-        await _authRepository.CreateUserAsync(user);
-
-        await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
-
-        string token = GenerateJwtToken(user);
-        return new LoginResponse
-        {
-            UserId = user.UserId,
-            UserName = user.UserName,
-            Token = token,
             IsNewUser = true,
         };
     }
@@ -350,18 +273,12 @@ public class AuthService : IAuthService
             return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
         }
 
-        if (await _authRepository.ExistsByUserNameAsync(request.UserName) &&
-            request.UserName != user.UserName)
-        {
-            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
-        }
-
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         var verificationToken = GenerateSecureToken();
         var verificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours);
 
         await _authRepository.LinkEmailAsync(
-            id, request.Email, passwordHash, request.UserName,
+            id, request.Email, passwordHash,
             verificationToken, verificationExpiry);
 
         await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);

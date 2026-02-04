@@ -35,51 +35,18 @@ namespace Game.Shared.Services
             return response;
         }
 
-        public async UniTask<ApiResponse<LoginResponse>> EmailRegisterAsync(
-            string email, string password, string userName)
+        public async UniTask<ApiResponse<LoginResponse>> UserIdLoginAsync(string userId, string password)
         {
-            var request = new EmailRegisterRequest
-            {
-                email = email,
-                password = password,
-                userName = userName
-            };
-
-            var response = await _apiClient.PostAsync<EmailRegisterRequest, LoginResponse>(
-                "api/auth/email/register", request);
+            var request = new UserIdLoginRequest { userId = userId, password = password };
+            var response = await _apiClient.PostAsync<UserIdLoginRequest, LoginResponse>(
+                "api/auth/login", request);
 
             if (response.IsSuccess)
             {
-                OnLoginSuccess(response.Data, "email");
+                OnLoginSuccess(response.Data, "password");
             }
 
             return response;
-        }
-
-        public async UniTask<ApiResponse<LoginResponse>> EmailLoginAsync(string email, string password)
-        {
-            var request = new EmailLoginRequest
-            {
-                email = email,
-                password = password
-            };
-
-            var response = await _apiClient.PostAsync<EmailLoginRequest, LoginResponse>(
-                "api/auth/email/login", request);
-
-            if (response.IsSuccess)
-            {
-                OnLoginSuccess(response.Data, "email");
-            }
-
-            return response;
-        }
-
-        public async UniTask<ApiResponse<MessageResponse>> VerifyEmailAsync(string token)
-        {
-            var request = new VerifyEmailRequest { token = token };
-            return await _apiClient.PostAsync<VerifyEmailRequest, MessageResponse>(
-                "api/auth/email/verify", request);
         }
 
         public async UniTask<ApiResponse<MessageResponse>> ForgotPasswordAsync(string email)
@@ -117,13 +84,12 @@ namespace Game.Shared.Services
         }
 
         public async UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(
-            string email, string password, string userName)
+            string email, string password)
         {
             var request = new LinkEmailRequest
             {
                 email = email,
-                password = password,
-                userName = userName
+                password = password
             };
 
             var response = await _apiClient.PostAsync<LinkEmailRequest, AccountLinkResponse>(

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Dapper;
 using Game.Server.Configuration;
 using Game.Server.Dto.Requests;
@@ -5,6 +6,7 @@ using Game.Server.Dto.Responses;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
+using Game.Server.Tables;
 using Game.Server.Tests.Fixtures;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -39,113 +41,13 @@ public class EmailAuthTests : IAsyncLifetime
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    // --- EmailRegister ---
-
-    [Fact]
-    public async Task EmailRegisterAsync_ValidRequest_CreatesUserAndReturnsToken()
-    {
-        var service = CreateAuthService();
-        var request = new EmailRegisterRequest
-        {
-            Email = "test@example.com",
-            Password = "Password1!",
-            UserName = "EmailUser",
-        };
-
-        var result = await service.EmailRegisterAsync(request);
-
-        var response = AuthServiceTests.ExtractSuccess(result);
-        Assert.NotNull(response);
-        Assert.Equal("EmailUser", response.UserName);
-        Assert.True(response.IsNewUser);
-        Assert.NotEmpty(response.Token);
-        _mockEmailService.Verify(
-            e => e.SendVerificationEmailAsync("test@example.com", It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task EmailRegisterAsync_DuplicateEmail_ReturnsError()
-    {
-        var service = CreateAuthService();
-        var request = new EmailRegisterRequest
-        {
-            Email = "dup@example.com",
-            Password = "Password1!",
-            UserName = "User1",
-        };
-
-        await service.EmailRegisterAsync(request);
-
-        var request2 = new EmailRegisterRequest
-        {
-            Email = "dup@example.com",
-            Password = "Password1!",
-            UserName = "User2",
-        };
-        var result = await service.EmailRegisterAsync(request2);
-
-        var error = AuthServiceTests.ExtractError(result);
-        Assert.NotNull(error);
-        Assert.Equal("DUPLICATE_EMAIL", error.ErrorCode);
-        Assert.Equal(409, error.StatusCode);
-    }
-
-    [Fact]
-    public async Task EmailRegisterAsync_DuplicateUserName_ReturnsError()
-    {
-        var service = CreateAuthService();
-        var request = new EmailRegisterRequest
-        {
-            Email = "first@example.com",
-            Password = "Password1!",
-            UserName = "SameName",
-        };
-
-        await service.EmailRegisterAsync(request);
-
-        var request2 = new EmailRegisterRequest
-        {
-            Email = "second@example.com",
-            Password = "Password1!",
-            UserName = "SameName",
-        };
-        var result = await service.EmailRegisterAsync(request2);
-
-        var error = AuthServiceTests.ExtractError(result);
-        Assert.NotNull(error);
-        Assert.Equal("DUPLICATE_NAME", error.ErrorCode);
-    }
-
-    [Fact]
-    public async Task EmailRegisterAsync_WeakPassword_ReturnsError()
-    {
-        var service = CreateAuthService();
-        var request = new EmailRegisterRequest
-        {
-            Email = "weak@example.com",
-            Password = "weak",
-            UserName = "WeakPwUser",
-        };
-
-        var result = await service.EmailRegisterAsync(request);
-
-        var error = AuthServiceTests.ExtractError(result);
-        Assert.NotNull(error);
-        Assert.Equal("WEAK_PASSWORD", error.ErrorCode);
-    }
-
     // --- EmailLogin ---
 
     [Fact]
     public async Task EmailLoginAsync_ValidCredentials_ReturnsToken()
     {
+        await SeedEmailUserAsync("login@example.com", "Password1!", "LoginUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "login@example.com",
-            Password = "Password1!",
-            UserName = "LoginUser",
-        });
 
         var result = await service.EmailLoginAsync(new EmailLoginRequest
         {
@@ -162,13 +64,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task EmailLoginAsync_WrongPassword_ReturnsUnauthorized()
     {
+        await SeedEmailUserAsync("wrongpw@example.com", "Password1!", "WrongPwUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "wrongpw@example.com",
-            Password = "Password1!",
-            UserName = "WrongPwUser",
-        });
 
         var result = await service.EmailLoginAsync(new EmailLoginRequest
         {
@@ -200,13 +97,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task EmailLoginAsync_LockedAccount_ReturnsLocked()
     {
+        await SeedEmailUserAsync("locked@example.com", "Password1!", "LockedUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "locked@example.com",
-            Password = "Password1!",
-            UserName = "LockedUser",
-        });
 
         for (int i = 0; i < 5; i++)
         {
@@ -234,18 +126,13 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task VerifyEmailAsync_ValidToken_VerifiesEmail()
     {
-        var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "verify@example.com",
-            Password = "Password1!",
-            UserName = "VerifyUser",
-        });
+        await SeedEmailUserAsync("verify@example.com", "Password1!", "VerifyUser");
 
         // Get the token from the database
         var token = await GetEmailVerificationTokenAsync("verify@example.com");
         Assert.NotNull(token);
 
+        var service = CreateAuthService();
         var result = await service.VerifyEmailAsync(new VerifyEmailRequest { Token = token });
 
         var success = AuthServiceTests.ExtractSuccess(result);
@@ -255,18 +142,13 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task VerifyEmailAsync_ExpiredToken_ReturnsError()
     {
-        var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "expired@example.com",
-            Password = "Password1!",
-            UserName = "ExpiredUser",
-        });
+        await SeedEmailUserAsync("expired@example.com", "Password1!", "ExpiredUser");
 
         // Manually set expiry to the past
         var token = await GetEmailVerificationTokenAsync("expired@example.com");
         await SetEmailVerificationExpiryAsync("expired@example.com", DateTime.UtcNow.AddHours(-1));
 
+        var service = CreateAuthService();
         var result = await service.VerifyEmailAsync(new VerifyEmailRequest { Token = token! });
 
         var error = AuthServiceTests.ExtractError(result);
@@ -291,13 +173,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task ForgotPasswordAsync_ExistingEmail_SendsResetEmail()
     {
+        await SeedEmailUserAsync("forgot@example.com", "Password1!", "ForgotUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "forgot@example.com",
-            Password = "Password1!",
-            UserName = "ForgotUser",
-        });
 
         var result = await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "forgot@example.com" });
 
@@ -325,13 +202,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task ResetPasswordAsync_ValidToken_ResetsPassword()
     {
+        await SeedEmailUserAsync("reset@example.com", "Password1!", "ResetUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "reset@example.com",
-            Password = "Password1!",
-            UserName = "ResetUser",
-        });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "reset@example.com" });
 
@@ -360,13 +232,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task ResetPasswordAsync_ExpiredToken_ReturnsError()
     {
+        await SeedEmailUserAsync("resetexp@example.com", "Password1!", "ResetExpUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "resetexp@example.com",
-            Password = "Password1!",
-            UserName = "ResetExpUser",
-        });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "resetexp@example.com" });
 
@@ -387,13 +254,8 @@ public class EmailAuthTests : IAsyncLifetime
     [Fact]
     public async Task ResetPasswordAsync_WeakNewPassword_ReturnsError()
     {
+        await SeedEmailUserAsync("resetweak@example.com", "Password1!", "ResetWeakUser");
         var service = CreateAuthService();
-        await service.EmailRegisterAsync(new EmailRegisterRequest
-        {
-            Email = "resetweak@example.com",
-            Password = "Password1!",
-            UserName = "ResetWeakUser",
-        });
 
         await service.ForgotPasswordAsync(new ForgotPasswordRequest { Email = "resetweak@example.com" });
 
@@ -455,5 +317,37 @@ public class EmailAuthTests : IAsyncLifetime
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo"" SET ""PasswordResetExpiry"" = @Expiry WHERE ""Email"" = @Email",
             new { Email = email, Expiry = expiry });
+    }
+
+    private async Task SeedEmailUserAsync(string email, string password, string userName)
+    {
+        var verificationToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        var user = new UserInfo
+        {
+            UserName = userName,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            AuthType = "Email",
+            EmailVerificationToken = verificationToken,
+            EmailVerificationExpiry = DateTime.UtcNow.AddHours(24),
+        };
+
+        using var connection = new NpgsqlConnection(_postgres.ConnectionString);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            @"INSERT INTO ""User"".""UserInfo""
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+               ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+               ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+               ""PasswordResetToken"", ""PasswordResetExpiry"",
+               ""FailedLoginAttempts"", ""LockoutEndAt"")
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+                      @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                      @EmailVerificationToken, @EmailVerificationExpiry,
+                      @PasswordResetToken, @PasswordResetExpiry,
+                      @FailedLoginAttempts, @LockoutEndAt)",
+            user);
     }
 }
