@@ -1,8 +1,12 @@
+using Game.Server.Extensions;
+
 namespace Game.Server.Tables;
 
 public class UserInfo
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.CreateVersion7();
+
+    public string UserId { get; set; } = UserIdGenerator.Generate();
 
     public string DisplayName { get; set; } = string.Empty;
 

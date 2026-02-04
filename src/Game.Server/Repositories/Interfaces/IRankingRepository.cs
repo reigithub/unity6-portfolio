@@ -6,7 +6,7 @@ public interface IRankingRepository
 {
     Task<List<UserScore>> GetTopScoresAsync(string gameMode, int stageId, int limit, int offset);
 
-    Task<UserScore?> GetUserBestScoreAsync(string gameMode, int stageId, string userId);
+    Task<UserScore?> GetUserBestScoreAsync(string gameMode, int stageId, Guid userId);
 
-    Task<int> GetUserRankAsync(string gameMode, int stageId, string userId);
+    Task<int> GetUserRankAsync(string gameMode, int stageId, Guid userId);
 }

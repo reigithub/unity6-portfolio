@@ -24,7 +24,7 @@ public class ScoreService : IScoreService
     }
 
     public async Task<Result<ScoreSubmitResponse, ApiError>> SubmitScoreAsync(
-        string userId, SubmitScoreRequest request)
+        Guid userId, SubmitScoreRequest request)
     {
         if (!ValidGameModes.Contains(request.GameMode))
         {
@@ -64,7 +64,7 @@ public class ScoreService : IScoreService
     }
 
     public async Task<List<ScoreHistoryEntry>> GetUserScoresAsync(
-        string userId, string? gameMode, int? stageId, int limit)
+        Guid userId, string? gameMode, int? stageId, int limit)
     {
         var scores = await _scoreRepository.GetUserScoresAsync(userId, gameMode, stageId, limit);
 

@@ -6,5 +6,5 @@ public interface IScoreRepository
 {
     Task<UserScore> AddAsync(UserScore score);
 
-    Task<List<UserScore>> GetUserScoresAsync(string userId, string? gameMode, int? stageId, int limit);
+    Task<List<UserScore>> GetUserScoresAsync(Guid userId, string? gameMode, int? stageId, int limit);
 }

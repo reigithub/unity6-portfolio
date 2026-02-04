@@ -60,7 +60,7 @@ public class AuthService : IAuthService
         string token = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = token,
         };
@@ -107,15 +107,15 @@ public class AuthService : IAuthService
         string token = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = token,
         };
     }
 
-    public async Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string userId)
+    public async Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(Guid id)
     {
-        var user = await _authRepository.GetByIdAsync(userId);
+        var user = await _authRepository.GetByIdAsync(id);
 
         if (user == null)
         {
@@ -125,7 +125,7 @@ public class AuthService : IAuthService
         string token = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = token,
         };
@@ -142,7 +142,7 @@ public class AuthService : IAuthService
             string token = GenerateJwtToken(existingUser);
             return new LoginResponse
             {
-                UserId = existingUser.Id,
+                UserId = existingUser.UserId,
                 DisplayName = existingUser.DisplayName,
                 Token = token,
                 IsNewUser = false,
@@ -163,7 +163,7 @@ public class AuthService : IAuthService
         string newToken = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = newToken,
             IsNewUser = true,
@@ -207,7 +207,7 @@ public class AuthService : IAuthService
         string token = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = token,
             IsNewUser = true,
@@ -255,7 +255,7 @@ public class AuthService : IAuthService
         string token = GenerateJwtToken(user);
         return new LoginResponse
         {
-            UserId = user.Id,
+            UserId = user.UserId,
             DisplayName = user.DisplayName,
             Token = token,
         };
@@ -325,9 +325,9 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public async Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(string userId, LinkEmailRequest request)
+    public async Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(Guid id, LinkEmailRequest request)
     {
-        var user = await _authRepository.GetByIdAsync(userId);
+        var user = await _authRepository.GetByIdAsync(id);
 
         if (user == null)
         {
@@ -361,18 +361,18 @@ public class AuthService : IAuthService
         var verificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours);
 
         await _authRepository.LinkEmailAsync(
-            userId, request.Email, passwordHash, request.DisplayName,
+            id, request.Email, passwordHash, request.DisplayName,
             verificationToken, verificationExpiry);
 
         await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(userId);
+        var updatedUser = await _authRepository.GetByIdAsync(id);
         string token = GenerateJwtToken(updatedUser!);
 
         return new AccountLinkResponse
         {
-            UserId = updatedUser!.Id,
+            UserId = updatedUser!.UserId,
             DisplayName = updatedUser.DisplayName,
             Token = token,
             AuthType = updatedUser.AuthType,
@@ -380,9 +380,9 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(string userId, string deviceFingerprint)
+    public async Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(Guid id, string deviceFingerprint)
     {
-        var user = await _authRepository.GetByIdAsync(userId);
+        var user = await _authRepository.GetByIdAsync(id);
 
         if (user == null)
         {
@@ -399,15 +399,15 @@ public class AuthService : IAuthService
             return new ApiError("Invalid device fingerprint", "INVALID_FINGERPRINT", StatusCodes.Status400BadRequest);
         }
 
-        await _authRepository.UnlinkEmailAsync(userId, deviceFingerprint);
+        await _authRepository.UnlinkEmailAsync(id, deviceFingerprint);
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(userId);
+        var updatedUser = await _authRepository.GetByIdAsync(id);
         string token = GenerateJwtToken(updatedUser!);
 
         return new AccountLinkResponse
         {
-            UserId = updatedUser!.Id,
+            UserId = updatedUser!.UserId,
             DisplayName = updatedUser.DisplayName,
             Token = token,
             AuthType = updatedUser.AuthType,
@@ -419,7 +419,7 @@ public class AuthService : IAuthService
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.DisplayName),
             new Claim("level", user.Level.ToString()),
             new Claim("authType", user.AuthType),

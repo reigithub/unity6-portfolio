@@ -4,7 +4,7 @@ public class UserScore
 {
     public long Id { get; set; }
 
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     public string GameMode { get; set; } = string.Empty;
 

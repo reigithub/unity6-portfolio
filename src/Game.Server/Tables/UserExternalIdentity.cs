@@ -4,7 +4,7 @@ public class UserExternalIdentity
 {
     public long Id { get; set; }
 
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     public string Provider { get; set; } = string.Empty;
 

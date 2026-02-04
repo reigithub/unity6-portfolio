@@ -148,7 +148,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync("guest-user-1", request);
+        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserId, request);
 
         // Assert
         AccountLinkResponse? response = ExtractSuccess(result);
@@ -173,7 +173,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync("user-1", request);
+        var result = await service.LinkEmailAsync(TestDataFixture.User1Id, request);
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -196,7 +196,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync("guest-user-1", request);
+        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserId, request);
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -213,7 +213,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.UnlinkEmailAsync("email-user-1", "device-fingerprint-0123456789abcdef");
+        var result = await service.UnlinkEmailAsync(TestDataFixture.EmailUserId, "device-fingerprint-0123456789abcdef");
 
         // Assert
         AccountLinkResponse? response = ExtractSuccess(result);
@@ -231,7 +231,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.UnlinkEmailAsync("guest-user-1", "device-fingerprint-0123456789abcdef");
+        var result = await service.UnlinkEmailAsync(TestDataFixture.GuestUserId, "device-fingerprint-0123456789abcdef");
 
         // Assert
         ApiError? error = ExtractError(result);

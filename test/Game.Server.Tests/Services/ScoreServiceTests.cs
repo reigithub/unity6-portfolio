@@ -2,12 +2,15 @@ using Game.Server.Dto.Requests;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Tests.Fixtures;
 using Moq;
 
 namespace Game.Server.Tests.Services;
 
 public class ScoreServiceTests
 {
+    private static readonly Guid TestUserId = TestDataFixture.User1Id;
+
     private readonly Mock<IScoreRepository> _mockScoreRepo;
     private readonly Mock<IRankingRepository> _mockRankingRepo;
     private readonly ScoreService _service;
@@ -33,15 +36,15 @@ public class ScoreServiceTests
             EnemiesDefeated = 50,
         };
 
-        _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "user-1"))
+        _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, TestUserId))
             .ReturnsAsync((UserScore?)null);
         _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<UserScore>()))
             .ReturnsAsync((UserScore s) => { s.Id = 1; return s; });
-        _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, "user-1"))
+        _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, TestUserId))
             .ReturnsAsync(1);
 
         // Act
-        var result = await _service.SubmitScoreAsync("user-1", request);
+        var result = await _service.SubmitScoreAsync(TestUserId, request);
 
         // Assert
         Dto.Responses.ScoreSubmitResponse? success = null;
@@ -66,7 +69,7 @@ public class ScoreServiceTests
         };
 
         // Act
-        var result = await _service.SubmitScoreAsync("user-1", request);
+        var result = await _service.SubmitScoreAsync(TestUserId, request);
 
         // Assert
         Dto.Responses.ApiError? error = null;
@@ -91,15 +94,15 @@ public class ScoreServiceTests
         };
 
         var previousBest = new UserScore { Score = 5000 };
-        _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "user-1"))
+        _mockRankingRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, TestUserId))
             .ReturnsAsync(previousBest);
         _mockScoreRepo.Setup(r => r.AddAsync(It.IsAny<UserScore>()))
             .ReturnsAsync((UserScore s) => { s.Id = 2; return s; });
-        _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, "user-1"))
+        _mockRankingRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, TestUserId))
             .ReturnsAsync(3);
 
         // Act
-        var result = await _service.SubmitScoreAsync("user-1", request);
+        var result = await _service.SubmitScoreAsync(TestUserId, request);
 
         // Assert
         Dto.Responses.ScoreSubmitResponse? success = null;
@@ -120,11 +123,11 @@ public class ScoreServiceTests
             new() { Id = 1, GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f },
             new() { Id = 2, GameMode = "Survivor", StageId = 1, Score = 3000, ClearTime = 60f },
         };
-        _mockScoreRepo.Setup(r => r.GetUserScoresAsync("user-1", "Survivor", 1, 50))
+        _mockScoreRepo.Setup(r => r.GetUserScoresAsync(TestUserId, "Survivor", 1, 50))
             .ReturnsAsync(scores);
 
         // Act
-        var result = await _service.GetUserScoresAsync("user-1", "Survivor", 1, 50);
+        var result = await _service.GetUserScoresAsync(TestUserId, "Survivor", 1, 50);
 
         // Assert
         Assert.Equal(2, result.Count);

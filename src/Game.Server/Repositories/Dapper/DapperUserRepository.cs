@@ -14,21 +14,21 @@ public class DapperUserRepository : IUserRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<UserInfo?> GetByIdAsync(string userId)
+    public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+            @"SELECT ""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType""
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
-            new { Id = userId });
+            new { Id = id });
     }
 
     public async Task<UserInfo?> GetByDisplayNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+            @"SELECT ""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType""
               FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
             new { DisplayName = displayName });

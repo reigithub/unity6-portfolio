@@ -9,7 +9,7 @@ public interface IAuthService
 
     Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request);
 
-    Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string userId);
+    Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(Guid id);
 
     Task<Result<LoginResponse, ApiError>> GuestLoginAsync(GuestLoginRequest request);
 
@@ -23,7 +23,7 @@ public interface IAuthService
 
     Task<Result<bool, ApiError>> ResetPasswordAsync(ResetPasswordRequest request);
 
-    Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(string userId, LinkEmailRequest request);
+    Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(Guid id, LinkEmailRequest request);
 
-    Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(string userId, string deviceFingerprint);
+    Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(Guid id, string deviceFingerprint);
 }

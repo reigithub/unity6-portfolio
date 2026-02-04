@@ -123,7 +123,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         {
             DeviceFingerprint = "link-test-device-" + Guid.NewGuid().ToString("N")
         });
-        Assert.Equal(HttpStatusCode.OK, guestResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, guestResponse.StatusCode);
 
         var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(guestData?.Token);

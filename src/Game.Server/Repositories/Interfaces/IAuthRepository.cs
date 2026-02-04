@@ -10,9 +10,9 @@ public interface IAuthRepository
 
     Task<UserInfo?> GetByDisplayNameAsync(string displayName);
 
-    Task<UserInfo?> GetByIdAsync(string userId);
+    Task<UserInfo?> GetByIdAsync(Guid id);
 
-    Task UpdateLastLoginAsync(string userId, DateTime lastLoginAt);
+    Task UpdateLastLoginAsync(Guid id, DateTime lastLoginAt);
 
     Task<UserInfo?> GetByEmailAsync(string email);
 
@@ -24,18 +24,18 @@ public interface IAuthRepository
 
     Task<UserInfo?> GetByPasswordResetTokenAsync(string token);
 
-    Task UpdateFailedLoginAsync(string userId, int attempts, DateTime? lockoutEnd);
+    Task UpdateFailedLoginAsync(Guid id, int attempts, DateTime? lockoutEnd);
 
-    Task ResetFailedLoginAsync(string userId);
+    Task ResetFailedLoginAsync(Guid id);
 
-    Task UpdateEmailVerificationAsync(string userId, bool isVerified);
+    Task UpdateEmailVerificationAsync(Guid id, bool isVerified);
 
-    Task UpdatePasswordResetTokenAsync(string userId, string? token, DateTime? expiry);
+    Task UpdatePasswordResetTokenAsync(Guid id, string? token, DateTime? expiry);
 
-    Task UpdatePasswordHashAsync(string userId, string passwordHash);
+    Task UpdatePasswordHashAsync(Guid id, string passwordHash);
 
-    Task LinkEmailAsync(string userId, string email, string passwordHash, string displayName,
+    Task LinkEmailAsync(Guid id, string email, string passwordHash, string displayName,
         string? emailVerificationToken, DateTime? emailVerificationExpiry);
 
-    Task UnlinkEmailAsync(string userId, string deviceFingerprint);
+    Task UnlinkEmailAsync(Guid id, string deviceFingerprint);
 }

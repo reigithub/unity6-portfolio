@@ -22,7 +22,7 @@ public class DapperRankingRepository : IRankingRepository
         const string sql =
             @"SELECT s.""Id"", s.""UserId"", s.""GameMode"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
-                     u.""Id"", u.""DisplayName"", u.""PasswordHash"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
+                     u.""Id"", u.""UserId"", u.""DisplayName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
               FROM ""User"".""UserScore"" s
               INNER JOIN ""User"".""UserInfo"" u ON s.""UserId"" = u.""Id""
               WHERE s.""GameMode"" = @GameMode AND s.""StageId"" = @StageId
@@ -43,25 +43,35 @@ public class DapperRankingRepository : IRankingRepository
     }
 
     public async Task<UserScore?> GetUserBestScoreAsync(
-        string gameMode, int stageId, string userId)
+        string gameMode, int stageId, Guid userId)
     {
         using var connection = _connectionFactory.CreateConnection();
 
         const string sql =
-            @"SELECT ""Id"", ""UserId"", ""GameMode"", ""StageId"", ""Score"",
-                     ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt""
-              FROM ""User"".""UserScore""
-              WHERE ""UserId"" = @UserId AND ""GameMode"" = @GameMode AND ""StageId"" = @StageId
-              ORDER BY ""Score"" DESC, ""ClearTime"" ASC
+            @"SELECT s.""Id"", s.""UserId"", s.""GameMode"", s.""StageId"", s.""Score"",
+                     s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
+                     u.""Id"", u.""UserId"", u.""DisplayName"", u.""Level"", u.""CreatedAt"", u.""LastLoginAt""
+              FROM ""User"".""UserScore"" s
+              INNER JOIN ""User"".""UserInfo"" u ON s.""UserId"" = u.""Id""
+              WHERE s.""UserId"" = @UserId AND s.""GameMode"" = @GameMode AND s.""StageId"" = @StageId
+              ORDER BY s.""Score"" DESC, s.""ClearTime"" ASC
               LIMIT 1";
 
-        return await connection.QueryFirstOrDefaultAsync<UserScore>(
+        var results = await connection.QueryAsync<UserScore, UserInfo, UserScore>(
             sql,
-            new { UserId = userId, GameMode = gameMode, StageId = stageId });
+            (score, user) =>
+            {
+                score.User = user;
+                return score;
+            },
+            new { UserId = userId, GameMode = gameMode, StageId = stageId },
+            splitOn: "Id");
+
+        return results.FirstOrDefault();
     }
 
     public async Task<int> GetUserRankAsync(
-        string gameMode, int stageId, string userId)
+        string gameMode, int stageId, Guid userId)
     {
         var userBest = await GetUserBestScoreAsync(gameMode, stageId, userId);
         if (userBest == null)

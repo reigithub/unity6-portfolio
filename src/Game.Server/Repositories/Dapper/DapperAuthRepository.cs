@@ -8,7 +8,7 @@ namespace Game.Server.Repositories.Dapper;
 public class DapperAuthRepository : IAuthRepository
 {
     private const string SelectColumns =
-        @"""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+        @"""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
           ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
           ""EmailVerificationToken"", ""EmailVerificationExpiry"",
           ""PasswordResetToken"", ""PasswordResetExpiry"",
@@ -36,12 +36,12 @@ public class DapperAuthRepository : IAuthRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -59,21 +59,21 @@ public class DapperAuthRepository : IAuthRepository
             new { DisplayName = displayName });
     }
 
-    public async Task<UserInfo?> GetByIdAsync(string userId)
+    public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
-            new { Id = userId });
+            new { Id = id });
     }
 
-    public async Task UpdateLastLoginAsync(string userId, DateTime lastLoginAt)
+    public async Task UpdateLastLoginAsync(Guid id, DateTime lastLoginAt)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo"" SET ""LastLoginAt"" = @LastLoginAt WHERE ""Id"" = @Id",
-            new { Id = userId, LastLoginAt = lastLoginAt });
+            new { Id = id, LastLoginAt = lastLoginAt });
     }
 
     public async Task<UserInfo?> GetByEmailAsync(string email)
@@ -123,27 +123,27 @@ public class DapperAuthRepository : IAuthRepository
             new { Token = token });
     }
 
-    public async Task UpdateFailedLoginAsync(string userId, int attempts, DateTime? lockoutEnd)
+    public async Task UpdateFailedLoginAsync(Guid id, int attempts, DateTime? lockoutEnd)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""FailedLoginAttempts"" = @Attempts, ""LockoutEndAt"" = @LockoutEnd
               WHERE ""Id"" = @Id",
-            new { Id = userId, Attempts = attempts, LockoutEnd = lockoutEnd });
+            new { Id = id, Attempts = attempts, LockoutEnd = lockoutEnd });
     }
 
-    public async Task ResetFailedLoginAsync(string userId)
+    public async Task ResetFailedLoginAsync(Guid id)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""FailedLoginAttempts"" = 0, ""LockoutEndAt"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = userId });
+            new { Id = id });
     }
 
-    public async Task UpdateEmailVerificationAsync(string userId, bool isVerified)
+    public async Task UpdateEmailVerificationAsync(Guid id, bool isVerified)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
@@ -152,10 +152,10 @@ public class DapperAuthRepository : IAuthRepository
                   ""EmailVerificationToken"" = NULL,
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = userId, IsVerified = isVerified });
+            new { Id = id, IsVerified = isVerified });
     }
 
-    public async Task UpdatePasswordResetTokenAsync(string userId, string? token, DateTime? expiry)
+    public async Task UpdatePasswordResetTokenAsync(Guid id, string? token, DateTime? expiry)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
@@ -163,10 +163,10 @@ public class DapperAuthRepository : IAuthRepository
               SET ""PasswordResetToken"" = @Token,
                   ""PasswordResetExpiry"" = @Expiry
               WHERE ""Id"" = @Id",
-            new { Id = userId, Token = token, Expiry = expiry });
+            new { Id = id, Token = token, Expiry = expiry });
     }
 
-    public async Task UpdatePasswordHashAsync(string userId, string passwordHash)
+    public async Task UpdatePasswordHashAsync(Guid id, string passwordHash)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
@@ -175,10 +175,10 @@ public class DapperAuthRepository : IAuthRepository
                   ""PasswordResetToken"" = NULL,
                   ""PasswordResetExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = userId, PasswordHash = passwordHash });
+            new { Id = id, PasswordHash = passwordHash });
     }
 
-    public async Task LinkEmailAsync(string userId, string email, string passwordHash, string displayName,
+    public async Task LinkEmailAsync(Guid id, string email, string passwordHash, string displayName,
         string? emailVerificationToken, DateTime? emailVerificationExpiry)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -194,7 +194,7 @@ public class DapperAuthRepository : IAuthRepository
               WHERE ""Id"" = @Id",
             new
             {
-                Id = userId,
+                Id = id,
                 Email = email,
                 PasswordHash = passwordHash,
                 DisplayName = displayName,
@@ -203,7 +203,7 @@ public class DapperAuthRepository : IAuthRepository
             });
     }
 
-    public async Task UnlinkEmailAsync(string userId, string deviceFingerprint)
+    public async Task UnlinkEmailAsync(Guid id, string deviceFingerprint)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
@@ -216,6 +216,6 @@ public class DapperAuthRepository : IAuthRepository
                   ""EmailVerificationToken"" = NULL,
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = userId, DeviceFingerprint = deviceFingerprint });
+            new { Id = id, DeviceFingerprint = deviceFingerprint });
     }
 }

@@ -30,7 +30,7 @@ public class DapperScoreRepository : IScoreRepository
     }
 
     public async Task<List<UserScore>> GetUserScoresAsync(
-        string userId, string? gameMode, int? stageId, int limit)
+        Guid userId, string? gameMode, int? stageId, int limit)
     {
         using var connection = _connectionFactory.CreateConnection();
 

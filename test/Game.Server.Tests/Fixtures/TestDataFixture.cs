@@ -9,6 +9,13 @@ namespace Game.Server.Tests.Fixtures;
 
 public static class TestDataFixture
 {
+    // Fixed Guids for test data
+    public static readonly Guid User1Id = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    public static readonly Guid User2Id = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    public static readonly Guid User3Id = Guid.Parse("00000000-0000-0000-0000-000000000003");
+    public static readonly Guid GuestUserId = Guid.Parse("00000000-0000-0000-0000-000000000004");
+    public static readonly Guid EmailUserId = Guid.Parse("00000000-0000-0000-0000-000000000005");
+
     public static readonly JwtSettings TestJwtSettings = new()
     {
         Secret = "test-secret-key-must-be-at-least-32-characters-long!",
@@ -50,7 +57,8 @@ public static class TestDataFixture
         {
             new UserInfo
             {
-                Id = "user-1",
+                Id = User1Id,
+                UserId = "testuser01",
                 DisplayName = "Player1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
                 Level = 5,
@@ -58,7 +66,8 @@ public static class TestDataFixture
             },
             new UserInfo
             {
-                Id = "user-2",
+                Id = User2Id,
+                UserId = "testuser02",
                 DisplayName = "Player2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password2!"),
                 Level = 3,
@@ -66,7 +75,8 @@ public static class TestDataFixture
             },
             new UserInfo
             {
-                Id = "user-3",
+                Id = User3Id,
+                UserId = "testuser03",
                 DisplayName = "Player3",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password3!"),
                 Level = 1,
@@ -78,12 +88,12 @@ public static class TestDataFixture
         {
             await connection.ExecuteAsync(
                 @"INSERT INTO ""User"".""UserInfo""
-                  (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+                  (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                    ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                    ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                    ""PasswordResetToken"", ""PasswordResetExpiry"",
                    ""FailedLoginAttempts"", ""LockoutEndAt"")
-                  VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+                  VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                           @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                           @EmailVerificationToken, @EmailVerificationExpiry,
                           @PasswordResetToken, @PasswordResetExpiry,
@@ -94,7 +104,8 @@ public static class TestDataFixture
         // Guest user for account linking tests
         var guestUser = new UserInfo
         {
-            Id = "guest-user-1",
+            Id = GuestUserId,
+            UserId = "guestuser01",
             DisplayName = "Guest_12345678",
             PasswordHash = null,
             Level = 1,
@@ -103,12 +114,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -118,7 +129,8 @@ public static class TestDataFixture
         // Email user for unlink tests
         var emailUser = new UserInfo
         {
-            Id = "email-user-1",
+            Id = EmailUserId,
+            UserId = "emailuser01",
             DisplayName = "EmailPlayer",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
             Level = 2,
@@ -128,12 +140,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @DisplayName, @PasswordHash, @Level, @CreatedAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -142,10 +154,10 @@ public static class TestDataFixture
 
         var scores = new[]
         {
-            new UserScore { UserId = "user-1", GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f, WaveReached = 10, EnemiesDefeated = 50 },
-            new UserScore { UserId = "user-2", GameMode = "Survivor", StageId = 1, Score = 8000, ClearTime = 90f, WaveReached = 15, EnemiesDefeated = 80 },
-            new UserScore { UserId = "user-3", GameMode = "Survivor", StageId = 1, Score = 3000, ClearTime = 60f, WaveReached = 5, EnemiesDefeated = 20 },
-            new UserScore { UserId = "user-1", GameMode = "ScoreTimeAttack", StageId = 1, Score = 12000, ClearTime = 45f, EnemiesDefeated = 100 },
+            new UserScore { UserId = User1Id, GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f, WaveReached = 10, EnemiesDefeated = 50 },
+            new UserScore { UserId = User2Id, GameMode = "Survivor", StageId = 1, Score = 8000, ClearTime = 90f, WaveReached = 15, EnemiesDefeated = 80 },
+            new UserScore { UserId = User3Id, GameMode = "Survivor", StageId = 1, Score = 3000, ClearTime = 60f, WaveReached = 5, EnemiesDefeated = 20 },
+            new UserScore { UserId = User1Id, GameMode = "ScoreTimeAttack", StageId = 1, Score = 12000, ClearTime = 45f, EnemiesDefeated = 100 },
         };
 
         foreach (var score in scores)
