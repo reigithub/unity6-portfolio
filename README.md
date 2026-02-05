@@ -8,7 +8,7 @@ Unity 6 を使用したゲーム開発ポートフォリオプロジェクト（
 Unity6Portfolio/
 ├── src/
 │   ├── Game.Client/        # Unity クライアント (Unity 6)
-│   ├── Game.Server/        # ゲームサーバー (ASP.NET Core 8)
+│   ├── Game.Server/        # ゲームサーバー (ASP.NET Core 9)
 │   └── Game.Shared/        # 共有ライブラリ (.NET + Unity Package)
 └── test/
     └── Game.Server.Tests/  # サーバーテスト
@@ -37,7 +37,7 @@ Unity6Portfolio/
 | 項目 | バージョン |
 |-----|-----------|
 | Unity | 6000.3.2f1 以上 |
-| .NET SDK | 8.0 以上 |
+| .NET SDK | 9.0 以上 |
 | OS | Windows 10/11 |
 
 ### セットアップ手順
@@ -326,18 +326,32 @@ Unity6Portfolio/
 │   │   ├── ProjectSettings/
 │   │   └── Documentation/              スクリーンショット、GIF
 │   │
-│   ├── Game.Server/                    # ASP.NET Core サーバー
+│   ├── Game.Client.Linked/             # MasterDataブリッジ(.NET SDK形式)
+│   │
+│   ├── Game.Server/                    # ASP.NET Core 9 サーバー
 │   │   ├── Controllers/
 │   │   ├── Services/
 │   │   └── Program.cs
 │   │
-│   └── Game.Shared/                    # 共有ライブラリ
-│       ├── Game.Shared.csproj          .NET プロジェクト
-│       ├── package.json                Unity パッケージ定義
-│       └── Runtime/
-│           └── Shared/
-│               ├── Enums/              AudioCategory等
-│               └── MasterData/         マスターデータ定義
+│   ├── Game.Shared/                    # 共有ライブラリ
+│   │   ├── Game.Shared.csproj          .NET プロジェクト
+│   │   ├── package.json                Unity パッケージ定義
+│   │   └── Runtime/
+│   │       └── Shared/
+│   │           ├── Enums/              AudioCategory等
+│   │           └── MasterData/         マスターデータ定義
+│   │
+│   └── Game.Tools/                     # CLIツール(.NET 9)
+│
+├── masterdata/                         # Protobufスキーマ + TSVデータ
+│
+├── docker/                             # Docker構成
+│   ├── unity-ci/                       # Unity CI Runner
+│   └── game-server/                    # Game.Server用
+│
+├── docs/                               # 技術ドキュメント
+│
+├── scripts/                            # ビルド・フォーマットスクリプト
 │
 └── test/
     └── Game.Server.Tests/              # サーバーテスト
@@ -388,7 +402,7 @@ Unity6Portfolio/
 | 言語・フレームワーク等   | バージョン   |
 |----------------------|------------|
 | Unity                | 6000.3.2f1 |
-| .NET SDK             | 8.0        |
+| .NET SDK             | 9.0        |
 | C#                   | 9.0        |
 | cysharp/MessagePipe  | 1.8.1      |
 | cysharp/R3           | 1.3.0      |
@@ -396,7 +410,7 @@ Unity6Portfolio/
 | cysharp/MasterMemory | 3.0.4      |
 | cysharp/MessagePack  | 3.1.3      |
 | cysharp/MemoryPack   | 1.21.3     |
-| hadashiA/VContainer  | 1.16.8     |
+| hadashiA/VContainer  | 1.17.0     |
 | NSubstitute          | 5.3.0      |
 | xUnit                | 2.x        |
 | DOTween              | 1.2.790    |
