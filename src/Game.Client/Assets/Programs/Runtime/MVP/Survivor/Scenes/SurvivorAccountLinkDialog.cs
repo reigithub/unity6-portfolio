@@ -21,6 +21,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IInputService _inputService;
 
         private bool _hasValidSession;
+        private bool _hasTransferPassword;
+        private string _currentUserId;
 
         public static UniTask RunAsync(IGameSceneService sceneService)
         {
@@ -56,7 +58,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             SceneComponent.OnSubmitLinkClicked
-                .Subscribe(x => OnSubmitLink(x.email, x.password).Forget())
+                .Subscribe(x => OnSubmitLink(x.email, x.password, x.confirmPassword).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnUnlinkClicked
@@ -85,6 +87,18 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.OnResetPasswordSubmitted
                 .Subscribe(x => OnResetPassword(x.token, x.newPassword).Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnIssueTransferPasswordClicked
+                .Subscribe(_ => OnIssueTransferPassword().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnTransferPasswordDoneClicked
+                .Subscribe(_ => OnBackToStatus().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnReissueTransferPasswordClicked
+                .Subscribe(_ => OnReissueTransferPassword().Forget())
                 .AddTo(Disposables);
 
         }
@@ -127,14 +141,24 @@ namespace Game.MVP.Survivor.Scenes
                 var profile = profileResult.Data;
                 var isGuest = string.IsNullOrEmpty(profile.authType) ||
                               profile.authType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email, _sessionService.FormatUserId());
+
+                // Transfer password状態を保存
+                _hasTransferPassword = profile.hasTransferPassword;
+                _currentUserId = profile.userId;
+
+                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email,
+                    _sessionService.FormatUserId(), _hasValidSession);
             }
             else
             {
                 // フォールバック: セッション情報のみで表示
                 var isGuest = _sessionService.AuthType == null ||
                               _sessionService.AuthType.ToLower() == "guest";
-                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null, _sessionService.FormatUserId());
+                _hasTransferPassword = false;
+                _currentUserId = _sessionService.UserId;
+
+                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null,
+                    _sessionService.FormatUserId(), _hasValidSession);
             }
         }
 
@@ -161,13 +185,20 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnSubmitLink(string email, string password)
+        private async UniTaskVoid OnSubmitLink(string email, string password, string confirmPassword)
         {
             // Basic client-side validation
             if (string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(password))
+                string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(confirmPassword))
             {
                 SceneComponent.ShowError("All fields are required.");
+                return;
+            }
+
+            if (password != confirmPassword)
+            {
+                SceneComponent.ShowError("Passwords do not match.");
                 return;
             }
 
@@ -339,6 +370,91 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.ShowUserIdLoginView();
                 SceneComponent.ShowError(response.Error?.Message ?? "Login failed.");
             }
+        }
+
+        private async UniTaskVoid OnIssueTransferPassword()
+        {
+            // 発行済みの場合は表示のみ（新規発行しない）
+            if (_hasTransferPassword)
+            {
+                var formattedUserId = FormatUserId(_currentUserId);
+                // ローカルに保存されたパスワードを取得
+                var localPassword = _sessionService.GetTransferPassword();
+                SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
+                return;
+            }
+
+            // 未発行の場合は新規発行
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.IssueTransferPasswordAsync();
+
+            if (response.IsSuccess)
+            {
+                _hasTransferPassword = true;
+                // パスワードをローカルに保存
+                await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+
+                var formattedUserId = FormatUserId(response.Data.userId);
+                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
+                SceneComponent.ShowSuccess("Transfer password issued! Save it now.");
+            }
+            else
+            {
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowError(response.Error?.Message ?? "Failed to issue transfer password.");
+            }
+        }
+
+        private async UniTaskVoid OnReissueTransferPassword()
+        {
+            // 確認ダイアログを表示
+            var options = new SurvivorConfirmDialogOptions
+            {
+                Title = "REISSUE PASSWORD",
+                Message = "Are you sure you want to reissue?\nThe previous password will be invalidated.",
+                ConfirmButtonText = "REISSUE",
+                CancelButtonText = "CANCEL"
+            };
+
+            var confirmed = await SurvivorConfirmDialog.RunAsync(_sceneService, options);
+
+            if (!confirmed)
+            {
+                // キャンセル → 発行済み表示画面に戻る
+                var formattedUserId = FormatUserId(_currentUserId);
+                var localPassword = _sessionService.GetTransferPassword();
+                SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
+                return;
+            }
+
+            // 再発行
+            SceneComponent.ShowLoading();
+
+            var response = await _authApiService.IssueTransferPasswordAsync();
+
+            if (response.IsSuccess)
+            {
+                // パスワードをローカルに保存（上書き）
+                await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+
+                var formattedUserId = FormatUserId(response.Data.userId);
+                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
+                SceneComponent.ShowSuccess("Transfer password reissued! Save it now.");
+            }
+            else
+            {
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowError(response.Error?.Message ?? "Failed to reissue transfer password.");
+            }
+        }
+
+        private static string FormatUserId(string userId)
+        {
+            if (string.IsNullOrEmpty(userId) || userId.Length != 12)
+                return userId ?? "-";
+
+            return $"{userId.Substring(0, 4)} {userId.Substring(4, 4)} {userId.Substring(8, 4)}";
         }
 
     }

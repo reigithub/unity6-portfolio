@@ -170,4 +170,117 @@ public class ApiIntegrationTests : IAsyncLifetime
         var data = await response.Content.ReadFromJsonAsync<LoginResponse>();
         return data!.Token;
     }
+
+    [Fact]
+    public async Task IssueTransferPassword_And_Login_Flow()
+    {
+        // 1. Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "transfer-test-device-" + Guid.NewGuid().ToString("N")
+        });
+        Assert.Equal(HttpStatusCode.Created, guestResponse.StatusCode);
+
+        var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(guestData?.Token);
+
+        // 2. Issue transfer password
+        using var authClient = _factory.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", guestData.Token);
+
+        var issueResponse = await authClient.PostAsync("/api/auth/transfer-password", null);
+        Assert.Equal(HttpStatusCode.OK, issueResponse.StatusCode);
+
+        var transferData = await issueResponse.Content.ReadFromJsonAsync<TransferPasswordResponse>();
+        Assert.NotNull(transferData);
+        Assert.NotEmpty(transferData.TransferPassword);
+        Assert.Equal(12, transferData.TransferPassword.Length);
+        Assert.Equal(guestData.UserId, transferData.UserId);
+
+        // 3. Login with transfer password from another "device"
+        using var newClient = _factory.CreateClient();
+        var loginResponse = await newClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            UserId = transferData.UserId,
+            Password = transferData.TransferPassword
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var loginData = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(loginData);
+        Assert.Equal(transferData.UserId, loginData.UserId);
+        Assert.NotEmpty(loginData.Token);
+    }
+
+    [Fact]
+    public async Task IssueTransferPassword_EmailUser_ReturnsBadRequest()
+    {
+        // 1. Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "transfer-email-test-" + Guid.NewGuid().ToString("N")
+        });
+        Assert.Equal(HttpStatusCode.Created, guestResponse.StatusCode);
+
+        var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        // 2. Link to email
+        using var authClient = _factory.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", guestData!.Token);
+
+        var linkResponse = await authClient.PostAsJsonAsync("/api/auth/link/email", new
+        {
+            Email = $"transfer-block-{Guid.NewGuid():N}@example.com",
+            Password = "LinkPassword123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, linkResponse.StatusCode);
+
+        var linkData = await linkResponse.Content.ReadFromJsonAsync<AccountLinkResponse>();
+
+        // 3. Try to issue transfer password (should fail for email users)
+        using var linkedClient = _factory.CreateClient();
+        linkedClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", linkData!.Token);
+
+        var issueResponse = await linkedClient.PostAsync("/api/auth/transfer-password", null);
+        Assert.Equal(HttpStatusCode.BadRequest, issueResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UserIdLogin_NonGuestUser_ReturnsBadRequest()
+    {
+        // 1. Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "userid-login-test-" + Guid.NewGuid().ToString("N")
+        });
+        Assert.Equal(HttpStatusCode.Created, guestResponse.StatusCode);
+
+        var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        // 2. Link to email
+        using var authClient = _factory.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", guestData!.Token);
+
+        var linkResponse = await authClient.PostAsJsonAsync("/api/auth/link/email", new
+        {
+            Email = $"userid-block-{Guid.NewGuid():N}@example.com",
+            Password = "LinkPassword123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, linkResponse.StatusCode);
+
+        var linkData = await linkResponse.Content.ReadFromJsonAsync<AccountLinkResponse>();
+
+        // 3. Try to login with User ID (should fail for email users)
+        using var newClient = _factory.CreateClient();
+        var loginResponse = await newClient.PostAsJsonAsync("/api/auth/login", new
+        {
+            UserId = linkData!.UserId,
+            Password = "LinkPassword123!"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, loginResponse.StatusCode);
+    }
 }

@@ -40,6 +40,7 @@
 
                     <ui:VisualElement class="action-buttons">
                         <ui:Button text="LINK TO EMAIL" name="link-email-button" class="action-button action-button--primary" />
+                        <ui:Button text="ISSUE TRANSFER PASSWORD" name="issue-transfer-password-button" class="action-button" />
                         <ui:Button text="LOGIN WITH USER ID" name="userid-login-button" class="action-button" />
                         <ui:Button text="UNLINK EMAIL" name="unlink-email-button" class="action-button action-button--danger" />
                     </ui:VisualElement>
@@ -57,6 +58,11 @@
                     <ui:VisualElement class="form-group">
                         <ui:Label text="Password" class="form-label" />
                         <ui:TextField name="form-password" password="true" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Confirm Password" class="form-label" />
+                        <ui:TextField name="form-confirm-password" password="true" class="form-input" />
                         <ui:Button text="Forgot password?" name="link-forgot-password-button" class="text-link-button text-link-button--inline" />
                     </ui:VisualElement>
 
@@ -119,6 +125,30 @@
                     <ui:VisualElement class="form-buttons">
                         <ui:Button text="RESET PASSWORD" name="reset-submit-button" class="action-button action-button--primary" />
                         <ui:Button text="BACK TO LOGIN" name="reset-back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Transfer Password View -->
+                <ui:VisualElement name="transfer-password-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Transfer Password" name="transfer-title" class="section-title" />
+                    <ui:Label text="Save this password! It will only be shown once." name="transfer-warning" class="warning-text" />
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="User ID" class="status-label" />
+                        <ui:Label text="-" name="transfer-user-id" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="transfer-password-row" class="status-row">
+                        <ui:Label text="Password" class="status-label" />
+                        <ui:Label text="-" name="transfer-password" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:Label text="A transfer password has been issued for this account." name="transfer-issued-message" class="info-text" />
+                    <ui:Label text="Password not available on this device. Please reissue if needed." name="transfer-unavailable-message" class="warning-text" />
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="REISSUE PASSWORD" name="reissue-transfer-password-button" class="action-button action-button--danger" />
+                        <ui:Button text="DONE" name="transfer-password-done-button" class="action-button action-button--primary" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 

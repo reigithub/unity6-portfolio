@@ -136,6 +136,12 @@ namespace Game.Shared.Services
             return await _apiClient.GetAsync<UserProfileResponse>("api/users/me");
         }
 
+        public async UniTask<ApiResponse<TransferPasswordResponse>> IssueTransferPasswordAsync()
+        {
+            return await _apiClient.PostAsync<EmptyRequest, TransferPasswordResponse>(
+                "api/auth/transfer-password", new EmptyRequest());
+        }
+
         private async UniTask OnLoginSuccessAsync(LoginResponse data, string authType)
         {
             await _sessionService.SaveSessionAsync(data, authType);

@@ -18,5 +18,6 @@ namespace Game.Shared.Services
         UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(string email, string password);
         UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync();
         UniTask<ApiResponse<UserProfileResponse>> GetMyProfileAsync();
+        UniTask<ApiResponse<TransferPasswordResponse>> IssueTransferPasswordAsync();
     }
 }

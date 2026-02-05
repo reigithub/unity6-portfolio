@@ -22,4 +22,6 @@ public interface IAuthService
     Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(Guid id, LinkEmailRequest request);
 
     Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(Guid id, string deviceFingerprint);
+
+    Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(Guid id);
 }

@@ -13,6 +13,7 @@ public class _2026020100010001_CreateUserSchema : FluentMigrator.Migration
             .WithColumn("UserId").AsString(36).NotNullable().Unique()
             .WithColumn("UserName").AsString(50).NotNullable()
             .WithColumn("PasswordHash").AsString(255).Nullable()
+            .WithColumn("TransferPasswordHash").AsString(255).Nullable()
             .WithColumn("Level").AsInt32().NotNullable().WithDefaultValue(1)
             .WithColumn("RegisteredAt").AsCustom("timestamptz").NotNullable()
             .WithColumn("LastLoginAt").AsCustom("timestamptz").NotNullable()

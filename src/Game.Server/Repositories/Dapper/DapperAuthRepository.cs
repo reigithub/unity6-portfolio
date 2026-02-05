@@ -8,7 +8,7 @@ namespace Game.Server.Repositories.Dapper;
 public class DapperAuthRepository : IAuthRepository
 {
     private const string SelectColumns =
-        @"""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+        @"""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
           ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
           ""EmailVerificationToken"", ""EmailVerificationExpiry"",
           ""PasswordResetToken"", ""PasswordResetExpiry"",
@@ -225,5 +225,15 @@ public class DapperAuthRepository : IAuthRepository
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
             new { Id = id, DeviceFingerprint = deviceFingerprint });
+    }
+
+    public async Task UpdateTransferPasswordHashAsync(Guid id, string? transferPasswordHash)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(
+            @"UPDATE ""User"".""UserInfo""
+              SET ""TransferPasswordHash"" = @TransferPasswordHash
+              WHERE ""Id"" = @Id",
+            new { Id = id, TransferPasswordHash = transferPasswordHash });
     }
 }

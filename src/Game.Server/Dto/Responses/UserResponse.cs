@@ -13,4 +13,6 @@ public class UserResponse
     public string AuthType { get; set; } = string.Empty;
 
     public string? Email { get; set; }
+
+    public bool HasTransferPassword { get; set; }
 }

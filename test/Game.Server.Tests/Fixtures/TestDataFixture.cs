@@ -15,6 +15,7 @@ public static class TestDataFixture
     public static readonly Guid User3Id = Guid.Parse("00000000-0000-0000-0000-000000000003");
     public static readonly Guid GuestUserId = Guid.Parse("00000000-0000-0000-0000-000000000004");
     public static readonly Guid EmailUserId = Guid.Parse("00000000-0000-0000-0000-000000000005");
+    public static readonly Guid GuestWithTransferPasswordId = Guid.Parse("00000000-0000-0000-0000-000000000006");
 
     public static readonly JwtSettings TestJwtSettings = new()
     {
@@ -88,12 +89,12 @@ public static class TestDataFixture
         {
             await connection.ExecuteAsync(
                 @"INSERT INTO ""User"".""UserInfo""
-                  (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                  (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                    ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                    ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                    ""PasswordResetToken"", ""PasswordResetExpiry"",
                    ""FailedLoginAttempts"", ""LockoutEndAt"")
-                  VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+                  VALUES (@Id, @UserId, @UserName, @PasswordHash, @TransferPasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                           @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                           @EmailVerificationToken, @EmailVerificationExpiry,
                           @PasswordResetToken, @PasswordResetExpiry,
@@ -114,12 +115,12 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @TransferPasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
@@ -140,17 +141,43 @@ public static class TestDataFixture
         };
         await connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
-              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
                ""EmailVerificationToken"", ""EmailVerificationExpiry"",
                ""PasswordResetToken"", ""PasswordResetExpiry"",
                ""FailedLoginAttempts"", ""LockoutEndAt"")
-              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @TransferPasswordHash, @Level, @RegisteredAt, @LastLoginAt,
                       @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
                       @FailedLoginAttempts, @LockoutEndAt)",
             emailUser);
+
+        // Guest user with transfer password for LoginAsync tests
+        var guestWithTransferPassword = new UserInfo
+        {
+            Id = GuestWithTransferPasswordId,
+            UserId = "000000000006",
+            UserName = "Guest_TransferPW",
+            PasswordHash = null,
+            TransferPasswordHash = BCrypt.Net.BCrypt.HashPassword("TransferPW1!"),
+            Level = 1,
+            AuthType = "Guest",
+            DeviceFingerprint = "test-device-fingerprint-transfer-user",
+        };
+        await connection.ExecuteAsync(
+            @"INSERT INTO ""User"".""UserInfo""
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+               ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+               ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+               ""PasswordResetToken"", ""PasswordResetExpiry"",
+               ""FailedLoginAttempts"", ""LockoutEndAt"")
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @TransferPasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+                      @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                      @EmailVerificationToken, @EmailVerificationExpiry,
+                      @PasswordResetToken, @PasswordResetExpiry,
+                      @FailedLoginAttempts, @LockoutEndAt)",
+            guestWithTransferPassword);
 
         var scores = new[]
         {

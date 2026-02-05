@@ -30,6 +30,7 @@ public class UserService : IUserService
             RegisteredAt = new DateTimeOffset(user.RegisteredAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,
             Email = user.Email,
+            HasTransferPassword = !string.IsNullOrEmpty(user.TransferPasswordHash),
         };
     }
 
@@ -63,6 +64,7 @@ public class UserService : IUserService
             RegisteredAt = new DateTimeOffset(user.RegisteredAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
             AuthType = user.AuthType,
             Email = user.Email,
+            HasTransferPassword = !string.IsNullOrEmpty(user.TransferPasswordHash),
         };
     }
 }

@@ -12,6 +12,8 @@ public class UserInfo
 
     public string? PasswordHash { get; set; } = string.Empty;
 
+    public string? TransferPasswordHash { get; set; }
+
     public int Level { get; set; } = 1;
 
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;

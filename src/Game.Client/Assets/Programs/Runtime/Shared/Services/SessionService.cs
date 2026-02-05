@@ -76,6 +76,27 @@ namespace Game.Shared.Services
             return $"{UserId.Substring(0, 4)} {UserId.Substring(4, 4)} {UserId.Substring(8)}";
         }
 
+        public async UniTask SaveTransferPasswordAsync(string password)
+        {
+            _data ??= new SessionSaveData();
+            _data.TransferPassword = password;
+            await _storage.SaveAsync(SaveKey, _data);
+        }
+
+        public string GetTransferPassword()
+        {
+            return _data?.TransferPassword;
+        }
+
+        public async UniTask ClearTransferPasswordAsync()
+        {
+            if (_data != null)
+            {
+                _data.TransferPassword = null;
+                await _storage.SaveAsync(SaveKey, _data);
+            }
+        }
+
         private static string GenerateDeviceFingerprint()
         {
             // SystemInfo + GUID で一意なフィンガープリントを生成

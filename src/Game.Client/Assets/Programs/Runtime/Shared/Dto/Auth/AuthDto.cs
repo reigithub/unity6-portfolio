@@ -78,11 +78,19 @@ namespace Game.Shared.Dto.Auth
         public long registeredAt;
         public string authType;
         public string email;
+        public bool hasTransferPassword;
     }
 
     [Serializable]
     public class MessageResponse
     {
         public string message;
+    }
+
+    [Serializable]
+    public class TransferPasswordResponse
+    {
+        public string transferPassword;
+        public string userId;
     }
 }

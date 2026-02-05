@@ -145,4 +145,22 @@ public class AuthController : ControllerBase
             success => Ok(success),
             error => error.ToActionResult());
     }
+
+    [HttpPost("transfer-password")]
+    [Authorize]
+    [ProducesResponseType(typeof(TransferPasswordResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> IssueTransferPassword()
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authService.IssueTransferPasswordAsync(userId);
+
+        return result.Match(
+            success => Ok(success),
+            error => error.ToActionResult());
+    }
 }

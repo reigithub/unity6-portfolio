@@ -40,4 +40,6 @@ public interface IAuthRepository
         string? emailVerificationToken, DateTime? emailVerificationExpiry);
 
     Task UnlinkEmailAsync(Guid id, string deviceFingerprint);
+
+    Task UpdateTransferPasswordHashAsync(Guid id, string? transferPasswordHash);
 }

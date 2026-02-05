@@ -42,13 +42,22 @@ public class AuthService : IAuthService
             return new ApiError("Invalid credentials", "INVALID_CREDENTIALS", StatusCodes.Status401Unauthorized);
         }
 
+        // User ID login is only available for guest accounts (transfer password)
+        if (user.AuthType != "Guest")
+        {
+            return new ApiError("User ID login is only available for guest accounts. Please use email login.",
+                "NOT_GUEST", StatusCodes.Status400BadRequest);
+        }
+
         // Check lockout
         if (user.LockoutEndAt.HasValue && user.LockoutEndAt.Value > DateTime.UtcNow)
         {
             return new ApiError("Account is locked due to too many failed login attempts", "ACCOUNT_LOCKED", 423);
         }
 
-        if (user.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Verify against TransferPasswordHash (not PasswordHash)
+        if (user.TransferPasswordHash == null ||
+            !BCrypt.Net.BCrypt.Verify(request.Password, user.TransferPasswordHash))
         {
             int newAttempts = user.FailedLoginAttempts + 1;
             DateTime? lockoutEnd = null;
@@ -70,6 +79,9 @@ public class AuthService : IAuthService
         }
 
         await _authRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
+
+        // Clear transfer password after successful login (one-time use)
+        await _authRepository.UpdateTransferPasswordHashAsync(user.Id, null);
 
         string token = GenerateJwtToken(user);
         return new LoginResponse
@@ -359,5 +371,41 @@ public class AuthService : IAuthService
     {
         var bytes = RandomNumberGenerator.GetBytes(32);
         return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+    }
+
+    public async Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(Guid id)
+    {
+        var user = await _authRepository.GetByIdAsync(id);
+
+        if (user == null)
+        {
+            return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
+        }
+
+        if (user.AuthType != "Guest")
+        {
+            return new ApiError("Only guest accounts can issue transfer passwords. Please unlink your email first.",
+                "NOT_GUEST", StatusCodes.Status400BadRequest);
+        }
+
+        var transferPassword = GenerateTransferPassword();
+        var hash = BCrypt.Net.BCrypt.HashPassword(transferPassword);
+        await _authRepository.UpdateTransferPasswordHashAsync(id, hash);
+
+        return new TransferPasswordResponse
+        {
+            TransferPassword = transferPassword,
+            UserId = user.UserId
+        };
+    }
+
+    private static string GenerateTransferPassword()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // I,O,0,1 excluded
+        var random = RandomNumberGenerator.GetBytes(12);
+        var result = new char[12];
+        for (int i = 0; i < 12; i++)
+            result[i] = chars[random[i] % chars.Length];
+        return new string(result);
     }
 }

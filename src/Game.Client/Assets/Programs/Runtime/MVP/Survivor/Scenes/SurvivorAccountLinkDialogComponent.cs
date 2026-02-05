@@ -15,7 +15,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private readonly Subject<Unit> _onCloseClicked = new();
         private readonly Subject<Unit> _onLinkEmailClicked = new();
-        private readonly Subject<(string email, string password)> _onSubmitLinkClicked = new();
+        private readonly Subject<(string email, string password, string confirmPassword)> _onSubmitLinkClicked = new();
         private readonly Subject<Unit> _onUnlinkClicked = new();
         private readonly Subject<Unit> _onBackToStatusClicked = new();
         private readonly Subject<Unit> _onUserIdLoginClicked = new();
@@ -23,10 +23,13 @@ namespace Game.MVP.Survivor.Scenes
         private readonly Subject<Unit> _onForgotPasswordClicked = new();
         private readonly Subject<string> _onForgotPasswordSubmitted = new();
         private readonly Subject<(string token, string newPassword)> _onResetPasswordSubmitted = new();
+        private readonly Subject<Unit> _onIssueTransferPasswordClicked = new();
+        private readonly Subject<Unit> _onTransferPasswordDoneClicked = new();
+        private readonly Subject<Unit> _onReissueTransferPasswordClicked = new();
 
         public Observable<Unit> OnCloseClicked => _onCloseClicked;
         public Observable<Unit> OnLinkEmailClicked => _onLinkEmailClicked;
-        public Observable<(string email, string password)> OnSubmitLinkClicked => _onSubmitLinkClicked;
+        public Observable<(string email, string password, string confirmPassword)> OnSubmitLinkClicked => _onSubmitLinkClicked;
         public Observable<Unit> OnUnlinkClicked => _onUnlinkClicked;
         public Observable<Unit> OnBackToStatusClicked => _onBackToStatusClicked;
         public Observable<Unit> OnUserIdLoginClicked => _onUserIdLoginClicked;
@@ -34,6 +37,9 @@ namespace Game.MVP.Survivor.Scenes
         public Observable<Unit> OnForgotPasswordClicked => _onForgotPasswordClicked;
         public Observable<string> OnForgotPasswordSubmitted => _onForgotPasswordSubmitted;
         public Observable<(string token, string newPassword)> OnResetPasswordSubmitted => _onResetPasswordSubmitted;
+        public Observable<Unit> OnIssueTransferPasswordClicked => _onIssueTransferPasswordClicked;
+        public Observable<Unit> OnTransferPasswordDoneClicked => _onTransferPasswordDoneClicked;
+        public Observable<Unit> OnReissueTransferPasswordClicked => _onReissueTransferPasswordClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -47,6 +53,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _statusEmailRow;
         private Label _statusEmail;
         private Button _linkEmailButton;
+        private Button _issueTransferPasswordButton;
         private Button _userIdLoginButton;
         private Button _unlinkEmailButton;
 
@@ -54,6 +61,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _linkFormView;
         private TextField _formEmail;
         private TextField _formPassword;
+        private TextField _formConfirmPassword;
         private Button _submitLinkButton;
         private Button _backButton;
         private Button _linkForgotPasswordButton;
@@ -82,6 +90,18 @@ namespace Game.MVP.Survivor.Scenes
         // Loading View
         private VisualElement _loadingView;
 
+        // Transfer Password View
+        private VisualElement _transferPasswordView;
+        private Label _transferTitle;
+        private Label _transferWarning;
+        private Label _transferUserId;
+        private VisualElement _transferPasswordRow;
+        private Label _transferPassword;
+        private Label _transferIssuedMessage;
+        private Label _transferUnavailableMessage;
+        private Button _reissueTransferPasswordButton;
+        private Button _transferPasswordDoneButton;
+
         // Message
         private Label _messageLabel;
 
@@ -97,6 +117,9 @@ namespace Game.MVP.Survivor.Scenes
             _onForgotPasswordClicked.Dispose();
             _onForgotPasswordSubmitted.Dispose();
             _onResetPasswordSubmitted.Dispose();
+            _onIssueTransferPasswordClicked.Dispose();
+            _onTransferPasswordDoneClicked.Dispose();
+            _onReissueTransferPasswordClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -119,6 +142,7 @@ namespace Game.MVP.Survivor.Scenes
             _statusEmailRow = _root.Q<VisualElement>("status-email-row");
             _statusEmail = _root.Q<Label>("status-email");
             _linkEmailButton = _root.Q<Button>("link-email-button");
+            _issueTransferPasswordButton = _root.Q<Button>("issue-transfer-password-button");
             _userIdLoginButton = _root.Q<Button>("userid-login-button");
             _unlinkEmailButton = _root.Q<Button>("unlink-email-button");
 
@@ -126,6 +150,7 @@ namespace Game.MVP.Survivor.Scenes
             _linkFormView = _root.Q<VisualElement>("link-form-view");
             _formEmail = _root.Q<TextField>("form-email");
             _formPassword = _root.Q<TextField>("form-password");
+            _formConfirmPassword = _root.Q<TextField>("form-confirm-password");
             _submitLinkButton = _root.Q<Button>("submit-link-button");
             _backButton = _root.Q<Button>("back-button");
             _linkForgotPasswordButton = _root.Q<Button>("link-forgot-password-button");
@@ -154,6 +179,18 @@ namespace Game.MVP.Survivor.Scenes
             // Loading View
             _loadingView = _root.Q<VisualElement>("loading-view");
 
+            // Transfer Password View
+            _transferPasswordView = _root.Q<VisualElement>("transfer-password-view");
+            _transferTitle = _root.Q<Label>("transfer-title");
+            _transferWarning = _root.Q<Label>("transfer-warning");
+            _transferUserId = _root.Q<Label>("transfer-user-id");
+            _transferPasswordRow = _root.Q<VisualElement>("transfer-password-row");
+            _transferPassword = _root.Q<Label>("transfer-password");
+            _transferIssuedMessage = _root.Q<Label>("transfer-issued-message");
+            _transferUnavailableMessage = _root.Q<Label>("transfer-unavailable-message");
+            _reissueTransferPasswordButton = _root.Q<Button>("reissue-transfer-password-button");
+            _transferPasswordDoneButton = _root.Q<Button>("transfer-password-done-button");
+
             // Message
             _messageLabel = _root.Q<Label>("message-label");
         }
@@ -166,6 +203,9 @@ namespace Game.MVP.Survivor.Scenes
             _linkEmailButton?.RegisterCallback<ClickEvent>(_ =>
                 _onLinkEmailClicked.OnNext(Unit.Default));
 
+            _issueTransferPasswordButton?.RegisterCallback<ClickEvent>(_ =>
+                _onIssueTransferPasswordClicked.OnNext(Unit.Default));
+
             _userIdLoginButton?.RegisterCallback<ClickEvent>(_ =>
                 _onUserIdLoginClicked.OnNext(Unit.Default));
 
@@ -175,7 +215,8 @@ namespace Game.MVP.Survivor.Scenes
             _submitLinkButton?.RegisterCallback<ClickEvent>(_ =>
                 _onSubmitLinkClicked.OnNext((
                     _formEmail?.value ?? "",
-                    _formPassword?.value ?? "")));
+                    _formPassword?.value ?? "",
+                    _formConfirmPassword?.value ?? "")));
 
             _backButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
@@ -211,13 +252,20 @@ namespace Game.MVP.Survivor.Scenes
 
             _resetBackButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
+
+            // Transfer Password View
+            _transferPasswordDoneButton?.RegisterCallback<ClickEvent>(_ =>
+                _onTransferPasswordDoneClicked.OnNext(Unit.Default));
+
+            _reissueTransferPasswordButton?.RegisterCallback<ClickEvent>(_ =>
+                _onReissueTransferPasswordClicked.OnNext(Unit.Default));
         }
 
         /// <summary>
         /// StatusView を表示
         /// </summary>
         public void ShowStatusView(bool isGuest, string userName, string email,
-            string formattedUserId = null)
+            string formattedUserId = null, bool hasValidSession = false)
         {
             HideAllViews();
             _statusView?.RemoveFromClassList("view-panel--hidden");
@@ -239,6 +287,10 @@ namespace Game.MVP.Survivor.Scenes
 
             if (_linkEmailButton != null)
                 _linkEmailButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (_issueTransferPasswordButton != null)
+                _issueTransferPasswordButton.style.display = (isGuest && hasValidSession)
+                    ? DisplayStyle.Flex : DisplayStyle.None;
 
             if (_userIdLoginButton != null)
                 _userIdLoginButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
@@ -262,6 +314,9 @@ namespace Game.MVP.Survivor.Scenes
 
             if (_formPassword != null)
                 _formPassword.value = "";
+
+            if (_formConfirmPassword != null)
+                _formConfirmPassword.value = "";
 
             HideMessage();
         }
@@ -334,6 +389,89 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
+        /// TransferPasswordView を表示（新規発行/再発行後、パスワード表示あり）
+        /// </summary>
+        public void ShowTransferPasswordViewWithPassword(string userId, string password)
+        {
+            HideAllViews();
+            _transferPasswordView?.RemoveFromClassList("view-panel--hidden");
+
+            // タイトルと警告表示
+            if (_transferTitle != null)
+                _transferTitle.text = "Transfer Password Issued";
+
+            if (_transferWarning != null)
+                _transferWarning.style.display = DisplayStyle.Flex;
+
+            if (_transferUserId != null)
+                _transferUserId.text = userId ?? "-";
+
+            // パスワード表示
+            if (_transferPasswordRow != null)
+                _transferPasswordRow.style.display = DisplayStyle.Flex;
+
+            if (_transferPassword != null)
+                _transferPassword.text = password ?? "-";
+
+            // メッセージ非表示
+            if (_transferIssuedMessage != null)
+                _transferIssuedMessage.style.display = DisplayStyle.None;
+
+            if (_transferUnavailableMessage != null)
+                _transferUnavailableMessage.style.display = DisplayStyle.None;
+
+            // 再発行ボタン非表示（発行直後なので不要）
+            if (_reissueTransferPasswordButton != null)
+                _reissueTransferPasswordButton.style.display = DisplayStyle.None;
+
+            HideMessage();
+        }
+
+        /// <summary>
+        /// TransferPasswordView を表示（発行済み）
+        /// passwordがnullの場合はパスワード表示不可、再発行を促す
+        /// </summary>
+        public void ShowTransferPasswordViewExisting(string userId, string password)
+        {
+            HideAllViews();
+            _transferPasswordView?.RemoveFromClassList("view-panel--hidden");
+
+            bool hasPassword = !string.IsNullOrEmpty(password);
+
+            // タイトル
+            if (_transferTitle != null)
+                _transferTitle.text = "Transfer Password";
+
+            // 警告非表示
+            if (_transferWarning != null)
+                _transferWarning.style.display = DisplayStyle.None;
+
+            if (_transferUserId != null)
+                _transferUserId.text = userId ?? "-";
+
+            // パスワード表示（ローカルにある場合のみ）
+            if (_transferPasswordRow != null)
+                _transferPasswordRow.style.display = hasPassword ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (_transferPassword != null)
+                _transferPassword.text = password ?? "-";
+
+            // 発行済みメッセージ（パスワードがある場合）
+            if (_transferIssuedMessage != null)
+                _transferIssuedMessage.style.display = hasPassword ? DisplayStyle.Flex : DisplayStyle.None;
+
+            // パスワード不明メッセージ（パスワードがない場合）
+            if (_transferUnavailableMessage != null)
+                _transferUnavailableMessage.style.display = hasPassword ? DisplayStyle.None : DisplayStyle.Flex;
+
+            // 再発行ボタン表示
+            if (_reissueTransferPasswordButton != null)
+                _reissueTransferPasswordButton.style.display = DisplayStyle.Flex;
+
+            HideMessage();
+        }
+
+        /// <summary>
         /// 全ビューを非表示
         /// </summary>
         private void HideAllViews()
@@ -343,6 +481,7 @@ namespace Game.MVP.Survivor.Scenes
             _userIdLoginView?.AddToClassList("view-panel--hidden");
             _forgotPasswordView?.AddToClassList("view-panel--hidden");
             _resetPasswordView?.AddToClassList("view-panel--hidden");
+            _transferPasswordView?.AddToClassList("view-panel--hidden");
             _loadingView?.AddToClassList("view-panel--hidden");
         }
 

@@ -23,5 +23,20 @@ namespace Game.Shared.Services
         /// UserId を "0000 0000 0000" 形式にフォーマットして返す
         /// </summary>
         string FormatUserId();
+
+        /// <summary>
+        /// 引き継ぎパスワードをローカルに保存
+        /// </summary>
+        UniTask SaveTransferPasswordAsync(string password);
+
+        /// <summary>
+        /// ローカルに保存された引き継ぎパスワードを取得
+        /// </summary>
+        string GetTransferPassword();
+
+        /// <summary>
+        /// ローカルに保存された引き継ぎパスワードをクリア
+        /// </summary>
+        UniTask ClearTransferPasswordAsync();
     }
 }
