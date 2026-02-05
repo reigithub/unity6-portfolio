@@ -10,6 +10,7 @@ namespace Game.Shared.Services
     public interface IAuthApiService
     {
         UniTask<ApiResponse<LoginResponse>> GuestLoginAsync();
+        UniTask<ApiResponse<LoginResponse>> EmailLoginAsync(string email, string password);
         UniTask<ApiResponse<LoginResponse>> UserIdLoginAsync(string userId, string password);
         UniTask<ApiResponse<MessageResponse>> ForgotPasswordAsync(string email);
         UniTask<ApiResponse<MessageResponse>> ResetPasswordAsync(string token, string newPassword);

@@ -21,7 +21,7 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<LoginResponse>> GuestLoginAsync()
         {
-            var fingerprint = _sessionService.GetOrCreateDeviceFingerprint();
+            var fingerprint = await _sessionService.GetOrCreateDeviceFingerprintAsync();
             var request = new GuestLoginRequest { deviceFingerprint = fingerprint };
 
             var response = await _apiClient.PostAsync<GuestLoginRequest, LoginResponse>(
@@ -29,7 +29,21 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
-                OnLoginSuccess(response.Data, "guest");
+                await OnLoginSuccessAsync(response.Data, "guest");
+            }
+
+            return response;
+        }
+
+        public async UniTask<ApiResponse<LoginResponse>> EmailLoginAsync(string email, string password)
+        {
+            var request = new EmailLoginRequest { email = email, password = password };
+            var response = await _apiClient.PostAsync<EmailLoginRequest, LoginResponse>(
+                "api/auth/email/login", request);
+
+            if (response.IsSuccess)
+            {
+                await OnLoginSuccessAsync(response.Data, "password");
             }
 
             return response;
@@ -43,7 +57,7 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
-                OnLoginSuccess(response.Data, "password");
+                await OnLoginSuccessAsync(response.Data, "password");
             }
 
             return response;
@@ -77,7 +91,7 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
-                OnLoginSuccess(response.Data, _sessionService.AuthType ?? "guest");
+                await OnLoginSuccessAsync(response.Data, _sessionService.AuthType ?? "guest");
             }
 
             return response;
@@ -97,7 +111,7 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
-                OnLinkSuccess(response.Data);
+                await OnLinkSuccessAsync(response.Data);
             }
 
             return response;
@@ -105,13 +119,13 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync()
         {
-            var fingerprint = _sessionService.GetOrCreateDeviceFingerprint();
+            var fingerprint = await _sessionService.GetOrCreateDeviceFingerprintAsync();
             var response = await _apiClient.DeleteAsync<AccountLinkResponse>(
                 $"api/auth/link/email?deviceFingerprint={UnityEngine.Networking.UnityWebRequest.EscapeURL(fingerprint)}");
 
             if (response.IsSuccess)
             {
-                OnLinkSuccess(response.Data);
+                await OnLinkSuccessAsync(response.Data);
             }
 
             return response;
@@ -122,13 +136,13 @@ namespace Game.Shared.Services
             return await _apiClient.GetAsync<UserProfileResponse>("api/users/me");
         }
 
-        private void OnLoginSuccess(LoginResponse data, string authType)
+        private async UniTask OnLoginSuccessAsync(LoginResponse data, string authType)
         {
-            _sessionService.SaveSession(data, authType);
+            await _sessionService.SaveSessionAsync(data, authType);
             _apiClient.SetAuthToken(data.token);
         }
 
-        private void OnLinkSuccess(AccountLinkResponse data)
+        private async UniTask OnLinkSuccessAsync(AccountLinkResponse data)
         {
             var loginData = new LoginResponse
             {
@@ -136,7 +150,7 @@ namespace Game.Shared.Services
                 userName = data.userName,
                 token = data.token
             };
-            _sessionService.SaveSession(loginData, data.authType?.ToLower() ?? "guest");
+            await _sessionService.SaveSessionAsync(loginData, data.authType?.ToLower() ?? "guest");
             _apiClient.SetAuthToken(data.token);
         }
 

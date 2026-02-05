@@ -1,69 +1,69 @@
 using System;
+using Cysharp.Threading.Tasks;
 using Game.Shared.Dto.Auth;
+using Game.Shared.SaveData;
 using UnityEngine;
 
 namespace Game.Shared.Services
 {
     /// <summary>
     /// セッション管理サービス実装
-    /// PlayerPrefs にトークン・ユーザー情報を保存/復元
+    /// ISaveDataStorage (MemoryPack) にトークン・ユーザー情報を保存/復元
     /// </summary>
     public class SessionService : ISessionService
     {
-        private const string KeyAuthToken = "auth_token";
-        private const string KeyUserId = "auth_user_id";
-        private const string KeyUserName = "auth_user_name";
-        private const string KeyAuthType = "auth_type";
-        private const string KeyDeviceFingerprint = "device_fingerprint";
+        private const string SaveKey = "session";
+        private readonly ISaveDataStorage _storage;
+        private SessionSaveData _data;
 
-        public bool IsAuthenticated => !string.IsNullOrEmpty(AuthToken);
-        public string AuthToken { get; private set; }
-        public string UserId { get; private set; }
-        public string UserName { get; private set; }
-        public string AuthType { get; private set; }
-
-        public void SaveSession(LoginResponse response, string authType = "guest")
+        public SessionService(ISaveDataStorage storage)
         {
-            AuthToken = response.token;
-            UserId = response.userId;
-            UserName = response.userName;
-            AuthType = authType;
-
-            PlayerPrefs.SetString(KeyAuthToken, AuthToken);
-            PlayerPrefs.SetString(KeyUserId, UserId);
-            PlayerPrefs.SetString(KeyUserName, UserName);
-            PlayerPrefs.SetString(KeyAuthType, AuthType);
-            PlayerPrefs.Save();
+            _storage = storage;
         }
 
-        public bool TryRestoreSession()
+        public bool IsAuthenticated => !string.IsNullOrEmpty(_data?.AuthToken);
+        public string AuthToken => _data?.AuthToken;
+        public string UserId => _data?.UserId;
+        public string UserName => _data?.UserName;
+        public string AuthType => _data?.AuthType;
+
+        public async UniTask SaveSessionAsync(LoginResponse response, string authType = "guest")
         {
-            var token = PlayerPrefs.GetString(KeyAuthToken, "");
-            if (string.IsNullOrEmpty(token))
+            _data ??= new SessionSaveData();
+            _data.AuthToken = response.token;
+            _data.UserId = response.userId;
+            _data.UserName = response.userName;
+            _data.AuthType = authType;
+            await _storage.SaveAsync(SaveKey, _data);
+        }
+
+        public async UniTask<bool> RestoreSessionAsync()
+        {
+            _data = await _storage.LoadAsync<SessionSaveData>(SaveKey);
+            if (_data == null || string.IsNullOrEmpty(_data.AuthToken))
             {
+                _data ??= new SessionSaveData();
                 return false;
             }
-
-            AuthToken = token;
-            UserId = PlayerPrefs.GetString(KeyUserId, "");
-            UserName = PlayerPrefs.GetString(KeyUserName, "");
-            AuthType = PlayerPrefs.GetString(KeyAuthType, "");
-
             return true;
         }
 
-        public void ClearSession()
+        public async UniTask ClearSessionAsync()
         {
-            AuthToken = null;
-            UserId = null;
-            UserName = null;
-            AuthType = null;
+            _data ??= new SessionSaveData();
+            var fingerprint = _data.DeviceFingerprint;
+            _data = new SessionSaveData { DeviceFingerprint = fingerprint };
+            await _storage.SaveAsync(SaveKey, _data);
+        }
 
-            PlayerPrefs.DeleteKey(KeyAuthToken);
-            PlayerPrefs.DeleteKey(KeyUserId);
-            PlayerPrefs.DeleteKey(KeyUserName);
-            PlayerPrefs.DeleteKey(KeyAuthType);
-            PlayerPrefs.Save();
+        public async UniTask<string> GetOrCreateDeviceFingerprintAsync()
+        {
+            _data ??= new SessionSaveData();
+            if (!string.IsNullOrEmpty(_data.DeviceFingerprint))
+                return _data.DeviceFingerprint;
+            _data.DeviceFingerprint = GenerateDeviceFingerprint();
+            await _storage.SaveAsync(SaveKey, _data);
+            return _data.DeviceFingerprint;
         }
 
         public string FormatUserId()
@@ -74,20 +74,6 @@ namespace Game.Shared.Services
             }
 
             return $"{UserId.Substring(0, 4)} {UserId.Substring(4, 4)} {UserId.Substring(8)}";
-        }
-
-        public string GetOrCreateDeviceFingerprint()
-        {
-            var fingerprint = PlayerPrefs.GetString(KeyDeviceFingerprint, "");
-            if (!string.IsNullOrEmpty(fingerprint))
-            {
-                return fingerprint;
-            }
-
-            fingerprint = GenerateDeviceFingerprint();
-            PlayerPrefs.SetString(KeyDeviceFingerprint, fingerprint);
-            PlayerPrefs.Save();
-            return fingerprint;
         }
 
         private static string GenerateDeviceFingerprint()

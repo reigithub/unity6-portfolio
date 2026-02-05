@@ -33,6 +33,13 @@ namespace Game.Shared.Dto.Auth
     }
 
     [Serializable]
+    public class EmailLoginRequest
+    {
+        public string email;
+        public string password;
+    }
+
+    [Serializable]
     public class LinkEmailRequest
     {
         public string email;

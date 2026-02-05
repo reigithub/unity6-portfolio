@@ -42,7 +42,6 @@
                         <ui:Button text="LINK TO EMAIL" name="link-email-button" class="action-button action-button--primary" />
                         <ui:Button text="LOGIN WITH USER ID" name="userid-login-button" class="action-button" />
                         <ui:Button text="UNLINK EMAIL" name="unlink-email-button" class="action-button action-button--danger" />
-                        <ui:Button text="Forgot password?" name="forgot-password-button" class="text-link-button" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 
@@ -58,6 +57,7 @@
                     <ui:VisualElement class="form-group">
                         <ui:Label text="Password" class="form-label" />
                         <ui:TextField name="form-password" password="true" class="form-input" />
+                        <ui:Button text="Forgot password?" name="link-forgot-password-button" class="text-link-button text-link-button--inline" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-buttons">
@@ -78,6 +78,7 @@
                     <ui:VisualElement class="form-group">
                         <ui:Label text="Password" class="form-label" />
                         <ui:TextField name="userid-password" password="true" class="form-input" />
+                        <ui:Button text="Forgot password?" name="userid-forgot-password-button" class="text-link-button text-link-button--inline" />
                     </ui:VisualElement>
 
                     <ui:VisualElement class="form-buttons">

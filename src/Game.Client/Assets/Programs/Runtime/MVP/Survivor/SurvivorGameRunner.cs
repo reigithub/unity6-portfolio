@@ -75,7 +75,7 @@ namespace Game.MVP.Survivor
             await _audioSaveService.LoadAsync();
 
             // 4. セッション復元
-            if (_sessionService.TryRestoreSession())
+            if (await _sessionService.RestoreSessionAsync())
             {
                 _apiClient.SetAuthToken(_sessionService.AuthToken);
             }

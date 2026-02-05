@@ -95,17 +95,6 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnDataLink()
         {
             SceneComponent.SetInteractables(false);
-
-            if (!_sessionService.IsAuthenticated)
-            {
-                var result = await _authApiService.GuestLoginAsync();
-                if (!result.IsSuccess)
-                {
-                    SceneComponent.SetInteractables(true);
-                    return;
-                }
-            }
-
             await SurvivorAccountLinkDialog.RunAsync(_sceneService);
             SceneComponent.SetInteractables(true);
         }

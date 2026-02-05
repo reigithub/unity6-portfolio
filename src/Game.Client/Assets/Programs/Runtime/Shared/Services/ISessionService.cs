@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+
 namespace Game.Shared.Services
 {
     /// <summary>
@@ -12,10 +14,10 @@ namespace Game.Shared.Services
         string UserName { get; }
         string AuthType { get; }
 
-        void SaveSession(Dto.Auth.LoginResponse response, string authType = "guest");
-        bool TryRestoreSession();
-        void ClearSession();
-        string GetOrCreateDeviceFingerprint();
+        UniTask SaveSessionAsync(Dto.Auth.LoginResponse response, string authType = "guest");
+        UniTask<bool> RestoreSessionAsync();
+        UniTask ClearSessionAsync();
+        UniTask<string> GetOrCreateDeviceFingerprintAsync();
 
         /// <summary>
         /// UserId を "0000 0000 0000" 形式にフォーマットして返す

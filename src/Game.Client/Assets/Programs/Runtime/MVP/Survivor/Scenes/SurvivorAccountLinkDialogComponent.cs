@@ -49,7 +49,6 @@ namespace Game.MVP.Survivor.Scenes
         private Button _linkEmailButton;
         private Button _userIdLoginButton;
         private Button _unlinkEmailButton;
-        private Button _forgotPasswordButton;
 
         // Link Form View
         private VisualElement _linkFormView;
@@ -57,6 +56,7 @@ namespace Game.MVP.Survivor.Scenes
         private TextField _formPassword;
         private Button _submitLinkButton;
         private Button _backButton;
+        private Button _linkForgotPasswordButton;
 
         // UserId Login View
         private VisualElement _userIdLoginView;
@@ -64,6 +64,7 @@ namespace Game.MVP.Survivor.Scenes
         private TextField _userIdPassword;
         private Button _userIdLoginSubmitButton;
         private Button _userIdLoginBackButton;
+        private Button _userIdForgotPasswordButton;
 
         // Forgot Password View
         private VisualElement _forgotPasswordView;
@@ -120,7 +121,6 @@ namespace Game.MVP.Survivor.Scenes
             _linkEmailButton = _root.Q<Button>("link-email-button");
             _userIdLoginButton = _root.Q<Button>("userid-login-button");
             _unlinkEmailButton = _root.Q<Button>("unlink-email-button");
-            _forgotPasswordButton = _root.Q<Button>("forgot-password-button");
 
             // Link Form View
             _linkFormView = _root.Q<VisualElement>("link-form-view");
@@ -128,6 +128,7 @@ namespace Game.MVP.Survivor.Scenes
             _formPassword = _root.Q<TextField>("form-password");
             _submitLinkButton = _root.Q<Button>("submit-link-button");
             _backButton = _root.Q<Button>("back-button");
+            _linkForgotPasswordButton = _root.Q<Button>("link-forgot-password-button");
 
             // UserId Login View
             _userIdLoginView = _root.Q<VisualElement>("userid-login-view");
@@ -135,6 +136,7 @@ namespace Game.MVP.Survivor.Scenes
             _userIdPassword = _root.Q<TextField>("userid-password");
             _userIdLoginSubmitButton = _root.Q<Button>("userid-login-submit-button");
             _userIdLoginBackButton = _root.Q<Button>("userid-login-back-button");
+            _userIdForgotPasswordButton = _root.Q<Button>("userid-forgot-password-button");
 
             // Forgot Password View
             _forgotPasswordView = _root.Q<VisualElement>("forgot-password-view");
@@ -187,10 +189,14 @@ namespace Game.MVP.Survivor.Scenes
             _userIdLoginBackButton?.RegisterCallback<ClickEvent>(_ =>
                 _onBackToStatusClicked.OnNext(Unit.Default));
 
-            // Forgot Password View
-            _forgotPasswordButton?.RegisterCallback<ClickEvent>(_ =>
+            _userIdForgotPasswordButton?.RegisterCallback<ClickEvent>(_ =>
                 _onForgotPasswordClicked.OnNext(Unit.Default));
 
+            // Link Form View - Forgot Password
+            _linkForgotPasswordButton?.RegisterCallback<ClickEvent>(_ =>
+                _onForgotPasswordClicked.OnNext(Unit.Default));
+
+            // Forgot Password View
             _forgotSubmitButton?.RegisterCallback<ClickEvent>(_ =>
                 _onForgotPasswordSubmitted.OnNext(_forgotEmail?.value ?? ""));
 
@@ -211,7 +217,7 @@ namespace Game.MVP.Survivor.Scenes
         /// StatusView を表示
         /// </summary>
         public void ShowStatusView(bool isGuest, string userName, string email,
-            string formattedUserId = null, bool hasSession = true)
+            string formattedUserId = null)
         {
             HideAllViews();
             _statusView?.RemoveFromClassList("view-panel--hidden");
@@ -234,15 +240,11 @@ namespace Game.MVP.Survivor.Scenes
             if (_linkEmailButton != null)
                 _linkEmailButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
 
-            // LOGIN WITH USER ID / Forgot password はセッションがある Guest のみ表示
             if (_userIdLoginButton != null)
-                _userIdLoginButton.style.display = (isGuest && hasSession) ? DisplayStyle.Flex : DisplayStyle.None;
+                _userIdLoginButton.style.display = isGuest ? DisplayStyle.Flex : DisplayStyle.None;
 
             if (_unlinkEmailButton != null)
                 _unlinkEmailButton.style.display = isGuest ? DisplayStyle.None : DisplayStyle.Flex;
-
-            if (_forgotPasswordButton != null)
-                _forgotPasswordButton.style.display = (isGuest && hasSession) ? DisplayStyle.Flex : DisplayStyle.None;
 
             HideMessage();
         }

@@ -278,3 +278,10 @@
     color: rgba(100, 180, 255, 0.6);
 }
 
+/* Inline text link (below password field) */
+.text-link-button--inline {
+    margin-top: 8px;
+    align-self: flex-end;
+    font-size: 18px;
+}
+

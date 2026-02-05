@@ -20,6 +20,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly IInputService _inputService;
 
+        private bool _hasValidSession;
+
         public static UniTask RunAsync(IGameSceneService sceneService)
         {
             return sceneService.TransitionDialogAsync<SurvivorAccountLinkDialog, SurvivorAccountLinkDialogComponent, Unit>();
@@ -31,9 +33,9 @@ namespace Game.MVP.Survivor.Scenes
 
             // セッションの有効性を確認（トークン期限切れ対策）
             SceneComponent.ShowLoading();
-            bool sessionValid = await EnsureValidSessionAsync();
+            _hasValidSession = await EnsureValidSessionAsync();
 
-            if (sessionValid)
+            if (_hasValidSession)
             {
                 // セッション有効 → サーバーからプロフィール取得して表示
                 await RefreshStatusViewAsync();
@@ -41,7 +43,7 @@ namespace Game.MVP.Survivor.Scenes
             else
             {
                 // セッションなし → ログインオプションのみ表示
-                SceneComponent.ShowStatusView(true, "-", null, "-", hasSession: false);
+                SceneComponent.ShowStatusView(true, "-", null, "-");
             }
 
             // イベント購読
@@ -102,10 +104,11 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// セッションの有効性を確認（トークンリフレッシュのみ）
+        /// セッションの有効性を確認（未認証時はスキップ）
         /// </summary>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
+            if (!_sessionService.IsAuthenticated) return false;
             var refreshResult = await _authApiService.RefreshTokenAsync();
             return refreshResult.IsSuccess;
         }
@@ -148,7 +151,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnBackToStatus()
         {
-            await RefreshStatusViewAsync();
+            if (_hasValidSession)
+            {
+                await RefreshStatusViewAsync();
+            }
+            else
+            {
+                SceneComponent.ShowStatusView(true, "-", null, "-");
+            }
         }
 
         private async UniTaskVoid OnSubmitLink(string email, string password)
@@ -169,9 +179,32 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.ShowLoading();
 
-            var response = await _authApiService.LinkEmailAsync(email, password);
+            // Step 1: 既存メールアカウントへのログインを試行（認証不要）
+            var loginResult = await _authApiService.EmailLoginAsync(email, password);
+            if (loginResult.IsSuccess)
+            {
+                _hasValidSession = true;
+                await RefreshStatusViewAsync();
+                SceneComponent.ShowSuccess("Logged in successfully!");
+                return;
+            }
 
-            if (response.IsSuccess)
+            // Step 2: ログイン失敗 → 新規連携を試行
+            // 未認証の場合はゲストを作成
+            if (!_hasValidSession)
+            {
+                var guestResult = await _authApiService.GuestLoginAsync();
+                if (!guestResult.IsSuccess)
+                {
+                    SceneComponent.RevealLinkFormView();
+                    SceneComponent.ShowError(guestResult.Error?.Message ?? "Failed to connect.");
+                    return;
+                }
+                _hasValidSession = true;
+            }
+
+            var linkResult = await _authApiService.LinkEmailAsync(email, password);
+            if (linkResult.IsSuccess)
             {
                 await RefreshStatusViewAsync();
                 SceneComponent.ShowSuccess("Account linked to email successfully!");
@@ -180,7 +213,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // 入力値を保持したままフォームを再表示
                 SceneComponent.RevealLinkFormView();
-                SceneComponent.ShowError(response.Error?.Message ?? "Failed to link account.");
+                SceneComponent.ShowError(linkResult.Error?.Message ?? "Failed to link account.");
             }
         }
 
@@ -297,6 +330,7 @@ namespace Game.MVP.Survivor.Scenes
 
             if (response.IsSuccess)
             {
+                _hasValidSession = true;
                 await RefreshStatusViewAsync();
                 SceneComponent.ShowSuccess("Logged in successfully!");
             }
