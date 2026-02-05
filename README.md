@@ -261,27 +261,85 @@ dotnet test
 | SERVER | 2 | APIサーバーのみ（内部バランス値等） |
 | REALTIME | 4 | リアルタイムサーバーのみ |
 
-**CLIコマンド（Game.Tools）:**
+**更新方法（3つの選択肢）:**
+
+1. **バッチファイル（推奨）** - ダブルクリックで実行
+```
+scripts/masterdata/
+├── build-all.bat/.sh      # Client + Server 両方生成
+├── build-client.bat/.sh   # Client用のみ生成
+├── build-server.bat/.sh   # Server用のみ生成
+├── codegen.bat/.sh        # C#クラス生成
+├── validate.bat/.sh       # TSV検証
+└── export-json.bat/.sh    # JSON出力
+```
+
+2. **Unity Editor** - MasterDataWindow（Project > MasterMemory > MasterDataWindow）
+   - Game.Tools CLIを内部で呼び出し
+   - コード生成、バイナリ生成、TSV検証がGUIから実行可能
+
+3. **CLIコマンド直接実行**
 ```bash
 # C#クラス生成（Proto → MemoryTable）
 dotnet run --project src/Game.Tools -- masterdata codegen
 
 # バイナリビルド（TSV → .bytes）
-dotnet run --project src/Game.Tools -- masterdata build
+dotnet run --project src/Game.Tools -- masterdata build --out-client ... --out-server ...
 
 # スキーマ検証
 dotnet run --project src/Game.Tools -- masterdata validate
 ```
 
-**クライアント側:**
-- Unity Editor拡張（MasterDataWindow）でTSV編集・バイナリ生成
+**クライアント側ロード:**
 - Addressables経由で`MasterDataBinary.bytes`をロード
 - `MasterDataServiceBase`で`MemoryDatabase`を構築
 
-**サーバー側:**
-- CLIツールでバイナリ生成（`masterdata.bytes`）
-- 起動時にファイルシステムから同期ロード
+**サーバー側ロード:**
+- 起動時にファイルシステムから`masterdata.bytes`を同期ロード
 - DIコンテナ経由で`IMasterDataService`を注入
+
+</details>
+
+<details><summary>データベース管理システム</summary>
+
+PostgreSQLデータベースのマイグレーション・シードデータ管理システム:
+
+**マイグレーション:**
+```
+scripts/migrate/
+├── migrate-up.bat/.sh      # 保留中マイグレーション適用
+├── migrate-down.bat/.sh    # ロールバック
+├── migrate-status.bat/.sh  # 状態確認
+└── migrate-reset.bat/.sh   # リセット（全削除＋再作成）
+```
+
+**シードデータ:**
+```
+scripts/seeddata/
+├── seed.bat/.sh     # TSV → DB シード
+├── dump.bat/.sh     # DB → TSV ダンプ
+└── diff.bat/.sh     # TSV差分比較
+```
+
+**Unity Editor:**
+- DatabaseWindow（Project > Database > DatabaseWindow）
+  - マイグレーション操作（Up/Down/Status/Reset）
+  - シードデータ操作（Seed/Dump/Diff）
+  - スキーマ選択（master/user/all）
+
+**CLIコマンド:**
+```bash
+# マイグレーション
+dotnet run --project src/Game.Tools -- migrate up
+dotnet run --project src/Game.Tools -- migrate down --steps 1
+dotnet run --project src/Game.Tools -- migrate status
+dotnet run --project src/Game.Tools -- migrate reset --force --seed
+
+# シードデータ
+dotnet run --project src/Game.Tools -- seeddata seed --tsv-dir masterdata/raw/
+dotnet run --project src/Game.Tools -- seeddata dump --out-dir masterdata/dump/
+dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw/ --target-dir masterdata/dump/
+```
 
 </details>
 

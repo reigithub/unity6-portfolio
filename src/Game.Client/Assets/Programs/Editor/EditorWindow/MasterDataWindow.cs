@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -10,13 +10,6 @@ namespace Game.Editor
 {
     public class MasterDataWindow : EditorWindow
     {
-        // 1.MemoryTable手動作成
-        // 2.MemoryTableからTsv新規作成（仮データ）または更新
-        // 3.Tsvからマスターデータバイナリ作成
-        // 4.Addressableに登録
-        // 5.Addressable経由でバイナリをロードしてデータベース構築（⇒MasterDataServiceでアプリ起動時に読み込む）
-        // EX.MySql定義情報からMemoryTableクラスを自動生成できるツールを検討（やりすぎ感）
-
         [MenuItem("Project/MasterMemory/MasterDataWindow")]
         public static void Open()
         {
@@ -25,10 +18,19 @@ namespace Game.Editor
         }
 
         [MenuItem("Project/MasterMemory/GenerateMasterDataBinary")]
-        public static void GenerateBinary()
+        public static void GenerateBinaryCli()
         {
-            MasterDataHelper.GenerateMasterDataBinary();
-            Debug.Log("[MasterDataWindow] MasterDataBinary generated.");
+            Debug.Log("[MasterDataWindow] Building MasterDataBinary via CLI...");
+            var result = GameToolsRunner.BuildClient();
+            if (result.Success)
+            {
+                Debug.Log($"[MasterDataWindow] MasterDataBinary generated successfully.\n{result.Output}");
+                AssetDatabase.Refresh();
+            }
+            else
+            {
+                Debug.LogError($"[MasterDataWindow] Build failed.\n{result.GetCombinedOutput()}");
+            }
         }
 
         private void UpdateMemoryTables()
@@ -38,14 +40,10 @@ namespace Game.Editor
         }
 
         private Type[] _memoryTables = Array.Empty<Type>();
-        private Type _memoryTable;
-        private int _selectedIndex;
-        private bool _replaceToggle = true;
-        private bool _backupToggle;
+        private bool _isProcessing;
         private Vector2 _tableScrollPosition = Vector2.zero;
         private Vector2 _logScrollPosition = Vector2.zero;
         private StringBuilder _logBuilder = new();
-        private char _logSeparator = '\n';
 
         private void OnGUI()
         {
@@ -70,71 +68,84 @@ namespace Game.Editor
                     }
                 }
 
-                using (new EditorGUILayout.VerticalScope(GUILayout.Width(360)))
+                using (new EditorGUILayout.VerticalScope(GUILayout.Width(400)))
                 {
-                    GUILayout.Label("マスタデータ作成メニュー");
-                    using (new EditorGUI.DisabledScope(!_memoryTables.Any()))
+                    // === CLI Mode Section ===
+                    EditorGUILayout.LabelField("Game.Tools CLI", EditorStyles.boldLabel);
+                    EditorGUILayout.HelpBox("CLIコマンドを使用してマスターデータを管理します。\nProtoスキーマ検証、クライアント/サーバー両対応。", MessageType.Info);
+
+                    using (new EditorGUI.DisabledScope(_isProcessing))
                     {
-                        var options = new[] { "作成＆更新するマスタを選択してください" }
-                            .Concat(_memoryTables.Select(x => x.Name))
-                            .ToArray();
-                        _selectedIndex = EditorGUILayout.Popup(_selectedIndex, options);
-
-                        if (_selectedIndex > 0 && _memoryTables.Any())
+                        using (new EditorGUILayout.HorizontalScope())
                         {
-                            _memoryTable = _memoryTables[_selectedIndex - 1];
-                        }
-
-                        _replaceToggle = EditorGUILayout.ToggleLeft("既に存在するTsvデータを引継ぎ、最新のテーブル定義情報で更新する", _replaceToggle);
-                        _backupToggle = EditorGUILayout.ToggleLeft("更新前にバックアップを作成", _backupToggle);
-
-                        using (new EditorGUI.DisabledScope(_selectedIndex <= 0))
-                        {
-                            // GUILayout.FlexibleSpace();
-
-                            if (GUILayout.Button("Tsv作成＆更新"))
+                            if (GUILayout.Button("コード生成 (codegen)", GUILayout.Height(28)))
                             {
-                                AppendLog($"Tsv作成: {_memoryTable.Name}");
-                                MasterDataHelper.GenerateTsv(_memoryTable, _replaceToggle, _backupToggle);
+                                RunCliCommand("codegen", () => GameToolsRunner.Codegen());
+                            }
+                            if (GUILayout.Button("TSV検証 (validate)", GUILayout.Height(28)))
+                            {
+                                RunCliCommand("validate", () => GameToolsRunner.Validate());
                             }
                         }
 
-                        if (GUILayout.Button("Tsv一括作成＆更新"))
+                        using (new EditorGUILayout.HorizontalScope())
                         {
-                            AppendLog($"Tsv一括作成: {_memoryTables.Length}件");
-                            MasterDataHelper.GenerateTsvAll(_replaceToggle, _replaceToggle);
-                        }
-
-                        if (GUILayout.Button("マスタデータバイナリ作成"))
-                        {
-                            AppendLog($"マスタデータバイナリ作成: {_memoryTables.Length}件");
-                            MasterDataHelper.GenerateMasterDataBinary();
-                        }
-                    }
-
-                    if (GUILayout.Button("マスタデータバイナリ読込テスト"))
-                    {
-                        AppendLog($"マスタデータバイナリ読込: {_memoryTables.Length}件");
-                        MasterDataBinaryWindow.Open();
-                    }
-
-                    if (GUILayout.Button("最新状態を取得"))
-                    {
-                        UpdateMemoryTables();
-                        AppendLog($"最新状態を取得 Tsv件数: {_memoryTables.Length}");
-                    }
-
-                    using (new EditorGUI.DisabledScope(_logBuilder.Length <= 0))
-                    {
-                        using (var scroller = new EditorGUILayout.ScrollViewScope(_logScrollPosition, "box"))
-                        {
-                            _logScrollPosition = scroller.scrollPosition;
-                            var logs = _logBuilder.ToString().Split('\r', '\n');
-                            foreach (var log in logs)
+                            if (GUILayout.Button("Client バイナリ生成", GUILayout.Height(28)))
                             {
-                                EditorGUILayout.LabelField($"{log}");
+                                RunCliCommand("build-client", () => GameToolsRunner.BuildClient());
+                            }
+                            if (GUILayout.Button("Server バイナリ生成", GUILayout.Height(28)))
+                            {
+                                RunCliCommand("build-server", () => GameToolsRunner.BuildServer());
                             }
                         }
+
+                        if (GUILayout.Button("全て生成 (Client + Server)", GUILayout.Height(32)))
+                        {
+                            RunCliCommand("build-all", () => GameToolsRunner.BuildAll());
+                        }
+                    }
+
+                    GUILayout.Space(10);
+                    EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                    GUILayout.Space(5);
+
+                    // === Common Section ===
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("バイナリ読込テスト"))
+                        {
+                            AppendLog($"マスタデータバイナリ読込: {_memoryTables.Length}件");
+                            MasterDataBinaryWindow.Open();
+                        }
+
+                        if (GUILayout.Button("最新状態を取得"))
+                        {
+                            UpdateMemoryTables();
+                            AppendLog($"最新状態を取得 テーブル件数: {_memoryTables.Length}");
+                        }
+                    }
+
+                    GUILayout.Space(5);
+
+                    // === Log Section ===
+                    GUILayout.Label("ログ出力");
+                    using (var scroller = new EditorGUILayout.ScrollViewScope(_logScrollPosition, "box", GUILayout.Height(150)))
+                    {
+                        _logScrollPosition = scroller.scrollPosition;
+                        var logs = _logBuilder.ToString().Split('\r', '\n');
+                        foreach (var log in logs)
+                        {
+                            if (!string.IsNullOrWhiteSpace(log))
+                            {
+                                EditorGUILayout.LabelField(log, EditorStyles.wordWrappedMiniLabel);
+                            }
+                        }
+                    }
+
+                    if (GUILayout.Button("ログクリア", GUILayout.Width(80)))
+                    {
+                        _logBuilder.Clear();
                     }
                 }
             }
@@ -142,9 +153,59 @@ namespace Game.Editor
             GUILayout.Space(10);
         }
 
+        private void RunCliCommand(string commandName, Func<GameToolsResult> command)
+        {
+            _isProcessing = true;
+            AppendLog($"[CLI] {commandName} 実行中...");
+            Repaint();
+
+            EditorApplication.delayCall += () =>
+            {
+                try
+                {
+                    var result = command();
+                    if (result.Success)
+                    {
+                        AppendLog($"[CLI] {commandName} 完了");
+                        var output = result.Output;
+                        if (output.Length > 500)
+                        {
+                            output = output.Substring(0, 500) + "\n... (省略)";
+                        }
+                        AppendLog(output);
+                        AssetDatabase.Refresh();
+                    }
+                    else
+                    {
+                        AppendLog($"[CLI] {commandName} 失敗 (ExitCode: {result.ExitCode})");
+                        AppendLog(result.GetCombinedOutput());
+                        Debug.LogError($"[MasterDataWindow] {commandName} failed:\n{result.GetCombinedOutput()}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[CLI] {commandName} エラー: {ex.Message}");
+                    Debug.LogError($"[MasterDataWindow] {commandName} error: {ex}");
+                }
+                finally
+                {
+                    _isProcessing = false;
+                    Repaint();
+                }
+            };
+        }
+
         private void AppendLog(string log)
         {
-            _logBuilder.Append(DateTime.Now + " " + log + _logSeparator);
+            var lines = log.Split('\n');
+            foreach (var line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    _logBuilder.AppendLine($"{DateTime.Now:HH:mm:ss} {line.Trim()}");
+                }
+            }
+            _logScrollPosition = new Vector2(0, float.MaxValue);
         }
     }
 
