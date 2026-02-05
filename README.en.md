@@ -262,27 +262,85 @@ Schema-driven master data management system supporting both client and server:
 | SERVER | 2 | API server only (internal balance values) |
 | REALTIME | 4 | Realtime server only |
 
-**CLI Commands (Game.Tools):**
+**Update Methods (3 options):**
+
+1. **Batch Files (Recommended)** - Double-click to execute
+```
+scripts/masterdata/
+├── build-all.bat/.sh      # Build both Client + Server
+├── build-client.bat/.sh   # Build Client only
+├── build-server.bat/.sh   # Build Server only
+├── codegen.bat/.sh        # Generate C# classes
+├── validate.bat/.sh       # Validate TSV files
+└── export-json.bat/.sh    # Export to JSON
+```
+
+2. **Unity Editor** - MasterDataWindow (Project > MasterMemory > MasterDataWindow)
+   - Internally calls Game.Tools CLI
+   - Code generation, binary build, TSV validation available from GUI
+
+3. **Direct CLI Commands**
 ```bash
 # Generate C# classes (Proto → MemoryTable)
 dotnet run --project src/Game.Tools -- masterdata codegen
 
 # Build binary (TSV → .bytes)
-dotnet run --project src/Game.Tools -- masterdata build
+dotnet run --project src/Game.Tools -- masterdata build --out-client ... --out-server ...
 
 # Validate schema
 dotnet run --project src/Game.Tools -- masterdata validate
 ```
 
-**Client Side:**
-- Unity Editor extension (MasterDataWindow) for TSV editing and binary generation
+**Client Side Loading:**
 - Load `MasterDataBinary.bytes` via Addressables
 - Build `MemoryDatabase` through `MasterDataServiceBase`
 
-**Server Side:**
-- Generate binary via CLI tool (`masterdata.bytes`)
-- Synchronous load from filesystem at startup
+**Server Side Loading:**
+- Synchronous load `masterdata.bytes` from filesystem at startup
 - Inject `IMasterDataService` via DI container
+
+</details>
+
+<details><summary>Database Management System</summary>
+
+PostgreSQL database migration and seed data management system:
+
+**Migration:**
+```
+scripts/migrate/
+├── migrate-up.bat/.sh      # Apply pending migrations
+├── migrate-down.bat/.sh    # Rollback migrations
+├── migrate-status.bat/.sh  # Check status
+└── migrate-reset.bat/.sh   # Reset (drop + recreate)
+```
+
+**Seed Data:**
+```
+scripts/seeddata/
+├── seed.bat/.sh     # TSV → DB seed
+├── dump.bat/.sh     # DB → TSV dump
+└── diff.bat/.sh     # Compare TSVs
+```
+
+**Unity Editor:**
+- DatabaseWindow (Project > Database > DatabaseWindow)
+  - Migration operations (Up/Down/Status/Reset)
+  - Seed data operations (Seed/Dump/Diff)
+  - Schema selection (master/user/all)
+
+**CLI Commands:**
+```bash
+# Migration
+dotnet run --project src/Game.Tools -- migrate up
+dotnet run --project src/Game.Tools -- migrate down --steps 1
+dotnet run --project src/Game.Tools -- migrate status
+dotnet run --project src/Game.Tools -- migrate reset --force --seed
+
+# Seed Data
+dotnet run --project src/Game.Tools -- seeddata seed --tsv-dir masterdata/raw/
+dotnet run --project src/Game.Tools -- seeddata dump --out-dir masterdata/dump/
+dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw/ --target-dir masterdata/dump/
+```
 
 </details>
 

@@ -30,7 +30,7 @@ public class SeedDataCommands
     /// <param name="connectionString">PostgreSQL connection string. Falls back to appsettings.json if omitted.</param>
     /// <param name="outDir">Output directory for TSV files.</param>
     /// <param name="schema">Target schema (master, user). Omit for master only.</param>
-    public void Dump(string connectionString = "", string outDir = "output/dump/", string schema = "master")
+    public void Dump(string connectionString = "", string outDir = "masterdata/dump/", string schema = "master")
     {
         var cs = AppConfig.ResolveConnectionString(connectionString);
         var schemas = MigrationSchema.ResolveSchemas(schema);
