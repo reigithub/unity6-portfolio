@@ -8,7 +8,7 @@ A game development portfolio project using Unity 6 (Monorepo Structure)
 Unity6Portfolio/
 ├── src/
 │   ├── Game.Client/        # Unity Client (Unity 6)
-│   ├── Game.Server/        # Game Server (ASP.NET Core 8)
+│   ├── Game.Server/        # Game Server (ASP.NET Core 9)
 │   └── Game.Shared/        # Shared Library (.NET + Unity Package)
 └── test/
     └── Game.Server.Tests/  # Server Tests
@@ -38,7 +38,7 @@ Unity6Portfolio/
 | Item | Version |
 |------|---------|
 | Unity | 6000.3.2f1 or later |
-| .NET SDK | 8.0 or later |
+| .NET SDK | 9.0 or later |
 | OS | Windows 10/11 |
 
 ### Setup Steps
@@ -327,18 +327,32 @@ Unity6Portfolio/
 │   │   ├── ProjectSettings/
 │   │   └── Documentation/              Screenshots, GIFs
 │   │
-│   ├── Game.Server/                    # ASP.NET Core Server
+│   ├── Game.Client.Linked/             # MasterData Bridge (.NET SDK format)
+│   │
+│   ├── Game.Server/                    # ASP.NET Core 9 Server
 │   │   ├── Controllers/
 │   │   ├── Services/
 │   │   └── Program.cs
 │   │
-│   └── Game.Shared/                    # Shared Library
-│       ├── Game.Shared.csproj          .NET Project
-│       ├── package.json                Unity Package Definition
-│       └── Runtime/
-│           └── Shared/
-│               ├── Enums/              AudioCategory, etc.
-│               └── MasterData/         Master data definitions
+│   ├── Game.Shared/                    # Shared Library
+│   │   ├── Game.Shared.csproj          .NET Project
+│   │   ├── package.json                Unity Package Definition
+│   │   └── Runtime/
+│   │       └── Shared/
+│   │           ├── Enums/              AudioCategory, etc.
+│   │           └── MasterData/         Master data definitions
+│   │
+│   └── Game.Tools/                     # CLI Tools (.NET 9)
+│
+├── masterdata/                         # Protobuf Schemas + TSV Data
+│
+├── docker/                             # Docker Configuration
+│   ├── unity-ci/                       # Unity CI Runner
+│   └── game-server/                    # Game.Server
+│
+├── docs/                               # Technical Documentation
+│
+├── scripts/                            # Build/Format Scripts
 │
 └── test/
     └── Game.Server.Tests/              # Server Tests
@@ -389,7 +403,7 @@ Unity6Portfolio/
 | Language/Framework | Version |
 |-------------------|---------|
 | Unity | 6000.3.2f1 |
-| .NET SDK | 8.0 |
+| .NET SDK | 9.0 |
 | C# | 9.0 |
 | cysharp/MessagePipe | 1.8.1 |
 | cysharp/R3 | 1.3.0 |
@@ -397,7 +411,7 @@ Unity6Portfolio/
 | cysharp/MasterMemory | 3.0.4 |
 | cysharp/MessagePack | 3.1.3 |
 | cysharp/MemoryPack | 1.21.3 |
-| hadashiA/VContainer | 1.16.8 |
+| hadashiA/VContainer | 1.17.0 |
 | NSubstitute | 5.3.0 |
 | xUnit | 2.x |
 | DOTween | 1.2.790 |
