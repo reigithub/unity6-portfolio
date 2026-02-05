@@ -274,6 +274,15 @@ Unity6Portfolio/
 
 **合計テスト数**: 485テスト（EditMode 422 + PlayMode 63）
 
+#### サーバー・ツールアセンブリ（.NET 9）
+
+| プロジェクト | 役割 | 主要な依存 |
+|-------------|------|-----------|
+| **Game.Server** | REST API サーバー | ASP.NET Core 9, Dapper, Npgsql, FluentMigrator |
+| **Game.Tools** | CLIツール（マスターデータ管理等） | ConsoleAppFramework, Google.Protobuf, MasterMemory |
+| **Game.Client.Linked** | クライアントMemoryTable参照ブリッジ | MasterMemory, MessagePack |
+| **Game.Shared** | 共有ライブラリ（.NET版） | MasterMemory, MessagePack |
+
 ### 4.3 循環参照防止設計
 
 ```
@@ -460,37 +469,197 @@ IGameScene (interface)
 
 ### 7.1 マスターデータフロー
 
+本プロジェクトはProtobufスキーマ駆動のマスターデータ管理システムを採用し、クライアント・サーバー間でデータ定義を共有しながら、デプロイターゲットに応じたフィールドフィルタリングを実現しています。
+
+#### 7.1.1 全体アーキテクチャ
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Master Data Flow                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │  Excel/CSV   │───▶│MasterMemory  │───▶│MemoryDatabase│      │
-│  │  (設計時)    │    │  Generator   │    │ (実行時)     │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│                                                 │               │
-│                                                 ▼               │
-│                                    ┌──────────────────────┐    │
-│                                    │ IMasterDataService   │    │
-│                                    │ .MemoryDatabase      │    │
-│                                    └──────────────────────┘    │
-│                                                 │               │
-│                      ┌──────────────────────────┼───────────┐  │
-│                      ▼                          ▼           ▼  │
-│              ┌─────────────┐          ┌─────────────┐ ┌──────┐ │
-│              │WeaponMaster │          │EnemyMaster  │ │ ...  │ │
-│              │  Table      │          │  Table      │ │      │ │
-│              └─────────────┘          └─────────────┘ └──────┘ │
-│                      │                          │               │
-│                      ▼                          ▼               │
-│              ┌─────────────┐          ┌─────────────┐          │
-│              │WeaponSystem │          │EnemySpawner │          │
-│              │ (Runtime)   │          │ (Runtime)   │          │
-│              └─────────────┘          └─────────────┘          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Master Data Update Flow                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ① Schema定義                                                           │
+│  ┌──────────────────────┐                                               │
+│  │ masterdata/proto/    │  ← .proto ファイル（スキーマ定義）             │
+│  │  ├── options/        │     デプロイターゲット指定                     │
+│  │  ├── audio/          │     PRIMARY/SECONDARY キー指定                │
+│  │  ├── score_time_attack/                                              │
+│  │  └── survivor/       │                                               │
+│  └──────────┬───────────┘                                               │
+│             │                                                           │
+│             ▼                                                           │
+│  ② コード生成 (Game.Tools CLI)                                          │
+│  ┌──────────────────────┐                                               │
+│  │ masterdata codegen   │  protoc → FileDescriptorSet → C#生成          │
+│  └──────────┬───────────┘                                               │
+│             │                                                           │
+│     ┌───────┴───────┐                                                   │
+│     ▼               ▼                                                   │
+│  ┌────────────┐  ┌────────────┐                                         │
+│  │ Client     │  │ Server     │  ← MemoryTable C#クラス                 │
+│  │*.Generated │  │*.Generated │    (フィールドフィルタリング適用)        │
+│  └────────────┘  └────────────┘                                         │
+│                                                                         │
+│  ③ TSVデータ編集                                                        │
+│  ┌──────────────────────┐                                               │
+│  │ masterdata/raw/*.tsv │  ← スプレッドシート互換フォーマット            │
+│  └──────────┬───────────┘                                               │
+│             │                                                           │
+│             ▼                                                           │
+│  ④ バイナリビルド                                                       │
+│  ┌─────────────────────────────────────────────────────────────┐       │
+│  │   ┌─────────────────┐        ┌─────────────────────┐        │       │
+│  │   │ Unity Editor   │        │ Game.Tools CLI      │        │       │
+│  │   │ MasterDataWindow│        │ masterdata build    │        │       │
+│  │   └────────┬────────┘        └──────────┬──────────┘        │       │
+│  │            ▼                            ▼                   │       │
+│  │   ┌─────────────────┐        ┌─────────────────────┐        │       │
+│  │   │MasterDataBinary │        │ masterdata.bytes    │        │       │
+│  │   │.bytes (Client)  │        │ (Server)            │        │       │
+│  │   └─────────────────┘        └─────────────────────┘        │       │
+│  └─────────────────────────────────────────────────────────────┘       │
+│                                                                         │
+│  ⑤ ランタイムロード                                                     │
+│  ┌─────────────────────┐        ┌─────────────────────┐                │
+│  │ Client (Unity)      │        │ Server (ASP.NET)    │                │
+│  │ Addressables経由    │        │ FileSystem経由      │                │
+│  │ → MemoryDatabase    │        │ → MemoryDatabase    │                │
+│  └─────────────────────┘        └─────────────────────┘                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+#### 7.1.2 デプロイターゲットシステム
+
+ビットマスクによるフィールドフィルタリングで、同一スキーマから異なるバイナリを生成:
+
+| ターゲット | ビット | 値 | 用途 |
+|-----------|-------|---:|------|
+| ALL | - | 0 | 全ターゲット共通（Id, Name等の基本フィールド） |
+| CLIENT | 0 | 1 | Unityクライアントのみ（アセット名、UI用データ） |
+| SERVER | 1 | 2 | REST APIサーバーのみ（報酬倍率、内部バランス値） |
+| REALTIME | 2 | 4 | MagicOnionリアルタイムサーバーのみ |
+
+**Protoファイルでの指定例:**
+```protobuf
+message SurvivorEnemyMaster {
+  option (masterdata.options.table_target) = DEPLOY_TARGET_ALL;
+
+  int32 id = 1 [(masterdata.options.index_type) = INDEX_PRIMARY];
+  string name = 2;
+
+  // クライアントのみ（UIアイコン）
+  string icon_asset_name = 3
+    [(masterdata.options.field_target) = DEPLOY_TARGET_CLIENT];
+
+  // サーバーのみ（内部バランス係数）
+  int32 difficulty_multiplier = 4
+    [(masterdata.options.field_target) = DEPLOY_TARGET_SERVER];
+}
+```
+
+#### 7.1.3 CLIツール（Game.Tools）
+
+| コマンド | 用途 |
+|---------|------|
+| `masterdata codegen` | Proto → C# MemoryTableクラス生成 |
+| `masterdata build` | TSV → MessagePackバイナリ変換 |
+| `masterdata validate` | TSVスキーマ検証 |
+| `masterdata scaffold` | C#クラス → Proto逆生成 |
+| `masterdata export` | バイナリ → JSON/TSV出力 |
+| `masterdata diff` | 2つのバイナリ比較 |
+
+**ビルドコマンド例:**
+```bash
+# C#クラス生成
+dotnet run --project src/Game.Tools -- masterdata codegen \
+  --proto-dir masterdata/proto/ \
+  --out-client src/Game.Client/Assets/Programs/Runtime/Shared/MasterData/ \
+  --out-server src/Game.Server/MasterData/
+
+# サーバー用バイナリビルド
+dotnet run --project src/Game.Tools -- masterdata build \
+  --tsv-dir masterdata/raw/ \
+  --proto-dir masterdata/proto/ \
+  --out-server src/Game.Server/MasterData/masterdata.bytes
+```
+
+#### 7.1.4 クライアント側ロードフロー
+
+```csharp
+// MasterDataServiceBase.cs
+public async UniTask LoadMasterDataAsync()
+{
+    // Addressables経由でバイナリ読み込み
+    var asset = await _assetService.LoadAssetAsync<TextAsset>("MasterDataBinary");
+
+    // MessagePackリゾルバ設定
+    var resolver = CompositeResolver.Create(
+        MasterMemoryResolver.Instance,
+        StandardResolver.Instance
+    );
+
+    // MemoryDatabase構築
+    MemoryDatabase = new MemoryDatabase(asset.bytes, maxDegreeOfParallelism: Environment.ProcessorCount);
+}
+
+// 使用例
+var enemy = _masterDataService.MemoryDatabase.SurvivorEnemyMasterTable.FindById(enemyId);
+```
+
+#### 7.1.5 サーバー側ロードフロー
+
+```csharp
+// MasterDataService.cs (Game.Server)
+public class MasterDataService : IMasterDataService
+{
+    public MemoryDatabase MemoryDatabase { get; }
+
+    public MasterDataService(IOptions<MasterDataSettings> settings)
+    {
+        var binaryPath = settings.Value.BinaryPath; // "MasterData/masterdata.bytes"
+        var bytes = File.ReadAllBytes(binaryPath);
+
+        MemoryDatabase = new MemoryDatabase(bytes, maxDegreeOfParallelism: Environment.ProcessorCount);
+        _logger.LogInformation("MasterData loaded: {Path}", binaryPath);
+    }
+}
+
+// Program.cs での登録
+builder.Services.Configure<MasterDataSettings>(builder.Configuration.GetSection("MasterData"));
+builder.Services.AddSingleton<IMasterDataService, MasterDataService>();
+```
+
+#### 7.1.6 Game.Client.Linked の役割
+
+CLIツールがクライアント用MemoryTableの型情報にアクセスするためのブリッジプロジェクト:
+
+```xml
+<!-- Game.Client.Linked.csproj -->
+<ItemGroup>
+  <!-- クライアント生成ファイルをリンク参照 -->
+  <Compile Include="..\Game.Client\Assets\...\MasterData\*.Generated.cs" LinkBase="Generated" />
+</ItemGroup>
+```
+
+**依存関係:**
+```
+Game.Tools
+    ├── Game.Server (サーバー用MemoryTable)
+    └── Game.Client.Linked (クライアント用MemoryTable参照)
+            └── Game.Client/*.Generated.cs をリンク
+```
+
+#### 7.1.7 ファイル配置
+
+| 種類 | パス |
+|-----|------|
+| Protoスキーマ | `masterdata/proto/**/*.proto` |
+| TSVデータ | `masterdata/raw/*.tsv` |
+| Client生成コード | `src/Game.Client/.../Shared/MasterData/*.Generated.cs` |
+| Clientバイナリ | `src/Game.Client/Assets/MasterData/MasterDataBinary.bytes` |
+| Server生成コード | `src/Game.Server/MasterData/*.Generated.cs` |
+| Serverバイナリ | `src/Game.Server/MasterData/masterdata.bytes` |
 
 ### 7.2 セーブデータフロー
 
