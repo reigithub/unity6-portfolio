@@ -5,5 +5,5 @@ namespace Game.Server.Dto.Requests;
 public class UpdateUserRequest
 {
     [StringLength(50, MinimumLength = 2)]
-    public string? DisplayName { get; set; }
+    public string? UserName { get; set; }
 }

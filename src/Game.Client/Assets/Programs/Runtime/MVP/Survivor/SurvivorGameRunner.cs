@@ -29,6 +29,8 @@ namespace Game.MVP.Survivor
         private readonly ISurvivorSaveService _saveService;
         private readonly IAudioSaveService _audioSaveService;
         private readonly IPersistentObjectProvider _persistentObjectProvider;
+        private readonly ISessionService _sessionService;
+        private readonly IApiClient _apiClient;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
@@ -42,7 +44,9 @@ namespace Game.MVP.Survivor
             IInputService inputService,
             ISurvivorSaveService saveService,
             IAudioSaveService audioSaveService,
-            IPersistentObjectProvider persistentObjectProvider)
+            IPersistentObjectProvider persistentObjectProvider,
+            ISessionService sessionService,
+            IApiClient apiClient)
         {
             _container = container;
             _sceneService = sceneService;
@@ -53,6 +57,8 @@ namespace Game.MVP.Survivor
             _saveService = saveService;
             _audioSaveService = audioSaveService;
             _persistentObjectProvider = persistentObjectProvider;
+            _sessionService = sessionService;
+            _apiClient = apiClient;
         }
 
         public async UniTask StartupAsync()
@@ -68,10 +74,16 @@ namespace Game.MVP.Survivor
             await _saveService.LoadAsync();
             await _audioSaveService.LoadAsync();
 
-            // 4. 共通オブジェクト読み込み（カメラ、UIルートなど）
+            // 4. セッション復元
+            if (await _sessionService.RestoreSessionAsync())
+            {
+                _apiClient.SetAuthToken(_sessionService.AuthToken);
+            }
+
+            // 5. 共通オブジェクト読み込み（カメラ、UIルートなど）
             await LoadGameRootControllerAsync();
 
-            // 5. 初期シーンへ遷移
+            // 6. 初期シーンへ遷移
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
 
             Debug.Log("[SurvivorGameRunner] Game started");

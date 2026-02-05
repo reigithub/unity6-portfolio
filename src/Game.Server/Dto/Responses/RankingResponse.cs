@@ -17,7 +17,7 @@ public class RankingEntryResponse
 
     public string UserId { get; set; } = string.Empty;
 
-    public string DisplayName { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
 
     public int Score { get; set; }
 

@@ -1,6 +1,7 @@
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Tests.Fixtures;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -22,8 +23,8 @@ public class RankingServiceTests
         // Arrange
         var scores = new List<UserScore>
         {
-            new() { UserId = "2", Score = 200, ClearTime = 90f, User = new() { DisplayName = "B" } },
-            new() { UserId = "1", Score = 100, ClearTime = 120f, User = new() { DisplayName = "A" } },
+            new() { UserId = TestDataFixture.User2Id, Score = 200, ClearTime = 90f, User = new() { UserId = "pub2", UserName = "B" } },
+            new() { UserId = TestDataFixture.User1Id, Score = 100, ClearTime = 120f, User = new() { UserId = "pub1", UserName = "A" } },
         };
         _mockRepo.Setup(r => r.GetTopScoresAsync("Survivor", 1, 100, 0))
             .ReturnsAsync(scores);
@@ -33,9 +34,9 @@ public class RankingServiceTests
 
         // Assert
         Assert.Equal(2, result.Entries.Count);
-        Assert.Equal("B", result.Entries[0].DisplayName);
+        Assert.Equal("B", result.Entries[0].UserName);
         Assert.Equal(1, result.Entries[0].Rank);
-        Assert.Equal("A", result.Entries[1].DisplayName);
+        Assert.Equal("A", result.Entries[1].UserName);
         Assert.Equal(2, result.Entries[1].Rank);
     }
 
@@ -58,25 +59,26 @@ public class RankingServiceTests
     public async Task GetUserRankAsync_ExistingUser_ReturnsCorrectRank()
     {
         // Arrange
+        var userId = TestDataFixture.User1Id;
         var bestScore = new UserScore
         {
-            UserId = "user-1",
+            UserId = userId,
             Score = 5000,
             ClearTime = 120f,
-            User = new() { DisplayName = "Player1" },
+            User = new() { UserId = "000000000001", UserName = "Player1" },
         };
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "user-1"))
+        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, userId))
             .ReturnsAsync(bestScore);
-        _mockRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, "user-1"))
+        _mockRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, userId))
             .ReturnsAsync(2);
 
         // Act
-        var result = await _service.GetUserRankAsync("Survivor", 1, "user-1");
+        var result = await _service.GetUserRankAsync("Survivor", 1, userId);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(2, result.Rank);
-        Assert.Equal("Player1", result.DisplayName);
+        Assert.Equal("Player1", result.UserName);
         Assert.Equal(5000, result.Score);
     }
 
@@ -84,11 +86,12 @@ public class RankingServiceTests
     public async Task GetUserRankAsync_NonExistentUser_ReturnsNull()
     {
         // Arrange
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, "no-user"))
+        var noUserId = Guid.Empty;
+        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, noUserId))
             .ReturnsAsync((UserScore?)null);
 
         // Act
-        var result = await _service.GetUserRankAsync("Survivor", 1, "no-user");
+        var result = await _service.GetUserRankAsync("Survivor", 1, noUserId);
 
         // Assert
         Assert.Null(result);

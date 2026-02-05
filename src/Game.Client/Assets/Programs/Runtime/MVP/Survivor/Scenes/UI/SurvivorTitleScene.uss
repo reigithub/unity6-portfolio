@@ -29,7 +29,7 @@
     flex-grow: 1;
 }
 
-.options-button {
+.header-button {
     height: 48px;
     padding-left: 24px;
     padding-right: 24px;
@@ -42,16 +42,17 @@
     -unity-font-style: bold;
     letter-spacing: 2px;
     transition-duration: 0.12s;
+    margin-left: 12px;
 }
 
-.options-button:hover {
+.header-button:hover {
     background-color: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.4);
     color: rgb(255, 255, 255);
     scale: 1.05;
 }
 
-.options-button:active {
+.header-button:active {
     scale: 0.95;
 }
 

@@ -1,0 +1,166 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorAccountLinkDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Header -->
+            <ui:VisualElement class="dialog-header">
+                <ui:Label text="DATA LINK" class="dialog-title" />
+                <ui:Button text="X" name="close-button" class="close-button" />
+            </ui:VisualElement>
+
+            <!-- Content Area -->
+            <ui:VisualElement class="dialog-content">
+
+                <!-- Status View (initial) -->
+                <ui:VisualElement name="status-view" class="view-panel">
+                    <ui:Label text="Account Status" class="section-title" />
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="Type" class="status-label" />
+                        <ui:Label text="Guest" name="status-auth-type" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="User ID" class="status-label" />
+                        <ui:Label text="-" name="status-user-id" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="Name" class="status-label" />
+                        <ui:Label text="-" name="status-display-name" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="status-email-row" class="status-row">
+                        <ui:Label text="Email" class="status-label" />
+                        <ui:Label text="-" name="status-email" class="status-value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="action-buttons">
+                        <ui:Button text="LINK TO EMAIL" name="link-email-button" class="action-button action-button--primary" />
+                        <ui:Button text="ISSUE TRANSFER PASSWORD" name="issue-transfer-password-button" class="action-button" />
+                        <ui:Button text="LOGIN WITH USER ID" name="userid-login-button" class="action-button" />
+                        <ui:Button text="UNLINK EMAIL" name="unlink-email-button" class="action-button action-button--danger" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Link Form View -->
+                <ui:VisualElement name="link-form-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Link to Email Account" class="section-title" />
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Email" class="form-label" />
+                        <ui:TextField name="form-email" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Password" class="form-label" />
+                        <ui:TextField name="form-password" password="true" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Confirm Password" class="form-label" />
+                        <ui:TextField name="form-confirm-password" password="true" class="form-input" />
+                        <ui:Button text="Forgot password?" name="link-forgot-password-button" class="text-link-button text-link-button--inline" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="LINK" name="submit-link-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK" name="back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- UserId Login View -->
+                <ui:VisualElement name="userid-login-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="User ID Login" class="section-title" />
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="User ID" class="form-label" />
+                        <ui:TextField name="userid-input" class="form-input form-input--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Password" class="form-label" />
+                        <ui:TextField name="userid-password" password="true" class="form-input" />
+                        <ui:Button text="Forgot password?" name="userid-forgot-password-button" class="text-link-button text-link-button--inline" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="LOGIN" name="userid-login-submit-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK" name="userid-login-back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Forgot Password View -->
+                <ui:VisualElement name="forgot-password-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Forgot Password" class="section-title" />
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Email Address" class="form-label" />
+                        <ui:TextField name="forgot-email" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="SEND RESET LINK" name="forgot-submit-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK" name="forgot-back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Reset Password View -->
+                <ui:VisualElement name="reset-password-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Reset Password" class="section-title" />
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="Reset Token" class="form-label" />
+                        <ui:TextField name="reset-token" class="form-input form-input--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-group">
+                        <ui:Label text="New Password" class="form-label" />
+                        <ui:TextField name="reset-new-password" password="true" class="form-input" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="RESET PASSWORD" name="reset-submit-button" class="action-button action-button--primary" />
+                        <ui:Button text="BACK TO LOGIN" name="reset-back-button" class="action-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Transfer Password View -->
+                <ui:VisualElement name="transfer-password-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Transfer Password" name="transfer-title" class="section-title" />
+                    <ui:Label text="Save this password! It will only be shown once." name="transfer-warning" class="warning-text" />
+
+                    <ui:VisualElement class="status-row">
+                        <ui:Label text="User ID" class="status-label" />
+                        <ui:Label text="-" name="transfer-user-id" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="transfer-password-row" class="status-row">
+                        <ui:Label text="Password" class="status-label" />
+                        <ui:Label text="-" name="transfer-password" class="status-value status-value--mono" />
+                    </ui:VisualElement>
+
+                    <ui:Label text="A transfer password has been issued for this account." name="transfer-issued-message" class="info-text" />
+                    <ui:Label text="Password not available on this device. Please reissue if needed." name="transfer-unavailable-message" class="warning-text" />
+
+                    <ui:VisualElement class="form-buttons">
+                        <ui:Button text="REISSUE PASSWORD" name="reissue-transfer-password-button" class="action-button action-button--danger" />
+                        <ui:Button text="DONE" name="transfer-password-done-button" class="action-button action-button--primary" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Loading Indicator -->
+                <ui:VisualElement name="loading-view" class="view-panel view-panel--hidden">
+                    <ui:Label text="Processing..." class="loading-text" />
+                </ui:VisualElement>
+
+                <!-- Message Area (error / success) -->
+                <ui:Label name="message-label" class="message-label" />
+
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

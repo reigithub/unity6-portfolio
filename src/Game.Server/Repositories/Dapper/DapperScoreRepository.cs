@@ -30,12 +30,13 @@ public class DapperScoreRepository : IScoreRepository
     }
 
     public async Task<List<UserScore>> GetUserScoresAsync(
-        string userId, string? gameMode, int? stageId, int limit)
+        Guid userId, string? gameMode, int? stageId, int limit)
     {
         using var connection = _connectionFactory.CreateConnection();
 
         var sb = new StringBuilder(
-            @"SELECT ""Id"", ""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt""
+            @"SELECT ""Id"", ""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"",
+                     ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserScore"" WHERE ""UserId"" = @UserId");
 
         var parameters = new DynamicParameters();

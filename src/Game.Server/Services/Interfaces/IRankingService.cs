@@ -6,5 +6,5 @@ public interface IRankingService
 {
     Task<RankingResponse> GetRankingAsync(string gameMode, int stageId, int limit, int offset);
 
-    Task<RankingEntryResponse?> GetUserRankAsync(string gameMode, int stageId, string userId);
+    Task<RankingEntryResponse?> GetUserRankAsync(string gameMode, int stageId, Guid userId);
 }

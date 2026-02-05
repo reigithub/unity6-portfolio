@@ -1,8 +1,6 @@
-using System.Data;
 using Dapper;
-using FluentMigrator.Runner;
+using Game.Server.Database;
 using Game.Server.Database.Migrations;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -39,24 +37,14 @@ public class PostgresContainerFixture : IAsyncLifetime
     {
         using var connection = CreateConnection();
         await connection.ExecuteAsync(
-            @"TRUNCATE ""User"".""UserScore"", ""User"".""UserInfo"" RESTART IDENTITY CASCADE");
+            @"TRUNCATE ""User"".""UserExternalIdentity"", ""User"".""UserScore"", ""User"".""UserInfo"" RESTART IDENTITY CASCADE");
     }
 
     private void RunMigrations()
     {
-        var services = new ServiceCollection()
-            .AddFluentMigratorCore()
-            .ConfigureRunner(runner =>
-            {
-                runner.AddPostgres();
-                runner.WithGlobalConnectionString(ConnectionString);
-                runner.ScanIn(typeof(_2026020100010001_CreateMasterSchema).Assembly).For.Migrations();
-            })
-            .AddLogging(lb => lb.AddFluentMigratorConsole())
-            .BuildServiceProvider(false);
-
-        using var scope = services.CreateScope();
-        var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-        runner.MigrateUp();
+        foreach (var schema in MigrationSchema.All)
+        {
+            MigrationRunnerFactory.MigrateUp(ConnectionString, schema);
+        }
     }
 }

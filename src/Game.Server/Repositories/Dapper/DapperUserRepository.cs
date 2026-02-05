@@ -14,22 +14,24 @@ public class DapperUserRepository : IUserRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<UserInfo?> GetByIdAsync(string userId)
+    public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                     ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
-            new { Id = userId });
+            new { Id = id });
     }
 
-    public async Task<UserInfo?> GetByDisplayNameAsync(string displayName)
+    public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.QueryFirstOrDefaultAsync<UserInfo>(
-            @"SELECT ""Id"", ""DisplayName"", ""PasswordHash"", ""Level"", ""CreatedAt"", ""LastLoginAt""
-              FROM ""User"".""UserInfo"" WHERE ""DisplayName"" = @DisplayName",
-            new { DisplayName = displayName });
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                     ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
+              FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
+            new { UserName = displayName });
     }
 
     public async Task UpdateAsync(UserInfo user)
@@ -37,10 +39,9 @@ public class DapperUserRepository : IUserRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
-              SET ""DisplayName"" = @DisplayName,
+              SET ""UserName"" = @UserName,
                   ""PasswordHash"" = @PasswordHash,
                   ""Level"" = @Level,
-                  ""CreatedAt"" = @CreatedAt,
                   ""LastLoginAt"" = @LastLoginAt
               WHERE ""Id"" = @Id",
             user);

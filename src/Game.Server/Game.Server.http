@@ -1,6 +1,286 @@
-@Game.Server_HostAddress = http://localhost:5193
+### ===========================================
+### Game Server API - HTTP Request Collection
+### ===========================================
+###
+### 使い方:
+###   1. サーバーを起動: dotnet run
+###   2. 各リクエストの左に表示される "Send Request" をクリック
+###   3. @name 付きリクエストのレスポンスは変数として後続リクエストで利用可能
+###
+### Scalar UI: http://localhost:5193/scalar/v1
+###
 
-GET {{Game.Server_HostAddress}}/weatherforecast/
-Accept: application/json
+@host = http://localhost:5193
+@contentType = application/json
+
+
+### ===========================================
+### Health
+### ===========================================
+
+### Health Check
+GET {{host}}/api/health
+Accept: {{contentType}}
+
+
+### ===========================================
+### Auth - Guest
+### ===========================================
+
+### Guest Login (新規 or 既存)
+# @name guestLogin
+POST {{host}}/api/auth/guest
+Content-Type: {{contentType}}
+
+{
+  "deviceFingerprint": "test-device-fingerprint-1234567890abcdef"
+}
+
+
+### ===========================================
+### Auth - Email
+### ===========================================
+
+### Email Register (新規登録)
+# @name emailRegister
+POST {{host}}/api/auth/email/register
+Content-Type: {{contentType}}
+
+{
+  "email": "player@example.com",
+  "password": "TestPassword123!",
+  "displayName": "TestPlayer"
+}
 
 ###
+
+### Email Login
+# @name emailLogin
+POST {{host}}/api/auth/email/login
+Content-Type: {{contentType}}
+
+{
+  "email": "player@example.com",
+  "password": "TestPassword123!"
+}
+
+###
+
+### Verify Email
+POST {{host}}/api/auth/email/verify
+Content-Type: {{contentType}}
+
+{
+  "token": "paste-verification-token-here"
+}
+
+###
+
+### Forgot Password (リセットトークン送信)
+POST {{host}}/api/auth/email/forgot-password
+Content-Type: {{contentType}}
+
+{
+  "email": "player@example.com"
+}
+
+###
+
+### Reset Password (新パスワード設定)
+POST {{host}}/api/auth/email/reset-password
+Content-Type: {{contentType}}
+
+{
+  "token": "paste-reset-token-here",
+  "newPassword": "NewPassword456!"
+}
+
+
+### ===========================================
+### Auth - Account Link
+### ===========================================
+
+### Link Guest to Email (認証必要 - ゲストトークン使用)
+POST {{host}}/api/auth/link/email
+Content-Type: {{contentType}}
+Authorization: Bearer {{guestLogin.response.body.$.token}}
+
+{
+  "email": "linked@example.com",
+  "password": "LinkPassword123!",
+  "displayName": "LinkedPlayer"
+}
+
+###
+
+### Unlink Email to Guest (認証必要 - メールトークン使用)
+DELETE {{host}}/api/auth/link/email?deviceFingerprint=test-device-fingerprint-1234567890abcdef
+Authorization: Bearer {{guestLogin.response.body.$.token}}
+
+
+### ===========================================
+### Auth - Token Refresh
+### ===========================================
+
+### Refresh Token (認証必要)
+POST {{host}}/api/auth/refresh
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+
+### ===========================================
+### Auth - Legacy
+### ===========================================
+
+### Legacy Register
+# @name legacyRegister
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "displayName": "LegacyPlayer",
+  "password": "TestPassword123!"
+}
+
+###
+
+### Legacy Login
+# @name legacyLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "displayName": "LegacyPlayer",
+  "password": "TestPassword123!"
+}
+
+
+### ===========================================
+### Users (認証必要)
+### ===========================================
+
+### Get My Profile
+GET {{host}}/api/users/me
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+###
+
+### Update My Profile
+PUT {{host}}/api/users/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+{
+  "displayName": "UpdatedName"
+}
+
+
+### ===========================================
+### Scores (認証必要)
+### ===========================================
+
+### Submit Score
+POST {{host}}/api/scores
+Content-Type: {{contentType}}
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+{
+  "gameMode": "Survivor",
+  "stageId": 1,
+  "score": 25000,
+  "clearTime": 185.5,
+  "waveReached": 12,
+  "enemiesDefeated": 340
+}
+
+###
+
+### Get My Scores (全件)
+GET {{host}}/api/scores/me
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+###
+
+### Get My Scores (フィルタ付き)
+GET {{host}}/api/scores/me?gameMode=Survivor&stageId=1&limit=10
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+
+### ===========================================
+### Rankings
+### ===========================================
+
+### Get Rankings (Top 10)
+GET {{host}}/api/rankings/Survivor/1?limit=10&offset=0
+
+###
+
+### Get Rankings (ページネーション)
+GET {{host}}/api/rankings/Survivor/1?limit=10&offset=10
+
+###
+
+### Get My Rank (認証必要)
+GET {{host}}/api/rankings/Survivor/1/me
+Authorization: Bearer {{emailLogin.response.body.$.token}}
+
+
+### ===========================================
+### ゲームフロー統合テスト
+### ===========================================
+###
+### 以下の順序で実行すると一連のゲームフローをテストできます:
+###   1. guestLogin (ゲストでログイン)
+###   2. Get My Profile (プロフィール確認)
+###   3. Submit Score (スコア送信)
+###   4. Get My Scores (スコア確認)
+###   5. Get Rankings (ランキング確認)
+###   6. Get My Rank (自分の順位確認)
+###
+
+### Guest → Profile → Score 統合テスト用ログイン
+# @name integrationLogin
+POST {{host}}/api/auth/guest
+Content-Type: {{contentType}}
+
+{
+  "deviceFingerprint": "integration-test-device-0123456789abcdef"
+}
+
+###
+
+### 統合テスト: プロフィール取得
+GET {{host}}/api/users/me
+Authorization: Bearer {{integrationLogin.response.body.$.token}}
+
+###
+
+### 統合テスト: スコア送信
+POST {{host}}/api/scores
+Content-Type: {{contentType}}
+Authorization: Bearer {{integrationLogin.response.body.$.token}}
+
+{
+  "gameMode": "Survivor",
+  "stageId": 1,
+  "score": 50000,
+  "clearTime": 300.0,
+  "waveReached": 20,
+  "enemiesDefeated": 500
+}
+
+###
+
+### 統合テスト: スコア履歴
+GET {{host}}/api/scores/me?gameMode=Survivor
+Authorization: Bearer {{integrationLogin.response.body.$.token}}
+
+###
+
+### 統合テスト: ランキング確認
+GET {{host}}/api/rankings/Survivor/1?limit=5
+
+###
+
+### 統合テスト: 自分の順位
+GET {{host}}/api/rankings/Survivor/1/me
+Authorization: Bearer {{integrationLogin.response.body.$.token}}

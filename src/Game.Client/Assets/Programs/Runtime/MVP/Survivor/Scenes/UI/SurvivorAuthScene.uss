@@ -1,0 +1,295 @@
+/* ===========================================
+   Survivor Auth Scene Styles
+   Theme: Dark background with blue primary
+   Matches SurvivorTitleScene design language
+   =========================================== */
+
+/* ===========================================
+   Root & Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: transparent;
+    padding: 40px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.header__title {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 12px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+}
+
+/* ===========================================
+   Content Panel
+   =========================================== */
+
+.content-panel {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* ===========================================
+   Form Panel
+   =========================================== */
+
+.form-panel {
+    width: 420px;
+    padding: 40px;
+    background-color: rgba(0, 0, 0, 0.85);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    align-items: stretch;
+}
+
+.form-panel--hidden {
+    display: none;
+}
+
+.form-panel__title {
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    -unity-text-align: middle-center;
+    margin-bottom: 8px;
+}
+
+.form-panel__subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-text-align: middle-center;
+    margin-bottom: 24px;
+}
+
+/* ===========================================
+   Form Field
+   =========================================== */
+
+.form-field {
+    margin-bottom: 16px;
+}
+
+.form-field__label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+}
+
+.form-field__input {
+    height: 48px;
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.form-field__input:focus {
+    border-color: rgba(60, 140, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.form-field__input > .unity-text-field__input {
+    color: rgb(255, 255, 255);
+    background-color: transparent;
+    border-width: 0;
+    padding: 0;
+}
+
+/* ===========================================
+   Password Strength Indicator
+   =========================================== */
+
+.password-strength {
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-bottom: 4px;
+    overflow: hidden;
+}
+
+.password-strength__bar {
+    height: 100%;
+    width: 0%;
+    background-color: rgb(180, 60, 60);
+    border-radius: 2px;
+    transition-duration: 0.3s;
+}
+
+.password-strength__label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 16px;
+    min-height: 16px;
+}
+
+/* ===========================================
+   Auth Buttons
+   =========================================== */
+
+.auth-button {
+    height: 56px;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    margin-top: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    transition-duration: 0.12s;
+}
+
+.auth-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.03;
+}
+
+.auth-button:active {
+    scale: 0.97;
+}
+
+.auth-button--primary {
+    background-color: rgba(60, 140, 255, 0.8);
+    border-color: rgb(100, 180, 255);
+}
+
+.auth-button--primary:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+    scale: 1.05;
+}
+
+.auth-button--secondary {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    font-size: 16px;
+    height: 44px;
+}
+
+.auth-button--secondary:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.auth-button--link {
+    background-color: transparent;
+    border-width: 0;
+    color: rgba(100, 180, 255, 0.9);
+    font-size: 14px;
+    height: 32px;
+    margin-top: 4px;
+    -unity-font-style: normal;
+    letter-spacing: 0;
+}
+
+.auth-button--link:hover {
+    color: rgb(130, 200, 255);
+    background-color: transparent;
+    scale: 1;
+}
+
+/* ===========================================
+   Error / Success Messages
+   =========================================== */
+
+.error-message {
+    font-size: 16px;
+    color: rgb(255, 100, 100);
+    -unity-text-align: middle-center;
+    padding: 12px 24px;
+    background-color: rgba(180, 40, 40, 0.3);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 100, 100, 0.3);
+    margin-top: 12px;
+    max-width: 420px;
+}
+
+.error-message--hidden {
+    display: none;
+}
+
+.success-message {
+    font-size: 16px;
+    color: rgb(100, 255, 150);
+    -unity-text-align: middle-center;
+    padding: 12px 24px;
+    background-color: rgba(40, 180, 80, 0.3);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(100, 255, 150, 0.3);
+    margin-top: 12px;
+    max-width: 420px;
+}
+
+.success-message--hidden {
+    display: none;
+}
+
+/* ===========================================
+   Loading Overlay
+   =========================================== */
+
+.loading-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-overlay--hidden {
+    display: none;
+}
+
+.loading-overlay__text {
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+}
+
+/* ===========================================
+   Footer
+   =========================================== */
+
+.footer {
+    align-items: center;
+    padding: 12px;
+    width: 100%;
+}
+
+.footer__copyright {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}

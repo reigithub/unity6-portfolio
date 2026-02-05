@@ -5,9 +5,9 @@ namespace Game.Server.Services.Interfaces;
 
 public interface IScoreService
 {
-    Task<Result<ScoreSubmitResponse, ApiError>> SubmitScoreAsync(string userId, SubmitScoreRequest request);
+    Task<Result<ScoreSubmitResponse, ApiError>> SubmitScoreAsync(Guid userId, SubmitScoreRequest request);
 
-    Task<List<ScoreHistoryEntry>> GetUserScoresAsync(string userId, string? gameMode, int? stageId, int limit);
+    Task<List<ScoreHistoryEntry>> GetUserScoresAsync(Guid userId, string? gameMode, int? stageId, int limit);
 }
 
 public class ScoreHistoryEntry

@@ -21,8 +21,8 @@ public class RankingService : IRankingService
         var entries = scores.Select((s, index) => new RankingEntryResponse
         {
             Rank = offset + index + 1,
-            UserId = s.UserId,
-            DisplayName = s.User?.DisplayName ?? string.Empty,
+            UserId = s.User?.UserId ?? string.Empty,
+            UserName = s.User?.UserName ?? string.Empty,
             Score = s.Score,
             ClearTime = s.ClearTime,
             RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
@@ -38,7 +38,7 @@ public class RankingService : IRankingService
     }
 
     public async Task<RankingEntryResponse?> GetUserRankAsync(
-        string gameMode, int stageId, string userId)
+        string gameMode, int stageId, Guid userId)
     {
         var bestScore = await _rankingRepository.GetUserBestScoreAsync(gameMode, stageId, userId);
         if (bestScore == null)
@@ -51,8 +51,8 @@ public class RankingService : IRankingService
         return new RankingEntryResponse
         {
             Rank = rank,
-            UserId = bestScore.UserId,
-            DisplayName = bestScore.User?.DisplayName ?? string.Empty,
+            UserId = bestScore.User?.UserId ?? string.Empty,
+            UserName = bestScore.User?.UserName ?? string.Empty,
             Score = bestScore.Score,
             ClearTime = bestScore.ClearTime,
             RecordedAt = new DateTimeOffset(bestScore.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),

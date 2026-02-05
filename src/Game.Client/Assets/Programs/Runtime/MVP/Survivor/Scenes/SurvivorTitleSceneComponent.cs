@@ -21,11 +21,13 @@ namespace Game.MVP.Survivor.Scenes
         private readonly Subject<Unit> _onReturnClicked = new();
         private readonly Subject<Unit> _onQuitClicked = new();
         private readonly Subject<Unit> _onOptionsClicked = new();
+        private readonly Subject<Unit> _onDataLinkClicked = new();
 
         public Observable<Unit> OnStartGameClicked => _onStartGameClicked;
         public Observable<Unit> OnReturnClicked => _onReturnClicked;
         public Observable<Unit> OnQuitClicked => _onQuitClicked;
         public Observable<Unit> OnOptionsClicked => _onOptionsClicked;
+        public Observable<Unit> OnDataLinkClicked => _onDataLinkClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -33,6 +35,7 @@ namespace Game.MVP.Survivor.Scenes
         private Button _returnButton;
         private Button _quitButton;
         private Button _optionsButton;
+        private Button _dataLinkButton;
 
         protected override void OnDestroy()
         {
@@ -40,6 +43,7 @@ namespace Game.MVP.Survivor.Scenes
             _onReturnClicked.Dispose();
             _onQuitClicked.Dispose();
             _onOptionsClicked.Dispose();
+            _onDataLinkClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -60,6 +64,7 @@ namespace Game.MVP.Survivor.Scenes
             _returnButton = _root.Q<Button>("return-button");
             _quitButton = _root.Q<Button>("quit-button");
             _optionsButton = _root.Q<Button>("options-button");
+            _dataLinkButton = _root.Q<Button>("data-link-button");
         }
 
         /// <summary>
@@ -78,6 +83,9 @@ namespace Game.MVP.Survivor.Scenes
 
             _optionsButton?.RegisterCallback<ClickEvent>(_ =>
                 _onOptionsClicked.OnNext(Unit.Default));
+
+            _dataLinkButton?.RegisterCallback<ClickEvent>(_ =>
+                _onDataLinkClicked.OnNext(Unit.Default));
         }
 
         public void PlayAnimation()

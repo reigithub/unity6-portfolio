@@ -16,6 +16,8 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAudioService _audioService;
+        [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IAuthApiService _authApiService;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -39,6 +41,10 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnOptionsClicked
                 .Subscribe(_ => OnOptions().Forget())
                 .AddTo(Disposables);
+
+            SceneComponent.OnDataLinkClicked
+                .Subscribe(_ => OnDataLink().Forget())
+                .AddTo(Disposables);
         }
 
         public override async UniTask Ready()
@@ -51,8 +57,18 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
+
+            if (!_sessionService.IsAuthenticated)
+            {
+                var result = await _authApiService.GuestLoginAsync();
+                if (!result.IsSuccess)
+                {
+                    SceneComponent.SetInteractables(true);
+                    return;
+                }
+            }
+
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
-            await UniTask.CompletedTask;
         }
 
         private async UniTaskVoid OnReturn()
@@ -73,6 +89,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
+        }
+
+        private async UniTaskVoid OnDataLink()
+        {
+            SceneComponent.SetInteractables(false);
+            await SurvivorAccountLinkDialog.RunAsync(_sceneService);
             SceneComponent.SetInteractables(true);
         }
     }

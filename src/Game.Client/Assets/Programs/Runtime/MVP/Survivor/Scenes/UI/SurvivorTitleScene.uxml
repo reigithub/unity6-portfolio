@@ -2,10 +2,11 @@
     <Style src="SurvivorTitleScene.uss" />
 
     <ui:VisualElement name="root" class="root">
-        <!-- Header with Options Button -->
+        <!-- Header with Data Link & Options Buttons -->
         <ui:VisualElement name="header" class="header">
             <ui:VisualElement class="header__spacer" />
-            <ui:Button text="OPTIONS" name="options-button" class="options-button" />
+            <ui:Button text="DATA LINK" name="data-link-button" class="header-button" />
+            <ui:Button text="OPTIONS" name="options-button" class="header-button" />
         </ui:VisualElement>
 
         <!-- Title Area (Top) -->

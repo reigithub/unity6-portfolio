@@ -4,7 +4,7 @@ public class UserScore
 {
     public long Id { get; set; }
 
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     public string GameMode { get; set; } = string.Empty;
 
@@ -19,6 +19,10 @@ public class UserScore
     public int EnemiesDefeated { get; set; }
 
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 
     // Navigation (populated by Dapper multi-mapping)
     public UserInfo? User { get; set; }
