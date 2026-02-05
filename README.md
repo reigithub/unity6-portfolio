@@ -170,7 +170,7 @@ dotnet test
 * **クライアント・サーバー共有**: Game.Sharedによりマスターデータ定義をクライアント・サーバー間で共有
 * **プレハブシーン/ダイアログ遷移機能**: async/awaitによる非同期シーン遷移
 * **ステートマシーン実装**: ジェネリック型コンテキスト付き、遷移テーブルによる状態管理
-* **マスターデータ管理**: TSV→バイナリ変換、エディタ拡張によるデータ駆動開発
+* **マスターデータ管理**: Protobufスキーマ駆動、CLIツールによるクライアント・サーバー両対応のバイナリ生成
 * **各種ゲームサービス**: オーディオ、シーン遷移、メッセージングなどの共通機能
 * **DIコンテナ対応**: VContainerによる依存性注入（MVPパターン用）
 * **戦闘システム**: ICombatTarget/IDamageable/IKnockbackableによる統一的な戦闘インターフェース
@@ -231,6 +231,57 @@ dotnet test
 - `SurvivorWeaponLevelMaster`: 武器レベル別ステータス
 - `SurvivorItemMaster`: アイテム定義（効果値、レアリティ等）
 - `SurvivorItemDropMaster`: ドロップ抽選テーブル
+
+</details>
+
+<details><summary>マスターデータ更新システム</summary>
+
+クライアント・サーバー両対応のスキーマ駆動マスターデータ管理システム:
+
+**アーキテクチャ概要:**
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ Proto Schema    │────▶│ Game.Tools CLI  │────▶│ C# MemoryTable  │
+│ (masterdata/)   │     │ codegen/build   │     │ クラス生成       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                      │                        │
+         │              ┌───────┴───────┐                │
+         ▼              ▼               ▼                ▼
+┌─────────────────┐  ┌────────┐  ┌────────────┐  ┌─────────────┐
+│ TSV データ      │  │Client  │  │Server      │  │MemoryDatabase│
+│ (raw/*.tsv)     │  │.bytes  │  │.bytes      │  │ (実行時)     │
+└─────────────────┘  └────────┘  └────────────┘  └─────────────┘
+```
+
+**デプロイターゲット（ビットマスク）:**
+| ターゲット | 値 | 用途 |
+|-----------|---:|------|
+| ALL | 0 | 全ターゲット共通（Id, Name等） |
+| CLIENT | 1 | Unityクライアントのみ（アセット名等） |
+| SERVER | 2 | APIサーバーのみ（内部バランス値等） |
+| REALTIME | 4 | リアルタイムサーバーのみ |
+
+**CLIコマンド（Game.Tools）:**
+```bash
+# C#クラス生成（Proto → MemoryTable）
+dotnet run --project src/Game.Tools -- masterdata codegen
+
+# バイナリビルド（TSV → .bytes）
+dotnet run --project src/Game.Tools -- masterdata build
+
+# スキーマ検証
+dotnet run --project src/Game.Tools -- masterdata validate
+```
+
+**クライアント側:**
+- Unity Editor拡張（MasterDataWindow）でTSV編集・バイナリ生成
+- Addressables経由で`MasterDataBinary.bytes`をロード
+- `MasterDataServiceBase`で`MemoryDatabase`を構築
+
+**サーバー側:**
+- CLIツールでバイナリ生成（`masterdata.bytes`）
+- 起動時にファイルシステムから同期ロード
+- DIコンテナ経由で`IMasterDataService`を注入
 
 </details>
 

@@ -171,7 +171,7 @@ dotnet test
 * **Client-Server Sharing**: Share master data definitions between client and server via Game.Shared
 * **Prefab Scene/Dialog Transition**: Asynchronous scene transitions using async/await
 * **State Machine Implementation**: Generic context support with transition table-based state management
-* **Master Data Management**: TSV to binary conversion, data-driven development with editor extensions
+* **Master Data Management**: Protobuf schema-driven, CLI tools for client/server binary generation
 * **Various Game Services**: Common features like audio, scene transitions, messaging
 * **DI Container Support**: Dependency injection via VContainer (for MVP pattern)
 * **Combat System**: Unified combat interfaces with ICombatTarget/IDamageable/IKnockbackable
@@ -232,6 +232,57 @@ Master data definition files are separated into a shared library, providing thes
 - `SurvivorWeaponLevelMaster`: Weapon level-based stats
 - `SurvivorItemMaster`: Item definitions (effect value, rarity, etc.)
 - `SurvivorItemDropMaster`: Drop lottery table
+
+</details>
+
+<details><summary>Master Data Update System</summary>
+
+Schema-driven master data management system supporting both client and server:
+
+**Architecture Overview:**
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ Proto Schema    │────▶│ Game.Tools CLI  │────▶│ C# MemoryTable  │
+│ (masterdata/)   │     │ codegen/build   │     │ Class Generation│
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                      │                        │
+         │              ┌───────┴───────┐                │
+         ▼              ▼               ▼                ▼
+┌─────────────────┐  ┌────────┐  ┌────────────┐  ┌─────────────┐
+│ TSV Data        │  │Client  │  │Server      │  │MemoryDatabase│
+│ (raw/*.tsv)     │  │.bytes  │  │.bytes      │  │ (Runtime)    │
+└─────────────────┘  └────────┘  └────────────┘  └─────────────┘
+```
+
+**Deploy Targets (Bitmask):**
+| Target | Value | Usage |
+|--------|------:|-------|
+| ALL | 0 | All targets (Id, Name, etc.) |
+| CLIENT | 1 | Unity client only (asset names, etc.) |
+| SERVER | 2 | API server only (internal balance values) |
+| REALTIME | 4 | Realtime server only |
+
+**CLI Commands (Game.Tools):**
+```bash
+# Generate C# classes (Proto → MemoryTable)
+dotnet run --project src/Game.Tools -- masterdata codegen
+
+# Build binary (TSV → .bytes)
+dotnet run --project src/Game.Tools -- masterdata build
+
+# Validate schema
+dotnet run --project src/Game.Tools -- masterdata validate
+```
+
+**Client Side:**
+- Unity Editor extension (MasterDataWindow) for TSV editing and binary generation
+- Load `MasterDataBinary.bytes` via Addressables
+- Build `MemoryDatabase` through `MasterDataServiceBase`
+
+**Server Side:**
+- Generate binary via CLI tool (`masterdata.bytes`)
+- Synchronous load from filesystem at startup
+- Inject `IMasterDataService` via DI container
 
 </details>
 
