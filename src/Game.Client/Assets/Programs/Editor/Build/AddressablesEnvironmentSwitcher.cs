@@ -40,20 +40,20 @@ namespace Game.Editor.Build
 
             Debug.Log($"[Addressables] 設定適用開始: Profile={config.ProfileName}, UseRemote={config.UseRemoteLoadPath}");
 
-            // 1. Profile 切替
+            // 1. Profile 切替（Remote.LoadPath は Profile から自動取得される）
             SetActiveProfile(settings, config.ProfileName);
 
-            // 2. Remote.LoadPath 設定
-            if (config.UseRemoteLoadPath && !string.IsNullOrEmpty(config.RemoteLoadPath))
-            {
-                SetRemoteLoadPath(settings, config.RemoteLoadPath);
-            }
-
-            // 3. BuildRemoteCatalog 設定
+            // 2. BuildRemoteCatalog 設定
             settings.BuildRemoteCatalog = config.BuildRemoteCatalog;
 
-            // 4. 全GroupのBuild/Load Path を切替
+            // 3. 全GroupのBuild/Load Path を切替
             SetAllGroupsBuildMode(settings, config.UseRemoteLoadPath);
+
+            // ログ出力: Profile の Remote パスを表示
+            var remoteBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath");
+            var remoteLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath");
+            Debug.Log($"[Addressables] Remote.BuildPath: {remoteBuildPath}");
+            Debug.Log($"[Addressables] Remote.LoadPath: {remoteLoadPath}");
 
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
@@ -121,16 +121,6 @@ namespace Game.Editor.Build
 
             settings.activeProfileId = profileId;
             Debug.Log($"[Addressables] Profile 切替: {profileName}");
-        }
-
-        /// <summary>
-        /// Remote.LoadPath を設定
-        /// </summary>
-        private static void SetRemoteLoadPath(AddressableAssetSettings settings, string loadPath)
-        {
-            var profileId = settings.activeProfileId;
-            settings.profileSettings.SetValue(profileId, "Remote.LoadPath", loadPath);
-            Debug.Log($"[Addressables] Remote.LoadPath: {loadPath}");
         }
 
         /// <summary>
@@ -220,6 +210,7 @@ namespace Game.Editor.Build
             {
                 ActiveProfileName = settings.profileSettings.GetProfileName(settings.activeProfileId),
                 BuildRemoteCatalog = settings.BuildRemoteCatalog,
+                RemoteBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath"),
                 RemoteLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath")
             };
 
@@ -251,6 +242,7 @@ namespace Game.Editor.Build
     {
         public string ActiveProfileName { get; set; } = "Unknown";
         public bool BuildRemoteCatalog { get; set; }
+        public string RemoteBuildPath { get; set; } = "";
         public string RemoteLoadPath { get; set; } = "";
         public int TotalGroups { get; set; }
         public int RemoteGroups { get; set; }

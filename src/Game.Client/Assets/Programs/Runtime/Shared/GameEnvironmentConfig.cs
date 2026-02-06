@@ -26,12 +26,10 @@ namespace Game.Shared
     {
         [SerializeField] private string _profileName = "Default";
         [SerializeField] private bool _useRemoteLoadPath;
-        [SerializeField] private string _remoteLoadPath;
         [SerializeField] private bool _buildRemoteCatalog;
 
         public string ProfileName => _profileName;
         public bool UseRemoteLoadPath => _useRemoteLoadPath;
-        public string RemoteLoadPath => _remoteLoadPath;
         public bool BuildRemoteCatalog => _buildRemoteCatalog;
     }
 

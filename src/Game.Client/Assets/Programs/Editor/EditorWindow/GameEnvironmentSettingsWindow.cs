@@ -115,7 +115,6 @@ namespace Game.Editor
             {
                 EditorGUILayout.TextField("Profile", addrConfig.ProfileName);
                 EditorGUILayout.Toggle("Use Remote", addrConfig.UseRemoteLoadPath);
-                EditorGUILayout.TextField("Remote Load Path", addrConfig.RemoteLoadPath ?? "-");
                 EditorGUILayout.Toggle("Build Remote Catalog", addrConfig.BuildRemoteCatalog);
             }
             else
@@ -135,7 +134,8 @@ namespace Game.Editor
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField("Active Profile", state.ActiveProfileName);
             EditorGUILayout.Toggle("Build Remote Catalog", state.BuildRemoteCatalog);
-            EditorGUILayout.TextField("Remote Load Path", state.RemoteLoadPath ?? "-");
+            EditorGUILayout.TextField("Remote.BuildPath", state.RemoteBuildPath ?? "-");
+            EditorGUILayout.TextField("Remote.LoadPath", state.RemoteLoadPath ?? "-");
             EditorGUILayout.TextField("Remote Groups", $"{state.RemoteGroups} / {state.TotalGroups}");
             EditorGUI.EndDisabledGroup();
 
