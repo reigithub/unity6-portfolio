@@ -24,7 +24,6 @@ MonoBehaviour:
     _addressablesConfig:
       _profileName: Default
       _useRemoteLoadPath: 0
-      _remoteLoadPath: 
       _buildRemoteCatalog: 0
   - _environment: 1
     _dependencyResolverMode: 1
@@ -36,7 +35,6 @@ MonoBehaviour:
     _addressablesConfig:
       _profileName: Develop-R2
       _useRemoteLoadPath: 1
-      _remoteLoadPath: 'develop.assets.rei-unity6-portfolio.com/[BuildTarget]'
       _buildRemoteCatalog: 1
   - _environment: 1000
     _dependencyResolverMode: 1
@@ -48,7 +46,6 @@ MonoBehaviour:
     _addressablesConfig:
       _profileName: Staging-R2
       _useRemoteLoadPath: 1
-      _remoteLoadPath: 'staging.assets.rei-unity6-portfolio.com/[BuildTarget]'
       _buildRemoteCatalog: 1
   - _environment: 2000
     _dependencyResolverMode: 1
@@ -60,7 +57,6 @@ MonoBehaviour:
     _addressablesConfig:
       _profileName: Review-R2
       _useRemoteLoadPath: 1
-      _remoteLoadPath: 'review.assets.rei-unity6-portfolio.com/[BuildTarget]'
       _buildRemoteCatalog: 1
   - _environment: 3000
     _dependencyResolverMode: 1
@@ -72,5 +68,4 @@ MonoBehaviour:
     _addressablesConfig:
       _profileName: Release-R2
       _useRemoteLoadPath: 1
-      _remoteLoadPath: 'assets.rei-unity6-portfolio.com/[BuildTarget]'
       _buildRemoteCatalog: 1
