@@ -18,6 +18,23 @@ namespace Game.Shared
         DiContainer = 1,    // VContainer
     }
 
+    /// <summary>
+    /// Addressables 環境設定
+    /// </summary>
+    [Serializable]
+    public class AddressablesEnvironmentConfig
+    {
+        [SerializeField] private string _profileName = "Default";
+        [SerializeField] private bool _useRemoteLoadPath;
+        [SerializeField] private string _remoteLoadPath;
+        [SerializeField] private bool _buildRemoteCatalog;
+
+        public string ProfileName => _profileName;
+        public bool UseRemoteLoadPath => _useRemoteLoadPath;
+        public string RemoteLoadPath => _remoteLoadPath;
+        public bool BuildRemoteCatalog => _buildRemoteCatalog;
+    }
+
     [Serializable]
     public class GameEnvironmentConfig
     {
@@ -28,6 +45,7 @@ namespace Game.Shared
         [SerializeField] private bool _enableDebugLog;
         [SerializeField] private bool _enableAnalytics;
         [SerializeField] private bool _useLocalMasterData;
+        [SerializeField] private AddressablesEnvironmentConfig _addressablesConfig;
 
         public GameEnvironment Environment => _environment;
         public DependencyResolverMode DependencyResolverMode => _dependencyResolverMode;
@@ -36,6 +54,7 @@ namespace Game.Shared
         public bool EnableDebugLog => _enableDebugLog;
         public bool EnableAnalytics => _enableAnalytics;
         public bool UseLocalMasterData => _useLocalMasterData;
+        public AddressablesEnvironmentConfig AddressablesConfig => _addressablesConfig;
     }
 
     public static class GameEnvironmentHelper

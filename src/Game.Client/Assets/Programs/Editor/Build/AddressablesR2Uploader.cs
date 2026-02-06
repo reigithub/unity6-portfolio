@@ -179,7 +179,8 @@ namespace Game.Editor.Build
         /// Unity -executeMethod Game.Editor.Build.AddressablesR2Uploader.BuildAddressablesCI
         ///
         /// 環境変数:
-        ///   ADDRESSABLES_PROFILE: 使用するプロファイル名（デフォルト: Default）
+        ///   GAME_ENVIRONMENT: ゲーム環境（Local, Develop, Staging, Review, Release）
+        ///   ADDRESSABLES_PROFILE: 使用するプロファイル名（GAME_ENVIRONMENT未設定時のフォールバック）
         ///   ADDRESSABLES_REMOTE_LOAD_PATH: リモートロードパス（オプション）
         /// </summary>
         public static void BuildAddressablesCI()
@@ -187,6 +188,9 @@ namespace Game.Editor.Build
             Debug.Log("========================================");
             Debug.Log("[Addressables] CI ビルド開始");
             Debug.Log("========================================");
+
+            // 環境変数から Addressables 設定を適用
+            AddressablesEnvironmentSwitcher.ApplyFromEnvironmentVariable();
 
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             if (settings == null)
