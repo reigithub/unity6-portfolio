@@ -6,10 +6,10 @@ namespace Game.Shared
     public enum GameEnvironment
     {
         Local = 0,      // ローカル環境
-        Develop = 1,    // 開発ビルド環境
-        Staging = 1000, // ステージングビルド環境
-        Review = 2000,  // レビュービルド環境
-        Release = 3000, // 本番リリースビルド環境
+        Develop = 1,    // デバッグ・開発ビルド環境
+        Staging = 1000, // QA・ステージングビルド環境
+        Review = 2000,  // ストア審査・レビュービルド環境
+        Release = 3000, // 本番・リリースビルド環境
     }
 
     public enum DependencyResolverMode

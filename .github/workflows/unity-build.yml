@@ -34,6 +34,16 @@ on:
         required: false
         default: false
         type: boolean
+      game_environment:
+        description: 'Game environment (affects scripting define symbols)'
+        required: true
+        default: 'Develop'
+        type: choice
+        options:
+          - Develop
+          - Staging
+          - Review
+          - Release
 
 jobs:
   # ============================================
@@ -143,6 +153,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -169,6 +180,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget Win64 \
+              -activeBuildProfile "Assets/Settings/Build Profiles/Windows - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildWindows \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-windows.log"
@@ -204,6 +216,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -230,6 +243,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget Linux64 \
+              -activeBuildProfile "Assets/Settings/Build Profiles/Linux - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildLinux \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-linux.log"
@@ -265,6 +279,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -291,6 +306,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget OSXUniversal \
+              -activeBuildProfile "Assets/Settings/Build Profiles/macOS - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildMacOS \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-macos.log"
@@ -326,6 +342,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -352,6 +369,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget WebGL \
+              -activeBuildProfile "Assets/Settings/Build Profiles/WebGL - Desktop - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildWebGL \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-webgl.log"
@@ -387,6 +405,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -413,6 +432,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget Android \
+              -activeBuildProfile "Assets/Settings/Build Profiles/Android - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildAndroid \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-android.log"
@@ -448,6 +468,7 @@ jobs:
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
       BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
@@ -474,6 +495,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget iOS \
+              -activeBuildProfile "Assets/Settings/Build Profiles/iOS - Release.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildIOS \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
               -logFile "${{ github.workspace }}/Logs/build-ios.log"
