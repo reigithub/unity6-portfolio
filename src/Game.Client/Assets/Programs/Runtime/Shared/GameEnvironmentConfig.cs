@@ -6,16 +6,31 @@ namespace Game.Shared
     public enum GameEnvironment
     {
         Local = 0,      // ローカル環境
-        Develop = 1,    // 開発ビルド環境
-        Staging = 1000, // ステージングビルド環境
-        Review = 2000,  // レビュービルド環境
-        Release = 3000, // 本番リリースビルド環境
+        Develop = 1,    // デバッグ・開発ビルド環境
+        Staging = 1000, // QA・ステージングビルド環境
+        Review = 2000,  // ストア審査・レビュービルド環境
+        Release = 3000, // 本番・リリースビルド環境
     }
 
     public enum DependencyResolverMode
     {
         ServiceLocator = 0, // GameServiceManager
         DiContainer = 1,    // VContainer
+    }
+
+    /// <summary>
+    /// Addressables 環境設定
+    /// </summary>
+    [Serializable]
+    public class AddressablesEnvironmentConfig
+    {
+        [SerializeField] private string _profileName = "Default";
+        [SerializeField] private bool _useRemoteLoadPath;
+        [SerializeField] private bool _buildRemoteCatalog;
+
+        public string ProfileName => _profileName;
+        public bool UseRemoteLoadPath => _useRemoteLoadPath;
+        public bool BuildRemoteCatalog => _buildRemoteCatalog;
     }
 
     [Serializable]
@@ -28,6 +43,7 @@ namespace Game.Shared
         [SerializeField] private bool _enableDebugLog;
         [SerializeField] private bool _enableAnalytics;
         [SerializeField] private bool _useLocalMasterData;
+        [SerializeField] private AddressablesEnvironmentConfig _addressablesConfig;
 
         public GameEnvironment Environment => _environment;
         public DependencyResolverMode DependencyResolverMode => _dependencyResolverMode;
@@ -36,6 +52,7 @@ namespace Game.Shared
         public bool EnableDebugLog => _enableDebugLog;
         public bool EnableAnalytics => _enableAnalytics;
         public bool UseLocalMasterData => _useLocalMasterData;
+        public AddressablesEnvironmentConfig AddressablesConfig => _addressablesConfig;
     }
 
     public static class GameEnvironmentHelper

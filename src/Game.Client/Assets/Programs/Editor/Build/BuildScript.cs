@@ -292,6 +292,27 @@ namespace Game.Editor.Build
                 Debug.Log($"  - {scene}");
             }
             Debug.Log($"[BuildScript] Options: {options}");
+
+            // 環境シンボルを適用
+            var targetGroup = BuildPipeline.GetBuildTargetGroup(target);
+            BuildProfileHelper.ApplyEnvironmentSymbols(targetGroup);
+
+            // Build Profile を確認（コマンドライン引数優先）
+            var profilePath = BuildProfileHelper.GetBuildProfileFromArgs();
+            if (string.IsNullOrEmpty(profilePath))
+            {
+                profilePath = BuildProfileHelper.FindBuildProfilePath(target);
+            }
+
+            if (!string.IsNullOrEmpty(profilePath))
+            {
+                Debug.Log($"[BuildScript] Using Build Profile: {profilePath}");
+            }
+            else
+            {
+                Debug.Log("[BuildScript] No Build Profile found, using default settings");
+            }
+
             Debug.Log("========================================");
 
             // ビルドディレクトリを作成

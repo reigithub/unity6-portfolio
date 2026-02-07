@@ -21,3 +21,51 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _addressablesConfig:
+      _profileName: Default
+      _useRemoteLoadPath: 0
+      _buildRemoteCatalog: 0
+  - _environment: 1
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+    _addressablesConfig:
+      _profileName: Develop-R2
+      _useRemoteLoadPath: 1
+      _buildRemoteCatalog: 1
+  - _environment: 1000
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+    _addressablesConfig:
+      _profileName: Staging-R2
+      _useRemoteLoadPath: 1
+      _buildRemoteCatalog: 1
+  - _environment: 2000
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+    _addressablesConfig:
+      _profileName: Review-R2
+      _useRemoteLoadPath: 1
+      _buildRemoteCatalog: 1
+  - _environment: 3000
+    _dependencyResolverMode: 1
+    _apiBaseUrl: 
+    _webSocketUrl: 
+    _enableDebugLog: 0
+    _enableAnalytics: 0
+    _useLocalMasterData: 0
+    _addressablesConfig:
+      _profileName: Release-R2
+      _useRemoteLoadPath: 1
+      _buildRemoteCatalog: 1

@@ -1,0 +1,305 @@
+name: Addressables Deploy
+
+# ============================================
+# Addressables ビルド＆R2アップロード
+#
+# 使用例:
+#   gh workflow run "Addressables Deploy" --field build_target=StandaloneWindows64
+#   gh workflow run "Addressables Deploy" --field build_target=All --field deploy=true
+# ============================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Build target platform'
+        required: true
+        default: 'StandaloneWindows64'
+        type: choice
+        options:
+          - StandaloneWindows64
+          - StandaloneLinux64
+          - StandaloneOSX
+          - WebGL
+          - Android
+          - iOS
+          - All
+      deploy:
+        description: 'Deploy to Cloudflare R2'
+        required: false
+        default: true
+        type: boolean
+      dry_run:
+        description: 'Dry run (do not actually upload)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  R2_BUCKET_NAME: unity6-portfolio
+  R2_CUSTOM_DOMAIN: rei-unity6-portfolio.com
+
+jobs:
+  # ============================================
+  # 設定読み込み
+  # ============================================
+  load-config:
+    name: Load Configuration
+    runs-on: [self-hosted, linux, unity, docker]
+    outputs:
+      unity_project_path: ${{ steps.config.outputs.UNITY_PROJECT_PATH }}
+      build_timestamp: ${{ steps.timestamp.outputs.value }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Load configuration
+        id: config
+        run: |
+          chmod +x .github/scripts/load-config.sh
+          .github/scripts/load-config.sh
+
+  # ============================================
+  # Addressables ビルド（マトリックス）
+  # ============================================
+  build-addressables:
+    name: Build Addressables (${{ matrix.platform }})
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: load-config
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(
+          inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' ||
+          format('["{0}"]', inputs.build_target)
+        ) }}
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          clean: false
+
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+          mkdir -p "${{ env.UNITY_PROJECT_PATH }}/ServerData"
+
+      - name: Get Unity build target
+        id: build-target
+        run: |
+          case "${{ matrix.platform }}" in
+            StandaloneWindows64) echo "target=Win64" >> $GITHUB_OUTPUT ;;
+            StandaloneLinux64) echo "target=Linux64" >> $GITHUB_OUTPUT ;;
+            StandaloneOSX) echo "target=OSXUniversal" >> $GITHUB_OUTPUT ;;
+            WebGL) echo "target=WebGL" >> $GITHUB_OUTPUT ;;
+            Android) echo "target=Android" >> $GITHUB_OUTPUT ;;
+            iOS) echo "target=iOS" >> $GITHUB_OUTPUT ;;
+            *) echo "target=${{ matrix.platform }}" >> $GITHUB_OUTPUT ;;
+          esac
+
+      - name: Build Addressables
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              -buildTarget "${{ steps.build-target.outputs.target }}" \
+              -executeMethod Game.Editor.Build.AddressablesR2Uploader.BuildAddressablesCI \
+              -logFile "${{ github.workspace }}/Logs/addressables-build-${{ matrix.platform }}.log"
+
+      - name: List build output
+        run: |
+          echo "=== ServerData contents ==="
+          ls -la "${{ env.UNITY_PROJECT_PATH }}/ServerData/" || echo "ServerData not found"
+          if [ -d "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}" ]; then
+            echo "=== ${{ matrix.platform }} contents ==="
+            ls -la "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}/"
+            echo "=== File count and size ==="
+            find "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}" -type f | wc -l
+            du -sh "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}"
+          fi
+
+      - name: Upload Addressables artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Addressables-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
+          path: ${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Addressables-Log-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
+          path: Logs/addressables-build-${{ matrix.platform }}.log
+
+  # ============================================
+  # R2 アップロード
+  # ============================================
+  deploy-to-r2:
+    name: Deploy to R2 (${{ matrix.platform }})
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: [load-config, build-addressables]
+    if: inputs.deploy == true
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(
+          inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' ||
+          format('["{0}"]', inputs.build_target)
+        ) }}
+    env:
+      BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+
+    steps:
+      - name: Download Addressables artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Addressables-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
+          path: ./ServerData/${{ matrix.platform }}
+
+      - name: List downloaded files
+        run: |
+          echo "=== Downloaded files ==="
+          ls -la ./ServerData/${{ matrix.platform }}/
+          echo "=== File count and size ==="
+          find ./ServerData/${{ matrix.platform }} -type f | wc -l
+          du -sh ./ServerData/${{ matrix.platform }}
+
+      - name: Install rclone
+        run: |
+          if ! command -v rclone &> /dev/null; then
+            echo "Installing rclone..."
+            curl -s https://rclone.org/install.sh | sudo bash
+          else
+            echo "rclone already installed: $(rclone version | head -1)"
+          fi
+
+      - name: Configure rclone
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+          acl = private
+          no_check_bucket = true
+          EOF
+          echo "rclone configured for R2"
+
+      - name: Verify R2 connection
+        run: |
+          echo "Testing R2 connection..."
+          rclone lsd r2: || (echo "ERROR: Cannot connect to R2" && exit 1)
+          echo "R2 connection successful"
+
+      - name: Upload to R2
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          echo "Uploading ${{ matrix.platform }} to R2..."
+          echo "Destination: r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}"
+
+          rclone sync \
+            ./ServerData/${{ matrix.platform }} \
+            r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }} \
+            --transfers 8 \
+            --checkers 16 \
+            --progress \
+            --stats-one-line \
+            --stats 5s \
+            $DRY_RUN
+
+          echo "Upload completed"
+
+      - name: Verify upload
+        if: inputs.dry_run == false
+        run: |
+          echo "=== Verifying uploaded files ==="
+          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/ | head -20
+          echo "..."
+          echo "Total files:"
+          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/ | wc -l
+
+      - name: Output URLs
+        if: inputs.dry_run == false
+        run: |
+          echo "=========================================="
+          echo "Deployment Complete!"
+          echo "=========================================="
+          echo ""
+          echo "Access URLs:"
+          echo "  Catalog: https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog.json"
+          echo "  Base:    https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
+          echo ""
+
+  # ============================================
+  # サマリー出力
+  # ============================================
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [load-config, build-addressables, deploy-to-r2]
+    if: always()
+    env:
+      BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Addressables Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** ${{ env.BUILD_TIMESTAMP }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ inputs.build_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deploy:** ${{ inputs.deploy }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.deploy }}" == "true" ] && [ "${{ inputs.dry_run }}" == "false" ]; then
+            echo "### Deployed URLs" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ "${{ inputs.build_target }}" == "All" ]; then
+              for platform in StandaloneWindows64 StandaloneLinux64 WebGL Android; do
+                echo "- **${platform}:** https://${{ env.R2_CUSTOM_DOMAIN }}/${platform}/" >> $GITHUB_STEP_SUMMARY
+              done
+            else
+              echo "- **${{ inputs.build_target }}:** https://${{ env.R2_CUSTOM_DOMAIN }}/${{ inputs.build_target }}/" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build-addressables.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy-to-r2.result }} |" >> $GITHUB_STEP_SUMMARY
