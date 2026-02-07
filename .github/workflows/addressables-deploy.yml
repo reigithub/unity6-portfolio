@@ -1,5 +1,13 @@
 name: Addressables Deploy
 
+# ============================================
+# Addressables ビルド＆R2アップロード
+#
+# 使用例:
+#   gh workflow run "Addressables Deploy" --field build_target=StandaloneWindows64
+#   gh workflow run "Addressables Deploy" --field build_target=All --field deploy=true
+# ============================================
+
 on:
   workflow_dispatch:
     inputs:
@@ -11,8 +19,10 @@ on:
         options:
           - StandaloneWindows64
           - StandaloneLinux64
+          - StandaloneOSX
           - WebGL
           - Android
+          - iOS
           - All
       deploy:
         description: 'Deploy to Cloudflare R2'
@@ -30,6 +40,9 @@ env:
   R2_CUSTOM_DOMAIN: rei-unity6-portfolio.com
 
 jobs:
+  # ============================================
+  # 設定読み込み
+  # ============================================
   load-config:
     name: Load Configuration
     runs-on: [self-hosted, linux, unity, docker]
@@ -52,6 +65,9 @@ jobs:
           chmod +x .github/scripts/load-config.sh
           .github/scripts/load-config.sh
 
+  # ============================================
+  # Addressables ビルド（マトリックス）
+  # ============================================
   build-addressables:
     name: Build Addressables (${{ matrix.platform }})
     runs-on: [self-hosted, linux, unity, docker]
@@ -88,8 +104,10 @@ jobs:
           case "${{ matrix.platform }}" in
             StandaloneWindows64) echo "target=Win64" >> $GITHUB_OUTPUT ;;
             StandaloneLinux64) echo "target=Linux64" >> $GITHUB_OUTPUT ;;
+            StandaloneOSX) echo "target=OSXUniversal" >> $GITHUB_OUTPUT ;;
             WebGL) echo "target=WebGL" >> $GITHUB_OUTPUT ;;
             Android) echo "target=Android" >> $GITHUB_OUTPUT ;;
+            iOS) echo "target=iOS" >> $GITHUB_OUTPUT ;;
             *) echo "target=${{ matrix.platform }}" >> $GITHUB_OUTPUT ;;
           esac
 
@@ -132,6 +150,9 @@ jobs:
           name: Addressables-Log-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
           path: Logs/addressables-build-${{ matrix.platform }}.log
 
+  # ============================================
+  # R2 アップロード
+  # ============================================
   deploy-to-r2:
     name: Deploy to R2 (${{ matrix.platform }})
     runs-on: [self-hosted, linux, unity, docker]
@@ -184,8 +205,10 @@ jobs:
       - name: Verify R2 connection
         run: |
           echo "Testing R2 connection..."
+          # バケット単位でスコープされたトークンでは ListBuckets (lsd r2:) が失敗するため
+          # バケットを直接指定してテスト
           rclone ls r2:${{ env.R2_BUCKET_NAME }} --max-depth 0 2>&1 || true
-          echo "R2 connection configured"
+          echo "R2 connection configured (bucket: ${{ env.R2_BUCKET_NAME }})"
 
       - name: Upload to R2
         env:
@@ -219,10 +242,15 @@ jobs:
           echo "=========================================="
           echo "Deployment Complete!"
           echo "=========================================="
+          echo ""
           echo "Access URLs:"
           echo "  Catalog: https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog.json"
           echo "  Base:    https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
+          echo ""
 
+  # ============================================
+  # サマリー出力
+  # ============================================
   summary:
     name: Deployment Summary
     runs-on: ubuntu-latest
