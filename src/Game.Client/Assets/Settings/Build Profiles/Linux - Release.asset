@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 15003, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: WebGL - Mobile - Release
+  m_Name: Linux - Release
   m_EditorClassIdentifier: UnityEditor.dll::UnityEditor.Build.Profile.BuildProfile
   m_AssetVersion: 1
-  m_BuildTarget: 20
-  m_Subtarget: 0
-  m_PlatformId: 84a3bb9e7420477f885e98145999eb20
+  m_BuildTarget: 24
+  m_Subtarget: 2
+  m_PlatformId: cb423bfea44b4d658edb8bc5d91a3024
   m_PlatformBuildProfile:
-    rid: 2947751367656341635
+    rid: 4825734700568674309
   m_OverrideGlobalSceneList: 0
   m_Scenes: []
   m_HasScriptingDefines: 0
@@ -36,7 +36,7 @@ MonoBehaviour:
     - line: '|   useOnDemandResources: 0'
     - line: '|   accelerometerFrequency: 60'
     - line: '|   companyName: Rei'
-    - line: '|   productName: Unity6Sample'
+    - line: '|   productName: Unity6Game'
     - line: '|   defaultCursor: {instanceID: 0}'
     - line: '|   cursorHotspot: {x: 0, y: 0}'
     - line: '|   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b:
@@ -68,8 +68,8 @@ MonoBehaviour:
     - line: '|   m_HolographicTrackingLossScreen: {instanceID: 0}'
     - line: '|   defaultScreenWidth: 1920'
     - line: '|   defaultScreenHeight: 1080'
-    - line: '|   defaultScreenWidthWeb: 960'
-    - line: '|   defaultScreenHeightWeb: 600'
+    - line: '|   defaultScreenWidthWeb: 1280'
+    - line: '|   defaultScreenHeightWeb: 720'
     - line: '|   m_StereoRenderingPath: 0'
     - line: '|   m_ActiveColorSpace: 1'
     - line: '|   unsupportedMSAAFallback: 0'
@@ -171,6 +171,10 @@ MonoBehaviour:
     - line: '|   preloadedAssets:'
     - line: '|   - {fileID: -944628639613478452, guid: 577a9d3b97e66d84c9bb35e58b05590d,
         type: 3}'
+    - line: '|   - {fileID: -944628639613478452, guid: 72fd472ba9a8dca43a0b96927f073670,
+        type: 3}'
+    - line: '|   - {fileID: 11400000, guid: 8b1ffd3f298079841841fba6f08dc772, type:
+        2}'
     - line: '|   metroInputSource: 0'
     - line: '|   wsaTransparentSwapchain: 0'
     - line: '|   m_HolographicPauseOnTrackingLoss: 1'
@@ -215,7 +219,7 @@ MonoBehaviour:
     - line: '|   CreateWallpaper: 0'
     - line: '|   androidSplitApplicationBinary: 0'
     - line: '|   keepLoadedShadersAlive: 0'
-    - line: '|   StripUnusedMeshComponents: 0'
+    - line: '|   StripUnusedMeshComponents: 1'
     - line: '|   strictShaderVariantMatching: 0'
     - line: '|   VertexChannelCompressionMask: 4054'
     - line: '|   iPhoneSdkVersion: 988'
@@ -554,6 +558,9 @@ MonoBehaviour:
     - line: '|   - m_BuildTarget: Standalone'
     - line: '|     m_StaticBatching: 1'
     - line: '|     m_DynamicBatching: 0'
+    - line: '|   - m_BuildTarget: WebGL'
+    - line: '|     m_StaticBatching: 0'
+    - line: '|     m_DynamicBatching: 0'
     - line: '|   m_BuildTargetShaderSettings: []'
     - line: '|   m_BuildTargetGraphicsJobs: []'
     - line: '|   m_BuildTargetGraphicsJobMode: []'
@@ -565,7 +572,7 @@ MonoBehaviour:
     - line: '|     m_APIs: 150000000b000000'
     - line: '|     m_Automatic: 0'
     - line: '|   - m_BuildTarget: WindowsStandaloneSupport'
-    - line: '|     m_APIs: 0200000012000000'
+    - line: '|     m_APIs: 020000001200000015000000'
     - line: '|     m_Automatic: 0'
     - line: '|   m_BuildTargetVRSettings: []'
     - line: '|   m_DefaultShaderChunkSizeInMB: 16'
@@ -582,6 +589,9 @@ MonoBehaviour:
     - line: '|   - serializedVersion: 2'
     - line: '|     m_BuildTarget: Android'
     - line: '|     m_EncodingQuality: 1'
+    - line: '|   - serializedVersion: 2'
+    - line: '|     m_BuildTarget: WebGL'
+    - line: '|     m_EncodingQuality: 1'
     - line: '|   m_BuildTargetGroupHDRCubemapEncodingQuality: []'
     - line: '|   m_BuildTargetGroupLightmapSettings: []'
     - line: '|   m_BuildTargetGroupLoadStoreDebugModeSettings: []'
@@ -597,7 +607,7 @@ MonoBehaviour:
     - line: '|     m_Formats: 03000000'
     - line: '|   - serializedVersion: 3'
     - line: '|     m_BuildTarget: WebGL'
-    - line: '|     m_Formats: 02000000'
+    - line: '|     m_Formats: 05000000'
     - line: '|   playModeTestRunnerEnabled: 0'
     - line: '|   runPlayModeTestAsEditModeTest: 0'
     - line: '|   actionOnDotNetUnhandledException: 1'
@@ -836,7 +846,7 @@ MonoBehaviour:
     - line: '|   blurSplashScreenBackground: 1'
     - line: '|   spritePackerPolicy: '
     - line: '|   webGLMemorySize: 32'
-    - line: '|   webGLExceptionSupport: 1'
+    - line: '|   webGLExceptionSupport: 0'
     - line: '|   webGLNameFilesAsHashes: 0'
     - line: '|   webGLShowDiagnostics: 0'
     - line: '|   webGLDataCaching: 1'
@@ -852,16 +862,16 @@ MonoBehaviour:
     - line: '|   webGLThreadsSupport: 0'
     - line: '|   webGLDecompressionFallback: 1'
     - line: '|   webGLInitialMemorySize: 32'
-    - line: '|   webGLMaximumMemorySize: 512'
+    - line: '|   webGLMaximumMemorySize: 2048'
     - line: '|   webGLMemoryGrowthMode: 2'
     - line: '|   webGLMemoryLinearGrowthStep: 16'
     - line: '|   webGLMemoryGeometricGrowthStep: 0.2'
     - line: '|   webGLMemoryGeometricGrowthCap: 96'
     - line: '|   webGLPowerPreference: 2'
-    - line: '|   webGLWebAssemblyTable: 1'
-    - line: '|   webGLWebAssemblyBigInt: 1'
+    - line: '|   webGLWebAssemblyTable: 0'
+    - line: '|   webGLWebAssemblyBigInt: 0'
     - line: '|   webGLCloseOnQuit: 0'
-    - line: '|   webWasm2023: 1'
+    - line: '|   webWasm2023: 0'
     - line: '|   webEnableSubmoduleStrippingCompatibility: 0'
     - line: '|   scriptingDefineSymbols:'
     - line: '|     Android: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
@@ -875,9 +885,9 @@ MonoBehaviour:
     - line: '|     PS4: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
     - line: '|     PS5: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
     - line: '|     QNX: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
-    - line: '|     Standalone: UNITY_PIPELINE_URP;DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
+    - line: '|     Standalone: UNITY_PIPELINE_URP;DOTWEEN;UNITY_POST_PROCESSING_STACK_V2;UNITASK_DOTWEEN_SUPPORT'
     - line: '|     VisionOS: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
-    - line: '|     WebGL: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2;UNITY_PIPELINE_URP'
+    - line: '|     WebGL: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2;UNITY_PIPELINE_URP;UNITASK_DOTWEEN_SUPPORT'
     - line: '|     Windows Store Apps: DOTWEEN'
     - line: '|     XboxOne: DOTWEEN;UNITY_POST_PROCESSING_STACK_V2'
     - line: '|     iPhone: DOTWEEN'
@@ -889,10 +899,8 @@ MonoBehaviour:
     - line: '|     Standalone: 1'
     - line: '|   il2cppCompilerConfiguration:'
     - line: '|     Android: 0'
-    - line: '|     Standalone: 0'
-    - line: '|     WebGL: 2'
-    - line: '|   il2cppCodeGeneration:'
-    - line: '|     WebGL: 1'
+    - line: '|     Standalone: 2'
+    - line: '|   il2cppCodeGeneration: {}'
     - line: '|   il2cppStacktraceInformation:'
     - line: '|     Android: 1'
     - line: '|     Standalone: 1'
@@ -907,6 +915,7 @@ MonoBehaviour:
     - line: '|     PS5: 1'
     - line: '|     QNX: 1'
     - line: '|     ReservedCFE: 1'
+    - line: '|     Standalone: 1'
     - line: '|     VisionOS: 1'
     - line: '|     WebGL: 1'
     - line: '|     Windows Store Apps: 1'
@@ -1003,7 +1012,7 @@ MonoBehaviour:
     - line: '|   qnxGraphicConfPath: '
     - line: '|   apiCompatibilityLevel: 6'
     - line: '|   captureStartupLogs: {}'
-    - line: '|   activeInputHandler: 2'
+    - line: '|   activeInputHandler: 1'
     - line: '|   windowsGamepadBackendHint: 0'
     - line: '|   cloudProjectId: '
     - line: '|   framebufferDepthMemorylessMode: 0'
@@ -1025,8 +1034,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 2947751367656341635
-      type: {class: WebGLPlatformSettings, ns: UnityEditor.WebGL, asm: UnityEditor.WebGL.Extensions}
+    - rid: 4825734700568674309
+      type: {class: LinuxPlatformSettings, ns: UnityEditor.LinuxStandalone, asm: UnityEditor.LinuxStandalone.Extensions}
       data:
         m_Development: 0
         m_ConnectProfiler: 0
@@ -1037,12 +1046,15 @@ MonoBehaviour:
         m_ExplicitNullChecks: 0
         m_ExplicitDivideByZeroChecks: 0
         m_ExplicitArrayBoundsChecks: 0
-        m_CompressionType: -1
+        m_CompressionType: 2
         m_InstallInBuildFolder: 0
         m_InsightsSettingsContainer:
           m_BuildProfileEngineDiagnosticsState: 2
         m_AdaptivePerformanceEnabled: 0
-        m_CodeOptimization: 0
-        m_WebGLClientBrowserPath: 
-        m_WebGLClientBrowserType: 0
-        m_WebGLTextureSubtarget: 3
+        m_Architecture: 0
+        m_RemoteDeviceSectionFoldoutOpen: 0
+        m_DeployTarget: 0
+        m_RemoteDeviceAddress: 
+        m_RemoteDeviceUsername: 
+        m_RemoteDeviceExports: 
+        m_PathOnRemoteDevice: 
