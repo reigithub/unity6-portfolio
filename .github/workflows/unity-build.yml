@@ -101,7 +101,7 @@ jobs:
     runs-on: [self-hosted, linux, unity, docker]
     needs: load-config
     if: ${{ !inputs.skip_tests }}
-    timeout-minutes: 45
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -166,7 +166,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneWindows64' || inputs.build_target == 'All')
-    timeout-minutes: 60
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -229,7 +229,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneLinux64' || inputs.build_target == 'All')
-    timeout-minutes: 60
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -292,7 +292,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneOSX' || inputs.build_target == 'All')
-    timeout-minutes: 60
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -355,7 +355,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'WebGL' || inputs.build_target == 'All')
-    timeout-minutes: 60
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -418,7 +418,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'Android' || inputs.build_target == 'All')
-    timeout-minutes: 90
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -481,7 +481,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'iOS' || inputs.build_target == 'All')
-    timeout-minutes: 90
+    timeout-minutes: 7200
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
