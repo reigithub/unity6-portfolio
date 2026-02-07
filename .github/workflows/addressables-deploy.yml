@@ -88,16 +88,6 @@ jobs:
           lfs: false
           clean: false
 
-      - name: Setup Library cache
-        run: |
-          chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
-
-      - name: Setup directories
-        run: |
-          mkdir -p "${{ github.workspace }}/Logs"
-          mkdir -p "${{ env.UNITY_PROJECT_PATH }}/ServerData"
-
       - name: Get Unity build target
         id: build-target
         run: |
@@ -110,6 +100,16 @@ jobs:
             iOS) echo "target=iOS" >> $GITHUB_OUTPUT ;;
             *) echo "target=${{ matrix.platform }}" >> $GITHUB_OUTPUT ;;
           esac
+
+      - name: Setup Library cache
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "${{ steps.build-target.outputs.target }}"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+          mkdir -p "${{ env.UNITY_PROJECT_PATH }}/ServerData"
 
       - name: Build Addressables
         run: |
