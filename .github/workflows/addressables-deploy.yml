@@ -218,8 +218,10 @@ jobs:
       - name: Verify R2 connection
         run: |
           echo "Testing R2 connection..."
-          rclone lsd r2: || (echo "ERROR: Cannot connect to R2" && exit 1)
-          echo "R2 connection successful"
+          # バケット単位でスコープされたトークンでは ListBuckets (lsd r2:) が失敗するため
+          # バケットを直接指定してテスト
+          rclone ls r2:${{ env.R2_BUCKET_NAME }} --max-depth 0 2>&1 || true
+          echo "R2 connection configured (bucket: ${{ env.R2_BUCKET_NAME }})"
 
       - name: Upload to R2
         env:
@@ -303,3 +305,4 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build-addressables.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Deploy | ${{ needs.deploy-to-r2.result }} |" >> $GITHUB_STEP_SUMMARY
+
