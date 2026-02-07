@@ -116,7 +116,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
 
       - name: Setup directories
         run: |
@@ -185,7 +185,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Win64"
 
       - name: Setup directories
         run: |
@@ -248,7 +248,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
 
       - name: Setup directories
         run: |
@@ -311,7 +311,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "OSXUniversal"
 
       - name: Setup directories
         run: |
@@ -374,7 +374,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "WebGL"
 
       - name: Setup directories
         run: |
@@ -437,7 +437,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Android"
 
       - name: Setup directories
         run: |
@@ -500,7 +500,7 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "iOS"
 
       - name: Setup directories
         run: |

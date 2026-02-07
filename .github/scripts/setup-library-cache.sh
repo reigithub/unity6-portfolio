@@ -1,23 +1,31 @@
 #!/bin/bash
 # Unity Library キャッシュセットアップスクリプト
 # Docker ボリュームを使用した永続キャッシュをシンボリックリンクで設定
+#
+# プラットフォーム別にキャッシュを分離してインポート時間を削減
+# 異なるプラットフォームへの切り替え時の再インポートを回避
 
 set -e
 
 # 引数チェック
 if [ -z "$1" ]; then
-    echo "Usage: $0 <unity-project-path>"
-    echo "Example: $0 ./src/Game.Client"
+    echo "Usage: $0 <unity-project-path> [build-target]"
+    echo "Example: $0 ./src/Game.Client Win64"
+    echo ""
+    echo "Build targets: Win64, Linux64, OSXUniversal, WebGL, Android, iOS"
+    echo "If build-target is not specified, 'Default' will be used"
     exit 1
 fi
 
 UNITY_PROJECT_PATH="$1"
+BUILD_TARGET="${2:-Default}"
 
 # プロジェクト名をパスから抽出（最後のディレクトリ名）
 PROJECT_NAME=$(basename "$UNITY_PROJECT_PATH")
 
 # 永続キャッシュディレクトリ（Docker ボリューム内）
-CACHE_DIR="/home/runner/.unity-library-cache/${PROJECT_NAME}"
+# プラットフォーム別にキャッシュを分離
+CACHE_DIR="/home/runner/.unity-library-cache/${PROJECT_NAME}/${BUILD_TARGET}"
 mkdir -p "$CACHE_DIR"
 
 # プロジェクトの Library ディレクトリ
@@ -25,6 +33,7 @@ LIBRARY_DIR="${UNITY_PROJECT_PATH}/Library"
 
 echo "=== Unity Library Cache Setup ==="
 echo "Project: ${PROJECT_NAME}"
+echo "Build Target: ${BUILD_TARGET}"
 echo "Cache Dir: ${CACHE_DIR}"
 echo "Library Dir: ${LIBRARY_DIR}"
 
