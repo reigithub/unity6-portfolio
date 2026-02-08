@@ -34,6 +34,16 @@ on:
         required: false
         default: false
         type: boolean
+      game_environment:
+        description: 'Game environment for Addressables profile'
+        required: true
+        default: 'Develop'
+        type: choice
+        options:
+          - Develop
+          - Staging
+          - Review
+          - Release
 
 env:
   R2_BUCKET_NAME: unity6-portfolio
@@ -80,6 +90,7 @@ jobs:
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
 
     steps:
       - name: Checkout repository
