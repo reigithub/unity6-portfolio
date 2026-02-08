@@ -27,7 +27,7 @@ MonoBehaviour:
       _buildRemoteCatalog: 0
   - _environment: 1
     _dependencyResolverMode: 1
-    _apiBaseUrl: 
+    _apiBaseUrl: http://localhost:5000
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -38,7 +38,7 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 1000
     _dependencyResolverMode: 1
-    _apiBaseUrl: 
+    _apiBaseUrl: http://localhost:5000
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -49,7 +49,7 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 2000
     _dependencyResolverMode: 1
-    _apiBaseUrl: 
+    _apiBaseUrl: http://localhost:5000
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -60,7 +60,7 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 3000
     _dependencyResolverMode: 1
-    _apiBaseUrl: 
+    _apiBaseUrl: http://localhost:5000
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
