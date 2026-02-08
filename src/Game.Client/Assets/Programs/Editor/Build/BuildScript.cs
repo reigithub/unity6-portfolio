@@ -297,8 +297,22 @@ namespace Game.Editor.Build
             var targetGroup = BuildPipeline.GetBuildTargetGroup(target);
             BuildProfileHelper.ApplyEnvironmentSymbols(targetGroup);
 
-            // Addressables の Local/Remote 設定を環境変数から適用
+            // Addressables の Profile を環境変数から切り替え
+            var gameEnv = Environment.GetEnvironmentVariable("GAME_ENVIRONMENT");
+            Debug.Log($"[BuildScript] GAME_ENVIRONMENT: {gameEnv ?? "(not set)"}");
             AddressablesEnvironmentSwitcher.ApplyFromEnvironmentVariable();
+
+            // Addressables 設定を出力
+            var addrSettings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+            if (addrSettings != null)
+            {
+                var profileName = addrSettings.profileSettings.GetProfileName(addrSettings.activeProfileId);
+                var contentBuildPath = addrSettings.profileSettings.GetValueByName(addrSettings.activeProfileId, "Content.BuildPath");
+                var contentLoadPath = addrSettings.profileSettings.GetValueByName(addrSettings.activeProfileId, "Content.LoadPath");
+                Debug.Log($"[BuildScript] Addressables Profile: {profileName}");
+                Debug.Log($"[BuildScript] Content.BuildPath: {contentBuildPath ?? "(not set)"}");
+                Debug.Log($"[BuildScript] Content.LoadPath: {contentLoadPath ?? "(not set)"}");
+            }
 
             // Build Profile を確認（コマンドライン引数優先）
             var profilePath = BuildProfileHelper.GetBuildProfileFromArgs();
