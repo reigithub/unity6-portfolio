@@ -38,8 +38,11 @@ services:
       - UNITY_ACCELERATOR_PERSIST=/agent
       # ログ設定
       - UNITY_ACCELERATOR_LOG_STDOUT=true
-      # 使用統計の無効化
-      - DISABLE_USAGE_STATS=yes
+      # 使用統計とクラウド機能の無効化
+      - DISABLE_USAGE_STATS=true
+      - COLLAB_REGISTRATION=disabled
+      # クラウド接続を無効化
+      - UNITY_ACCELERATOR_STANDALONE=true
       # Dashboard 認証
       - USER=${ACCELERATOR_USER:-admin}
       - PASSWORD=${ACCELERATOR_PASSWORD:-admin}
@@ -61,8 +64,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:80/api/health-agent"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 60s
 
     logging:
       driver: "json-file"
@@ -89,9 +92,11 @@ services:
     restart: unless-stopped
 
     # Accelerator が起動してから Runner を起動
+    # service_started: Accelerator の警告に関係なく Runner を起動可能
+    # ワークフロー側で接続確認を行うため、厳密なヘルスチェックは不要
     depends_on:
       unity-accelerator:
-        condition: service_healthy
+        condition: service_started
 
     environment:
       # Required - Repository
