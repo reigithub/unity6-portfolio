@@ -124,6 +124,8 @@ jobs:
 
       - name: Build Addressables
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
@@ -131,6 +133,7 @@ jobs:
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
               -buildTarget "${{ steps.build-target.outputs.target }}" \
+              $ACCELERATOR_ARGS \
               -executeMethod Game.Editor.Build.AddressablesR2Uploader.BuildAddressablesCI \
               -logFile "${{ github.workspace }}/Logs/addressables-build-${{ matrix.platform }}.log"
 

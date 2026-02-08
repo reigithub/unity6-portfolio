@@ -169,6 +169,8 @@ jobs:
       - name: Generate solution file
         run: |
           echo "::group::Generating solution..."
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -projectPath src/Game.Client \
@@ -176,6 +178,7 @@ jobs:
               -quit \
               -batchmode \
               -nographics \
+              $ACCELERATOR_ARGS \
               -logFile "${{ github.workspace }}/Logs/generate-solution.log" || true
           echo "::endgroup::"
 
