@@ -1,0 +1,71 @@
+# Unity Accelerator (Asset Cache Server)
+#
+# Unity CI Runner とは独立して動作するキャッシュサーバー
+# Runner を再起動してもキャッシュは維持されます
+#
+# 使用方法:
+#   docker compose up -d
+#
+# Dashboard: http://localhost:8080/dashboard
+
+name: unity-accelerator
+
+services:
+  unity-accelerator:
+    image: unitytechnologies/accelerator:latest
+    container_name: unity-accelerator
+    restart: unless-stopped
+
+    ports:
+      # Asset Import Cache
+      - "10080:10080"
+      # Dashboard (HTTP)
+      - "8080:80"
+
+    environment:
+      # データ保存先
+      - UNITY_ACCELERATOR_PERSIST=/agent
+      # ログ設定
+      - UNITY_ACCELERATOR_LOG_STDOUT=true
+      # 使用統計とクラウド機能の無効化
+      - DISABLE_USAGE_STATS=true
+      - COLLAB_REGISTRATION=disabled
+      # クラウド接続を無効化
+      - UNITY_ACCELERATOR_STANDALONE=true
+      # Dashboard 認証
+      - USER=${ACCELERATOR_USER:-admin}
+      - PASSWORD=${ACCELERATOR_PASSWORD:-admin}
+
+    volumes:
+      # キャッシュデータの永続化（Bind Mount）
+      - type: bind
+        source: ${ACCELERATOR_DATA_PATH:-/var/lib/unity-accelerator}
+        target: /agent
+
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/health-agent"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+    networks:
+      - unity-ci-network
+
+networks:
+  unity-ci-network:
+    name: unity-ci-network
+    driver: bridge
