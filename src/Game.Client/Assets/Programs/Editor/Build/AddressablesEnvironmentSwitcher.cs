@@ -124,6 +124,79 @@ namespace Game.Editor.Build
         }
 
         /// <summary>
+        /// Profile のみを切り替える（Git差分を最小化）
+        /// </summary>
+        /// <param name="profileName">Profile 名</param>
+        /// <param name="saveAsset">true: .asset に保存（Git差分発生）, false: メモリのみ（Git差分なし）</param>
+        /// <returns>切り替え成功時 true</returns>
+        public static bool SetActiveProfileOnly(string profileName, bool saveAsset = false)
+        {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                Debug.LogError("[Addressables] AddressableAssetSettings が見つかりません");
+                return false;
+            }
+
+            var profileId = settings.profileSettings.GetProfileId(profileName);
+            if (string.IsNullOrEmpty(profileId))
+            {
+                Debug.LogWarning($"[Addressables] Profile '{profileName}' が見つかりません");
+                return false;
+            }
+
+            var previousProfile = settings.profileSettings.GetProfileName(settings.activeProfileId);
+            settings.activeProfileId = profileId;
+
+            if (saveAsset)
+            {
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[Addressables] Profile 切替 (保存): {previousProfile} → {profileName}");
+            }
+            else
+            {
+                Debug.Log($"[Addressables] Profile 切替 (メモリのみ): {previousProfile} → {profileName}");
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// GameEnvironment から Profile のみを切り替える（Git差分を最小化）
+        /// </summary>
+        /// <param name="environment">対象環境</param>
+        /// <param name="saveAsset">true: .asset に保存（Git差分発生）, false: メモリのみ（Git差分なし）</param>
+        /// <returns>切り替え成功時 true</returns>
+        public static bool SetActiveProfileFromEnvironment(GameEnvironment environment, bool saveAsset = false)
+        {
+            var envSettings = GameEnvironmentSettings.Instance;
+            if (envSettings == null)
+            {
+                Debug.LogError("[Addressables] GameEnvironmentSettings が見つかりません");
+                return false;
+            }
+
+            var config = envSettings.AllConfigs.FirstOrDefault(c => c.Environment == environment);
+            if (config?.AddressablesConfig == null)
+            {
+                Debug.LogWarning($"[Addressables] 環境 {environment} の Addressables 設定がありません");
+                return false;
+            }
+
+            return SetActiveProfileOnly(config.AddressablesConfig.ProfileName, saveAsset);
+        }
+
+        /// <summary>
+        /// 現在の Profile 名を取得
+        /// </summary>
+        public static string GetCurrentProfileName()
+        {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            return settings?.profileSettings.GetProfileName(settings.activeProfileId) ?? "Unknown";
+        }
+
+        /// <summary>
         /// 全GroupのBuild/Load Pathを設定
         /// </summary>
         private static void SetAllGroupsBuildMode(AddressableAssetSettings settings, bool useRemote)
@@ -210,8 +283,11 @@ namespace Game.Editor.Build
             {
                 ActiveProfileName = settings.profileSettings.GetProfileName(settings.activeProfileId),
                 BuildRemoteCatalog = settings.BuildRemoteCatalog,
-                RemoteBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath"),
-                RemoteLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath")
+                // Content.BuildPath / Content.LoadPath を優先、なければ Remote を使用
+                ContentBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.BuildPath")
+                                   ?? settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath"),
+                ContentLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.LoadPath")
+                                  ?? settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath")
             };
 
             // Group統計
@@ -222,10 +298,11 @@ namespace Game.Editor.Build
                 if (schema == null) continue;
 
                 state.TotalGroups++;
-                var buildPath = schema.BuildPath.GetName(settings);
-                if (buildPath.Contains("Remote"))
+                var buildPathName = schema.BuildPath.GetName(settings);
+                // Content または Remote を使用しているグループをカウント
+                if (buildPathName.Contains("Content") || buildPathName.Contains("Remote"))
                 {
-                    state.RemoteGroups++;
+                    state.ContentGroups++;
                 }
             }
 
@@ -242,9 +319,9 @@ namespace Game.Editor.Build
     {
         public string ActiveProfileName { get; set; } = "Unknown";
         public bool BuildRemoteCatalog { get; set; }
-        public string RemoteBuildPath { get; set; } = "";
-        public string RemoteLoadPath { get; set; } = "";
+        public string ContentBuildPath { get; set; } = "";
+        public string ContentLoadPath { get; set; } = "";
         public int TotalGroups { get; set; }
-        public int RemoteGroups { get; set; }
+        public int ContentGroups { get; set; }
     }
 }
