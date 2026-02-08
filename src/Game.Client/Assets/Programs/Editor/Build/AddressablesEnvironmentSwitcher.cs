@@ -29,6 +29,7 @@ namespace Game.Editor.Build
         /// <summary>
         /// 設定を適用（確認ダイアログなし - 内部用）
         /// </summary>
+        [Obsolete("Remote.BuildPath/LoadPathはRemote.BuildPath/LoadPathに統合されました。ApplyFromEnvironmentVariableを使用してください。")]
         public static void ApplyConfig(AddressablesEnvironmentConfig config)
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -64,6 +65,7 @@ namespace Game.Editor.Build
         /// <summary>
         /// GameEnvironment から設定を適用
         /// </summary>
+        [Obsolete("Remote.BuildPath/LoadPathはRemote.BuildPath/LoadPathに統合されました。ApplyFromEnvironmentVariableを使用してください。")]
         public static void ApplyFromEnvironment(GameEnvironment environment)
         {
             var envSettings = GameEnvironmentSettings.Instance;
@@ -84,8 +86,9 @@ namespace Game.Editor.Build
         }
 
         /// <summary>
-        /// CI環境から環境変数で設定適用
+        /// CI環境から環境変数で Profile を切り替え
         /// 環境変数: GAME_ENVIRONMENT
+        /// カスタム Path Pair 方式では Profile 切り替えのみで Local/Remote が切り替わる
         /// </summary>
         public static void ApplyFromEnvironmentVariable()
         {
@@ -98,8 +101,9 @@ namespace Game.Editor.Build
 
             if (Enum.TryParse<GameEnvironment>(envName, true, out var env))
             {
-                Debug.Log($"[Addressables] 環境変数から設定適用: {env}");
-                ApplyFromEnvironment(env);
+                Debug.Log($"[Addressables] 環境変数から Profile 切り替え: {env}");
+                // メモリ上のみ切り替え（CI/CD ではビルド後にプロセス終了するため保存不要）
+                SetActiveProfileFromEnvironment(env, saveAsset: false);
             }
             else
             {
