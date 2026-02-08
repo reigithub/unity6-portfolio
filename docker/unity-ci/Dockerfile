@@ -90,6 +90,9 @@ RUN mkdir -p /unity-cache \
 RUN mkdir -p /tmp/.X11-unix \
     && chmod 1777 /tmp/.X11-unix
 
+# rclone のインストール（Cloudflare R2 アップロード用）
+RUN curl -s https://rclone.org/install.sh | bash
+
 # Switch to runner user
 USER runner
 WORKDIR /home/runner/actions-runner
