@@ -35,11 +35,12 @@ on:
         default: false
         type: boolean
       game_environment:
-        description: 'Game environment (affects scripting define symbols)'
+        description: 'Game environment (affects scripting define symbols and Addressables Local/Remote)'
         required: true
         default: 'Develop'
         type: choice
         options:
+          - Local
           - Develop
           - Staging
           - Review
@@ -73,10 +74,10 @@ jobs:
         id: profile
         run: |
           # game_environment に基づいて Build Profile タイプを決定
-          # Develop/Staging → Development Profile
+          # Local/Develop/Staging → Development Profile
           # Review/Release → Release Profile
           case "${{ inputs.game_environment }}" in
-            Develop|Staging)
+            Local|Develop|Staging)
               echo "type=Development" >> $GITHUB_OUTPUT
               ;;
             Review|Release)
