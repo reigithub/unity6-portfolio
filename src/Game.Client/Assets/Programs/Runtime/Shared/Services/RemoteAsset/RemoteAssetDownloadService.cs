@@ -1,22 +1,26 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
 
 namespace Game.Shared.Services.RemoteAsset
 {
     /// <summary>
     /// リモートアセットダウンロードサービスの実装
     /// Addressables API を使用してR2からアセットをダウンロード
+    /// 全リモートアセットを自動検出してダウンロード
     /// </summary>
     public class RemoteAssetDownloadService : IRemoteAssetDownloadService
     {
         private readonly GameEnvironment _environment;
         private DownloadProgress _currentProgress;
         private bool _isDownloaded;
+        private List<object> _downloadKeys;
 
         public bool IsDownloadRequired => _environment != GameEnvironment.Local && !_isDownloaded;
         public bool IsDownloaded => _isDownloaded;
@@ -27,6 +31,7 @@ namespace Game.Shared.Services.RemoteAsset
             _environment = GameEnvironmentHelper.Current;
             _currentProgress = DownloadProgress.NotStarted();
             _isDownloaded = false;
+            _downloadKeys = new List<object>();
 
             Debug.Log($"[RemoteAssetDownloadService] Environment: {_environment}, IsDownloadRequired: {IsDownloadRequired}");
         }
@@ -36,6 +41,7 @@ namespace Game.Shared.Services.RemoteAsset
             _environment = environment;
             _currentProgress = DownloadProgress.NotStarted();
             _isDownloaded = false;
+            _downloadKeys = new List<object>();
 
             Debug.Log($"[RemoteAssetDownloadService] Environment: {_environment}, IsDownloadRequired: {IsDownloadRequired}");
         }
@@ -63,13 +69,18 @@ namespace Game.Shared.Services.RemoteAsset
 
             try
             {
-                // Step 1: カタログ確認
+                // Step 1: Addressables 初期化
+                _currentProgress = DownloadProgress.Checking("初期化中...");
+                progress?.Report(_currentProgress);
+
+                await Addressables.InitializeAsync().ToUniTask(cancellationToken: cancellationToken);
+
+                // Step 2: カタログ確認・更新
                 _currentProgress = DownloadProgress.Checking("カタログ確認中...");
                 progress?.Report(_currentProgress);
 
                 var catalogsToUpdate = await CheckForCatalogUpdatesAsync(cancellationToken);
 
-                // Step 2: カタログ更新
                 if (catalogsToUpdate != null && catalogsToUpdate.Count > 0)
                 {
                     _currentProgress = DownloadProgress.Checking("カタログ更新中...");
@@ -78,25 +89,42 @@ namespace Game.Shared.Services.RemoteAsset
                     await UpdateCatalogsAsync(catalogsToUpdate, cancellationToken);
                 }
 
-                // Step 3: ダウンロードサイズ確認
-                _currentProgress = DownloadProgress.Checking("ダウンロードサイズ確認中...");
+                // Step 3: 全リモートアセットのキーを収集
+                _currentProgress = DownloadProgress.Checking("アセット確認中...");
                 progress?.Report(_currentProgress);
 
-                var downloadSize = await GetDownloadSizeAsync(cancellationToken);
+                _downloadKeys = await CollectRemoteAssetKeysAsync(cancellationToken);
 
-                if (downloadSize <= 0)
+                if (_downloadKeys.Count == 0)
                 {
-                    Debug.Log("[RemoteAssetDownloadService] No assets to download");
+                    Debug.Log("[RemoteAssetDownloadService] No remote assets found");
                     _isDownloaded = true;
                     _currentProgress = DownloadProgress.Completed();
                     progress?.Report(_currentProgress);
                     return true;
                 }
 
-                Debug.Log($"[RemoteAssetDownloadService] Download size: {FormatBytes(downloadSize)}");
+                Debug.Log($"[RemoteAssetDownloadService] Found {_downloadKeys.Count} remote asset keys");
 
-                // Step 4: ダウンロード実行
-                await DownloadDependenciesAsync(downloadSize, progress, cancellationToken);
+                // Step 4: 総ダウンロードサイズを取得
+                _currentProgress = DownloadProgress.Checking("ダウンロードサイズ確認中...");
+                progress?.Report(_currentProgress);
+
+                var totalSize = await GetTotalDownloadSizeAsync(_downloadKeys, cancellationToken);
+
+                if (totalSize <= 0)
+                {
+                    Debug.Log("[RemoteAssetDownloadService] All assets already cached");
+                    _isDownloaded = true;
+                    _currentProgress = DownloadProgress.Completed();
+                    progress?.Report(_currentProgress);
+                    return true;
+                }
+
+                Debug.Log($"[RemoteAssetDownloadService] Total download size: {FormatBytes(totalSize)}");
+
+                // Step 5: ダウンロード実行
+                await DownloadAllAssetsAsync(_downloadKeys, totalSize, progress, cancellationToken);
 
                 _isDownloaded = true;
                 _currentProgress = DownloadProgress.Completed();
@@ -129,10 +157,10 @@ namespace Game.Shared.Services.RemoteAsset
             {
                 Caching.ClearCache();
                 _isDownloaded = false;
+                _downloadKeys.Clear();
                 _currentProgress = DownloadProgress.NotStarted();
 
-                // Addressables のリソースロケーターをクリア
-                await Addressables.InitializeAsync();
+                await Addressables.InitializeAsync().ToUniTask();
 
                 Debug.Log("[RemoteAssetDownloadService] Cache cleared");
             }
@@ -193,37 +221,113 @@ namespace Game.Shared.Services.RemoteAsset
             }
         }
 
-        private async UniTask<long> GetDownloadSizeAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// 全リモートアセットのキーを収集
+        /// </summary>
+        private async UniTask<List<object>> CollectRemoteAssetKeysAsync(CancellationToken cancellationToken)
         {
+            var remoteKeys = new HashSet<object>();
+
+            await UniTask.SwitchToMainThread(cancellationToken);
+
+            foreach (var locator in Addressables.ResourceLocators)
+            {
+                foreach (var key in locator.Keys)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // GUID形式のキーはスキップ（アドレスのみを対象）
+                    if (key is string keyStr && Guid.TryParse(keyStr, out _))
+                    {
+                        continue;
+                    }
+
+                    // ロケーションを取得してリモートかどうか判定
+                    if (locator.Locate(key, typeof(object), out var locations))
+                    {
+                        foreach (var location in locations)
+                        {
+                            if (IsRemoteLocation(location))
+                            {
+                                remoteKeys.Add(key);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return remoteKeys.ToList();
+        }
+
+        /// <summary>
+        /// ロケーションがリモートかどうかを判定
+        /// </summary>
+        private bool IsRemoteLocation(IResourceLocation location)
+        {
+            if (location == null) return false;
+
+            var internalId = location.InternalId;
+
+            // HTTP/HTTPS で始まる場合はリモート
+            if (internalId.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                internalId.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // 依存関係もチェック
+            if (location.HasDependencies)
+            {
+                foreach (var dep in location.Dependencies)
+                {
+                    if (IsRemoteLocation(dep))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 全キーの合計ダウンロードサイズを取得
+        /// </summary>
+        private async UniTask<long> GetTotalDownloadSizeAsync(List<object> keys, CancellationToken cancellationToken)
+        {
+            long totalSize = 0;
+
             try
             {
-                // すべてのAddressablesラベルに対してダウンロードサイズを取得
-                var handle = Addressables.GetDownloadSizeAsync("default");
+                var handle = Addressables.GetDownloadSizeAsync(keys);
                 await handle.ToUniTask(cancellationToken: cancellationToken);
 
                 if (handle.Status == AsyncOperationStatus.Succeeded)
                 {
-                    var size = handle.Result;
-                    Addressables.Release(handle);
-                    return size;
+                    totalSize = handle.Result;
                 }
 
                 Addressables.Release(handle);
-                return 0;
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"[RemoteAssetDownloadService] GetDownloadSize failed: {ex.Message}");
-                return 0;
             }
+
+            return totalSize;
         }
 
-        private async UniTask DownloadDependenciesAsync(
+        /// <summary>
+        /// 全アセットをダウンロード
+        /// </summary>
+        private async UniTask DownloadAllAssetsAsync(
+            List<object> keys,
             long totalBytes,
             IProgress<DownloadProgress> progress,
             CancellationToken cancellationToken)
         {
-            var handle = Addressables.DownloadDependenciesAsync("default", false);
+            var handle = Addressables.DownloadDependenciesAsync(keys, Addressables.MergeMode.Union, false);
 
             try
             {
@@ -247,7 +351,7 @@ namespace Game.Shared.Services.RemoteAsset
                 {
                     throw new RemoteAssetDownloadException(
                         "DownloadDependencies",
-                        "ダウンロードに失敗しました");
+                        $"ダウンロードに失敗しました: {handle.OperationException?.Message}");
                 }
             }
             finally
