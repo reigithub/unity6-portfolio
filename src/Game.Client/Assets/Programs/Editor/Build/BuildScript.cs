@@ -297,6 +297,9 @@ namespace Game.Editor.Build
             var targetGroup = BuildPipeline.GetBuildTargetGroup(target);
             BuildProfileHelper.ApplyEnvironmentSymbols(targetGroup);
 
+            // Addressables の Local/Remote 設定を環境変数から適用
+            AddressablesEnvironmentSwitcher.ApplyFromEnvironmentVariable();
+
             // Build Profile を確認（コマンドライン引数優先）
             var profilePath = BuildProfileHelper.GetBuildProfileFromArgs();
             if (string.IsNullOrEmpty(profilePath))
