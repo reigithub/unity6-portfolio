@@ -66,6 +66,7 @@ services:
           memory: 8G
 
     # Security options
+    # no-new-privileges:false に変更することで sudo が使用可能になります
     security_opt:
       - no-new-privileges:true
 
