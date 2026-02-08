@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
+using Game.Shared.Services.RemoteAsset;
 using UnityEngine;
 
 namespace Game.App.Services
@@ -20,6 +21,7 @@ namespace Game.App.Services
         public IAddressableAssetService AddressableAssetService { get; private set; }
         public IAudioService AudioService { get; private set; }
         public IAudioSaveService AudioSaveService { get; private set; }
+        public IRemoteAssetDownloadService RemoteAssetDownloadService { get; private set; }
 
         private ISaveDataStorage _saveDataStorage;
         private bool _isInitialized;
@@ -61,6 +63,9 @@ namespace Game.App.Services
         {
             // 共通のセーブデータストレージ
             _saveDataStorage = new SaveDataStorage();
+
+            // リモートアセットダウンロードサービス
+            RemoteAssetDownloadService = new RemoteAssetDownloadService();
 
             switch (_mode)
             {
@@ -137,6 +142,7 @@ namespace Game.App.Services
             AddressableAssetService = null;
             MasterDataService = null;
             AudioService = null;
+            RemoteAssetDownloadService = null;
 
             _isInitialized = false;
             _isDisposed = true;

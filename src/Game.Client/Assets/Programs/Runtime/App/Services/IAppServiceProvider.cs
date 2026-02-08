@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
+using Game.Shared.Services.RemoteAsset;
 
 namespace Game.App.Services
 {
@@ -15,6 +16,7 @@ namespace Game.App.Services
         IAddressableAssetService AddressableAssetService { get; }
         IAudioService AudioService { get; }
         IAudioSaveService AudioSaveService { get; }
+        IRemoteAssetDownloadService RemoteAssetDownloadService { get; }
 
         /// <summary>
         /// サービスを初期化

@@ -1,0 +1,52 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="AppTitleScene.uss" />
+
+    <ui:VisualElement name="root" class="root">
+        <!-- Title Area (Top) -->
+        <ui:VisualElement name="title-area" class="title-area">
+            <ui:Label name="title-text" text="UNITY CHAN" class="title"/>
+            <ui:Label name="subtitle-text" text="- ACTION GAME -" class="subtitle"/>
+        </ui:VisualElement>
+
+        <!-- Content Area -->
+        <ui:VisualElement name="content" class="content">
+            <!-- Left Space (for character) -->
+            <ui:VisualElement class="character-space" />
+
+            <!-- Right: Menu Panel -->
+            <ui:VisualElement name="menu-panel" class="menu-panel">
+
+                <!-- Initial Panel: GameStart Button -->
+                <ui:VisualElement name="initial-panel" class="panel">
+                    <ui:Button name="game-start-button" text="GAME START" class="menu-button menu-button--primary"/>
+                </ui:VisualElement>
+
+                <!-- Downloading Panel -->
+                <ui:VisualElement name="downloading-panel" class="panel hidden">
+                    <ui:Label name="download-status" text="Preparing..." class="status-text"/>
+                    <ui:ProgressBar name="download-progress" class="progress-bar"/>
+                    <ui:Label name="download-size" text="" class="size-text"/>
+                </ui:VisualElement>
+
+                <!-- Error Panel -->
+                <ui:VisualElement name="error-panel" class="panel hidden">
+                    <ui:Label name="error-message" text="" class="error-text"/>
+                    <ui:Button name="retry-button" text="RETRY" class="menu-button"/>
+                </ui:VisualElement>
+
+                <!-- Mode Selection Panel -->
+                <ui:VisualElement name="mode-selection-panel" class="panel hidden">
+                    <ui:Button name="score-timeattack-button" text="SCORE TIME ATTACK" class="menu-button menu-button--primary"/>
+                    <ui:Button name="survivor-button" text="SURVIVOR" class="menu-button"/>
+                    <ui:Button name="quit-button" text="QUIT" class="menu-button menu-button--danger"/>
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Footer -->
+        <ui:VisualElement name="footer" class="footer">
+            <ui:Label name="version-text" class="version-text"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

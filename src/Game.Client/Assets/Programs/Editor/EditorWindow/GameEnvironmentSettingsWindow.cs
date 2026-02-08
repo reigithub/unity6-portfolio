@@ -82,9 +82,15 @@ namespace Game.Editor
             if (_index != newIndex)
             {
                 _index = newIndex;
-                GameEnvironmentSettings.Instance.SetConfig(_envs[newIndex]);
+                var newEnv = _envs[newIndex];
+
+                // GameEnvironmentSettings を更新
+                GameEnvironmentSettings.Instance.SetConfig(newEnv);
                 EditorUtility.SetDirty(GameEnvironmentSettings.Instance);
                 AssetDatabase.SaveAssetIfDirty(GameEnvironmentSettings.Instance);
+
+                // Addressables Profile を自動切り替え（メモリのみ、Git差分なし）
+                AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(newEnv, saveAsset: false);
             }
         }
 
@@ -134,9 +140,9 @@ namespace Game.Editor
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField("Active Profile", state.ActiveProfileName);
             EditorGUILayout.Toggle("Build Remote Catalog", state.BuildRemoteCatalog);
-            EditorGUILayout.TextField("Remote.BuildPath", state.RemoteBuildPath ?? "-");
-            EditorGUILayout.TextField("Remote.LoadPath", state.RemoteLoadPath ?? "-");
-            EditorGUILayout.TextField("Remote Groups", $"{state.RemoteGroups} / {state.TotalGroups}");
+            EditorGUILayout.TextField("Content.BuildPath", state.ContentBuildPath ?? "-");
+            EditorGUILayout.TextField("Content.LoadPath", state.ContentLoadPath ?? "-");
+            EditorGUILayout.TextField("Content Groups", $"{state.ContentGroups} / {state.TotalGroups}");
             EditorGUI.EndDisabledGroup();
 
             // 設定と状態の不一致チェック
@@ -155,7 +161,7 @@ namespace Game.Editor
             {
                 GUILayout.FlexibleSpace();
 
-                if (GUILayout.Button("Addressables設定を適用", GUILayout.Width(200), GUILayout.Height(30)))
+                if (GUILayout.Button("Profile設定を保存", GUILayout.Width(200), GUILayout.Height(30)))
                 {
                     OnApplyButtonClicked();
                 }
@@ -164,8 +170,8 @@ namespace Game.Editor
             }
 
             EditorGUILayout.HelpBox(
-                "※ AddressableAssetData が変更されます\n" +
-                "   Git差分に注意してください",
+                "環境変更時: Profile をメモリ上で切替 (Git差分なし)\n" +
+                "保存ボタン: Profile 設定を .asset に保存 (Git差分あり)",
                 MessageType.Info);
         }
 
@@ -180,15 +186,15 @@ namespace Game.Editor
 
             var confirmed = EditorUtility.DisplayDialog(
                 "確認",
-                "AddressableAssetData が編集されます。\n本当によろしいですか？\n\n※ Git差分が発生します",
-                "適用",
+                $"Profile '{config.ProfileName}' を保存します。\n\n※ Git差分が発生します",
+                "保存",
                 "キャンセル");
 
             if (confirmed)
             {
-                AddressablesEnvironmentSwitcher.ApplyConfig(config);
+                AddressablesEnvironmentSwitcher.SetActiveProfileOnly(config.ProfileName, saveAsset: true);
                 Repaint();
-                EditorUtility.DisplayDialog("完了", "Addressables設定を適用しました", "OK");
+                EditorUtility.DisplayDialog("完了", $"Profile '{config.ProfileName}' を保存しました", "OK");
             }
         }
 
@@ -200,12 +206,8 @@ namespace Game.Editor
 
         private bool IsConfigMatchingState(AddressablesEnvironmentConfig config, AddressablesCurrentState state)
         {
-            if (config.ProfileName != state.ActiveProfileName) return false;
-            if (config.BuildRemoteCatalog != state.BuildRemoteCatalog) return false;
-            // Remote使用時はRemoteGroupが存在すべき
-            if (config.UseRemoteLoadPath && state.RemoteGroups == 0) return false;
-            if (!config.UseRemoteLoadPath && state.RemoteGroups > 0) return false;
-            return true;
+            // Profile 名が一致していれば OK（カスタム Path Pair 使用のため Group 切り替えは不要）
+            return config.ProfileName == state.ActiveProfileName;
         }
     }
 }
