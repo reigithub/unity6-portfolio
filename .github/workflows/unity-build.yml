@@ -126,23 +126,29 @@ jobs:
 
       - name: Run EditMode tests
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -runTests \
               -batchmode \
               -nographics \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -testResults "${{ github.workspace }}/TestResults/editmode-results.xml" \
               -testPlatform EditMode \
               -logFile "${{ github.workspace }}/Logs/editmode-test.log"
 
       - name: Run PlayMode tests
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -runTests \
               -batchmode \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -testResults "${{ github.workspace }}/TestResults/playmode-results.xml" \
               -testPlatform PlayMode \
               -logFile "${{ github.workspace }}/Logs/playmode-test.log"
@@ -194,12 +200,15 @@ jobs:
 
       - name: Build Windows
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/Windows - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildWindows \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
@@ -257,12 +266,15 @@ jobs:
 
       - name: Build Linux
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/Linux - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildLinux \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
@@ -320,12 +332,15 @@ jobs:
 
       - name: Build macOS
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/macOS - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildMacOS \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
@@ -383,12 +398,15 @@ jobs:
 
       - name: Build WebGL
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/WebGL Desktop - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildWebGL \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
@@ -446,12 +464,15 @@ jobs:
 
       - name: Build Android
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/Android - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildAndroid \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
@@ -509,12 +530,15 @@ jobs:
 
       - name: Build iOS
         run: |
+          source .github/scripts/setup-accelerator.sh
+
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             unity-editor \
               -batchmode \
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
               -activeBuildProfile "Assets/Settings/Build Profiles/iOS - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
               -executeMethod Game.Editor.Build.BuildScript.BuildIOS \
               -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \

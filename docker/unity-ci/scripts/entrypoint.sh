@@ -48,6 +48,31 @@ RUNNER_NAME=${RUNNER_NAME:-"unity-runner-$(hostname)"}
 RUNNER_LABELS=${RUNNER_LABELS:-"self-hosted,linux,unity,docker"}
 RUNNER_WORKDIR=${RUNNER_WORKDIR:-"/home/runner/actions-runner/_work"}
 
+# Setup cache directories (created by Docker bind mount, fix permissions)
+setup_cache_directories() {
+    local dirs=(
+        "/home/runner/.unity-library-cache"
+        "/home/runner/.local/share/unity3d"
+    )
+
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            # ディレクトリが存在する場合、書き込み権限を確認
+            if [ ! -w "$dir" ]; then
+                log_warn "Fixing permissions for $dir"
+                sudo chown -R runner:runner "$dir" 2>/dev/null || true
+            fi
+        else
+            # ディレクトリが存在しない場合、作成
+            log_info "Creating cache directory: $dir"
+            mkdir -p "$dir" 2>/dev/null || sudo mkdir -p "$dir"
+            sudo chown -R runner:runner "$dir" 2>/dev/null || true
+        fi
+    done
+}
+
+setup_cache_directories
+
 log_info "=========================================="
 log_info "GitHub Actions Runner Setup"
 log_info "=========================================="
