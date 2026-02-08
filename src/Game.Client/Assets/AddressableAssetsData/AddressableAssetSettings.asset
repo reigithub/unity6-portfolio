@@ -87,6 +87,10 @@ MonoBehaviour:
       m_Values:
       - m_Id: 3638deb57f33ea74ca5d36992299031f
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 48fee55e77e175c4693cab76d956f60f
+        m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+        m_Value: '[UnityEngine.AddressableAssets.Addressables.BuildPath]/[BuildTarget]'
       - m_Id: 8c1c7a763174795439391cca21150e5d
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: a75bca759a2ba504f8ce16b58c542e8d
@@ -101,6 +105,10 @@ MonoBehaviour:
       m_Values:
       - m_Id: 3638deb57f33ea74ca5d36992299031f
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 48fee55e77e175c4693cab76d956f60f
+        m_Value: 'review.assets.rei-unity6-portfolio.com/[BuildTarget]'
+      - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+        m_Value: 'ServerData/[BuildTarget]'
       - m_Id: 8c1c7a763174795439391cca21150e5d
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: a75bca759a2ba504f8ce16b58c542e8d
@@ -115,6 +123,10 @@ MonoBehaviour:
       m_Values:
       - m_Id: 3638deb57f33ea74ca5d36992299031f
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 48fee55e77e175c4693cab76d956f60f
+        m_Value: 'staging.assets.rei-unity6-portfolio.com/[BuildTarget]'
+      - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+        m_Value: 'ServerData/[BuildTarget]'
       - m_Id: 8c1c7a763174795439391cca21150e5d
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: a75bca759a2ba504f8ce16b58c542e8d
@@ -129,6 +141,10 @@ MonoBehaviour:
       m_Values:
       - m_Id: 3638deb57f33ea74ca5d36992299031f
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 48fee55e77e175c4693cab76d956f60f
+        m_Value: 'develop.assets.rei-unity6-portfolio.com/[BuildTarget]'
+      - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+        m_Value: 'ServerData/[BuildTarget]'
       - m_Id: 8c1c7a763174795439391cca21150e5d
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: a75bca759a2ba504f8ce16b58c542e8d
@@ -143,6 +159,10 @@ MonoBehaviour:
       m_Values:
       - m_Id: 3638deb57f33ea74ca5d36992299031f
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
+      - m_Id: 48fee55e77e175c4693cab76d956f60f
+        m_Value: 'assets.rei-unity6-portfolio.com/[BuildTarget]'
+      - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+        m_Value: 'ServerData/[BuildTarget]'
       - m_Id: 8c1c7a763174795439391cca21150e5d
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: a75bca759a2ba504f8ce16b58c542e8d
@@ -154,6 +174,12 @@ MonoBehaviour:
     m_ProfileEntryNames:
     - m_Id: 3638deb57f33ea74ca5d36992299031f
       m_Name: Local.LoadPath
+      m_InlineUsage: 0
+    - m_Id: 48fee55e77e175c4693cab76d956f60f
+      m_Name: Content.LoadPath
+      m_InlineUsage: 0
+    - m_Id: 51f2c25893d6d51418d21e2c08a24c53
+      m_Name: Content.BuildPath
       m_InlineUsage: 0
     - m_Id: 8c1c7a763174795439391cca21150e5d
       m_Name: BuildTarget
