@@ -180,8 +180,7 @@ namespace Game.Editor.Build
         ///
         /// 環境変数:
         ///   GAME_ENVIRONMENT: ゲーム環境（Local, Develop, Staging, Review, Release）
-        ///   ADDRESSABLES_PROFILE: 使用するプロファイル名（GAME_ENVIRONMENT未設定時のフォールバック）
-        ///   ADDRESSABLES_REMOTE_LOAD_PATH: リモートロードパス（オプション）
+        ///     → カスタム Path Pair 方式で Profile を切り替え
         /// </summary>
         public static void BuildAddressablesCI()
         {
@@ -189,7 +188,9 @@ namespace Game.Editor.Build
             Debug.Log("[Addressables] CI ビルド開始");
             Debug.Log("========================================");
 
-            // 環境変数から Addressables 設定を適用
+            // 環境変数から Profile を切り替え（カスタム Path Pair 方式）
+            var envName = Environment.GetEnvironmentVariable("GAME_ENVIRONMENT");
+            Debug.Log($"[Addressables] GAME_ENVIRONMENT: {envName ?? "(not set)"}");
             AddressablesEnvironmentSwitcher.ApplyFromEnvironmentVariable();
 
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -205,30 +206,23 @@ namespace Game.Editor.Build
             Debug.Log($"[Addressables] Build Target: {EditorUserBuildSettings.activeBuildTarget}");
             Debug.Log($"[Addressables] ServerData Path: {ServerDataPath}");
 
-            // プロファイル設定
-            var profileName = GetEnvironmentVariable("ADDRESSABLES_PROFILE", "Default");
-            var profileId = settings.profileSettings.GetProfileId(profileName);
-            if (!string.IsNullOrEmpty(profileId))
-            {
-                settings.activeProfileId = profileId;
-                Debug.Log($"[Addressables] Profile: {profileName}");
-            }
-            else
-            {
-                Debug.LogWarning($"[Addressables] Profile '{profileName}' not found, using current profile");
-            }
+            // 現在の設定を出力
+            Debug.Log($"[Addressables] Build Remote Catalog: {settings.BuildRemoteCatalog}");
+            Debug.Log($"[Addressables] Active Profile: {settings.profileSettings.GetProfileName(settings.activeProfileId)}");
 
-            // リモートロードパスの設定（環境変数でオーバーライド可能）
-            var remoteLoadPath = GetEnvironmentVariable("ADDRESSABLES_REMOTE_LOAD_PATH", null);
-            if (!string.IsNullOrEmpty(remoteLoadPath))
+            // カスタム Path Pair の値を出力（Content.BuildPath / Content.LoadPath）
+            var contentBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.BuildPath");
+            var contentLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.LoadPath");
+            Debug.Log($"[Addressables] Content.BuildPath: {contentBuildPath ?? "(not set)"}");
+            Debug.Log($"[Addressables] Content.LoadPath: {contentLoadPath ?? "(not set)"}");
+
+            // フォールバック: Content.* がない場合は Remote.* を表示
+            if (string.IsNullOrEmpty(contentBuildPath))
             {
-                Debug.Log($"[Addressables] Remote Load Path override: {remoteLoadPath}");
-                // プロファイル変数を更新
-                var remoteLoadPathId = settings.profileSettings.GetProfileDataByName("Remote.LoadPath");
-                if (remoteLoadPathId != null)
-                {
-                    settings.profileSettings.SetValue(settings.activeProfileId, "Remote.LoadPath", remoteLoadPath);
-                }
+                var remoteBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath");
+                var remoteLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath");
+                Debug.Log($"[Addressables] Remote.BuildPath: {remoteBuildPath ?? "(not set)"}");
+                Debug.Log($"[Addressables] Remote.LoadPath: {remoteLoadPath ?? "(not set)"}");
             }
 
             // Build Remote Catalog を有効化（CI では常に有効）
@@ -237,15 +231,6 @@ namespace Game.Editor.Build
                 Debug.Log("[Addressables] Enabling Build Remote Catalog for CI build");
                 settings.BuildRemoteCatalog = true;
             }
-
-            // 現在の設定を出力
-            Debug.Log($"[Addressables] Build Remote Catalog: {settings.BuildRemoteCatalog}");
-            Debug.Log($"[Addressables] Active Profile: {settings.profileSettings.GetProfileName(settings.activeProfileId)}");
-
-            var remoteBuildPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.BuildPath");
-            var remoteLoadPathValue = settings.profileSettings.GetValueByName(settings.activeProfileId, "Remote.LoadPath");
-            Debug.Log($"[Addressables] Remote.BuildPath: {remoteBuildPath}");
-            Debug.Log($"[Addressables] Remote.LoadPath: {remoteLoadPathValue}");
 
             // 古いビルドをクリーン
             Debug.Log("[Addressables] Cleaning previous build...");
