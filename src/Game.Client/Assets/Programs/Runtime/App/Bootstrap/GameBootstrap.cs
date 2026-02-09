@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
@@ -60,6 +61,9 @@ namespace Game.App.Bootstrap
         private static async UniTask InitializeAsync()
         {
             Debug.Log("[GameBootstrap] Initializing...");
+
+            // カスタムキャッシュパスを設定（Addressables 初期化前に実行）
+            SetupCustomAssetCache();
 
             // ランチャーレジストリ初期化
             _registry = new GameModeLauncherRegistry();
@@ -181,6 +185,48 @@ namespace Game.App.Bootstrap
         private static void OnUnobservedTaskException(Exception ex)
         {
             Debug.LogError($"[UniTask] Unobserved exception: {ex}");
+        }
+
+        /// <summary>
+        /// ダウンロードしたアセットの保存先をカスタマイズ
+        /// ビルド: {InstallPath}/{AppName}_Data/DownloadedAssets
+        /// エディター: {persistentDataPath}/DownloadedAssets
+        /// </summary>
+        private static void SetupCustomAssetCache()
+        {
+            try
+            {
+#if UNITY_EDITOR
+                // エディターでは persistentDataPath を使用
+                var customCachePath = Path.Combine(Application.persistentDataPath, "DownloadedAssets");
+#else
+                // ビルドでは dataPath（インストールフォルダ）を使用
+                var customCachePath = Path.Combine(Application.dataPath, "DownloadedAssets");
+#endif
+
+                // ディレクトリを作成
+                if (!Directory.Exists(customCachePath))
+                {
+                    Directory.CreateDirectory(customCachePath);
+                }
+
+                // キャッシュを追加して書き込み先に設定
+                var cache = Caching.AddCache(customCachePath);
+                if (cache.valid)
+                {
+                    Caching.currentCacheForWriting = cache;
+                    Debug.Log($"[GameBootstrap] Custom cache path: {customCachePath}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[GameBootstrap] Failed to add cache at: {customCachePath}. Using default cache.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // 書き込み権限がない場合など（Program Files へのインストール時）
+                Debug.LogWarning($"[GameBootstrap] Failed to setup custom cache: {ex.Message}. Using default cache.");
+            }
         }
     }
 }
