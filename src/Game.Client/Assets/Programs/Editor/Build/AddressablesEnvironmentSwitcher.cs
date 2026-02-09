@@ -167,7 +167,7 @@ namespace Game.Editor.Build
         }
 
         /// <summary>
-        /// GameEnvironment から Profile のみを切り替える（Git差分を最小化）
+        /// GameEnvironment から Profile と BuildRemoteCatalog を切り替える
         /// </summary>
         /// <param name="environment">対象環境</param>
         /// <param name="saveAsset">true: .asset に保存（Git差分発生）, false: メモリのみ（Git差分なし）</param>
@@ -188,7 +188,27 @@ namespace Game.Editor.Build
                 return false;
             }
 
-            return SetActiveProfileOnly(config.AddressablesConfig.ProfileName, saveAsset);
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                Debug.LogError("[Addressables] AddressableAssetSettings が見つかりません");
+                return false;
+            }
+
+            // Profile 切り替え
+            var result = SetActiveProfileOnly(config.AddressablesConfig.ProfileName, saveAsset: false);
+
+            // BuildRemoteCatalog 設定
+            settings.BuildRemoteCatalog = config.AddressablesConfig.BuildRemoteCatalog;
+            Debug.Log($"[Addressables] BuildRemoteCatalog: {settings.BuildRemoteCatalog}");
+
+            if (saveAsset)
+            {
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+            }
+
+            return result;
         }
 
         /// <summary>
