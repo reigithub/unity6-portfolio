@@ -12,7 +12,10 @@ name: unity-accelerator
 
 services:
   unity-accelerator:
-    image: unitytechnologies/accelerator:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: unity-accelerator:custom
     container_name: unity-accelerator
     restart: unless-stopped
 
@@ -49,12 +52,10 @@ services:
         reservations:
           memory: 2G
 
+    # ヘルスチェック無効化（curl インストール不可のため）
+    # 動作確認: docker exec unity-ci-runner curl http://unity-accelerator:10080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/api/health-agent"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      disable: true
 
     logging:
       driver: "json-file"
