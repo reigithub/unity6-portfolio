@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -52,7 +53,8 @@ namespace Game.Editor.Build
         [MenuItem("Build/Addressables/Build and Upload to R2", priority = 101)]
         public static void BuildAndUpload()
         {
-            if (!BuildAddressables())
+            // R2ビルド時はローカルグループを除外（リモートカタログにローカルバンドルの参照を含めない）
+            if (!BuildAddressables(excludeLocalGroups: true))
             {
                 Debug.LogError("[Addressables] ビルド失敗。アップロードをキャンセルしました。");
                 return;
@@ -146,8 +148,9 @@ namespace Game.Editor.Build
         /// <summary>
         /// Addressables をビルド
         /// </summary>
+        /// <param name="excludeLocalGroups">ローカルグループをビルドから除外するか（R2アップロード用）</param>
         /// <returns>ビルド成功時は true</returns>
-        private static bool BuildAddressables()
+        private static bool BuildAddressables(bool excludeLocalGroups = false)
         {
             Debug.Log("[Addressables] ビルド開始...");
 
@@ -159,52 +162,135 @@ namespace Game.Editor.Build
             }
 
             // 現在のGameEnvironmentに基づいてAddressables設定を適用
-            var currentEnv = GameEnvironmentSettings.Instance?.Environment
-                             ?? GameEnvironment.Local;
+            var currentEnv = GameEnvironmentSettings.Instance?.Environment ?? GameEnvironment.Local;
             Debug.Log($"[Addressables] 現在の環境: {currentEnv}");
 
             // 設定をディスクに保存してビルドに反映させる
             AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(currentEnv, saveAsset: true);
 
-            // 設定を再読み込み
-            // AssetDatabase.SaveAssets();
-            // AssetDatabase.Refresh();
-
-            // ビルド情報を出力
-            // Debug.Log($"[Addressables] Active Profile: {settings.profileSettings.GetProfileName(settings.activeProfileId)}");
-            // Debug.Log($"[Addressables] Build Remote Catalog: {settings.BuildRemoteCatalog}");
-            // var contentLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.LoadPath");
-            // Debug.Log($"[Addressables] Content.LoadPath: {contentLoadPath ?? "(not set)"}");
-
-            // グループのLoadPath設定を確認
-            // foreach (var group in settings.groups)
-            // {
-            //     if (group == null) continue;
-            //     var schema = group.GetSchema<BundledAssetGroupSchema>();
-            //     if (schema == null) continue;
-            //     var loadPathName = schema.LoadPath.GetName(settings);
-            //     var loadPathValue = settings.profileSettings.EvaluateString(settings.activeProfileId, schema.LoadPath.GetValue(settings));
-            //     Debug.Log($"[Addressables] Group '{group.Name}': LoadPath={loadPathName}, Value={loadPathValue}");
-            //     // 最初の3グループだけ表示
-            //     if (settings.groups.IndexOf(group) >= 2) break;
-            // }
-
-            // 古いビルドをクリーン
-            AddressableAssetSettings.CleanPlayerContent(settings.ActivePlayerDataBuilder);
-
-            // ビルド実行
-            AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-
-            if (!string.IsNullOrEmpty(result.Error))
+            // R2ビルド時はローカルグループをビルドから除外
+            var excludedGroups = new List<AddressableAssetGroup>();
+            if (excludeLocalGroups)
             {
-                Debug.LogError($"[Addressables] ビルドエラー: {result.Error}");
-                return false;
+                excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
             }
 
-            Debug.Log($"[Addressables] ビルド完了: {result.OutputPath}");
-            Debug.Log($"[Addressables] Duration: {result.Duration:F2}s");
+            try
+            {
+                // 古いビルドをクリーン
+                AddressableAssetSettings.CleanPlayerContent(settings.ActivePlayerDataBuilder);
 
-            return true;
+                // ビルド実行
+                AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
+
+                if (!string.IsNullOrEmpty(result.Error))
+                {
+                    Debug.LogError($"[Addressables] ビルドエラー: {result.Error}");
+                    return false;
+                }
+
+                Debug.Log($"[Addressables] ビルド完了: {result.OutputPath}");
+                Debug.Log($"[Addressables] Duration: {result.Duration:F2}s");
+
+                return true;
+            }
+            finally
+            {
+                // ローカルグループの設定を復元
+                if (excludeLocalGroups && excludedGroups.Count > 0)
+                {
+                    RestoreGroupsIncludeInBuild(excludedGroups);
+                }
+            }
+        }
+
+        /// <summary>
+        /// ローカルパスを使用しているグループをビルドから除外
+        /// RemoteAssetDownloadService.IsLocalOnlyBundle() と整合性を保つ
+        /// </summary>
+        /// <param name="settings">Addressable設定</param>
+        /// <param name="include">ビルドに含めるか</param>
+        /// <returns>除外したグループのリスト（復元用）</returns>
+        private static List<AddressableAssetGroup> SetLocalGroupsIncludeInBuild(AddressableAssetSettings settings, bool include)
+        {
+            var modifiedGroups = new List<AddressableAssetGroup>();
+
+            foreach (var group in settings.groups)
+            {
+                if (group == null) continue;
+
+                var schema = group.GetSchema<BundledAssetGroupSchema>();
+                if (schema == null) continue;
+
+                // ローカルパスを使用しているグループかどうかを判定
+                if (IsLocalPathGroup(settings, schema))
+                {
+                    if (schema.IncludeInBuild != include)
+                    {
+                        schema.IncludeInBuild = include;
+                        EditorUtility.SetDirty(group);
+                        modifiedGroups.Add(group);
+                        Debug.Log($"[Addressables] グループ '{group.Name}' の IncludeInBuild を {include} に設定 (ローカルパス使用)");
+                    }
+                }
+            }
+
+            // 変更を保存
+            if (modifiedGroups.Count > 0)
+            {
+                AssetDatabase.SaveAssets();
+            }
+
+            return modifiedGroups;
+        }
+
+        /// <summary>
+        /// グループのIncludeInBuildを復元
+        /// </summary>
+        private static void RestoreGroupsIncludeInBuild(List<AddressableAssetGroup> groups)
+        {
+            foreach (var group in groups)
+            {
+                if (group == null) continue;
+
+                var schema = group.GetSchema<BundledAssetGroupSchema>();
+                if (schema == null) continue;
+
+                schema.IncludeInBuild = true;
+                EditorUtility.SetDirty(group);
+                Debug.Log($"[Addressables] グループ '{group.Name}' の IncludeInBuild を復元");
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// グループがローカルパスを使用しているかどうかを判定
+        /// Profile変数名が "Local." で始まる場合、またはローカル専用のグループ名の場合はローカル
+        /// </summary>
+        private static bool IsLocalPathGroup(AddressableAssetSettings settings, BundledAssetGroupSchema schema)
+        {
+            // LoadPath の変数名を取得
+            var loadPathName = schema.LoadPath.GetName(settings);
+
+            // "Local." で始まる場合はローカルパス
+            if (!string.IsNullOrEmpty(loadPathName) && loadPathName.StartsWith("Local.", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // 実際の値も確認（RuntimePath を含む場合はローカル）
+            var loadPathValue = settings.profileSettings.EvaluateString(settings.activeProfileId, schema.LoadPath.GetValue(settings));
+            if (!string.IsNullOrEmpty(loadPathValue))
+            {
+                if (loadPathValue.Contains("{UnityEngine.AddressableAssets.Addressables.RuntimePath}") ||
+                    loadPathValue.Contains("{UnityEngine.Application"))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -265,15 +351,32 @@ namespace Game.Editor.Build
                 settings.BuildRemoteCatalog = true;
             }
 
-            // 古いビルドをクリーン
-            Debug.Log("[Addressables] Cleaning previous build...");
-            AddressableAssetSettings.CleanPlayerContent(settings.ActivePlayerDataBuilder);
+            // R2ビルド時はローカルグループを除外（リモートカタログにローカルバンドルの参照を含めない）
+            var excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
 
-            // ビルド実行
-            Debug.Log("[Addressables] Building...");
-            var startTime = DateTime.Now;
-            AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-            var buildTime = DateTime.Now - startTime;
+            AddressablesPlayerBuildResult result;
+            TimeSpan buildTime;
+
+            try
+            {
+                // 古いビルドをクリーン
+                Debug.Log("[Addressables] Cleaning previous build...");
+                AddressableAssetSettings.CleanPlayerContent(settings.ActivePlayerDataBuilder);
+
+                // ビルド実行
+                Debug.Log("[Addressables] Building...");
+                var startTime = DateTime.Now;
+                AddressableAssetSettings.BuildPlayerContent(out result);
+                buildTime = DateTime.Now - startTime;
+            }
+            finally
+            {
+                // ローカルグループの設定を復元
+                if (excludedGroups.Count > 0)
+                {
+                    RestoreGroupsIncludeInBuild(excludedGroups);
+                }
+            }
 
             if (!string.IsNullOrEmpty(result.Error))
             {
