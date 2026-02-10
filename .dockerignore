@@ -1,8 +1,13 @@
 **/bin/
 **/obj/
 .git/
+.gitignore
 docker/unity-ci/
+docker/unity-accelerator/
 test/
+
+# Unity Client（サーバービルドには不要）
+src/Game.Client/
 
 # Unity project files
 Assets/
@@ -16,9 +21,22 @@ ProjectSettings/
 # IDE
 .vs/
 .idea/
+.vscode/
 *.user
 *.suo
 
-# Misc
+# Documentation
+docs/
 *.md
 !src/**/*.md
+
+# Local settings
+*.local
+*.local.*
+.env
+.env.*
+
+# Misc
+*.log
+tmp/
+temp/
