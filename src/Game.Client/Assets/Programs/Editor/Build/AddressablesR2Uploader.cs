@@ -2,10 +2,12 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Game.Shared;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -155,6 +157,37 @@ namespace Game.Editor.Build
                 Debug.LogError("[Addressables] AddressableAssetSettings が見つかりません");
                 return false;
             }
+
+            // 現在のGameEnvironmentに基づいてAddressables設定を適用
+            var currentEnv = GameEnvironmentSettings.Instance?.Environment
+                             ?? GameEnvironment.Local;
+            Debug.Log($"[Addressables] 現在の環境: {currentEnv}");
+
+            // 設定をディスクに保存してビルドに反映させる
+            AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(currentEnv, saveAsset: true);
+
+            // 設定を再読み込み
+            // AssetDatabase.SaveAssets();
+            // AssetDatabase.Refresh();
+
+            // ビルド情報を出力
+            // Debug.Log($"[Addressables] Active Profile: {settings.profileSettings.GetProfileName(settings.activeProfileId)}");
+            // Debug.Log($"[Addressables] Build Remote Catalog: {settings.BuildRemoteCatalog}");
+            // var contentLoadPath = settings.profileSettings.GetValueByName(settings.activeProfileId, "Content.LoadPath");
+            // Debug.Log($"[Addressables] Content.LoadPath: {contentLoadPath ?? "(not set)"}");
+
+            // グループのLoadPath設定を確認
+            // foreach (var group in settings.groups)
+            // {
+            //     if (group == null) continue;
+            //     var schema = group.GetSchema<BundledAssetGroupSchema>();
+            //     if (schema == null) continue;
+            //     var loadPathName = schema.LoadPath.GetName(settings);
+            //     var loadPathValue = settings.profileSettings.EvaluateString(settings.activeProfileId, schema.LoadPath.GetValue(settings));
+            //     Debug.Log($"[Addressables] Group '{group.Name}': LoadPath={loadPathName}, Value={loadPathValue}");
+            //     // 最初の3グループだけ表示
+            //     if (settings.groups.IndexOf(group) >= 2) break;
+            // }
 
             // 古いビルドをクリーン
             AddressableAssetSettings.CleanPlayerContent(settings.ActivePlayerDataBuilder);

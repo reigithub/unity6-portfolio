@@ -202,6 +202,11 @@ namespace Game.Editor.Build
             settings.BuildRemoteCatalog = config.AddressablesConfig.BuildRemoteCatalog;
             Debug.Log($"[Addressables] BuildRemoteCatalog: {settings.BuildRemoteCatalog}");
 
+            // Play Mode Script 切り替え
+            // Local: Use Asset Database (高速イテレーション)
+            // それ以外: Use Existing Build (実際のバンドルをテスト)
+            SetPlayModeScript(settings, environment == GameEnvironment.Local);
+
             if (saveAsset)
             {
                 EditorUtility.SetDirty(settings);
@@ -209,6 +214,67 @@ namespace Game.Editor.Build
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Play Mode Script を切り替える
+        /// </summary>
+        /// <param name="settings">Addressables設定</param>
+        /// <param name="useAssetDatabase">true: Use Asset Database, false: Use Existing Build</param>
+        private static void SetPlayModeScript(AddressableAssetSettings settings, bool useAssetDatabase)
+        {
+            // DataBuilders インデックス:
+            // 0: BuildScriptFastMode (Use Asset Database)
+            // 1: BuildScriptVirtualMode (Simulate Groups) - 存在しない場合あり
+            // 2: BuildScriptPackedPlayMode (Use Existing Build)
+
+            int targetIndex = useAssetDatabase ? 0 : GetUseExistingBuildIndex(settings);
+
+            if (settings.ActivePlayModeDataBuilderIndex != targetIndex)
+            {
+                var previousName = GetPlayModeScriptName(settings, settings.ActivePlayModeDataBuilderIndex);
+                settings.ActivePlayModeDataBuilderIndex = targetIndex;
+                var newName = GetPlayModeScriptName(settings, targetIndex);
+                Debug.Log($"[Addressables] Play Mode Script 切替: {previousName} → {newName}");
+            }
+        }
+
+        /// <summary>
+        /// Use Existing Build の DataBuilder インデックスを取得
+        /// </summary>
+        private static int GetUseExistingBuildIndex(AddressableAssetSettings settings)
+        {
+            for (int i = 0; i < settings.DataBuilders.Count; i++)
+            {
+                var builder = settings.DataBuilders[i];
+                if (builder != null && builder.GetType().Name.Contains("PackedPlayMode"))
+                {
+                    return i;
+                }
+            }
+            // 見つからない場合はデフォルトで最後のインデックス（通常は2）
+            return settings.DataBuilders.Count - 1;
+        }
+
+        /// <summary>
+        /// Play Mode Script の名前を取得
+        /// </summary>
+        private static string GetPlayModeScriptName(AddressableAssetSettings settings, int index)
+        {
+            if (index < 0 || index >= settings.DataBuilders.Count)
+                return "Unknown";
+
+            var builder = settings.DataBuilders[index];
+            if (builder == null)
+                return "Unknown";
+
+            return builder.GetType().Name switch
+            {
+                "BuildScriptFastMode" => "Use Asset Database",
+                "BuildScriptVirtualMode" => "Simulate Groups",
+                "BuildScriptPackedPlayMode" => "Use Existing Build",
+                _ => builder.GetType().Name
+            };
         }
 
         /// <summary>
@@ -330,6 +396,9 @@ namespace Game.Editor.Build
                 }
             }
 
+            // Play Mode Script
+            state.PlayModeScript = GetPlayModeScriptName(settings, settings.ActivePlayModeDataBuilderIndex);
+
             return state;
         }
 
@@ -347,5 +416,6 @@ namespace Game.Editor.Build
         public string ContentLoadPath { get; set; } = "";
         public int TotalGroups { get; set; }
         public int ContentGroups { get; set; }
+        public string PlayModeScript { get; set; } = "Unknown";
     }
 }
