@@ -179,6 +179,8 @@ dotnet test
 * **アイテムシステム**: ドロップ抽選、吸引機能、オブジェクトプーリング
 * **ロックオンシステム**: 自動ターゲット追跡、射程管理
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
+* **アセット配信システム**: Addressablesによるローカル/リモート自動切り替え、ビルドプロファイル連動
+* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化
 
 ---
 
@@ -402,6 +404,47 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 </details>
 
+<details><summary>アセット配信システム</summary>
+
+ビルドプロファイルに応じてAddressablesのアセット配信元を自動切り替え:
+
+**対応環境:**
+| ビルドプロファイル | アセット配信元 | 用途 |
+|------------------|--------------|------|
+| Development | Local (StreamingAssets) | 開発・デバッグ |
+| Release | Remote (CDN) | 本番配信 |
+
+**主な機能:**
+- ビルドプロファイル変更時にAddressables設定を自動更新
+- 環境変数によるAPI接続先切り替え
+- Unity Accelerator によるライブラリキャッシュ共有
+- GitHub Actions でのアセットキャッシュ最適化
+
+</details>
+
+<details><summary>CI/CD システム</summary>
+
+GitHub Actions + Docker による自動化パイプライン:
+
+**テスト自動化:**
+- EditMode テスト: 422件
+- PlayMode テスト: 63件
+- 合計: 485テスト（全パス）
+
+**ワークフロー:**
+| ワークフロー | トリガー | 内容 |
+|-------------|---------|------|
+| unity-ci-docker.yml | push/PR | メインCI（Docker/Linux） |
+| unity-test.yml | PR | PR用テスト |
+| code-quality.yml | push/PR | フォーマット・静的解析 |
+
+**キャッシュ最適化:**
+- Unity Accelerator によるライブラリキャッシュ
+- GitHub Actions でのアセットキャッシュ共有
+- Docker イメージのレイヤーキャッシュ
+
+</details>
+
 <details><summary>その他</summary>
 
 * シーン遷移やオーディオ再生などの共通機能は主にゲームサービスとして分離されています
@@ -455,8 +498,9 @@ Unity6Portfolio/
 ├── masterdata/                         # Protobufスキーマ + TSVデータ
 │
 ├── docker/                             # Docker構成
-│   ├── unity-ci/                       # Unity CI Runner
-│   └── game-server/                    # Game.Server用
+│   ├── unity-accelerator/              # Unity Accelerator キャッシュサーバー
+│   ├── unity-ci/                       # Unity CI Runner (GitHub Actions用)
+│   └── game-server/                    # Game.Server (ASP.NET Core + PostgreSQL)
 │
 ├── docs/                               # 技術ドキュメント
 │
@@ -547,7 +591,7 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約4週間 (2026/1/24時点)
+* 約7週間 (2026/2/10時点)
 
 ---
 

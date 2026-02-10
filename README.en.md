@@ -180,6 +180,8 @@ dotnet test
 * **Item System**: Drop lottery, attraction feature, object pooling
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
+* **Asset Delivery System**: Automatic local/remote switching with Addressables, build profile integration
+* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
 
 ---
 
@@ -403,6 +405,47 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 </details>
 
+<details><summary>Asset Delivery System</summary>
+
+Automatically switches Addressables asset delivery source based on build profile:
+
+**Supported Environments:**
+| Build Profile | Asset Source | Usage |
+|---------------|--------------|-------|
+| Development | Local (StreamingAssets) | Development/Debug |
+| Release | Remote (CDN) | Production |
+
+**Key Features:**
+- Auto-updates Addressables settings when build profile changes
+- API endpoint switching via environment variables
+- Library cache sharing via Unity Accelerator
+- Asset cache optimization in GitHub Actions
+
+</details>
+
+<details><summary>CI/CD System</summary>
+
+Automated pipeline with GitHub Actions + Docker:
+
+**Test Automation:**
+- EditMode tests: 422
+- PlayMode tests: 63
+- Total: 485 tests (all passing)
+
+**Workflows:**
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| unity-ci-docker.yml | push/PR | Main CI (Docker/Linux) |
+| unity-test.yml | PR | PR testing |
+| code-quality.yml | push/PR | Formatting/static analysis |
+
+**Cache Optimization:**
+- Library cache via Unity Accelerator
+- Asset cache sharing in GitHub Actions
+- Docker image layer caching
+
+</details>
+
 <details><summary>Others</summary>
 
 * Common features like scene transitions and audio playback are primarily separated as game services
@@ -456,8 +499,9 @@ Unity6Portfolio/
 ├── masterdata/                         # Protobuf Schemas + TSV Data
 │
 ├── docker/                             # Docker Configuration
-│   ├── unity-ci/                       # Unity CI Runner
-│   └── game-server/                    # Game.Server
+│   ├── unity-accelerator/              # Unity Accelerator Cache Server
+│   ├── unity-ci/                       # Unity CI Runner (for GitHub Actions)
+│   └── game-server/                    # Game.Server (ASP.NET Core + PostgreSQL)
 │
 ├── docs/                               # Technical Documentation
 │
@@ -548,7 +592,7 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 4 weeks (as of 2026/1/24)
+* Approximately 7 weeks (as of 2026/2/10)
 
 ---
 

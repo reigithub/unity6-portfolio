@@ -1,0 +1,63 @@
+# docker/game-server/prod/docker-compose.yml
+# ローカル開発・テスト用（Cloud Run では使用しない）
+#
+# 使用方法:
+#   cd E:\UnityProjects\Unity6Portfolio
+#   docker compose -f docker/game-server/prod/docker-compose.yml up --build
+#
+# Cloud Run へのデプロイは cloudbuild.yaml または gcloud コマンドを使用
+
+services:
+  # ローカルテスト用 PostgreSQL
+  db:
+    image: postgres:17
+    container_name: game-server-db-prod
+    environment:
+      POSTGRES_DB: gameserver
+      POSTGRES_USER: gameuser
+      POSTGRES_PASSWORD: gamepassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gameuser -d gameserver"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Game Server（Production 構成でローカル実行）
+  server:
+    image: game-server-prod
+    container_name: game-server-app-prod
+    build:
+      context: ../../..
+      dockerfile: docker/game-server/prod/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Default=Host=db;Database=gameserver;Username=gameuser;Password=gamepassword
+      # JWT 設定（ローカルテスト用）
+      - Jwt__SecretKey=LocalTestSecretKeyForDevelopmentOnlyDoNotUseInProduction123456
+      - Jwt__Issuer=GameServer
+      - Jwt__Audience=GameClient
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Cloud SQL Proxy（Cloud SQL に接続してローカルテストする場合）
+  # 使用する場合は以下をアンコメント
+  # cloud-sql-proxy:
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+  #   container_name: cloud-sql-proxy
+  #   command:
+  #     - "--port=5432"
+  #     - "PROJECT_ID:REGION:INSTANCE_NAME"
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - ~/.config/gcloud:/root/.config/gcloud:ro
+
+volumes:
+  pgdata:
