@@ -347,9 +347,54 @@ dotnet run --project src/Game.Tools -- migrate reset --connection-string "$CONNE
 
 ## DataGrip から Cloud SQL に接続
 
-### 方法1: Cloud SQL Auth Proxy（推奨）
+### 方法1: DataGrip 組み込み Cloud SQL Proxy（最も簡単）
 
-最もセキュアな方法です。パブリック IP への直接接続を許可する必要がありません。
+DataGrip には Cloud SQL Proxy が組み込まれており、手動で Proxy を起動する必要がありません。
+
+#### 前提条件
+
+1. **gcloud CLI** がインストール済み
+2. **gcloud 認証済み**: `gcloud auth application-default login`
+3. **Cloud SQL Admin API** が有効化済み
+4. IAM で **Cloud SQL クライアント** ロールが付与済み
+
+#### 設定手順
+
+1. **Database** > **New** > **Data Source** > **PostgreSQL (CloudSQL Proxy)** を選択
+2. 以下を設定：
+
+| 項目 | 値 | 例 |
+|------|-----|-----|
+| プロジェクト | GCP プロジェクト ID | `game-server-prod-20260210` |
+| 地域 | Cloud SQL インスタンスのリージョン | `asia-northeast1` |
+| インスタンス | Cloud SQL インスタンス名 | `game-db` |
+| 認証 | `ユーザーとパスワード` | - |
+| ユーザー | データベースユーザー | `gameserver` |
+| パスワード | `.env` の `DB_PASSWORD` | - |
+| データベース | 接続先データベース | `gamedb` |
+
+3. **接続のテスト** で接続確認
+4. **OK** で保存
+
+#### 接続情報の確認方法
+
+```powershell
+# プロジェクト ID
+gcloud config get-value project
+# 出力例: game-server-prod-20260210
+
+# インスタンス情報
+gcloud sql instances describe game-db --format="value(region,name)"
+# 出力例: asia-northeast1  game-db
+```
+
+> **メリット**: Proxy を手動で起動・管理する必要がなく、DataGrip が自動的に処理します。
+
+---
+
+### 方法2: Cloud SQL Auth Proxy（手動起動）
+
+Proxy を手動で起動する方法です。DataGrip 以外のツールでも使用できます。
 
 #### 1. Cloud SQL Auth Proxy のダウンロード
 
@@ -393,7 +438,7 @@ gcloud sql instances describe game-db --format="value(connectionName)"
 
 ---
 
-### 方法2: パブリック IP 接続
+### 方法3: パブリック IP 接続
 
 Cloud SQL のパブリック IP に直接接続する方法です。IP を許可リストに追加する必要があります。
 
@@ -437,14 +482,16 @@ gcloud sql instances describe game-db --format="value(ipAddresses[0].ipAddress)"
 
 ### 接続情報まとめ
 
-| 項目 | Auth Proxy 経由 | パブリック IP 直接 |
-|------|----------------|-------------------|
-| Host | `localhost` | Cloud SQL の IP |
-| Port | `5433`（Proxy 設定） | `5432` |
-| Database | `gamedb` | `gamedb` |
-| User | `gameserver` | `gameserver` |
-| Password | `.env` の `DB_PASSWORD` | `.env` の `DB_PASSWORD` |
-| セキュリティ | ✅ 高（IP 許可不要） | ⚠️ IP 許可が必要 |
+| 項目 | DataGrip 組み込み Proxy | 手動 Auth Proxy | パブリック IP 直接 |
+|------|------------------------|----------------|-------------------|
+| Host | (自動) | `localhost` | Cloud SQL の IP |
+| Port | (自動) | `5433`（Proxy 設定） | `5432` |
+| Database | `gamedb` | `gamedb` | `gamedb` |
+| User | `gameserver` | `gameserver` | `gameserver` |
+| Password | `.env` の `DB_PASSWORD` | `.env` の `DB_PASSWORD` | `.env` の `DB_PASSWORD` |
+| Proxy 起動 | 不要（自動） | 必要（手動） | 不要 |
+| セキュリティ | ✅ 高 | ✅ 高 | ⚠️ IP 許可が必要 |
+| 推奨度 | ⭐⭐⭐ | ⭐⭐ | ⭐ |
 
 ---
 
