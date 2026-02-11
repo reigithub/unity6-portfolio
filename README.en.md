@@ -97,6 +97,10 @@ dotnet test
 ### Editor Extensions
 ![Editor Window](src/Game.Client/Documentation/Screenshots/editor_window.png)
 
+| Database Management | Game Environment Settings |
+|---------------------|---------------------------|
+| ![Database Window](src/Game.Client/Documentation/Screenshots/database_window.png) | ![Game Environment Settings](src/Game.Client/Documentation/Screenshots/game_environment_window.png) |
+
 ---
 
 ## Gameplay Videos
@@ -181,7 +185,7 @@ dotnet test
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
-* **Asset Delivery System**: Automatic local/remote switching with Addressables, build profile integration
+* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration
 * **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
 
 ---
@@ -435,16 +439,22 @@ Server-integrated authentication and session management system:
 
 <details><summary>Asset Delivery System</summary>
 
-Automatically switches Addressables asset delivery source based on build profile:
+Switches Addressables asset delivery source based on GameEnvironment setting:
 
 **Supported Environments:**
-| Build Profile | Asset Source | Usage |
-|---------------|--------------|-------|
-| Development | Local (StreamingAssets) | Development/Debug |
+| GameEnvironment | Asset Source | Usage |
+|-----------------|--------------|-------|
+| Local | Local (StreamingAssets) | Development/Debug |
+| Develop | Remote (Dev Server) | Development testing |
+| Staging | Remote (Staging) | Pre-release verification |
 | Release | Remote (CDN) | Production |
 
+**Switching Methods:**
+- **CI/CD**: Auto-configured from `GAME_ENVIRONMENT` environment variable
+- **Editor**: Manual switch via menu `Build > Addressables > Switch Profile`
+
 **Key Features:**
-- Auto-updates Addressables settings when build profile changes
+- Addressables profile switch for automatic Local/Remote selection
 - API endpoint switching via environment variables
 - Library cache sharing via Unity Accelerator
 - Asset cache optimization in GitHub Actions

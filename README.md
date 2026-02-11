@@ -96,6 +96,10 @@ dotnet test
 ### エディター拡張
 ![エディターウィンドウ](src/Game.Client/Documentation/Screenshots/editor_window.png)
 
+| データベース管理 | ゲーム環境設定 |
+|-----------------|---------------|
+| ![データベースウィンドウ](src/Game.Client/Documentation/Screenshots/database_window.png) | ![ゲーム環境設定](src/Game.Client/Documentation/Screenshots/game_environment_window.png) |
+
 ---
 
 ## ゲームプレイ動画
@@ -180,7 +184,7 @@ dotnet test
 * **ロックオンシステム**: 自動ターゲット追跡、射程管理
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
-* **アセット配信システム**: Addressablesによるローカル/リモート自動切り替え、ビルドプロファイル連動
+* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動
 * **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化
 
 ---
@@ -434,16 +438,23 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 <details><summary>アセット配信システム</summary>
 
-ビルドプロファイルに応じてAddressablesのアセット配信元を自動切り替え:
+GameEnvironment設定に応じてAddressablesのアセット配信元を切り替え:
 
 **対応環境:**
-| ビルドプロファイル | アセット配信元 | 用途 |
-|------------------|--------------|------|
-| Development | Local (StreamingAssets) | 開発・デバッグ |
+
+| GameEnvironment | アセット配信元 | 用途 |
+|-----------------|--------------|------|
+| Local | Local (StreamingAssets) | 開発・デバッグ |
+| Develop | Remote (開発サーバー) | 開発環境テスト |
+| Staging | Remote (ステージング) | リリース前検証 |
 | Release | Remote (CDN) | 本番配信 |
 
+**切り替え方法:**
+- **CI/CD**: 環境変数 `GAME_ENVIRONMENT` から自動設定
+- **エディター**: メニュー `Build > Addressables > Switch Profile` から手動切り替え
+
 **主な機能:**
-- ビルドプロファイル変更時にAddressables設定を自動更新
+- Addressablesプロファイル切り替えでLocal/Remote自動選択
 - 環境変数によるAPI接続先切り替え
 - Unity Accelerator によるライブラリキャッシュ共有
 - GitHub Actions でのアセットキャッシュ最適化
