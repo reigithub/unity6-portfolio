@@ -59,15 +59,11 @@ services:
       # Unity license file
       - ${UNITY_LICENSE_PATH:-/var/lib/unity-license}:/unity-license:ro
 
-      # Project Library cache (Bind Mount - 永続化)
-      - type: bind
-        source: ${LIBRARY_CACHE_PATH:-/var/lib/unity-ci/library-cache}
-        target: /home/runner/.unity-library-cache
+      # Project Library cache (Named Volume - WSL2内に保存、高速)
+      - unity-library-cache:/home/runner/.unity-library-cache
 
-      # Unity global cache (Bind Mount - 永続化)
-      - type: bind
-        source: ${UNITY_CACHE_PATH:-/var/lib/unity-ci/unity-cache}
-        target: /home/runner/.local/share/unity3d
+      # Unity global cache (Named Volume - WSL2内に保存、高速)
+      - unity-global-cache:/home/runner/.local/share/unity3d
 
     # Resource limits
     deploy:
@@ -98,3 +94,10 @@ services:
 networks:
   unity-ci-network:
     external: true
+
+# Named Volumes（WSL2内に保存、docker compose down -v で削除）
+volumes:
+  unity-library-cache:
+    name: unity-library-cache
+  unity-global-cache:
+    name: unity-global-cache

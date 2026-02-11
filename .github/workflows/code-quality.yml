@@ -20,12 +20,6 @@ on:
       - 'src/Game.Client/.editorconfig'
       - '.github/workflows/code-quality.yml'
 
-  # main/develop への push 時
-  push:
-    branches: [main, develop]
-    paths:
-      - '**.cs'
-
 jobs:
   # ============================================
   # フォーマットチェック（軽量・高速）
@@ -159,7 +153,7 @@ jobs:
       - name: Setup Library cache
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "src/Game.Client"
+          .github/scripts/setup-library-cache.sh "src/Game.Client" "Linux64"
 
       - name: Setup directories
         run: |

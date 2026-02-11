@@ -15,7 +15,7 @@ namespace Game.Shared
         [SerializeField] private GameEnvironmentConfig[] _configs;
 
         public GameEnvironment Environment => _environment;
-        public GameEnvironmentConfig CurrentConfig => GetConfig(_environment);
+        public GameEnvironmentConfig CurrentConfig => GetConfig(GameEnvironmentHelper.Current);
         public GameEnvironmentConfig[] AllConfigs => _configs;
 
         private GameEnvironmentConfig GetConfig(GameEnvironment environment = GameEnvironment.Develop)

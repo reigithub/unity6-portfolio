@@ -64,7 +64,8 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          # Linux64 を指定して unity-build.yml とキャッシュを共有
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
 
       - name: Setup directories
         run: |
@@ -127,7 +128,8 @@ jobs:
       - name: Setup Library cache (persistent volume)
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}"
+          # Linux64 を指定して unity-build.yml とキャッシュを共有
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
 
       - name: Setup directories
         run: |

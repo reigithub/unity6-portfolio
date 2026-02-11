@@ -276,6 +276,26 @@ namespace Game.Shared.Services.RemoteAsset
                 return true;
             }
 
+            // ローカルパス（RuntimePath）を明示的に除外
+            if (internalId.Contains("{UnityEngine.AddressableAssets.Addressables.RuntimePath}") ||
+                internalId.StartsWith("{UnityEngine.Application"))
+            {
+                return false;
+            }
+
+            // ローカル専用グループのバンドルを除外
+            if (IsLocalOnlyBundle(internalId))
+            {
+                return false;
+            }
+
+            // 上記以外で .bundle ファイルの場合はリモートと判定
+            // （カタログでは URL が分解格納されているため、ファイル名のみの場合がある）
+            if (internalId.EndsWith(".bundle", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             // 依存関係もチェック
             if (location.HasDependencies)
             {
@@ -289,6 +309,23 @@ namespace Game.Shared.Services.RemoteAsset
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ローカル専用バンドルかどうかを判定
+        /// </summary>
+        private bool IsLocalOnlyBundle(string internalId)
+        {
+            if (string.IsNullOrEmpty(internalId)) return false;
+
+            var lowerInternalId = internalId.ToLowerInvariant();
+
+            // ローカル専用パターン
+            return lowerInternalId.Contains("defaultlocalgroup") ||
+                   lowerInternalId.Contains("local_") ||
+                   lowerInternalId.Contains("_local_") ||
+                   lowerInternalId.Contains("monoscripts") ||
+                   lowerInternalId.Contains("unitybuiltinassets");
         }
 
         /// <summary>

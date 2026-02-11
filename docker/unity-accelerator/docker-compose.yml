@@ -40,10 +40,8 @@ services:
       - PASSWORD=${ACCELERATOR_PASSWORD:-admin}
 
     volumes:
-      # キャッシュデータの永続化（Bind Mount）
-      - type: bind
-        source: ${ACCELERATOR_DATA_PATH:-/var/lib/unity-accelerator}
-        target: /agent
+      # キャッシュデータの永続化（Named Volume - WSL2内に保存、高速）
+      - unity-accelerator-data:/agent
 
     deploy:
       resources:
@@ -70,3 +68,8 @@ networks:
   unity-ci-network:
     name: unity-ci-network
     driver: bridge
+
+# Named Volumes（WSL2内に保存、docker compose down -v で削除）
+volumes:
+  unity-accelerator-data:
+    name: unity-accelerator-data

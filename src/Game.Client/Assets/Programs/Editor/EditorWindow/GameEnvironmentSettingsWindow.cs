@@ -138,8 +138,10 @@ namespace Game.Editor
             var state = AddressablesEnvironmentSwitcher.GetCurrentState();
 
             EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField("Build Target", EditorUserBuildSettings.activeBuildTarget.ToString());
             EditorGUILayout.TextField("Active Profile", state.ActiveProfileName);
             EditorGUILayout.Toggle("Build Remote Catalog", state.BuildRemoteCatalog);
+            EditorGUILayout.TextField("Play Mode Script", state.PlayModeScript);
             EditorGUILayout.TextField("Content.BuildPath", state.ContentBuildPath ?? "-");
             EditorGUILayout.TextField("Content.LoadPath", state.ContentLoadPath ?? "-");
             EditorGUILayout.TextField("Content Groups", $"{state.ContentGroups} / {state.TotalGroups}");
