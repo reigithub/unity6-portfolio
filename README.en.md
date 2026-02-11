@@ -653,7 +653,7 @@ Unity6Portfolio/
 * Implemented using MVP pattern with VContainer
 * A survivor game where you defeat waves of enemies while staying alive
 * Platform: PC / Mouse & Keyboard
-* Controls: Move (WASD), Dash (LShift+Move), Camera (Right-click+Drag)
+* Controls: Move (WASD), Dash (LShift+Move), Camera (Right-click+Drag), Manual Weapon (Left-click icon), Lock-on (Left-click enemy)
 * Key Features:
   - User account creation
   - Data linking (Email/Password, Transfer password issuance)
