@@ -1,12 +1,10 @@
 namespace Game.Server.Tables;
 
-public class UserScore
+public class SurvivorScore
 {
     public long Id { get; set; }
 
     public Guid UserId { get; set; }
-
-    public string GameMode { get; set; } = string.Empty;
 
     public int StageId { get; set; }
 

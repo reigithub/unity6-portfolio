@@ -77,13 +77,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRankingService, RankingService>();
-        services.AddScoped<IScoreService, ScoreService>();
+        services.AddScoped<ISurvivorScoreService, SurvivorScoreService>();
 
         // Repositories
         services.AddScoped<IAuthRepository, DapperAuthRepository>();
         services.AddScoped<IUserRepository, DapperUserRepository>();
         services.AddScoped<IRankingRepository, DapperRankingRepository>();
-        services.AddScoped<IScoreRepository, DapperScoreRepository>();
+        services.AddScoped<ISurvivorScoreRepository, DapperSurvivorScoreRepository>();
 
         return services;
     }

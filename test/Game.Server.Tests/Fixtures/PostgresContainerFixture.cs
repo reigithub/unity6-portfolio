@@ -37,7 +37,7 @@ public class PostgresContainerFixture : IAsyncLifetime
     {
         using var connection = CreateConnection();
         await connection.ExecuteAsync(
-            @"TRUNCATE ""User"".""UserExternalIdentity"", ""User"".""UserScore"", ""User"".""UserInfo"" RESTART IDENTITY CASCADE");
+            @"TRUNCATE ""Ranking"".""SurvivorScore"", ""User"".""UserExternalIdentity"", ""User"".""UserInfo"" RESTART IDENTITY CASCADE");
     }
 
     private void RunMigrations()

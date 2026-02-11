@@ -1,6 +1,6 @@
 namespace Game.Server.Dto.Responses;
 
-public class ScoreSubmitResponse
+public class SurvivorScoreSubmitResponse
 {
     public long ScoreId { get; set; }
 

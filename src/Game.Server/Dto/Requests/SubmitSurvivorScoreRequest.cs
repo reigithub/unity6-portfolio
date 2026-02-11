@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Game.Server.Dto.Requests;
 
-public class SubmitScoreRequest
+public class SubmitSurvivorScoreRequest
 {
     [Required]
     public int StageId { get; set; }
@@ -11,9 +11,6 @@ public class SubmitScoreRequest
     public int Score { get; set; }
 
     public float ClearTime { get; set; }
-
-    [Required]
-    public string GameMode { get; set; } = string.Empty;
 
     public int WaveReached { get; set; }
 

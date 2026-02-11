@@ -2,8 +2,6 @@ namespace Game.Server.Dto.Responses;
 
 public class RankingResponse
 {
-    public string GameMode { get; set; } = string.Empty;
-
     public int StageId { get; set; }
 
     public int TotalCount { get; set; }

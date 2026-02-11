@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Game.Server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/survivor/rankings")]
 public class RankingsController : ControllerBase
 {
     private readonly IRankingService _rankingService;
@@ -17,30 +17,29 @@ public class RankingsController : ControllerBase
         _rankingService = rankingService;
     }
 
-    [HttpGet("{gameMode}/{stageId}")]
+    [HttpGet("{stageId:int}")]
     [ProducesResponseType(typeof(RankingResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRanking(
-        string gameMode,
         int stageId,
         [FromQuery] int limit = 100,
         [FromQuery] int offset = 0)
     {
-        var result = await _rankingService.GetRankingAsync(gameMode, stageId, limit, offset);
+        var result = await _rankingService.GetRankingAsync(stageId, limit, offset);
         return Ok(result);
     }
 
-    [HttpGet("{gameMode}/{stageId}/me")]
+    [HttpGet("{stageId:int}/me")]
     [Authorize]
     [ProducesResponseType(typeof(RankingEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMyRank(string gameMode, int stageId)
+    public async Task<IActionResult> GetMyRank(int stageId)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
             return Unauthorized();
         }
 
-        var result = await _rankingService.GetUserRankAsync(gameMode, stageId, userId);
+        var result = await _rankingService.GetUserRankAsync(stageId, userId);
         return result != null ? Ok(result) : NotFound();
     }
 }

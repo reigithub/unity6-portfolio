@@ -14,9 +14,9 @@ public class RankingService : IRankingService
     }
 
     public async Task<RankingResponse> GetRankingAsync(
-        string gameMode, int stageId, int limit, int offset)
+        int stageId, int limit, int offset)
     {
-        var scores = await _rankingRepository.GetTopScoresAsync(gameMode, stageId, limit, offset);
+        var scores = await _rankingRepository.GetTopScoresAsync(stageId, limit, offset);
 
         var entries = scores.Select((s, index) => new RankingEntryResponse
         {
@@ -30,7 +30,6 @@ public class RankingService : IRankingService
 
         return new RankingResponse
         {
-            GameMode = gameMode,
             StageId = stageId,
             TotalCount = entries.Count,
             Entries = entries,
@@ -38,15 +37,15 @@ public class RankingService : IRankingService
     }
 
     public async Task<RankingEntryResponse?> GetUserRankAsync(
-        string gameMode, int stageId, Guid userId)
+        int stageId, Guid userId)
     {
-        var bestScore = await _rankingRepository.GetUserBestScoreAsync(gameMode, stageId, userId);
+        var bestScore = await _rankingRepository.GetUserBestScoreAsync(stageId, userId);
         if (bestScore == null)
         {
             return null;
         }
 
-        int rank = await _rankingRepository.GetUserRankAsync(gameMode, stageId, userId);
+        int rank = await _rankingRepository.GetUserRankAsync(stageId, userId);
 
         return new RankingEntryResponse
         {

@@ -8,21 +8,21 @@ using Microsoft.AspNetCore.Mvc;
 namespace Game.Server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/survivor/scores")]
 [Authorize]
-public class ScoresController : ControllerBase
+public class SurvivorScoresController : ControllerBase
 {
-    private readonly IScoreService _scoreService;
+    private readonly ISurvivorScoreService _scoreService;
 
-    public ScoresController(IScoreService scoreService)
+    public SurvivorScoresController(ISurvivorScoreService scoreService)
     {
         _scoreService = scoreService;
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ScoreSubmitResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(SurvivorScoreSubmitResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SubmitScore([FromBody] SubmitScoreRequest request)
+    public async Task<IActionResult> SubmitScore([FromBody] SubmitSurvivorScoreRequest request)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
@@ -37,9 +37,8 @@ public class ScoresController : ControllerBase
     }
 
     [HttpGet("me")]
-    [ProducesResponseType(typeof(List<ScoreHistoryEntry>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<SurvivorScoreHistoryEntry>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyScores(
-        [FromQuery] string? gameMode = null,
         [FromQuery] int? stageId = null,
         [FromQuery] int limit = 50)
     {
@@ -48,7 +47,7 @@ public class ScoresController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _scoreService.GetUserScoresAsync(userId, gameMode, stageId, limit);
+        var result = await _scoreService.GetUserScoresAsync(userId, stageId, limit);
         return Ok(result);
     }
 }

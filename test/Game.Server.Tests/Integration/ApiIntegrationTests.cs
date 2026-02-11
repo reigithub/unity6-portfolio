@@ -100,18 +100,17 @@ public class ApiIntegrationTests : IAsyncLifetime
         authClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
 
-        var scoreResponse = await authClient.PostAsJsonAsync("/api/scores", new
+        var scoreResponse = await authClient.PostAsJsonAsync("/api/survivor/scores", new
         {
             StageId = 1,
             Score = 5000,
             ClearTime = 120.5f,
-            GameMode = "Survivor",
             WaveReached = 10,
             EnemiesDefeated = 50,
         });
         Assert.Equal(HttpStatusCode.Created, scoreResponse.StatusCode);
 
-        var rankingResponse = await _client.GetAsync("/api/rankings/Survivor/1");
+        var rankingResponse = await _client.GetAsync("/api/survivor/rankings/1");
         Assert.Equal(HttpStatusCode.OK, rankingResponse.StatusCode);
     }
 

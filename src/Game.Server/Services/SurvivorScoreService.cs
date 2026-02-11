@@ -6,41 +6,26 @@ using Game.Server.Services.Interfaces;
 
 namespace Game.Server.Services;
 
-public class ScoreService : IScoreService
+public class SurvivorScoreService : ISurvivorScoreService
 {
-    private static readonly HashSet<string> ValidGameModes = new(StringComparer.Ordinal)
-    {
-        "Survivor",
-        "ScoreTimeAttack",
-    };
-
-    private readonly IScoreRepository _scoreRepository;
+    private readonly ISurvivorScoreRepository _scoreRepository;
     private readonly IRankingRepository _rankingRepository;
 
-    public ScoreService(IScoreRepository scoreRepository, IRankingRepository rankingRepository)
+    public SurvivorScoreService(ISurvivorScoreRepository scoreRepository, IRankingRepository rankingRepository)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
     }
 
-    public async Task<Result<ScoreSubmitResponse, ApiError>> SubmitScoreAsync(
-        Guid userId, SubmitScoreRequest request)
+    public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
+        Guid userId, SubmitSurvivorScoreRequest request)
     {
-        if (!ValidGameModes.Contains(request.GameMode))
-        {
-            return new ApiError(
-                $"Invalid game mode: {request.GameMode}. Must be 'Survivor' or 'ScoreTimeAttack'.",
-                "INVALID_GAME_MODE",
-                StatusCodes.Status400BadRequest);
-        }
-
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
-            request.GameMode, request.StageId, userId);
+            request.StageId, userId);
 
-        var score = new UserScore
+        var score = new SurvivorScore
         {
             UserId = userId,
-            GameMode = request.GameMode,
             StageId = request.StageId,
             Score = request.Score,
             ClearTime = request.ClearTime,
@@ -53,9 +38,9 @@ public class ScoreService : IScoreService
         bool isNewBest = previousBest == null || request.Score > previousBest.Score;
 
         int currentRank = await _rankingRepository.GetUserRankAsync(
-            request.GameMode, request.StageId, userId);
+            request.StageId, userId);
 
-        return new ScoreSubmitResponse
+        return new SurvivorScoreSubmitResponse
         {
             ScoreId = saved.Id,
             IsNewBest = isNewBest,
@@ -63,15 +48,14 @@ public class ScoreService : IScoreService
         };
     }
 
-    public async Task<List<ScoreHistoryEntry>> GetUserScoresAsync(
-        Guid userId, string? gameMode, int? stageId, int limit)
+    public async Task<List<SurvivorScoreHistoryEntry>> GetUserScoresAsync(
+        Guid userId, int? stageId, int limit)
     {
-        var scores = await _scoreRepository.GetUserScoresAsync(userId, gameMode, stageId, limit);
+        var scores = await _scoreRepository.GetUserScoresAsync(userId, stageId, limit);
 
-        return scores.Select(s => new ScoreHistoryEntry
+        return scores.Select(s => new SurvivorScoreHistoryEntry
         {
             Id = s.Id,
-            GameMode = s.GameMode,
             StageId = s.StageId,
             Score = s.Score,
             ClearTime = s.ClearTime,

@@ -11,8 +11,6 @@ namespace Game.Library.Shared.Dto
 
         public float ClearTime { get; set; }
 
-        public string GameMode { get; set; }
-
         public int WaveReached { get; set; }
 
         public int EnemiesDefeated { get; set; }
