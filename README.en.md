@@ -180,6 +180,7 @@ dotnet test
 * **Item System**: Drop lottery, attraction feature, object pooling
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
+* **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
 * **Asset Delivery System**: Automatic local/remote switching with Addressables, build profile integration
 * **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
 
@@ -405,6 +406,33 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 </details>
 
+<details><summary>Authentication & Account Management System</summary>
+
+Server-integrated authentication and session management system:
+
+**Authentication Features (AuthApiService):**
+- Guest login (device fingerprint)
+- Email/password login
+- User ID/password login
+- Password forgot/reset
+- Token refresh (automatic renewal)
+
+**Account Linking Features:**
+- Email address linking/unlinking
+- Transfer password issuance (12 digits)
+- Data migration to another device
+
+**Session Management (SessionService):**
+- Encrypted token storage (local)
+- Automatic session restoration (on app startup)
+- Device fingerprint generation
+
+**UI Implementation:**
+- `SurvivorAccountLinkDialog`: Email linking and transfer password UI
+- Profile display (user ID, level, auth type)
+
+</details>
+
 <details><summary>Asset Delivery System</summary>
 
 Automatically switches Addressables asset delivery source based on build profile:
@@ -592,7 +620,7 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/10)
+* Approximately 7 weeks (as of 2026/2/11)
 
 ---
 
@@ -615,8 +643,11 @@ Unity6Portfolio/
 * Implemented using MVP pattern with VContainer
 * A survivor game where you defeat waves of enemies while staying alive
 * Platform: PC / Mouse & Keyboard
-* Controls: Move (WASD), Dash (LShift+Move)
+* Controls: Move (WASD), Dash (LShift+Move), Camera (Right-click+Drag)
 * Key Features:
+  - User account creation
+  - Data linking (Email/Password, Transfer password issuance)
+  - Options (Save data management, Audio volume adjustment)
   - Auto-attack weapon system (master data driven)
   - Wave management (staged enemy spawning)
   - Item drops and attraction
@@ -624,6 +655,7 @@ Unity6Portfolio/
 
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended
+  - Pressing the GameStart button will download remote assets (~400MB)
 
 ---
 
