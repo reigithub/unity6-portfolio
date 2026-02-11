@@ -664,34 +664,40 @@ Game.Tools
 
 ### 7.2 アセット配信フロー
 
-ビルドプロファイルに応じてAddressablesのアセット配信元を自動切り替え:
+GameEnvironment設定に応じてAddressablesのアセット配信元を切り替え:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Asset Delivery Flow                           │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Build Profile                                                  │
+│  GameEnvironment                                                │
 │  ┌──────────────────┐                                           │
-│  │ Development      │──▶ Local Assets (StreamingAssets)         │
+│  │ Local            │──▶ Local Assets (StreamingAssets)         │
+│  │ Develop/Staging  │──▶ Remote Assets (Dev/Staging Server)     │
 │  │ Release          │──▶ Remote Assets (CDN)                    │
 │  └──────────────────┘                                           │
 │                                                                 │
 │  ┌──────────────────┐    ┌──────────────────┐                   │
-│  │  Addressables    │    │  Build Profile   │                   │
-│  │  Settings        │◀───│  Listener        │                   │
+│  │  Addressables    │    │  Environment     │                   │
+│  │  Settings        │◀───│  Switcher        │                   │
 │  └────────┬─────────┘    └──────────────────┘                   │
-│           │                                                     │
+│           │                      ▲                              │
+│           │              ┌───────┴────────┐                     │
+│           │              │ GAME_ENVIRONMENT│                    │
+│           │              │ 環境変数 or     │                    │
+│           │              │ Editor メニュー │                    │
+│           │              └────────────────┘                     │
 │           ▼                                                     │
 │  ┌──────────────────┐                                           │
 │  │ Profile Variable │                                           │
-│  │ - RemoteBuildPath│                                           │
-│  │ - RemoteLoadPath │                                           │
+│  │ - Local.BuildPath│                                           │
+│  │ - Remote.LoadPath│                                           │
 │  └────────┬─────────┘                                           │
 │           │                                                     │
 │           ▼                                                     │
 │  ┌──────────────────┐    ┌──────────────────┐                   │
-│  │ Local (Dev)      │ or │ Remote (Release) │                   │
+│  │ Local            │ or │ Remote           │                   │
 │  │ StreamingAssets  │    │ CDN/Cloud Storage│                   │
 │  └──────────────────┘    └──────────────────┘                   │
 │                                                                 │
@@ -699,15 +705,21 @@ Game.Tools
 ```
 
 **対応環境:**
-| ビルドプロファイル | アセット配信元 | 用途 |
-|------------------|--------------|------|
-| Development | Local (StreamingAssets) | 開発・デバッグ |
+| GameEnvironment | アセット配信元 | 用途 |
+|-----------------|--------------|------|
+| Local | Local (StreamingAssets) | 開発・デバッグ |
+| Develop | Remote (開発サーバー) | 開発環境テスト |
+| Staging | Remote (ステージング) | リリース前検証 |
 | Release | Remote (CDN) | 本番配信 |
+
+**切り替え方法:**
+- **CI/CD**: 環境変数 `GAME_ENVIRONMENT` から自動設定
+- **エディター**: メニュー `Build > Addressables > Switch Profile`
 
 **CI/CD対応:**
 - Unity Accelerator によるライブラリキャッシュ共有
 - GitHub Actions でのアセットキャッシュ最適化
-- ビルドプロファイル自動切り替え
+- 環境変数による自動プロファイル切り替え
 
 ### 7.3 セーブデータフロー
 
