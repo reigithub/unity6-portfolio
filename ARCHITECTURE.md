@@ -734,16 +734,21 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 │  ┌──────────────────────┐                                       │
 │  │AddressablesR2Uploader│                                       │
 │  │  BuildAddressablesCI │─────▶ ServerData/{Platform}/          │
-│  │  GenerateManifest    │       ├── catalog_*.bin               │
-│  └──────────────────────┘       ├── catalog_*.hash              │
-│                                 ├── local_bundles_manifest.json │
-│                                 └── *.bundle                    │
+│  └──────────────────────┘       ├── catalog_*.bin               │
+│         │                       ├── catalog_*.hash              │
+│         │                       └── *.bundle (リモートのみ)     │
+│         │                                                       │
+│         └─────▶ Library/com.unity.addressables/ (CIで収集)      │
+│                 ├── index.json (ファイル一覧)                   │
+│                 └── aa/{Platform}/ (ローカルバンドル)           │
 │                                         │                       │
 │                                         │ rclone sync           │
 │                                         ▼                       │
 │  Cloudflare R2                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │ https://{env}.assets.rei-unity6-portfolio.com/{Platform}/ │  │
+│  │   ├── catalog_*.bin, *.bundle (リモート)                  │  │
+│  │   └── LocalBundles/index.json, aa/... (ローカル)          │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                         │                       │
 │                                         │ EditorAddressablesSync│
@@ -753,13 +758,11 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 │  │ ShouldAutoSync()     │  GameEnvironment != Local             │
 │  │ + UseExistingBuild   │  の場合に自動同期                      │
 │  └──────────┬───────────┘                                       │
-│             │                                                   │
+│             │ index.json取得 → catalogHash比較 → ファイルDL     │
 │             ▼                                                   │
-│  Library/com.unity.addressables/aa/{Platform}/                  │
-│  ├── catalog.bin                                                │
-│  ├── catalog.hash                                               │
-│  └── {Platform}/                                                │
-│      └── *_local_*.bundle (ローカルバンドルのみ)                 │
+│  Library/com.unity.addressables/                                │
+│  ├── aa/{Platform}/catalog.bin, catalog.hash, settings.json    │
+│  └── aa/{Platform}/{BuildTarget}/*.bundle                      │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -768,10 +771,9 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 
 | クラス | 役割 |
 |-------|------|
-| `AddressablesR2Uploader` | CIビルド、マニフェスト生成、R2アップロード |
-| `EditorAddressablesSync` | エディタ同期（Play開始前自動チェック） |
-| `AddressablesBundleUtils` | ローカルバンドル判定の共通ユーティリティ |
-| `AddressablesCommands` | CLIツール（マニフェスト生成） |
+| `AddressablesR2Uploader` | CIビルド、R2アップロード |
+| `EditorAddressablesSync` | エディタ同期（index.json方式、Play開始前自動チェック） |
+| `AddressablesBundleUtils` | ローカルバンドル判定の共通ユーティリティ（ランタイム用） |
 
 **ローカルバンドル判定パターン:**
 - `defaultlocalgroup` - Default Local Groupのバンドル

@@ -148,25 +148,93 @@ jobs:
             find "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}" -type f | wc -l
             du -sh "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}"
           fi
-
-      - name: Verify local bundles manifest
-        run: |
-          MANIFEST_PATH="${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}/local_bundles_manifest.json"
-          if [ -f "$MANIFEST_PATH" ]; then
-            echo "=== Local Bundles Manifest ==="
-            cat "$MANIFEST_PATH"
-            echo ""
-            echo "Manifest generated successfully!"
+          echo ""
+          echo "=== Library/com.unity.addressables contents ==="
+          ADDRESSABLES_LIB="${{ env.UNITY_PROJECT_PATH }}/Library/com.unity.addressables"
+          if [ -d "$ADDRESSABLES_LIB" ]; then
+            find "$ADDRESSABLES_LIB" -type f | head -30
+            echo "..."
+            echo "Total files:"
+            find "$ADDRESSABLES_LIB" -type f | wc -l
+            du -sh "$ADDRESSABLES_LIB"
           else
-            echo "WARNING: local_bundles_manifest.json not found at $MANIFEST_PATH"
-            echo "This may indicate a build issue or no local bundles in the build."
+            echo "Library/com.unity.addressables not found"
           fi
 
-      - name: Upload Addressables artifact
+      - name: Collect LocalBundles
+        run: |
+          ADDRESSABLES_LIB="${{ env.UNITY_PROJECT_PATH }}/Library/com.unity.addressables"
+          LOCALBUNDLES_DIR="${{ github.workspace }}/LocalBundles-${{ matrix.platform }}"
+
+          echo "Collecting LocalBundles from: $ADDRESSABLES_LIB"
+          echo "Output directory: $LOCALBUNDLES_DIR"
+
+          if [ ! -d "$ADDRESSABLES_LIB" ]; then
+            echo "ERROR: Library/com.unity.addressables not found!"
+            exit 1
+          fi
+
+          # Copy entire com.unity.addressables folder
+          mkdir -p "$LOCALBUNDLES_DIR"
+          cp -r "$ADDRESSABLES_LIB/"* "$LOCALBUNDLES_DIR/"
+
+          echo "=== Collected files ==="
+          find "$LOCALBUNDLES_DIR" -type f | head -20
+          echo "..."
+          echo "Total: $(find "$LOCALBUNDLES_DIR" -type f | wc -l) files"
+
+      - name: Generate index.json
+        run: |
+          LOCALBUNDLES_DIR="${{ github.workspace }}/LocalBundles-${{ matrix.platform }}"
+
+          # Determine platform folder name (Windows for StandaloneWindows64)
+          case "${{ matrix.platform }}" in
+            StandaloneWindows64) PLATFORM_FOLDER="Windows" ;;
+            StandaloneLinux64) PLATFORM_FOLDER="Linux64" ;;
+            StandaloneOSX) PLATFORM_FOLDER="OSXUniversal" ;;
+            *) PLATFORM_FOLDER="${{ matrix.platform }}" ;;
+          esac
+
+          # Read catalog.hash
+          CATALOG_HASH_FILE="$LOCALBUNDLES_DIR/aa/$PLATFORM_FOLDER/catalog.hash"
+          if [ -f "$CATALOG_HASH_FILE" ]; then
+            CATALOG_HASH=$(cat "$CATALOG_HASH_FILE" | tr -d '\n\r')
+            echo "Catalog hash: $CATALOG_HASH"
+          else
+            echo "WARNING: catalog.hash not found at $CATALOG_HASH_FILE"
+            CATALOG_HASH=""
+          fi
+
+          # Generate file list
+          cd "$LOCALBUNDLES_DIR"
+          FILES=$(find . -type f -name "*" | sed 's|^\./||' | sort)
+
+          # Create JSON using jq
+          echo "$FILES" | jq -R -s --arg hash "$CATALOG_HASH" '
+            {
+              catalogHash: $hash,
+              files: (split("\n") | map(select(length > 0)))
+            }
+          ' > index.json
+
+          echo "=== Generated index.json ==="
+          cat index.json
+          echo ""
+          echo "File count: $(echo "$FILES" | wc -l)"
+
+      - name: Upload Addressables artifact (ServerData)
         uses: actions/upload-artifact@v4
         with:
           name: Addressables-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload LocalBundles artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LocalBundles-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
+          path: ${{ github.workspace }}/LocalBundles-${{ matrix.platform }}
           retention-days: 7
           if-no-files-found: error
 
@@ -194,19 +262,31 @@ jobs:
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
 
     steps:
-      - name: Download Addressables artifact
+      - name: Download Addressables artifact (ServerData)
         uses: actions/download-artifact@v4
         with:
           name: Addressables-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
           path: ./ServerData/${{ matrix.platform }}
 
+      - name: Download LocalBundles artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: LocalBundles-${{ matrix.platform }}-${{ env.BUILD_TIMESTAMP }}
+          path: ./LocalBundles/${{ matrix.platform }}
+
       - name: List downloaded files
         run: |
-          echo "=== Downloaded files ==="
+          echo "=== Downloaded ServerData files ==="
           ls -la ./ServerData/${{ matrix.platform }}/
           echo "=== File count and size ==="
           find ./ServerData/${{ matrix.platform }} -type f | wc -l
           du -sh ./ServerData/${{ matrix.platform }}
+          echo ""
+          echo "=== Downloaded LocalBundles files ==="
+          find ./LocalBundles/${{ matrix.platform }} -type f | head -20
+          echo "..."
+          echo "Total: $(find ./LocalBundles/${{ matrix.platform }} -type f | wc -l) files"
+          du -sh ./LocalBundles/${{ matrix.platform }}
 
       - name: Install rclone
         run: |
@@ -245,11 +325,11 @@ jobs:
           rclone ls r2:${{ env.R2_BUCKET_NAME }} --max-depth 0 2>&1 || true
           echo "R2 connection configured (bucket: ${{ env.R2_BUCKET_NAME }})"
 
-      - name: Upload to R2
+      - name: Upload ServerData to R2
         env:
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
-          echo "Uploading ${{ matrix.platform }} to R2..."
+          echo "Uploading ServerData (${{ matrix.platform }}) to R2..."
           echo "Destination: r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}"
           rclone sync \
             ./ServerData/${{ matrix.platform }} \
@@ -260,16 +340,36 @@ jobs:
             --stats-one-line \
             --stats 5s \
             $DRY_RUN
-          echo "Upload completed"
+          echo "ServerData upload completed"
+
+      - name: Upload LocalBundles to R2
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          echo "Uploading LocalBundles (${{ matrix.platform }}) to R2..."
+          echo "Destination: r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/LocalBundles"
+          rclone sync \
+            ./LocalBundles/${{ matrix.platform }} \
+            r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/LocalBundles \
+            --transfers 8 \
+            --checkers 16 \
+            --progress \
+            --stats-one-line \
+            --stats 5s \
+            $DRY_RUN
+          echo "LocalBundles upload completed"
 
       - name: Verify upload
         if: inputs.dry_run == false
         run: |
-          echo "=== Verifying uploaded files ==="
-          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/ | head -20
+          echo "=== Verifying uploaded ServerData files ==="
+          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/ --max-depth 1 | head -20
+          echo ""
+          echo "=== Verifying uploaded LocalBundles files ==="
+          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/LocalBundles/ | head -20
           echo "..."
-          echo "Total files:"
-          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/ | wc -l
+          echo "Total LocalBundles files:"
+          rclone ls r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/LocalBundles/ | wc -l
 
       - name: Output URLs
         if: inputs.dry_run == false
@@ -279,9 +379,10 @@ jobs:
           echo "=========================================="
           echo ""
           echo "Access URLs:"
-          echo "  Catalog:  https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog.json"
-          echo "  Manifest: https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/local_bundles_manifest.json"
-          echo "  Base:     https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
+          echo "  Catalog:       https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog_*.bin"
+          echo "  LocalBundles:  https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/LocalBundles/"
+          echo "  Index:         https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/LocalBundles/index.json"
+          echo "  Base:          https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
           echo ""
 
   # ============================================

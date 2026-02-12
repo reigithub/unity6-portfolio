@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using Game.Editor.Addressables;
-using Game.Shared.Services.RemoteAsset;
 using Game.Shared;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -75,22 +72,6 @@ namespace Game.Editor.Build
         public static void UploadDryRun()
         {
             UploadToR2(dryRun: true);
-        }
-
-        [MenuItem("Build/Addressables/Generate Local Bundles Manifest", priority = 104)]
-        public static void GenerateManifestMenu()
-        {
-            var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
-            var outputPath = Path.Combine(ServerDataPath, buildTarget);
-
-            if (!Directory.Exists(outputPath))
-            {
-                Debug.LogError($"[Addressables] ビルド出力が見つかりません: {outputPath}");
-                Debug.LogError("[Addressables] 先に Addressables をビルドしてください");
-                return;
-            }
-
-            GenerateLocalBundlesManifest(outputPath);
         }
 
         [MenuItem("Build/Addressables/Clean ServerData", priority = 200)]
@@ -210,11 +191,6 @@ namespace Game.Editor.Build
 
                 Debug.Log($"[Addressables] ビルド完了: {result.OutputPath}");
                 Debug.Log($"[Addressables] Duration: {result.Duration:F2}s");
-
-                // ローカルバンドルマニフェストを生成
-                var buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
-                var outputPath = Path.Combine(ServerDataPath, buildTarget);
-                GenerateLocalBundlesManifest(outputPath);
 
                 return true;
             }
@@ -450,8 +426,8 @@ namespace Game.Editor.Build
 
             Debug.Log("========================================");
 
-            // ローカルバンドルマニフェストを生成
-            GenerateLocalBundlesManifest(outputPath);
+            // NOTE: ローカルバンドルはCIワークフローでLibrary/com.unity.addressables/から収集し、
+            // index.jsonと共にR2にアップロードされる（LocalBundles/フォルダとして）
         }
 
         private static string GetEnvironmentVariable(string name, string defaultValue)
@@ -575,100 +551,6 @@ namespace Game.Editor.Build
                 Debug.LogError($"[Addressables] アップロードエラー: {ex.Message}");
                 Debug.LogError("rclone がインストールされているか確認してください: winget install Rclone.Rclone");
             }
-        }
-
-        #endregion
-
-        #region Manifest Generation
-
-        /// <summary>
-        /// ローカルバンドルマニフェストを生成
-        /// EditorAddressablesSync がリモートから同期する際に使用
-        /// </summary>
-        /// <param name="outputPath">Addressablesビルド出力パス</param>
-        private static void GenerateLocalBundlesManifest(string outputPath)
-        {
-            const string manifestFileName = "local_bundles_manifest.json";
-
-            Debug.Log("[Addressables] ローカルバンドルマニフェストを生成中...");
-
-            if (!Directory.Exists(outputPath))
-            {
-                Debug.LogWarning($"[Addressables] 出力パスが見つかりません: {outputPath}");
-                return;
-            }
-
-            // catalog.hash を読み込み
-            var catalogHash = ReadCatalogHash(outputPath);
-            if (string.IsNullOrEmpty(catalogHash))
-            {
-                Debug.LogWarning("[Addressables] catalog.hash が見つかりません（空のハッシュを使用）");
-            }
-
-            var manifest = new LocalBundlesManifest
-            {
-                version = PlayerSettings.bundleVersion,
-                buildTime = DateTime.UtcNow.ToString("o"),
-                catalogHash = catalogHash ?? "",
-                localBundles = new List<LocalBundleInfo>()
-            };
-
-            // バンドルファイルを検索
-            var bundleFiles = Directory.GetFiles(outputPath, "*.bundle", SearchOption.AllDirectories);
-            Debug.Log($"[Addressables] {bundleFiles.Length} 個のバンドルファイルを発見");
-
-            int localCount = 0;
-            foreach (var bundleFile in bundleFiles)
-            {
-                var relativePath = Path.GetRelativePath(outputPath, bundleFile);
-
-                // ローカルバンドルのみを含める
-                if (!AddressablesBundleUtils.IsLocalBundle(relativePath))
-                {
-                    continue;
-                }
-
-                var hash = ComputeFileHash(bundleFile);
-                var size = new FileInfo(bundleFile).Length;
-
-                manifest.localBundles.Add(new LocalBundleInfo
-                {
-                    path = relativePath.Replace("\\", "/"),
-                    hash = hash,
-                    size = size
-                });
-
-                localCount++;
-            }
-
-            Debug.Log($"[Addressables] ローカルバンドル: {localCount} 個");
-
-            // JSON として出力
-            var manifestPath = Path.Combine(outputPath, manifestFileName);
-            var json = JsonUtility.ToJson(manifest, prettyPrint: true);
-            File.WriteAllText(manifestPath, json);
-
-            Debug.Log($"[Addressables] マニフェスト生成完了: {manifestPath}");
-        }
-
-        private static string ReadCatalogHash(string buildPath)
-        {
-            // catalog_*.hash ファイルを検索
-            var hashFiles = Directory.GetFiles(buildPath, "catalog*.hash", SearchOption.TopDirectoryOnly);
-            if (hashFiles.Length == 0)
-            {
-                return null;
-            }
-
-            return File.ReadAllText(hashFiles[0]).Trim();
-        }
-
-        private static string ComputeFileHash(string filePath)
-        {
-            using var md5 = MD5.Create();
-            using var stream = File.OpenRead(filePath);
-            var hash = md5.ComputeHash(stream);
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
         #endregion

@@ -11,7 +11,6 @@ public partial class Program
         app.Add<MasterDataCommands>("masterdata");
         app.Add<MigrateCommands>("migrate");
         app.Add<SeedDataCommands>("seeddata");
-        app.Add<AddressablesCommands>("addressables");
         app.Run(args);
     }
 }

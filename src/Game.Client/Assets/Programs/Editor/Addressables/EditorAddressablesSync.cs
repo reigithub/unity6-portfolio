@@ -14,6 +14,11 @@ namespace Game.Editor.Addressables
     /// <summary>
     /// Addressablesローカルバンドルをリモートから同期するエディタ機能
     /// UseExistingBuildモードでチーム開発を円滑にする
+    ///
+    /// 同期方式: index.json
+    /// - CIがLibrary/com.unity.addressables/全体をLocalBundles/としてR2にアップロード
+    /// - index.jsonにファイル一覧とcatalogHashを含む
+    /// - catalogHashの比較で同期要否を判断
     /// </summary>
     [InitializeOnLoad]
     public static class EditorAddressablesSync
@@ -21,7 +26,8 @@ namespace Game.Editor.Addressables
         private static readonly HttpClient HttpClient = new();
         private static bool _isSyncing;
 
-        private const string ManifestFileName = "local_bundles_manifest.json";
+        private const string IndexFileName = "index.json";
+        private const string LocalBundlesFolder = "LocalBundles";
         private const string LocalHashCacheKey = "AddressablesSync_LocalCatalogHash";
 
         static EditorAddressablesSync()
@@ -109,6 +115,11 @@ namespace Game.Editor.Addressables
             await CheckAndSyncAsync(forceSync: false, dryRun: true);
         }
 
+        /// <summary>
+        /// リモートからLocalBundlesを同期
+        /// </summary>
+        /// <param name="forceSync">強制同期（ハッシュが同じでも同期）</param>
+        /// <param name="dryRun">ドライラン（実際にはダウンロードしない）</param>
         public static async Task CheckAndSyncAsync(bool forceSync = false, bool dryRun = false)
         {
             if (_isSyncing)
@@ -129,27 +140,27 @@ namespace Game.Editor.Addressables
 
                 var platform = GetPlatformFolder();
 
-                // マニフェスト取得
-                var manifestUrl = $"{baseUrl}/{platform}/{ManifestFileName}";
-                var manifest = await FetchManifestAsync(manifestUrl);
+                // 1. index.json を取得
+                var indexUrl = $"{baseUrl}/{platform}/{LocalBundlesFolder}/{IndexFileName}";
+                Debug.Log($"[AddressablesSync] Fetching index from: {indexUrl}");
+                var index = await FetchIndexAsync(indexUrl);
 
-                if (manifest == null)
+                if (index == null)
                 {
-                    Debug.LogWarning("[AddressablesSync] Failed to fetch remote manifest");
+                    Debug.LogWarning("[AddressablesSync] Failed to fetch remote index.json. Remote bundles may not be available.");
                     return;
                 }
 
-                // ローカルハッシュと比較
+                // 2. ローカルの catalog.hash と比較
                 var localHash = GetLocalCatalogHash();
-                var needsSync = forceSync || localHash != manifest.CatalogHash;
+                var needsSync = forceSync || localHash != index.CatalogHash;
 
                 if (dryRun)
                 {
-                    Debug.Log($"[AddressablesSync] Remote version: {manifest.Version}");
-                    Debug.Log($"[AddressablesSync] Remote catalog hash: {manifest.CatalogHash}");
+                    Debug.Log($"[AddressablesSync] Remote catalog hash: {index.CatalogHash}");
                     Debug.Log($"[AddressablesSync] Local catalog hash: {localHash}");
                     Debug.Log($"[AddressablesSync] Needs sync: {needsSync}");
-                    Debug.Log($"[AddressablesSync] Local bundles count: {manifest.LocalBundles.Count}");
+                    Debug.Log($"[AddressablesSync] Files count: {index.Files.Count}");
                     return;
                 }
 
@@ -159,16 +170,16 @@ namespace Game.Editor.Addressables
                     return;
                 }
 
-                Debug.Log($"[AddressablesSync] Syncing from remote (version: {manifest.Version})...");
+                Debug.Log($"[AddressablesSync] Syncing from remote (catalogHash: {index.CatalogHash})...");
 
-                // カタログをダウンロード
-                await DownloadCatalogAsync(baseUrl, platform);
+                // 3. index.json に記載されたファイルをダウンロード
+                var localBundlesUrl = $"{baseUrl}/{platform}/{LocalBundlesFolder}";
+                var targetDir = GetAddressablesLibraryBasePath();
 
-                // ローカルバンドルをダウンロード
-                await DownloadBundlesAsync(baseUrl, platform, manifest.LocalBundles);
+                await DownloadFilesAsync(localBundlesUrl, targetDir, index.Files);
 
                 // ハッシュをキャッシュ
-                EditorPrefs.SetString(LocalHashCacheKey, manifest.CatalogHash);
+                EditorPrefs.SetString(LocalHashCacheKey, index.CatalogHash);
 
                 Debug.Log("[AddressablesSync] Sync completed successfully");
 
@@ -177,7 +188,7 @@ namespace Game.Editor.Addressables
             }
             catch (Exception e)
             {
-                Debug.LogError($"[AddressablesSync] Sync failed: {e.Message}");
+                Debug.LogError($"[AddressablesSync] Sync failed: {e.Message}\n{e.StackTrace}");
             }
             finally
             {
@@ -185,67 +196,64 @@ namespace Game.Editor.Addressables
             }
         }
 
-        private static async Task<LocalBundlesManifest> FetchManifestAsync(string url)
+        private static async Task<LocalBundlesIndex> FetchIndexAsync(string url)
         {
             try
             {
                 var json = await HttpClient.GetStringAsync(url);
-                return JsonUtility.FromJson<LocalBundlesManifest>(json);
+                return JsonUtility.FromJson<LocalBundlesIndex>(json);
+            }
+            catch (HttpRequestException e)
+            {
+                Debug.LogWarning($"[AddressablesSync] Failed to fetch index.json: {e.Message}");
+                return null;
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[AddressablesSync] Failed to fetch manifest: {e.Message}");
+                Debug.LogWarning($"[AddressablesSync] Failed to parse index.json: {e.Message}");
                 return null;
             }
         }
 
-        private static async Task DownloadCatalogAsync(string baseUrl, string platform)
+        private static async Task DownloadFilesAsync(string baseUrl, string targetDir, List<string> files)
         {
-            var targetDir = GetAddressablesLibraryPath(platform);
-            Directory.CreateDirectory(targetDir);
+            var totalFiles = files.Count;
+            var downloadedFiles = 0;
+            var skippedFiles = 0;
+            var failedFiles = 0;
 
-            var files = new[] { "catalog.bin", "catalog.hash" };
-            foreach (var file in files)
+            foreach (var relativePath in files)
             {
-                // catalog_0.1.0.bin → catalog.bin にリネーム
-                var remoteFile = file.Replace("catalog.", $"catalog_{PlayerSettings.bundleVersion}.");
-                var url = $"{baseUrl}/{platform}/{remoteFile}";
-                var targetPath = Path.Combine(targetDir, file);
-
-                await DownloadFileAsync(url, targetPath);
-            }
-        }
-
-        private static async Task DownloadBundlesAsync(string baseUrl, string platform, List<LocalBundleInfo> bundles)
-        {
-            var targetDir = GetAddressablesLibraryPath(platform);
-
-            foreach (var bundle in bundles)
-            {
-                // バンドルはフラットに配置されているため、パスからファイル名を取得
-                var url = $"{baseUrl}/{platform}/{Path.GetFileName(bundle.Path)}";
-                var targetPath = Path.Combine(targetDir, bundle.Path);
-
-                var directory = Path.GetDirectoryName(targetPath);
-                if (!string.IsNullOrEmpty(directory))
+                try
                 {
-                    Directory.CreateDirectory(directory);
-                }
+                    var url = $"{baseUrl}/{relativePath}";
+                    var targetPath = Path.Combine(targetDir, relativePath);
 
-                // ハッシュが同じならスキップ
-                if (File.Exists(targetPath))
-                {
-                    var localHash = ComputeFileHash(targetPath);
-                    if (localHash == bundle.Hash)
+                    // ディレクトリを作成
+                    var directory = Path.GetDirectoryName(targetPath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     {
-                        Debug.Log($"[AddressablesSync] Skipping (unchanged): {bundle.Path}");
-                        continue;
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    // ダウンロード
+                    await DownloadFileAsync(url, targetPath);
+                    downloadedFiles++;
+
+                    // 進捗表示（10ファイルごと）
+                    if (downloadedFiles % 10 == 0)
+                    {
+                        Debug.Log($"[AddressablesSync] Progress: {downloadedFiles + skippedFiles}/{totalFiles} files");
                     }
                 }
-
-                await DownloadFileAsync(url, targetPath);
-                Debug.Log($"[AddressablesSync] Downloaded: {bundle.Path}");
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[AddressablesSync] Failed to download {relativePath}: {e.Message}");
+                    failedFiles++;
+                }
             }
+
+            Debug.Log($"[AddressablesSync] Download complete: {downloadedFiles} downloaded, {skippedFiles} skipped, {failedFiles} failed (total: {totalFiles})");
         }
 
         private static async Task DownloadFileAsync(string url, string targetPath)
@@ -319,22 +327,41 @@ namespace Game.Editor.Addressables
             };
         }
 
-        private static string GetAddressablesLibraryPath(string platform)
+        /// <summary>
+        /// Library/com.unity.addressables/ のベースパスを取得
+        /// </summary>
+        private static string GetAddressablesLibraryBasePath()
         {
             return Path.Combine(
                 Application.dataPath,
                 "..",
                 "Library",
-                "com.unity.addressables",
-                "aa",
-                platform == "StandaloneWindows64" ? "Windows" : platform
+                "com.unity.addressables"
             );
         }
 
+        /// <summary>
+        /// ローカルのcatalog.hashを取得
+        /// </summary>
         private static string GetLocalCatalogHash()
         {
             var platform = GetPlatformFolder();
-            var hashPath = Path.Combine(GetAddressablesLibraryPath(platform), "catalog.hash");
+
+            // プラットフォームフォルダ名の変換（StandaloneWindows64 → Windows）
+            var platformFolder = platform switch
+            {
+                "StandaloneWindows64" => "Windows",
+                "StandaloneLinux64" => "Linux64",
+                "StandaloneOSX" => "OSXUniversal",
+                _ => platform
+            };
+
+            var hashPath = Path.Combine(
+                GetAddressablesLibraryBasePath(),
+                "aa",
+                platformFolder,
+                "catalog.hash"
+            );
 
             if (File.Exists(hashPath))
             {
@@ -343,42 +370,20 @@ namespace Game.Editor.Addressables
 
             return EditorPrefs.GetString(LocalHashCacheKey, "");
         }
-
-        private static string ComputeFileHash(string filePath)
-        {
-            using var md5 = System.Security.Cryptography.MD5.Create();
-            using var stream = File.OpenRead(filePath);
-            var hash = md5.ComputeHash(stream);
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-        }
     }
 
+    /// <summary>
+    /// index.json のデータ構造
+    /// </summary>
     [Serializable]
-    public class LocalBundlesManifest
+    public class LocalBundlesIndex
     {
-        public string version;
-        public string buildTime;
         public string catalogHash;
-        public List<LocalBundleInfo> localBundles;
+        public List<string> files;
 
-        // プロパティアクセサ（互換性用）
-        public string Version => version;
-        public string BuildTime => buildTime;
+        // プロパティアクセサ
         public string CatalogHash => catalogHash;
-        public List<LocalBundleInfo> LocalBundles => localBundles;
-    }
-
-    [Serializable]
-    public class LocalBundleInfo
-    {
-        public string path;
-        public string hash;
-        public long size;
-
-        // プロパティアクセサ（互換性用）
-        public string Path => path;
-        public string Hash => hash;
-        public long Size => size;
+        public List<string> Files => files ?? new List<string>();
     }
 }
 #endif
