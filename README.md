@@ -185,8 +185,8 @@ dotnet test
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
 * **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
-* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動
-* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化
+* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
+* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -467,6 +467,13 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 - Unity Accelerator によるライブラリキャッシュ共有
 - GitHub Actions でのアセットキャッシュ最適化
 
+**エディタ同期機能（UseExistingBuildモード対応）:**
+- CIビルド後、他の開発者がUseExistingBuildでプレイ可能
+- Play開始前に自動でリモートからローカルバンドルを同期
+- マニフェストファイル（`local_bundles_manifest.json`）でバージョン管理
+- 手動同期: `Tools > Addressables > Sync from Remote`
+- バージョン確認: `Tools > Addressables > Check Remote Version`
+
 </details>
 
 <details><summary>CI/CD システム</summary>
@@ -639,7 +646,7 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約7週間 (2026/2/12時点)
+* 約7週間 (2026/2/13時点)
 
 ---
 

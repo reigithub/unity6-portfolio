@@ -186,8 +186,8 @@ dotnet test
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
 * **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
-* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration
-* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
+* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
+* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -467,6 +467,13 @@ Switches Addressables asset delivery source based on GameEnvironment setting:
 - Library cache sharing via Unity Accelerator
 - Asset cache optimization in GitHub Actions
 
+**Editor Sync Feature (UseExistingBuild mode support):**
+- After CI build, other developers can play with UseExistingBuild mode
+- Auto-syncs local bundles from remote before Play starts
+- Version management via manifest file (`local_bundles_manifest.json`)
+- Manual sync: `Tools > Addressables > Sync from Remote`
+- Version check: `Tools > Addressables > Check Remote Version`
+
 </details>
 
 <details><summary>CI/CD System</summary>
@@ -638,7 +645,7 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/12)
+* Approximately 7 weeks (as of 2026/2/13)
 
 ---
 

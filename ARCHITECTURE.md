@@ -1,7 +1,7 @@
 # Unity6Portfolio アーキテクチャ設計書
 
-**バージョン**: 1.4
-**最終更新**: 2026年2月12日
+**バージョン**: 1.5
+**最終更新**: 2026年2月13日
 
 ---
 
@@ -721,6 +721,64 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 - GitHub Actions でのアセットキャッシュ最適化
 - 環境変数による自動プロファイル切り替え
 
+### 7.2.1 Addressables エディタ同期システム
+
+チーム開発において、CIでビルドされたAddressablesアセットをUnityエディタの`UseExistingBuild`モードで利用可能にするシステム:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Addressables Sync Flow                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  CI Build (GitHub Actions)                                      │
+│  ┌──────────────────────┐                                       │
+│  │AddressablesR2Uploader│                                       │
+│  │  BuildAddressablesCI │─────▶ ServerData/{Platform}/          │
+│  │  GenerateManifest    │       ├── catalog_*.bin               │
+│  └──────────────────────┘       ├── catalog_*.hash              │
+│                                 ├── local_bundles_manifest.json │
+│                                 └── *.bundle                    │
+│                                         │                       │
+│                                         │ rclone sync           │
+│                                         ▼                       │
+│  Cloudflare R2                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ https://{env}.assets.rei-unity6-portfolio.com/{Platform}/ │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                         │                       │
+│                                         │ EditorAddressablesSync│
+│                                         ▼                       │
+│  Unity Editor (他の開発者)                                       │
+│  ┌──────────────────────┐                                       │
+│  │ ShouldAutoSync()     │  GameEnvironment != Local             │
+│  │ + UseExistingBuild   │  の場合に自動同期                      │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  Library/com.unity.addressables/aa/{Platform}/                  │
+│  ├── catalog.bin                                                │
+│  ├── catalog.hash                                               │
+│  └── {Platform}/                                                │
+│      └── *_local_*.bundle (ローカルバンドルのみ)                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**関連クラス:**
+
+| クラス | 役割 |
+|-------|------|
+| `AddressablesR2Uploader` | CIビルド、マニフェスト生成、R2アップロード |
+| `EditorAddressablesSync` | エディタ同期（Play開始前自動チェック） |
+| `AddressablesBundleUtils` | ローカルバンドル判定の共通ユーティリティ |
+| `AddressablesCommands` | CLIツール（マニフェスト生成） |
+
+**ローカルバンドル判定パターン:**
+- `defaultlocalgroup` - Default Local Groupのバンドル
+- `local_` / `_local_` - ローカル専用プレフィックス/インフィックス
+- `monoscripts` - MonoScriptバンドル
+- `unitybuiltinassets` - Unity Built-in Assetsバンドル
+
 ### 7.3 セーブデータフロー
 
 ```
@@ -1426,6 +1484,7 @@ Unity6Portfolio/
 - アセット配信: Addressablesローカル/リモート自動切替（2026/02）
 - CI/CD: Unity Acceleratorキャッシュ、アセットキャッシュ最適化（2026/02）
 - ランキングシステム: Valkeyキャッシュ、Cloud Run本番デプロイ（2026/02）
+- Addressables同期: チーム開発向けエディタ自動同期システム（2026/02）
 
 ---
 
