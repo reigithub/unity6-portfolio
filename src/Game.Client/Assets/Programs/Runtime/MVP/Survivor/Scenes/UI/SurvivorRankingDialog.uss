@@ -1,0 +1,372 @@
+/* ===========================================
+   Survivor Ranking Dialog Styles
+   Full-screen dialog with ranking list
+   =========================================== */
+
+/* Overlay - full screen dark background */
+.overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.98);
+}
+
+/* Dialog Panel - full screen */
+.dialog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: transparent;
+    padding: 60px;
+}
+
+/* Header */
+.dialog-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.dialog-title {
+    font-size: 56px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+}
+
+.close-button {
+    width: 64px;
+    height: 64px;
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    transition-duration: 0.15s;
+}
+
+.close-button:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: rgb(255, 255, 255);
+    scale: 1.1;
+}
+
+.close-button:active {
+    scale: 0.95;
+}
+
+/* Stage Selector */
+.stage-selector {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 20px 28px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.stage-label {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-font-style: bold;
+    margin-right: 20px;
+    letter-spacing: 2px;
+}
+
+.stage-dropdown {
+    flex-grow: 1;
+    height: 56px;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    padding: 0 20px;
+    margin-right: 24px;
+}
+
+.stage-dropdown:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.stage-dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0.7);
+}
+
+.refresh-button {
+    width: 140px;
+    height: 56px;
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(100, 160, 255, 0.4);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(100, 160, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    transition-duration: 0.15s;
+}
+
+.refresh-button:hover {
+    background-color: rgba(100, 160, 255, 0.6);
+    border-color: rgba(100, 160, 255, 0.8);
+    scale: 1.02;
+}
+
+.refresh-button:active {
+    scale: 0.98;
+}
+
+.refresh-button:disabled {
+    background-color: rgba(80, 80, 80, 0.3);
+    border-color: rgba(100, 100, 100, 0.2);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Ranking Header */
+.ranking-header {
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 28px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 12px 12px 0 0;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    border-bottom-width: 0;
+}
+
+.header-rank {
+    width: 100px;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.header-name {
+    flex-grow: 1;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.header-score {
+    width: 160px;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    -unity-text-align: middle-right;
+}
+
+.header-time {
+    width: 120px;
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    -unity-text-align: middle-right;
+}
+
+/* Ranking List */
+.ranking-list {
+    flex-grow: 1;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-radius: 0 0 12px 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+    border-top-width: 0;
+    padding: 8px 0;
+}
+
+/* Ranking Entry */
+.ranking-entry {
+    flex-direction: row;
+    align-items: center;
+    padding: 18px 28px;
+    margin: 4px 12px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    transition-duration: 0.12s;
+}
+
+.ranking-entry:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Top 3 Special Styles */
+.ranking-entry--rank-1 {
+    background-color: rgba(255, 215, 0, 0.15);
+    border-width: 1px;
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.ranking-entry--rank-1:hover {
+    background-color: rgba(255, 215, 0, 0.25);
+}
+
+.ranking-entry--rank-2 {
+    background-color: rgba(192, 192, 192, 0.12);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.35);
+}
+
+.ranking-entry--rank-2:hover {
+    background-color: rgba(192, 192, 192, 0.2);
+}
+
+.ranking-entry--rank-3 {
+    background-color: rgba(205, 127, 50, 0.12);
+    border-width: 1px;
+    border-color: rgba(205, 127, 50, 0.35);
+}
+
+.ranking-entry--rank-3:hover {
+    background-color: rgba(205, 127, 50, 0.2);
+}
+
+.entry-rank {
+    width: 100px;
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.9);
+    -unity-font-style: bold;
+}
+
+.ranking-entry--rank-1 .entry-rank {
+    color: rgb(255, 215, 0);
+}
+
+.ranking-entry--rank-2 .entry-rank {
+    color: rgb(192, 192, 192);
+}
+
+.ranking-entry--rank-3 .entry-rank {
+    color: rgb(205, 127, 50);
+}
+
+.entry-name {
+    flex-grow: 1;
+    font-size: 24px;
+    color: rgb(255, 255, 255);
+}
+
+.entry-score {
+    width: 160px;
+    font-size: 26px;
+    color: rgb(100, 200, 140);
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.entry-time {
+    width: 120px;
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-text-align: middle-right;
+}
+
+/* Empty State */
+.empty-label {
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.4);
+    -unity-text-align: middle-center;
+    padding: 80px 0;
+}
+
+/* Error Label */
+.error-label {
+    font-size: 24px;
+    color: rgb(255, 100, 100);
+    -unity-text-align: middle-center;
+    padding: 20px;
+    background-color: rgba(255, 100, 100, 0.1);
+    border-radius: 10px;
+    margin-top: 16px;
+}
+
+/* My Rank Section */
+.my-rank-container {
+    margin-top: 32px;
+    padding: 24px 32px;
+    background-color: rgba(100, 160, 255, 0.12);
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgba(100, 160, 255, 0.4);
+}
+
+.my-rank-title {
+    font-size: 22px;
+    color: rgba(100, 160, 255, 0.9);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+}
+
+.my-rank-content {
+    flex-direction: row;
+    align-items: center;
+}
+
+.my-rank-value {
+    width: 100px;
+    font-size: 32px;
+    color: rgb(100, 160, 255);
+    -unity-font-style: bold;
+}
+
+.my-name-value {
+    flex-grow: 1;
+    font-size: 26px;
+    color: rgb(255, 255, 255);
+}
+
+.my-score-value {
+    width: 160px;
+    font-size: 28px;
+    color: rgb(100, 200, 140);
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.my-time-value {
+    width: 120px;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-text-align: middle-right;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    border-radius: 20px;
+}
+
+.loading-text {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+}
+
+/* Hidden utility class */
+.hidden {
+    display: none;
+}

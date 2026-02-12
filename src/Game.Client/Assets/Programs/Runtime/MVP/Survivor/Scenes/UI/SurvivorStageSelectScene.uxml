@@ -39,6 +39,10 @@
                 <ui:Button text="START" name="play-button" class="button button--start"/>
             </ui:VisualElement>
         </ui:VisualElement>
+        <!-- Footer with Ranking Button -->
+        <ui:VisualElement name="footer" class="footer">
+            <ui:Button text="RANKING" name="ranking-button" class="button button--ranking"/>
+        </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="resume-panel" class="overlay overlay--hidden">
         <ui:VisualElement class="dialog">

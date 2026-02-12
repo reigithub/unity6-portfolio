@@ -30,6 +30,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6be4a30c4c13f024887900cee6820236
+    m_Address: SurvivorRankingDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 78fdae8f88967304cb1b70783154cc37
     m_Address: SurvivorAccountLinkDialog
     m_ReadOnly: 0

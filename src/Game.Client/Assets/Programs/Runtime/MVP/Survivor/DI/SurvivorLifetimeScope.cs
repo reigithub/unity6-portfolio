@@ -12,6 +12,7 @@ using AudioSaveService = Game.Shared.SaveData.AudioSaveService;
 using IAudioSaveService = Game.Shared.SaveData.IAudioSaveService;
 using AuthApiService = Game.Shared.Services.AuthApiService;
 using SessionService = Game.Shared.Services.SessionService;
+using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 
 namespace Game.MVP.Survivor
@@ -61,6 +62,7 @@ namespace Game.MVP.Survivor
             builder.Register<UnityApiClient>(Lifetime.Singleton).As<IApiClient>();
             builder.Register<SessionService>(Lifetime.Singleton).As<ISessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
+            builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared.Dto.Survivor;
 using Game.Shared.Services;
 using R3;
 using VContainer;
@@ -18,6 +19,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISurvivorSaveService _saveService;
+        [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
+        [Inject] private readonly ISessionService _sessionService;
 
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
@@ -35,6 +38,12 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             _isVictory = IsOverallVictory(session);
+
+            // 認証済みの場合のみスコア送信
+            if (_sessionService.IsAuthenticated)
+            {
+                await SubmitScoresAsync(session);
+            }
 
             // リザルトデータをViewに反映
             SceneComponent.SetResultData(
@@ -76,6 +85,30 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (session.StageResults.Count == 0) return false;
             return session.StageResults.All(r => r.IsVictory);
+        }
+
+        /// <summary>
+        /// サーバーにスコアを送信
+        /// </summary>
+        private async UniTask SubmitScoresAsync(SurvivorStageSession session)
+        {
+            foreach (var result in session.StageResults)
+            {
+                var request = new SubmitSurvivorScoreRequest
+                {
+                    stageId = result.StageId,
+                    score = result.Score,
+                    clearTime = result.ClearTime,
+                    waveReached = session.CurrentWave,
+                    enemiesDefeated = result.Kills
+                };
+
+                var response = await _scoreApiService.SubmitScoreAsync(request);
+                if (response.IsSuccess && response.Data != null && response.Data.isNewBest)
+                {
+                    SceneComponent.ShowNewBestEffect(result.StageId, response.Data.currentRank);
+                }
+            }
         }
 
         private async UniTaskVoid OnRetry()

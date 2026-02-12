@@ -1,0 +1,59 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorRankingDialog.uss" />
+
+    <!-- Overlay Background -->
+    <ui:VisualElement name="overlay" class="overlay">
+        <!-- Dialog Panel -->
+        <ui:VisualElement name="dialog" class="dialog">
+            <!-- Header -->
+            <ui:VisualElement class="dialog-header">
+                <ui:Label text="RANKING" class="dialog-title" />
+                <ui:Button text="X" name="close-button" class="close-button" />
+            </ui:VisualElement>
+
+            <!-- Stage Selector -->
+            <ui:VisualElement class="stage-selector">
+                <ui:Label text="STAGE" class="stage-label" />
+                <ui:DropdownField name="stage-dropdown" class="stage-dropdown" />
+                <ui:Button name="refresh-button" class="refresh-button">
+                    <ui:Label text="REFRESH" />
+                </ui:Button>
+            </ui:VisualElement>
+
+            <!-- Ranking List Header -->
+            <ui:VisualElement class="ranking-header">
+                <ui:Label text="RANK" class="header-rank" />
+                <ui:Label text="NAME" class="header-name" />
+                <ui:Label text="SCORE" class="header-score" />
+                <ui:Label text="TIME" class="header-time" />
+            </ui:VisualElement>
+
+            <!-- Ranking List -->
+            <ui:ScrollView name="ranking-list" class="ranking-list">
+                <!-- Ranking entries will be generated dynamically -->
+            </ui:ScrollView>
+
+            <!-- Empty State -->
+            <ui:Label name="empty-label" text="No ranking data available." class="empty-label hidden" />
+
+            <!-- Error Label -->
+            <ui:Label name="error-label" class="error-label hidden" />
+
+            <!-- My Rank Section -->
+            <ui:VisualElement name="my-rank-container" class="my-rank-container hidden">
+                <ui:Label text="YOUR RANK" class="my-rank-title" />
+                <ui:VisualElement class="my-rank-content">
+                    <ui:Label name="my-rank" text="#--" class="my-rank-value" />
+                    <ui:Label name="my-name" text="---" class="my-name-value" />
+                    <ui:Label name="my-score" text="---" class="my-score-value" />
+                    <ui:Label name="my-time" text="--:--" class="my-time-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Loading Overlay -->
+            <ui:VisualElement name="loading-overlay" class="loading-overlay hidden">
+                <ui:Label text="Loading..." class="loading-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

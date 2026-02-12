@@ -428,3 +428,32 @@
     background-color: rgb(80, 160, 255);
     scale: 1.06;
 }
+
+/* ===========================================
+   Footer (Bottom Center)
+   =========================================== */
+
+.footer {
+    height: 100px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.button--ranking {
+    width: 300px;
+    height: 84px;
+    font-size: 32px;
+    letter-spacing: 6px;
+    background-color: rgba(255, 200, 50, 0.25);
+    border-width: 3px;
+    border-color: rgba(255, 200, 50, 0.6);
+    border-radius: 42px;
+}
+
+.button--ranking:hover {
+    background-color: rgba(255, 200, 50, 0.4);
+    border-color: rgba(255, 200, 50, 0.85);
+    scale: 1.08;
+}
