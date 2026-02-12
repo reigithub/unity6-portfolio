@@ -26,6 +26,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # ローカルテスト用 Valkey（本番は GCP Memorystore for Valkey を使用）
+  valkey:
+    image: valkey/valkey:8.0-alpine
+    container_name: game-server-valkey-prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkeydata:/data
+    command: >
+      valkey-server
+      --appendonly yes
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # Game Server（Production 構成でローカル実行）
   server:
     image: game-server-prod
@@ -38,12 +57,16 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Default=Host=db;Database=gameserver;Username=gameuser;Password=gamepassword
+      # Valkey 接続（ローカルテスト用）
+      - ConnectionStrings__Valkey=valkey:6379,abortConnect=false
       # JWT 設定（ローカルテスト用）
       - Jwt__SecretKey=LocalTestSecretKeyForDevelopmentOnlyDoNotUseInProduction123456
       - Jwt__Issuer=GameServer
       - Jwt__Audience=GameClient
     depends_on:
       db:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
 
   # Cloud SQL Proxy（Cloud SQL に接続してローカルテストする場合）
@@ -61,3 +84,4 @@ services:
 
 volumes:
   pgdata:
+  valkeydata:

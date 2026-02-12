@@ -144,6 +144,128 @@ gcloud run deploy $env:SERVICE_NAME `
   --set-env-vars="ConnectionStrings__Default=Host=/cloudsql/$CONNECTION_NAME;Database=$env:DB_NAME;Username=$env:DB_USER;Password=$env:DB_PASSWORD"
 ```
 
+## Memorystore for Valkey 設定
+
+ランキングキャッシュ用に GCP Memorystore for Valkey を使用します。
+Memorystore for Valkey は **Private Service Connect (PSC)** を使用して接続します。
+
+### 1. 必要な API を有効化
+
+```powershell
+gcloud services enable `
+  networkconnectivity.googleapis.com `
+  compute.googleapis.com `
+  serviceconsumermanagement.googleapis.com `
+  memorystore.googleapis.com `
+  vpcaccess.googleapis.com
+```
+
+### 2. Service Connection Policy を作成
+
+PSC 接続に必要なポリシーを作成します。
+
+```powershell
+gcloud network-connectivity service-connection-policies create game-valkey-policy `
+  --region=$env:REGION `
+  --service-class=gcp-memorystore `
+  --network=projects/$env:PROJECT_ID/global/networks/default `
+  --project=$env:PROJECT_ID `
+  --subnets=https://www.googleapis.com/compute/v1/projects/$env:PROJECT_ID/regions/$env:REGION/subnetworks/default
+```
+
+### 3. Memorystore インスタンスの作成
+
+```powershell
+# 開発環境: shared-core-nano（最安、SLAなし）
+gcloud memorystore instances create game-valkey `
+  --location=$env:REGION `
+  --project=$env:PROJECT_ID `
+  --node-type=shared-core-nano `
+  --shard-count=1 `
+  --replica-count=0 `
+  --engine-configs=maxmemory-policy=allkeys-lru `
+  --endpoints="[{\`"connections\`": [{\`"pscAutoConnection\`": {\`"network\`": \`"projects/$env:PROJECT_ID/global/networks/default\`", \`"projectId\`": \`"$env:PROJECT_ID\`"}}]}]"
+
+# 本番環境: standard-small 以上を推奨
+# gcloud memorystore instances create game-valkey `
+#   --location=$env:REGION `
+#   --project=$env:PROJECT_ID `
+#   --node-type=standard-small `
+#   --shard-count=1 `
+#   --replica-count=1 `
+#   --engine-configs=maxmemory-policy=allkeys-lru `
+#   --endpoints="[{\`"connections\`": [{\`"pscAutoConnection\`": {\`"network\`": \`"projects/$env:PROJECT_ID/global/networks/default\`", \`"projectId\`": \`"$env:PROJECT_ID\`"}}]}]"
+```
+
+### 4. エンドポイントを確認
+
+```powershell
+# PSC 自動接続の IP アドレスを取得（Discovery エンドポイント）
+gcloud memorystore instances describe game-valkey `
+  --location=$env:REGION `
+  --format="value(endpoints[0].connections[0].pscAutoConnection.ipAddress)"
+# 出力例: 10.146.0.2
+```
+
+### 5. VPC Connector の作成
+
+Cloud Run から Memorystore に接続するには VPC Connector が必要です。
+
+```powershell
+# VPC Connector を作成
+gcloud compute networks vpc-access connectors create game-vpc-connector `
+  --region=$env:REGION `
+  --network=default `
+  --range=10.8.0.0/28
+
+# 確認
+gcloud compute networks vpc-access connectors describe game-vpc-connector --region=$env:REGION
+```
+
+### 6. .env に設定を追加
+
+```env
+# Memorystore for Valkey
+VALKEY_HOST=10.128.0.3    # 手順4で取得したIPアドレス
+VALKEY_PORT=6379
+VPC_CONNECTOR=game-vpc-connector
+```
+
+### 7. デプロイ時の設定
+
+デプロイスクリプトまたは cloudbuild.yml が自動的に以下を設定します：
+- `--vpc-connector=game-vpc-connector`
+- `ConnectionStrings__Valkey=10.128.0.3:6379,abortConnect=false`
+
+### ローカルテスト
+
+ローカルでは Docker Compose で Valkey コンテナが自動起動します：
+
+```powershell
+docker compose -f docker/game-server/prod/docker-compose.yml up --build
+
+# Valkey CLI で接続確認
+docker exec -it game-server-valkey-prod valkey-cli ping
+# 出力: PONG
+```
+
+### ノードタイプと料金目安
+
+| ノードタイプ | メモリ | 月額概算* | 用途 | SLA |
+|-------------|--------|----------|------|-----|
+| `shared-core-nano` | 1GB | ~$15-30 | 開発/テスト専用 | なし |
+| `standard-small` | 1GB | ~$50-70 | 小規模本番 | あり |
+| `highmem-medium` | 4GB | ~$150-200 | 中規模本番 | あり |
+| `highmem-xlarge` | 16GB | ~$500-700 | 大規模本番 | あり |
+
+\* asia-northeast1リージョン、レプリカなし（1ノード）の参考価格。
+  正確な料金は [Memorystore for Valkey pricing](https://cloud.google.com/memorystore/valkey/pricing) で確認してください。
+
+> **推奨**: 開発初期は `shared-core-nano`（最安）、本番は `standard-small` 以上を使用してください。
+> `shared-core-nano` はSLAなし・可変パフォーマンスのため本番環境には非推奨です。
+
+---
+
 ## データベース管理ツール
 
 Cloud SQL へのマイグレーション、シードデータ適用を簡単に行えるツールです。
