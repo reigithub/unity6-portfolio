@@ -185,6 +185,7 @@ dotnet test
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
+* **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration
 * **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
 
@@ -408,6 +409,13 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 - Auto-save (30-second intervals, on background transition)
 - Immediate save on Victory/GameOver confirmation
 
+**Ranking System**
+- Score submission: Automatic submission on stage clear
+- Ranking retrieval: Top 100 display per stage
+- My rank: Real-time rank confirmation
+- Valkey cache: Fast ranking retrieval with Sorted Set (5-minute TTL)
+- Production: Cloud Run + Cloud SQL + Memorystore for Valkey
+
 </details>
 
 <details><summary>Authentication & Account Management System</summary>
@@ -630,13 +638,14 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/11)
+* Approximately 7 weeks (as of 2026/2/12)
 
 ---
 
 ## Future Plans
-* Network functionality (client-server communication)
 * Survivor game mode additional features (skill system, boss battles, etc.)
+* Ranking screen UI (client-side)
+* Localization support (multi-language)
 * PlayerLoop intervention sample
 * List sort/filter functionality sample
 * Multi-resolution support
