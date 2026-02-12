@@ -9,6 +9,7 @@ using Game.App.Services;
 using Game.App.Title;
 using Game.ScoreTimeAttack;
 using Game.MVP.Core.DI;
+using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Enums;
@@ -31,6 +32,13 @@ namespace Game.App.Bootstrap
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Startup()
         {
+            // 安全な起動のため環境切替が機能しているか一番最初に検証する
+            if (!GameEnvironmentHelper.ValidateGameEnvironment())
+            {
+                Debug.LogError($"Invalid Game Environment: {GameEnvironmentHelper.Current}");
+                Application.Quit(-1);
+            }
+
             if (_isInitialized) return;
             _isInitialized = true;
 
@@ -190,19 +198,19 @@ namespace Game.App.Bootstrap
         /// <summary>
         /// ダウンロードしたアセットの保存先をカスタマイズ
         /// ビルド: {InstallPath}/{AppName}_Data/DownloadedAssets
-        /// エディター: {persistentDataPath}/DownloadedAssets
+        /// エディター: {persistentDataPath}/{Environment}/DownloadedAssets
         /// </summary>
         private static void SetupCustomAssetCache()
         {
             try
             {
-#if UNITY_EDITOR
-                // エディターでは persistentDataPath を使用
-                var customCachePath = Path.Combine(Application.persistentDataPath, "DownloadedAssets");
-#else
-                // ビルドでは dataPath（インストールフォルダ）を使用
-                var customCachePath = Path.Combine(Application.dataPath, "DownloadedAssets");
-#endif
+// #if UNITY_EDITOR
+                // エディターでは環境ごとのパスを使用
+                var customCachePath = Path.Combine(GameEnvironmentHelper.PersistentDataPath, "DownloadedAssets");
+// #else
+//                 // ビルドでは dataPath（インストールフォルダ）を使用
+//                 var customCachePath = Path.Combine(Application.dataPath, "DownloadedAssets");
+// #endif
 
                 // ディレクトリを作成
                 if (!Directory.Exists(customCachePath))

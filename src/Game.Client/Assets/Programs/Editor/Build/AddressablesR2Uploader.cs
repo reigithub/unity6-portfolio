@@ -53,8 +53,7 @@ namespace Game.Editor.Build
         [MenuItem("Build/Addressables/Build and Upload to R2", priority = 101)]
         public static void BuildAndUpload()
         {
-            // R2ビルド時はローカルグループを除外（リモートカタログにローカルバンドルの参照を含めない）
-            if (!BuildAddressables(excludeLocalGroups: true))
+            if (!BuildAddressables())
             {
                 Debug.LogError("[Addressables] ビルド失敗。アップロードをキャンセルしました。");
                 return;
@@ -148,7 +147,7 @@ namespace Game.Editor.Build
         /// <summary>
         /// Addressables をビルド
         /// </summary>
-        /// <param name="excludeLocalGroups">ローカルグループをビルドから除外するか（R2アップロード用）</param>
+        /// <param name="excludeLocalGroups">ローカルグループをビルドから除外するか（現在は常にfalse推奨）</param>
         /// <returns>ビルド成功時は true</returns>
         private static bool BuildAddressables(bool excludeLocalGroups = false)
         {
@@ -168,12 +167,13 @@ namespace Game.Editor.Build
             // 設定をディスクに保存してビルドに反映させる
             AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(currentEnv, saveAsset: true);
 
-            // R2ビルド時はローカルグループをビルドから除外
-            var excludedGroups = new List<AddressableAssetGroup>();
-            if (excludeLocalGroups)
-            {
-                excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
-            }
+            // NOTE: ローカルグループ除外は通常不要
+            // 各グループのLoadPathはスキーマ設定で決まるため、カタログに含めても問題ない
+            // var excludedGroups = new List<AddressableAssetGroup>();
+            // if (excludeLocalGroups)
+            // {
+            //     excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
+            // }
 
             try
             {
@@ -197,10 +197,10 @@ namespace Game.Editor.Build
             finally
             {
                 // ローカルグループの設定を復元
-                if (excludeLocalGroups && excludedGroups.Count > 0)
-                {
-                    RestoreGroupsIncludeInBuild(excludedGroups);
-                }
+                // if (excludeLocalGroups && excludedGroups.Count > 0)
+                // {
+                //     RestoreGroupsIncludeInBuild(excludedGroups);
+                // }
             }
         }
 
@@ -351,8 +351,10 @@ namespace Game.Editor.Build
                 settings.BuildRemoteCatalog = true;
             }
 
-            // R2ビルド時はローカルグループを除外（リモートカタログにローカルバンドルの参照を含めない）
-            var excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
+            // NOTE: ローカルグループ除外は不要
+            // 各グループのLoadPathはスキーマ設定に基づいて評価されるため、
+            // ローカルグループをカタログに含めてもリモートからロードされることはない
+            // var excludedGroups = SetLocalGroupsIncludeInBuild(settings, include: false);
 
             AddressablesPlayerBuildResult result;
             TimeSpan buildTime;
@@ -371,11 +373,11 @@ namespace Game.Editor.Build
             }
             finally
             {
-                // ローカルグループの設定を復元
-                if (excludedGroups.Count > 0)
-                {
-                    RestoreGroupsIncludeInBuild(excludedGroups);
-                }
+                // ローカルグループの設定復元は不要（除外していないため）
+                // if (excludedGroups.Count > 0)
+                // {
+                //     RestoreGroupsIncludeInBuild(excludedGroups);
+                // }
             }
 
             if (!string.IsNullOrEmpty(result.Error))

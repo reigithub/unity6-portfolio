@@ -32,7 +32,13 @@ namespace Game.Editor.Build
             AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(GameEnvironment.Staging, saveAsset: false);
         }
 
-        [MenuItem(MenuRoot + "Release", false, 103)]
+        [MenuItem(MenuRoot + "Review", false, 103)]
+        public static void SwitchToReview()
+        {
+            AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(GameEnvironment.Review, saveAsset: false);
+        }
+
+        [MenuItem(MenuRoot + "Release", false, 104)]
         public static void SwitchToRelease()
         {
             AddressablesEnvironmentSwitcher.SetActiveProfileFromEnvironment(GameEnvironment.Release, saveAsset: false);

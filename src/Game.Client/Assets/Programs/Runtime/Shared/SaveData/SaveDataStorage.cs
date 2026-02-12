@@ -40,7 +40,7 @@ namespace Game.Shared.SaveData
             }
         }
 
-        public string BasePath => Application.persistentDataPath;
+        public string BasePath => GameEnvironmentHelper.PersistentDataPath;
 
         public async UniTask<T> LoadAsync<T>(string key) where T : class
         {
