@@ -31,6 +31,7 @@ namespace Game.MVP.Survivor
         private readonly IPersistentObjectProvider _persistentObjectProvider;
         private readonly ISessionService _sessionService;
         private readonly IApiClient _apiClient;
+        private readonly IAuthApiService _authApiService;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
@@ -46,7 +47,8 @@ namespace Game.MVP.Survivor
             IAudioSaveService audioSaveService,
             IPersistentObjectProvider persistentObjectProvider,
             ISessionService sessionService,
-            IApiClient apiClient)
+            IApiClient apiClient,
+            IAuthApiService authApiService)
         {
             _container = container;
             _sceneService = sceneService;
@@ -59,6 +61,7 @@ namespace Game.MVP.Survivor
             _persistentObjectProvider = persistentObjectProvider;
             _sessionService = sessionService;
             _apiClient = apiClient;
+            _authApiService = authApiService;
         }
 
         public async UniTask StartupAsync()
@@ -74,10 +77,14 @@ namespace Game.MVP.Survivor
             await _saveService.LoadAsync();
             await _audioSaveService.LoadAsync();
 
-            // 4. セッション復元
+            // 4. セッション復元とトークン検証
             if (await _sessionService.RestoreSessionAsync())
             {
                 _apiClient.SetAuthToken(_sessionService.AuthToken);
+
+                // トークンの有効性を検証（期限切れの場合はリフレッシュ試行）
+                // 失敗しても起動は継続し、ゲーム開始時に再認証を行う
+                await TryValidateTokenAsync();
             }
 
             // 5. 共通オブジェクト読み込み（カメラ、UIルートなど）
@@ -115,6 +122,32 @@ namespace Game.MVP.Survivor
             else
             {
                 Debug.LogError("[SurvivorGameRunner] SurvivorGameRootController component not found");
+            }
+        }
+
+        /// <summary>
+        /// トークンの有効性を検証し、必要に応じてリフレッシュを試みる
+        /// 起動時のバックグラウンド検証用（失敗しても起動は継続）
+        /// </summary>
+        private async UniTask TryValidateTokenAsync()
+        {
+            try
+            {
+                var refreshResult = await _authApiService.RefreshTokenAsync();
+                if (refreshResult.IsSuccess)
+                {
+                    Debug.Log("[SurvivorGameRunner] Token refreshed successfully");
+                }
+                else
+                {
+                    // リフレッシュ失敗はログのみ（ゲーム開始時に再認証を行う）
+                    Debug.LogWarning($"[SurvivorGameRunner] Token refresh failed: {refreshResult.Error?.Message}. Will re-authenticate on game start.");
+                }
+            }
+            catch (System.Exception e)
+            {
+                // 例外発生時もログのみ
+                Debug.LogWarning($"[SurvivorGameRunner] Token validation error: {e.Message}");
             }
         }
 
