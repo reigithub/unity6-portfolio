@@ -182,6 +182,9 @@
 /* Ranking List */
 .ranking-list {
     flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 200px;
+    max-height: 520px;
     background-color: rgba(255, 255, 255, 0.04);
     border-radius: 0 0 12px 12px;
     border-width: 1px;
@@ -297,6 +300,7 @@
 
 /* My Rank Section */
 .my-rank-container {
+    flex-shrink: 0;
     margin-top: 32px;
     padding: 24px 32px;
     background-color: rgba(100, 160, 255, 0.12);
