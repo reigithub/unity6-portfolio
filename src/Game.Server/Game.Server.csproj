@@ -11,6 +11,9 @@
 
     <!-- Database -->
     <PackageReference Include="Dapper" Version="2.1.35" />
+
+    <!-- Redis/Valkey -->
+    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="FluentMigrator" Version="6.2.0" />
     <PackageReference Include="FluentMigrator.Runner" Version="6.2.0" />

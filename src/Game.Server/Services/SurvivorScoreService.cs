@@ -10,11 +10,16 @@ public class SurvivorScoreService : ISurvivorScoreService
 {
     private readonly ISurvivorScoreRepository _scoreRepository;
     private readonly IRankingRepository _rankingRepository;
+    private readonly IRankingService _rankingService;
 
-    public SurvivorScoreService(ISurvivorScoreRepository scoreRepository, IRankingRepository rankingRepository)
+    public SurvivorScoreService(
+        ISurvivorScoreRepository scoreRepository,
+        IRankingRepository rankingRepository,
+        IRankingService rankingService)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
+        _rankingService = rankingService;
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
@@ -36,6 +41,12 @@ public class SurvivorScoreService : ISurvivorScoreService
         var saved = await _scoreRepository.AddAsync(score);
 
         bool isNewBest = previousBest == null || request.Score > previousBest.Score;
+
+        // スコア送信後にキャッシュを無効化
+        if (isNewBest)
+        {
+            await _rankingService.InvalidateCacheAsync(request.StageId);
+        }
 
         int currentRank = await _rankingRepository.GetUserRankAsync(
             request.StageId, userId);

@@ -1,7 +1,9 @@
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -9,12 +11,16 @@ namespace Game.Server.Tests.Services;
 public class RankingServiceTests
 {
     private readonly Mock<IRankingRepository> _mockRepo;
+    private readonly Mock<ISurvivorRankingCacheService> _mockCacheService;
+    private readonly Mock<ILogger<RankingService>> _mockLogger;
     private readonly RankingService _service;
 
     public RankingServiceTests()
     {
         _mockRepo = new Mock<IRankingRepository>();
-        _service = new RankingService(_mockRepo.Object);
+        _mockCacheService = new Mock<ISurvivorRankingCacheService>();
+        _mockLogger = new Mock<ILogger<RankingService>>();
+        _service = new RankingService(_mockRepo.Object, _mockCacheService.Object, _mockLogger.Object);
     }
 
     [Fact]

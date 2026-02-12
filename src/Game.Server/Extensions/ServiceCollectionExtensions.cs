@@ -7,6 +7,7 @@ using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace Game.Server.Extensions;
 
@@ -18,6 +19,35 @@ public static class ServiceCollectionExtensions
         IWebHostEnvironment environment)
     {
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
+        return services;
+    }
+
+    public static IServiceCollection AddValkey(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("Valkey") ?? "localhost:6379,abortConnect=false";
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<ConnectionMultiplexer>>();
+            try
+            {
+                var multiplexer = ConnectionMultiplexer.Connect(connectionString);
+                logger.LogInformation("Connected to Valkey/Redis");
+                return multiplexer;
+            }
+            catch (RedisConnectionException ex)
+            {
+                logger.LogWarning(ex, "Failed to connect to Valkey/Redis. Cache will be unavailable.");
+                // 接続失敗時も起動を継続するためにnullではなく接続を試みたインスタンスを返す
+                // キャッシュサービス側で接続エラーをハンドリング
+                return ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(connectionString));
+            }
+        });
+
+        services.AddScoped<ISurvivorRankingCacheService, ValkeySurvivorRankingCacheService>();
+
         return services;
     }
 

@@ -2,6 +2,7 @@ using Game.Server.Dto.Requests;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
 using Moq;
 
@@ -13,13 +14,15 @@ public class SurvivorScoreServiceTests
 
     private readonly Mock<ISurvivorScoreRepository> _mockScoreRepo;
     private readonly Mock<IRankingRepository> _mockRankingRepo;
+    private readonly Mock<IRankingService> _mockRankingService;
     private readonly SurvivorScoreService _service;
 
     public SurvivorScoreServiceTests()
     {
         _mockScoreRepo = new Mock<ISurvivorScoreRepository>();
         _mockRankingRepo = new Mock<IRankingRepository>();
-        _service = new SurvivorScoreService(_mockScoreRepo.Object, _mockRankingRepo.Object);
+        _mockRankingService = new Mock<IRankingService>();
+        _service = new SurvivorScoreService(_mockScoreRepo.Object, _mockRankingRepo.Object, _mockRankingService.Object);
     }
 
     [Fact]
