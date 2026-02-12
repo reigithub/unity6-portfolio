@@ -19,6 +19,9 @@
     <!-- MasterMemoryGeneratorOptions (Source Generator 用) -->
     <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\MasterData\MasterMemoryGeneratorOptions.cs"
              Link="MasterMemoryGeneratorOptions.cs" />
+    <!-- Addressables Bundle Utils (Unity依存なし) -->
+    <Compile Include="..\Game.Client\Assets\Programs\Runtime\Shared\Services\RemoteAsset\AddressablesBundleUtils.cs"
+             Link="AddressablesBundleUtils.cs" />
     <!-- ExternalInit.cs は .NET 9 では不要なので除外 -->
   </ItemGroup>
 

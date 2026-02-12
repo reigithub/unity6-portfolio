@@ -316,16 +316,7 @@ namespace Game.Shared.Services.RemoteAsset
         /// </summary>
         private bool IsLocalOnlyBundle(string internalId)
         {
-            if (string.IsNullOrEmpty(internalId)) return false;
-
-            var lowerInternalId = internalId.ToLowerInvariant();
-
-            // ローカル専用パターン
-            return lowerInternalId.Contains("defaultlocalgroup") ||
-                   lowerInternalId.Contains("local_") ||
-                   lowerInternalId.Contains("_local_") ||
-                   lowerInternalId.Contains("monoscripts") ||
-                   lowerInternalId.Contains("unitybuiltinassets");
+            return AddressablesBundleUtils.IsLocalBundle(internalId);
         }
 
         /// <summary>

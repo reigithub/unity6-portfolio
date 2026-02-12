@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game.Editor.Addressables;
 using Game.Editor.Build;
 using Game.Shared;
 using UnityEditor;
@@ -66,6 +67,11 @@ namespace Game.Editor
 
             // 現在のAddressables状態
             DrawAddressablesCurrentStateSection();
+
+            EditorGUILayout.Space(10);
+
+            // Addressables ローカルバンドル同期
+            DrawAddressablesSyncSection();
 
             EditorGUILayout.Space(10);
 
@@ -153,6 +159,58 @@ namespace Game.Editor
             {
                 EditorGUILayout.HelpBox("設定と状態が一致していません", MessageType.Warning);
             }
+        }
+
+        private void DrawAddressablesSyncSection()
+        {
+            var env = _envs != null && _index >= 0 && _index < _envs.Length ? _envs[_index] : GameEnvironment.Local;
+            var state = AddressablesEnvironmentSwitcher.GetCurrentState();
+            var isUseExistingBuild = state.PlayModeScript == "Use Existing Build";
+            var canSync = env != GameEnvironment.Local && isUseExistingBuild;
+
+            EditorGUILayout.LabelField("Addressables ローカルバンドル同期", EditorStyles.boldLabel);
+
+            if (!canSync)
+            {
+                var reason = env == GameEnvironment.Local
+                    ? "Local環境では同期不要です"
+                    : "Play Mode Script を「Use Existing Build」に設定してください";
+                EditorGUILayout.HelpBox(reason, MessageType.Info);
+            }
+
+            using (new EditorGUI.DisabledGroupScope(!canSync))
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("リモートバージョン確認", GUILayout.Height(25)))
+                    {
+                        OnCheckRemoteVersionClicked();
+                    }
+
+                    if (GUILayout.Button("今すぐ同期", GUILayout.Height(25)))
+                    {
+                        OnSyncNowClicked();
+                    }
+                }
+            }
+
+            if (canSync)
+            {
+                EditorGUILayout.HelpBox(
+                    "UseExistingBuild モードでは、Play開始時に自動的にローカルバンドルが同期されます。\n" +
+                    "手動で同期する場合は「今すぐ同期」をクリックしてください。",
+                    MessageType.Info);
+            }
+        }
+
+        private void OnCheckRemoteVersionClicked()
+        {
+            EditorAddressablesSync.CheckRemoteVersionMenu();
+        }
+
+        private void OnSyncNowClicked()
+        {
+            EditorAddressablesSync.SyncFromRemoteMenu();
         }
 
         private void DrawApplyButton()

@@ -149,6 +149,19 @@ jobs:
             du -sh "${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}"
           fi
 
+      - name: Verify local bundles manifest
+        run: |
+          MANIFEST_PATH="${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}/local_bundles_manifest.json"
+          if [ -f "$MANIFEST_PATH" ]; then
+            echo "=== Local Bundles Manifest ==="
+            cat "$MANIFEST_PATH"
+            echo ""
+            echo "Manifest generated successfully!"
+          else
+            echo "WARNING: local_bundles_manifest.json not found at $MANIFEST_PATH"
+            echo "This may indicate a build issue or no local bundles in the build."
+          fi
+
       - name: Upload Addressables artifact
         uses: actions/upload-artifact@v4
         with:
@@ -266,8 +279,9 @@ jobs:
           echo "=========================================="
           echo ""
           echo "Access URLs:"
-          echo "  Catalog: https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog.json"
-          echo "  Base:    https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
+          echo "  Catalog:  https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/catalog.json"
+          echo "  Manifest: https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/local_bundles_manifest.json"
+          echo "  Base:     https://${{ env.R2_CUSTOM_DOMAIN }}/${{ matrix.platform }}/"
           echo ""
 
   # ============================================
