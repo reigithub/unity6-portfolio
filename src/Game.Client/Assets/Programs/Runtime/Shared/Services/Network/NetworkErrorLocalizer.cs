@@ -1,4 +1,5 @@
 using Game.Shared.Services.Network.Models;
+using Game.Shared.Services;
 
 namespace Game.Shared.Services.Network
 {
@@ -34,6 +35,37 @@ namespace Game.Shared.Services.Network
                 NetworkErrorType.ValidationError => "入力内容に誤りがあります。",
                 _ => error.Message ?? "不明なエラーが発生しました"
             };
+        }
+
+        /// <summary>
+        /// ApiErrorResponseをローカライズされたメッセージに変換
+        /// </summary>
+        /// <param name="error">APIエラーレスポンス</param>
+        /// <returns>日本語のエラーメッセージ</returns>
+        public static string GetLocalizedMessage(ApiErrorResponse error)
+        {
+            if (error == null)
+            {
+                return "不明なエラーが発生しました";
+            }
+
+            // エラーコードに基づくメッセージを取得
+            if (!string.IsNullOrEmpty(error.error))
+            {
+                var errorCodeMessage = GetErrorCodeMessage(error.error);
+                if (errorCodeMessage != null)
+                {
+                    return errorCodeMessage;
+                }
+            }
+
+            // メッセージがあればそれを返す
+            if (!string.IsNullOrEmpty(error.message))
+            {
+                return error.message;
+            }
+
+            return "不明なエラーが発生しました";
         }
 
         /// <summary>

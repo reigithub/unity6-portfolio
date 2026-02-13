@@ -23,7 +23,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
         [Inject] private readonly ISessionService _sessionService;
-        [Inject] private readonly IRequestQueue _requestQueue;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
 
@@ -136,10 +135,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // オフラインまたは失敗時はキューに追加
-                await _requestQueue.EnqueuePostAsync<SubmitSurvivorScoreRequest, SurvivorScoreSubmitResponse>(
-                    "api/v1/survivor/scores",
-                    request,
-                    RequestPriority.High);
+                await _scoreApiService.EnqueueSubmitScoreAsync(request);
 
                 SceneComponent.ShowScoreQueuedNotice(result.StageId);
             }

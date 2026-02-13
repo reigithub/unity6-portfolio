@@ -20,11 +20,12 @@ namespace Game.MVP.Survivor.Scenes
     {
         protected override string AssetPathOrAddress => "SurvivorRankingDialog";
 
+        [Inject] private readonly IApiClient _apiClient;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IInputService _inputService;
-        [Inject] private readonly INetworkService _networkService;
+        [Inject] private readonly INetworkService _networkService;  // UI表示用のみ
 
         private int _selectedStageId = 1;
 
@@ -98,14 +99,14 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ClearError();
             SceneComponent.HideCacheNotice();
 
-            // NetworkServiceを使用してキャッシュ対応でランキングを取得
+            // IApiClientを使用してキャッシュ対応でランキングを取得
             var endpoint = $"api/v1/survivor/rankings/{stageId}";
-            var result = await _networkService.GetAsync<RankingResponse>(endpoint, RankingCacheOptions);
+            var response = await _apiClient.GetAsync<RankingResponse>(endpoint, RankingCacheOptions);
 
             RankingEntry myRank = null;
 
             // 認証済みの場合は自分の順位も取得
-            if (_sessionService.IsAuthenticated && result.IsSuccess)
+            if (_sessionService.IsAuthenticated && response.IsSuccess)
             {
                 var myRankResponse = await _scoreApiService.GetMyRankAsync(stageId);
                 if (myRankResponse.IsSuccess && myRankResponse.Data != null)
@@ -116,23 +117,23 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.ShowLoading(false);
 
-            if (result.IsSuccess)
+            if (response.IsSuccess)
             {
-                SceneComponent.SetRankingData(result.Data, myRank);
+                SceneComponent.SetRankingData(response.Data, myRank);
 
                 // キャッシュからのデータの場合は通知を表示
-                if (result.FromCache)
+                if (response.FromCache)
                 {
                     SceneComponent.ShowCacheNotice(NetworkErrorLocalizer.GetCacheNoticeMessage());
                 }
             }
-            else if (result.Error?.IsOfflineError == true)
+            else if (response.Error?.IsOfflineError == true)
             {
                 SceneComponent.ShowError(NetworkErrorLocalizer.GetOfflineMessage());
             }
             else
             {
-                SceneComponent.ShowError(NetworkErrorLocalizer.GetLocalizedMessage(result.Error));
+                SceneComponent.ShowError(NetworkErrorLocalizer.GetLocalizedMessage(response.Error));
             }
         }
 

@@ -66,6 +66,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnStartGame()
         {
             SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
 
             // セッション有効性を確認し、必要に応じて再認証
@@ -146,6 +147,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnDataLink()
         {
             SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
 
             // セッション有効性を確認し、必要に応じて再認証
             if (!await EnsureValidSessionAsync())

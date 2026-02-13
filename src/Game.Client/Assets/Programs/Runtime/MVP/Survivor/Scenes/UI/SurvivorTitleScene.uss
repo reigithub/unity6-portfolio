@@ -36,33 +36,34 @@
 .connection-indicator {
     flex-direction: row;
     align-items: center;
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 10px 20px;
+    border-radius: 24px;
     border-width: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 .connection-indicator--online {
-    background-color: rgba(60, 180, 100, 0.3);
-    border-color: rgba(80, 200, 120, 0.5);
+    background-color: rgba(20, 60, 40, 0.85);
+    border-color: rgb(80, 200, 120);
 }
 
 .connection-indicator--offline {
-    background-color: rgba(180, 100, 60, 0.3);
-    border-color: rgba(200, 120, 80, 0.5);
+    background-color: rgba(60, 30, 20, 0.85);
+    border-color: rgb(220, 120, 80);
 }
 
 .connection-status-label {
-    font-size: 16px;
+    font-size: 18px;
     -unity-font-style: bold;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
 }
 
 .connection-indicator--online .connection-status-label {
-    color: rgb(100, 220, 120);
+    color: rgb(120, 255, 150);
 }
 
 .connection-indicator--offline .connection-status-label {
-    color: rgb(220, 140, 100);
+    color: rgb(255, 160, 120);
 }
 
 .header-button {

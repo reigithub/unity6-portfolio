@@ -63,19 +63,33 @@ namespace Game.MVP.Survivor
             // Lock-On Service（ロックオン機能）
             builder.Register<LockOnService>(Lifetime.Singleton).As<ILockOnService>();
 
-            // API & Auth
+            // ========================================
+            // Network Services（登録順序重要）
+            // ========================================
+
+            // 1. CircuitBreakerPolicy（他のサービスより先に登録）
+            builder.RegisterInstance(CircuitBreakerPolicy.Default);
+
+            // 2. ConnectivityChecker（パラメータなしコンストラクタを使用、デフォルト5秒間隔）
+            builder.Register<IConnectivityChecker>(_ => new ConnectivityChecker(), Lifetime.Singleton);
+
+            // 3. NetworkService（IConnectivityChecker + CircuitBreakerPolicyに依存）
+            builder.Register<NetworkService>(Lifetime.Singleton).As<INetworkService>();
+
+            // 4. ResponseCache
+            builder.Register<IResponseCache>(_ => new MemoryResponseCache(), Lifetime.Singleton);
+
+            // 5. API Client（INetworkService + IResponseCacheに依存）
             builder.Register<UnityApiClient>(Lifetime.Singleton).As<IApiClient>();
+
+            // ========================================
+            // API Services（IApiClientのみに依存）
+            // ========================================
             builder.Register<SessionService>(Lifetime.Singleton).As<ISessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
 
-            // Network Services
-            builder.Register<ConnectivityChecker>(Lifetime.Singleton).As<IConnectivityChecker>();
-            builder.Register<MemoryResponseCache>(Lifetime.Singleton).As<IResponseCache>();
-            builder.Register<NetworkService>(Lifetime.Singleton).As<INetworkService>();
-
-            // Network Services
-            builder.RegisterInstance(CircuitBreakerPolicy.Default);
+            // Request Queue & Notifications
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
 
