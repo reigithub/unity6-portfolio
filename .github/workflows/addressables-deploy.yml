@@ -385,6 +385,7 @@ jobs:
           rclone sync \
             ./ServerData/${{ matrix.platform }} \
             r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }} \
+            --checksum \
             --transfers 8 \
             --checkers 16 \
             --progress \
@@ -402,6 +403,7 @@ jobs:
           rclone sync \
             ./LocalBundles/${{ matrix.platform }} \
             r2:${{ env.R2_BUCKET_NAME }}/${{ matrix.platform }}/LocalBundles \
+            --checksum \
             --transfers 8 \
             --checkers 16 \
             --progress \
