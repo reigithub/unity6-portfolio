@@ -5,6 +5,8 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
 using Game.Shared.Dto.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Services.Network;
+using Game.Shared.Services.Network.Queue;
 using R3;
 using VContainer;
 
@@ -21,6 +23,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
         [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IRequestQueue _requestQueue;
+        [Inject] private readonly INetworkService _networkService;
 
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
@@ -89,9 +93,12 @@ namespace Game.MVP.Survivor.Scenes
 
         /// <summary>
         /// サーバーにスコアを送信
+        /// オンライン時は即座に送信、オフラインまたは失敗時はキューに追加
         /// </summary>
         private async UniTask SubmitScoresAsync(SurvivorStageSession session)
         {
+            SceneComponent.ShowScoreSubmissionStatus(NetworkErrorLocalizer.GetScoreSubmittingMessage());
+
             foreach (var result in session.StageResults)
             {
                 var request = new SubmitSurvivorScoreRequest
@@ -103,12 +110,30 @@ namespace Game.MVP.Survivor.Scenes
                     enemiesDefeated = result.Kills
                 };
 
-                var response = await _scoreApiService.SubmitScoreAsync(request);
-                if (response.IsSuccess && response.Data != null && response.Data.isNewBest)
+                // オンライン時は即座に送信を試行
+                if (_networkService.IsConnected)
                 {
-                    SceneComponent.ShowNewBestEffect(result.StageId, response.Data.currentRank);
+                    var response = await _scoreApiService.SubmitScoreAsync(request);
+                    if (response.IsSuccess)
+                    {
+                        if (response.Data?.isNewBest == true)
+                        {
+                            SceneComponent.ShowNewBestEffect(result.StageId, response.Data.currentRank);
+                        }
+                        continue;
+                    }
                 }
+
+                // オフラインまたは失敗時はキューに追加
+                await _requestQueue.EnqueuePostAsync<SubmitSurvivorScoreRequest, SurvivorScoreSubmitResponse>(
+                    "api/v1/survivor/scores",
+                    request,
+                    RequestPriority.High);
+
+                SceneComponent.ShowScoreQueuedNotice(result.StageId);
             }
+
+            SceneComponent.HideScoreSubmissionStatus();
         }
 
         private async UniTaskVoid OnRetry()

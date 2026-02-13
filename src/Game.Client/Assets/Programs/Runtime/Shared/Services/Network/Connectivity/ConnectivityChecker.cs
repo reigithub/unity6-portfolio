@@ -22,7 +22,7 @@ namespace Game.Shared.Services.Network.Connectivity
 
         public bool IsConnected => _connectivityProperty.Value;
 
-        public IObservable<bool> OnConnectivityChanged => _connectivityProperty.DistinctUntilChanged().AsSystemObservable();
+        public Observable<bool> OnConnectivityChanged => _connectivityProperty.DistinctUntilChanged();
 
         public ConnectivityChecker() : this(DefaultCheckIntervalSeconds)
         {

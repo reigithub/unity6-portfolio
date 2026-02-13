@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
@@ -7,6 +8,9 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
+using Game.Shared.Services.Network;
+using Game.Shared.Services.Network.Queue;
+using R3;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -32,9 +36,12 @@ namespace Game.MVP.Survivor
         private readonly ISessionService _sessionService;
         private readonly IApiClient _apiClient;
         private readonly IAuthApiService _authApiService;
+        private readonly IRequestQueue _requestQueue;
+        private readonly INetworkService _networkService;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
+        private IDisposable _queueProcessingSubscription;
 
         public SurvivorGameRunner(
             IObjectResolver container,
@@ -48,7 +55,9 @@ namespace Game.MVP.Survivor
             IPersistentObjectProvider persistentObjectProvider,
             ISessionService sessionService,
             IApiClient apiClient,
-            IAuthApiService authApiService)
+            IAuthApiService authApiService,
+            IRequestQueue requestQueue,
+            INetworkService networkService)
         {
             _container = container;
             _sceneService = sceneService;
@@ -62,6 +71,8 @@ namespace Game.MVP.Survivor
             _sessionService = sessionService;
             _apiClient = apiClient;
             _authApiService = authApiService;
+            _requestQueue = requestQueue;
+            _networkService = networkService;
         }
 
         public async UniTask StartupAsync()
@@ -90,10 +101,27 @@ namespace Game.MVP.Survivor
             // 5. 共通オブジェクト読み込み（カメラ、UIルートなど）
             await LoadGameRootControllerAsync();
 
-            // 6. 初期シーンへ遷移
+            // 6. リクエストキューの自動処理を設定
+            SetupQueueProcessing();
+
+            // 7. 初期シーンへ遷移
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
 
             Debug.Log("[SurvivorGameRunner] Game started");
+        }
+
+        /// <summary>
+        /// オンライン復帰時にリクエストキューを自動処理する設定
+        /// </summary>
+        private void SetupQueueProcessing()
+        {
+            _queueProcessingSubscription = _networkService.OnConnectivityChanged
+                .Where(connected => connected && _requestQueue.PendingCount > 0)
+                .Subscribe(_ =>
+                {
+                    Debug.Log($"[SurvivorGameRunner] Network reconnected, processing {_requestQueue.PendingCount} queued requests");
+                    _requestQueue.ProcessQueueAsync().Forget();
+                });
         }
 
         private async UniTask LoadGameRootControllerAsync()
@@ -105,8 +133,8 @@ namespace Game.MVP.Survivor
                 return;
             }
 
-            _gameRootInstance = Object.Instantiate(prefab);
-            Object.DontDestroyOnLoad(_gameRootInstance);
+            _gameRootInstance = UnityEngine.Object.Instantiate(prefab);
+            UnityEngine.Object.DontDestroyOnLoad(_gameRootInstance);
 
             // VContainerで依存性を注入
             _container.InjectGameObject(_gameRootInstance);
@@ -153,6 +181,10 @@ namespace Game.MVP.Survivor
 
         public async UniTask ShutdownAsync()
         {
+            // キュー処理サブスクリプションを解除
+            _queueProcessingSubscription?.Dispose();
+            _queueProcessingSubscription = null;
+
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();
             await _audioSaveService.SaveIfDirtyAsync();
@@ -170,7 +202,7 @@ namespace Game.MVP.Survivor
             // 共通オブジェクト破棄
             if (_gameRootInstance != null)
             {
-                Object.Destroy(_gameRootInstance);
+                UnityEngine.Object.Destroy(_gameRootInstance);
                 _gameRootInstance = null;
             }
 

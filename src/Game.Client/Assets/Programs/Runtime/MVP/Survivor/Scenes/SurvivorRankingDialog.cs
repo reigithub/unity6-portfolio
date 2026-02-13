@@ -1,10 +1,12 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.MVP.Core.Scenes;
 using Game.Shared.Dto.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Services.Network;
+using Game.Shared.Services.Network.Models;
 using R3;
 using VContainer;
 
@@ -22,8 +24,20 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IInputService _inputService;
+        [Inject] private readonly INetworkService _networkService;
 
         private int _selectedStageId = 1;
+
+        /// <summary>
+        /// ランキングキャッシュオプション
+        /// </summary>
+        private static readonly RequestOptions RankingCacheOptions = new()
+        {
+            UseCache = true,
+            CacheDuration = TimeSpan.FromMinutes(5),
+            FallbackToCache = true,
+            CacheKeyPrefix = "ranking_"
+        };
 
         /// <summary>
         /// ダイアログを表示
@@ -82,13 +96,16 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.ShowLoading(true);
             SceneComponent.ClearError();
+            SceneComponent.HideCacheNotice();
 
-            // ランキングを取得
-            var rankingResponse = await _scoreApiService.GetRankingAsync(stageId);
+            // NetworkServiceを使用してキャッシュ対応でランキングを取得
+            var endpoint = $"api/v1/survivor/rankings/{stageId}";
+            var result = await _networkService.GetAsync<RankingResponse>(endpoint, RankingCacheOptions);
+
             RankingEntry myRank = null;
 
             // 認証済みの場合は自分の順位も取得
-            if (_sessionService.IsAuthenticated)
+            if (_sessionService.IsAuthenticated && result.IsSuccess)
             {
                 var myRankResponse = await _scoreApiService.GetMyRankAsync(stageId);
                 if (myRankResponse.IsSuccess && myRankResponse.Data != null)
@@ -99,14 +116,23 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.ShowLoading(false);
 
-            if (rankingResponse.IsSuccess && rankingResponse.Data != null)
+            if (result.IsSuccess)
             {
-                SceneComponent.SetRankingData(rankingResponse.Data, myRank);
+                SceneComponent.SetRankingData(result.Data, myRank);
+
+                // キャッシュからのデータの場合は通知を表示
+                if (result.FromCache)
+                {
+                    SceneComponent.ShowCacheNotice(NetworkErrorLocalizer.GetCacheNoticeMessage());
+                }
+            }
+            else if (result.Error?.IsOfflineError == true)
+            {
+                SceneComponent.ShowError(NetworkErrorLocalizer.GetOfflineMessage());
             }
             else
             {
-                var errorMessage = rankingResponse.Error?.Message ?? "Failed to load ranking";
-                SceneComponent.ShowError(errorMessage);
+                SceneComponent.ShowError(NetworkErrorLocalizer.GetLocalizedMessage(result.Error));
             }
         }
 

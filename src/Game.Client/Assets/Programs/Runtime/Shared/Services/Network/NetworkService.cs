@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;
 using Game.Shared.Services.Network.Models;
+using R3;
 using UnityEngine;
 
 namespace Game.Shared.Services.Network
@@ -20,7 +21,7 @@ namespace Game.Shared.Services.Network
         private bool _isDisposed;
 
         public bool IsConnected => _connectivityChecker.IsConnected;
-        public IObservable<bool> OnConnectivityChanged => _connectivityChecker.OnConnectivityChanged;
+        public Observable<bool> OnConnectivityChanged => _connectivityChecker.OnConnectivityChanged;
 
         public NetworkService(
             IApiClient apiClient,

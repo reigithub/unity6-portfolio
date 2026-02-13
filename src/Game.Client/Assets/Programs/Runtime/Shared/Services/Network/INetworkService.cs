@@ -1,7 +1,7 @@
-using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Services.Network.Models;
+using R3;
 
 namespace Game.Shared.Services.Network
 {
@@ -17,9 +17,9 @@ namespace Game.Shared.Services.Network
         bool IsConnected { get; }
 
         /// <summary>
-        /// 接続状態変更時のイベント
+        /// 接続状態変更時のイベント（R3 Observable）
         /// </summary>
-        IObservable<bool> OnConnectivityChanged { get; }
+        Observable<bool> OnConnectivityChanged { get; }
 
         /// <summary>
         /// GETリクエストを送信

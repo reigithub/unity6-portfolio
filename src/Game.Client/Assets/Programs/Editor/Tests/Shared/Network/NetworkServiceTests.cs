@@ -31,7 +31,7 @@ namespace Game.Tests.Shared.Network
 
             _connectivityProperty = new ReactiveProperty<bool>(true);
             _mockConnectivityChecker.IsConnected.Returns(true);
-            _mockConnectivityChecker.OnConnectivityChanged.Returns(_connectivityProperty.DistinctUntilChanged().AsSystemObservable());
+            _mockConnectivityChecker.OnConnectivityChanged.Returns(_connectivityProperty.DistinctUntilChanged());
 
             _service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache);
         }

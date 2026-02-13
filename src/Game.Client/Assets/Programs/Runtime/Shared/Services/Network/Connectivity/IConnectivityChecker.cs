@@ -1,4 +1,5 @@
 using System;
+using R3;
 
 namespace Game.Shared.Services.Network.Connectivity
 {
@@ -13,9 +14,9 @@ namespace Game.Shared.Services.Network.Connectivity
         bool IsConnected { get; }
 
         /// <summary>
-        /// 接続状態変更時のイベント
+        /// 接続状態変更時のイベント（R3 Observable）
         /// </summary>
-        IObservable<bool> OnConnectivityChanged { get; }
+        Observable<bool> OnConnectivityChanged { get; }
 
         /// <summary>
         /// 接続監視を開始

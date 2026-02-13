@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared.Services.Network;
 using R3;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -42,6 +43,8 @@ namespace Game.MVP.Survivor.Scenes
         private Button _retryButton;
         private Button _stageSelectButton;
         private Button _returnButton;
+        private Label _scoreSubmissionStatusLabel;
+        private Label _scoreQueuedNoticeLabel;
 
         protected override void OnDestroy()
         {
@@ -70,6 +73,8 @@ namespace Game.MVP.Survivor.Scenes
             _retryButton = _root.Q<Button>("retry-button");
             _stageSelectButton = _root.Q<Button>("stage-select-button");
             _returnButton = _root.Q<Button>("return-button");
+            _scoreSubmissionStatusLabel = _root.Q<Label>("score-submission-status");
+            _scoreQueuedNoticeLabel = _root.Q<Label>("score-queued-notice");
         }
 
         private void SetupEventHandlers()
@@ -312,6 +317,45 @@ namespace Game.MVP.Survivor.Scenes
         {
             _root?.SetEnabled(interactable);
             base.SetInteractables(interactable);
+        }
+
+        /// <summary>
+        /// スコア送信状態を表示
+        /// </summary>
+        /// <param name="message">表示メッセージ</param>
+        public void ShowScoreSubmissionStatus(string message)
+        {
+            if (_scoreSubmissionStatusLabel != null)
+            {
+                _scoreSubmissionStatusLabel.text = message;
+                _scoreSubmissionStatusLabel.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        /// <summary>
+        /// スコア送信状態を非表示
+        /// </summary>
+        public void HideScoreSubmissionStatus()
+        {
+            if (_scoreSubmissionStatusLabel != null)
+            {
+                _scoreSubmissionStatusLabel.style.display = DisplayStyle.None;
+            }
+        }
+
+        /// <summary>
+        /// スコアがキューに追加された通知を表示
+        /// </summary>
+        /// <param name="stageId">ステージID</param>
+        public void ShowScoreQueuedNotice(int stageId)
+        {
+            if (_scoreQueuedNoticeLabel != null)
+            {
+                _scoreQueuedNoticeLabel.text = NetworkErrorLocalizer.GetScoreQueuedMessage();
+                _scoreQueuedNoticeLabel.style.display = DisplayStyle.Flex;
+            }
+
+            UnityEngine.Debug.Log($"[SurvivorTotalResultScene] Score queued for stage {stageId} - will be sent when online");
         }
     }
 }
