@@ -469,10 +469,9 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 
 **エディタ同期機能（UseExistingBuildモード対応）:**
 - CIビルド後、他の開発者がUseExistingBuildでプレイ可能
-- Play開始前に自動でリモートからローカルバンドルを同期
-- マニフェストファイル（`local_bundles_manifest.json`）でバージョン管理
-- 手動同期: `Tools > Addressables > Sync from Remote`
-- バージョン確認: `Tools > Addressables > Check Remote Version`
+- Play開始前にカタログ存在チェック、不在時は自動ダウンロード促進
+- `index.json`（catalogHash + ファイル一覧）でバージョン管理・差分同期
+- エディタ拡張: `Window > Game Environment Settings` からカタログバージョン確認/アセットダウンロード可能、アセットカタログ/ダウンロード済みを削除可能
 
 </details>
 

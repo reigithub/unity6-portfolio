@@ -469,10 +469,9 @@ Switches Addressables asset delivery source based on GameEnvironment setting:
 
 **Editor Sync Feature (UseExistingBuild mode support):**
 - After CI build, other developers can play with UseExistingBuild mode
-- Auto-syncs local bundles from remote before Play starts
-- Version management via manifest file (`local_bundles_manifest.json`)
-- Manual sync: `Tools > Addressables > Sync from Remote`
-- Version check: `Tools > Addressables > Check Remote Version`
+- Catalog existence check before Play starts, prompts automatic download if missing
+- Version management and differential sync via `index.json` (catalogHash + file list)
+- Editor extension: Check catalog version / download assets from `Window > Game Environment Settings`, delete asset catalog / downloaded assets
 
 </details>
 

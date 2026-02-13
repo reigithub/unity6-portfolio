@@ -738,27 +738,40 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 │         │                       ├── catalog_*.hash              │
 │         │                       └── *.bundle (リモートのみ)     │
 │         │                                                       │
-│         └─────▶ Library/com.unity.addressables/ (CIで収集)      │
-│                 ├── index.json (ファイル一覧)                   │
-│                 └── aa/{Platform}/ (ローカルバンドル)           │
+│         └─────▶ Library/com.unity.addressables/ 全体を収集      │
 │                                         │                       │
+│  ┌──────────────────────────────────────┼───────────────────┐   │
+│  │ index.json 生成 (CI側)               │                   │   │
+│  │ {                                    │                   │   │
+│  │   "catalogHash": "5c0d5ca2...",      │                   │   │
+│  │   "files": [                         │                   │   │
+│  │     "aa/Windows/catalog.bin",        │                   │   │
+│  │     "aa/Windows/settings.json",      │                   │   │
+│  │     "aa/Windows/StandaloneWindows64/*.bundle"           │   │
+│  │   ]                                  │                   │   │
+│  │ }                                    │                   │   │
+│  └──────────────────────────────────────┼───────────────────┘   │
 │                                         │ rclone sync           │
 │                                         ▼                       │
 │  Cloudflare R2                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │ https://{env}.assets.rei-unity6-portfolio.com/{Platform}/ │  │
 │  │   ├── catalog_*.bin, *.bundle (リモート)                  │  │
-│  │   └── LocalBundles/index.json, aa/... (ローカル)          │  │
+│  │   └── LocalBundles/                                       │  │
+│  │       ├── index.json                                      │  │
+│  │       └── aa/{Platform}/*.bundle (ローカル)               │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                         │                       │
 │                                         │ EditorAddressablesSync│
 │                                         ▼                       │
 │  Unity Editor (他の開発者)                                       │
-│  ┌──────────────────────┐                                       │
-│  │ ShouldAutoSync()     │  GameEnvironment != Local             │
-│  │ + UseExistingBuild   │  の場合に自動同期                      │
-│  └──────────┬───────────┘                                       │
-│             │ index.json取得 → catalogHash比較 → ファイルDL     │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │ ① Play開始前チェック (HasLocalCatalog)                  │    │
+│  │    → カタログ不在時: ダイアログ表示 → ダウンロード促進   │    │
+│  │ ② ShouldAutoSync() = GameEnvironment != Local           │    │
+│  │    + UseExistingBuild モード                            │    │
+│  │ ③ index.json取得 → catalogHash比較 → 差分あり時DL      │    │
+│  └──────────┬─────────────────────────────────────────────┘    │
 │             ▼                                                   │
 │  Library/com.unity.addressables/                                │
 │  ├── aa/{Platform}/catalog.bin, catalog.hash, settings.json    │
@@ -767,6 +780,28 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**同期方式: index.json**
+
+CIがファイル一覧を `index.json` として生成・アップロード:
+
+```json
+{
+  "catalogHash": "5c0d5ca2f2358201106e893041d3d98f",
+  "files": [
+    "AddressablesBuildTEP.json",
+    "aa/Windows/catalog.bin",
+    "aa/Windows/catalog.hash",
+    "aa/Windows/settings.json",
+    "aa/Windows/StandaloneWindows64/defaultlocalgroup_*.bundle"
+  ]
+}
+```
+
+**利点:**
+- catalogHashの比較のみで同期要否判断（軽量）
+- ファイル追加時にコード変更不要
+- CI側で `find` コマンドで自動生成
+
 **関連クラス:**
 
 | クラス | 役割 |
@@ -774,6 +809,19 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 | `AddressablesR2Uploader` | CIビルド、R2アップロード |
 | `EditorAddressablesSync` | エディタ同期（index.json方式、Play開始前自動チェック） |
 | `AddressablesBundleUtils` | ローカルバンドル判定の共通ユーティリティ（ランタイム用） |
+
+**Play前チェック機能:**
+- `UseExistingBuild` + 非Local環境でPlay開始時に自動チェック
+- `HasLocalCatalog()` で `Library/com.unity.addressables/aa/{Platform}/catalog.bin` の存在確認
+- カタログ不在時: Playを中止し、ダウンロードダイアログを表示
+
+**エディタUI（GameEnvironmentSettingsWindow）:**
+- バージョン確認ボタン: リモートとローカルのcatalogHash比較
+- ダウンロードボタン: 強制同期実行
+- キャッシュクリアボタン:
+  - Library Cache: `Library/com.unity.addressables/` 削除
+  - Catalog Cache: `persistentDataPath/com.unity.addressables/` 削除
+  - Downloaded Assets: `persistentDataPath/{env}/DownloadedAssets/` 削除
 
 **ローカルバンドル判定パターン:**
 - `defaultlocalgroup` - Default Local Groupのバンドル
