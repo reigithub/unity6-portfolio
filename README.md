@@ -51,7 +51,7 @@ Unity6Portfolio/
 
 1. リポジトリをクローン
    ```bash
-   git clone https://github.com/your-username/Unity6Portfolio.git
+   git clone https://github.com/your-username/unity6-portfolio.git
    ```
 2. Unity Hub で `src/Game.Client/` フォルダを開く
 3. 初回起動時、パッケージの復元に数分かかる場合があります
