@@ -44,6 +44,11 @@ on:
           - Staging
           - Review
           - Release
+      clean_build:
+        description: 'Clean Library/com.unity.addressables before build (ensures catalog and bundles are in sync)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   R2_BUCKET_NAME: unity6-portfolio
@@ -121,6 +126,27 @@ jobs:
         run: |
           mkdir -p "${{ github.workspace }}/Logs"
           mkdir -p "${{ env.UNITY_PROJECT_PATH }}/ServerData"
+
+      - name: Clean Addressables Library (optional)
+        if: inputs.clean_build == true
+        run: |
+          ADDRESSABLES_LIB="${{ env.UNITY_PROJECT_PATH }}/Library/com.unity.addressables"
+          echo "Clean build requested. Removing Addressables Library cache..."
+          if [ -d "$ADDRESSABLES_LIB" ]; then
+            rm -rf "$ADDRESSABLES_LIB"
+            echo "Removed: $ADDRESSABLES_LIB"
+          else
+            echo "No existing Addressables Library cache found"
+          fi
+
+          # Also clean ServerData for the target platform
+          SERVER_DATA="${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}"
+          if [ -d "$SERVER_DATA" ]; then
+            rm -rf "$SERVER_DATA"
+            echo "Removed: $SERVER_DATA"
+          fi
+
+          echo "Clean complete. Fresh Addressables build will be performed."
 
       - name: Build Addressables
         run: |
@@ -403,8 +429,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** ${{ env.BUILD_TIMESTAMP }}" >> $GITHUB_STEP_SUMMARY
           echo "**Target:** ${{ inputs.build_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.game_environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Deploy:** ${{ inputs.deploy }}" >> $GITHUB_STEP_SUMMARY
           echo "**Dry Run:** ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Clean Build:** ${{ inputs.clean_build }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ inputs.deploy }}" == "true" ] && [ "${{ inputs.dry_run }}" == "false" ]; then
             echo "### Deployed URLs" >> $GITHUB_STEP_SUMMARY
