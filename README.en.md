@@ -16,6 +16,11 @@ Unity6Portfolio/
 
 ---
 
+## Architecture Design
+- [Architecture Details](ARCHITECTURE.md)
+
+---
+
 ## TL;DR
 
 * This project is designed as a starter kit for individual or small-scale Unity game development
@@ -657,12 +662,11 @@ Unity6Portfolio/
 ---
 
 ## Future Plans
-* Survivor game mode additional features (skill system, boss battles, etc.)
-* Ranking screen UI (client-side)
 * Localization support (multi-language)
 * PlayerLoop intervention sample
 * List sort/filter functionality sample
 * Multi-resolution support
+* Multi-platform support
 
 ---
 
