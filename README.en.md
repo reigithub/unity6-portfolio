@@ -16,6 +16,11 @@ Unity6Portfolio/
 
 ---
 
+## Architecture Design
+- [Architecture Details](ARCHITECTURE.md)
+
+---
+
 ## TL;DR
 
 * This project is designed as a starter kit for individual or small-scale Unity game development
@@ -47,7 +52,7 @@ Unity6Portfolio/
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/Unity6Portfolio.git
+   git clone https://github.com/your-username/unity6-portfolio.git
    ```
 2. Open the `src/Game.Client/` folder in Unity Hub
 3. Package restoration may take a few minutes on first launch
@@ -657,12 +662,11 @@ Unity6Portfolio/
 ---
 
 ## Future Plans
-* Survivor game mode additional features (skill system, boss battles, etc.)
-* Ranking screen UI (client-side)
 * Localization support (multi-language)
 * PlayerLoop intervention sample
 * List sort/filter functionality sample
 * Multi-resolution support
+* Multi-platform support
 
 ---
 
