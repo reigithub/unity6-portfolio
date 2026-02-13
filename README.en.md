@@ -187,7 +187,7 @@ dotnet test
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
 * **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
-* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
+* **CI/CD**: Automated testing (Client 485 + Server 56 = 541 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -480,9 +480,14 @@ Switches Addressables asset delivery source based on GameEnvironment setting:
 Automated pipeline with GitHub Actions + Docker:
 
 **Test Automation:**
-- EditMode tests: 422
-- PlayMode tests: 63
-- Total: 485 tests (all passing)
+
+| Category | Test Count | Content |
+|----------|------------|---------|
+| Client EditMode | 422 | Unit tests |
+| Client PlayMode | 63 | Integration tests |
+| Server Unit Tests | 46 | Service, Repository tests |
+| Server Integration Tests | 10 | API integration tests (Testcontainers) |
+| **Total** | **541** | All passing |
 
 **Workflows:**
 | Workflow | Trigger | Purpose |
@@ -490,6 +495,7 @@ Automated pipeline with GitHub Actions + Docker:
 | unity-ci-docker.yml | push/PR | Main CI (Docker/Linux) |
 | unity-test.yml | PR | PR testing |
 | code-quality.yml | push/PR | Formatting/static analysis |
+| server-test.yml | push/PR, manual | Server tests + coverage |
 
 **Cache Optimization:**
 - Library cache via Unity Accelerator
@@ -573,6 +579,8 @@ Unity6Portfolio/
   - Iterations: 10,000
   - ~40% reduction in CPU execution time, zero allocation, 100% reduction in memory usage
 
+![Performance Test](src/Game.Client/Documentation/Screenshots/GameSceneServicePerformanceTests.png)
+
 </details>
 
 <details><summary>State Machine</summary>
@@ -644,7 +652,7 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/13)
+* Approximately 7 weeks (as of 2026/2/14)
 
 ---
 
