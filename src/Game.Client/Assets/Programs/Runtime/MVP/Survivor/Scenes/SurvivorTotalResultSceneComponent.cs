@@ -278,6 +278,36 @@ namespace Game.MVP.Survivor.Scenes
             _animator.Play(stateName);
         }
 
+        /// <summary>
+        /// NEW BEST! 演出を表示
+        /// </summary>
+        /// <param name="stageId">ステージID</param>
+        /// <param name="rank">現在の順位</param>
+        public void ShowNewBestEffect(int stageId, int rank)
+        {
+            // NEW BEST! 演出を表示
+            var newBestLabel = _root.Q<Label>("new-best-label");
+            if (newBestLabel != null)
+            {
+                newBestLabel.text = $"NEW BEST! Rank #{rank}";
+                newBestLabel.style.display = DisplayStyle.Flex;
+            }
+
+            // 該当ステージの結果アイテムにハイライトを追加
+            var stageItems = _stageResultsContainer?.Query<VisualElement>("stage-result-item").ToList();
+            if (stageItems != null)
+            {
+                foreach (var item in stageItems)
+                {
+                    var stageNameLabel = item.Q<Label>("stage-name");
+                    if (stageNameLabel != null && stageNameLabel.text.Contains(stageId.ToString()))
+                    {
+                        item.AddToClassList("stage-result-item--new-best");
+                    }
+                }
+            }
+        }
+
         public override void SetInteractables(bool interactable)
         {
             _root?.SetEnabled(interactable);

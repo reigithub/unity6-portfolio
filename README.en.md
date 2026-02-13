@@ -185,8 +185,9 @@ dotnet test
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
-* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration
-* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization
+* **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
+* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
+* **CI/CD**: Automated testing (485 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -408,6 +409,13 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 - Auto-save (30-second intervals, on background transition)
 - Immediate save on Victory/GameOver confirmation
 
+**Ranking System**
+- Score submission: Automatic submission on stage clear
+- Ranking retrieval: Top 100 display per stage
+- My rank: Real-time rank confirmation
+- Valkey cache: Fast ranking retrieval with Sorted Set (5-minute TTL)
+- Production: Cloud Run + Cloud SQL + Memorystore for Valkey
+
 </details>
 
 <details><summary>Authentication & Account Management System</summary>
@@ -458,6 +466,13 @@ Switches Addressables asset delivery source based on GameEnvironment setting:
 - API endpoint switching via environment variables
 - Library cache sharing via Unity Accelerator
 - Asset cache optimization in GitHub Actions
+
+**Editor Sync Feature (UseExistingBuild mode support):**
+- After CI build, other developers can play with UseExistingBuild mode
+- Auto-syncs local bundles from remote before Play starts
+- Version management via manifest file (`local_bundles_manifest.json`)
+- Manual sync: `Tools > Addressables > Sync from Remote`
+- Version check: `Tools > Addressables > Check Remote Version`
 
 </details>
 
@@ -630,13 +645,14 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/11)
+* Approximately 7 weeks (as of 2026/2/13)
 
 ---
 
 ## Future Plans
-* Network functionality (client-server communication)
 * Survivor game mode additional features (skill system, boss battles, etc.)
+* Ranking screen UI (client-side)
+* Localization support (multi-language)
 * PlayerLoop intervention sample
 * List sort/filter functionality sample
 * Multi-resolution support

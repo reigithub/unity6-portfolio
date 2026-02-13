@@ -181,17 +181,16 @@ public static class TestDataFixture
 
         var scores = new[]
         {
-            new UserScore { UserId = User1Id, GameMode = "Survivor", StageId = 1, Score = 5000, ClearTime = 120f, WaveReached = 10, EnemiesDefeated = 50 },
-            new UserScore { UserId = User2Id, GameMode = "Survivor", StageId = 1, Score = 8000, ClearTime = 90f, WaveReached = 15, EnemiesDefeated = 80 },
-            new UserScore { UserId = User3Id, GameMode = "Survivor", StageId = 1, Score = 3000, ClearTime = 60f, WaveReached = 5, EnemiesDefeated = 20 },
-            new UserScore { UserId = User1Id, GameMode = "ScoreTimeAttack", StageId = 1, Score = 12000, ClearTime = 45f, EnemiesDefeated = 100 },
+            new SurvivorScore { UserId = User1Id, StageId = 1, Score = 5000, ClearTime = 120f, WaveReached = 10, EnemiesDefeated = 50 },
+            new SurvivorScore { UserId = User2Id, StageId = 1, Score = 8000, ClearTime = 90f, WaveReached = 15, EnemiesDefeated = 80 },
+            new SurvivorScore { UserId = User3Id, StageId = 1, Score = 3000, ClearTime = 60f, WaveReached = 5, EnemiesDefeated = 20 },
         };
 
         foreach (var score in scores)
         {
             await connection.ExecuteAsync(
-                @"INSERT INTO ""User"".""UserScore"" (""UserId"", ""GameMode"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
-                  VALUES (@UserId, @GameMode, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)",
+                @"INSERT INTO ""Ranking"".""SurvivorScore"" (""UserId"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
+                  VALUES (@UserId, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)",
                 score);
         }
     }

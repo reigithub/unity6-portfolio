@@ -3,18 +3,16 @@ using Game.Server.Dto.Responses;
 
 namespace Game.Server.Services.Interfaces;
 
-public interface IScoreService
+public interface ISurvivorScoreService
 {
-    Task<Result<ScoreSubmitResponse, ApiError>> SubmitScoreAsync(Guid userId, SubmitScoreRequest request);
+    Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(Guid userId, SubmitSurvivorScoreRequest request);
 
-    Task<List<ScoreHistoryEntry>> GetUserScoresAsync(Guid userId, string? gameMode, int? stageId, int limit);
+    Task<List<SurvivorScoreHistoryEntry>> GetUserScoresAsync(Guid userId, int? stageId, int limit);
 }
 
-public class ScoreHistoryEntry
+public class SurvivorScoreHistoryEntry
 {
     public long Id { get; set; }
-
-    public string GameMode { get; set; } = string.Empty;
 
     public int StageId { get; set; }
 

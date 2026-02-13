@@ -3,10 +3,14 @@ namespace Game.Server.Database;
 public static class MigrationSchema
 {
     public const string Master = "Master";
+    public const string Ranking = "Ranking";
+    // public const string Shop = "Shop";
+    // public const string Social = "Social";
     public const string User = "User";
+    // public const string World = "World";
 
     /// <summary>適用順（Up では先頭から、Down では末尾から）。</summary>
-    public static readonly string[] All = [Master, User];
+    public static readonly string[] All = [Master, User, Ranking];
 
     /// <summary>
     /// スキーマ名を解決する。空文字列の場合は全スキーマを返す。

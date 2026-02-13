@@ -44,6 +44,10 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => OnOptions().Forget())
                 .AddTo(Disposables);
 
+            SceneComponent.OnRankingClicked
+                .Subscribe(_ => OnRanking().Forget())
+                .AddTo(Disposables);
+
             // 中断セッションがあれば通知
             if (_saveService.HasActiveSession)
             {
@@ -104,6 +108,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             await SurvivorOptionsDialog.RunAsync(_sceneService);
+            SceneComponent.SetInteractables(true);
+        }
+
+        private async UniTaskVoid OnRanking()
+        {
+            SceneComponent.SetInteractables(false);
+            await SurvivorRankingDialog.RunAsync(_sceneService);
             SceneComponent.SetInteractables(true);
         }
     }

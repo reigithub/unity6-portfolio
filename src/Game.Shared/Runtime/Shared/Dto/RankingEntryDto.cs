@@ -7,17 +7,15 @@ namespace Game.Library.Shared.Dto
     {
         public int Rank { get; set; }
 
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
-        public string UserName { get; set; }
+        public string UserName { get; set; } = string.Empty;
 
         public int Score { get; set; }
 
         public float ClearTime { get; set; }
 
         public int StageId { get; set; }
-
-        public string GameMode { get; set; }
 
         public long RecordedAt { get; set; }
     }

@@ -1,10 +1,12 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 namespace Game.Shared
 {
     public enum GameEnvironment
     {
+        None = -1,      // 環境切替エラーハンドリング用
         Local = 0,      // ローカル環境
         Develop = 1,    // デバッグ・開発ビルド環境
         Staging = 1000, // QA・ステージングビルド環境
@@ -81,7 +83,7 @@ namespace Game.Shared
                 }
 
                 // 3. ScriptableObject設定
-                return GameEnvironmentSettings.Instance?.Environment ?? GameEnvironment.Develop;
+                return GameEnvironmentSettings.Instance?.Environment ?? GameEnvironment.None;
 #endif
             }
         }
@@ -110,6 +112,68 @@ namespace Game.Shared
 #else
             CurrentConfig?.EnableDebugLog ?? true;
 #endif
+
+        /// <summary>
+        /// 環境ごとのデータパス
+        /// RELEASE: Application.persistentDataPath（変換なし）
+        /// それ以外: Application.persistentDataPath/{Environment}（環境ごとにフォルダ分離）
+        /// </summary>
+        public static string PersistentDataPath
+        {
+            get
+            {
+#if RELEASE
+                return Application.persistentDataPath;
+#else
+                var basePath = Application.persistentDataPath;
+                var envFolder = Current.ToString();
+                var path = Path.Combine(basePath, envFolder);
+
+                // ディレクトリが存在しない場合は作成
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+
+                return path;
+#endif
+            }
+        }
+
+        public static bool ValidateGameEnvironment()
+        {
+            bool valid = false;
+            switch (Current)
+            {
+                case GameEnvironment.Local:
+#if UNITY_EDITOR
+                    valid = true;
+#endif
+                    break;
+                case GameEnvironment.Develop:
+#if DEVELOP || UNITY_EDITOR
+                    valid = true;
+#endif
+                    break;
+                case GameEnvironment.Staging:
+#if STAGING || UNITY_EDITOR
+                    valid = true;
+#endif
+                    break;
+                case GameEnvironment.Review:
+#if REVIEW || UNITY_EDITOR
+                    valid = true;
+#endif
+                    break;
+                case GameEnvironment.Release:
+#if RELEASE || UNITY_EDITOR
+                    valid = true;
+#endif
+                    break;
+            }
+
+            return valid;
+        }
 
         /// <summary>
         /// 起動引数から環境をオーバーライド（開発用）

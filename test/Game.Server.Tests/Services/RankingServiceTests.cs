@@ -1,7 +1,9 @@
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -9,28 +11,32 @@ namespace Game.Server.Tests.Services;
 public class RankingServiceTests
 {
     private readonly Mock<IRankingRepository> _mockRepo;
+    private readonly Mock<ISurvivorRankingCacheService> _mockCacheService;
+    private readonly Mock<ILogger<RankingService>> _mockLogger;
     private readonly RankingService _service;
 
     public RankingServiceTests()
     {
         _mockRepo = new Mock<IRankingRepository>();
-        _service = new RankingService(_mockRepo.Object);
+        _mockCacheService = new Mock<ISurvivorRankingCacheService>();
+        _mockLogger = new Mock<ILogger<RankingService>>();
+        _service = new RankingService(_mockRepo.Object, _mockCacheService.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetRankingAsync_ReturnsOrderedByScore()
     {
         // Arrange
-        var scores = new List<UserScore>
+        var scores = new List<SurvivorScore>
         {
             new() { UserId = TestDataFixture.User2Id, Score = 200, ClearTime = 90f, User = new() { UserId = "pub2", UserName = "B" } },
             new() { UserId = TestDataFixture.User1Id, Score = 100, ClearTime = 120f, User = new() { UserId = "pub1", UserName = "A" } },
         };
-        _mockRepo.Setup(r => r.GetTopScoresAsync("Survivor", 1, 100, 0))
+        _mockRepo.Setup(r => r.GetTopScoresAsync(1, 100, 0))
             .ReturnsAsync(scores);
 
         // Act
-        var result = await _service.GetRankingAsync("Survivor", 1, 100, 0);
+        var result = await _service.GetRankingAsync(1, 100, 0);
 
         // Assert
         Assert.Equal(2, result.Entries.Count);
@@ -44,11 +50,11 @@ public class RankingServiceTests
     public async Task GetRankingAsync_EmptyResults_ReturnsEmptyList()
     {
         // Arrange
-        _mockRepo.Setup(r => r.GetTopScoresAsync("Survivor", 99, 100, 0))
-            .ReturnsAsync(new List<UserScore>());
+        _mockRepo.Setup(r => r.GetTopScoresAsync(99, 100, 0))
+            .ReturnsAsync(new List<SurvivorScore>());
 
         // Act
-        var result = await _service.GetRankingAsync("Survivor", 99, 100, 0);
+        var result = await _service.GetRankingAsync(99, 100, 0);
 
         // Assert
         Assert.Empty(result.Entries);
@@ -60,20 +66,20 @@ public class RankingServiceTests
     {
         // Arrange
         var userId = TestDataFixture.User1Id;
-        var bestScore = new UserScore
+        var bestScore = new SurvivorScore
         {
             UserId = userId,
             Score = 5000,
             ClearTime = 120f,
             User = new() { UserId = "000000000001", UserName = "Player1" },
         };
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, userId))
+        _mockRepo.Setup(r => r.GetUserBestScoreAsync(1, userId))
             .ReturnsAsync(bestScore);
-        _mockRepo.Setup(r => r.GetUserRankAsync("Survivor", 1, userId))
+        _mockRepo.Setup(r => r.GetUserRankAsync(1, userId))
             .ReturnsAsync(2);
 
         // Act
-        var result = await _service.GetUserRankAsync("Survivor", 1, userId);
+        var result = await _service.GetUserRankAsync(1, userId);
 
         // Assert
         Assert.NotNull(result);
@@ -87,11 +93,11 @@ public class RankingServiceTests
     {
         // Arrange
         var noUserId = Guid.Empty;
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync("Survivor", 1, noUserId))
-            .ReturnsAsync((UserScore?)null);
+        _mockRepo.Setup(r => r.GetUserBestScoreAsync(1, noUserId))
+            .ReturnsAsync((SurvivorScore?)null);
 
         // Act
-        var result = await _service.GetUserRankAsync("Survivor", 1, noUserId);
+        var result = await _service.GetUserRankAsync(1, noUserId);
 
         // Assert
         Assert.Null(result);

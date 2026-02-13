@@ -184,8 +184,9 @@ dotnet test
 * **ロックオンシステム**: 自動ターゲット追跡、射程管理
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
-* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動
-* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化
+* **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
+* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
+* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -407,6 +408,13 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 - 自動保存（30秒間隔・バックグラウンド移行時）
 - 勝敗確定時の即時保存（データ整合性保証）
 
+**ランキングシステム**
+- スコア送信: ステージクリア時に自動送信
+- ランキング取得: ステージ別トップ100表示
+- 自分の順位: リアルタイム順位確認
+- Valkeyキャッシュ: Sorted Setによる高速ランキング取得（5分TTL）
+- 本番環境: Cloud Run + Cloud SQL + Memorystore for Valkey
+
 </details>
 
 <details><summary>認証・アカウント管理システム</summary>
@@ -458,6 +466,13 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 - 環境変数によるAPI接続先切り替え
 - Unity Accelerator によるライブラリキャッシュ共有
 - GitHub Actions でのアセットキャッシュ最適化
+
+**エディタ同期機能（UseExistingBuildモード対応）:**
+- CIビルド後、他の開発者がUseExistingBuildでプレイ可能
+- Play開始前に自動でリモートからローカルバンドルを同期
+- マニフェストファイル（`local_bundles_manifest.json`）でバージョン管理
+- 手動同期: `Tools > Addressables > Sync from Remote`
+- バージョン確認: `Tools > Addressables > Check Remote Version`
 
 </details>
 
@@ -631,13 +646,14 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約7週間 (2026/2/11時点)
+* 約7週間 (2026/2/13時点)
 
 ---
 
 ## 今後の予定
-* ネットワーク機能（クライアント・サーバー通信）
 * サバイバーゲームモード追加機能（スキルシステム、ボス戦等）
+* ランキング画面UI（クライアント側）
+* ローカライズ対応（多言語）
 * PlayerLoopへの介入サンプル
 * リストのソート／フィルタ機能サンプル
 * マルチ解像度対応

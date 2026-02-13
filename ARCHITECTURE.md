@@ -1,7 +1,7 @@
 # Unity6Portfolio アーキテクチャ設計書
 
-**バージョン**: 1.3
-**最終更新**: 2026年2月11日
+**バージョン**: 1.5
+**最終更新**: 2026年2月13日
 
 ---
 
@@ -279,7 +279,7 @@ Unity6Portfolio/
 
 | プロジェクト | 役割 | 主要な依存 |
 |-------------|------|-----------|
-| **Game.Server** | REST API サーバー | ASP.NET Core 9, Dapper, Npgsql, FluentMigrator |
+| **Game.Server** | REST API サーバー | ASP.NET Core 9, Dapper, Npgsql, FluentMigrator, StackExchange.Redis |
 | **Game.Tools** | CLIツール（マスターデータ管理等） | ConsoleAppFramework, Google.Protobuf, MasterMemory |
 | **Game.Client.Linked** | クライアントMemoryTable参照ブリッジ | MasterMemory, MessagePack |
 | **Game.Shared** | 共有ライブラリ（.NET版） | MasterMemory, MessagePack |
@@ -721,6 +721,66 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 - GitHub Actions でのアセットキャッシュ最適化
 - 環境変数による自動プロファイル切り替え
 
+### 7.2.1 Addressables エディタ同期システム
+
+チーム開発において、CIでビルドされたAddressablesアセットをUnityエディタの`UseExistingBuild`モードで利用可能にするシステム:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Addressables Sync Flow                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  CI Build (GitHub Actions)                                      │
+│  ┌──────────────────────┐                                       │
+│  │AddressablesR2Uploader│                                       │
+│  │  BuildAddressablesCI │─────▶ ServerData/{Platform}/          │
+│  └──────────────────────┘       ├── catalog_*.bin               │
+│         │                       ├── catalog_*.hash              │
+│         │                       └── *.bundle (リモートのみ)     │
+│         │                                                       │
+│         └─────▶ Library/com.unity.addressables/ (CIで収集)      │
+│                 ├── index.json (ファイル一覧)                   │
+│                 └── aa/{Platform}/ (ローカルバンドル)           │
+│                                         │                       │
+│                                         │ rclone sync           │
+│                                         ▼                       │
+│  Cloudflare R2                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ https://{env}.assets.rei-unity6-portfolio.com/{Platform}/ │  │
+│  │   ├── catalog_*.bin, *.bundle (リモート)                  │  │
+│  │   └── LocalBundles/index.json, aa/... (ローカル)          │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                         │                       │
+│                                         │ EditorAddressablesSync│
+│                                         ▼                       │
+│  Unity Editor (他の開発者)                                       │
+│  ┌──────────────────────┐                                       │
+│  │ ShouldAutoSync()     │  GameEnvironment != Local             │
+│  │ + UseExistingBuild   │  の場合に自動同期                      │
+│  └──────────┬───────────┘                                       │
+│             │ index.json取得 → catalogHash比較 → ファイルDL     │
+│             ▼                                                   │
+│  Library/com.unity.addressables/                                │
+│  ├── aa/{Platform}/catalog.bin, catalog.hash, settings.json    │
+│  └── aa/{Platform}/{BuildTarget}/*.bundle                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**関連クラス:**
+
+| クラス | 役割 |
+|-------|------|
+| `AddressablesR2Uploader` | CIビルド、R2アップロード |
+| `EditorAddressablesSync` | エディタ同期（index.json方式、Play開始前自動チェック） |
+| `AddressablesBundleUtils` | ローカルバンドル判定の共通ユーティリティ（ランタイム用） |
+
+**ローカルバンドル判定パターン:**
+- `defaultlocalgroup` - Default Local Groupのバンドル
+- `local_` / `_local_` - ローカル専用プレフィックス/インフィックス
+- `monoscripts` - MonoScriptバンドル
+- `unitybuiltinassets` - Unity Built-in Assetsバンドル
+
 ### 7.3 セーブデータフロー
 
 ```
@@ -818,7 +878,102 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 | `SessionSaveData` | セッション永続化データ |
 | `AuthDto` | 認証リクエスト/レスポンスDTO |
 
-### 7.5 イベントフロー（MessagePipe）
+### 7.5 ランキングシステムフロー
+
+サーバー側Valkeyキャッシュを活用したランキングシステム:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Ranking System Architecture                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                     Unity Client                         │   │
+│  │  ┌──────────────────┐  ┌──────────────────────────────┐ │   │
+│  │  │ SurvivorResult   │  │ ISurvivorScoreApiService     │ │   │
+│  │  │ Scene            │──│ - SubmitScoreAsync()         │ │   │
+│  │  │ (スコア送信)      │  │ - GetRankingAsync()          │ │   │
+│  │  └──────────────────┘  │ - GetMyRankAsync()           │ │   │
+│  │                        └─────────────┬────────────────┘ │   │
+│  └──────────────────────────────────────│──────────────────┘   │
+│                                         │ HTTPS                 │
+│                                         ▼                       │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                   Game.Server (Cloud Run)                │   │
+│  │                                                         │   │
+│  │  ┌──────────────────────┐  ┌──────────────────────┐    │   │
+│  │  │ SurvivorScores       │  │ Rankings             │    │   │
+│  │  │ Controller           │  │ Controller           │    │   │
+│  │  │ POST /api/survivor/  │  │ GET /api/survivor/   │    │   │
+│  │  │      scores          │  │     rankings/{id}    │    │   │
+│  │  └──────────┬───────────┘  └──────────┬───────────┘    │   │
+│  │             │                         │                 │   │
+│  │             ▼                         ▼                 │   │
+│  │  ┌─────────────────────────────────────────────────┐   │   │
+│  │  │              RankingService                      │   │   │
+│  │  │  - SaveScoreAsync()                              │   │   │
+│  │  │  - GetRankingAsync()                             │   │   │
+│  │  │  - GetPlayerRankAsync()                          │   │   │
+│  │  └──────────────────────┬──────────────────────────┘   │   │
+│  │                         │                               │   │
+│  │         ┌───────────────┼───────────────┐               │   │
+│  │         ▼               ▼               ▼               │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐        │   │
+│  │  │ Valkey     │  │ PostgreSQL │  │ キャッシュ  │        │   │
+│  │  │ Cache      │  │ (永続化)   │  │ 戦略       │        │   │
+│  │  │ (5分TTL)   │  │            │  │            │        │   │
+│  │  └────────────┘  └────────────┘  └────────────┘        │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                Memorystore for Valkey                    │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │              Sorted Set Structure                 │   │   │
+│  │  │  Key: ranking:survivor:{stageId}                  │   │   │
+│  │  │  Score: ゲームスコア（降順ソート）                  │   │   │
+│  │  │  Member: userId                                   │   │   │
+│  │  │  TTL: 5分                                         │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### キャッシュ戦略
+
+| 操作 | キャッシュ動作 |
+|-----|--------------|
+| ランキング取得 | キャッシュ優先 → ミス時DB取得 → キャッシュ保存 |
+| スコア送信 | DB保存 → キャッシュ無効化（次回取得時に再構築） |
+| 自分の順位 | Sorted SetのZRANK操作でO(log N)取得 |
+
+#### サーバー側クラス
+
+| クラス | 役割 |
+|-------|------|
+| `SurvivorScoresController` | スコア送信エンドポイント |
+| `RankingsController` | ランキング取得エンドポイント |
+| `IRankingService` | ランキングサービスインターフェース |
+| `RankingService` | ランキングビジネスロジック |
+| `ISurvivorRankingCacheService` | キャッシュサービスインターフェース |
+| `ValkeySurvivorRankingCacheService` | Valkey Sorted Set キャッシュ実装 |
+
+#### 本番インフラ構成
+
+```
+Google Cloud Platform
+├── Cloud Run (game-server)
+│   └── ASP.NET Core 9 コンテナ
+├── Cloud SQL (PostgreSQL)
+│   └── ユーザーデータ・スコア永続化
+├── Memorystore for Valkey
+│   └── ランキングキャッシュ
+└── VPC Connector
+    └── Cloud Run → Memorystore 接続
+```
+
+### 7.6 イベントフロー（MessagePipe）
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1319,7 +1474,8 @@ Unity6Portfolio/
 | ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 485テスト達成 |
 | ~~XMLドキュメント~~ | ~~一部未記載~~ | ~~低~~ | ✅ 主要IF完了 |
 | ~~アセット配信~~ | ~~ローカルのみ対応~~ | ~~中~~ | ✅ ローカル/リモート自動切替 |
-| P3機能追加 | ネットワーク、ローカライズ等 | 低 | 未着手（オプション） |
+| ~~ネットワーク機能~~ | ~~サーバー通信未実装~~ | ~~高~~ | ✅ ランキング・認証完了 |
+| P3機能追加 | ローカライズ、課金システム等 | 低 | 未着手（オプション） |
 
 **改善完了項目**:
 - MessageBroker: IPlayerCollisionHandlerによる直接呼び出しに変更
@@ -1329,6 +1485,8 @@ Unity6Portfolio/
 - カスタム例外: 7クラス追加
 - アセット配信: Addressablesローカル/リモート自動切替（2026/02）
 - CI/CD: Unity Acceleratorキャッシュ、アセットキャッシュ最適化（2026/02）
+- ランキングシステム: Valkeyキャッシュ、Cloud Run本番デプロイ（2026/02）
+- Addressables同期: チーム開発向けエディタ自動同期システム（2026/02）
 
 ---
 

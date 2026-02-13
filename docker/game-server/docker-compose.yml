@@ -16,6 +16,20 @@ services:
       timeout: 5s
       retries: 5
 
+  valkey:
+    image: valkey/valkey:8.0-alpine
+    container_name: game-server-valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: valkey-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   server:
     image: game-server-app
     container_name: game-server-app
@@ -27,9 +41,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Default=Host=db;Database=gameserver;Username=gameuser;Password=gamepassword
+      - ConnectionStrings__Valkey=valkey:6379,abortConnect=false,connectTimeout=5000
     depends_on:
       db:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
 
 volumes:
   pgdata:
+  valkey_data:

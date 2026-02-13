@@ -47,6 +47,10 @@ steps:
           --format="value(connectionName)" > /workspace/connection_name.txt
 
   # ===== Cloud Run にデプロイ =====
+  # 注意: Memorystore for Valkey への接続には VPC Connector が必要
+  # 事前に Serverless VPC Access コネクタを作成してください:
+  #   gcloud compute networks vpc-access connectors create CONNECTOR_NAME \
+  #     --region=REGION --network=VPC_NETWORK --range=10.8.0.0/28
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy'
     entrypoint: 'bash'
@@ -60,8 +64,10 @@ steps:
           --platform=managed \
           --allow-unauthenticated \
           --add-cloudsql-instances=$${CONNECTION_NAME} \
+          --vpc-connector=${_VPC_CONNECTOR} \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
           --set-env-vars="ConnectionStrings__Default=Host=/cloudsql/$${CONNECTION_NAME};Database=${_DB_NAME};Username=${_DB_USER};Password=${_DB_PASSWORD}" \
+          --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
           --set-env-vars="Jwt__Secret=${_JWT_SECRET}" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
@@ -84,6 +90,11 @@ substitutions:
   _JWT_SECRET: ''
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
+  # Memorystore for Valkey 設定
+  _VALKEY_HOST: ''
+  _VALKEY_PORT: '6379'
+  # VPC Connector（Memorystore 接続に必要）
+  _VPC_CONNECTOR: ''
 
 # ===== ビルドオプション =====
 options:

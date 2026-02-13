@@ -58,17 +58,41 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.SetInteractables(false);
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
 
-            if (!_sessionService.IsAuthenticated)
+            // セッション有効性を確認し、必要に応じて再認証
+            if (!await EnsureValidSessionAsync())
             {
-                var result = await _authApiService.GuestLoginAsync();
-                if (!result.IsSuccess)
-                {
-                    SceneComponent.SetInteractables(true);
-                    return;
-                }
+                SceneComponent.SetInteractables(true);
+                return;
             }
 
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+        }
+
+        /// <summary>
+        /// セッションの有効性を確認し、必要に応じてトークンリフレッシュまたは再ログインを行う
+        /// </summary>
+        /// <returns>有効なセッションが確立できた場合はtrue</returns>
+        private async UniTask<bool> EnsureValidSessionAsync()
+        {
+            // 未認証の場合はゲストログイン
+            if (!_sessionService.IsAuthenticated)
+            {
+                var loginResult = await _authApiService.GuestLoginAsync();
+                return loginResult.IsSuccess;
+            }
+
+            // 認証済みの場合はトークンリフレッシュを試行
+            var refreshResult = await _authApiService.RefreshTokenAsync();
+            if (refreshResult.IsSuccess)
+            {
+                return true;
+            }
+
+            // リフレッシュ失敗（トークン期限切れ等）の場合、ゲストログインで再認証
+            // サーバーはデバイスフィンガープリントで既存ユーザーを識別して返す
+            UnityEngine.Debug.Log("[SurvivorTitleScene] Token refresh failed, attempting guest login for session recovery");
+            var recoveryResult = await _authApiService.GuestLoginAsync();
+            return recoveryResult.IsSuccess;
         }
 
         private async UniTaskVoid OnReturn()
@@ -95,6 +119,14 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnDataLink()
         {
             SceneComponent.SetInteractables(false);
+
+            // セッション有効性を確認し、必要に応じて再認証
+            if (!await EnsureValidSessionAsync())
+            {
+                SceneComponent.SetInteractables(true);
+                return;
+            }
+
             await SurvivorAccountLinkDialog.RunAsync(_sceneService);
             SceneComponent.SetInteractables(true);
         }

@@ -28,6 +28,9 @@ public partial class Program
         // Authentication
         builder.Services.AddJwtAuthentication(builder.Configuration);
 
+        // Valkey/Redis Cache
+        builder.Services.AddValkey(builder.Configuration);
+
         // Application Services
         builder.Services.AddApplicationServices(builder.Configuration);
 

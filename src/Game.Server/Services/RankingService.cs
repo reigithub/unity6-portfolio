@@ -7,16 +7,38 @@ namespace Game.Server.Services;
 public class RankingService : IRankingService
 {
     private readonly IRankingRepository _rankingRepository;
+    private readonly ISurvivorRankingCacheService _cacheService;
+    private readonly ILogger<RankingService> _logger;
 
-    public RankingService(IRankingRepository rankingRepository)
+    public RankingService(
+        IRankingRepository rankingRepository,
+        ISurvivorRankingCacheService cacheService,
+        ILogger<RankingService> logger)
     {
         _rankingRepository = rankingRepository;
+        _cacheService = cacheService;
+        _logger = logger;
     }
 
     public async Task<RankingResponse> GetRankingAsync(
-        string gameMode, int stageId, int limit, int offset)
+        int stageId, int limit, int offset)
     {
-        var scores = await _rankingRepository.GetTopScoresAsync(gameMode, stageId, limit, offset);
+        // キャッシュから取得を試みる
+        var cachedEntries = await _cacheService.GetRankingAsync(stageId, limit, offset);
+        if (cachedEntries != null)
+        {
+            _logger.LogDebug("Returning cached ranking for stageId={StageId}", stageId);
+            return new RankingResponse
+            {
+                StageId = stageId,
+                TotalCount = cachedEntries.Count,
+                Entries = cachedEntries,
+            };
+        }
+
+        // キャッシュミス: DBから取得
+        _logger.LogDebug("Cache miss, fetching ranking from database for stageId={StageId}", stageId);
+        var scores = await _rankingRepository.GetTopScoresAsync(stageId, limit, offset);
 
         var entries = scores.Select((s, index) => new RankingEntryResponse
         {
@@ -28,9 +50,11 @@ public class RankingService : IRankingService
             RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
         }).ToList();
 
+        // キャッシュに保存（バックグラウンドで実行）
+        _ = _cacheService.SetRankingAsync(stageId, entries);
+
         return new RankingResponse
         {
-            GameMode = gameMode,
             StageId = stageId,
             TotalCount = entries.Count,
             Entries = entries,
@@ -38,15 +62,27 @@ public class RankingService : IRankingService
     }
 
     public async Task<RankingEntryResponse?> GetUserRankAsync(
-        string gameMode, int stageId, Guid userId)
+        int stageId, Guid userId)
     {
-        var bestScore = await _rankingRepository.GetUserBestScoreAsync(gameMode, stageId, userId);
+        var bestScore = await _rankingRepository.GetUserBestScoreAsync(stageId, userId);
         if (bestScore == null)
         {
             return null;
         }
 
-        int rank = await _rankingRepository.GetUserRankAsync(gameMode, stageId, userId);
+        // キャッシュから順位を取得を試みる
+        var cachedRank = await _cacheService.GetPlayerRankAsync(stageId, userId);
+        int rank;
+
+        if (cachedRank.HasValue)
+        {
+            rank = (int)cachedRank.Value;
+        }
+        else
+        {
+            // キャッシュミス: DBから取得
+            rank = await _rankingRepository.GetUserRankAsync(stageId, userId);
+        }
 
         return new RankingEntryResponse
         {
@@ -57,5 +93,13 @@ public class RankingService : IRankingService
             ClearTime = bestScore.ClearTime,
             RecordedAt = new DateTimeOffset(bestScore.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
         };
+    }
+
+    /// <summary>
+    /// スコア送信後にキャッシュを無効化
+    /// </summary>
+    public async Task InvalidateCacheAsync(int stageId)
+    {
+        await _cacheService.InvalidateAsync(stageId);
     }
 }

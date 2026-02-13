@@ -62,6 +62,14 @@ if [[ -z "$CONNECTION_NAME" ]]; then
     exit 1
 fi
 
+# Valkey 設定の確認
+VALKEY_ENABLED=false
+if [[ -n "$VALKEY_HOST" && -n "$VPC_CONNECTOR" ]]; then
+    VALKEY_ENABLED=true
+elif [[ -n "$VALKEY_HOST" || -n "$VPC_CONNECTOR" ]]; then
+    echo "[WARN] Valkey requires both VALKEY_HOST and VPC_CONNECTOR to be set."
+fi
+
 echo ""
 echo "===== Deploy Configuration ====="
 echo "PROJECT_ID:      $PROJECT_ID"
@@ -70,6 +78,12 @@ echo "SERVICE_NAME:    $SERVICE_NAME"
 echo "IMAGE:           ${IMAGE}:${TAG}"
 echo "CLOUD_SQL:       $CONNECTION_NAME"
 echo "DATABASE:        $DB_NAME"
+if [[ "$VALKEY_ENABLED" == "true" ]]; then
+    echo "VALKEY:          ${VALKEY_HOST}:${VALKEY_PORT:-6379}"
+    echo "VPC_CONNECTOR:   $VPC_CONNECTOR"
+else
+    echo "VALKEY:          (not configured)"
+fi
 echo "================================="
 echo ""
 
@@ -110,19 +124,35 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     # Resend 設定を追加（設定されている場合）
     [[ -n "$Resend__ApiKey" ]] && ENV_VARS="$ENV_VARS,Resend__ApiKey=$Resend__ApiKey"
 
-    gcloud run deploy "$SERVICE_NAME" \
-        --image="${IMAGE}:${TAG}" \
-        --region="$REGION" \
-        --platform=managed \
-        --allow-unauthenticated \
-        --add-cloudsql-instances="$CONNECTION_NAME" \
-        --set-env-vars="$ENV_VARS" \
-        --memory=512Mi \
-        --cpu=1 \
-        --min-instances=0 \
-        --max-instances=10 \
-        --concurrency=80 \
-        --timeout=300
+    # Valkey 設定を追加（設定されている場合）
+    if [[ "$VALKEY_ENABLED" == "true" ]]; then
+        VALKEY_PORT="${VALKEY_PORT:-6379}"
+        ENV_VARS="$ENV_VARS,ConnectionStrings__Valkey=${VALKEY_HOST}:${VALKEY_PORT},abortConnect=false,connectTimeout=5000"
+    fi
+
+    # デプロイコマンドを構築
+    DEPLOY_ARGS=(
+        "run" "deploy" "$SERVICE_NAME"
+        "--image=${IMAGE}:${TAG}"
+        "--region=$REGION"
+        "--platform=managed"
+        "--allow-unauthenticated"
+        "--add-cloudsql-instances=$CONNECTION_NAME"
+        "--set-env-vars=$ENV_VARS"
+        "--memory=512Mi"
+        "--cpu=1"
+        "--min-instances=0"
+        "--max-instances=10"
+        "--concurrency=80"
+        "--timeout=300"
+    )
+
+    # VPC Connector を追加（Valkey 有効時）
+    if [[ "$VALKEY_ENABLED" == "true" ]]; then
+        DEPLOY_ARGS+=("--vpc-connector=$VPC_CONNECTOR")
+    fi
+
+    gcloud "${DEPLOY_ARGS[@]}"
 
     # URL 表示
     echo ""

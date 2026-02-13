@@ -4,9 +4,9 @@ namespace Game.Server.Repositories.Interfaces;
 
 public interface IRankingRepository
 {
-    Task<List<UserScore>> GetTopScoresAsync(string gameMode, int stageId, int limit, int offset);
+    Task<List<SurvivorScore>> GetTopScoresAsync(int stageId, int limit, int offset);
 
-    Task<UserScore?> GetUserBestScoreAsync(string gameMode, int stageId, Guid userId);
+    Task<SurvivorScore?> GetUserBestScoreAsync(int stageId, Guid userId);
 
-    Task<int> GetUserRankAsync(string gameMode, int stageId, Guid userId);
+    Task<int> GetUserRankAsync(int stageId, Guid userId);
 }

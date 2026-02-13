@@ -21,10 +21,12 @@ namespace Game.MVP.Survivor.Scenes
         private readonly Subject<int> _onStageSelected = new();
         private readonly Subject<Unit> _onBackClicked = new();
         private readonly Subject<Unit> _onOptionsClicked = new();
+        private readonly Subject<Unit> _onRankingClicked = new();
 
         public Observable<int> OnStageSelected => _onStageSelected;
         public Observable<Unit> OnBackClicked => _onBackClicked;
         public Observable<Unit> OnOptionsClicked => _onOptionsClicked;
+        public Observable<Unit> OnRankingClicked => _onRankingClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -39,6 +41,7 @@ namespace Game.MVP.Survivor.Scenes
         private Button _playButton;
         private Button _backButton;
         private Button _optionsButton;
+        private Button _rankingButton;
         private Button _resumeButton;
         private Button _newGameButton;
         private Label _resumeInfo;
@@ -52,6 +55,7 @@ namespace Game.MVP.Survivor.Scenes
             _onStageSelected.Dispose();
             _onBackClicked.Dispose();
             _onOptionsClicked.Dispose();
+            _onRankingClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -73,6 +77,7 @@ namespace Game.MVP.Survivor.Scenes
             _detailPanel = _root.Q<VisualElement>("detail-panel");
             _backButton = _root.Q<Button>("back-button");
             _optionsButton = _root.Q<Button>("options-button");
+            _rankingButton = _root.Q<Button>("ranking-button");
             _playButton = _root.Q<Button>("play-button");
 
             // Detail Panel
@@ -99,6 +104,9 @@ namespace Game.MVP.Survivor.Scenes
 
             _optionsButton?.RegisterCallback<ClickEvent>(_ =>
                 _onOptionsClicked.OnNext(Unit.Default));
+
+            _rankingButton?.RegisterCallback<ClickEvent>(_ =>
+                _onRankingClicked.OnNext(Unit.Default));
 
             _playButton?.RegisterCallback<ClickEvent>(_ =>
             {
