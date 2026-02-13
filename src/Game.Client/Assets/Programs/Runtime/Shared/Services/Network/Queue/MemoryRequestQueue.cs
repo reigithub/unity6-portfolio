@@ -29,9 +29,9 @@ namespace Game.Shared.Services.Network.Queue
         public int PendingCount => _queue.Values.Count(r => r.State == QueuedRequestState.Pending);
         public bool IsProcessing => _isProcessing;
 
-        public IObservable<QueuedRequest> OnRequestQueued => _onRequestQueued.AsSystemObservable();
-        public IObservable<QueuedRequest> OnRequestCompleted => _onRequestCompleted.AsSystemObservable();
-        public IObservable<QueuedRequest> OnRequestFailed => _onRequestFailed.AsSystemObservable();
+        public Observable<QueuedRequest> OnRequestQueued => _onRequestQueued;
+        public Observable<QueuedRequest> OnRequestCompleted => _onRequestCompleted;
+        public Observable<QueuedRequest> OnRequestFailed => _onRequestFailed;
 
         public MemoryRequestQueue(IApiClient apiClient)
         {

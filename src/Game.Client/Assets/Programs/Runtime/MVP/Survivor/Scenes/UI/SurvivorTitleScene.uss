@@ -29,6 +29,42 @@
     flex-grow: 1;
 }
 
+/* ===========================================
+   Connection Indicator
+   =========================================== */
+
+.connection-indicator {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border-width: 2px;
+}
+
+.connection-indicator--online {
+    background-color: rgba(60, 180, 100, 0.3);
+    border-color: rgba(80, 200, 120, 0.5);
+}
+
+.connection-indicator--offline {
+    background-color: rgba(180, 100, 60, 0.3);
+    border-color: rgba(200, 120, 80, 0.5);
+}
+
+.connection-status-label {
+    font-size: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.connection-indicator--online .connection-status-label {
+    color: rgb(100, 220, 120);
+}
+
+.connection-indicator--offline .connection-status-label {
+    color: rgb(220, 140, 100);
+}
+
 .header-button {
     height: 48px;
     padding-left: 24px;
@@ -189,4 +225,24 @@
     font-size: 18px;
     color: rgba(255, 255, 255, 0.5);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ===========================================
+   Error Label
+   =========================================== */
+
+.error-label {
+    display: none;
+    font-size: 20px;
+    color: rgb(255, 120, 100);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 16px 32px;
+    background-color: rgba(200, 60, 60, 0.25);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 100, 80, 0.4);
+    align-self: center;
+    margin-bottom: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }

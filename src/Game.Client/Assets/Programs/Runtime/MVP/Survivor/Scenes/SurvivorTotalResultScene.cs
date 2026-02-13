@@ -25,6 +25,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IRequestQueue _requestQueue;
         [Inject] private readonly INetworkService _networkService;
+        [Inject] private readonly IQueueNotificationService _queueNotificationService;
 
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
@@ -68,6 +69,16 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.OnReturnToTitleClicked
                 .Subscribe(_ => OnReturnToTitle().Forget())
+                .AddTo(Disposables);
+
+            // キュー通知を購読
+            _queueNotificationService.OnPendingCountChanged
+                .Subscribe(count => SceneComponent.UpdateQueueStatus(count))
+                .AddTo(Disposables);
+
+            _queueNotificationService.OnNotification
+                .Where(n => n.Type == QueueNotificationType.ProcessingCompleted)
+                .Subscribe(_ => SceneComponent.ShowQueueProcessingComplete())
                 .AddTo(Disposables);
         }
 

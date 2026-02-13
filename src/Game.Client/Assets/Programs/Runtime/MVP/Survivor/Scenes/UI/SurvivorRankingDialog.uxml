@@ -39,6 +39,9 @@
             <!-- Error Label -->
             <ui:Label name="error-label" class="error-label hidden" />
 
+            <!-- Cache Notice Label -->
+            <ui:Label name="cache-notice-label" class="cache-notice-label hidden" />
+
             <!-- My Rank Section -->
             <ui:VisualElement name="my-rank-container" class="my-rank-container hidden">
                 <ui:Label text="YOUR RANK" class="my-rank-title" />

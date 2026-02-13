@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using R3;
 
 namespace Game.Shared.Services.Network.Queue
 {
@@ -22,19 +23,19 @@ namespace Game.Shared.Services.Network.Queue
         bool IsProcessing { get; }
 
         /// <summary>
-        /// リクエストがキューに追加された時のイベント
+        /// リクエストがキューに追加された時のイベント（R3 Observable）
         /// </summary>
-        IObservable<QueuedRequest> OnRequestQueued { get; }
+        Observable<QueuedRequest> OnRequestQueued { get; }
 
         /// <summary>
-        /// リクエストが完了した時のイベント
+        /// リクエストが完了した時のイベント（R3 Observable）
         /// </summary>
-        IObservable<QueuedRequest> OnRequestCompleted { get; }
+        Observable<QueuedRequest> OnRequestCompleted { get; }
 
         /// <summary>
-        /// リクエストが失敗した時のイベント
+        /// リクエストが失敗した時のイベント（R3 Observable）
         /// </summary>
-        IObservable<QueuedRequest> OnRequestFailed { get; }
+        Observable<QueuedRequest> OnRequestFailed { get; }
 
         /// <summary>
         /// POSTリクエストをキューに追加

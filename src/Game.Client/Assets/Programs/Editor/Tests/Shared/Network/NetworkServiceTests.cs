@@ -7,6 +7,7 @@ using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;
 using Game.Shared.Services.Network.Models;
+using Game.Shared.Services.Network.Policies;
 using NSubstitute;
 using NUnit.Framework;
 using R3;
@@ -416,6 +417,99 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             _mockConnectivityChecker.Received(1).StopMonitoring();
+        }
+
+        #endregion
+
+        #region CircuitBreaker Tests
+
+        [Test]
+        public void CircuitState_ReturnsClosedByDefault()
+        {
+            // Assert
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
+        }
+
+        [Test]
+        public async Task GetAsync_WhenCircuitOpen_ReturnsCircuitBreakerError()
+        {
+            // Arrange
+            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
+            circuitBreaker.RecordFailure(); // Open the circuit
+
+            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
+            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
+                .Returns(UniTask.FromResult<CacheEntry<TestResponse>>(null));
+
+            // Act
+            var result = await service.GetAsync<TestResponse>("api/test");
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.CircuitBreakerOpen));
+
+            service.Dispose();
+        }
+
+        [Test]
+        public async Task GetAsync_WhenCircuitOpenAndCacheAvailable_ReturnsCachedData()
+        {
+            // Arrange
+            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
+            circuitBreaker.RecordFailure(); // Open the circuit
+
+            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
+            var cachedData = new TestResponse { Id = 99, Name = "Cached" };
+            var cacheEntry = new CacheEntry<TestResponse>(cachedData, TimeSpan.FromMinutes(5));
+            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(cacheEntry));
+
+            // Act
+            var result = await service.GetAsync<TestResponse>("api/test");
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.FromCache, Is.True);
+            Assert.That(result.Data.Id, Is.EqualTo(99));
+
+            service.Dispose();
+        }
+
+        [Test]
+        public void ResetCircuitBreaker_ResetsToClosedState()
+        {
+            // Arrange
+            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
+            circuitBreaker.RecordFailure(); // Open the circuit
+            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
+
+            // Act
+            service.ResetCircuitBreaker();
+
+            // Assert
+            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Closed));
+
+            service.Dispose();
+        }
+
+        [Test]
+        public async Task PostAsync_WhenCircuitOpen_ReturnsCircuitBreakerError()
+        {
+            // Arrange
+            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
+            circuitBreaker.RecordFailure(); // Open the circuit
+
+            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
+            var request = new TestRequest { Data = "test" };
+
+            // Act
+            var result = await service.PostAsync<TestRequest, TestResponse>("api/test", request);
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.CircuitBreakerOpen));
+
+            service.Dispose();
         }
 
         #endregion

@@ -4,6 +4,9 @@
     <ui:VisualElement name="root" class="root">
         <!-- Header with Data Link & Options Buttons -->
         <ui:VisualElement name="header" class="header">
+            <ui:VisualElement name="connection-indicator" class="connection-indicator connection-indicator--online">
+                <ui:Label text="オンライン" name="connection-status-label" class="connection-status-label" />
+            </ui:VisualElement>
             <ui:VisualElement class="header__spacer" />
             <ui:Button text="DATA LINK" name="data-link-button" class="header-button" />
             <ui:Button text="OPTIONS" name="options-button" class="header-button" />
@@ -30,6 +33,9 @@
                 <ui:Button text="QUIT" name="quit-button" class="menu-button menu-button--danger" />
             </ui:VisualElement>
         </ui:VisualElement>
+
+        <!-- Error Label -->
+        <ui:Label text="" name="error-label" class="error-label" />
 
         <!-- Footer -->
         <ui:VisualElement name="footer" class="footer">

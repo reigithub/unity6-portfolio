@@ -24,7 +24,11 @@ namespace Game.Shared.Services.Network.Models
         /// <summary>キャンセルされた</summary>
         Cancelled,
         /// <summary>リトライ上限到達</summary>
-        RetryExhausted
+        RetryExhausted,
+        /// <summary>サーキットブレーカーがOpen状態</summary>
+        CircuitBreakerOpen,
+        /// <summary>バリデーションエラー</summary>
+        ValidationError
     }
 
     /// <summary>
@@ -144,6 +148,13 @@ namespace Game.Shared.Services.Network.Models
                 innerException: lastError);
 
         /// <summary>
+        /// サーキットブレーカーOpenエラーを作成
+        /// </summary>
+        public static NetworkError CircuitOpen(TimeSpan remainingTime)
+            => new(NetworkErrorType.CircuitBreakerOpen,
+                $"サーバーが一時的に利用できません。{remainingTime.TotalSeconds:F0}秒後に再試行してください");
+
+        /// <summary>
         /// リトライ可能なエラーかどうか
         /// </summary>
         public bool IsRetryable =>
@@ -178,6 +189,8 @@ namespace Game.Shared.Services.Network.Models
                 NetworkErrorType.RateLimited => "リクエスト制限に達しました",
                 NetworkErrorType.Cancelled => "リクエストがキャンセルされました",
                 NetworkErrorType.RetryExhausted => "リトライ上限に達しました",
+                NetworkErrorType.CircuitBreakerOpen => "サーバーが一時的に利用できません",
+                NetworkErrorType.ValidationError => "入力内容に誤りがあります",
                 _ => "エラーが発生しました"
             };
         }

@@ -92,6 +92,54 @@ namespace Game.Shared.Services.Network.Models
         };
 
         /// <summary>
+        /// 追加ヘッダー付きのリクエストオプション
+        /// </summary>
+        /// <param name="headers">追加ヘッダー</param>
+        /// <returns>ヘッダー付きのRequestOptions</returns>
+        public static RequestOptions WithHeaders(Dictionary<string, string> headers) => new()
+        {
+            RetryPolicy = Policies.RetryPolicy.Default,
+            UseCache = false,
+            FallbackToCache = true,
+            AdditionalHeaders = headers
+        };
+
+        /// <summary>
+        /// このオプションにヘッダーを追加した新しいオプションを返す
+        /// </summary>
+        /// <param name="headers">追加するヘッダー</param>
+        /// <returns>ヘッダーが追加された新しいRequestOptions</returns>
+        public RequestOptions AddHeaders(Dictionary<string, string> headers)
+        {
+            var newOptions = Clone();
+            newOptions.AdditionalHeaders ??= new Dictionary<string, string>();
+            foreach (var header in headers)
+            {
+                newOptions.AdditionalHeaders[header.Key] = header.Value;
+            }
+            return newOptions;
+        }
+
+        /// <summary>
+        /// このオプションのクローンを作成
+        /// </summary>
+        private RequestOptions Clone()
+        {
+            return new RequestOptions
+            {
+                RetryPolicy = RetryPolicy,
+                TimeoutSeconds = TimeoutSeconds,
+                UseCache = UseCache,
+                CacheDuration = CacheDuration,
+                CacheKeyPrefix = CacheKeyPrefix,
+                FallbackToCache = FallbackToCache,
+                AdditionalHeaders = AdditionalHeaders != null
+                    ? new Dictionary<string, string>(AdditionalHeaders)
+                    : null
+            };
+        }
+
+        /// <summary>
         /// 有効なリトライポリシーを取得（nullの場合はデフォルトを返す）
         /// </summary>
         public RetryPolicy GetEffectiveRetryPolicy()

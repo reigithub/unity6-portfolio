@@ -77,6 +77,7 @@ namespace Game.MVP.Survivor
             // Network Services
             builder.RegisterInstance(CircuitBreakerPolicy.Default);
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
+            builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
