@@ -1,12 +1,6 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
-using Game.Shared.Services;
 using Game.Shared.Services.Network;
-using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;
-using Game.Shared.Services.Network.Models;
 using Game.Shared.Services.Network.Policies;
 using NSubstitute;
 using NUnit.Framework;
@@ -17,24 +11,27 @@ namespace Game.Tests.Shared.Network
     [TestFixture]
     public class NetworkServiceTests
     {
-        private IApiClient _mockApiClient;
         private IConnectivityChecker _mockConnectivityChecker;
-        private IResponseCache _mockCache;
+        private CircuitBreakerPolicy _circuitBreaker;
         private NetworkService _service;
         private ReactiveProperty<bool> _connectivityProperty;
 
         [SetUp]
         public void Setup()
         {
-            _mockApiClient = Substitute.For<IApiClient>();
             _mockConnectivityChecker = Substitute.For<IConnectivityChecker>();
-            _mockCache = Substitute.For<IResponseCache>();
 
             _connectivityProperty = new ReactiveProperty<bool>(true);
             _mockConnectivityChecker.IsConnected.Returns(true);
             _mockConnectivityChecker.OnConnectivityChanged.Returns(_connectivityProperty.DistinctUntilChanged());
 
-            _service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache);
+            _circuitBreaker = new CircuitBreakerPolicy
+            {
+                FailureThreshold = 3,
+                OpenDuration = TimeSpan.FromSeconds(30)
+            };
+
+            _service = new NetworkService(_mockConnectivityChecker, _circuitBreaker);
         }
 
         [TearDown]
@@ -43,21 +40,6 @@ namespace Game.Tests.Shared.Network
             _service?.Dispose();
             _connectivityProperty?.Dispose();
         }
-
-        #region Test Data
-
-        private class TestResponse
-        {
-            public int Id { get; set; }
-            public string Name { get; set; }
-        }
-
-        private class TestRequest
-        {
-            public string Data { get; set; }
-        }
-
-        #endregion
 
         #region Constructor Tests
 
@@ -69,27 +51,22 @@ namespace Game.Tests.Shared.Network
         }
 
         [Test]
-        public void Constructor_WithNullApiClient_ThrowsArgumentNullException()
-        {
-            // Act & Assert
-            Assert.That(() => new NetworkService(null, _mockConnectivityChecker, _mockCache),
-                Throws.ArgumentNullException);
-        }
-
-        [Test]
         public void Constructor_WithNullConnectivityChecker_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.That(() => new NetworkService(_mockApiClient, null, _mockCache),
+            Assert.That(() => new NetworkService(null, _circuitBreaker),
                 Throws.ArgumentNullException);
         }
 
         [Test]
-        public void Constructor_WithNullCache_ThrowsArgumentNullException()
+        public void Constructor_WithNullCircuitBreaker_UsesDefault()
         {
-            // Act & Assert
-            Assert.That(() => new NetworkService(_mockApiClient, _mockConnectivityChecker, null),
-                Throws.ArgumentNullException);
+            // Arrange & Act
+            using var service = new NetworkService(_mockConnectivityChecker, null);
+
+            // Assert - デフォルトのサーキットブレーカーが使用される
+            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Closed));
+            Assert.That(service.CanExecute, Is.True);
         }
 
         #endregion
@@ -97,7 +74,17 @@ namespace Game.Tests.Shared.Network
         #region IsConnected Tests
 
         [Test]
-        public void IsConnected_ReturnsConnectivityCheckerValue()
+        public void IsConnected_ReturnsConnectivityCheckerValue_WhenTrue()
+        {
+            // Arrange
+            _mockConnectivityChecker.IsConnected.Returns(true);
+
+            // Act & Assert
+            Assert.That(_service.IsConnected, Is.True);
+        }
+
+        [Test]
+        public void IsConnected_ReturnsConnectivityCheckerValue_WhenFalse()
         {
             // Arrange
             _mockConnectivityChecker.IsConnected.Returns(false);
@@ -106,303 +93,258 @@ namespace Game.Tests.Shared.Network
             Assert.That(_service.IsConnected, Is.False);
         }
 
-        #endregion
-
-        #region GetAsync Tests
-
         [Test]
-        public async Task GetAsync_WhenOnline_CallsApiClient()
+        public void OnConnectivityChanged_ReturnsObservable()
         {
-            // Arrange
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = true,
-                Data = new TestResponse { Id = 1, Name = "Test" },
-                StatusCode = 200
-            };
-            _mockApiClient.GetAsync<TestResponse>("api/test", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
-
-            // Act
-            var result = await _service.GetAsync<TestResponse>("api/test");
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data.Id, Is.EqualTo(1));
-            Assert.That(result.Data.Name, Is.EqualTo("Test"));
-            Assert.That(result.FromCache, Is.False);
-        }
-
-        [Test]
-        public async Task GetAsync_WhenOffline_ReturnsCachedData()
-        {
-            // Arrange
-            _mockConnectivityChecker.IsConnected.Returns(false);
-            var cachedData = new TestResponse { Id = 99, Name = "Cached" };
-            var cacheEntry = new CacheEntry<TestResponse>(cachedData, TimeSpan.FromMinutes(5));
-            _mockCache.GetAsync<TestResponse>("api/test")
-                .Returns(UniTask.FromResult(cacheEntry));
-
-            // Act
-            var result = await _service.GetAsync<TestResponse>("api/test",
-                RequestOptions.WithCache(TimeSpan.FromMinutes(5)));
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data.Id, Is.EqualTo(99));
-            Assert.That(result.FromCache, Is.True);
-            Assert.That(result.IsOffline, Is.True);
-        }
-
-        [Test]
-        public async Task GetAsync_WhenOfflineAndNoCache_ReturnsOfflineError()
-        {
-            // Arrange
-            _mockConnectivityChecker.IsConnected.Returns(false);
-            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
-                .Returns(UniTask.FromResult<CacheEntry<TestResponse>>(null));
-
-            // Act
-            var result = await _service.GetAsync<TestResponse>("api/test");
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.IsOffline, Is.True);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.ConnectionError));
-        }
-
-        [Test]
-        public async Task GetAsync_WithCacheOption_SavesSuccessfulResponse()
-        {
-            // Arrange
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = true,
-                Data = new TestResponse { Id = 1, Name = "Test" },
-                StatusCode = 200
-            };
-            _mockApiClient.GetAsync<TestResponse>("api/test", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
-            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
-                .Returns(UniTask.FromResult<CacheEntry<TestResponse>>(null));
-
-            var options = RequestOptions.WithCache(TimeSpan.FromMinutes(5));
-
-            // Act
-            await _service.GetAsync<TestResponse>("api/test", options);
-
-            // Assert
-            await _mockCache.Received(1).SetAsync(
-                "api/test",
-                Arg.Is<TestResponse>(r => r.Id == 1),
-                TimeSpan.FromMinutes(5));
-        }
-
-        [Test]
-        public async Task GetAsync_WithCacheHit_DoesNotCallApiClient()
-        {
-            // Arrange
-            var cachedData = new TestResponse { Id = 99, Name = "Cached" };
-            var cacheEntry = new CacheEntry<TestResponse>(cachedData, TimeSpan.FromMinutes(5));
-            _mockCache.GetAsync<TestResponse>("api/test")
-                .Returns(UniTask.FromResult(cacheEntry));
-
-            var options = RequestOptions.WithCache(TimeSpan.FromMinutes(5));
-
-            // Act
-            var result = await _service.GetAsync<TestResponse>("api/test", options);
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.FromCache, Is.True);
-            await _mockApiClient.DidNotReceive().GetAsync<TestResponse>(
-                Arg.Any<string>(),
-                Arg.Any<RequestOptions>(),
-                Arg.Any<CancellationToken>());
+            // Act & Assert
+            Assert.That(_service.OnConnectivityChanged, Is.Not.Null);
         }
 
         #endregion
 
-        #region PostAsync Tests
+        #region CanExecute Tests
 
         [Test]
-        public async Task PostAsync_WhenOnline_CallsApiClient()
+        public void CanExecute_ReturnsTrue_WhenCircuitClosed()
         {
-            // Arrange
-            var request = new TestRequest { Data = "test" };
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = true,
-                Data = new TestResponse { Id = 1 },
-                StatusCode = 201
-            };
-            _mockApiClient.PostAsync<TestRequest, TestResponse>("api/test", request, Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
-
-            // Act
-            var result = await _service.PostAsync<TestRequest, TestResponse>("api/test", request);
-
             // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.StatusCode, Is.EqualTo(201));
+            Assert.That(_service.CanExecute, Is.True);
         }
 
         [Test]
-        public async Task PostAsync_WhenOffline_ReturnsOfflineError()
+        public void CanExecute_ReturnsFalse_WhenCircuitOpen()
         {
-            // Arrange
-            _mockConnectivityChecker.IsConnected.Returns(false);
-            var request = new TestRequest { Data = "test" };
+            // Arrange - サーキットを開く
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
 
-            // Act
-            var result = await _service.PostAsync<TestRequest, TestResponse>("api/test", request);
+            // Act & Assert
+            Assert.That(_service.CanExecute, Is.False);
+        }
 
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.IsOffline, Is.True);
+        [Test]
+        public void CanExecute_ReturnsTrue_WhenCircuitHalfOpen()
+        {
+            // Arrange - 短いOpenDurationでサーキットを開く
+            var shortCircuitBreaker = new CircuitBreakerPolicy
+            {
+                FailureThreshold = 1,
+                OpenDuration = TimeSpan.FromMilliseconds(1)
+            };
+            using var service = new NetworkService(_mockConnectivityChecker, shortCircuitBreaker);
+
+            service.RecordFailure(); // Open
+            System.Threading.Thread.Sleep(10); // HalfOpenに遷移
+
+            // Act & Assert
+            Assert.That(service.CanExecute, Is.True);
         }
 
         #endregion
 
-        #region DeleteAsync Tests
+        #region CircuitState Tests
 
         [Test]
-        public async Task DeleteAsync_WhenOnline_CallsApiClient()
+        public void CircuitState_ReturnsClosedByDefault()
         {
-            // Arrange
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = true,
-                Data = new TestResponse { Id = 1 },
-                StatusCode = 200
-            };
-            _mockApiClient.DeleteAsync<TestResponse>("api/test/1", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
-
-            // Act
-            var result = await _service.DeleteAsync<TestResponse>("api/test/1");
-
             // Assert
-            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
         }
 
         [Test]
-        public async Task DeleteAsync_WhenOffline_ReturnsOfflineError()
+        public void CircuitState_ReturnsOpen_AfterThresholdFailures()
         {
-            // Arrange
-            _mockConnectivityChecker.IsConnected.Returns(false);
-
-            // Act
-            var result = await _service.DeleteAsync<TestResponse>("api/test/1");
+            // Arrange & Act
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
 
             // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.IsOffline, Is.True);
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Open));
         }
 
         #endregion
 
-        #region Error Handling Tests
+        #region RecordSuccess Tests
 
         [Test]
-        public async Task GetAsync_WhenApiReturns401_ReturnsAuthenticationError()
+        public void RecordSuccess_ClosesCircuit_WhenHalfOpen()
         {
-            // Arrange
-            var response = new ApiResponse<TestResponse>
+            // Arrange - 短いOpenDurationでサーキットを開く
+            var shortCircuitBreaker = new CircuitBreakerPolicy
             {
-                IsSuccess = false,
-                Error = new ApiErrorResponse { error = "Unauthorized", message = "認証が必要です" },
-                StatusCode = 401
+                FailureThreshold = 1,
+                OpenDuration = TimeSpan.FromMilliseconds(1)
             };
-            _mockApiClient.GetAsync<TestResponse>("api/test", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
+            using var service = new NetworkService(_mockConnectivityChecker, shortCircuitBreaker);
+
+            service.RecordFailure(); // Open
+            System.Threading.Thread.Sleep(10); // HalfOpenに遷移
 
             // Act
-            var result = await _service.GetAsync<TestResponse>("api/test");
+            service.RecordSuccess();
 
             // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.AuthenticationError));
+            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Closed));
         }
 
         [Test]
-        public async Task GetAsync_WhenApiReturns500_ReturnsServerError()
+        public void RecordSuccess_MaintainsClosed_WhenAlreadyClosed()
         {
             // Arrange
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = false,
-                Error = new ApiErrorResponse { error = "InternalError", message = "サーバーエラー" },
-                StatusCode = 500
-            };
-            _mockApiClient.GetAsync<TestResponse>("api/test", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
 
             // Act
-            var result = await _service.GetAsync<TestResponse>("api/test");
+            _service.RecordSuccess();
 
             // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.ServerError));
-        }
-
-        [Test]
-        public async Task GetAsync_WhenApiReturns429_ReturnsRateLimitedError()
-        {
-            // Arrange
-            var response = new ApiResponse<TestResponse>
-            {
-                IsSuccess = false,
-                Error = new ApiErrorResponse { error = "TooManyRequests", message = "リクエスト制限" },
-                StatusCode = 429
-            };
-            _mockApiClient.GetAsync<TestResponse>("api/test", Arg.Any<RequestOptions>(), Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(response));
-
-            // Act
-            var result = await _service.GetAsync<TestResponse>("api/test");
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.RateLimited));
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
         }
 
         #endregion
 
-        #region Auth Token Tests
+        #region RecordFailure Tests
 
         [Test]
-        public void SetAuthToken_CallsApiClient()
+        public void RecordFailure_IncrementsFailureCount()
         {
-            // Act
-            _service.SetAuthToken("test-token");
+            // Arrange - 閾値未満の失敗
+            _service.RecordFailure();
+            _service.RecordFailure();
 
-            // Assert
-            _mockApiClient.Received(1).SetAuthToken("test-token");
+            // Assert - まだClosedのまま
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
         }
 
         [Test]
-        public void ClearAuthToken_CallsApiClient()
+        public void RecordFailure_OpensCircuit_WhenThresholdReached()
         {
-            // Act
-            _service.ClearAuthToken();
+            // Arrange & Act
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
 
             // Assert
-            _mockApiClient.Received(1).ClearAuthToken();
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Open));
+        }
+
+        [Test]
+        public void RecordFailure_ReopensCircuit_WhenHalfOpen()
+        {
+            // Arrange - 短いOpenDurationでサーキットを開く
+            var shortCircuitBreaker = new CircuitBreakerPolicy
+            {
+                FailureThreshold = 1,
+                OpenDuration = TimeSpan.FromMilliseconds(1)
+            };
+            using var service = new NetworkService(_mockConnectivityChecker, shortCircuitBreaker);
+
+            service.RecordFailure(); // Open
+            System.Threading.Thread.Sleep(10); // HalfOpenに遷移
+
+            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.HalfOpen));
+
+            // Act
+            service.RecordFailure();
+
+            // Assert
+            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Open));
         }
 
         #endregion
 
-        #region ClearCacheAsync Tests
+        #region ResetCircuitBreaker Tests
 
         [Test]
-        public async Task ClearCacheAsync_CallsCache()
+        public void ResetCircuitBreaker_ResetsToClosedState()
         {
+            // Arrange - サーキットを開く
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Open));
+
             // Act
-            await _service.ClearCacheAsync();
+            _service.ResetCircuitBreaker();
 
             // Assert
-            await _mockCache.Received(1).ClearAsync();
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
+            Assert.That(_service.CanExecute, Is.True);
+        }
+
+        [Test]
+        public void ResetCircuitBreaker_HasNoEffect_WhenAlreadyClosed()
+        {
+            // Arrange
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
+
+            // Act
+            _service.ResetCircuitBreaker();
+
+            // Assert
+            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
+        }
+
+        #endregion
+
+        #region OnCircuitStateChanged Tests
+
+        [Test]
+        public void OnCircuitStateChanged_EmitsEvent_WhenStateChanges()
+        {
+            // Arrange
+            CircuitState? emittedState = null;
+            _service.OnCircuitStateChanged.Subscribe(state => emittedState = state);
+
+            // Act - サーキットを開く
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
+
+            // Assert
+            Assert.That(emittedState, Is.EqualTo(CircuitState.Open));
+        }
+
+        [Test]
+        public void OnCircuitStateChanged_DoesNotEmit_WhenStateUnchanged()
+        {
+            // Arrange
+            int emitCount = 0;
+            _service.OnCircuitStateChanged.Subscribe(_ => emitCount++);
+
+            // Act - 閾値未満の失敗（状態変化なし）
+            _service.RecordFailure();
+            _service.RecordFailure();
+
+            // Assert
+            Assert.That(emitCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void OnCircuitStateChanged_EmitsClosedState_WhenReset()
+        {
+            // Arrange
+            CircuitState? lastEmittedState = null;
+            _service.OnCircuitStateChanged.Subscribe(state => lastEmittedState = state);
+
+            // サーキットを開く
+            for (int i = 0; i < 3; i++)
+            {
+                _service.RecordFailure();
+            }
+            Assert.That(lastEmittedState, Is.EqualTo(CircuitState.Open));
+
+            // Act
+            _service.ResetCircuitBreaker();
+
+            // Assert
+            Assert.That(lastEmittedState, Is.EqualTo(CircuitState.Closed));
         }
 
         #endregion
@@ -419,97 +361,18 @@ namespace Game.Tests.Shared.Network
             _mockConnectivityChecker.Received(1).StopMonitoring();
         }
 
-        #endregion
-
-        #region CircuitBreaker Tests
-
         [Test]
-        public void CircuitState_ReturnsClosedByDefault()
+        public void Dispose_CanBeCalledMultipleTimes()
         {
-            // Assert
-            Assert.That(_service.CircuitState, Is.EqualTo(CircuitState.Closed));
-        }
+            // Act & Assert - 例外が発生しないこと
+            Assert.DoesNotThrow(() =>
+            {
+                _service.Dispose();
+                _service.Dispose();
+            });
 
-        [Test]
-        public async Task GetAsync_WhenCircuitOpen_ReturnsCircuitBreakerError()
-        {
-            // Arrange
-            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
-            circuitBreaker.RecordFailure(); // Open the circuit
-
-            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
-            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
-                .Returns(UniTask.FromResult<CacheEntry<TestResponse>>(null));
-
-            // Act
-            var result = await service.GetAsync<TestResponse>("api/test");
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.CircuitBreakerOpen));
-
-            service.Dispose();
-        }
-
-        [Test]
-        public async Task GetAsync_WhenCircuitOpenAndCacheAvailable_ReturnsCachedData()
-        {
-            // Arrange
-            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
-            circuitBreaker.RecordFailure(); // Open the circuit
-
-            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
-            var cachedData = new TestResponse { Id = 99, Name = "Cached" };
-            var cacheEntry = new CacheEntry<TestResponse>(cachedData, TimeSpan.FromMinutes(5));
-            _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
-                .Returns(UniTask.FromResult(cacheEntry));
-
-            // Act
-            var result = await service.GetAsync<TestResponse>("api/test");
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.FromCache, Is.True);
-            Assert.That(result.Data.Id, Is.EqualTo(99));
-
-            service.Dispose();
-        }
-
-        [Test]
-        public void ResetCircuitBreaker_ResetsToClosedState()
-        {
-            // Arrange
-            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
-            circuitBreaker.RecordFailure(); // Open the circuit
-            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
-
-            // Act
-            service.ResetCircuitBreaker();
-
-            // Assert
-            Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Closed));
-
-            service.Dispose();
-        }
-
-        [Test]
-        public async Task PostAsync_WhenCircuitOpen_ReturnsCircuitBreakerError()
-        {
-            // Arrange
-            var circuitBreaker = new CircuitBreakerPolicy { FailureThreshold = 1, OpenDuration = TimeSpan.FromMinutes(5) };
-            circuitBreaker.RecordFailure(); // Open the circuit
-
-            var service = new NetworkService(_mockApiClient, _mockConnectivityChecker, _mockCache, circuitBreaker);
-            var request = new TestRequest { Data = "test" };
-
-            // Act
-            var result = await service.PostAsync<TestRequest, TestResponse>("api/test", request);
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.Type, Is.EqualTo(NetworkErrorType.CircuitBreakerOpen));
-
-            service.Dispose();
+            // StopMonitoringは1回のみ呼ばれる
+            _mockConnectivityChecker.Received(1).StopMonitoring();
         }
 
         #endregion
