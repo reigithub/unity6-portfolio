@@ -86,10 +86,6 @@ jobs:
     # 単体テスト成功後に実行
     needs: unit-tests
 
-    services:
-      # Testcontainers が動的に PostgreSQL を起動するため、
-      # ここでの services 定義は不要だが、Docker-in-Docker 用に設定
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
