@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Game.Editor.Addressables;
 using Game.Editor.Build;
@@ -72,6 +73,11 @@ namespace Game.Editor
 
             // Addressables ローカルバンドル同期
             DrawAddressablesSyncSection();
+
+            EditorGUILayout.Space(10);
+
+            // Addressables キャッシュクリア
+            DrawAddressablesCacheClearSection();
 
             EditorGUILayout.Space(10);
 
@@ -168,7 +174,7 @@ namespace Game.Editor
             var isUseExistingBuild = state.PlayModeScript == "Use Existing Build";
             var canSync = env != GameEnvironment.Local && isUseExistingBuild;
 
-            EditorGUILayout.LabelField("Addressables ローカルバンドル同期", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Addressables カタログ・ローカルバンドルDL", EditorStyles.boldLabel);
 
             if (!canSync)
             {
@@ -182,12 +188,12 @@ namespace Game.Editor
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("リモートバージョン確認", GUILayout.Height(25)))
+                    if (GUILayout.Button("バージョン確認", GUILayout.Height(25)))
                     {
                         OnCheckRemoteVersionClicked();
                     }
 
-                    if (GUILayout.Button("今すぐ同期", GUILayout.Height(25)))
+                    if (GUILayout.Button("ダウンロード", GUILayout.Height(25)))
                     {
                         OnSyncNowClicked();
                     }
@@ -197,8 +203,8 @@ namespace Game.Editor
             if (canSync)
             {
                 EditorGUILayout.HelpBox(
-                    "UseExistingBuild モードでは、Play開始時に自動的にローカルバンドルが同期されます。\n" +
-                    "手動で同期する場合は「今すぐ同期」をクリックしてください。",
+                    "UseExistingBuild モードでは、Play開始時に自動的に同期されます。\n" +
+                    "手動で同期する場合は「ダウンロード」をクリックしてください。",
                     MessageType.Info);
             }
         }
@@ -211,6 +217,186 @@ namespace Game.Editor
         private void OnSyncNowClicked()
         {
             EditorAddressablesSync.SyncFromRemoteMenu();
+        }
+
+        private void DrawAddressablesCacheClearSection()
+        {
+            EditorGUILayout.LabelField("Addressables カタログ・アセットキャッシュクリア", EditorStyles.boldLabel);
+
+            var libraryPath = Path.Combine(Application.dataPath, "..", "Library", "com.unity.addressables");
+            var catalogCachePath = Path.Combine(Application.persistentDataPath, "com.unity.addressables");
+            var env = _envs != null && _index >= 0 && _index < _envs.Length ? _envs[_index] : GameEnvironment.Local;
+            var downloadedAssetsPath = Path.Combine(Application.persistentDataPath, env.ToString(), "DownloadedAssets");
+
+            var libraryExists = Directory.Exists(libraryPath);
+            var catalogCacheExists = Directory.Exists(catalogCachePath);
+            var downloadedAssetsExists = Directory.Exists(downloadedAssetsPath);
+
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField("Library Cache", (libraryExists ? "存在" : "なし") + ": " + libraryPath);
+            EditorGUILayout.TextField("Catalog Cache", (catalogCacheExists ? "存在" : "なし") + ": " + catalogCachePath);
+            EditorGUILayout.TextField($"Downloaded Assets ({env})", (downloadedAssetsExists ? "存在" : "なし") + ": " + downloadedAssetsPath);
+            EditorGUI.EndDisabledGroup();
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledGroupScope(!libraryExists))
+                {
+                    if (GUILayout.Button("Library", GUILayout.Height(25)))
+                    {
+                        OnClearLibraryCacheClicked(libraryPath);
+                    }
+                }
+
+                using (new EditorGUI.DisabledGroupScope(!catalogCacheExists))
+                {
+                    if (GUILayout.Button("Catalog", GUILayout.Height(25)))
+                    {
+                        OnClearCatalogCacheClicked(catalogCachePath);
+                    }
+                }
+
+                using (new EditorGUI.DisabledGroupScope(!downloadedAssetsExists))
+                {
+                    if (GUILayout.Button("Downloaded", GUILayout.Height(25)))
+                    {
+                        OnClearDownloadedAssetsClicked(downloadedAssetsPath, env);
+                    }
+                }
+            }
+
+            using (new EditorGUI.DisabledGroupScope(!libraryExists && !catalogCacheExists && !downloadedAssetsExists))
+            {
+                if (GUILayout.Button("すべてのキャッシュをクリア", GUILayout.Height(25)))
+                {
+                    OnClearAllCacheClicked(libraryPath, catalogCachePath, downloadedAssetsPath, env);
+                }
+            }
+
+            EditorGUILayout.HelpBox(
+                "Library: エディタのAddressablesビルドキャッシュ\n" +
+                "Catalog: ダウンロードしたリモートカタログのキャッシュ\n" +
+                "Downloaded: ダウンロード済みリモートアセット\n\n" +
+                "カタログとバンドルの不整合が発生した場合にクリアしてください。",
+                MessageType.Info);
+        }
+
+        private void OnClearLibraryCacheClicked(string path)
+        {
+            if (!EditorUtility.DisplayDialog("確認", "Library/com.unity.addressables を削除しますか？", "削除", "キャンセル"))
+                return;
+
+            try
+            {
+                Directory.Delete(path, true);
+                Debug.Log($"[GameEnvironmentSettings] Deleted: {path}");
+                EditorUtility.DisplayDialog("完了", "Library Cache をクリアしました", "OK");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[GameEnvironmentSettings] Failed to delete {path}: {e.Message}");
+                EditorUtility.DisplayDialog("エラー", $"削除に失敗しました: {e.Message}", "OK");
+            }
+
+            Repaint();
+        }
+
+        private void OnClearCatalogCacheClicked(string path)
+        {
+            if (!EditorUtility.DisplayDialog("確認", "Catalog Cache (persistentDataPath/com.unity.addressables) を削除しますか？", "削除", "キャンセル"))
+                return;
+
+            try
+            {
+                Directory.Delete(path, true);
+                Debug.Log($"[GameEnvironmentSettings] Deleted: {path}");
+                EditorUtility.DisplayDialog("完了", "Catalog Cache をクリアしました", "OK");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[GameEnvironmentSettings] Failed to delete {path}: {e.Message}");
+                EditorUtility.DisplayDialog("エラー", $"削除に失敗しました: {e.Message}", "OK");
+            }
+
+            Repaint();
+        }
+
+        private void OnClearDownloadedAssetsClicked(string path, GameEnvironment env)
+        {
+            if (!EditorUtility.DisplayDialog("確認", $"Downloaded Assets ({env}) を削除しますか？\n\n{path}", "削除", "キャンセル"))
+                return;
+
+            try
+            {
+                Directory.Delete(path, true);
+                Debug.Log($"[GameEnvironmentSettings] Deleted: {path}");
+                EditorUtility.DisplayDialog("完了", $"Downloaded Assets ({env}) をクリアしました", "OK");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[GameEnvironmentSettings] Failed to delete {path}: {e.Message}");
+                EditorUtility.DisplayDialog("エラー", $"削除に失敗しました: {e.Message}", "OK");
+            }
+
+            Repaint();
+        }
+
+        private void OnClearAllCacheClicked(string libraryPath, string catalogCachePath, string downloadedAssetsPath, GameEnvironment env)
+        {
+            if (!EditorUtility.DisplayDialog("確認", $"すべてのAddressablesキャッシュを削除しますか？\n\n・Library Cache\n・Catalog Cache\n・Downloaded Assets ({env})", "削除", "キャンセル"))
+                return;
+
+            var errors = new List<string>();
+
+            if (Directory.Exists(libraryPath))
+            {
+                try
+                {
+                    Directory.Delete(libraryPath, true);
+                    Debug.Log($"[GameEnvironmentSettings] Deleted: {libraryPath}");
+                }
+                catch (Exception e)
+                {
+                    errors.Add($"Library: {e.Message}");
+                }
+            }
+
+            if (Directory.Exists(catalogCachePath))
+            {
+                try
+                {
+                    Directory.Delete(catalogCachePath, true);
+                    Debug.Log($"[GameEnvironmentSettings] Deleted: {catalogCachePath}");
+                }
+                catch (Exception e)
+                {
+                    errors.Add($"Catalog: {e.Message}");
+                }
+            }
+
+            if (Directory.Exists(downloadedAssetsPath))
+            {
+                try
+                {
+                    Directory.Delete(downloadedAssetsPath, true);
+                    Debug.Log($"[GameEnvironmentSettings] Deleted: {downloadedAssetsPath}");
+                }
+                catch (Exception e)
+                {
+                    errors.Add($"Downloaded: {e.Message}");
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                EditorUtility.DisplayDialog("エラー", $"一部の削除に失敗しました:\n{string.Join("\n", errors)}", "OK");
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("完了", "すべてのキャッシュをクリアしました", "OK");
+            }
+
+            Repaint();
         }
 
         private void DrawApplyButton()

@@ -28,7 +28,6 @@ namespace Game.Editor.Addressables
 
         private const string IndexFileName = "index.json";
         private const string LocalBundlesFolder = "LocalBundles";
-        private const string LocalHashCacheKey = "AddressablesSync_LocalCatalogHash";
 
         static EditorAddressablesSync()
         {
@@ -39,18 +38,103 @@ namespace Game.Editor.Addressables
         {
             if (state == PlayModeStateChange.ExitingEditMode)
             {
-                // Play開始前に同期チェック
-                if (ShouldAutoSync())
+                // UseExistingBuild モードでない場合はスキップ
+                if (!ShouldAutoSync())
                 {
-                    CheckAndSyncAsync().ContinueWith(t =>
+                    return;
+                }
+
+                // Libraryにカタログが存在するかチェック
+                if (!HasLocalCatalog())
+                {
+                    // Playモードを中止
+                    EditorApplication.isPlaying = false;
+
+                    // ダイアログを表示してダウンロードを促す
+                    EditorApplication.delayCall += () =>
                     {
-                        if (t.Exception != null)
+                        var result = EditorUtility.DisplayDialog(
+                            "Addressables カタログが見つかりません",
+                            "Library/com.unity.addressables にカタログが存在しません。\n" +
+                            "UseExistingBuild モードで再生するには、リモートからカタログをダウンロードする必要があります。\n\n" +
+                            "今すぐダウンロードしますか？",
+                            "ダウンロード",
+                            "キャンセル");
+
+                        if (result)
                         {
-                            Debug.LogWarning($"[AddressablesSync] Auto-sync failed: {t.Exception.Message}");
+                            DownloadAndPlayAsync();
                         }
-                    });
+                    };
+                    return;
+                }
+
+                // カタログが存在する場合は通常の同期チェック
+                CheckAndSyncAsync().ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Debug.LogWarning($"[AddressablesSync] Auto-sync failed: {t.Exception.Message}");
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// ダウンロード後にPlayモードを開始
+        /// </summary>
+        private static async void DownloadAndPlayAsync()
+        {
+            try
+            {
+                await CheckAndSyncAsync(forceSync: true);
+
+                if (HasLocalCatalog())
+                {
+                    Debug.Log("[AddressablesSync] Download complete. Starting Play mode...");
+                    EditorApplication.delayCall += () => EditorApplication.isPlaying = true;
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog(
+                        "ダウンロード失敗",
+                        "カタログのダウンロードに失敗しました。\n" +
+                        "ネットワーク接続を確認してください。",
+                        "OK");
                 }
             }
+            catch (Exception e)
+            {
+                Debug.LogError($"[AddressablesSync] Download failed: {e.Message}");
+                EditorUtility.DisplayDialog(
+                    "ダウンロード失敗",
+                    $"カタログのダウンロードに失敗しました。\n\n{e.Message}",
+                    "OK");
+            }
+        }
+
+        /// <summary>
+        /// Libraryにカタログが存在するかチェック
+        /// </summary>
+        public static bool HasLocalCatalog()
+        {
+            var platform = GetPlatformFolder();
+            var platformFolder = platform switch
+            {
+                "StandaloneWindows64" => "Windows",
+                "StandaloneLinux64" => "Linux64",
+                "StandaloneOSX" => "OSXUniversal",
+                _ => platform
+            };
+
+            var catalogPath = Path.Combine(
+                GetAddressablesLibraryBasePath(),
+                "aa",
+                platformFolder,
+                "catalog.bin"
+            );
+
+            return File.Exists(catalogPath);
         }
 
         /// <summary>
@@ -177,9 +261,6 @@ namespace Game.Editor.Addressables
                 var targetDir = GetAddressablesLibraryBasePath();
 
                 await DownloadFilesAsync(localBundlesUrl, targetDir, index.Files);
-
-                // ハッシュをキャッシュ
-                EditorPrefs.SetString(LocalHashCacheKey, index.CatalogHash);
 
                 Debug.Log("[AddressablesSync] Sync completed successfully");
 
@@ -368,7 +449,7 @@ namespace Game.Editor.Addressables
                 return File.ReadAllText(hashPath).Trim();
             }
 
-            return EditorPrefs.GetString(LocalHashCacheKey, "");
+            return "";
         }
     }
 
