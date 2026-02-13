@@ -130,23 +130,48 @@ jobs:
       - name: Clean Addressables Library (optional)
         if: inputs.clean_build == true
         run: |
+          echo "=== Clean Build Requested ==="
+
+          # 1. Library/com.unity.addressables を削除
           ADDRESSABLES_LIB="${{ env.UNITY_PROJECT_PATH }}/Library/com.unity.addressables"
-          echo "Clean build requested. Removing Addressables Library cache..."
+          echo "Checking: $ADDRESSABLES_LIB"
           if [ -d "$ADDRESSABLES_LIB" ]; then
             rm -rf "$ADDRESSABLES_LIB"
-            echo "Removed: $ADDRESSABLES_LIB"
+            echo "  Removed: $ADDRESSABLES_LIB"
           else
-            echo "No existing Addressables Library cache found"
+            echo "  Not found (skipped)"
           fi
 
-          # Also clean ServerData for the target platform
+          # 2. ServerData を削除
           SERVER_DATA="${{ env.UNITY_PROJECT_PATH }}/ServerData/${{ matrix.platform }}"
+          echo "Checking: $SERVER_DATA"
           if [ -d "$SERVER_DATA" ]; then
             rm -rf "$SERVER_DATA"
-            echo "Removed: $SERVER_DATA"
+            echo "  Removed: $SERVER_DATA"
+          else
+            echo "  Not found (skipped)"
           fi
 
-          echo "Clean complete. Fresh Addressables build will be performed."
+          # 3. Assets/AddressableAssetsData/{platform}/ を削除 (増分ビルドキャッシュ)
+          # これらのファイルが古いと、カタログが古いバンドルハッシュを参照してしまう
+          case "${{ matrix.platform }}" in
+            StandaloneWindows64) PLATFORM_FOLDER="Windows" ;;
+            StandaloneLinux64) PLATFORM_FOLDER="Linux64" ;;
+            StandaloneOSX) PLATFORM_FOLDER="OSXUniversal" ;;
+            *) PLATFORM_FOLDER="${{ matrix.platform }}" ;;
+          esac
+
+          PLATFORM_DATA="${{ env.UNITY_PROJECT_PATH }}/Assets/AddressableAssetsData/$PLATFORM_FOLDER"
+          echo "Checking: $PLATFORM_DATA"
+          if [ -d "$PLATFORM_DATA" ]; then
+            rm -rf "$PLATFORM_DATA"
+            echo "  Removed: $PLATFORM_DATA"
+          else
+            echo "  Not found (skipped)"
+          fi
+
+          echo "=== Clean Complete ==="
+          echo "Fresh Addressables build will be performed."
 
       - name: Build Addressables
         run: |
