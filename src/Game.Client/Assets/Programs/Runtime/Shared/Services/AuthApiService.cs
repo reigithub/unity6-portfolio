@@ -1,5 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Shared.Dto.Auth;
+using Game.Shared.Services.Network;
+using Game.Shared.Services.Network.Models;
 
 namespace Game.Shared.Services
 {
@@ -13,6 +15,12 @@ namespace Game.Shared.Services
         private readonly IApiClient _apiClient;
         private readonly ISessionService _sessionService;
 
+        /// <summary>
+        /// 認証リクエスト用のオプション（デバイス情報ヘッダー付き）
+        /// </summary>
+        private static RequestOptions AuthRequestOptions =>
+            RequestOptions.WithHeaders(DeviceHeaderProvider.GetAuthHeaders());
+
         public AuthApiService(IApiClient apiClient, ISessionService sessionService)
         {
             _apiClient = apiClient;
@@ -25,7 +33,7 @@ namespace Game.Shared.Services
             var request = new GuestLoginRequest { deviceFingerprint = fingerprint };
 
             var response = await _apiClient.PostAsync<GuestLoginRequest, LoginResponse>(
-                "api/auth/guest", request);
+                "api/auth/guest", request, AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -39,7 +47,7 @@ namespace Game.Shared.Services
         {
             var request = new EmailLoginRequest { email = email, password = password };
             var response = await _apiClient.PostAsync<EmailLoginRequest, LoginResponse>(
-                "api/auth/email/login", request);
+                "api/auth/email/login", request, AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -53,7 +61,7 @@ namespace Game.Shared.Services
         {
             var request = new UserIdLoginRequest { userId = userId, password = password };
             var response = await _apiClient.PostAsync<UserIdLoginRequest, LoginResponse>(
-                "api/auth/login", request);
+                "api/auth/login", request, AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -86,8 +94,9 @@ namespace Game.Shared.Services
         public async UniTask<ApiResponse<LoginResponse>> RefreshTokenAsync()
         {
             // refresh は空ボディの POST（Bearer トークンで認証）
+            // デバイス情報ヘッダーを付与してセキュリティ向上
             var response = await _apiClient.PostAsync<EmptyRequest, LoginResponse>(
-                "api/auth/refresh", new EmptyRequest());
+                "api/auth/refresh", new EmptyRequest(), AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -107,7 +116,7 @@ namespace Game.Shared.Services
             };
 
             var response = await _apiClient.PostAsync<LinkEmailRequest, AccountLinkResponse>(
-                "api/auth/link/email", request);
+                "api/auth/link/email", request, AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -138,8 +147,9 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<TransferPasswordResponse>> IssueTransferPasswordAsync()
         {
+            // 引き継ぎパスワード発行にもデバイス情報を付与
             return await _apiClient.PostAsync<EmptyRequest, TransferPasswordResponse>(
-                "api/auth/transfer-password", new EmptyRequest());
+                "api/auth/transfer-password", new EmptyRequest(), AuthRequestOptions);
         }
 
         private async UniTask OnLoginSuccessAsync(LoginResponse data, string authType)

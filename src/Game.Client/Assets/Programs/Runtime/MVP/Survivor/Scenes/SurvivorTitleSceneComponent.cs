@@ -36,6 +36,9 @@ namespace Game.MVP.Survivor.Scenes
         private Button _quitButton;
         private Button _optionsButton;
         private Button _dataLinkButton;
+        private VisualElement _connectionIndicator;
+        private Label _connectionStatusLabel;
+        private Label _errorLabel;
 
         protected override void OnDestroy()
         {
@@ -65,6 +68,9 @@ namespace Game.MVP.Survivor.Scenes
             _quitButton = _root.Q<Button>("quit-button");
             _optionsButton = _root.Q<Button>("options-button");
             _dataLinkButton = _root.Q<Button>("data-link-button");
+            _connectionIndicator = _root.Q<VisualElement>("connection-indicator");
+            _connectionStatusLabel = _root.Q<Label>("connection-status-label");
+            _errorLabel = _root.Q<Label>("error-label");
         }
 
         /// <summary>
@@ -99,6 +105,55 @@ namespace Game.MVP.Survivor.Scenes
         public override void SetInteractables(bool interactable)
         {
             _root?.SetEnabled(interactable);
+        }
+
+        /// <summary>
+        /// 接続状態インジケーターを設定
+        /// </summary>
+        /// <param name="isConnected">接続状態</param>
+        public void SetConnectionIndicator(bool isConnected)
+        {
+            if (_connectionIndicator != null)
+            {
+                _connectionIndicator.RemoveFromClassList("connection-indicator--online");
+                _connectionIndicator.RemoveFromClassList("connection-indicator--offline");
+                _connectionIndicator.AddToClassList(isConnected ? "connection-indicator--online" : "connection-indicator--offline");
+            }
+
+            if (_connectionStatusLabel != null)
+            {
+                _connectionStatusLabel.text = isConnected ? "オンライン" : "オフライン";
+            }
+
+            // オフライン時はエラーメッセージをクリア（接続復帰時）
+            if (isConnected)
+            {
+                ClearError();
+            }
+        }
+
+        /// <summary>
+        /// エラーメッセージを表示
+        /// </summary>
+        /// <param name="message">エラーメッセージ</param>
+        public void ShowError(string message)
+        {
+            if (_errorLabel != null)
+            {
+                _errorLabel.text = message;
+                _errorLabel.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        /// <summary>
+        /// エラーメッセージをクリア
+        /// </summary>
+        public void ClearError()
+        {
+            if (_errorLabel != null)
+            {
+                _errorLabel.style.display = DisplayStyle.None;
+            }
         }
     }
 }

@@ -39,6 +39,20 @@
     color: rgb(255, 100, 100);
 }
 
+.new-best-label {
+    display: none;
+    font-size: 28px;
+    color: rgb(255, 200, 80);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    margin-left: 32px;
+    padding: 8px 24px;
+    background-color: rgba(255, 200, 80, 0.2);
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(255, 200, 80, 0.5);
+}
+
 /* ===========================================
    Content Area
    =========================================== */
@@ -274,6 +288,58 @@
     color: rgba(255, 255, 255, 0.8);
     min-width: 45%;
     margin-right: 16px;
+}
+
+/* ===========================================
+   Network Status
+   =========================================== */
+
+.network-status {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 20px;
+    margin-top: 12px;
+}
+
+.score-submission-status {
+    display: none;
+    font-size: 24px;
+    color: rgb(100, 200, 255);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 12px 24px;
+    background-color: rgba(100, 200, 255, 0.15);
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(100, 200, 255, 0.3);
+}
+
+.score-queued-notice {
+    display: none;
+    font-size: 22px;
+    color: rgb(255, 180, 80);
+    -unity-font-style: normal;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    background-color: rgba(255, 180, 80, 0.15);
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgba(255, 180, 80, 0.3);
+    margin-left: 16px;
+}
+
+/* ===========================================
+   Stage Result Item - New Best
+   =========================================== */
+
+.stage-result-item--new-best {
+    border-color: rgba(255, 200, 80, 0.6);
+    background-color: rgba(255, 200, 80, 0.15);
+}
+
+.stage-result-item--new-best:hover {
+    background-color: rgba(255, 200, 80, 0.25);
 }
 
 /* ===========================================

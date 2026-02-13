@@ -3,6 +3,7 @@
     <ui:VisualElement name="root" class="root">
         <ui:VisualElement name="header" class="header" style="width: auto; align-content: flex-start;">
             <ui:Label text="VICTORY!" name="result-title" class="header__title header__title--victory" style="-unity-font-style: bold;"/>
+            <ui:Label text="NEW BEST! Rank #1" name="new-best-label" class="new-best-label"/>
         </ui:VisualElement>
         <ui:VisualElement name="content" class="content">
             <ui:VisualElement name="stats-panel" class="stats-panel" style="justify-content: flex-start; height: 560px;">
@@ -39,6 +40,10 @@
                     <ui:VisualElement name="stage-results-container" class="stage-results-container"/>
                 </ui:ScrollView>
             </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="network-status" class="network-status">
+            <ui:Label text="スコアを送信中..." name="score-submission-status" class="score-submission-status"/>
+            <ui:Label text="スコアは後で送信されます" name="score-queued-notice" class="score-queued-notice"/>
         </ui:VisualElement>
         <ui:VisualElement name="footer" class="footer">
             <ui:Button text="RETRY" name="retry-button" class="action-button action-button--primary"/>

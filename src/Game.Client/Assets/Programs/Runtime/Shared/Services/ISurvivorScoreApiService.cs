@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Shared.Dto.Survivor;
+using Game.Shared.Services.Network.Queue;
 
 namespace Game.Shared.Services
 {
@@ -15,6 +16,14 @@ namespace Game.Shared.Services
         /// <param name="request">スコア送信リクエスト</param>
         /// <returns>送信結果（新記録かどうか、現在の順位など）</returns>
         UniTask<ApiResponse<SurvivorScoreSubmitResponse>> SubmitScoreAsync(SubmitSurvivorScoreRequest request);
+
+        /// <summary>
+        /// スコア送信をキューに追加（オフライン時または送信失敗時用）
+        /// </summary>
+        /// <param name="request">スコア送信リクエスト</param>
+        /// <param name="priority">リクエスト優先度</param>
+        /// <returns>キュー追加結果</returns>
+        UniTask EnqueueSubmitScoreAsync(SubmitSurvivorScoreRequest request, RequestPriority priority = RequestPriority.High);
 
         /// <summary>
         /// ランキングを取得

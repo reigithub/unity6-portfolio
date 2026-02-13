@@ -29,6 +29,43 @@
     flex-grow: 1;
 }
 
+/* ===========================================
+   Connection Indicator
+   =========================================== */
+
+.connection-indicator {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 20px;
+    border-radius: 24px;
+    border-width: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.connection-indicator--online {
+    background-color: rgba(20, 60, 40, 0.85);
+    border-color: rgb(80, 200, 120);
+}
+
+.connection-indicator--offline {
+    background-color: rgba(60, 30, 20, 0.85);
+    border-color: rgb(220, 120, 80);
+}
+
+.connection-status-label {
+    font-size: 18px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.connection-indicator--online .connection-status-label {
+    color: rgb(120, 255, 150);
+}
+
+.connection-indicator--offline .connection-status-label {
+    color: rgb(255, 160, 120);
+}
+
 .header-button {
     height: 48px;
     padding-left: 24px;
@@ -189,4 +226,24 @@
     font-size: 18px;
     color: rgba(255, 255, 255, 0.5);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ===========================================
+   Error Label
+   =========================================== */
+
+.error-label {
+    display: none;
+    font-size: 20px;
+    color: rgb(255, 120, 100);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 16px 32px;
+    background-color: rgba(200, 60, 60, 0.25);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 100, 80, 0.4);
+    align-self: center;
+    margin-bottom: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }

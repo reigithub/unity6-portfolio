@@ -39,20 +39,18 @@ public class ApiIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Register_And_Login_Flow()
+    public async Task GuestLogin_And_GetUserInfo_Flow()
     {
-        string name = "TestUser_" + Guid.NewGuid().ToString()[..8];
-
-        // Register
-        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
+        // Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
         {
-            UserName = name,
-            Password = "TestPassword123!",
+            DeviceFingerprint = "test-device-" + Guid.NewGuid().ToString("N")
         });
-        Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, guestResponse.StatusCode);
 
-        var loginData = await registerResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        var loginData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(loginData?.Token);
+        Assert.True(loginData.IsNewUser);
 
         // Use token to get user info
         using var authClient = _factory.CreateClient();
@@ -64,23 +62,30 @@ public class ApiIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Register_DuplicateName_Returns409()
+    public async Task GuestLogin_SameDevice_ReturnsSameUser()
     {
-        string name = "DupUser_" + Guid.NewGuid().ToString()[..8];
+        string deviceFingerprint = "same-device-" + Guid.NewGuid().ToString("N");
 
-        await _client.PostAsJsonAsync("/api/auth/register", new
+        // First login
+        var firstResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
         {
-            UserName = name,
-            Password = "Password123!",
+            DeviceFingerprint = deviceFingerprint
         });
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+        var firstData = await firstResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.True(firstData?.IsNewUser);
 
-        var response = await _client.PostAsJsonAsync("/api/auth/register", new
+        // Second login with same device
+        var secondResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
         {
-            UserName = name,
-            Password = "Password456!",
+            DeviceFingerprint = deviceFingerprint
         });
+        Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+        var secondData = await secondResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.False(secondData?.IsNewUser);
 
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        // Should be the same user
+        Assert.Equal(firstData?.UserId, secondData?.UserId);
     }
 
     [Fact]
@@ -94,7 +99,7 @@ public class ApiIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task SubmitScore_And_GetRanking()
     {
-        string token = await RegisterAndGetToken("RankPlayer_" + Guid.NewGuid().ToString()[..8]);
+        string token = await GuestLoginAndGetToken();
 
         using var authClient = _factory.CreateClient();
         authClient.DefaultRequestHeaders.Authorization =
@@ -159,13 +164,13 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.Null(unlinkData.Email);
     }
 
-    private async Task<string> RegisterAndGetToken(string userName)
+    private async Task<string> GuestLoginAndGetToken()
     {
-        var response = await _client.PostAsJsonAsync("/api/auth/register", new
+        var response = await _client.PostAsJsonAsync("/api/auth/guest", new
         {
-            UserName = userName,
-            Password = "Password123!",
+            DeviceFingerprint = "score-test-device-" + Guid.NewGuid().ToString("N")
         });
+        response.EnsureSuccessStatusCode();
         var data = await response.Content.ReadFromJsonAsync<LoginResponse>();
         return data!.Token;
     }

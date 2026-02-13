@@ -298,6 +298,19 @@
     margin-top: 16px;
 }
 
+/* Cache Notice Label */
+.cache-notice-label {
+    font-size: 20px;
+    color: rgb(255, 200, 100);
+    -unity-text-align: middle-center;
+    padding: 12px 20px;
+    background-color: rgba(255, 200, 100, 0.12);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 200, 100, 0.3);
+    margin-top: 12px;
+}
+
 /* My Rank Section */
 .my-rank-container {
     flex-shrink: 0;

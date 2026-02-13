@@ -37,6 +37,7 @@ namespace Game.MVP.Survivor.Scenes
         private VisualElement _loadingOverlay;
         private Label _errorLabel;
         private Label _emptyLabel;
+        private Label _cacheNoticeLabel;
         private Button _closeButton;
         private Button _refreshButton;
 
@@ -70,6 +71,7 @@ namespace Game.MVP.Survivor.Scenes
             _loadingOverlay = _root.Q<VisualElement>("loading-overlay");
             _errorLabel = _root.Q<Label>("error-label");
             _emptyLabel = _root.Q<Label>("empty-label");
+            _cacheNoticeLabel = _root.Q<Label>("cache-notice-label");
             _closeButton = _root.Q<Button>("close-button");
             _refreshButton = _root.Q<Button>("refresh-button");
         }
@@ -251,6 +253,27 @@ namespace Game.MVP.Survivor.Scenes
         public void ClearError()
         {
             _errorLabel?.AddToClassList("hidden");
+        }
+
+        /// <summary>
+        /// キャッシュからのデータ表示通知を表示
+        /// </summary>
+        /// <param name="message">表示メッセージ</param>
+        public void ShowCacheNotice(string message)
+        {
+            if (_cacheNoticeLabel != null)
+            {
+                _cacheNoticeLabel.text = message;
+                _cacheNoticeLabel.RemoveFromClassList("hidden");
+            }
+        }
+
+        /// <summary>
+        /// キャッシュ通知を非表示
+        /// </summary>
+        public void HideCacheNotice()
+        {
+            _cacheNoticeLabel?.AddToClassList("hidden");
         }
 
         public override void SetInteractables(bool interactable)

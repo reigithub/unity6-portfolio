@@ -3,6 +3,7 @@ using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Services;
+using Game.Shared.Services.Network;
 using R3;
 using VContainer;
 
@@ -18,6 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IAuthApiService _authApiService;
+        [Inject] private readonly INetworkService _networkService;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -45,6 +47,14 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnDataLinkClicked
                 .Subscribe(_ => OnDataLink().Forget())
                 .AddTo(Disposables);
+
+            // 接続状態監視を設定
+            _networkService.OnConnectivityChanged
+                .Subscribe(connected => SceneComponent.SetConnectionIndicator(connected))
+                .AddTo(Disposables);
+
+            // 初期接続状態を設定
+            SceneComponent.SetConnectionIndicator(_networkService.IsConnected);
         }
 
         public override async UniTask Ready()
@@ -56,6 +66,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnStartGame()
         {
             SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
 
             // セッション有効性を確認し、必要に応じて再認証
@@ -74,11 +85,23 @@ namespace Game.MVP.Survivor.Scenes
         /// <returns>有効なセッションが確立できた場合はtrue</returns>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
+            // オフライン時はローカルセッションで続行可能
+            if (!_networkService.IsConnected)
+            {
+                UnityEngine.Debug.Log("[SurvivorTitleScene] Offline mode - using local session");
+                return true;
+            }
+
             // 未認証の場合はゲストログイン
             if (!_sessionService.IsAuthenticated)
             {
                 var loginResult = await _authApiService.GuestLoginAsync();
-                return loginResult.IsSuccess;
+                if (!loginResult.IsSuccess)
+                {
+                    SceneComponent.ShowError(loginResult.Error?.Message ?? NetworkErrorLocalizer.GetOfflineMessage());
+                    return false;
+                }
+                return true;
             }
 
             // 認証済みの場合はトークンリフレッシュを試行
@@ -92,7 +115,12 @@ namespace Game.MVP.Survivor.Scenes
             // サーバーはデバイスフィンガープリントで既存ユーザーを識別して返す
             UnityEngine.Debug.Log("[SurvivorTitleScene] Token refresh failed, attempting guest login for session recovery");
             var recoveryResult = await _authApiService.GuestLoginAsync();
-            return recoveryResult.IsSuccess;
+            if (!recoveryResult.IsSuccess)
+            {
+                SceneComponent.ShowError(recoveryResult.Error?.Message ?? NetworkErrorLocalizer.GetOfflineMessage());
+                return false;
+            }
+            return true;
         }
 
         private async UniTaskVoid OnReturn()
@@ -119,6 +147,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnDataLink()
         {
             SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
 
             // セッション有効性を確認し、必要に応じて再認証
             if (!await EnsureValidSessionAsync())
