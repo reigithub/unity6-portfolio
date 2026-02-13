@@ -1,0 +1,245 @@
+name: Server Test
+
+# ============================================
+# サーバーテストワークフロー
+# - 単体テスト（xUnit）
+# - 統合テスト（Testcontainers + PostgreSQL）
+# - コードカバレッジレポート
+# ============================================
+
+on:
+  # 手動実行
+  workflow_dispatch:
+
+  # PR 時に自動実行（サーバー関連ファイル変更時）
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/Game.Server/**'
+      - 'src/Game.Shared/**'
+      - 'test/Game.Server.Tests/**'
+      - '.github/workflows/server-test.yml'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # ============================================
+  # 単体テスト（高速・Dockerなし）
+  # ============================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore test/Game.Server.Tests/Game.Server.Tests.csproj
+
+      - name: Build
+        run: dotnet build test/Game.Server.Tests/Game.Server.Tests.csproj --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: |
+          dotnet test test/Game.Server.Tests/Game.Server.Tests.csproj \
+            --no-build \
+            --configuration Release \
+            --filter "FullyQualifiedName!~Integration" \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Unit-Test-Results
+          path: TestResults/
+          retention-days: 7
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: Unit Test Report
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+
+  # ============================================
+  # 統合テスト（Testcontainers + PostgreSQL）
+  # ============================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 単体テスト成功後に実行
+    needs: unit-tests
+
+    services:
+      # Testcontainers が動的に PostgreSQL を起動するため、
+      # ここでの services 定義は不要だが、Docker-in-Docker 用に設定
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore test/Game.Server.Tests/Game.Server.Tests.csproj
+
+      - name: Build
+        run: dotnet build test/Game.Server.Tests/Game.Server.Tests.csproj --no-restore --configuration Release
+
+      - name: Run integration tests
+        run: |
+          dotnet test test/Game.Server.Tests/Game.Server.Tests.csproj \
+            --no-build \
+            --configuration Release \
+            --filter "FullyQualifiedName~Integration" \
+            --logger "trx;LogFileName=integration-test-results.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+        env:
+          # Testcontainers 設定
+          TESTCONTAINERS_RYUK_DISABLED: false
+          DOCKER_HOST: unix:///var/run/docker.sock
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Integration-Test-Results
+          path: TestResults/
+          retention-days: 7
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: Integration Test Report
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+
+  # ============================================
+  # コードカバレッジレポート
+  # ============================================
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: always() && (needs.unit-tests.result == 'success' || needs.integration-tests.result == 'success')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: Unit-Test-Results
+          path: TestResults/Unit
+        continue-on-error: true
+
+      - name: Download integration test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: Integration-Test-Results
+          path: TestResults/Integration
+        continue-on-error: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        run: |
+          # カバレッジファイルを検索
+          coverage_files=$(find TestResults -name "coverage.opencover.xml" -o -name "coverage.cobertura.xml" | tr '\n' ';')
+
+          if [ -n "$coverage_files" ]; then
+            reportgenerator \
+              -reports:"$coverage_files" \
+              -targetdir:CoverageReport \
+              -reporttypes:"Html;MarkdownSummaryGithub;Badges" \
+              -assemblyfilters:"+Game.Server;+Game.Shared" \
+              -classfilters:"-*Migrations*"
+
+            # サマリーを GitHub Step Summary に出力
+            if [ -f "CoverageReport/SummaryGithub.md" ]; then
+              cat CoverageReport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "No coverage files found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Coverage-Report
+          path: CoverageReport/
+          retention-days: 7
+
+  # ============================================
+  # サマリーレポート
+  # ============================================
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, coverage-report]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Server Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Unit Tests
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "| Unit Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.unit-tests.result }}" == "skipped" ]; then
+            echo "| Unit Tests | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Unit Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Integration Tests
+          if [ "${{ needs.integration-tests.result }}" == "success" ]; then
+            echo "| Integration Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.integration-tests.result }}" == "skipped" ]; then
+            echo "| Integration Tests | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Integration Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Coverage Report
+          if [ "${{ needs.coverage-report.result }}" == "success" ]; then
+            echo "| Coverage Report | ✅ Generated |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.coverage-report.result }}" == "skipped" ]; then
+            echo "| Coverage Report | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Coverage Report | ⚠️ Issues |" >> $GITHUB_STEP_SUMMARY
+          fi
