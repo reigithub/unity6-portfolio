@@ -495,5 +495,6 @@ $RECYCLE.BIN/
 *.swp
 
 # Claude
-docs/
+.claude
 CLAUDE.md
+docs/
