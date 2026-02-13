@@ -1,0 +1,82 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Game.Shared.Services.Network.Models;
+
+namespace Game.Shared.Services.Network
+{
+    /// <summary>
+    /// 統一ネットワークサービスのインターフェース
+    /// 接続監視、キャッシュ、リトライを統合
+    /// </summary>
+    public interface INetworkService
+    {
+        /// <summary>
+        /// 現在のネットワーク接続状態
+        /// </summary>
+        bool IsConnected { get; }
+
+        /// <summary>
+        /// 接続状態変更時のイベント
+        /// </summary>
+        IObservable<bool> OnConnectivityChanged { get; }
+
+        /// <summary>
+        /// GETリクエストを送信
+        /// </summary>
+        /// <typeparam name="T">レスポンスの型</typeparam>
+        /// <param name="endpoint">APIエンドポイント</param>
+        /// <param name="options">リクエストオプション</param>
+        /// <param name="cancellationToken">キャンセルトークン</param>
+        /// <returns>ネットワーク結果</returns>
+        UniTask<NetworkResult<T>> GetAsync<T>(
+            string endpoint,
+            RequestOptions options = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// POSTリクエストを送信
+        /// </summary>
+        /// <typeparam name="TRequest">リクエストの型</typeparam>
+        /// <typeparam name="TResponse">レスポンスの型</typeparam>
+        /// <param name="endpoint">APIエンドポイント</param>
+        /// <param name="body">リクエストボディ</param>
+        /// <param name="options">リクエストオプション</param>
+        /// <param name="cancellationToken">キャンセルトークン</param>
+        /// <returns>ネットワーク結果</returns>
+        UniTask<NetworkResult<TResponse>> PostAsync<TRequest, TResponse>(
+            string endpoint,
+            TRequest body,
+            RequestOptions options = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// DELETEリクエストを送信
+        /// </summary>
+        /// <typeparam name="T">レスポンスの型</typeparam>
+        /// <param name="endpoint">APIエンドポイント</param>
+        /// <param name="options">リクエストオプション</param>
+        /// <param name="cancellationToken">キャンセルトークン</param>
+        /// <returns>ネットワーク結果</returns>
+        UniTask<NetworkResult<T>> DeleteAsync<T>(
+            string endpoint,
+            RequestOptions options = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 認証トークンを設定
+        /// </summary>
+        /// <param name="token">Bearer トークン</param>
+        void SetAuthToken(string token);
+
+        /// <summary>
+        /// 認証トークンをクリア
+        /// </summary>
+        void ClearAuthToken();
+
+        /// <summary>
+        /// キャッシュをクリア
+        /// </summary>
+        UniTask ClearCacheAsync();
+    }
+}

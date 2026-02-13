@@ -6,6 +6,11 @@ using Game.MVP.Survivor.Signals;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
+using Game.Shared.Services.Network;
+using Game.Shared.Services.Network.Cache;
+using Game.Shared.Services.Network.Connectivity;
+using Game.Shared.Services.Network.Policies;
+using Game.Shared.Services.Network.Queue;
 using VContainer;
 using VContainer.Unity;
 using AudioSaveService = Game.Shared.SaveData.AudioSaveService;
@@ -63,6 +68,15 @@ namespace Game.MVP.Survivor
             builder.Register<SessionService>(Lifetime.Singleton).As<ISessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
+
+            // Network Services
+            builder.Register<ConnectivityChecker>(Lifetime.Singleton).As<IConnectivityChecker>();
+            builder.Register<MemoryResponseCache>(Lifetime.Singleton).As<IResponseCache>();
+            builder.Register<NetworkService>(Lifetime.Singleton).As<INetworkService>();
+
+            // Network Services
+            builder.RegisterInstance(CircuitBreakerPolicy.Default);
+            builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
