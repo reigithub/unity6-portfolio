@@ -1,7 +1,7 @@
 # Unity6Portfolio アーキテクチャ設計書
 
-**バージョン**: 1.5
-**最終更新**: 2026年2月13日
+**バージョン**: 1.6
+**最終更新**: 2026年2月14日
 
 ---
 
@@ -1021,7 +1021,72 @@ Google Cloud Platform
     └── Cloud Run → Memorystore 接続
 ```
 
-### 7.6 イベントフロー（MessagePipe）
+### 7.6 ネットワーク層アーキテクチャ
+
+クライアント側のネットワーク通信は責務を明確に分離した設計:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 Network Layer Architecture                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              INetworkService（ゲートウェイ）               │   │
+│  │  ├── IsConnected: 接続状態監視                           │   │
+│  │  ├── CanExecute: サーキットブレーカー状態                 │   │
+│  │  ├── OnConnectivityChanged: 接続変更通知                 │   │
+│  │  ├── OnCircuitStateChanged: サーキットブレーカー通知      │   │
+│  │  ├── RecordSuccess() / RecordFailure(): 状態更新         │   │
+│  │  └── ResetCircuitBreaker(): 手動リセット                  │   │
+│  │                                                           │   │
+│  │  ※ API通信は行わない（IApiClientの責務）                   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              ▲                                  │
+│                              │ 注入                             │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  IApiClient (UnityApiClient)              │   │
+│  │  ├── INetworkService: 接続検証、サーキットブレーカー通知   │   │
+│  │  ├── IResponseCache: レスポンスキャッシュ                 │   │
+│  │  │                                                       │   │
+│  │  │ 通信前: IsConnected && CanExecute を検証              │   │
+│  │  │ 通信後: RecordSuccess() / RecordFailure() を呼び出し  │   │
+│  │  │ GET: RequestOptionsに応じてキャッシュ対応              │   │
+│  │  │ オフライン: FallbackToCacheでキャッシュから返却        │   │
+│  │  └── HTTP通信、リトライ処理                               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              ▲                                  │
+│                              │ 注入                             │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    APIサービス層                           │   │
+│  │  AuthApiService, SurvivorScoreApiService 等               │   │
+│  │  → IApiClientのみ使用（INetworkService不要）               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+※ UI層（SurvivorTitleScene等）は接続状態表示用にINetworkServiceを直接使用
+```
+
+#### サーキットブレーカー状態
+
+| 状態 | 説明 | CanExecute |
+|-----|------|------------|
+| Closed | 正常状態、リクエスト可能 | true |
+| Open | 障害検出、リクエスト遮断 | false |
+| HalfOpen | 回復確認中、試験リクエスト許可 | true |
+
+#### 関連クラス
+
+| クラス | 役割 |
+|-------|------|
+| `INetworkService` | ネットワーク接続状態 + サーキットブレーカー管理 |
+| `NetworkService` | INetworkService実装（IConnectivityChecker + CircuitBreakerPolicy） |
+| `IApiClient` | HTTP通信インターフェース |
+| `UnityApiClient` | HTTP通信実装（INetworkService + IResponseCache注入） |
+| `CircuitBreakerPolicy` | サーキットブレーカーポリシー（閾値、Open期間） |
+| `IConnectivityChecker` | 接続状態監視インターフェース |
+
+### 7.7 イベントフロー（MessagePipe）
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1437,6 +1502,7 @@ GitHub Actions を使用した自動化パイプラインを構築していま�
 | `unity-test.yml` | PR | PR用テスト |
 | `code-quality.yml` | push/PR (*.cs) | フォーマット・静的解析 |
 | `pr-review.yml` | PR | 自動レビューコメント |
+| `server-test.yml` | push/PR, 手動 | サーバーテスト（単体 + 統合 + カバレッジ） |
 
 ### 10.3 コード品質管理
 
@@ -1462,7 +1528,11 @@ Unity6Portfolio/
 |---------|---------|------|
 | EditMode | 422 | ユニットテスト（Service, Model, Extension） |
 | PlayMode | 63 | 統合テスト（Scene, Input, UI） |
-| **合計** | **485** | |
+| **クライアント合計** | **485** | |
+| サーバー単体テスト | 46 | Service, Repository テスト |
+| サーバー統合テスト | 10 | API統合テスト（Testcontainers + PostgreSQL） |
+| **サーバー合計** | **56** | |
+| **全体合計** | **541** | |
 
 ---
 

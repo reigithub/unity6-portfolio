@@ -186,7 +186,7 @@ dotnet test
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
 * **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
 * **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
-* **CI/CD**: GitHub Actions + Docker による自動テスト（485テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
+* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント485 + サーバー56 = 541テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -480,9 +480,14 @@ GameEnvironment設定に応じてAddressablesのアセット配信元を切り�
 GitHub Actions + Docker による自動化パイプライン:
 
 **テスト自動化:**
-- EditMode テスト: 422件
-- PlayMode テスト: 63件
-- 合計: 485テスト（全パス）
+
+| カテゴリ | テスト数 | 内容 |
+|---------|---------|------|
+| クライアント EditMode | 422 | ユニットテスト |
+| クライアント PlayMode | 63 | 統合テスト |
+| サーバー単体テスト | 46 | Service, Repositoryテスト |
+| サーバー統合テスト | 10 | API統合テスト（Testcontainers） |
+| **合計** | **541** | 全パス |
 
 **ワークフロー:**
 
@@ -491,6 +496,7 @@ GitHub Actions + Docker による自動化パイプライン:
 | unity-ci-docker.yml | push/PR | メインCI（Docker/Linux） |
 | unity-test.yml | PR | PR用テスト |
 | code-quality.yml | push/PR | フォーマット・静的解析 |
+| server-test.yml | push/PR, 手動 | サーバーテスト + カバレッジ |
 
 **キャッシュ最適化:**
 - Unity Accelerator によるライブラリキャッシュ
@@ -574,6 +580,8 @@ Unity6Portfolio/
   - イテレーション数: 10,000
   - CPU実行時間が約40%削減、ゼロアロケーション化、メモリ使用量100%削減
 
+![パフォーマンステスト](src/Game.Client/Documentation/Screenshots/GameSceneServicePerformanceTests.png)
+
 </details>
 
 <details><summary>ステートマシーン</summary>
@@ -645,7 +653,7 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約7週間 (2026/2/13時点)
+* 約7週間 (2026/2/14時点)
 
 ---
 
