@@ -44,8 +44,11 @@ namespace Game.MVP.Survivor
             // builder.Register<ScopedServiceContainer>(Lifetime.Singleton).As<IScopedServiceContainer>();
             // builder.RegisterEntryPoint<TickableService>().As<ITickableService>();
 
-            // Save Data Storage（共通のセーブデータI/O）
-            builder.Register<SaveDataStorage>(Lifetime.Singleton).As<ISaveDataStorage>();
+            // Save Data Storage（共通のセーブデータI/O、暗号化デコレーター付き）
+            builder.Register<SaveDataStorage>(Lifetime.Singleton);
+            builder.Register<ISaveDataStorage>(
+                resolver => new EncryptedSaveDataStorage(resolver.Resolve<SaveDataStorage>()),
+                Lifetime.Singleton);
 
             // Persistent Object Provider（ゲーム起動時に生成される永続オブジェクトを保持）
             builder.Register<PersistentObjectProvider>(Lifetime.Singleton).As<IPersistentObjectProvider>();
