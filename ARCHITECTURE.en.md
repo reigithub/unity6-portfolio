@@ -251,10 +251,10 @@ Master data definitions are separated into a shared library, achieving the follo
           └─────────────────┘
                     │
                     ▼
-          ┌─────────────────┐
-          │  Unity6Library  │
-          │(MasterMemory etc)│
-          └─────────────────┘
+          ┌─────────────────────┐
+          │  Game.Library.Shared │
+          │  (MasterMemory etc)  │
+          └─────────────────────┘
 ```
 
 ### 4.2 Assembly Details
