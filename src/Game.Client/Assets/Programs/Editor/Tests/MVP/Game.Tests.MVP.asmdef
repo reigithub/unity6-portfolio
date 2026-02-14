@@ -22,7 +22,9 @@
     "precompiledReferences": [
         "nunit.framework.dll",
         "NSubstitute.dll",
-        "R3.dll"
+        "R3.dll",
+        "MasterMemory.dll",
+        "MessagePack.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

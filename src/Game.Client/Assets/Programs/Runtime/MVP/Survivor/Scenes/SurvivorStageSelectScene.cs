@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.MVP.Survivor.Scenes.ViewModels;
 using Game.Shared.Services;
 using R3;
 using VContainer;
@@ -20,6 +20,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISurvivorSaveService _saveService;
+
+        private readonly StageSelectSceneViewModel _viewModel = new();
 
         protected override string AssetPathOrAddress => "SurvivorStageSelectScene";
 
@@ -64,20 +66,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             var stages = _masterDataService.MemoryDatabase.SurvivorStageMasterTable.All;
             var saveData = _saveService.Data;
-
-            return stages
-                .OrderBy(s => s.Id)
-                .Select(stage => new StageSelectItemData
-                {
-                    StageId = stage.Id,
-                    StageName = stage.Name,
-                    Description = stage.Description,
-                    Difficulty = stage.Difficulty,
-                    TimeLimit = stage.TimeLimit,
-                    IsUnlocked = saveData.UnlockedStageIds.Contains(stage.Id),
-                    Record = saveData.StageRecords.GetValueOrDefault(stage.Id)
-                })
-                .ToList();
+            return _viewModel.BuildStageItems(stages, saveData);
         }
 
         private async UniTaskVoid OnStageSelected(int stageId)
