@@ -1,0 +1,31 @@
+{
+    "name": "Game.Tests.MVP.ECS",
+    "rootNamespace": "Game.Tests.MVP.ECS",
+    "references": [
+        "Game.MVP.Survivor.ECS",
+        "Game.MVP.Survivor",
+        "Game.Shared",
+        "Game.Tests.Shared",
+        "Unity.Entities",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Transforms"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "R3.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
