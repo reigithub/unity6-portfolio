@@ -168,6 +168,11 @@ dotnet test
               ┌─────────────────────────────┐
               │         Game.Shared         │
               │  (共通ユーティリティ/DTO)    │
+              └──────────────┬──────────────┘
+                             ↓
+              ┌─────────────────────────────┐
+              │     Game.Library.Shared     │
+              │      (MasterMemory等)       │
               └─────────────────────────────┘
 ```
 
@@ -210,12 +215,13 @@ dotnet test
 
 | アセンブリ | 役割 | 依存関係 |
 |-----------|------|---------|
-| Game.Shared | 共通ユーティリティ、インターフェース、DTO | なし（最下層） |
-| Game.App | エントリーポイント、ゲームモード選択 | Shared, MVC.*, MVP.* |
+| Game.Library.Shared | 共有ライブラリ（Unity/サーバー共用） | MasterMemory, MessagePack |
+| Game.Shared | 共通ユーティリティ、インターフェース、DTO | Game.Library.Shared |
+| Game.App | エントリーポイント、ゲームモード選択 | Shared, MVC.Core, MVC.ScoreTimeAttack, MVP.Core |
 | Game.MVC.Core | MVCパターン基盤、GameServiceManager | Shared |
-| Game.MVC.ScoreTimeAttack | タイムアタックゲーム実装 | Shared, MVC.Core |
+| Game.MVC.ScoreTimeAttack | タイムアタックゲーム実装 | MVC.Core, Game.Client.MasterData |
 | Game.MVP.Core | MVPパターン基盤、VContainer | Shared |
-| Game.MVP.Survivor | サバイバーゲーム実装 | Shared, MVP.Core |
+| Game.MVP.Survivor | サバイバーゲーム実装 | MVP.Core, VContainer |
 | **Game.Server** | ASP.NET Core API サーバー | Shared |
 
 </details>
@@ -489,11 +495,11 @@ GitHub Actions + Docker による自動化パイプライン:
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| クライアント EditMode | 422 | ユニットテスト |
+| クライアント EditMode | 710 | ユニットテスト |
 | クライアント PlayMode | 63 | 統合テスト |
 | サーバー単体テスト | 46 | Service, Repositoryテスト |
 | サーバー統合テスト | 10 | API統合テスト（Testcontainers） |
-| **合計** | **541** | 全パス |
+| **合計** | **829** | 全パス |
 
 **ワークフロー:**
 

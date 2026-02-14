@@ -13,7 +13,7 @@
         "MessagePipe.Unity",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "Unity6Library",
+        "Game.Library.Shared",
         "Unity.TextMeshPro",
         "DOTween.Modules"
     ],

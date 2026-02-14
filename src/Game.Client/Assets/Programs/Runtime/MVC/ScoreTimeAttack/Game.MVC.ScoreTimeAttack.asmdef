@@ -10,7 +10,7 @@
         "MessagePipe.Unity",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "Unity6Library",
+        "Game.Library.Shared",
         "Game.Client.MasterData",
         "Unity.TextMeshPro",
         "DOTween.Modules",

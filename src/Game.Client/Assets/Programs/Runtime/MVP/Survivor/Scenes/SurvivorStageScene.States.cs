@@ -4,6 +4,7 @@ using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Weapon;
+using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Services;

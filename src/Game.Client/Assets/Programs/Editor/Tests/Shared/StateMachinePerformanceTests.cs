@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Game.Library.Shared;
 using Game.Shared;
 using NUnit.Framework;
 using Unity.Profiling;

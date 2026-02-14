@@ -223,38 +223,46 @@ Master data definitions are separated into a shared library, achieving the follo
 ### 4.1 Assembly Dependency Diagram
 
 ```
-                    ┌─────────────────┐
-                    │    Game.App     │
-                    │ (Startup Ctrl)  │
-                    └────────┬────────┘
+                    ┌──────────────────┐
+                    │     Game.App     │
+                    │  (Startup Ctrl)  │
+                    └────────┬─────────┘
                              │
             ┌────────────────┼────────────────┐
             │                │                │
-            ▼                ▼                ▼
-┌───────────────────┐ ┌───────────────┐ ┌───────────────────┐
-│Game.MVC.ScoreTime │ │ Game.MVP.Core │ │ Game.MVP.Survivor │
-│      Attack       │ │  (VContainer) │ │  (Game Impl)      │
-└─────────┬─────────┘ └───────┬───────┘ └─────────┬─────────┘
-          │                   │                   ▲
-          ▼                   │                   │ depends on
-┌───────────────────┐         │        ┌──────────┴──────────┐
-│  Game.MVC.Core    │         │        │Game.MVP.Survivor.ECS│
-│  (MessagePipe)    │         │        │  (DOTS: Burst/Jobs) │
-└─────────┬─────────┘         │        └──────────┬──────────┘
-          │                   │                   │
-          └─────────┬─────────┴───────────────────┘
+            ▼                ▼                │
+┌───────────────────┐ ┌───────────────┐       │
+│Game.MVC.ScoreTime │ │ Game.MVP.Core │       │
+│      Attack       │ │  (VContainer) │       │
+└─────────┬─────────┘ └───────┬───────┘       │
+          │                   │               │
+          ▼                   │               │
+┌───────────────────┐         │   ┌───────────────────┐
+│  Game.MVC.Core    │         │   │ Game.MVP.Survivor │
+│  (MessagePipe)    │         │   │   (Game Impl)     │
+└─────────┬─────────┘         │   └─────────┬─────────┘
+          │                   │             ▲│
+          │                   │   depends on││
+          │                   │   ┌─────────┘│
+          │                   │   │          │
+          │                   │ ┌─┴────────────────────┐
+          │                   │ │Game.MVP.Survivor.ECS │
+          │                   │ │  (DOTS: Burst/Jobs)  │
+          │                   │ └──────────┬───────────┘
+          │                   │            │
+          └─────────┬─────────┴────────────┘
                     │
                     ▼
-          ┌─────────────────┐
-          │   Game.Shared   │
-          │ (Common Found.) │
-          └─────────────────┘
-                    │
-                    ▼
-          ┌─────────────────┐
-          │  Unity6Library  │
-          │(MasterMemory etc)│
-          └─────────────────┘
+          ┌─────────────────────┐
+          │     Game.Shared     │
+          │   (Common Found.)   │
+          └──────────┬──────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Game.Library.Shared │
+          │  (MasterMemory etc)  │
+          └─────────────────────┘
 ```
 
 ### 4.2 Assembly Details
@@ -263,21 +271,22 @@ Master data definitions are separated into a shared library, achieving the follo
 
 | Assembly | Role | Key Dependencies |
 |----------|------|-----------------|
-| **Game.Shared** | Common foundation and interface definitions | UniTask, R3, MessagePipe, Addressables |
+| **Game.Library.Shared** | Shared library (Unity/server) | MasterMemory, MessagePack |
+| **Game.Shared** | Common foundation and interface definitions | Game.Library.Shared, UniTask, R3, MessagePipe, Addressables |
 | **Game.MVC.Core** | MVC pattern foundation | Game.Shared, MessagePipe.Unity |
-| **Game.MVC.ScoreTimeAttack** | Score attack game implementation | Game.MVC.Core, UnityChan |
+| **Game.MVC.ScoreTimeAttack** | Score attack game implementation | Game.MVC.Core, Game.Client.MasterData, UnityChan, InputSystem, Cinemachine |
 | **Game.MVP.Core** | MVP pattern foundation | Game.Shared, VContainer, MessagePipe.VContainer |
-| **Game.MVP.Survivor** | Survivor game implementation | Game.MVP.Core, AI.Navigation, Cinemachine |
+| **Game.MVP.Survivor** | Survivor game implementation | Game.MVP.Core, VContainer, AI.Navigation, Cinemachine |
 | **Game.MVP.Survivor.ECS** | ECS enemy system (DOTS parallel processing) | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
-| **Game.App** | Application startup control | References all assemblies |
+| **Game.App** | Application startup control | Game.Shared, Game.MVC.Core, Game.MVC.ScoreTimeAttack, Game.MVP.Core |
 
 #### Test Assemblies
 
 | Assembly | Role | Test Count |
 |----------|------|------------|
-| **Game.Tests.Shared** | Shared layer unit tests | 100+ |
-| **Game.Tests.MVC** | MVC layer unit tests | 150+ |
-| **Game.Tests.MVP** | MVP layer unit tests | 170+ |
+| **Game.Tests.Shared** | Shared layer unit tests | 351 |
+| **Game.Tests.MVC** | MVC layer unit tests | 160 |
+| **Game.Tests.MVP** | MVP layer unit tests | 166 |
 | **Game.Tests.MVP.ECS** | ECS system functional and performance tests | 33 |
 | **Game.Tests.PlayMode** | Integration and PlayMode tests | 63 |
 

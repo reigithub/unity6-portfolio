@@ -10,7 +10,7 @@
         "R3.Unity",
         "MessagePipe",
         "Unity.ResourceManager",
-        "Unity6Library"
+        "Game.Library.Shared"
     ],
     "includePlatforms": [
         "Editor"

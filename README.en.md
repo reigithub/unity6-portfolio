@@ -169,6 +169,11 @@ dotnet test
               ┌─────────────────────────────┐
               │         Game.Shared         │
               │  (Common Utilities / DTO)   │
+              └──────────────┬──────────────┘
+                             ↓
+              ┌─────────────────────────────┐
+              │     Game.Library.Shared     │
+              │     (MasterMemory etc)      │
               └─────────────────────────────┘
 ```
 
@@ -211,12 +216,13 @@ dotnet test
 
 | Assembly | Role | Dependencies |
 |----------|------|--------------|
-| Game.Shared | Common utilities, interfaces, DTOs | None (bottom layer) |
-| Game.App | Entry point, game mode selection | Shared, MVC.*, MVP.* |
+| Game.Library.Shared | Shared library (Unity/server) | MasterMemory, MessagePack |
+| Game.Shared | Common utilities, interfaces, DTOs | Game.Library.Shared |
+| Game.App | Entry point, game mode selection | Shared, MVC.Core, MVC.ScoreTimeAttack, MVP.Core |
 | Game.MVC.Core | MVC pattern foundation, GameServiceManager | Shared |
-| Game.MVC.ScoreTimeAttack | Time attack game implementation | Shared, MVC.Core |
+| Game.MVC.ScoreTimeAttack | Time attack game implementation | MVC.Core, Game.Client.MasterData |
 | Game.MVP.Core | MVP pattern foundation, VContainer | Shared |
-| Game.MVP.Survivor | Survivor game implementation | Shared, MVP.Core |
+| Game.MVP.Survivor | Survivor game implementation | MVP.Core, VContainer |
 | **Game.Server** | ASP.NET Core API Server | Shared |
 
 </details>
@@ -489,11 +495,11 @@ Automated pipeline with GitHub Actions + Docker:
 
 | Category | Test Count | Content |
 |----------|------------|---------|
-| Client EditMode | 422 | Unit tests |
+| Client EditMode | 710 | Unit tests |
 | Client PlayMode | 63 | Integration tests |
 | Server Unit Tests | 46 | Service, Repository tests |
 | Server Integration Tests | 10 | API integration tests (Testcontainers) |
-| **Total** | **541** | All passing |
+| **Total** | **829** | All passing |
 
 **Workflows:**
 | Workflow | Trigger | Purpose |

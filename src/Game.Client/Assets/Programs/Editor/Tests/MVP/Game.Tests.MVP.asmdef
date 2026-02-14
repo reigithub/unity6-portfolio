@@ -10,7 +10,7 @@
         "R3.Unity",
         "MessagePipe",
         "VContainer",
-        "Unity6Library",
+        "Game.Library.Shared",
         "Game.Client.MasterData"
     ],
     "includePlatforms": [

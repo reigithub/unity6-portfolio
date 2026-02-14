@@ -2,7 +2,7 @@
     "name": "Game.Shared",
     "rootNamespace": "Game.Shared",
     "references": [
-        "Unity6Library",
+        "Game.Library.Shared",
         "UniTask",
         "UniTask.Addressables",
         "UniTask.DOTween",

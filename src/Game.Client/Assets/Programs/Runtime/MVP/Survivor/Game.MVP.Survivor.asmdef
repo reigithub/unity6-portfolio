@@ -4,7 +4,7 @@
     "references": [
         "Game.Shared",
         "Game.MVP.Core",
-        "Unity6Library",
+        "Game.Library.Shared",
         "Unity.Addressables",
         "Unity.InputSystem",
         "Unity.TextMeshPro",

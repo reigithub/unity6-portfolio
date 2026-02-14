@@ -3,7 +3,7 @@
     "rootNamespace": "Game.MVP.Core",
     "references": [
         "Game.Shared",
-        "Unity6Library",
+        "Game.Library.Shared",
         "UniTask",
         "UniTask.Addressables",
         "UniTask.DOTween",
