@@ -2,8 +2,8 @@
 
 [日本語版はこちら](ARCHITECTURE.md)
 
-**Version**: 1.6
-**Last Updated**: February 14, 2026
+**Version**: 1.7
+**Last Updated**: February 15, 2026
 
 ---
 
@@ -179,7 +179,8 @@ Unity6Portfolio/
 ├── docker/
 │   ├── unity-accelerator/  # Unity Accelerator cache server
 │   ├── unity-ci/           # Unity CI Runner (Docker + GitHub Actions)
-│   └── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
+│   ├── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
+│   └── migrate/            # DB Migration Runner (FluentMigrator)
 ├── scripts/                # Build and format scripts
 └── .github/
     └── workflows/          # GitHub Actions
@@ -234,12 +235,12 @@ Master data definitions are separated into a shared library, achieving the follo
 │Game.MVC.ScoreTime │ │ Game.MVP.Core │ │ Game.MVP.Survivor │
 │      Attack       │ │  (VContainer) │ │  (Game Impl)      │
 └─────────┬─────────┘ └───────┬───────┘ └─────────┬─────────┘
-          │                   │                   │
-          ▼                   │                   │
-┌───────────────────┐         │                   │
-│  Game.MVC.Core    │         │                   │
-│  (MessagePipe)    │         │                   │
-└─────────┬─────────┘         │                   │
+          │                   │                   ▲
+          ▼                   │                   │ depends on
+┌───────────────────┐         │        ┌──────────┴──────────┐
+│  Game.MVC.Core    │         │        │Game.MVP.Survivor.ECS│
+│  (MessagePipe)    │         │        │  (DOTS: Burst/Jobs) │
+└─────────┬─────────┘         │        └──────────┬──────────┘
           │                   │                   │
           └─────────┬─────────┴───────────────────┘
                     │
@@ -267,6 +268,7 @@ Master data definitions are separated into a shared library, achieving the follo
 | **Game.MVC.ScoreTimeAttack** | Score attack game implementation | Game.MVC.Core, UnityChan |
 | **Game.MVP.Core** | MVP pattern foundation | Game.Shared, VContainer, MessagePipe.VContainer |
 | **Game.MVP.Survivor** | Survivor game implementation | Game.MVP.Core, AI.Navigation, Cinemachine |
+| **Game.MVP.Survivor.ECS** | ECS enemy system (DOTS parallel processing) | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
 | **Game.App** | Application startup control | References all assemblies |
 
 #### Test Assemblies
@@ -276,9 +278,10 @@ Master data definitions are separated into a shared library, achieving the follo
 | **Game.Tests.Shared** | Shared layer unit tests | 100+ |
 | **Game.Tests.MVC** | MVC layer unit tests | 150+ |
 | **Game.Tests.MVP** | MVP layer unit tests | 170+ |
+| **Game.Tests.MVP.ECS** | ECS system functional and performance tests | 33 |
 | **Game.Tests.PlayMode** | Integration and PlayMode tests | 63 |
 
-**Total Test Count**: 485 tests (EditMode 422 + PlayMode 63)
+**Total Test Count**: 773 tests (EditMode 710 + PlayMode 63)
 
 #### Server and Tools Assemblies (.NET 9)
 
@@ -288,6 +291,16 @@ Master data definitions are separated into a shared library, achieving the follo
 | **Game.Tools** | CLI tools (master data management, etc.) | ConsoleAppFramework, Google.Protobuf, MasterMemory |
 | **Game.Client.Linked** | Client MemoryTable reference bridge | MasterMemory, MessagePack |
 | **Game.Shared** | Shared library (.NET version) | MasterMemory, MessagePack |
+
+#### Server Endpoint Structure
+
+| Controller | Endpoint | Role |
+|------------|----------|------|
+| **AuthController** | POST /api/auth/* | Guest login, email linking, transfer |
+| **UsersController** | GET/PUT /api/users/* | User info retrieval and update |
+| **SurvivorScoresController** | POST /api/survivor/scores | Score submission |
+| **RankingsController** | GET /api/survivor/rankings/* | Ranking retrieval, own rank |
+| **HealthController** | GET /api/health | Health check |
 
 ### 4.3 Circular Reference Prevention Design
 
@@ -1329,6 +1342,41 @@ The client-side network communication is designed with clear separation of respo
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 8.5 MVP ViewModel / Model Pattern
+
+On the MVP pattern side, ViewModel (presentation logic) and Model (domain state and business logic) are separated to prevent Presenter bloat.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  MVP ViewModel / Model                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────┐                                       │
+│  │     Presenter         │                                       │
+│  │  (Scene control)      │                                       │
+│  └──────┬──────┬─────────┘                                       │
+│         │      │                                                 │
+│         ▼      ▼                                                 │
+│  ┌────────────┐  ┌────────────────────┐                         │
+│  │  ViewModel │  │      Model         │                         │
+│  │ (Display   │  │  (Domain state)    │                         │
+│  │  logic)    │  │                    │                         │
+│  ├────────────┤  ├────────────────────┤                         │
+│  │Stateless   │  │DI injectable      │                         │
+│  │Pure funcs  │  │State + biz logic  │                         │
+│  └────────────┘  └────────────────────┘                         │
+│                                                                 │
+│  [ViewModel Examples]                                           │
+│  StageSelectSceneViewModel  - Stage select UI computation      │
+│  TotalResultSceneViewModel  - Result screen display logic      │
+│  AccountLinkDialogViewModel - Account link dialog display      │
+│                                                                 │
+│  [Model Examples]                                               │
+│  SurvivorStageModel - Stage progress (exp, level, score)       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 9. Sequence Diagrams
@@ -1479,7 +1527,7 @@ An automated pipeline is built using GitHub Actions.
 │  │ Code Quality │───▶│  Unit Tests  │───▶│ Integration  │       │
 │  │    Check     │    │  (EditMode)  │    │   Tests      │       │
 │  └──────────────┘    └──────────────┘    │ (PlayMode)   │       │
-│    - .editorconfig      - 422 tests      └──────────────┘       │
+│    - .editorconfig      - 710 tests      └──────────────┘       │
 │    - Roslyn Analyzer                       - 63 tests           │
 │    - Format Check                                                │
 │                                                                  │
@@ -1510,6 +1558,8 @@ An automated pipeline is built using GitHub Actions.
 | `code-quality.yml` | push/PR (*.cs) | Format and static analysis |
 | `pr-review.yml` | PR | Automated review comments |
 | `server-test.yml` | push/PR, manual | Server tests (unit + integration + coverage) |
+| `addressables-deploy.yml` | manual | Addressables build & Cloudflare R2 deploy (multi-platform) |
+| `unity-build.yml` | manual | Multi-platform build (WebGL GitHub Pages deploy support) |
 
 ### 10.3 Code Quality Management
 
@@ -1533,13 +1583,13 @@ Unity6Portfolio/
 
 | Category | Test Count | Content |
 |----------|-----------|---------|
-| EditMode | 422 | Unit tests (Service, Model, Extension) |
+| EditMode | 710 | Unit tests (Service, Model, Extension, ECS) |
 | PlayMode | 63 | Integration tests (Scene, Input, UI) |
-| **Client Total** | **485** | |
+| **Client Total** | **773** | |
 | Server unit tests | 46 | Service, Repository tests |
 | Server integration tests | 10 | API integration tests (Testcontainers + PostgreSQL) |
 | **Server Total** | **56** | |
-| **Grand Total** | **541** | |
+| **Grand Total** | **829** | |
 
 ---
 
@@ -1591,12 +1641,23 @@ Unity6Portfolio/
 | **Impact** | High-frequency events (collisions, etc.) have been changed to direct calls |
 | **Status** | Adopted and improvement completed |
 
+#### ADR-005: ECS Enemy System (Hybrid DOTS)
+
+| Item | Details |
+|------|---------|
+| **Decision** | Parallelize enemy spawn, movement, AI, and damage processing with ECS + Jobs + Burst |
+| **Context** | Needed to demonstrate Unity 6 generation DOTS expertise and adaptability to large-scale titles |
+| **Alternatives** | A) Full ECS conversion B) Hybrid ECS (logic in ECS + rendering in GameObject) C) MonoBehaviour only |
+| **Rationale** | Animator and VFX depend on GameObjects. Hybrid approach is the industry-standard practical method |
+| **Impact** | Up to 20.3x speedup in spawn position calculation. A/B comparison via Inspector toggle |
+| **Status** | Adopted |
+
 ### 11.2 Known Technical Debt
 
 | Item | Details | Priority | Status |
 |------|---------|----------|--------|
 | ~~Excessive MessageBroker usage~~ | ~~Publish in OnTriggerEnter, etc.~~ | ~~Medium~~ | Resolved |
-| ~~Test coverage~~ | ~~Currently about 20%~~ | ~~High~~ | 485 tests achieved |
+| ~~Test coverage~~ | ~~Currently about 20%~~ | ~~High~~ | 773 tests achieved |
 | ~~XML documentation~~ | ~~Partially missing~~ | ~~Low~~ | Major interfaces completed |
 | ~~Asset delivery~~ | ~~Local only~~ | ~~Medium~~ | Local/remote auto-switching |
 | ~~Network features~~ | ~~Server communication not implemented~~ | ~~High~~ | Ranking and auth completed |
@@ -1604,7 +1665,7 @@ Unity6Portfolio/
 
 **Resolved Items**:
 - MessageBroker: Changed to direct calls via IPlayerCollisionHandler
-- Tests: EditMode 422 + PlayMode 63 = 485 tests
+- Tests: EditMode 710 + PlayMode 63 = 773 tests
 - XML documentation: Added to major interfaces and extension methods
 - Profiler markers: 27 markers added
 - Custom exceptions: 7 classes added
@@ -1612,6 +1673,7 @@ Unity6Portfolio/
 - CI/CD: Unity Accelerator cache, asset cache optimization (2026/02)
 - Ranking system: Valkey cache, Cloud Run production deployment (2026/02)
 - Addressables sync: Editor auto-sync system for team development (2026/02)
+- ECS enemy system: DOTS (Entities + Jobs + Burst) hybrid implementation, up to 20.3x speedup in spawn calculation (2026/02)
 
 ---
 

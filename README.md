@@ -185,13 +185,14 @@ dotnet test
 * **戦闘システム**: ICombatTarget/IDamageable/IKnockbackableによる統一的な戦闘インターフェース
 * **武器システム**: 自動発射・地面設置型武器、汎用オブジェクトプール（WeaponObjectPool<T>）
 * **敵AIシステム**: ステートマシン駆動（Idle/Chase/Attack/HitStun/Death）、ウェーブスポーン
+* **ECS敵システム**: Unity DOTS（Entities + Jobs + Burst）によるハイブリッドECS実装、MonoBehaviour版とのInspector切り替え対応
 * **アイテムシステム**: ドロップ抽選、吸引機能、オブジェクトプーリング
 * **ロックオンシステム**: 自動ターゲット追跡、射程管理
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
 * **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
 * **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
-* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント485 + サーバー56 = 541テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
+* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント773 + サーバー56 = 829テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -615,6 +616,27 @@ Unity6Portfolio/
 
 </details>
 
+<details><summary>ECS敵スポーン位置計算（Sequential vs Burst並列Job）</summary>
+
+* スポーン位置のバッチ計算をECS + Jobs + Burstで並列化
+  - 敵数が増加するほどBurst並列Jobの効果が顕著
+  - 5,000体で最大20.3倍の高速化を達成
+
+  | 敵数 | MonoBehaviour (逐次) | ECS+Burst (並列) | 高速化倍率 |
+  |:-----|--------------------:|------------------:|---------:|
+  | 100 | 7.37ms | 6.73ms | 1.10x |
+  | 500 | 37.55ms | 17.61ms | 2.13x |
+  | 1,000 | 75.48ms | 13.81ms | 5.47x |
+  | 2,000 | 156.18ms | 14.06ms | 11.11x |
+  | 5,000 | 376.47ms | 18.53ms | 20.31x |
+
+* 計測条件
+  - 反復回数: 1,000フレーム（ウォームアップ100フレーム除外）
+  - Burst並列JobはIJobParallelForによるマルチスレッド実行
+  - MonoBehaviour側は逐次ループによるシングルスレッド計算
+
+</details>
+
 ---
 
 ## 使用言語/ライブラリ/ツール
@@ -633,6 +655,10 @@ Unity6Portfolio/
 | hadashiA/VContainer  | 1.17.0     |
 | NSubstitute          | 5.3.0      |
 | xUnit                | 2.x        |
+| Unity.Entities (DOTS)| 1.4.4      |
+| Unity.Burst          | 1.8.27     |
+| Unity.Collections    | 2.6.4      |
+| Unity.Mathematics    | 1.3.3      |
 | DOTween              | 1.2.790    |
 | HotReload            | 1.13.13    |
 | JetBrains Rider      | 2025.3.0.2 |

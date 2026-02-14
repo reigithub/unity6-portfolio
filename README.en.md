@@ -186,13 +186,14 @@ dotnet test
 * **Combat System**: Unified combat interfaces with ICombatTarget/IDamageable/IKnockbackable
 * **Weapon System**: Auto-fire and ground-based weapons with generic object pool (WeaponObjectPool<T>)
 * **Enemy AI System**: State machine driven (Idle/Chase/Attack/HitStun/Death) with wave spawning
+* **ECS Enemy System**: Hybrid ECS implementation with Unity DOTS (Entities + Jobs + Burst), Inspector toggle for A/B switching with MonoBehaviour version
 * **Item System**: Drop lottery, attraction feature, object pooling
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
 * **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
-* **CI/CD**: Automated testing (Client 485 + Server 56 = 541 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
+* **CI/CD**: Automated testing (Client 773 + Server 56 = 829 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -614,6 +615,27 @@ Unity6Portfolio/
 
 </details>
 
+<details><summary>ECS Enemy Spawn Position Calculation (Sequential vs Burst Parallel Job)</summary>
+
+* Parallelized batch spawn position calculation with ECS + Jobs + Burst
+  - Burst parallel Job effect becomes more significant as enemy count increases
+  - Achieved up to 20.3x speedup at 5,000 entities
+
+  | Enemy Count | MonoBehaviour (Sequential) | ECS+Burst (Parallel) | Speedup |
+  |:-----|--------------------:|------------------:|---------:|
+  | 100 | 7.37ms | 6.73ms | 1.10x |
+  | 500 | 37.55ms | 17.61ms | 2.13x |
+  | 1,000 | 75.48ms | 13.81ms | 5.47x |
+  | 2,000 | 156.18ms | 14.06ms | 11.11x |
+  | 5,000 | 376.47ms | 18.53ms | 20.31x |
+
+* Measurement Conditions
+  - Iterations: 1,000 frames (excluding 100 warm-up frames)
+  - Burst parallel Job uses IJobParallelFor for multi-threaded execution
+  - MonoBehaviour side uses sequential loop with single-threaded calculation
+
+</details>
+
 ---
 
 ## Languages/Libraries/Tools
@@ -632,6 +654,10 @@ Unity6Portfolio/
 | hadashiA/VContainer | 1.17.0 |
 | NSubstitute | 5.3.0 |
 | xUnit | 2.x |
+| Unity.Entities (DOTS)| 1.4.4 |
+| Unity.Burst | 1.8.27 |
+| Unity.Collections | 2.6.4 |
+| Unity.Mathematics | 1.3.3 |
 | DOTween | 1.2.790 |
 | HotReload | 1.13.13 |
 | JetBrains Rider | 2025.3.0.2 |

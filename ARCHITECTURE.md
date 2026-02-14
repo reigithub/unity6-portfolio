@@ -1,7 +1,7 @@
 # Unity6Portfolio アーキテクチャ設計書
 
-**バージョン**: 1.6
-**最終更新**: 2026年2月14日
+**バージョン**: 1.7
+**最終更新**: 2026年2月15日
 
 ---
 
@@ -174,7 +174,8 @@ Unity6Portfolio/
 ├── docker/
 │   ├── unity-accelerator/  # Unity Accelerator キャッシュサーバー
 │   ├── unity-ci/           # Unity CI Runner (Docker + GitHub Actions)
-│   └── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
+│   ├── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
+│   └── migrate/            # DBマイグレーション Runner (FluentMigrator)
 ├── scripts/                # ビルド・フォーマットスクリプト
 └── .github/
     └── workflows/          # GitHub Actions
@@ -229,12 +230,12 @@ Unity6Portfolio/
 │Game.MVC.ScoreTime │ │ Game.MVP.Core │ │ Game.MVP.Survivor │
 │      Attack       │ │  (VContainer) │ │    (ゲーム実装)    │
 └─────────┬─────────┘ └───────┬───────┘ └─────────┬─────────┘
-          │                   │                   │
-          ▼                   │                   │
-┌───────────────────┐         │                   │
-│  Game.MVC.Core    │         │                   │
-│  (MessagePipe)    │         │                   │
-└─────────┬─────────┘         │                   │
+          │                   │                   ▲
+          ▼                   │                   │ 依存
+┌───────────────────┐         │        ┌──────────┴──────────┐
+│  Game.MVC.Core    │         │        │Game.MVP.Survivor.ECS│
+│  (MessagePipe)    │         │        │  (DOTS: Burst/Jobs) │
+└─────────┬─────────┘         │        └──────────┬──────────┘
           │                   │                   │
           └─────────┬─────────┴───────────────────┘
                     │
@@ -262,6 +263,7 @@ Unity6Portfolio/
 | **Game.MVC.ScoreTimeAttack** | スコアアタックゲーム実装 | Game.MVC.Core, UnityChan |
 | **Game.MVP.Core** | MVPパターン基盤 | Game.Shared, VContainer, MessagePipe.VContainer |
 | **Game.MVP.Survivor** | サバイバーゲーム実装 | Game.MVP.Core, AI.Navigation, Cinemachine |
+| **Game.MVP.Survivor.ECS** | ECS敵システム（DOTS並列処理） | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
 | **Game.App** | アプリケーション起動制御 | 全アセンブリ参照 |
 
 #### テストアセンブリ
@@ -271,9 +273,10 @@ Unity6Portfolio/
 | **Game.Tests.Shared** | Shared層ユニットテスト | 100+ |
 | **Game.Tests.MVC** | MVC層ユニットテスト | 150+ |
 | **Game.Tests.MVP** | MVP層ユニットテスト | 170+ |
+| **Game.Tests.MVP.ECS** | ECSシステム機能・性能テスト | 33 |
 | **Game.Tests.PlayMode** | 統合・PlayModeテスト | 63 |
 
-**合計テスト数**: 485テスト（EditMode 422 + PlayMode 63）
+**合計テスト数**: 773テスト（EditMode 710 + PlayMode 63）
 
 #### サーバー・ツールアセンブリ（.NET 9）
 
@@ -283,6 +286,16 @@ Unity6Portfolio/
 | **Game.Tools** | CLIツール（マスターデータ管理等） | ConsoleAppFramework, Google.Protobuf, MasterMemory |
 | **Game.Client.Linked** | クライアントMemoryTable参照ブリッジ | MasterMemory, MessagePack |
 | **Game.Shared** | 共有ライブラリ（.NET版） | MasterMemory, MessagePack |
+
+#### サーバーエンドポイント構成
+
+| コントローラ | エンドポイント | 役割 |
+|-------------|-------------|------|
+| **AuthController** | POST /api/auth/* | ゲストログイン、メール連携、引き継ぎ |
+| **UsersController** | GET/PUT /api/users/* | ユーザー情報取得・更新 |
+| **SurvivorScoresController** | POST /api/survivor/scores | スコア送信 |
+| **RankingsController** | GET /api/survivor/rankings/* | ランキング取得・自分の順位 |
+| **HealthController** | GET /api/health | ヘルスチェック |
 
 ### 4.3 循環参照防止設計
 
@@ -1322,6 +1335,40 @@ Google Cloud Platform
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 8.5 MVP ViewModel / Model パターン
+
+MVPパターン側では、Presenterの肥大化を防ぐためにViewModel（プレゼンテーションロジック）とModel（ドメイン状態・ビジネスロジック）を分離しています。
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  MVP ViewModel / Model                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────┐                                       │
+│  │     Presenter         │                                       │
+│  │  (シーン制御・調停)    │                                       │
+│  └──────┬──────┬─────────┘                                       │
+│         │      │                                                 │
+│         ▼      ▼                                                 │
+│  ┌────────────┐  ┌────────────────────┐                         │
+│  │  ViewModel │  │      Model         │                         │
+│  │ (表示ロジック)│  │  (ドメイン状態)     │                         │
+│  ├────────────┤  ├────────────────────┤                         │
+│  │ステートレス  │  │DI注入可能          │                         │
+│  │純粋関数中心  │  │状態＋ビジネスロジック│                         │
+│  └────────────┘  └────────────────────┘                         │
+│                                                                 │
+│  【ViewModel例】                                                 │
+│  StageSelectSceneViewModel - ステージ選択UI計算                  │
+│  TotalResultSceneViewModel - リザルト画面表示ロジック             │
+│  AccountLinkDialogViewModel - アカウント連携ダイアログ表示       │
+│                                                                 │
+│  【Model例】                                                     │
+│  SurvivorStageModel - ステージ進行状態（経験値・レベル・スコア）  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 9. シーケンス図
@@ -1472,7 +1519,7 @@ GitHub Actions を使用した自動化パイプラインを構築していま�
 │  │ Code Quality │───▶│  Unit Tests  │───▶│ Integration  │       │
 │  │    Check     │    │  (EditMode)  │    │   Tests      │       │
 │  └──────────────┘    └──────────────┘    │ (PlayMode)   │       │
-│    - .editorconfig      - 422 tests      └──────────────┘       │
+│    - .editorconfig      - 710 tests      └──────────────┘       │
 │    - Roslyn Analyzer                       - 63 tests           │
 │    - Format Check                                                │
 │                                                                  │
@@ -1503,6 +1550,8 @@ GitHub Actions を使用した自動化パイプラインを構築していま�
 | `code-quality.yml` | push/PR (*.cs) | フォーマット・静的解析 |
 | `pr-review.yml` | PR | 自動レビューコメント |
 | `server-test.yml` | push/PR, 手動 | サーバーテスト（単体 + 統合 + カバレッジ） |
+| `addressables-deploy.yml` | 手動 | Addressablesビルド＆Cloudflare R2デプロイ（マルチプラットフォーム） |
+| `unity-build.yml` | 手動 | マルチプラットフォームビルド（WebGL GitHub Pagesデプロイ対応） |
 
 ### 10.3 コード品質管理
 
@@ -1526,13 +1575,13 @@ Unity6Portfolio/
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| EditMode | 422 | ユニットテスト（Service, Model, Extension） |
+| EditMode | 710 | ユニットテスト（Service, Model, Extension, ECS） |
 | PlayMode | 63 | 統合テスト（Scene, Input, UI） |
-| **クライアント合計** | **485** | |
+| **クライアント合計** | **773** | |
 | サーバー単体テスト | 46 | Service, Repository テスト |
 | サーバー統合テスト | 10 | API統合テスト（Testcontainers + PostgreSQL） |
 | **サーバー合計** | **56** | |
-| **全体合計** | **541** | |
+| **全体合計** | **829** | |
 
 ---
 
@@ -1584,12 +1633,23 @@ Unity6Portfolio/
 | **影響** | 高頻度イベント（衝突等）は直接呼び出しに変更済み |
 | **状態** | 採用済み・改善完了 |
 
+#### ADR-005: ECS敵システム（ハイブリッドDOTS）
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | 敵スポーン・移動・AI・ダメージ処理をECS + Jobs + Burstで並列化実装 |
+| **背景** | Unity 6世代のDOTS技術力を証明し、大規模タイトルへの適応力を示す必要があった |
+| **選択肢** | A) 全面ECS化 B) ハイブリッドECS（ロジックECS + 描画GameObject） C) MonoBehaviourのみ |
+| **判断理由** | AnimatorやVFXはGameObject依存。ハイブリッド方式が業界標準の実践的アプローチ |
+| **影響** | スポーン位置計算で最大20.3倍の高速化。Inspector切り替えでA/B比較可能 |
+| **状態** | 採用済み |
+
 ### 11.2 既知の技術的負債
 
 | 項目 | 内容 | 優先度 | 状態 |
 |-----|------|-------|------|
 | ~~MessageBroker過剰使用~~ | ~~OnTriggerEnter等でのPublish~~ | ~~中~~ | ✅ 改善完了 |
-| ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 485テスト達成 |
+| ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 773テスト達成 |
 | ~~XMLドキュメント~~ | ~~一部未記載~~ | ~~低~~ | ✅ 主要IF完了 |
 | ~~アセット配信~~ | ~~ローカルのみ対応~~ | ~~中~~ | ✅ ローカル/リモート自動切替 |
 | ~~ネットワーク機能~~ | ~~サーバー通信未実装~~ | ~~高~~ | ✅ ランキング・認証完了 |
@@ -1597,7 +1657,7 @@ Unity6Portfolio/
 
 **改善完了項目**:
 - MessageBroker: IPlayerCollisionHandlerによる直接呼び出しに変更
-- テスト: EditMode 422 + PlayMode 63 = 485テスト
+- テスト: EditMode 710 + PlayMode 63 = 773テスト
 - XMLドキュメント: 主要インターフェース・拡張メソッドに追加完了
 - Profilerマーカー: 27マーカー追加
 - カスタム例外: 7クラス追加
@@ -1605,6 +1665,7 @@ Unity6Portfolio/
 - CI/CD: Unity Acceleratorキャッシュ、アセットキャッシュ最適化（2026/02）
 - ランキングシステム: Valkeyキャッシュ、Cloud Run本番デプロイ（2026/02）
 - Addressables同期: チーム開発向けエディタ自動同期システム（2026/02）
+- ECS敵システム: DOTS（Entities + Jobs + Burst）ハイブリッド実装、スポーン計算最大20.3倍高速化（2026/02）
 
 ---
 
