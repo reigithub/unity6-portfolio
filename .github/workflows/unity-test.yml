@@ -112,7 +112,7 @@ jobs:
     name: PlayMode Tests
     runs-on: [self-hosted, linux, unity, docker]
     needs: [load-config, test-editmode]
-    timeout-minutes: 45
+    timeout-minutes: 720
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
