@@ -1,0 +1,28 @@
+{
+    "name": "Game.MVP.Survivor.ECS",
+    "rootNamespace": "Game.MVP.Survivor.ECS",
+    "references": [
+        "Game.Shared",
+        "Game.MVP.Core",
+        "Game.MVP.Survivor",
+        "Unity.Entities",
+        "Unity.Entities.Hybrid",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Transforms",
+        "Unity.AI.Navigation",
+        "R3.Unity",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
