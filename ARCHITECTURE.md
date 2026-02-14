@@ -218,34 +218,42 @@ Unity6Portfolio/
 ### 4.1 アセンブリ依存関係図
 
 ```
-                    ┌─────────────────┐
-                    │    Game.App     │
-                    │   (起動制御)     │
-                    └────────┬────────┘
+                    ┌──────────────────┐
+                    │     Game.App     │
+                    │    (起動制御)     │
+                    └────────┬─────────┘
                              │
             ┌────────────────┼────────────────┐
             │                │                │
-            ▼                ▼                ▼
-┌───────────────────┐ ┌───────────────┐ ┌───────────────────┐
-│Game.MVC.ScoreTime │ │ Game.MVP.Core │ │ Game.MVP.Survivor │
-│      Attack       │ │  (VContainer) │ │    (ゲーム実装)    │
-└─────────┬─────────┘ └───────┬───────┘ └─────────┬─────────┘
-          │                   │                   ▲
-          ▼                   │                   │ 依存
-┌───────────────────┐         │        ┌──────────┴──────────┐
-│  Game.MVC.Core    │         │        │Game.MVP.Survivor.ECS│
-│  (MessagePipe)    │         │        │  (DOTS: Burst/Jobs) │
-└─────────┬─────────┘         │        └──────────┬──────────┘
-          │                   │                   │
-          └─────────┬─────────┴───────────────────┘
+            ▼                ▼                │
+┌───────────────────┐ ┌───────────────┐       │
+│Game.MVC.ScoreTime │ │ Game.MVP.Core │       │
+│      Attack       │ │  (VContainer) │       │
+└─────────┬─────────┘ └───────┬───────┘       │
+          │                   │               │
+          ▼                   │               │
+┌───────────────────┐         │   ┌───────────────────┐
+│  Game.MVC.Core    │         │   │ Game.MVP.Survivor │
+│  (MessagePipe)    │         │   │    (ゲーム実装)    │
+└─────────┬─────────┘         │   └─────────┬─────────┘
+          │                   │             ▲│
+          │                   │        依存 ││
+          │                   │   ┌─────────┘│
+          │                   │   │          │
+          │                   │ ┌─┴────────────────────┐
+          │                   │ │Game.MVP.Survivor.ECS │
+          │                   │ │  (DOTS: Burst/Jobs)  │
+          │                   │ └──────────┬───────────┘
+          │                   │            │
+          └─────────┬─────────┴────────────┘
                     │
                     ▼
-          ┌─────────────────┐
-          │   Game.Shared   │
-          │   (共通基盤)     │
-          └─────────────────┘
-                    │
-                    ▼
+          ┌─────────────────────┐
+          │     Game.Shared     │
+          │     (共通基盤)       │
+          └──────────┬──────────┘
+                     │
+                     ▼
           ┌─────────────────────┐
           │  Game.Library.Shared │
           │   (MasterMemory等)   │
@@ -258,21 +266,22 @@ Unity6Portfolio/
 
 | アセンブリ | 役割 | 主要な依存 |
 |-----------|------|-----------|
-| **Game.Shared** | 共通基盤・インターフェース定義 | UniTask, R3, MessagePipe, Addressables |
+| **Game.Library.Shared** | 共有ライブラリ（Unity/サーバー共用） | MasterMemory, MessagePack |
+| **Game.Shared** | 共通基盤・インターフェース定義 | Game.Library.Shared, UniTask, R3, MessagePipe, Addressables |
 | **Game.MVC.Core** | MVCパターン基盤 | Game.Shared, MessagePipe.Unity |
-| **Game.MVC.ScoreTimeAttack** | スコアアタックゲーム実装 | Game.MVC.Core, UnityChan |
+| **Game.MVC.ScoreTimeAttack** | スコアアタックゲーム実装 | Game.MVC.Core, Game.Client.MasterData, UnityChan, InputSystem, Cinemachine |
 | **Game.MVP.Core** | MVPパターン基盤 | Game.Shared, VContainer, MessagePipe.VContainer |
-| **Game.MVP.Survivor** | サバイバーゲーム実装 | Game.MVP.Core, AI.Navigation, Cinemachine |
+| **Game.MVP.Survivor** | サバイバーゲーム実装 | Game.MVP.Core, VContainer, AI.Navigation, Cinemachine |
 | **Game.MVP.Survivor.ECS** | ECS敵システム（DOTS並列処理） | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
-| **Game.App** | アプリケーション起動制御 | 全アセンブリ参照 |
+| **Game.App** | アプリケーション起動制御 | Game.Shared, Game.MVC.Core, Game.MVC.ScoreTimeAttack, Game.MVP.Core |
 
 #### テストアセンブリ
 
 | アセンブリ | 役割 | テスト数 |
 |-----------|------|---------|
-| **Game.Tests.Shared** | Shared層ユニットテスト | 100+ |
-| **Game.Tests.MVC** | MVC層ユニットテスト | 150+ |
-| **Game.Tests.MVP** | MVP層ユニットテスト | 170+ |
+| **Game.Tests.Shared** | Shared層ユニットテスト | 351 |
+| **Game.Tests.MVC** | MVC層ユニットテスト | 160 |
+| **Game.Tests.MVP** | MVP層ユニットテスト | 166 |
 | **Game.Tests.MVP.ECS** | ECSシステム機能・性能テスト | 33 |
 | **Game.Tests.PlayMode** | 統合・PlayModeテスト | 63 |
 
