@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
@@ -6,7 +5,6 @@ using Game.MVP.Core.Scenes;
 using Game.Shared.Dto.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
-using Game.Shared.Services.Network.Models;
 using R3;
 using VContainer;
 
@@ -20,7 +18,6 @@ namespace Game.MVP.Survivor.Scenes
     {
         protected override string AssetPathOrAddress => "SurvivorRankingDialog";
 
-        [Inject] private readonly IApiClient _apiClient;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IMasterDataService _masterDataService;
@@ -28,17 +25,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly INetworkService _networkService;  // UI表示用のみ
 
         private int _selectedStageId = 1;
-
-        /// <summary>
-        /// ランキングキャッシュオプション
-        /// </summary>
-        private static readonly RequestOptions RankingCacheOptions = new()
-        {
-            UseCache = true,
-            CacheDuration = TimeSpan.FromMinutes(5),
-            FallbackToCache = true,
-            CacheKeyPrefix = "ranking_"
-        };
 
         /// <summary>
         /// ダイアログを表示
@@ -99,9 +85,8 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ClearError();
             SceneComponent.HideCacheNotice();
 
-            // IApiClientを使用してキャッシュ対応でランキングを取得
-            var endpoint = $"api/v1/survivor/rankings/{stageId}";
-            var response = await _apiClient.GetAsync<RankingResponse>(endpoint, RankingCacheOptions);
+            // ランキング取得（キャッシュ対応はSurvivorScoreApiService経由）
+            var response = await _scoreApiService.GetRankingAsync(stageId);
 
             RankingEntry myRank = null;
 
