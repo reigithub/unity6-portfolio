@@ -1,5 +1,5 @@
-﻿{
-  "name": "Unity6Library",
+{
+  "name": "Game.Library.Shared",
   "references": [
     "MasterMemory",
     "MessagePack"

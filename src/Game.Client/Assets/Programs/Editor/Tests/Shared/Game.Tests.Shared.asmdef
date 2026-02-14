@@ -3,7 +3,7 @@
     "rootNamespace": "Game.Tests.Shared",
     "references": [
         "Game.Shared",
-        "Unity6Library",
+        "Game.Library.Shared",
         "UniTask",
         "R3.Unity",
         "MessagePipe",
