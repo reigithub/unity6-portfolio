@@ -2,7 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Item;
-using Game.MVP.Survivor.Models;
+using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;

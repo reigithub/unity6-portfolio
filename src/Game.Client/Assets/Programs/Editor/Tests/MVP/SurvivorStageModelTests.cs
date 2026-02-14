@@ -1,7 +1,12 @@
 using System;
 using System.Reflection;
 using Game.Client.MasterData;
-using Game.MVP.Survivor.Models;
+using Game.MVP.Survivor.Scenes.Models;
+using Game.Shared.Services;
+using MasterMemory;
+using MessagePack;
+using MessagePack.Resolvers;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Game.Tests.MVP
@@ -496,9 +501,114 @@ namespace Game.Tests.MVP
             Assert.That(_model.Experience.Value, Is.EqualTo(60));
         }
 
-        // Note: AddExperience_WhenReachingThreshold_LevelsUp and AddExperience_MultipleLevelUps
-        // require IMasterDataService for UpdateLevelStats(). These tests are skipped because
-        // the model uses [Inject] which cannot be easily mocked without a DI container.
+        #endregion
+
+        #region AddExperience Tests (with MasterData)
+
+        [Test]
+        public void AddExperience_WhenReachingThreshold_LevelsUp()
+        {
+            // Arrange
+            var model = CreateModelWithMasterData();
+            model.Initialize(1, 1);
+            // Initialize sets Level=1 from master (RequiredExp=100, MaxHp=100)
+
+            // Act
+            model.AddExperience(100);
+
+            // Assert
+            Assert.That(model.Level.Value, Is.EqualTo(2));
+            Assert.That(model.MaxHp.Value, Is.EqualTo(120));
+            Assert.That(model.ExperienceToNextLevel.Value, Is.EqualTo(150));
+            Assert.That(model.Experience.Value, Is.EqualTo(0));
+
+            model.Dispose();
+        }
+
+        [Test]
+        public void AddExperience_MultipleLevelUps()
+        {
+            // Arrange
+            var model = CreateModelWithMasterData();
+            model.Initialize(1, 1);
+            // Level 1: RequiredExp=100, Level 2: RequiredExp=150
+
+            // Act - 250 exp = Level1(100) + Level2(150) → Level 3
+            model.AddExperience(250);
+
+            // Assert
+            Assert.That(model.Level.Value, Is.EqualTo(3));
+            Assert.That(model.MaxHp.Value, Is.EqualTo(150));
+            Assert.That(model.Experience.Value, Is.EqualTo(0));
+
+            model.Dispose();
+        }
+
+        [Test]
+        public void AddExperience_LevelUp_IncreasesCurrentHp()
+        {
+            // Arrange
+            var model = CreateModelWithMasterData();
+            model.Initialize(1, 1);
+            // After Initialize: MaxHp=100, CurrentHp=100
+            model.TakeDamage(30); // CurrentHp=70
+
+            // Act - Level up: MaxHp 100→120, HP increase = 20
+            model.AddExperience(100);
+
+            // Assert - CurrentHp should increase by MaxHp difference (20)
+            Assert.That(model.CurrentHp.Value, Is.EqualTo(90)); // 70 + 20
+            Assert.That(model.MaxHp.Value, Is.EqualTo(120));
+
+            model.Dispose();
+        }
+
+        private static SurvivorStageModel CreateModelWithMasterData()
+        {
+            var formatterResolver = CompositeResolver.Create(
+                MasterMemoryResolver.Instance,
+                StandardResolver.Instance
+            );
+            var builder = new DatabaseBuilder(formatterResolver);
+
+            builder.Append(new[]
+            {
+                new SurvivorPlayerMaster { Id = 1, Name = "TestPlayer", StartingWeaponId = 1 }
+            });
+            builder.Append(new[]
+            {
+                new SurvivorStageMaster { Id = 1, Name = "TestStage", TimeLimit = 60, Difficulty = 1 }
+            });
+            builder.Append(new[]
+            {
+                new SurvivorPlayerLevelMaster
+                {
+                    PlayerId = 1, Level = 1,
+                    MaxHp = 100, RequiredExp = 100,
+                    DamageBonus = 0, WeaponChoiceCount = 3
+                },
+                new SurvivorPlayerLevelMaster
+                {
+                    PlayerId = 1, Level = 2,
+                    MaxHp = 120, RequiredExp = 150,
+                    DamageBonus = 500, WeaponChoiceCount = 3
+                },
+                new SurvivorPlayerLevelMaster
+                {
+                    PlayerId = 1, Level = 3,
+                    MaxHp = 150, RequiredExp = 200,
+                    DamageBonus = 1000, WeaponChoiceCount = 4
+                }
+            });
+
+            var binary = builder.Build();
+            var memoryDb = new MemoryDatabase(binary, formatterResolver: formatterResolver);
+
+            var masterDataService = Substitute.For<IMasterDataService>();
+            masterDataService.MemoryDatabase.Returns(memoryDb);
+
+            return new SurvivorStageModel(masterDataService);
+        }
 
         #endregion
 

@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Scenes.ViewModels;
 using Game.Shared.Services;
 using R3;
 using VContainer;
@@ -19,6 +20,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISessionService _sessionService;
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly IInputService _inputService;
+
+        private readonly AccountLinkDialogViewModel _viewModel = new();
 
         private bool _hasValidSession;
         private bool _hasTransferPassword;
@@ -139,8 +142,7 @@ namespace Game.MVP.Survivor.Scenes
             if (profileResult.IsSuccess)
             {
                 var profile = profileResult.Data;
-                var isGuest = string.IsNullOrEmpty(profile.authType) ||
-                              profile.authType.ToLower() == "guest";
+                var isGuest = AccountLinkDialogViewModel.IsGuest(profile.authType);
 
                 // Transfer password状態を保存
                 _hasTransferPassword = profile.hasTransferPassword;
@@ -152,8 +154,7 @@ namespace Game.MVP.Survivor.Scenes
             else
             {
                 // フォールバック: セッション情報のみで表示
-                var isGuest = _sessionService.AuthType == null ||
-                              _sessionService.AuthType.ToLower() == "guest";
+                var isGuest = AccountLinkDialogViewModel.IsGuest(_sessionService.AuthType);
                 _hasTransferPassword = false;
                 _currentUserId = _sessionService.UserId;
 
@@ -187,24 +188,11 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnSubmitLink(string email, string password, string confirmPassword)
         {
-            // Basic client-side validation
-            if (string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(password) ||
-                string.IsNullOrWhiteSpace(confirmPassword))
+            // Client-side validation via ViewModel
+            var (isValid, errorMessage) = _viewModel.ValidateLinkForm(email, password, confirmPassword);
+            if (!isValid)
             {
-                SceneComponent.ShowError("All fields are required.");
-                return;
-            }
-
-            if (password != confirmPassword)
-            {
-                SceneComponent.ShowError("Passwords do not match.");
-                return;
-            }
-
-            if (password.Length < 8)
-            {
-                SceneComponent.ShowError("Password must be at least 8 characters.");
+                SceneComponent.ShowError(errorMessage);
                 return;
             }
 
@@ -291,9 +279,10 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnForgotPassword(string email)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            var (isValid, errorMessage) = _viewModel.ValidateForgotPassword(email);
+            if (!isValid)
             {
-                SceneComponent.ShowError("Please enter your email address.");
+                SceneComponent.ShowError(errorMessage);
                 return;
             }
 
@@ -316,15 +305,10 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnResetPassword(string token, string newPassword)
         {
-            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(newPassword))
+            var (isValid, errorMessage) = _viewModel.ValidateResetPassword(token, newPassword);
+            if (!isValid)
             {
-                SceneComponent.ShowError("Please enter the reset token and new password.");
-                return;
-            }
-
-            if (newPassword.Length < 8)
-            {
-                SceneComponent.ShowError("Password must be at least 8 characters.");
+                SceneComponent.ShowError(errorMessage);
                 return;
             }
 
@@ -346,14 +330,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnUserIdLogin(string userId, string password)
         {
-            // Remove spaces from UserId input (UI displays "0000 0000 0000" format)
-            var cleanUserId = userId?.Replace(" ", "") ?? "";
-
-            if (string.IsNullOrWhiteSpace(cleanUserId) || string.IsNullOrWhiteSpace(password))
+            var (isValid, errorMessage) = _viewModel.ValidateUserIdLogin(userId, password);
+            if (!isValid)
             {
-                SceneComponent.ShowError("Please enter User ID and password.");
+                SceneComponent.ShowError(errorMessage);
                 return;
             }
+
+            var cleanUserId = AccountLinkDialogViewModel.CleanUserId(userId);
 
             SceneComponent.ShowLoading();
 
@@ -377,7 +361,7 @@ namespace Game.MVP.Survivor.Scenes
             // 発行済みの場合は表示のみ（新規発行しない）
             if (_hasTransferPassword)
             {
-                var formattedUserId = FormatUserId(_currentUserId);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(_currentUserId);
                 // ローカルに保存されたパスワードを取得
                 var localPassword = _sessionService.GetTransferPassword();
                 SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
@@ -395,7 +379,7 @@ namespace Game.MVP.Survivor.Scenes
                 // パスワードをローカルに保存
                 await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
 
-                var formattedUserId = FormatUserId(response.Data.userId);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
                 SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
                 SceneComponent.ShowSuccess("Transfer password issued! Save it now.");
             }
@@ -422,7 +406,7 @@ namespace Game.MVP.Survivor.Scenes
             if (!confirmed)
             {
                 // キャンセル → 発行済み表示画面に戻る
-                var formattedUserId = FormatUserId(_currentUserId);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(_currentUserId);
                 var localPassword = _sessionService.GetTransferPassword();
                 SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
                 return;
@@ -438,7 +422,7 @@ namespace Game.MVP.Survivor.Scenes
                 // パスワードをローカルに保存（上書き）
                 await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
 
-                var formattedUserId = FormatUserId(response.Data.userId);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
                 SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
                 SceneComponent.ShowSuccess("Transfer password reissued! Save it now.");
             }
@@ -447,14 +431,6 @@ namespace Game.MVP.Survivor.Scenes
                 await RefreshStatusViewAsync();
                 SceneComponent.ShowError(response.Error?.Message ?? "Failed to reissue transfer password.");
             }
-        }
-
-        private static string FormatUserId(string userId)
-        {
-            if (string.IsNullOrEmpty(userId) || userId.Length != 12)
-                return userId ?? "-";
-
-            return $"{userId.Substring(0, 4)} {userId.Substring(4, 4)} {userId.Substring(8, 4)}";
         }
 
     }

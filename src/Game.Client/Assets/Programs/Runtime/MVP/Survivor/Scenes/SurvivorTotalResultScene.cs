@@ -1,9 +1,8 @@
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
-using Game.Shared.Dto.Survivor;
+using Game.MVP.Survivor.Scenes.ViewModels;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Queue;
@@ -26,6 +25,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
 
+        private readonly TotalResultSceneViewModel _viewModel = new();
+
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
         private bool _isVictory;
@@ -41,7 +42,7 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            _isVictory = IsOverallVictory(session);
+            _isVictory = _viewModel.IsOverallVictory(session);
 
             // 認証済みの場合のみスコア送信
             if (_sessionService.IsAuthenticated)
@@ -95,12 +96,6 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private bool IsOverallVictory(SurvivorStageSession session)
-        {
-            if (session.StageResults.Count == 0) return false;
-            return session.StageResults.All(r => r.IsVictory);
-        }
-
         /// <summary>
         /// サーバーにスコアを送信
         /// オンライン時は即座に送信、オフラインまたは失敗時はキューに追加
@@ -111,14 +106,7 @@ namespace Game.MVP.Survivor.Scenes
 
             foreach (var result in session.StageResults)
             {
-                var request = new SubmitSurvivorScoreRequest
-                {
-                    stageId = result.StageId,
-                    score = result.Score,
-                    clearTime = result.ClearTime,
-                    waveReached = session.CurrentWave,
-                    enemiesDefeated = result.Kills
-                };
+                var request = _viewModel.BuildScoreRequest(result, session.CurrentWave);
 
                 // オンライン時は即座に送信を試行
                 if (_networkService.IsConnected)

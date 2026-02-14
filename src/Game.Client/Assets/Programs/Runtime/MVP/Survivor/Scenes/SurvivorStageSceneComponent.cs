@@ -7,7 +7,7 @@ using Game.Client.MasterData;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;
-using Game.MVP.Survivor.Models;
+using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;

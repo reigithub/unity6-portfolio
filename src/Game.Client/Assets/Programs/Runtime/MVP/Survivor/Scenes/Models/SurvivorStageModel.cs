@@ -7,7 +7,7 @@ using R3;
 using UnityEngine;
 using VContainer;
 
-namespace Game.MVP.Survivor.Models
+namespace Game.MVP.Survivor.Scenes.Models
 {
     /// <summary>
     /// Survivorステージモデル
@@ -16,7 +16,15 @@ namespace Game.MVP.Survivor.Models
     /// </summary>
     public class SurvivorStageModel : IDisposable
     {
-        [Inject] private readonly IMasterDataService _masterDataService;
+        private readonly IMasterDataService _masterDataService;
+
+        public SurvivorStageModel(){ }
+
+        [Inject]
+        public SurvivorStageModel(IMasterDataService masterDataService)
+        {
+            _masterDataService = masterDataService;
+        }
 
         private SurvivorPlayerMaster _playerMaster;
         private SurvivorStageMaster _stageMaster;
