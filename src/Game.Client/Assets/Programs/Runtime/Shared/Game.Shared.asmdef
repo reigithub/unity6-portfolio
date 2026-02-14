@@ -21,5 +21,8 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": false,
+    "internalsVisibleTo": [
+        "Game.Tests.Shared"
+    ]
 }

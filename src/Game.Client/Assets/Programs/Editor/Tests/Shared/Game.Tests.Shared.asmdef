@@ -5,7 +5,8 @@
         "Game.Shared",
         "UniTask",
         "R3.Unity",
-        "MessagePipe"
+        "MessagePipe",
+        "MemoryPack.Unity"
     ],
     "includePlatforms": [
         "Editor"
@@ -16,7 +17,8 @@
     "precompiledReferences": [
         "nunit.framework.dll",
         "NSubstitute.dll",
-        "R3.dll"
+        "R3.dll",
+        "MemoryPack.Core.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

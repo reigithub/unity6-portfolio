@@ -61,8 +61,8 @@ namespace Game.App.Services
 
         private void CreateServices()
         {
-            // 共通のセーブデータストレージ
-            _saveDataStorage = new SaveDataStorage();
+            // 共通のセーブデータストレージ（暗号化デコレーター付き）
+            _saveDataStorage = new EncryptedSaveDataStorage(new SaveDataStorage());
 
             // リモートアセットダウンロードサービス
             RemoteAssetDownloadService = new RemoteAssetDownloadService();
