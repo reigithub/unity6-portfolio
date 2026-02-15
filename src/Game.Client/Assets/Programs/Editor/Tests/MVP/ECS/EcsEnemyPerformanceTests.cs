@@ -11,7 +11,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Debug = UnityEngine.Debug;
 
 namespace Game.Tests.MVP.ECS
@@ -47,9 +46,6 @@ namespace Game.Tests.MVP.ECS
         [SetUp]
         public void SetUp()
         {
-            // 他テストクラスの残留エラーログによる誤検出を防止
-            LogAssert.ignoreFailingMessages = true;
-
             _logBuilder = new StringBuilder();
             _testWorld = new World("PerfTestWorld");
             _entityManager = _testWorld.EntityManager;
@@ -72,8 +68,6 @@ namespace Game.Tests.MVP.ECS
                 _testWorld.Dispose();
             }
 
-            LogAssert.ignoreFailingMessages = false;
-
             // ログ出力
             if (_logBuilder != null && _logBuilder.Length > 0)
             {
@@ -82,6 +76,7 @@ namespace Game.Tests.MVP.ECS
                 File.AppendAllText(_logFilePath, logContent + "\n");
             }
         }
+
 
         #region Helper Methods
 
