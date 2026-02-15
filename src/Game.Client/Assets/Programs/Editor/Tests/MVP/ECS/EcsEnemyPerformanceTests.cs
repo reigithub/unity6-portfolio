@@ -11,7 +11,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Debug = UnityEngine.Debug;
 
 namespace Game.Tests.MVP.ECS
@@ -38,9 +37,6 @@ namespace Game.Tests.MVP.ECS
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            // 他テストクラスの残留エラーログによる誤検出を防止（SetUpより前に実行される）
-            LogAssert.ignoreFailingMessages = true;
-
             // ログファイルのパスを設定
             var logDir = Path.Combine(Application.dataPath, "..", "Logs", "PerformanceTests");
             Directory.CreateDirectory(logDir);
@@ -81,11 +77,6 @@ namespace Game.Tests.MVP.ECS
             }
         }
 
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            LogAssert.ignoreFailingMessages = false;
-        }
 
         #region Helper Methods
 

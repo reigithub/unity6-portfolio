@@ -299,7 +299,7 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public void MockGameSceneWithArgAndResult_CanSetException()
+        public async Task MockGameSceneWithArgAndResult_CanSetException()
         {
             var scene = new MockGameSceneWithArgAndResult<string, int>();
             scene.ResultTcs = new UniTaskCompletionSource<int>();
@@ -308,6 +308,16 @@ namespace Game.Editor.Tests
             var success = scene.TrySetException(exception);
 
             Assert.IsTrue(success);
+
+            // faulted タスクをawaitして例外を消費し、UniTaskの未観測例外ログを防止
+            try
+            {
+                await scene.ResultTcs.Task;
+            }
+            catch (InvalidOperationException)
+            {
+                // Expected
+            }
         }
 
         [Test]
