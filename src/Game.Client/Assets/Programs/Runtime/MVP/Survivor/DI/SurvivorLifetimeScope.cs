@@ -3,6 +3,7 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Signals;
+using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
@@ -82,7 +83,10 @@ namespace Game.MVP.Survivor
             // 4. ResponseCache
             builder.Register<IResponseCache>(_ => new MemoryResponseCache(), Lifetime.Singleton);
 
-            // 5. API Client（INetworkService + IResponseCacheに依存）
+            // 5. RequestSigningService（鍵はログイン後にサーバーから配布される）
+            builder.Register<RequestSigningService>(Lifetime.Singleton).As<IRequestSigningService>();
+
+            // 6. API Client（INetworkService + IResponseCache + IRequestSigningServiceに依存）
             builder.Register<UnityApiClient>(Lifetime.Singleton).As<IApiClient>();
 
             // ========================================

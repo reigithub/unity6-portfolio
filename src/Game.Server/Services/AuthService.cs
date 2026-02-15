@@ -11,6 +11,7 @@ using Game.Server.Services.Interfaces;
 using Game.Server.Validation;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using HMACSHA256Crypto = System.Security.Cryptography.HMACSHA256;
 
 namespace Game.Server.Services;
 
@@ -19,17 +20,20 @@ public class AuthService : IAuthService
     private readonly IAuthRepository _authRepository;
     private readonly JwtSettings _jwtSettings;
     private readonly AuthSettings _authSettings;
+    private readonly RequestSigningSettings _signingSettings;
     private readonly IEmailService _emailService;
 
     public AuthService(
         IAuthRepository authRepository,
         IOptions<JwtSettings> jwtSettings,
         IOptions<AuthSettings> authSettings,
+        IOptions<RequestSigningSettings> signingSettings,
         IEmailService emailService)
     {
         _authRepository = authRepository;
         _jwtSettings = jwtSettings.Value;
         _authSettings = authSettings.Value;
+        _signingSettings = signingSettings.Value;
         _emailService = emailService;
     }
 
@@ -89,6 +93,7 @@ public class AuthService : IAuthService
             UserId = user.UserId,
             UserName = user.UserName,
             Token = token,
+            SigningKey = DeriveUserSigningKey(user.Id),
         };
     }
 
@@ -107,6 +112,7 @@ public class AuthService : IAuthService
             UserId = user.UserId,
             UserName = user.UserName,
             Token = token,
+            SigningKey = DeriveUserSigningKey(user.Id),
         };
     }
 
@@ -125,6 +131,7 @@ public class AuthService : IAuthService
                 UserName = existingUser.UserName,
                 Token = token,
                 IsNewUser = false,
+                SigningKey = DeriveUserSigningKey(existingUser.Id),
             };
         }
 
@@ -146,6 +153,7 @@ public class AuthService : IAuthService
             UserName = user.UserName,
             Token = newToken,
             IsNewUser = true,
+            SigningKey = DeriveUserSigningKey(user.Id),
         };
     }
 
@@ -193,6 +201,7 @@ public class AuthService : IAuthService
             UserId = user.UserId,
             UserName = user.UserName,
             Token = token,
+            SigningKey = DeriveUserSigningKey(user.Id),
         };
     }
 
@@ -306,6 +315,7 @@ public class AuthService : IAuthService
             Token = token,
             AuthType = updatedUser.AuthType,
             Email = updatedUser.Email,
+            SigningKey = DeriveUserSigningKey(updatedUser.Id),
         };
     }
 
@@ -341,7 +351,17 @@ public class AuthService : IAuthService
             Token = token,
             AuthType = updatedUser.AuthType,
             Email = null,
+            SigningKey = DeriveUserSigningKey(updatedUser.Id),
         };
+    }
+
+    private string DeriveUserSigningKey(Guid userId)
+    {
+        var serverSecret = Encoding.UTF8.GetBytes(_signingSettings.SecretKey);
+        var userIdBytes = Encoding.UTF8.GetBytes(userId.ToString());
+        using var hmac = new HMACSHA256Crypto(serverSecret);
+        var derived = hmac.ComputeHash(userIdBytes);
+        return Convert.ToBase64String(derived);
     }
 
     private string GenerateJwtToken(UserInfo user)

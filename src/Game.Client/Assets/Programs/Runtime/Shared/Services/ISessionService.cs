@@ -13,6 +13,7 @@ namespace Game.Shared.Services
         string UserId { get; }
         string UserName { get; }
         string AuthType { get; }
+        string SigningKey { get; }
 
         UniTask SaveSessionAsync(Dto.Auth.LoginResponse response, string authType = "guest");
         UniTask<bool> RestoreSessionAsync();

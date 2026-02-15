@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using Game.MVP.Survivor.ECS;
 using NUnit.Framework;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -224,9 +225,16 @@ namespace Game.Tests.MVP.ECS
             LogResult("ECS+Burst (Parallel Job)", burstMs, iterations, enemyCount, Math.Max(0, burstMemory));
             LogSpeedup(seqMs, burstMs);
 
-            // ECSが遅くないことを確認（性能劣化の検出）
-            Assert.Less(burstMs, seqMs * 2.0,
-                $"ECS+Burstが逐次処理の2倍以上遅い: Sequential={seqMs:F2}ms, Burst={burstMs:F2}ms");
+            // Burstが有効な場合のみ性能アサーション（CI等でBurst無効時はJobオーバーヘッドで逆転する）
+            if (BurstCompiler.IsEnabled)
+            {
+                Assert.Less(burstMs, seqMs * 2.0,
+                    $"ECS+Burstが逐次処理の2倍以上遅い: Sequential={seqMs:F2}ms, Burst={burstMs:F2}ms");
+            }
+            else
+            {
+                Debug.LogWarning($"[EcsEnemyPerformanceTests] Burstが無効のためアサーションをスキップ: Sequential={seqMs:F2}ms, Burst={burstMs:F2}ms");
+            }
         }
 
         #endregion

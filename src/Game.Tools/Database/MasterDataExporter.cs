@@ -6,7 +6,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using Spectre.Console;
 
-namespace Game.Tools.Data;
+namespace Game.Tools.Database;
 
 /// <summary>
 /// Exports MemoryDatabase tables to JSON or TSV format.

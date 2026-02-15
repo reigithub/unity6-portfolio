@@ -11,20 +11,29 @@ public class SurvivorScoreService : ISurvivorScoreService
     private readonly ISurvivorScoreRepository _scoreRepository;
     private readonly IRankingRepository _rankingRepository;
     private readonly IRankingService _rankingService;
+    private readonly ISurvivorScoreValidationService _survivorScoreValidation;
 
     public SurvivorScoreService(
         ISurvivorScoreRepository scoreRepository,
         IRankingRepository rankingRepository,
-        IRankingService rankingService)
+        IRankingService rankingService,
+        ISurvivorScoreValidationService survivorScoreValidation)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
         _rankingService = rankingService;
+        _survivorScoreValidation = survivorScoreValidation;
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
         Guid userId, SubmitSurvivorScoreRequest request)
     {
+        var validationResult = _survivorScoreValidation.Validate(request);
+        if (!validationResult.IsValid)
+        {
+            return new ApiError(validationResult.ErrorMessage!, "INVALID_SCORE", 400);
+        }
+
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
             request.StageId, userId);
 

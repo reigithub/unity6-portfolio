@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
@@ -67,8 +69,9 @@ namespace Game.Tests.PlayMode
                     // 実際のシーンキーはプロジェクト設定に依存
                     const string sampleSceneKey = "PolyRPG";
 
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                     var locationsHandle = Addressables.LoadResourceLocationsAsync(sampleSceneKey, typeof(SceneInstance));
-                    await locationsHandle.ToUniTask();
+                    await locationsHandle.ToUniTask(cancellationToken: cts.Token);
 
                     if (locationsHandle.Status == AsyncOperationStatus.Succeeded && locationsHandle.Result.Count > 0)
                     {
@@ -106,7 +109,7 @@ namespace Game.Tests.PlayMode
         {
             // Arrange - 永続オブジェクトを作成
             var persistentObject = new GameObject("TestPersistentObject");
-            Object.DontDestroyOnLoad(persistentObject);
+            UnityEngine.Object.DontDestroyOnLoad(persistentObject);
             yield return null;
 
             // Assert - オブジェクトがDontDestroyOnLoadシーンに移動されている
@@ -115,7 +118,7 @@ namespace Game.Tests.PlayMode
                 "Object should be in DontDestroyOnLoad scene");
 
             // Cleanup
-            Object.Destroy(persistentObject);
+            UnityEngine.Object.Destroy(persistentObject);
             yield return null;
         }
 
@@ -156,8 +159,9 @@ namespace Game.Tests.PlayMode
         {
             try
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 var initHandle = Addressables.InitializeAsync();
-                await initHandle.ToUniTask();
+                await initHandle.ToUniTask(cancellationToken: cts.Token);
                 _addressablesInitialized = initHandle.Status == AsyncOperationStatus.Succeeded;
 
                 if (_addressablesInitialized)
@@ -169,7 +173,12 @@ namespace Game.Tests.PlayMode
                     Debug.LogWarning("[SceneTransitionTests] Addressables initialization failed");
                 }
             }
-            catch (System.Exception e)
+            catch (OperationCanceledException)
+            {
+                Debug.LogWarning("[SceneTransitionTests] Addressables initialization timed out (30s)");
+                _addressablesInitialized = false;
+            }
+            catch (Exception e)
             {
                 Debug.LogWarning($"[SceneTransitionTests] Addressables not available: {e.Message}");
                 _addressablesInitialized = false;

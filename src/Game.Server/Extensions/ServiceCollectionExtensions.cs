@@ -84,6 +84,9 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Request Signing
+        services.Configure<RequestSigningSettings>(configuration.GetSection("RequestSigning"));
+
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));
@@ -107,6 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRankingService, RankingService>();
+        services.AddScoped<ISurvivorScoreValidationService, SurvivorScoreValidationService>();
         services.AddScoped<ISurvivorScoreService, SurvivorScoreService>();
 
         // Repositories

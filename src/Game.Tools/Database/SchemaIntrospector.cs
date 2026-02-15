@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-namespace Game.Tools.Data;
+namespace Game.Tools.Database;
 
 public record ColumnInfo(
     string ColumnName,

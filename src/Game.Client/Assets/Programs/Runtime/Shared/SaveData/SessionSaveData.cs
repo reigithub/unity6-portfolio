@@ -15,6 +15,7 @@ namespace Game.Shared.SaveData
         public string UserName { get; set; }
         public string AuthType { get; set; }
         public string DeviceFingerprint { get; set; }
+        public string SigningKey { get; set; }
         public string TransferPassword { get; set; }
     }
 }

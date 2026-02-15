@@ -26,6 +26,7 @@ namespace Game.Shared.Services
         public string UserId => _data?.UserId;
         public string UserName => _data?.UserName;
         public string AuthType => _data?.AuthType;
+        public string SigningKey => _data?.SigningKey;
 
         public async UniTask SaveSessionAsync(LoginResponse response, string authType = "guest")
         {
@@ -34,6 +35,7 @@ namespace Game.Shared.Services
             _data.UserId = response.userId;
             _data.UserName = response.userName;
             _data.AuthType = authType;
+            _data.SigningKey = response.signingKey;
             await _storage.SaveAsync(SaveKey, _data);
         }
 

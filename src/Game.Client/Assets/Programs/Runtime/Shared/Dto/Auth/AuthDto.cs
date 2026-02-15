@@ -57,6 +57,7 @@ namespace Game.Shared.Dto.Auth
         public string userName;
         public string token;
         public bool isNewUser;
+        public string signingKey;
     }
 
     [Serializable]
@@ -67,6 +68,7 @@ namespace Game.Shared.Dto.Auth
         public string token;
         public string authType;
         public string email;
+        public string signingKey;
     }
 
     [Serializable]

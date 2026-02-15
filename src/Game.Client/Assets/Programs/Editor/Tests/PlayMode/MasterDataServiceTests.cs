@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
@@ -71,8 +72,9 @@ namespace Game.Tests.PlayMode
                     const string masterDataKey = "MasterDataBinary";
 
                     // キーの存在確認
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                     var locationsHandle = Addressables.LoadResourceLocationsAsync(masterDataKey);
-                    await locationsHandle.ToUniTask();
+                    await locationsHandle.ToUniTask(cancellationToken: cts.Token);
 
                     if (locationsHandle.Status == AsyncOperationStatus.Succeeded)
                     {
@@ -127,8 +129,9 @@ namespace Game.Tests.PlayMode
                     // 既知の存在するアセットキーでテスト
                     const string testKey = "MasterDataBinary";
 
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                     var handle = Addressables.LoadAssetAsync<TextAsset>(testKey);
-                    var result = await handle.ToUniTask();
+                    var result = await handle.ToUniTask(cancellationToken: cts.Token);
 
                     if (handle.Status == AsyncOperationStatus.Succeeded)
                     {
@@ -173,8 +176,9 @@ namespace Game.Tests.PlayMode
                 {
                     const string invalidKey = "NonExistentKey_12345_Invalid";
 
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                     var handle = Addressables.LoadAssetAsync<TextAsset>(invalidKey);
-                    await handle.ToUniTask();
+                    await handle.ToUniTask(cancellationToken: cts.Token);
 
                     // ここに到達したらロードが成功した（予期しない）
                     Addressables.Release(handle);
@@ -214,9 +218,11 @@ namespace Game.Tests.PlayMode
                 {
                     const string testKey = "MasterDataBinary";
 
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
                     // ロード
                     var handle = Addressables.LoadAssetAsync<TextAsset>(testKey);
-                    await handle.ToUniTask();
+                    await handle.ToUniTask(cancellationToken: cts.Token);
 
                     if (handle.Status != AsyncOperationStatus.Succeeded)
                     {
@@ -229,7 +235,7 @@ namespace Game.Tests.PlayMode
 
                     // 再度ロードして、リソースが正常に解放されたことを確認
                     var handle2 = Addressables.LoadAssetAsync<TextAsset>(testKey);
-                    await handle2.ToUniTask();
+                    await handle2.ToUniTask(cancellationToken: cts.Token);
 
                     Assert.AreEqual(AsyncOperationStatus.Succeeded, handle2.Status);
                     Addressables.Release(handle2);
@@ -267,10 +273,12 @@ namespace Game.Tests.PlayMode
                     const string testKey = "MasterDataBinary";
                     const int iterations = 5;
 
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
                     for (int i = 0; i < iterations; i++)
                     {
                         var handle = Addressables.LoadAssetAsync<TextAsset>(testKey);
-                        await handle.ToUniTask();
+                        await handle.ToUniTask(cancellationToken: cts.Token);
 
                         if (handle.Status != AsyncOperationStatus.Succeeded)
                         {
@@ -304,8 +312,9 @@ namespace Game.Tests.PlayMode
         {
             try
             {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 var initHandle = Addressables.InitializeAsync();
-                await initHandle.ToUniTask();
+                await initHandle.ToUniTask(cancellationToken: cts.Token);
                 _addressablesInitialized = initHandle.Status == AsyncOperationStatus.Succeeded;
 
                 if (_addressablesInitialized)
@@ -316,6 +325,11 @@ namespace Game.Tests.PlayMode
                 {
                     Debug.LogWarning("[MasterDataServiceTests] Addressables initialization failed");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.LogWarning("[MasterDataServiceTests] Addressables initialization timed out (30s)");
+                _addressablesInitialized = false;
             }
             catch (Exception e)
             {

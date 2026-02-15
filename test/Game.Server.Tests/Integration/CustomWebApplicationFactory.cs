@@ -1,5 +1,8 @@
 using Game.Server.Database;
+using Game.Server.Dto.Requests;
+using Game.Server.Services;
 using Game.Server.Services.Interfaces;
+using Game.Server.Services.Validations;
 using Game.Server.Tests.Fixtures;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -40,6 +43,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var mockMasterData = new Mock<IMasterDataService>();
             services.RemoveAll<IMasterDataService>();
             services.AddSingleton(mockMasterData.Object);
+
+            // Replace ISurvivorScoreValidationService with a mock so that tests
+            // don't require master data for score validation.
+            var mockValidation = new Mock<ISurvivorScoreValidationService>();
+            mockValidation
+                .Setup(v => v.Validate(It.IsAny<SubmitSurvivorScoreRequest>()))
+                .Returns(RequestValidationResult.Success());
+            services.RemoveAll<ISurvivorScoreValidationService>();
+            services.AddSingleton(mockValidation.Object);
 
             // Replace IEmailService with a mock so that tests
             // don't require Resend API credentials.

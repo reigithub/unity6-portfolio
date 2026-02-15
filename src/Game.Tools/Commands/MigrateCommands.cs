@@ -1,5 +1,5 @@
 using Game.Server.Database;
-using Game.Tools.Data;
+using Game.Tools.Database;
 using Spectre.Console;
 
 namespace Game.Tools.Commands;

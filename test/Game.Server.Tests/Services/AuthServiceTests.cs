@@ -115,6 +115,7 @@ public class AuthServiceTests : IAsyncLifetime
             authRepo,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
+            TestDataFixture.GetSigningOptions(),
             mockEmailService.Object);
     }
 

@@ -156,6 +156,11 @@ namespace Game.Shared.Services
         {
             await _sessionService.SaveSessionAsync(data, authType);
             _apiClient.SetAuthToken(data.token);
+
+            if (!string.IsNullOrEmpty(data.signingKey))
+            {
+                _apiClient.SetSigningKey(data.signingKey);
+            }
         }
 
         private async UniTask OnLinkSuccessAsync(AccountLinkResponse data)
@@ -164,10 +169,16 @@ namespace Game.Shared.Services
             {
                 userId = data.userId,
                 userName = data.userName,
-                token = data.token
+                token = data.token,
+                signingKey = data.signingKey
             };
             await _sessionService.SaveSessionAsync(loginData, data.authType?.ToLower() ?? "guest");
             _apiClient.SetAuthToken(data.token);
+
+            if (!string.IsNullOrEmpty(data.signingKey))
+            {
+                _apiClient.SetSigningKey(data.signingKey);
+            }
         }
 
         /// <summary>

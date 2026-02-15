@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using Game.Tools.CodeGen;
-using Game.Tools.Data;
+using Game.Tools.Database;
 using Game.Tools.Proto;
 using MasterMemory;
 using MessagePack;
