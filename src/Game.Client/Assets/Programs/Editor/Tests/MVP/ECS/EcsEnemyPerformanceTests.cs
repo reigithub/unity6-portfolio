@@ -38,6 +38,9 @@ namespace Game.Tests.MVP.ECS
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
+            // 他テストクラスの残留エラーログによる誤検出を防止（SetUpより前に実行される）
+            LogAssert.ignoreFailingMessages = true;
+
             // ログファイルのパスを設定
             var logDir = Path.Combine(Application.dataPath, "..", "Logs", "PerformanceTests");
             Directory.CreateDirectory(logDir);
@@ -47,9 +50,6 @@ namespace Game.Tests.MVP.ECS
         [SetUp]
         public void SetUp()
         {
-            // 他テストクラスの残留エラーログによる誤検出を防止
-            LogAssert.ignoreFailingMessages = true;
-
             _logBuilder = new StringBuilder();
             _testWorld = new World("PerfTestWorld");
             _entityManager = _testWorld.EntityManager;
@@ -72,8 +72,6 @@ namespace Game.Tests.MVP.ECS
                 _testWorld.Dispose();
             }
 
-            LogAssert.ignoreFailingMessages = false;
-
             // ログ出力
             if (_logBuilder != null && _logBuilder.Length > 0)
             {
@@ -81,6 +79,12 @@ namespace Game.Tests.MVP.ECS
                 Debug.Log(logContent);
                 File.AppendAllText(_logFilePath, logContent + "\n");
             }
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
         }
 
         #region Helper Methods
