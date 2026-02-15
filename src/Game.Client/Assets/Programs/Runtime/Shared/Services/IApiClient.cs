@@ -62,5 +62,16 @@ namespace Game.Shared.Services
         /// 認証トークンをクリア
         /// </summary>
         void ClearAuthToken();
+
+        /// <summary>
+        /// サーバーから配布された署名鍵を設定
+        /// </summary>
+        /// <param name="base64Key">Base64エンコードされた署名鍵</param>
+        void SetSigningKey(string base64Key);
+
+        /// <summary>
+        /// 署名鍵をクリア
+        /// </summary>
+        void ClearSigningKey();
     }
 }

@@ -34,6 +34,12 @@ public static class TestDataFixture
         PasswordResetExpiryMinutes = 30,
     };
 
+    public static readonly RequestSigningSettings TestSigningSettings = new()
+    {
+        SecretKey = "test-signing-secret-key-for-unit-tests",
+        Enabled = true,
+    };
+
     public static IOptions<JwtSettings> GetJwtOptions()
     {
         return Options.Create(TestJwtSettings);
@@ -42,6 +48,11 @@ public static class TestDataFixture
     public static IOptions<AuthSettings> GetAuthOptions()
     {
         return Options.Create(TestAuthSettings);
+    }
+
+    public static IOptions<RequestSigningSettings> GetSigningOptions()
+    {
+        return Options.Create(TestSigningSettings);
     }
 
     public static IDbConnectionFactory CreateConnectionFactory(string connectionString)

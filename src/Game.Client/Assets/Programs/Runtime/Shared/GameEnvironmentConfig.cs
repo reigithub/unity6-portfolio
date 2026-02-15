@@ -45,7 +45,6 @@ namespace Game.Shared
         [SerializeField] private bool _enableDebugLog;
         [SerializeField] private bool _enableAnalytics;
         [SerializeField] private bool _useLocalMasterData;
-        [SerializeField] private string _signingSecretKey;
         [SerializeField] private AddressablesEnvironmentConfig _addressablesConfig;
 
         public GameEnvironment Environment => _environment;
@@ -55,7 +54,6 @@ namespace Game.Shared
         public bool EnableDebugLog => _enableDebugLog;
         public bool EnableAnalytics => _enableAnalytics;
         public bool UseLocalMasterData => _useLocalMasterData;
-        public string SigningSecretKey => _signingSecretKey;
         public AddressablesEnvironmentConfig AddressablesConfig => _addressablesConfig;
     }
 

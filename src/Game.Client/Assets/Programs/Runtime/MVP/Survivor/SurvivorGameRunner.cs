@@ -93,6 +93,11 @@ namespace Game.MVP.Survivor
             {
                 _apiClient.SetAuthToken(_sessionService.AuthToken);
 
+                if (!string.IsNullOrEmpty(_sessionService.SigningKey))
+                {
+                    _apiClient.SetSigningKey(_sessionService.SigningKey);
+                }
+
                 // トークンの有効性を検証（期限切れの場合はリフレッシュ試行）
                 // 失敗しても起動は継続し、ゲーム開始時に再認証を行う
                 await TryValidateTokenAsync();

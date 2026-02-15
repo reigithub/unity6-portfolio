@@ -83,19 +83,8 @@ namespace Game.MVP.Survivor
             // 4. ResponseCache
             builder.Register<IResponseCache>(_ => new MemoryResponseCache(), Lifetime.Singleton);
 
-            // 5. RequestSigningService（GameEnvironmentConfigから秘密鍵を取得）
-            builder.Register<IRequestSigningService>(_ =>
-            {
-                var secretKey = GameEnvironmentHelper.CurrentConfig?.SigningSecretKey;
-                if (string.IsNullOrEmpty(secretKey))
-                {
-                    throw new System.InvalidOperationException(
-                        "SigningSecretKey is not configured in GameEnvironmentConfig. " +
-                        "Set the key in the GameEnvironmentSettings ScriptableObject.");
-                }
-
-                return new RequestSigningService(System.Text.Encoding.UTF8.GetBytes(secretKey));
-            }, Lifetime.Singleton);
+            // 5. RequestSigningService（鍵はログイン後にサーバーから配布される）
+            builder.Register<RequestSigningService>(Lifetime.Singleton).As<IRequestSigningService>();
 
             // 6. API Client（INetworkService + IResponseCache + IRequestSigningServiceに依存）
             builder.Register<UnityApiClient>(Lifetime.Singleton).As<IApiClient>();

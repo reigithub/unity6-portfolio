@@ -104,6 +104,7 @@ public class GuestLoginTests : IAsyncLifetime
             authRepo,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
+            TestDataFixture.GetSigningOptions(),
             mockEmailService.Object);
     }
 }

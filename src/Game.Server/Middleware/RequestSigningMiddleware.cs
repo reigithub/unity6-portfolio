@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Game.Library.Shared.RequestSigning;
 using Game.Server.Configuration;
@@ -10,8 +12,18 @@ public class RequestSigningMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestSigningMiddleware> _logger;
-    private readonly byte[] _secretKey;
+    private readonly byte[] _serverSecret;
     private readonly bool _enabled;
+
+    private static readonly string[] ExemptPaths = new[]
+    {
+        "/api/auth/guest",
+        "/api/auth/login",
+        "/api/auth/email/login",
+        "/api/auth/email/forgot-password",
+        "/api/auth/email/reset-password",
+        "/api/auth/email/verify",
+    };
 
     public RequestSigningMiddleware(
         RequestDelegate next,
@@ -20,7 +32,7 @@ public class RequestSigningMiddleware
     {
         _next = next;
         _logger = logger;
-        _secretKey = Encoding.UTF8.GetBytes(settings.Value.SecretKey);
+        _serverSecret = Encoding.UTF8.GetBytes(settings.Value.SecretKey);
         _enabled = settings.Value.Enabled;
     }
 
@@ -29,6 +41,16 @@ public class RequestSigningMiddleware
         if (!_enabled || !RequiresSignatureVerification(context.Request))
         {
             await _next(context);
+            return;
+        }
+
+        // JWT から userId を取得
+        var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            _logger.LogWarning("No authenticated user for signed request: {Path}", context.Request.Path);
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Authentication required for signed requests." });
             return;
         }
 
@@ -68,12 +90,15 @@ public class RequestSigningMiddleware
         var bodyBytes = await ReadBodyAsync(context.Request);
         context.Request.Body.Position = 0;
 
+        // ユーザーごとの鍵を導出
+        var userKey = DeriveUserKey(userId);
+
         // HMAC 署名検証
         var method = context.Request.Method;
         var path = context.Request.Path.Value ?? "/";
         var canonicalString = HmacRequestSigner.BuildCanonicalString(method, path, timestamp, nonce!, bodyBytes);
 
-        if (!HmacRequestSigner.VerifySignature(_secretKey, canonicalString, signature!))
+        if (!HmacRequestSigner.VerifySignature(userKey, canonicalString, signature!))
         {
             _logger.LogWarning("HMAC signature verification failed for {Method} {Path}", method, path);
             context.Response.StatusCode = 401;
@@ -94,6 +119,13 @@ public class RequestSigningMiddleware
         await _next(context);
     }
 
+    private byte[] DeriveUserKey(string userId)
+    {
+        var userIdBytes = Encoding.UTF8.GetBytes(userId);
+        using var hmac = new HMACSHA256(_serverSecret);
+        return hmac.ComputeHash(userIdBytes);
+    }
+
     private static bool RequiresSignatureVerification(HttpRequest request)
     {
         // 書き込み系メソッドのみ検証（GET はスキップ）
@@ -103,7 +135,20 @@ public class RequestSigningMiddleware
         }
 
         // /api/ 配下のエンドポイントのみ対象
-        return request.Path.StartsWithSegments("/api");
+        if (!request.Path.StartsWithSegments("/api"))
+        {
+            return false;
+        }
+
+        // 認証不要エンドポイントは署名検証をスキップ
+        var path = request.Path.Value ?? "";
+        foreach (var exempt in ExemptPaths)
+        {
+            if (path.Equals(exempt, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        return true;
     }
 
     private static async Task<byte[]> ReadBodyAsync(HttpRequest request)

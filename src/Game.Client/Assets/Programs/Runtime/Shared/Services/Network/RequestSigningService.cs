@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Game.Library.Shared.RequestSigning;
 
 namespace Game.Shared.Services.Network
@@ -8,13 +7,19 @@ namespace Game.Shared.Services.Network
     public interface IRequestSigningService
     {
         Dictionary<string, string> CreateSignatureHeaders(string method, string path, byte[] bodyBytes);
+        void SetKey(byte[] secretKey);
+        bool HasKey { get; }
     }
 
     public class RequestSigningService : IRequestSigningService
     {
-        private readonly byte[] _secretKey;
+        private byte[] _secretKey;
 
-        public RequestSigningService(byte[] secretKey)
+        public RequestSigningService() { }
+
+        public bool HasKey => _secretKey != null && _secretKey.Length > 0;
+
+        public void SetKey(byte[] secretKey)
         {
             _secretKey = secretKey ?? throw new ArgumentNullException(nameof(secretKey));
         }
@@ -24,6 +29,9 @@ namespace Game.Shared.Services.Network
         /// </summary>
         public Dictionary<string, string> CreateSignatureHeaders(string method, string path, byte[] bodyBytes)
         {
+            if (_secretKey == null || _secretKey.Length == 0)
+                return new Dictionary<string, string>();
+
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var nonce = Guid.NewGuid().ToString();
 

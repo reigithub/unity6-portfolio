@@ -280,6 +280,7 @@ public class EmailAuthTests : IAsyncLifetime
             authRepo,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
+            TestDataFixture.GetSigningOptions(),
             _mockEmailService.Object);
     }
 

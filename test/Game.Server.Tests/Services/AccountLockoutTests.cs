@@ -224,6 +224,7 @@ public class AccountLockoutTests : IAsyncLifetime
             authRepo,
             TestDataFixture.GetJwtOptions(),
             authOptions ?? TestDataFixture.GetAuthOptions(),
+            TestDataFixture.GetSigningOptions(),
             mockEmailService.Object);
     }
 }

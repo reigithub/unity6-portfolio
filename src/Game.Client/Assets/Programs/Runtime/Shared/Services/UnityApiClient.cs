@@ -45,6 +45,17 @@ namespace Game.Shared.Services
             _authToken = null;
         }
 
+        public void SetSigningKey(string base64Key)
+        {
+            var keyBytes = Convert.FromBase64String(base64Key);
+            _signingService.SetKey(keyBytes);
+        }
+
+        public void ClearSigningKey()
+        {
+            _signingService.SetKey(Array.Empty<byte>());
+        }
+
         public async UniTask<ApiResponse<TResponse>> GetAsync<TResponse>(
             string path,
             RequestOptions options = null,
@@ -299,6 +310,8 @@ namespace Game.Shared.Services
 
         private void SetSignatureHeaders(UnityWebRequest request, string method, string path, byte[] bodyBytes)
         {
+            if (!_signingService.HasKey) return;
+
             var normalizedPath = "/" + path.TrimStart('/');
             var headers = _signingService.CreateSignatureHeaders(method, normalizedPath, bodyBytes);
             foreach (var h in headers)
