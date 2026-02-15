@@ -139,11 +139,18 @@ namespace Game.Editor.Addressables
 
         /// <summary>
         /// 自動同期が必要かどうかを判定
+        /// - バッチモードでない
         /// - GameEnvironment が Local 以外
         /// - Play Mode Script が UseExistingBuild
         /// </summary>
         private static bool ShouldAutoSync()
         {
+            // バッチモードではダイアログ表示・同期不可
+            if (Application.isBatchMode)
+            {
+                return false;
+            }
+
             // Local環境では同期不要（ローカルビルドを使用）
             if (GameEnvironmentHelper.Current == GameEnvironment.Local)
             {
