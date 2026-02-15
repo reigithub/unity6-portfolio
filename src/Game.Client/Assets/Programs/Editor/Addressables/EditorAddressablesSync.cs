@@ -31,7 +31,31 @@ namespace Game.Editor.Addressables
 
         static EditorAddressablesSync()
         {
+            // バッチモード（CI）ではUseExistingBuildモードだとカタログ未存在で
+            // AddressablesBuildScriptHooksがダイアログを表示しハングするため、
+            // Play Mode ScriptをUse Asset Database（シミュレーション）に切り替える
+            if (Application.isBatchMode)
+            {
+                SwitchToAssetDatabaseMode();
+            }
+
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        /// <summary>
+        /// Addressables Play Mode ScriptをUse Asset Database（インデックス0）に切り替える
+        /// </summary>
+        private static void SwitchToAssetDatabaseMode()
+        {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null) return;
+
+            const int assetDatabaseIndex = 0; // BuildScriptFastMode
+            if (settings.ActivePlayModeDataBuilderIndex != assetDatabaseIndex)
+            {
+                settings.ActivePlayModeDataBuilderIndex = assetDatabaseIndex;
+                Debug.Log("[AddressablesSync] Batch mode: Play Mode Script を Use Asset Database に切り替えました");
+            }
         }
 
         private static void OnPlayModeStateChanged(PlayModeStateChange state)
