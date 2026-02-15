@@ -20,6 +20,7 @@ namespace Game.Tests.Shared.Network
     {
         private INetworkService _mockNetworkService;
         private IResponseCache _mockCache;
+        private IRequestSigningService _mockSigningService;
         private UnityApiClient _client;
 
         [SetUp]
@@ -27,12 +28,13 @@ namespace Game.Tests.Shared.Network
         {
             _mockNetworkService = Substitute.For<INetworkService>();
             _mockCache = Substitute.For<IResponseCache>();
+            _mockSigningService = Substitute.For<IRequestSigningService>();
 
             // デフォルトはオンライン、サーキットブレーカーClosed
             _mockNetworkService.IsConnected.Returns(true);
             _mockNetworkService.CanExecute.Returns(true);
 
-            _client = new UnityApiClient(_mockNetworkService, _mockCache);
+            _client = new UnityApiClient(_mockNetworkService, _mockCache, _mockSigningService);
         }
 
         #region Test Data
@@ -56,7 +58,7 @@ namespace Game.Tests.Shared.Network
         public void Constructor_WithNullNetworkService_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.That(() => new UnityApiClient(null, _mockCache),
+            Assert.That(() => new UnityApiClient(null, _mockCache, _mockSigningService),
                 Throws.ArgumentNullException);
         }
 
@@ -64,7 +66,15 @@ namespace Game.Tests.Shared.Network
         public void Constructor_WithNullCache_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.That(() => new UnityApiClient(_mockNetworkService, null),
+            Assert.That(() => new UnityApiClient(_mockNetworkService, null, _mockSigningService),
+                Throws.ArgumentNullException);
+        }
+
+        [Test]
+        public void Constructor_WithNullSigningService_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            Assert.That(() => new UnityApiClient(_mockNetworkService, _mockCache, null),
                 Throws.ArgumentNullException);
         }
 
@@ -72,7 +82,7 @@ namespace Game.Tests.Shared.Network
         public void Constructor_WithValidDependencies_DoesNotThrow()
         {
             // Act & Assert
-            Assert.DoesNotThrow(() => new UnityApiClient(_mockNetworkService, _mockCache));
+            Assert.DoesNotThrow(() => new UnityApiClient(_mockNetworkService, _mockCache, _mockSigningService));
         }
 
         #endregion

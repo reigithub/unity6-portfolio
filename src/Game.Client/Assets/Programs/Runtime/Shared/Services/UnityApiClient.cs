@@ -22,15 +22,17 @@ namespace Game.Shared.Services
 
         private readonly INetworkService _networkService;
         private readonly IResponseCache _cache;
+        private readonly IRequestSigningService _signingService;
         private string _authToken;
 
         private string BaseUrl =>
             GameEnvironmentHelper.CurrentConfig?.ApiBaseUrl?.TrimEnd('/') ?? "http://localhost:5000";
 
-        public UnityApiClient(INetworkService networkService, IResponseCache cache)
+        public UnityApiClient(INetworkService networkService, IResponseCache cache, IRequestSigningService signingService)
         {
             _networkService = networkService ?? throw new ArgumentNullException(nameof(networkService));
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _signingService = signingService ?? throw new ArgumentNullException(nameof(signingService));
         }
 
         public void SetAuthToken(string token)
@@ -252,6 +254,7 @@ namespace Game.Shared.Services
             request.timeout = timeout;
 
             SetAuthHeader(request);
+            SetSignatureHeaders(request, "POST", path, bodyBytes);
             SetAdditionalHeaders(request, options);
 
             return request;
@@ -265,6 +268,7 @@ namespace Game.Shared.Services
             request.timeout = timeout;
 
             SetAuthHeader(request);
+            SetSignatureHeaders(request, "GET", path, null);
             SetAdditionalHeaders(request, options);
 
             return request;
@@ -279,6 +283,7 @@ namespace Game.Shared.Services
             request.timeout = timeout;
 
             SetAuthHeader(request);
+            SetSignatureHeaders(request, "DELETE", path, null);
             SetAdditionalHeaders(request, options);
 
             return request;
@@ -289,6 +294,16 @@ namespace Game.Shared.Services
             if (!string.IsNullOrEmpty(_authToken))
             {
                 request.SetRequestHeader("Authorization", $"Bearer {_authToken}");
+            }
+        }
+
+        private void SetSignatureHeaders(UnityWebRequest request, string method, string path, byte[] bodyBytes)
+        {
+            var normalizedPath = "/" + path.TrimStart('/');
+            var headers = _signingService.CreateSignatureHeaders(method, normalizedPath, bodyBytes);
+            foreach (var h in headers)
+            {
+                request.SetRequestHeader(h.Key, h.Value);
             }
         }
 

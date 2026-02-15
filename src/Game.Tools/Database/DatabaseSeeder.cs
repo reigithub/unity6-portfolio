@@ -2,7 +2,7 @@ using Dapper;
 using Npgsql;
 using Spectre.Console;
 
-namespace Game.Tools.Data;
+namespace Game.Tools.Database;
 
 /// <summary>
 /// Seeds PostgreSQL database from TSV files using information_schema metadata.

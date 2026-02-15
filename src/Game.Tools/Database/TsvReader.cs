@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 
-namespace Game.Tools.Data;
+namespace Game.Tools.Database;
 
 /// <summary>
 /// Reads TSV files and converts rows to typed objects using reflection.

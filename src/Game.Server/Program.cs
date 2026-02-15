@@ -69,6 +69,7 @@ public partial class Program
         app.UseCors();
         app.UseResponseCaching();
         app.UseAuthentication();
+        app.UseMiddleware<RequestSigningMiddleware>();
         app.UseAuthorization();
 
         app.MapControllers();

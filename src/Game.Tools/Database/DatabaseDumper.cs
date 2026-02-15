@@ -4,7 +4,7 @@ using Dapper;
 using Npgsql;
 using Spectre.Console;
 
-namespace Game.Tools.Data;
+namespace Game.Tools.Database;
 
 /// <summary>
 /// Dumps PostgreSQL database tables to TSV files using information_schema metadata.

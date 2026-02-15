@@ -3,6 +3,7 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Signals;
+using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
@@ -82,7 +83,21 @@ namespace Game.MVP.Survivor
             // 4. ResponseCache
             builder.Register<IResponseCache>(_ => new MemoryResponseCache(), Lifetime.Singleton);
 
-            // 5. API Client（INetworkService + IResponseCacheに依存）
+            // 5. RequestSigningService（GameEnvironmentConfigから秘密鍵を取得）
+            builder.Register<IRequestSigningService>(_ =>
+            {
+                var secretKey = GameEnvironmentHelper.CurrentConfig?.SigningSecretKey;
+                if (string.IsNullOrEmpty(secretKey))
+                {
+                    throw new System.InvalidOperationException(
+                        "SigningSecretKey is not configured in GameEnvironmentConfig. " +
+                        "Set the key in the GameEnvironmentSettings ScriptableObject.");
+                }
+
+                return new RequestSigningService(System.Text.Encoding.UTF8.GetBytes(secretKey));
+            }, Lifetime.Singleton);
+
+            // 6. API Client（INetworkService + IResponseCache + IRequestSigningServiceに依存）
             builder.Register<UnityApiClient>(Lifetime.Singleton).As<IApiClient>();
 
             // ========================================
