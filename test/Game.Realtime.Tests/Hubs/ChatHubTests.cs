@@ -16,9 +16,11 @@ public class ChatHubTests
         // Arrange
         var logger = new Mock<ILogger<ChatHub>>();
         var chatMessageService = new Mock<IChatMessageService>();
+        var roomDataService = new Mock<IChatRoomDataService>();
+        var validator = new ChatPermissionValidator(roomDataService.Object);
 
         // Act
-        var hub = new ChatHub(logger.Object, chatMessageService.Object);
+        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
 
         // Assert
         Assert.NotNull(hub);
@@ -30,9 +32,11 @@ public class ChatHubTests
         // Arrange
         var logger = new Mock<ILogger<ChatHub>>();
         var chatMessageService = new Mock<IChatMessageService>();
+        var roomDataService = new Mock<IChatRoomDataService>();
+        var validator = new ChatPermissionValidator(roomDataService.Object);
 
         // Act
-        var hub = new ChatHub(logger.Object, chatMessageService.Object);
+        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
 
         // Assert
         Assert.IsAssignableFrom<Game.Library.Shared.Realtime.Hubs.IChatHub>(hub);

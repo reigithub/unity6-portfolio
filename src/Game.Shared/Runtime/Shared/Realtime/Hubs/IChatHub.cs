@@ -42,6 +42,16 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// プレイヤーがチャットルームから退出した通知
         /// </summary>
         void OnPlayerLeft(string userId, string playerName);
+
+        /// <summary>
+        /// ルームが削除された通知
+        /// </summary>
+        void OnRoomDeleted(string reason);
+
+        /// <summary>
+        /// 権限が変更された通知
+        /// </summary>
+        void OnPermissionsChanged(int permissions);
     }
 
     /// <summary>
@@ -68,10 +78,5 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// 最近のメッセージ履歴を取得
         /// </summary>
         ValueTask<ChatMessage[]> GetRecentMessagesAsync(int count);
-
-        /// <summary>
-        /// ルームのメッセージ履歴を全て削除する
-        /// </summary>
-        ValueTask DeleteRoomMessagesAsync();
     }
 }
