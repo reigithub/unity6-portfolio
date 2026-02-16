@@ -48,6 +48,30 @@ services:
       valkey:
         condition: service_healthy
 
+  realtime:
+    image: game-realtime
+    container_name: game-server-realtime
+    build:
+      context: ../..
+      dockerfile: docker/game-realtime/Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Valkey=valkey:6379,abortConnect=false,connectTimeout=5000
+      - Jwt__Secret=your-secret-key-must-be-at-least-32-characters-long
+      - Jwt__Issuer=Game.Server
+      - Jwt__Audience=Game.Client
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pgdata:
   valkey_data:
