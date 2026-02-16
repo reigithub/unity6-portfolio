@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MagicOnion -->
+    <PackageReference Include="MagicOnion.Server" Version="7.0.9" />
+    <PackageReference Include="MagicOnion.Server.Redis" Version="7.0.9" />
+
+    <!-- gRPC -->
+    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.67.0" />
+
+    <!-- Redis/Valkey -->
+    <PackageReference Include="StackExchange.Redis" Version="2.8.41" />
+
+    <!-- Authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
+
+    <!-- Serialization -->
+    <PackageReference Include="MessagePack" Version="3.1.4" />
+
+    <!-- Analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Game.Shared\Game.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
