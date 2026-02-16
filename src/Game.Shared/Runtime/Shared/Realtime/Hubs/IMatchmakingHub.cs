@@ -51,22 +51,18 @@ namespace Game.Library.Shared.Realtime.Hubs
 
     /// <summary>
     /// マッチメイキングHub サーバー送信インターフェース（StreamingHub）
+    /// 通知専用：キュー操作は Unary IMatchmakingService 経由
     /// </summary>
     public interface IMatchmakingHub : IStreamingHub<IMatchmakingHub, IMatchmakingHubReceiver>
     {
         /// <summary>
-        /// マッチメイキングキューに参加
+        /// マッチメイキング通知を購読
         /// </summary>
-        ValueTask StartMatchmakingAsync(string gameMode);
+        ValueTask SubscribeAsync(string gameMode);
 
         /// <summary>
-        /// マッチメイキングをキャンセル
+        /// マッチメイキング通知の購読解除
         /// </summary>
-        ValueTask CancelMatchmakingAsync();
-
-        /// <summary>
-        /// 現在のキュー状態を取得
-        /// </summary>
-        ValueTask<int> GetQueueCountAsync(string gameMode);
+        ValueTask UnsubscribeAsync();
     }
 }

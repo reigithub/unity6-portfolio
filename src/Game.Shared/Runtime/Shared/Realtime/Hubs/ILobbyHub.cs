@@ -27,17 +27,28 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// ロビーが閉じられた通知
         /// </summary>
         void OnLobbyClosed(string reason);
+
+        /// <summary>
+        /// プレイヤーのレディ状態変更通知
+        /// </summary>
+        void OnPlayerReadyChanged(string userId, bool isReady);
+
+        /// <summary>
+        /// ゲーム開始通知
+        /// </summary>
+        void OnGameStarting(string matchId, string serverAddress, int serverPort);
     }
 
     /// <summary>
     /// ロビーHub サーバー送信インターフェース（StreamingHub）
+    /// ロビー参加/退出は Unary ILobbyService 経由。Hub はリアルタイムイベント専用。
     /// </summary>
     public interface ILobbyHub : IStreamingHub<ILobbyHub, ILobbyHubReceiver>
     {
         /// <summary>
-        /// ロビーに参加
+        /// ロビーに接続（Hub グループ参加のみ、ロビー参加は Unary 経由）
         /// </summary>
-        ValueTask JoinAsync(string lobbyId, string playerName);
+        ValueTask ConnectAsync(string lobbyId, string playerName);
 
         /// <summary>
         /// ロビーから退出
@@ -50,8 +61,8 @@ namespace Game.Library.Shared.Realtime.Hubs
         ValueTask SendMessageAsync(string message);
 
         /// <summary>
-        /// ロビーのプレイヤー一覧を取得
+        /// レディ状態を設定
         /// </summary>
-        ValueTask<string[]> GetPlayersAsync();
+        ValueTask SetReadyAsync(bool isReady);
     }
 }

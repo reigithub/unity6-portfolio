@@ -1,5 +1,7 @@
 using System.Text;
 using Game.Realtime.Extensions;
+using Game.Realtime.Filters;
+using MagicOnion.Server;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
@@ -46,6 +48,7 @@ public class Program
         builder.Services.AddGrpc();
         builder.Services.AddMagicOnion(options =>
         {
+            options.GlobalFilters.Add<JwtAuthenticationFilter>();
             options.EnableStreamingHubHeartbeat = true;
             options.StreamingHubHeartbeatInterval = TimeSpan.FromSeconds(30);
             options.StreamingHubHeartbeatTimeout = TimeSpan.FromSeconds(10);
@@ -83,6 +86,10 @@ public class Program
         builder.Services.AddRealtimeServices(builder.Configuration);
 
         var app = builder.Build();
+
+        // ASP.NET Core authentication / authorization middleware
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         // Map MagicOnion hubs & health check
         app.MapMagicOnionService();

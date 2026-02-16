@@ -1,4 +1,5 @@
 using Game.Library.Shared.Realtime.Hubs;
+using Game.Realtime.Services;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 
@@ -6,19 +7,22 @@ namespace Game.Realtime.Hubs;
 
 /// <summary>
 /// チャットHub サーバー実装
+/// メッセージ送信時に Valkey へ永続化し、履歴取得にも対応する
 /// </summary>
 public class ChatHub : StreamingHubBase<IChatHub, IChatHubReceiver>, IChatHub
 {
     private readonly ILogger<ChatHub> _logger;
+    private readonly IChatMessageService _chatMessageService;
 
     private IGroup<IChatHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
     private string _playerName = string.Empty;
     private string _roomId = string.Empty;
 
-    public ChatHub(ILogger<ChatHub> logger)
+    public ChatHub(ILogger<ChatHub> logger, IChatMessageService chatMessageService)
     {
         _logger = logger;
+        _chatMessageService = chatMessageService;
     }
 
     public async ValueTask JoinAsync(string roomId, string playerName)
@@ -55,7 +59,7 @@ public class ChatHub : StreamingHubBase<IChatHub, IChatHubReceiver>, IChatHub
         }
     }
 
-    public ValueTask SendMessageAsync(string content)
+    public async ValueTask SendMessageAsync(string content)
     {
         if (_currentGroup != null)
         {
@@ -67,6 +71,9 @@ public class ChatHub : StreamingHubBase<IChatHub, IChatHubReceiver>, IChatHub
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             };
 
+            // Valkey に永続化
+            await _chatMessageService.SaveMessageAsync(_roomId, message);
+
             _logger.LogDebug(
                 "Player {PlayerName} sent chat message in room {RoomId}",
                 _playerName,
@@ -74,14 +81,24 @@ public class ChatHub : StreamingHubBase<IChatHub, IChatHubReceiver>, IChatHub
 
             _currentGroup.All.OnMessageReceived(message);
         }
-
-        return default;
     }
 
-    public ValueTask<ChatMessage[]> GetRecentMessagesAsync(int count)
+    public async ValueTask<ChatMessage[]> GetRecentMessagesAsync(int count)
     {
-        // TODO: Valkey からメッセージ履歴を取得する実装
-        return new ValueTask<ChatMessage[]>(Array.Empty<ChatMessage>());
+        if (string.IsNullOrEmpty(_roomId))
+        {
+            return Array.Empty<ChatMessage>();
+        }
+
+        return await _chatMessageService.GetRecentMessagesAsync(_roomId, count);
+    }
+
+    public async ValueTask DeleteRoomMessagesAsync()
+    {
+        if (!string.IsNullOrEmpty(_roomId))
+        {
+            await _chatMessageService.DeleteRoomAsync(_roomId);
+        }
     }
 
     protected override ValueTask OnDisconnected()

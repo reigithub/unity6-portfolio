@@ -1,4 +1,5 @@
 using Game.Realtime.Hubs;
+using Game.Realtime.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -14,9 +15,10 @@ public class LobbyHubTests
     {
         // Arrange
         var logger = new Mock<ILogger<LobbyHub>>();
+        var lobbyDataService = new Mock<ILobbyDataService>();
 
         // Act
-        var hub = new LobbyHub(logger.Object);
+        var hub = new LobbyHub(logger.Object, lobbyDataService.Object);
 
         // Assert
         Assert.NotNull(hub);
@@ -27,9 +29,10 @@ public class LobbyHubTests
     {
         // Arrange
         var logger = new Mock<ILogger<LobbyHub>>();
+        var lobbyDataService = new Mock<ILobbyDataService>();
 
         // Act
-        var hub = new LobbyHub(logger.Object);
+        var hub = new LobbyHub(logger.Object, lobbyDataService.Object);
 
         // Assert
         Assert.IsAssignableFrom<Game.Library.Shared.Realtime.Hubs.ILobbyHub>(hub);

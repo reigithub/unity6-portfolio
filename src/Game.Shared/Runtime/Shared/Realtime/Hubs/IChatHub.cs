@@ -68,5 +68,10 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// 最近のメッセージ履歴を取得
         /// </summary>
         ValueTask<ChatMessage[]> GetRecentMessagesAsync(int count);
+
+        /// <summary>
+        /// ルームのメッセージ履歴を全て削除する
+        /// </summary>
+        ValueTask DeleteRoomMessagesAsync();
     }
 }

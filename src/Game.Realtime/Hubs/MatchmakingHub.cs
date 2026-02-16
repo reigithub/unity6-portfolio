@@ -1,31 +1,35 @@
+using System.Text.Json;
 using Game.Library.Shared.Realtime.Hubs;
-using Game.Realtime.Services;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
+using Microsoft.AspNetCore.Http;
+using StackExchange.Redis;
 
 namespace Game.Realtime.Hubs;
 
 /// <summary>
-/// マッチメイキングHub サーバー実装
+/// マッチメイキングHub サーバー実装（通知専用）
+/// キュー操作は Unary IMatchmakingService 経由。Hub は Redis Pub/Sub でマッチ成立通知を受信し、クライアントに転送する。
 /// </summary>
 public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubReceiver>, IMatchmakingHub
 {
     private readonly ILogger<MatchmakingHub> _logger;
-    private readonly IMatchmakingService _matchmakingService;
+    private readonly IConnectionMultiplexer _redis;
 
     private IGroup<IMatchmakingHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
     private string _gameMode = string.Empty;
+    private ISubscriber? _subscriber;
 
     public MatchmakingHub(
         ILogger<MatchmakingHub> logger,
-        IMatchmakingService matchmakingService)
+        IConnectionMultiplexer redis)
     {
         _logger = logger;
-        _matchmakingService = matchmakingService;
+        _redis = redis;
     }
 
-    public async ValueTask StartMatchmakingAsync(string gameMode)
+    public async ValueTask SubscribeAsync(string gameMode)
     {
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();
@@ -34,55 +38,35 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
         var queueGroupName = $"matchmaking:{gameMode}";
         _currentGroup = await Group.AddAsync(queueGroupName);
 
-        await _matchmakingService.EnqueuePlayerAsync(_userId, gameMode);
-
-        var queueCount = await _matchmakingService.GetQueueCountAsync(gameMode);
-        var estimatedWait = Math.Max(10, 60 / Math.Max(1, queueCount));
+        // Redis Pub/Sub でマッチ成立通知を購読
+        _subscriber = _redis.GetSubscriber();
+        var channel = RedisChannel.Literal($"matchmaking:notify:{_userId}");
+        await _subscriber.SubscribeAsync(channel, (_, message) =>
+        {
+            try
+            {
+                var result = JsonSerializer.Deserialize<MatchResult>(message.ToString());
+                if (result != null)
+                {
+                    Client.OnMatchFound(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize match result for user {UserId}", _userId);
+            }
+        });
 
         _logger.LogInformation(
-            "Player {UserId} started matchmaking for mode {GameMode}. Queue: {QueueCount}",
-            _userId,
-            gameMode,
-            queueCount);
+            "Player {UserId} subscribed to matchmaking notifications for mode {GameMode}",
+            _userId, gameMode);
 
-        Client.OnMatchmakingStarted(estimatedWait);
-        _currentGroup.All.OnQueueStatusUpdated(queueCount);
+        Client.OnMatchmakingStarted(30);
     }
 
-    public async ValueTask CancelMatchmakingAsync()
+    public async ValueTask UnsubscribeAsync()
     {
-        if (!string.IsNullOrEmpty(_gameMode))
-        {
-            await _matchmakingService.DequeuePlayerAsync(_userId, _gameMode);
-
-            _logger.LogInformation(
-                "Player {UserId} cancelled matchmaking for mode {GameMode}",
-                _userId,
-                _gameMode);
-
-            Client.OnMatchmakingCancelled("Cancelled by player");
-
-            if (_currentGroup != null)
-            {
-                var queueCount = await _matchmakingService.GetQueueCountAsync(_gameMode);
-                _currentGroup.All.OnQueueStatusUpdated(queueCount);
-                await _currentGroup.RemoveAsync(Context);
-                _currentGroup = null;
-            }
-        }
-    }
-
-    public async ValueTask<int> GetQueueCountAsync(string gameMode)
-    {
-        return await _matchmakingService.GetQueueCountAsync(gameMode);
-    }
-
-    protected override async ValueTask OnDisconnected()
-    {
-        if (!string.IsNullOrEmpty(_gameMode))
-        {
-            await _matchmakingService.DequeuePlayerAsync(_userId, _gameMode);
-        }
+        await UnsubscribeRedisAsync();
 
         if (_currentGroup != null)
         {
@@ -90,6 +74,33 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
             _currentGroup = null;
         }
 
-        _logger.LogInformation("Player {UserId} disconnected from matchmaking", _userId);
+        _logger.LogInformation(
+            "Player {UserId} unsubscribed from matchmaking notifications",
+            _userId);
+
+        Client.OnMatchmakingCancelled("Unsubscribed by player");
+    }
+
+    protected override async ValueTask OnDisconnected()
+    {
+        await UnsubscribeRedisAsync();
+
+        if (_currentGroup != null)
+        {
+            await _currentGroup.RemoveAsync(Context);
+            _currentGroup = null;
+        }
+
+        _logger.LogInformation("Player {UserId} disconnected from matchmaking hub", _userId);
+    }
+
+    private async Task UnsubscribeRedisAsync()
+    {
+        if (_subscriber != null && !string.IsNullOrEmpty(_userId))
+        {
+            var channel = RedisChannel.Literal($"matchmaking:notify:{_userId}");
+            await _subscriber.UnsubscribeAsync(channel);
+            _subscriber = null;
+        }
     }
 }

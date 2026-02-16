@@ -17,8 +17,21 @@ public static class RealtimeServiceExtensions
         // Match Session Token Service (Dedicated Server 接続認証用)
         services.AddSingleton<IMatchSessionTokenService, MatchSessionTokenService>();
 
-        // Matchmaking Service
-        services.AddSingleton<IMatchmakingService, MatchmakingService>();
+        // Matchmaking Queue Service
+        services.AddSingleton<IMatchmakingQueueService, MatchmakingQueueService>();
+
+        // Lobby Data Service
+        services.AddSingleton<ILobbyDataService, LobbyDataService>();
+
+        // Matchmaking Configuration
+        services.Configure<MatchmakingConfiguration>(
+            configuration.GetSection("Matchmaking"));
+
+        // Chat Message Service
+        services.AddSingleton<IChatMessageService, ChatMessageService>();
+
+        // Matchmaking Background Processor
+        services.AddHostedService<MatchmakingProcessor>();
 
         return services;
     }

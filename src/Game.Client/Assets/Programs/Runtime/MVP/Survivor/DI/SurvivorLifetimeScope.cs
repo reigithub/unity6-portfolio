@@ -20,7 +20,7 @@ using AuthApiService = Game.Shared.Services.AuthApiService;
 using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
-using Game.Shared.Realtime.Services;
+using Game.Shared.Realtime.Client;
 
 namespace Game.MVP.Survivor
 {
@@ -102,11 +102,12 @@ namespace Game.MVP.Survivor
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
 
             // ========================================
-            // Realtime Services（MagicOnion gRPC）
+            // MagicOnion Services（gRPC Unary + StreamingHub）
             // ========================================
-            builder.Register<MagicOnionChannelProvider>(Lifetime.Singleton).As<IMagicOnionChannelProvider>();
-            builder.Register<LobbyService>(Lifetime.Singleton).As<ILobbyService>();
-            builder.Register<RealtimeMatchmakingService>(Lifetime.Singleton).As<IRealtimeMatchmakingService>();
+            builder.Register<GrpcChannelProvider>(Lifetime.Singleton).As<IGrpcChannelProvider>();
+            builder.Register<MatchmakingClient>(Lifetime.Singleton).As<IMatchmakingClient>();
+            builder.Register<LobbyClient>(Lifetime.Singleton).As<ILobbyClient>();
+            builder.Register<ChatClient>(Lifetime.Singleton).As<IChatClient>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
