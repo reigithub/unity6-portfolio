@@ -33,7 +33,7 @@ namespace Game.MVP.Survivor
         private readonly ISurvivorSaveService _saveService;
         private readonly IAudioSaveService _audioSaveService;
         private readonly IPersistentObjectProvider _persistentObjectProvider;
-        private readonly ISessionService _sessionService;
+        private readonly IAuthSessionService _authSessionService;
         private readonly IApiClient _apiClient;
         private readonly IAuthApiService _authApiService;
         private readonly IRequestQueue _requestQueue;
@@ -53,7 +53,7 @@ namespace Game.MVP.Survivor
             ISurvivorSaveService saveService,
             IAudioSaveService audioSaveService,
             IPersistentObjectProvider persistentObjectProvider,
-            ISessionService sessionService,
+            IAuthSessionService authSessionService,
             IApiClient apiClient,
             IAuthApiService authApiService,
             IRequestQueue requestQueue,
@@ -68,7 +68,7 @@ namespace Game.MVP.Survivor
             _saveService = saveService;
             _audioSaveService = audioSaveService;
             _persistentObjectProvider = persistentObjectProvider;
-            _sessionService = sessionService;
+            _authSessionService = authSessionService;
             _apiClient = apiClient;
             _authApiService = authApiService;
             _requestQueue = requestQueue;
@@ -89,13 +89,13 @@ namespace Game.MVP.Survivor
             await _audioSaveService.LoadAsync();
 
             // 4. セッション復元とトークン検証
-            if (await _sessionService.RestoreSessionAsync())
+            if (await _authSessionService.RestoreSessionAsync())
             {
-                _apiClient.SetAuthToken(_sessionService.AuthToken);
+                _apiClient.SetAuthToken(_authSessionService.AuthToken);
 
-                if (!string.IsNullOrEmpty(_sessionService.SigningKey))
+                if (!string.IsNullOrEmpty(_authSessionService.SigningKey))
                 {
-                    _apiClient.SetSigningKey(_sessionService.SigningKey);
+                    _apiClient.SetSigningKey(_authSessionService.SigningKey);
                 }
 
                 // トークンの有効性を検証（期限切れの場合はリフレッシュ試行）

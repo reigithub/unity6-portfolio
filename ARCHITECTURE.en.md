@@ -899,8 +899,8 @@ User authentication and session management via server integration:
 │                                                                 │
 │  (1) App Startup                                                │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │SessionService│───▶│Load Local    │───▶│Token Restore │      │
-│  │RestoreSession│    │Saved Data    │    │Auth Recovery  │      │
+│  │AuthSession-  │───▶│Load Local    │───▶│Token Restore │      │
+│  │Service       │    │Saved Data    │    │Auth Recovery  │      │
 │  └──────────────┘    └──────────────┘    └──────────────┘      │
 │                                                                 │
 │  (2) New User (Guest Login)                                     │
@@ -948,8 +948,8 @@ User authentication and session management via server integration:
 |-------|------|
 | `IAuthApiService` | Authentication API endpoint communication |
 | `AuthApiService` | Authentication API implementation (REST communication) |
-| `ISessionService` | Session state management interface |
-| `SessionService` | Token save/restore/clear implementation |
+| `IAuthSessionService` | Session state management interface |
+| `AuthSessionService` | Token save/restore/clear implementation |
 | `SessionSaveData` | Session persistence data |
 | `AuthDto` | Authentication request/response DTOs |
 

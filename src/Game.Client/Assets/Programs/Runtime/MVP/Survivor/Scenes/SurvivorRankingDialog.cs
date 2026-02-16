@@ -19,7 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorRankingDialog";
 
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
-        [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly INetworkService _networkService;  // UI表示用のみ
@@ -91,7 +91,7 @@ namespace Game.MVP.Survivor.Scenes
             RankingEntry myRank = null;
 
             // 認証済みの場合は自分の順位も取得
-            if (_sessionService.IsAuthenticated && response.IsSuccess)
+            if (_authSessionService.IsAuthenticated && response.IsSuccess)
             {
                 var myRankResponse = await _scoreApiService.GetMyRankAsync(stageId);
                 if (myRankResponse.IsSuccess && myRankResponse.Data != null)

@@ -446,7 +446,7 @@ Server-integrated authentication and session management system:
 - Transfer password issuance (12 digits)
 - Data migration to another device
 
-**Session Management (SessionService):**
+**Session Management (AuthSessionService):**
 - Encrypted token storage (local)
 - Automatic session restoration (on app startup)
 - Device fingerprint generation

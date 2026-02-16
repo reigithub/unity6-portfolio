@@ -17,7 +17,7 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorAccountLinkDialog";
 
         [Inject] private readonly IGameSceneService _sceneService;
-        [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly IInputService _inputService;
 
@@ -125,7 +125,7 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
-            if (!_sessionService.IsAuthenticated) return false;
+            if (!_authSessionService.IsAuthenticated) return false;
             var refreshResult = await _authApiService.RefreshTokenAsync();
             return refreshResult.IsSuccess;
         }
@@ -149,17 +149,17 @@ namespace Game.MVP.Survivor.Scenes
                 _currentUserId = profile.userId;
 
                 SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email,
-                    _sessionService.FormatUserId(), _hasValidSession);
+                    _authSessionService.FormatUserId(), _hasValidSession);
             }
             else
             {
                 // フォールバック: セッション情報のみで表示
-                var isGuest = AccountLinkDialogViewModel.IsGuest(_sessionService.AuthType);
+                var isGuest = AccountLinkDialogViewModel.IsGuest(_authSessionService.AuthType);
                 _hasTransferPassword = false;
-                _currentUserId = _sessionService.UserId;
+                _currentUserId = _authSessionService.UserId;
 
-                SceneComponent.ShowStatusView(isGuest, _sessionService.UserName, null,
-                    _sessionService.FormatUserId(), _hasValidSession);
+                SceneComponent.ShowStatusView(isGuest, _authSessionService.UserName, null,
+                    _authSessionService.FormatUserId(), _hasValidSession);
             }
         }
 
@@ -363,7 +363,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var formattedUserId = AccountLinkDialogViewModel.FormatUserId(_currentUserId);
                 // ローカルに保存されたパスワードを取得
-                var localPassword = _sessionService.GetTransferPassword();
+                var localPassword = _authSessionService.GetTransferPassword();
                 SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
                 return;
             }
@@ -377,7 +377,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _hasTransferPassword = true;
                 // パスワードをローカルに保存
-                await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+                await _authSessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
 
                 var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
                 SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
@@ -407,7 +407,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // キャンセル → 発行済み表示画面に戻る
                 var formattedUserId = AccountLinkDialogViewModel.FormatUserId(_currentUserId);
-                var localPassword = _sessionService.GetTransferPassword();
+                var localPassword = _authSessionService.GetTransferPassword();
                 SceneComponent.ShowTransferPasswordViewExisting(formattedUserId, localPassword);
                 return;
             }
@@ -420,7 +420,7 @@ namespace Game.MVP.Survivor.Scenes
             if (response.IsSuccess)
             {
                 // パスワードをローカルに保存（上書き）
-                await _sessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+                await _authSessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
 
                 var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
                 SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);

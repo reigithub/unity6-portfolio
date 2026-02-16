@@ -17,7 +17,7 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAudioService _audioService;
-        [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly INetworkService _networkService;
 
@@ -93,7 +93,7 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // 未認証の場合はゲストログイン
-            if (!_sessionService.IsAuthenticated)
+            if (!_authSessionService.IsAuthenticated)
             {
                 var loginResult = await _authApiService.GuestLoginAsync();
                 if (!loginResult.IsSuccess)

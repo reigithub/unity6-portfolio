@@ -10,13 +10,13 @@ namespace Game.Shared.Services
     /// セッション管理サービス実装
     /// ISaveDataStorage (MemoryPack) にトークン・ユーザー情報を保存/復元
     /// </summary>
-    public class SessionService : ISessionService
+    public class AuthSessionService : IAuthSessionService
     {
         private const string SaveKey = "session";
         private readonly ISaveDataStorage _storage;
         private SessionSaveData _data;
 
-        public SessionService(ISaveDataStorage storage)
+        public AuthSessionService(ISaveDataStorage storage)
         {
             _storage = storage;
         }

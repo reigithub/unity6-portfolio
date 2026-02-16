@@ -445,7 +445,7 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 - 引き継ぎパスワード発行（12桁）
 - 別端末へのデータ移行
 
-**セッション管理 (SessionService):**
+**セッション管理 (AuthSessionService):**
 - トークンの暗号化保存（ローカル）
 - セッション自動復元（アプリ起動時）
 - デバイスフィンガープリント生成

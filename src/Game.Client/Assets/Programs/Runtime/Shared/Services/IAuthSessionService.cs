@@ -6,7 +6,7 @@ namespace Game.Shared.Services
     /// セッション管理サービスインターフェース
     /// トークンの保存/復元/クリアを担当
     /// </summary>
-    public interface ISessionService
+    public interface IAuthSessionService
     {
         bool IsAuthenticated { get; }
         string AuthToken { get; }
