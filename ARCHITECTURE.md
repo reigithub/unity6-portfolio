@@ -1,5 +1,7 @@
 # Unity6Portfolio アーキテクチャ設計書
 
+[English version is here](ARCHITECTURE.en.md)
+
 **バージョン**: 1.7
 **最終更新**: 2026年2月15日
 
@@ -1693,6 +1695,9 @@ Unity6Portfolio/
 
 **プロジェクト概要**:
 - [README.md](./README.md) - プロジェクト概要
+
+**英語版**:
+- [ARCHITECTURE.en.md](./ARCHITECTURE.en.md) - Architecture Design Document (English)
 
 ---
 
