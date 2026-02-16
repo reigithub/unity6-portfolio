@@ -8,12 +8,12 @@ namespace Game.Shared.Services
     /// <summary>
     /// 認証 API サービス実装
     /// IApiClient を使用してサーバーの認証エンドポイントを呼び出す
-    /// ログイン成功時に ISessionService へ自動保存
+    /// ログイン成功時に IAuthSessionService へ自動保存
     /// </summary>
     public class AuthApiService : IAuthApiService
     {
         private readonly IApiClient _apiClient;
-        private readonly ISessionService _sessionService;
+        private readonly IAuthSessionService _authSessionService;
 
         /// <summary>
         /// 認証リクエスト用のオプション（デバイス情報ヘッダー付き）
@@ -21,15 +21,15 @@ namespace Game.Shared.Services
         private static RequestOptions AuthRequestOptions =>
             RequestOptions.WithHeaders(DeviceHeaderProvider.GetAuthHeaders());
 
-        public AuthApiService(IApiClient apiClient, ISessionService sessionService)
+        public AuthApiService(IApiClient apiClient, IAuthSessionService authSessionService)
         {
             _apiClient = apiClient;
-            _sessionService = sessionService;
+            _authSessionService = authSessionService;
         }
 
         public async UniTask<ApiResponse<LoginResponse>> GuestLoginAsync()
         {
-            var fingerprint = await _sessionService.GetOrCreateDeviceFingerprintAsync();
+            var fingerprint = await _authSessionService.GetOrCreateDeviceFingerprintAsync();
             var request = new GuestLoginRequest { deviceFingerprint = fingerprint };
 
             var response = await _apiClient.PostAsync<GuestLoginRequest, LoginResponse>(
@@ -100,7 +100,7 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
-                await OnLoginSuccessAsync(response.Data, _sessionService.AuthType ?? "guest");
+                await OnLoginSuccessAsync(response.Data, _authSessionService.AuthType ?? "guest");
             }
 
             return response;
@@ -128,7 +128,7 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync()
         {
-            var fingerprint = await _sessionService.GetOrCreateDeviceFingerprintAsync();
+            var fingerprint = await _authSessionService.GetOrCreateDeviceFingerprintAsync();
             var response = await _apiClient.DeleteAsync<AccountLinkResponse>(
                 $"api/auth/link/email?deviceFingerprint={UnityEngine.Networking.UnityWebRequest.EscapeURL(fingerprint)}");
 
@@ -154,7 +154,7 @@ namespace Game.Shared.Services
 
         private async UniTask OnLoginSuccessAsync(LoginResponse data, string authType)
         {
-            await _sessionService.SaveSessionAsync(data, authType);
+            await _authSessionService.SaveSessionAsync(data, authType);
             _apiClient.SetAuthToken(data.token);
 
             if (!string.IsNullOrEmpty(data.signingKey))
@@ -172,7 +172,7 @@ namespace Game.Shared.Services
                 token = data.token,
                 signingKey = data.signingKey
             };
-            await _sessionService.SaveSessionAsync(loginData, data.authType?.ToLower() ?? "guest");
+            await _authSessionService.SaveSessionAsync(loginData, data.authType?.ToLower() ?? "guest");
             _apiClient.SetAuthToken(data.token);
 
             if (!string.IsNullOrEmpty(data.signingKey))

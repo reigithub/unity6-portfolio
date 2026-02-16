@@ -21,7 +21,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
-        [Inject] private readonly ISessionService _sessionService;
+        [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
 
@@ -45,7 +45,7 @@ namespace Game.MVP.Survivor.Scenes
             _isVictory = _viewModel.IsOverallVictory(session);
 
             // 認証済みの場合のみスコア送信
-            if (_sessionService.IsAuthenticated)
+            if (_authSessionService.IsAuthenticated)
             {
                 await SubmitScoresAsync(session);
             }

@@ -6,7 +6,7 @@ namespace Game.Shared.Services.Network
     /// <summary>
     /// デバイス情報ヘッダーを提供するユーティリティ
     /// アナリティクスやサーバーログ用にクライアント情報を付与
-    /// 注: デバイス識別にはISessionService.GetOrCreateDeviceFingerprintAsync()を使用
+    /// 注: デバイス識別にはIAuthSessionService.GetOrCreateDeviceFingerprintAsync()を使用
     /// </summary>
     public static class DeviceHeaderProvider
     {

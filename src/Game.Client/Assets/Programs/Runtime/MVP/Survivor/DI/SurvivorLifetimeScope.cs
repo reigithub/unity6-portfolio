@@ -17,7 +17,7 @@ using VContainer.Unity;
 using AudioSaveService = Game.Shared.SaveData.AudioSaveService;
 using IAudioSaveService = Game.Shared.SaveData.IAudioSaveService;
 using AuthApiService = Game.Shared.Services.AuthApiService;
-using SessionService = Game.Shared.Services.SessionService;
+using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 
@@ -92,7 +92,7 @@ namespace Game.MVP.Survivor
             // ========================================
             // API Services（IApiClientのみに依存）
             // ========================================
-            builder.Register<SessionService>(Lifetime.Singleton).As<ISessionService>();
+            builder.Register<AuthSessionService>(Lifetime.Singleton).As<IAuthSessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
 
