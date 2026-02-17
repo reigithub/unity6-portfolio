@@ -1,7 +1,8 @@
 using Game.Server.Configuration;
 using Game.Server.MasterData;
 using Game.Server.Services.Interfaces;
-using MasterMemory;
+using MessagePack;
+using MessagePack.Resolvers;
 using Microsoft.Extensions.Options;
 
 namespace Game.Server.Services;
@@ -23,7 +24,8 @@ public class MasterDataService : IMasterDataService
         }
 
         byte[] binary = File.ReadAllBytes(binaryPath);
-        MemoryDatabase = new MemoryDatabase(binary, maxDegreeOfParallelism: Environment.ProcessorCount);
+        IFormatterResolver resolver = CompositeResolver.Create(MasterMemoryResolver.Instance, StandardResolver.Instance);
+        MemoryDatabase = new MemoryDatabase(binary, formatterResolver: resolver, maxDegreeOfParallelism: Environment.ProcessorCount);
 
         logger.LogInformation(
             "Master data loaded from {Path} ({Bytes} bytes)",
