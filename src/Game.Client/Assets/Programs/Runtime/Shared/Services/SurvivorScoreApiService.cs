@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Dto.Survivor;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network.Models;
 using Game.Shared.Services.Network.Queue;
 
@@ -36,17 +36,17 @@ namespace Game.Shared.Services
         }
 
         public async UniTask<ApiResponse<SurvivorScoreSubmitResponse>> SubmitScoreAsync(
-            SubmitSurvivorScoreRequest request)
+            ScoreSubmitDto request)
         {
-            return await _apiClient.PostAsync<SubmitSurvivorScoreRequest, SurvivorScoreSubmitResponse>(
+            return await _apiClient.PostAsync<ScoreSubmitDto, SurvivorScoreSubmitResponse>(
                 ScoreSubmitEndpoint, request);
         }
 
         public async UniTask EnqueueSubmitScoreAsync(
-            SubmitSurvivorScoreRequest request,
+            ScoreSubmitDto request,
             RequestPriority priority = RequestPriority.High)
         {
-            await _requestQueue.EnqueuePostAsync<SubmitSurvivorScoreRequest, SurvivorScoreSubmitResponse>(
+            await _requestQueue.EnqueuePostAsync<ScoreSubmitDto, SurvivorScoreSubmitResponse>(
                 ScoreSubmitEndpoint, request, priority);
         }
 
@@ -59,10 +59,10 @@ namespace Game.Shared.Services
                 RankingCacheOptions);
         }
 
-        public async UniTask<ApiResponse<RankingEntry>> GetMyRankAsync(int stageId)
+        public async UniTask<ApiResponse<RankingEntryDto>> GetMyRankAsync(int stageId)
         {
             // 自分の順位はキャッシュしない（常に最新を取得）
-            return await _apiClient.GetAsync<RankingEntry>(
+            return await _apiClient.GetAsync<RankingEntryDto>(
                 $"api/survivor/rankings/{stageId}/me");
         }
     }

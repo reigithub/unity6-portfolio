@@ -1,14 +1,7 @@
+using Game.Library.Shared.Dto;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Game.Server.Dto.Responses;
-public class ApiErrorResponse
-{
-    public string Error { get; set; } = string.Empty;
-
-    public string Message { get; set; } = string.Empty;
-
-    public string TraceId { get; set; } = string.Empty;
-}
 
 public class ApiError
 {

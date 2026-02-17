@@ -1,11 +1,12 @@
 using System;
-using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Models;
 using Game.Shared.Services.Network.Policies;
+using MessagePack;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -18,7 +19,7 @@ namespace Game.Shared.Services
     public class UnityApiClient : IApiClient
     {
         private const int DefaultTimeoutSeconds = 15;
-        private const string ContentType = "application/json";
+        private const string ContentType = "application/x-msgpack";
 
         private readonly INetworkService _networkService;
         private readonly IResponseCache _cache;
@@ -255,13 +256,13 @@ namespace Game.Shared.Services
         private UnityWebRequest CreatePostRequest<TRequest>(string path, TRequest body, int timeout, RequestOptions options)
         {
             var url = $"{BaseUrl}/{path.TrimStart('/')}";
-            var jsonBody = JsonUtility.ToJson(body);
-            var bodyBytes = Encoding.UTF8.GetBytes(jsonBody);
+            var bodyBytes = MessagePackSerializer.Serialize(body);
 
             var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
             request.uploadHandler = new UploadHandlerRaw(bodyBytes);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", ContentType);
+            request.SetRequestHeader("Accept", ContentType);
             request.timeout = timeout;
 
             SetAuthHeader(request);
@@ -276,6 +277,7 @@ namespace Game.Shared.Services
             var url = $"{BaseUrl}/{path.TrimStart('/')}";
 
             var request = UnityWebRequest.Get(url);
+            request.SetRequestHeader("Accept", ContentType);
             request.timeout = timeout;
 
             SetAuthHeader(request);
@@ -291,6 +293,7 @@ namespace Game.Shared.Services
 
             var request = UnityWebRequest.Delete(url);
             request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Accept", ContentType);
             request.timeout = timeout;
 
             SetAuthHeader(request);
@@ -388,8 +391,8 @@ namespace Game.Shared.Services
                         IsSuccess = false,
                         Error = new ApiErrorResponse
                         {
-                            error = "RetryExhausted",
-                            message = $"リトライ上限（{retryPolicy.MaxRetries}回）に達しました。最後のエラー: {lastException?.Message ?? "不明"}"
+                            Error = "RetryExhausted",
+                            Message = $"リトライ上限（{retryPolicy.MaxRetries}回）に達しました。最後のエラー: {lastException?.Message ?? "不明"}"
                         },
                         StatusCode = 0
                     };
@@ -412,7 +415,7 @@ namespace Game.Shared.Services
             }
 
             // 接続エラーの場合はリトライ対象
-            if (response.Error?.error == "ConnectionError")
+            if (response.Error?.Error == "ConnectionError")
             {
                 return true;
             }
@@ -430,7 +433,7 @@ namespace Game.Shared.Services
             if (response.IsSuccess) return false;
 
             // 接続エラー
-            if (response.Error?.error == "ConnectionError") return true;
+            if (response.Error?.Error == "ConnectionError") return true;
 
             // サーバーエラー (5xx)
             var statusCode = (int)response.StatusCode;
@@ -460,30 +463,42 @@ namespace Game.Shared.Services
             }
 
             var statusCode = request.responseCode;
+            var responseBytes = request.downloadHandler?.data;
             var responseText = request.downloadHandler?.text;
 
             if (request.result == UnityWebRequest.Result.Success)
             {
+                TResponse data = default;
+                if (responseBytes != null && responseBytes.Length > 0)
+                {
+                    data = MessagePackSerializer.Deserialize<TResponse>(responseBytes);
+                }
+
                 return new ApiResponse<TResponse>
                 {
                     IsSuccess = true,
-                    Data = JsonUtility.FromJson<TResponse>(responseText),
+                    Data = data,
                     StatusCode = statusCode
                 };
             }
 
             // エラーレスポンスの解析
             ApiErrorResponse errorResponse = null;
-            if (!string.IsNullOrEmpty(responseText))
+            var contentType = request.GetResponseHeader("Content-Type") ?? "";
+            if (responseBytes != null && responseBytes.Length > 0 && contentType.Contains("msgpack"))
             {
                 try
                 {
-                    errorResponse = JsonUtility.FromJson<ApiErrorResponse>(responseText);
+                    errorResponse = MessagePackSerializer.Deserialize<ApiErrorResponse>(responseBytes);
                 }
                 catch (Exception)
                 {
-                    errorResponse = new ApiErrorResponse { message = responseText };
+                    errorResponse = new ApiErrorResponse { Message = responseText ?? "Unknown error" };
                 }
+            }
+            else if (!string.IsNullOrEmpty(responseText))
+            {
+                errorResponse = ParseJsonError(responseText);
             }
 
             // ネットワークエラー（サーバー未応答など）
@@ -491,16 +506,16 @@ namespace Game.Shared.Services
             {
                 errorResponse ??= new ApiErrorResponse
                 {
-                    error = "ConnectionError",
-                    message = "サーバーに接続できません。ネットワーク接続を確認してください。"
+                    Error = "ConnectionError",
+                    Message = "サーバーに接続できません。ネットワーク接続を確認してください。"
                 };
             }
             else if (errorResponse == null)
             {
                 errorResponse = new ApiErrorResponse
                 {
-                    error = "UnknownError",
-                    message = request.error ?? "不明なエラーが発生しました。"
+                    Error = "UnknownError",
+                    Message = request.error ?? "不明なエラーが発生しました。"
                 };
             }
 
@@ -510,6 +525,29 @@ namespace Game.Shared.Services
                 Error = errorResponse,
                 StatusCode = statusCode
             };
+        }
+        private ApiErrorResponse ParseJsonError(string json)
+        {
+            var error = ExtractJsonStringValue(json, "error") ?? "UnknownError";
+            var message = ExtractJsonStringValue(json, "message") ?? json;
+            var traceId = ExtractJsonStringValue(json, "traceId") ?? "";
+            return new ApiErrorResponse { Error = error, Message = message, TraceId = traceId };
+        }
+
+        private static string ExtractJsonStringValue(string json, string key)
+        {
+            var pattern = $"\"{key}\"";
+            var idx = json.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return null;
+            idx += pattern.Length;
+            idx = json.IndexOf(':', idx);
+            if (idx < 0) return null;
+            idx = json.IndexOf('"', idx + 1);
+            if (idx < 0) return null;
+            var start = idx + 1;
+            var end = json.IndexOf('"', start);
+            if (end < 0) return null;
+            return json.Substring(start, end - start);
         }
     }
 }

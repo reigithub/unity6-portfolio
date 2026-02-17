@@ -1,4 +1,4 @@
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Services.Interfaces;
 using Game.Server.Services.Validations;
 
@@ -6,7 +6,7 @@ namespace Game.Server.Services;
 
 public interface ISurvivorScoreValidationService
 {
-    RequestValidationResult Validate(SubmitSurvivorScoreRequest request);
+    RequestValidationResult Validate(ScoreSubmitDto request);
 }
 
 public class SurvivorScoreValidationService : ISurvivorScoreValidationService
@@ -22,7 +22,7 @@ public class SurvivorScoreValidationService : ISurvivorScoreValidationService
         _logger = logger;
     }
 
-    public RequestValidationResult Validate(SubmitSurvivorScoreRequest request)
+    public RequestValidationResult Validate(ScoreSubmitDto request)
     {
         // ステージ存在チェック
         if (!_masterData.MemoryDatabase.SurvivorStageMasterTable.TryFindById(request.StageId, out var stage))

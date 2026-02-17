@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Game.Library.Shared.Chat.Dto;
-using Game.Server.Dto.Requests.Chat;
-using Game.Server.Dto.Responses.Chat;
+using Game.Library.Shared.Dto;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
@@ -42,9 +41,9 @@ public class ChatRoomController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(CreateChatRoomRestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CreateChatRoomResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRestRequest request)
+    public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRequest request)
     {
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
@@ -61,7 +60,7 @@ public class ChatRoomController : ControllerBase
                 "Chat room {RoomId} created by {UserId} (type: {RoomType})",
                 roomId, userId, request.RoomType);
 
-            return Ok(new CreateChatRoomRestResponse
+            return Ok(new CreateChatRoomResponse
             {
                 Success = true,
                 RoomId = roomId,
@@ -70,7 +69,7 @@ public class ChatRoomController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create chat room for user {UserId}", userId);
-            return Ok(new CreateChatRoomRestResponse
+            return Ok(new CreateChatRoomResponse
             {
                 Success = false,
                 ErrorMessage = "Failed to create chat room",
@@ -99,15 +98,15 @@ public class ChatRoomController : ControllerBase
             await _hubContext.Clients.Group(roomId).OnRoomDeleted(roomId, "Room deleted by owner");
 
             _logger.LogInformation("Chat room {RoomId} deleted by {UserId}", roomId, userId);
-            return Ok(new { success = true });
+            return Ok(new SuccessResponse { Success = true });
         }
         catch (ChatNotFoundException)
         {
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
         }
         catch (ChatPermissionException)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Missing permission: Delete" });
+            return StatusCode(StatusCodes.Status403Forbidden, new MessageResponse { Message = "Missing permission: Delete" });
         }
     }
 
@@ -118,7 +117,7 @@ public class ChatRoomController : ControllerBase
     {
         var room = await _roomDataService.GetRoomAsync(roomId);
         if (room == null)
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
 
         return Ok(room);
     }
@@ -136,7 +135,7 @@ public class ChatRoomController : ControllerBase
         }
         catch (ChatNotFoundException)
         {
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
         }
     }
 
@@ -166,15 +165,15 @@ public class ChatRoomController : ControllerBase
                     request.TargetUserId, roomId, userId);
             }
 
-            return Ok(new { success = added });
+            return Ok(new SuccessResponse { Success = added });
         }
         catch (ChatNotFoundException)
         {
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
         }
         catch (ChatPermissionException)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Missing permission: Invite" });
+            return StatusCode(StatusCodes.Status403Forbidden, new MessageResponse { Message = "Missing permission: Invite" });
         }
     }
 
@@ -205,15 +204,15 @@ public class ChatRoomController : ControllerBase
                     request.TargetUserId, roomId, userId);
             }
 
-            return Ok(new { success = removed });
+            return Ok(new SuccessResponse { Success = removed });
         }
         catch (ChatNotFoundException)
         {
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
         }
         catch (ChatPermissionException)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Missing permission: Kick" });
+            return StatusCode(StatusCodes.Status403Forbidden, new MessageResponse { Message = "Missing permission: Kick" });
         }
     }
 
@@ -248,15 +247,15 @@ public class ChatRoomController : ControllerBase
                     targetUserId, roomId, userId);
             }
 
-            return Ok(new { success = updated });
+            return Ok(new SuccessResponse { Success = updated });
         }
         catch (ChatNotFoundException)
         {
-            return NotFound(new { message = "Chat room not found" });
+            return NotFound(new MessageResponse { Message = "Chat room not found" });
         }
         catch (ChatPermissionException)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Missing permission: ManageMember" });
+            return StatusCode(StatusCodes.Status403Forbidden, new MessageResponse { Message = "Missing permission: ManageMember" });
         }
     }
 }

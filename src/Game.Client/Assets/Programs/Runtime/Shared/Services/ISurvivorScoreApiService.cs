@@ -1,5 +1,5 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Dto.Survivor;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network.Queue;
 
 namespace Game.Shared.Services
@@ -15,7 +15,7 @@ namespace Game.Shared.Services
         /// </summary>
         /// <param name="request">スコア送信リクエスト</param>
         /// <returns>送信結果（新記録かどうか、現在の順位など）</returns>
-        UniTask<ApiResponse<SurvivorScoreSubmitResponse>> SubmitScoreAsync(SubmitSurvivorScoreRequest request);
+        UniTask<ApiResponse<SurvivorScoreSubmitResponse>> SubmitScoreAsync(ScoreSubmitDto request);
 
         /// <summary>
         /// スコア送信をキューに追加（オフライン時または送信失敗時用）
@@ -23,7 +23,7 @@ namespace Game.Shared.Services
         /// <param name="request">スコア送信リクエスト</param>
         /// <param name="priority">リクエスト優先度</param>
         /// <returns>キュー追加結果</returns>
-        UniTask EnqueueSubmitScoreAsync(SubmitSurvivorScoreRequest request, RequestPriority priority = RequestPriority.High);
+        UniTask EnqueueSubmitScoreAsync(ScoreSubmitDto request, RequestPriority priority = RequestPriority.High);
 
         /// <summary>
         /// ランキングを取得
@@ -39,6 +39,6 @@ namespace Game.Shared.Services
         /// </summary>
         /// <param name="stageId">ステージID</param>
         /// <returns>自分のランキングエントリ（未登録の場合はnull）</returns>
-        UniTask<ApiResponse<RankingEntry>> GetMyRankAsync(int stageId);
+        UniTask<ApiResponse<RankingEntryDto>> GetMyRankAsync(int stageId);
     }
 }

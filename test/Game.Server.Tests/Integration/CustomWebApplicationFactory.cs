@@ -1,5 +1,5 @@
 using Game.Server.Database;
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Services.Validations;
@@ -48,7 +48,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // don't require master data for score validation.
             var mockValidation = new Mock<ISurvivorScoreValidationService>();
             mockValidation
-                .Setup(v => v.Validate(It.IsAny<SubmitSurvivorScoreRequest>()))
+                .Setup(v => v.Validate(It.IsAny<ScoreSubmitDto>()))
                 .Returns(RequestValidationResult.Success());
             services.RemoveAll<ISurvivorScoreValidationService>();
             services.AddSingleton(mockValidation.Object);

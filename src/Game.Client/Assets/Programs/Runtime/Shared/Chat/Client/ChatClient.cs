@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Game.Library.Shared.Chat.Dto;
-using Game.Shared.Dto.Chat;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,74 +47,74 @@ namespace Game.Shared.Chat.Client
 
         // REST 操作
 
-        public async Task<CreateChatRoomRestResponse> CreateRoomAsync(CreateChatRoomRestRequest request)
+        public async Task<CreateChatRoomResponse> CreateRoomAsync(CreateChatRoomRequest request)
         {
-            var response = await _apiClient.PostAsync<CreateChatRoomRestRequest, CreateChatRoomRestResponse>(
+            var response = await _apiClient.PostAsync<CreateChatRoomRequest, CreateChatRoomResponse>(
                 "/api/chat/rooms", request);
             if (response.IsSuccess)
             {
-                Debug.Log($"[ChatClient] Created chat room: {response.Data.roomId}");
+                Debug.Log($"[ChatClient] Created chat room: {response.Data.RoomId}");
                 return response.Data;
             }
 
-            var errorMsg = response.Error?.message ?? "Unknown error";
+            var errorMsg = response.Error?.Message ?? "Unknown error";
             Debug.LogError($"[ChatClient] Failed to create room: {errorMsg}");
-            return new CreateChatRoomRestResponse { success = false, errorMessage = errorMsg };
+            return new CreateChatRoomResponse { Success = false, ErrorMessage = errorMsg };
         }
 
         public async Task<bool> DeleteRoomAsync(string roomId)
         {
-            var response = await _apiClient.DeleteAsync<ChatOperationResponse>(
+            var response = await _apiClient.DeleteAsync<SuccessResponse>(
                 $"/api/chat/rooms/{roomId}");
-            return response.IsSuccess && response.Data.success;
+            return response.IsSuccess && response.Data.Success;
         }
 
         public async Task<bool> InviteMemberAsync(string roomId, string targetUserId, string playerName)
         {
             var request = new InviteMemberRequest
             {
-                targetUserId = targetUserId,
-                playerName = playerName,
+                TargetUserId = targetUserId,
+                PlayerName = playerName,
             };
-            var response = await _apiClient.PostAsync<InviteMemberRequest, ChatOperationResponse>(
+            var response = await _apiClient.PostAsync<InviteMemberRequest, SuccessResponse>(
                 $"/api/chat/rooms/{roomId}/invite", request);
-            return response.IsSuccess && response.Data.success;
+            return response.IsSuccess && response.Data.Success;
         }
 
         public async Task<bool> KickMemberAsync(string roomId, string targetUserId)
         {
             var request = new InviteMemberRequest
             {
-                targetUserId = targetUserId,
-                playerName = string.Empty,
+                TargetUserId = targetUserId,
+                PlayerName = string.Empty,
             };
-            var response = await _apiClient.PostAsync<InviteMemberRequest, ChatOperationResponse>(
+            var response = await _apiClient.PostAsync<InviteMemberRequest, SuccessResponse>(
                 $"/api/chat/rooms/{roomId}/kick", request);
-            return response.IsSuccess && response.Data.success;
+            return response.IsSuccess && response.Data.Success;
         }
 
         public async Task<bool> SetMemberPermissionsAsync(string roomId, string targetUserId, int permissions)
         {
-            var request = new SetPermissionsRequest { permissions = permissions };
-            var response = await _apiClient.PostAsync<SetPermissionsRequest, ChatOperationResponse>(
+            var request = new SetPermissionsRequest { Permissions = permissions };
+            var response = await _apiClient.PostAsync<SetPermissionsRequest, SuccessResponse>(
                 $"/api/chat/rooms/{roomId}/members/{targetUserId}/permissions", request);
-            return response.IsSuccess && response.Data.success;
+            return response.IsSuccess && response.Data.Success;
         }
 
-        public async Task<ChatRoomInfoResponse> GetRoomInfoAsync(string roomId)
+        public async Task<ChatRoomInfo> GetRoomInfoAsync(string roomId)
         {
-            var response = await _apiClient.GetAsync<ChatRoomInfoResponse>(
+            var response = await _apiClient.GetAsync<ChatRoomInfo>(
                 $"/api/chat/rooms/{roomId}");
             return response.IsSuccess ? response.Data : null;
         }
 
-        public async Task<ChatRoomMemberInfoResponse[]> GetRoomMembersAsync(string roomId)
+        public async Task<ChatRoomMemberInfo[]> GetRoomMembersAsync(string roomId)
         {
             var response = await _apiClient.GetAsync<ChatRoomMembersResponse>(
                 $"/api/chat/rooms/{roomId}/members");
-            return response.IsSuccess && response.Data?.members != null
-                ? response.Data.members.ToArray()
-                : Array.Empty<ChatRoomMemberInfoResponse>();
+            return response.IsSuccess && response.Data?.Members != null
+                ? response.Data.Members.ToArray()
+                : Array.Empty<ChatRoomMemberInfo>();
         }
 
         // SignalR 操作

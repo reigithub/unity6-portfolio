@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Game.Server.Configuration;
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;

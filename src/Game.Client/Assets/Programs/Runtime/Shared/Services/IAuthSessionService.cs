@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Services
 {
@@ -15,7 +16,7 @@ namespace Game.Shared.Services
         string AuthType { get; }
         string SigningKey { get; }
 
-        UniTask SaveSessionAsync(Dto.Auth.LoginResponse response, string authType = "guest");
+        UniTask SaveSessionAsync(LoginResponse response, string authType = "guest");
         UniTask<bool> RestoreSessionAsync();
         UniTask ClearSessionAsync();
         UniTask<string> GetOrCreateDeviceFingerprintAsync();

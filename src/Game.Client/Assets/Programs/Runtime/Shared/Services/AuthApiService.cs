@@ -1,7 +1,8 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Dto.Auth;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Models;
+using MessagePack;
 
 namespace Game.Shared.Services
 {
@@ -30,7 +31,7 @@ namespace Game.Shared.Services
         public async UniTask<ApiResponse<LoginResponse>> GuestLoginAsync()
         {
             var fingerprint = await _authSessionService.GetOrCreateDeviceFingerprintAsync();
-            var request = new GuestLoginRequest { deviceFingerprint = fingerprint };
+            var request = new GuestLoginRequest { DeviceFingerprint = fingerprint };
 
             var response = await _apiClient.PostAsync<GuestLoginRequest, LoginResponse>(
                 "api/auth/guest", request, AuthRequestOptions);
@@ -45,7 +46,7 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<LoginResponse>> EmailLoginAsync(string email, string password)
         {
-            var request = new EmailLoginRequest { email = email, password = password };
+            var request = new EmailLoginRequest { Email = email, Password = password };
             var response = await _apiClient.PostAsync<EmailLoginRequest, LoginResponse>(
                 "api/auth/email/login", request, AuthRequestOptions);
 
@@ -59,8 +60,8 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<LoginResponse>> UserIdLoginAsync(string userId, string password)
         {
-            var request = new UserIdLoginRequest { userId = userId, password = password };
-            var response = await _apiClient.PostAsync<UserIdLoginRequest, LoginResponse>(
+            var request = new LoginRequest { UserId = userId, Password = password };
+            var response = await _apiClient.PostAsync<LoginRequest, LoginResponse>(
                 "api/auth/login", request, AuthRequestOptions);
 
             if (response.IsSuccess)
@@ -73,7 +74,7 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<MessageResponse>> ForgotPasswordAsync(string email)
         {
-            var request = new ForgotPasswordRequest { email = email };
+            var request = new ForgotPasswordRequest { Email = email };
             return await _apiClient.PostAsync<ForgotPasswordRequest, MessageResponse>(
                 "api/auth/email/forgot-password", request);
         }
@@ -83,8 +84,8 @@ namespace Game.Shared.Services
         {
             var request = new ResetPasswordRequest
             {
-                token = token,
-                newPassword = newPassword
+                Token = token,
+                NewPassword = newPassword
             };
 
             return await _apiClient.PostAsync<ResetPasswordRequest, MessageResponse>(
@@ -111,8 +112,8 @@ namespace Game.Shared.Services
         {
             var request = new LinkEmailRequest
             {
-                email = email,
-                password = password
+                Email = email,
+                Password = password
             };
 
             var response = await _apiClient.PostAsync<LinkEmailRequest, AccountLinkResponse>(
@@ -140,9 +141,9 @@ namespace Game.Shared.Services
             return response;
         }
 
-        public async UniTask<ApiResponse<UserProfileResponse>> GetMyProfileAsync()
+        public async UniTask<ApiResponse<UserResponse>> GetMyProfileAsync()
         {
-            return await _apiClient.GetAsync<UserProfileResponse>("api/users/me");
+            return await _apiClient.GetAsync<UserResponse>("api/users/me");
         }
 
         public async UniTask<ApiResponse<TransferPasswordResponse>> IssueTransferPasswordAsync()
@@ -155,11 +156,11 @@ namespace Game.Shared.Services
         private async UniTask OnLoginSuccessAsync(LoginResponse data, string authType)
         {
             await _authSessionService.SaveSessionAsync(data, authType);
-            _apiClient.SetAuthToken(data.token);
+            _apiClient.SetAuthToken(data.Token);
 
-            if (!string.IsNullOrEmpty(data.signingKey))
+            if (!string.IsNullOrEmpty(data.SigningKey))
             {
-                _apiClient.SetSigningKey(data.signingKey);
+                _apiClient.SetSigningKey(data.SigningKey);
             }
         }
 
@@ -167,24 +168,24 @@ namespace Game.Shared.Services
         {
             var loginData = new LoginResponse
             {
-                userId = data.userId,
-                userName = data.userName,
-                token = data.token,
-                signingKey = data.signingKey
+                UserId = data.UserId,
+                UserName = data.UserName,
+                Token = data.Token,
+                SigningKey = data.SigningKey
             };
-            await _authSessionService.SaveSessionAsync(loginData, data.authType?.ToLower() ?? "guest");
-            _apiClient.SetAuthToken(data.token);
+            await _authSessionService.SaveSessionAsync(loginData, data.AuthType?.ToLower() ?? "guest");
+            _apiClient.SetAuthToken(data.Token);
 
-            if (!string.IsNullOrEmpty(data.signingKey))
+            if (!string.IsNullOrEmpty(data.SigningKey))
             {
-                _apiClient.SetSigningKey(data.signingKey);
+                _apiClient.SetSigningKey(data.SigningKey);
             }
         }
 
         /// <summary>
         /// 空リクエスト用のダミー型（refresh 用）
         /// </summary>
-        [System.Serializable]
-        private class EmptyRequest { }
+        [MessagePackObject(true)]
+        public class EmptyRequest { }
     }
 }

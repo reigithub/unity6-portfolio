@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using StackExchange.Redis;
@@ -32,7 +33,7 @@ public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
     private static string GetRankingKey(int stageId) => $"{RankingKeyPrefix}{stageId}";
     private static string GetRankingDataKey(int stageId) => $"{RankingDataKeyPrefix}{stageId}";
 
-    public async Task<List<RankingEntryResponse>?> GetRankingAsync(int stageId, int limit, int offset)
+    public async Task<List<RankingEntryDto>?> GetRankingAsync(int stageId, int limit, int offset)
     {
         try
         {
@@ -47,7 +48,7 @@ public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
                 return null;
             }
 
-            var entries = JsonSerializer.Deserialize<List<RankingEntryResponse>>(cachedData!);
+            var entries = JsonSerializer.Deserialize<List<RankingEntryDto>>(cachedData!);
             if (entries == null || entries.Count == 0)
             {
                 return null;
@@ -57,7 +58,7 @@ public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
             var result = entries
                 .Skip(offset)
                 .Take(limit)
-                .Select((e, i) => new RankingEntryResponse
+                .Select((e, i) => new RankingEntryDto
                 {
                     Rank = offset + i + 1,
                     UserId = e.UserId,
@@ -83,7 +84,7 @@ public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
         }
     }
 
-    public async Task SetRankingAsync(int stageId, List<RankingEntryResponse> entries, TimeSpan? expiry = null)
+    public async Task SetRankingAsync(int stageId, List<RankingEntryDto> entries, TimeSpan? expiry = null)
     {
         try
         {

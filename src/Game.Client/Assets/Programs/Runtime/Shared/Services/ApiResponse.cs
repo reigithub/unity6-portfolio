@@ -1,4 +1,5 @@
 using System;
+using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Services
 {
@@ -54,8 +55,8 @@ namespace Game.Shared.Services
                 IsSuccess = false,
                 Error = new ApiErrorResponse
                 {
-                    error = "Offline",
-                    message = "ネットワークに接続されていません"
+                    Error = "Offline",
+                    Message = "ネットワークに接続されていません"
                 },
                 StatusCode = 0
             };
@@ -71,30 +72,11 @@ namespace Game.Shared.Services
                 IsSuccess = false,
                 Error = new ApiErrorResponse
                 {
-                    error = "CircuitBreakerOpen",
-                    message = $"サーバーが一時的に利用できません。{remainingTime.TotalSeconds:F0}秒後に再試行してください。"
+                    Error = "CircuitBreakerOpen",
+                    Message = $"サーバーが一時的に利用できません。{remainingTime.TotalSeconds:F0}秒後に再試行してください。"
                 },
                 StatusCode = 503
             };
         }
-    }
-
-    /// <summary>
-    /// API エラーレスポンス（サーバーの ApiErrorResponse と対応）
-    /// </summary>
-    [Serializable]
-    public class ApiErrorResponse
-    {
-        public string error;
-        public string message;
-        public string traceId;
-
-        public string Error => error;
-        public string Message => message;
-
-        /// <summary>
-        /// オフラインエラーかどうか
-        /// </summary>
-        public bool IsOfflineError => error == "Offline" || error == "ConnectionError";
     }
 }

@@ -1,5 +1,5 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Dto.Auth;
+using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Services
 {
@@ -17,7 +17,7 @@ namespace Game.Shared.Services
         UniTask<ApiResponse<LoginResponse>> RefreshTokenAsync();
         UniTask<ApiResponse<AccountLinkResponse>> LinkEmailAsync(string email, string password);
         UniTask<ApiResponse<AccountLinkResponse>> UnlinkEmailAsync();
-        UniTask<ApiResponse<UserProfileResponse>> GetMyProfileAsync();
+        UniTask<ApiResponse<UserResponse>> GetMyProfileAsync();
         UniTask<ApiResponse<TransferPasswordResponse>> IssueTransferPasswordAsync();
     }
 }

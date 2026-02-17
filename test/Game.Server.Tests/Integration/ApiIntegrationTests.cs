@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Game.Library.Shared.RequestSigning;
-using Game.Server.Dto.Responses;
+using Game.Library.Shared.Dto;
 using Game.Server.Tests.Fixtures;
 
 namespace Game.Server.Tests.Integration;
@@ -25,7 +25,7 @@ public class ApiIntegrationTests : IAsyncLifetime
     {
         await _postgres.ResetUserDataAsync();
         _factory = new CustomWebApplicationFactory(_postgres.ConnectionString);
-        _client = _factory.CreateClient();
+        _client = CreateJsonClient();
     }
 
     public async Task DisposeAsync()
@@ -56,7 +56,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.True(loginData.IsNewUser);
 
         // Use token to get user info
-        using var authClient = _factory.CreateClient();
+        using var authClient = CreateJsonClient();
         authClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", loginData.Token);
 
@@ -94,7 +94,7 @@ public class ApiIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task UnauthorizedEndpoint_Returns401()
     {
-        using var unauthClient = _factory.CreateClient();
+        using var unauthClient = CreateJsonClient();
         var response = await unauthClient.GetAsync("/api/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -184,7 +184,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.Equal(guestData.UserId, transferData.UserId);
 
         // 3. Login with transfer password from another "device" (exempt endpoint, no signing needed)
-        using var newClient = _factory.CreateClient();
+        using var newClient = CreateJsonClient();
         var loginResponse = await newClient.PostAsJsonAsync("/api/auth/login", new
         {
             UserId = transferData.UserId,
@@ -250,7 +250,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         var linkData = await linkResponse.Content.ReadFromJsonAsync<AccountLinkResponse>();
 
         // 3. Try to login with User ID (should fail for email users, exempt endpoint)
-        using var newClient = _factory.CreateClient();
+        using var newClient = CreateJsonClient();
         var loginResponse = await newClient.PostAsJsonAsync("/api/auth/login", new
         {
             UserId = linkData!.UserId,
@@ -260,6 +260,19 @@ public class ApiIntegrationTests : IAsyncLifetime
     }
 
     #region Helpers
+
+    /// <summary>
+    /// Accept: application/json をデフォルトヘッダーに設定した HttpClient を生成する。
+    /// サーバーは MessagePack をデフォルト OutputFormatter としているため、
+    /// JSON レスポンスが必要なテストでは明示的に Accept ヘッダーを指定する必要がある。
+    /// </summary>
+    private HttpClient CreateJsonClient()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+        return client;
+    }
 
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -322,6 +335,7 @@ public class ApiIntegrationTests : IAsyncLifetime
         {
             request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
         }
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add(RequestSigningConstants.SignatureHeader, signature);
         request.Headers.Add(RequestSigningConstants.TimestampHeader, timestamp.ToString());

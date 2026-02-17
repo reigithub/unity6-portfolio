@@ -1,8 +1,7 @@
 using System.Security.Claims;
 using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
 using Game.Server.Controllers;
-using Game.Server.Dto.Requests.Chat;
-using Game.Server.Dto.Responses.Chat;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
@@ -60,7 +59,7 @@ public class ChatRoomControllerTests
         _roomDataServiceMock.Setup(x => x.AddMemberAsync("new-room-id", "test-user-id", "Test Room", 255))
             .ReturnsAsync(true);
 
-        var request = new CreateChatRoomRestRequest
+        var request = new CreateChatRoomRequest
         {
             RoomName = "Test Room",
             RoomType = "general",
@@ -74,7 +73,7 @@ public class ChatRoomControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<CreateChatRoomRestResponse>(okResult.Value);
+        var response = Assert.IsType<CreateChatRoomResponse>(okResult.Value);
         Assert.True(response.Success);
         Assert.Equal("new-room-id", response.RoomId);
     }
@@ -210,10 +209,10 @@ public class ChatRoomControllerTests
     }
 
     [Fact]
-    public void CreateChatRoomRestResponse_DefaultValues_AreCorrect()
+    public void CreateChatRoomResponse_DefaultValues_AreCorrect()
     {
         // Act
-        var response = new CreateChatRoomRestResponse();
+        var response = new CreateChatRoomResponse();
 
         // Assert
         Assert.False(response.Success);

@@ -1,4 +1,4 @@
-using Game.Server.Dto.Responses;
+using Game.Library.Shared.Dto;
 
 namespace Game.Server.Services.Interfaces;
 
@@ -15,7 +15,7 @@ public interface ISurvivorRankingCacheService
     /// <param name="limit">取得件数</param>
     /// <param name="offset">オフセット</param>
     /// <returns>キャッシュがある場合はランキングエントリのリスト、ない場合はnull</returns>
-    Task<List<RankingEntryResponse>?> GetRankingAsync(int stageId, int limit, int offset);
+    Task<List<RankingEntryDto>?> GetRankingAsync(int stageId, int limit, int offset);
 
     /// <summary>
     /// ランキングをキャッシュに保存
@@ -23,7 +23,7 @@ public interface ISurvivorRankingCacheService
     /// <param name="stageId">ステージID</param>
     /// <param name="entries">ランキングエントリのリスト</param>
     /// <param name="expiry">有効期限（デフォルト5分）</param>
-    Task SetRankingAsync(int stageId, List<RankingEntryResponse> entries, TimeSpan? expiry = null);
+    Task SetRankingAsync(int stageId, List<RankingEntryDto> entries, TimeSpan? expiry = null);
 
     /// <summary>
     /// スコアをSorted Setに追加
