@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Game.Shared.Dto.Chat
 {
@@ -66,5 +67,11 @@ namespace Game.Shared.Dto.Chat
     public class ChatOperationResponse
     {
         public bool success;
+    }
+
+    [Serializable]
+    public class ChatRoomMembersResponse
+    {
+        public List<ChatRoomMemberInfoResponse> members;
     }
 }
