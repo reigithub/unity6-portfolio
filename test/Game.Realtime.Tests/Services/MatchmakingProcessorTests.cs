@@ -17,6 +17,7 @@ public class MatchmakingProcessorTests
     private readonly Mock<ISubscriber> _subscriberMock;
     private readonly Mock<ILogger<MatchmakingProcessor>> _loggerMock;
     private readonly MatchmakingConfiguration _config;
+    private readonly GameServerConfiguration _gameServerConfig;
 
     public MatchmakingProcessorTests()
     {
@@ -36,6 +37,12 @@ public class MatchmakingProcessorTests
                 ["survival"] = new GameModeConfig { MatchSize = 4 },
             },
         };
+
+        _gameServerConfig = new GameServerConfiguration
+        {
+            ServerAddress = "localhost",
+            ServerPort = 7777,
+        };
     }
 
     private MatchmakingProcessor CreateProcessor()
@@ -45,6 +52,7 @@ public class MatchmakingProcessorTests
             _tokenServiceMock.Object,
             _redisMock.Object,
             Options.Create(_config),
+            Options.Create(_gameServerConfig),
             _loggerMock.Object);
     }
 
@@ -108,13 +116,13 @@ public class MatchmakingProcessorTests
             x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()),
             Times.Exactly(4));
 
-        // Assert: 4人分の通知が発行されたことを確認
+        // Assert: 4人分のマッチ通知 + キュー人数通知が発行されたことを確認
         _subscriberMock.Verify(
             x => x.PublishAsync(
                 It.IsAny<RedisChannel>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<CommandFlags>()),
-            Times.Exactly(4));
+            Times.AtLeast(4));
     }
 
     [Fact]

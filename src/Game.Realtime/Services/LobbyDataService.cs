@@ -19,7 +19,7 @@ public class LobbyDataService : ILobbyDataService
     }
 
     public async Task<string> CreateAsync(
-        string hostUserId, string lobbyName, string gameMode, int maxPlayers, bool isPublic)
+        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic)
     {
         var db = _redis.GetDatabase();
         var lobbyId = Guid.NewGuid().ToString("N");
@@ -37,7 +37,7 @@ public class LobbyDataService : ILobbyDataService
         await db.HashSetAsync(lobbyKey, entries);
 
         // ホストをプレイヤーとして追加
-        var playerData = JsonSerializer.Serialize(new { playerName = lobbyName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
+        var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
         await db.HashSetAsync($"lobby:{lobbyId}:players", hostUserId, playerData);
 
         // プレイヤーの現在ロビーを記録

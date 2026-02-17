@@ -99,6 +99,7 @@ namespace Game.Tests.Shared
             var messageReceivedCalled = false;
             var readyChangedCalled = false;
             var gameStartingCalled = false;
+            var lobbyClosedCalled = false;
             var disconnectedCalled = false;
 
             void OnPlayerJoined(string a, string b) => playerJoinedCalled = true;
@@ -106,6 +107,7 @@ namespace Game.Tests.Shared
             void OnMessageReceived(string a, string b, string c) => messageReceivedCalled = true;
             void OnReadyChanged(string a, bool b) => readyChangedCalled = true;
             void OnGameStarting(string a, string b, int c) => gameStartingCalled = true;
+            void OnLobbyClosed(string _) => lobbyClosedCalled = true;
             void OnDisconnected(string _) => disconnectedCalled = true;
 
             Assert.DoesNotThrow(() =>
@@ -115,6 +117,7 @@ namespace Game.Tests.Shared
                 _client.OnMessageReceived += OnMessageReceived;
                 _client.OnPlayerReadyChanged += OnReadyChanged;
                 _client.OnGameStarting += OnGameStarting;
+                _client.OnLobbyClosed += OnLobbyClosed;
                 _client.OnDisconnected += OnDisconnected;
 
                 _client.OnPlayerJoined -= OnPlayerJoined;
@@ -122,6 +125,7 @@ namespace Game.Tests.Shared
                 _client.OnMessageReceived -= OnMessageReceived;
                 _client.OnPlayerReadyChanged -= OnReadyChanged;
                 _client.OnGameStarting -= OnGameStarting;
+                _client.OnLobbyClosed -= OnLobbyClosed;
                 _client.OnDisconnected -= OnDisconnected;
             });
 
@@ -130,6 +134,7 @@ namespace Game.Tests.Shared
             Assert.That(messageReceivedCalled, Is.False);
             Assert.That(readyChangedCalled, Is.False);
             Assert.That(gameStartingCalled, Is.False);
+            Assert.That(lobbyClosedCalled, Is.False);
             Assert.That(disconnectedCalled, Is.False);
         }
 

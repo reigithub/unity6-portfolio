@@ -7,7 +7,7 @@ namespace Game.Realtime.Services;
 /// </summary>
 public interface ILobbyDataService
 {
-    Task<string> CreateAsync(string hostUserId, string lobbyName, string gameMode, int maxPlayers, bool isPublic);
+    Task<string> CreateAsync(string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic);
     Task<bool> AddPlayerAsync(string lobbyId, string userId, string playerName);
     Task<bool> RemovePlayerAsync(string lobbyId, string userId);
     Task<LobbyInfo?> GetLobbyAsync(string lobbyId);

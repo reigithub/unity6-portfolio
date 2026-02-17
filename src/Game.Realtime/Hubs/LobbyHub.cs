@@ -3,6 +3,7 @@ using Game.Realtime.Services;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace Game.Realtime.Hubs;
 
@@ -14,16 +15,24 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 {
     private readonly ILogger<LobbyHub> _logger;
     private readonly ILobbyDataService _lobbyDataService;
+    private readonly IMatchSessionTokenService _tokenService;
+    private readonly GameServerConfiguration _gameServerConfig;
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
     private string _playerName = string.Empty;
     private string _lobbyId = string.Empty;
 
-    public LobbyHub(ILogger<LobbyHub> logger, ILobbyDataService lobbyDataService)
+    public LobbyHub(
+        ILogger<LobbyHub> logger,
+        ILobbyDataService lobbyDataService,
+        IMatchSessionTokenService tokenService,
+        IOptions<GameServerConfiguration> gameServerConfig)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
+        _tokenService = tokenService;
+        _gameServerConfig = gameServerConfig.Value;
     }
 
     public async ValueTask ConnectAsync(string lobbyId, string playerName)
@@ -51,6 +60,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
                 _playerName, _userId, _lobbyId);
 
             _currentGroup.All.OnPlayerLeft(_userId, _playerName);
+
+            // ホスト退出時はロビーを閉じる
+            var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+            if (lobby != null && lobby.HostUserId == _userId)
+            {
+                _currentGroup.All.OnLobbyClosed("Host left");
+            }
+
             await _currentGroup.RemoveAsync(Context);
             _currentGroup = null;
 
@@ -83,9 +100,32 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             _currentGroup.All.OnPlayerReadyChanged(_userId, isReady);
         }
 
+        // 全員 Ready チェック → ゲーム開始
+        if (isReady && _currentGroup != null && await _lobbyDataService.AreAllReadyAsync(_lobbyId))
+        {
+            await StartGameAsync();
+        }
+
         _logger.LogDebug(
             "Player {UserId} set ready={IsReady} in lobby {LobbyId}",
             _userId, isReady, _lobbyId);
+    }
+
+    private async ValueTask StartGameAsync()
+    {
+        var matchId = Guid.NewGuid().ToString("N");
+        var players = await _lobbyDataService.GetPlayersAsync(_lobbyId);
+
+        foreach (var player in players)
+        {
+            await _tokenService.IssueTokenAsync(player.UserId, matchId);
+        }
+
+        _currentGroup!.All.OnGameStarting(matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort);
+
+        _logger.LogInformation(
+            "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
+            _lobbyId, matchId, players.Length);
     }
 
     protected override async ValueTask OnDisconnected()
@@ -93,6 +133,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         if (_currentGroup != null)
         {
             _currentGroup.All.OnPlayerLeft(_userId, _playerName);
+
+            // ホスト退出時はロビーを閉じる
+            var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+            if (lobby != null && lobby.HostUserId == _userId)
+            {
+                _currentGroup.All.OnLobbyClosed("Host disconnected");
+            }
+
             await _currentGroup.RemoveAsync(Context);
             _currentGroup = null;
         }

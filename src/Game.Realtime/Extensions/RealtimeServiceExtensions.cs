@@ -27,6 +27,10 @@ public static class RealtimeServiceExtensions
         services.Configure<MatchmakingConfiguration>(
             configuration.GetSection("Matchmaking"));
 
+        // Game Server Configuration
+        services.Configure<GameServerConfiguration>(
+            configuration.GetSection("GameServer"));
+
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();
 
