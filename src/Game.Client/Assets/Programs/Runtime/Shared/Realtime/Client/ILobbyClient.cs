@@ -40,6 +40,16 @@ namespace Game.Shared.Realtime.Client
         Task<LobbyInfo[]> SearchLobbiesAsync(string gameMode, int maxResults);
 
         /// <summary>
+        /// ロビー情報取得（Unary のみ）
+        /// </summary>
+        Task<LobbyInfo> GetLobbyInfoAsync(string lobbyId);
+
+        /// <summary>
+        /// ロビーのプレイヤー一覧取得（Unary のみ）
+        /// </summary>
+        Task<LobbyPlayerInfo[]> GetLobbyPlayersAsync(string lobbyId);
+
+        /// <summary>
         /// メッセージ送信（Hub）
         /// </summary>
         Task SendMessageAsync(string message);
@@ -73,6 +83,11 @@ namespace Game.Shared.Realtime.Client
         /// ゲーム開始イベント
         /// </summary>
         event Action<string, string, int> OnGameStarting;
+
+        /// <summary>
+        /// ロビー閉鎖イベント (reason)
+        /// </summary>
+        event Action<string> OnLobbyClosed;
 
         /// <summary>
         /// 予期しない切断イベント (reason)

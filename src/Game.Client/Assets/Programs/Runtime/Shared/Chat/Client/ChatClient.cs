@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Game.Library.Shared.Chat.Dto;
 using Game.Shared.Dto.Chat;
@@ -109,9 +110,11 @@ namespace Game.Shared.Chat.Client
 
         public async Task<ChatRoomMemberInfoResponse[]> GetRoomMembersAsync(string roomId)
         {
-            var response = await _apiClient.GetAsync<ChatRoomMemberInfoResponse[]>(
+            var response = await _apiClient.GetAsync<ChatRoomMembersResponse>(
                 $"/api/chat/rooms/{roomId}/members");
-            return response.IsSuccess ? response.Data : Array.Empty<ChatRoomMemberInfoResponse>();
+            return response.IsSuccess && response.Data?.members != null
+                ? response.Data.members.ToArray()
+                : Array.Empty<ChatRoomMemberInfoResponse>();
         }
 
         // SignalR 操作

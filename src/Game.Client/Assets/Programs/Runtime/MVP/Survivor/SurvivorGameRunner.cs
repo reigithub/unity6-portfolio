@@ -6,7 +6,9 @@ using Game.MVP.Core.Services;
 using Game.MVP.Survivor.Root;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes;
+using Game.Shared;
 using Game.Shared.SaveData;
+using Game.Shared.Chat.Client;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Queue;
@@ -38,6 +40,7 @@ namespace Game.MVP.Survivor
         private readonly IAuthApiService _authApiService;
         private readonly IRequestQueue _requestQueue;
         private readonly INetworkService _networkService;
+        private readonly IChatClient _chatClient;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
@@ -57,7 +60,8 @@ namespace Game.MVP.Survivor
             IApiClient apiClient,
             IAuthApiService authApiService,
             IRequestQueue requestQueue,
-            INetworkService networkService)
+            INetworkService networkService,
+            IChatClient chatClient)
         {
             _container = container;
             _sceneService = sceneService;
@@ -73,6 +77,7 @@ namespace Game.MVP.Survivor
             _authApiService = authApiService;
             _requestQueue = requestQueue;
             _networkService = networkService;
+            _chatClient = chatClient;
         }
 
         public async UniTask StartupAsync()
@@ -103,13 +108,22 @@ namespace Game.MVP.Survivor
                 await TryValidateTokenAsync();
             }
 
-            // 5. 共通オブジェクト読み込み（カメラ、UIルートなど）
+            // 5. ChatClient SignalR 接続設定
+            var envConfig = GameEnvironmentHelper.CurrentConfig;
+            if (!string.IsNullOrEmpty(envConfig?.WebSocketUrl))
+            {
+                _chatClient.Configure(
+                    envConfig.WebSocketUrl,
+                    () => System.Threading.Tasks.Task.FromResult(_authSessionService.AuthToken ?? ""));
+            }
+
+            // 6. 共通オブジェクト読み込み（カメラ、UIルートなど）
             await LoadGameRootControllerAsync();
 
-            // 6. リクエストキューの自動処理を設定
+            // 7. リクエストキューの自動処理を設定
             SetupQueueProcessing();
 
-            // 7. 初期シーンへ遷移
+            // 8. 初期シーンへ遷移
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
 
             Debug.Log("[SurvivorGameRunner] Game started");
@@ -189,6 +203,9 @@ namespace Game.MVP.Survivor
             // キュー処理サブスクリプションを解除
             _queueProcessingSubscription?.Dispose();
             _queueProcessingSubscription = null;
+
+            // チャットクライアント切断
+            _chatClient?.Dispose();
 
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();

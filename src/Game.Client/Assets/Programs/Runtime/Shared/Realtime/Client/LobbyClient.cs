@@ -28,6 +28,7 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, string, string> OnMessageReceived;
         public event Action<string, bool> OnPlayerReadyChanged;
         public event Action<string, string, int> OnGameStarting;
+        public event Action<string> OnLobbyClosed;
         public event Action<string> OnDisconnected;
 
         public LobbyClient(
@@ -141,6 +142,32 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task<LobbyInfo> GetLobbyInfoAsync(string lobbyId)
+        {
+            try
+            {
+                return await CreateService().GetLobbyInfoAsync(lobbyId);
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in GetLobbyInfo: {ex.StatusCode}");
+                throw;
+            }
+        }
+
+        public async Task<LobbyPlayerInfo[]> GetLobbyPlayersAsync(string lobbyId)
+        {
+            try
+            {
+                return await CreateService().GetLobbyPlayersAsync(lobbyId);
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in GetLobbyPlayers: {ex.StatusCode}");
+                return Array.Empty<LobbyPlayerInfo>();
+            }
+        }
+
         public async Task SendMessageAsync(string message)
         {
             try
@@ -192,6 +219,7 @@ namespace Game.Shared.Realtime.Client
         void ILobbyHubReceiver.OnLobbyClosed(string reason)
         {
             Debug.Log($"[LobbyClient] Lobby closed: {reason}");
+            OnLobbyClosed?.Invoke(reason);
         }
 
         void ILobbyHubReceiver.OnPlayerReadyChanged(string userId, bool isReady)

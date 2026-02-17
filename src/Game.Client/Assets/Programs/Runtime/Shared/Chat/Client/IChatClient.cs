@@ -11,6 +11,11 @@ namespace Game.Shared.Chat.Client
     /// </summary>
     public interface IChatClient : IDisposable
     {
+        /// <summary>
+        /// SignalR 接続設定（ConnectAsync の前に呼び出すこと）
+        /// </summary>
+        void Configure(string hubUrl, Func<Task<string>> accessTokenProvider);
+
         // REST 操作
 
         /// <summary>

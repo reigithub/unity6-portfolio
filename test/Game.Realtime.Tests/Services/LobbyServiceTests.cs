@@ -35,7 +35,7 @@ public class LobbyServiceTests
     {
         // Arrange
         var lobbyId = "test-lobby-id";
-        _lobbyDataServiceMock.Setup(x => x.CreateAsync("host1", "Test Lobby", "survival", 4, true))
+        _lobbyDataServiceMock.Setup(x => x.CreateAsync("host1", It.IsAny<string>(), "Test Lobby", "survival", 4, true))
             .ReturnsAsync(lobbyId);
 
         var expectedLobby = new LobbyInfo
@@ -52,7 +52,7 @@ public class LobbyServiceTests
             .ReturnsAsync(expectedLobby);
 
         // Act: Create
-        var createdId = await _lobbyDataServiceMock.Object.CreateAsync("host1", "Test Lobby", "survival", 4, true);
+        var createdId = await _lobbyDataServiceMock.Object.CreateAsync("host1", "HostPlayer", "Test Lobby", "survival", 4, true);
 
         // Assert
         Assert.Equal(lobbyId, createdId);

@@ -61,7 +61,7 @@ public class LobbyDataServiceTests
             .ReturnsAsync(true);
 
         // Act
-        var lobbyId = await _service.CreateAsync("host1", "Test Lobby", "survival", 4, true);
+        var lobbyId = await _service.CreateAsync("host1", "HostPlayer", "Test Lobby", "survival", 4, true);
 
         // Assert
         Assert.NotNull(lobbyId);

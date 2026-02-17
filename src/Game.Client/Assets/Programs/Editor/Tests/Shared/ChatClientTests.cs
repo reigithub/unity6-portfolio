@@ -416,20 +416,23 @@ namespace Game.Tests.Shared
         public async Task GetRoomMembersAsync_ReturnsMembers_WhenSuccess()
         {
             // Arrange
-            var members = new[]
+            var membersResponse = new ChatRoomMembersResponse
             {
-                new ChatRoomMemberInfoResponse { userId = "user-1", playerName = "Player1" },
-                new ChatRoomMemberInfoResponse { userId = "user-2", playerName = "Player2" },
+                members = new System.Collections.Generic.List<ChatRoomMemberInfoResponse>
+                {
+                    new ChatRoomMemberInfoResponse { userId = "user-1", playerName = "Player1" },
+                    new ChatRoomMemberInfoResponse { userId = "user-2", playerName = "Player2" },
+                }
             };
             _mockApiClient
-                .GetAsync<ChatRoomMemberInfoResponse[]>(
+                .GetAsync<ChatRoomMembersResponse>(
                     Arg.Is("/api/chat/rooms/room-1/members"),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomMemberInfoResponse[]>
+                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomMembersResponse>
                 {
                     IsSuccess = true,
-                    Data = members,
+                    Data = membersResponse,
                 }));
 
             // Act
@@ -446,11 +449,11 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .GetAsync<ChatRoomMemberInfoResponse[]>(
+                .GetAsync<ChatRoomMembersResponse>(
                     Arg.Any<string>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomMemberInfoResponse[]>
+                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomMembersResponse>
                 {
                     IsSuccess = false,
                 }));

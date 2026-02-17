@@ -16,5 +16,8 @@ namespace Game.Library.Shared.Realtime.Dto
 
         [Key(3)]
         public bool IsPublic { get; set; } = true;
+
+        [Key(4)]
+        public string PlayerName { get; set; } = string.Empty;
     }
 }

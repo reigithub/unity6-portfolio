@@ -41,7 +41,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
         try
         {
             var lobbyId = await _lobbyDataService.CreateAsync(
-                userId, request.LobbyName, request.GameMode, request.MaxPlayers, request.IsPublic);
+                userId, request.PlayerName, request.LobbyName, request.GameMode, request.MaxPlayers, request.IsPublic);
 
             _logger.LogInformation(
                 "Lobby {LobbyId} created by {UserId} (mode: {GameMode})",

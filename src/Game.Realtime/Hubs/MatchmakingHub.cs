@@ -57,6 +57,16 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
             }
         });
 
+        // キューステータス更新の購読
+        var queueChannel = RedisChannel.Literal($"matchmaking:queue:{gameMode}");
+        await _subscriber.SubscribeAsync(queueChannel, (_, message) =>
+        {
+            if (int.TryParse(message.ToString(), out var count))
+            {
+                Client.OnQueueStatusUpdated(count);
+            }
+        });
+
         _logger.LogInformation(
             "Player {UserId} subscribed to matchmaking notifications for mode {GameMode}",
             _userId, gameMode);
@@ -98,8 +108,15 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
     {
         if (_subscriber != null && !string.IsNullOrEmpty(_userId))
         {
-            var channel = RedisChannel.Literal($"matchmaking:notify:{_userId}");
-            await _subscriber.UnsubscribeAsync(channel);
+            var notifyChannel = RedisChannel.Literal($"matchmaking:notify:{_userId}");
+            await _subscriber.UnsubscribeAsync(notifyChannel);
+
+            if (!string.IsNullOrEmpty(_gameMode))
+            {
+                var queueChannel = RedisChannel.Literal($"matchmaking:queue:{_gameMode}");
+                await _subscriber.UnsubscribeAsync(queueChannel);
+            }
+
             _subscriber = null;
         }
     }

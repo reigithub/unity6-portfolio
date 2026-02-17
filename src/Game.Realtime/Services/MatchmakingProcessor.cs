@@ -17,6 +17,7 @@ public class MatchmakingProcessor : BackgroundService
     private readonly IMatchSessionTokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
     private readonly MatchmakingConfiguration _config;
+    private readonly GameServerConfiguration _gameServerConfig;
     private readonly ILogger<MatchmakingProcessor> _logger;
 
     public MatchmakingProcessor(
@@ -24,12 +25,14 @@ public class MatchmakingProcessor : BackgroundService
         IMatchSessionTokenService tokenService,
         IConnectionMultiplexer redis,
         IOptions<MatchmakingConfiguration> config,
+        IOptions<GameServerConfiguration> gameServerConfig,
         ILogger<MatchmakingProcessor> logger)
     {
         _queueService = queueService;
         _tokenService = tokenService;
         _redis = redis;
         _config = config.Value;
+        _gameServerConfig = gameServerConfig.Value;
         _logger = logger;
     }
 
@@ -72,6 +75,12 @@ public class MatchmakingProcessor : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var queueCount = await _queueService.GetQueueCountAsync(gameMode);
+
+            // キュー人数を購読者に通知
+            var subscriber = _redis.GetSubscriber();
+            var queueChannel = RedisChannel.Literal($"matchmaking:queue:{gameMode}");
+            await subscriber.PublishAsync(queueChannel, queueCount.ToString());
+
             if (queueCount < matchSize) break;
 
             var playerIds = await _queueService.DequeueTopPlayersAsync(gameMode, matchSize);
@@ -107,8 +116,8 @@ public class MatchmakingProcessor : BackgroundService
         {
             MatchId = matchId,
             PlayerIds = playerIds,
-            ServerAddress = "pending",
-            ServerPort = 0,
+            ServerAddress = _gameServerConfig.ServerAddress,
+            ServerPort = _gameServerConfig.ServerPort,
         };
 
         var json = JsonSerializer.Serialize(matchResult);

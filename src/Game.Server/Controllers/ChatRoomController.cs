@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Game.Library.Shared.Chat.Dto;
 using Game.Server.Dto.Requests.Chat;
+using Game.Server.Dto.Responses.Chat;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
@@ -41,7 +42,7 @@ public class ChatRoomController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(CreateChatRoomResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CreateChatRoomRestResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRestRequest request)
     {
@@ -60,7 +61,7 @@ public class ChatRoomController : ControllerBase
                 "Chat room {RoomId} created by {UserId} (type: {RoomType})",
                 roomId, userId, request.RoomType);
 
-            return Ok(new CreateChatRoomResponse
+            return Ok(new CreateChatRoomRestResponse
             {
                 Success = true,
                 RoomId = roomId,
@@ -69,7 +70,7 @@ public class ChatRoomController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create chat room for user {UserId}", userId);
-            return Ok(new CreateChatRoomResponse
+            return Ok(new CreateChatRoomRestResponse
             {
                 Success = false,
                 ErrorMessage = "Failed to create chat room",
@@ -123,7 +124,7 @@ public class ChatRoomController : ControllerBase
     }
 
     [HttpGet("{roomId}/members")]
-    [ProducesResponseType(typeof(ChatRoomMemberInfo[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ChatRoomMembersResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMembers(string roomId)
     {
@@ -131,7 +132,7 @@ public class ChatRoomController : ControllerBase
         {
             await _validator.ValidateRoomExistsAsync(roomId);
             var members = await _roomDataService.GetMembersAsync(roomId);
-            return Ok(members);
+            return Ok(new ChatRoomMembersResponse { Members = members });
         }
         catch (ChatNotFoundException)
         {
