@@ -1,18 +1,23 @@
 using Game.MVP.Core.DI;
+using Game.Shared.Bootstrap;
 using UnityEngine;
 
 namespace Game.MVP.Survivor
 {
     /// <summary>
     /// Survivorモジュールの初期化
-    /// アセンブリロード時にLifetimeScopeを登録
+    /// SubsystemRegistration でレジストリに登録し、BeforeSceneLoad で実行される
     /// </summary>
     public static class SurvivorModuleInitializer
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Register()
+        {
+            RuntimeInitializerRegistry.Register(0, Initialize);
+        }
+
         private static void Initialize()
         {
-            // MVPGameLauncherにLifetimeScopeの型を登録
             SurvivorGameLauncher.RegisterLifetimeScopeType<SurvivorLifetimeScope>();
             Debug.Log("[SurvivorModuleInitializer] Registered SurvivorLifetimeScope");
         }

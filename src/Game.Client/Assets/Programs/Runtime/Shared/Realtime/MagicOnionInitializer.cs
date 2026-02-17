@@ -14,7 +14,6 @@ namespace Game.Shared.Realtime
 
     public static class MagicOnionInitializer
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
             // GrpcChannelx: Unity ライフサイクル統合チャンネル管理
