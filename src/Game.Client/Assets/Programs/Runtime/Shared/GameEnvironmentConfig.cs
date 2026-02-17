@@ -142,8 +142,10 @@ namespace Game.Shared
             }
         }
 
-        public static bool ValidateGameEnvironment()
+        public static bool Validate()
         {
+            CheckCommandLineArgs();
+
             bool valid = false;
             switch (Current)
             {
@@ -180,7 +182,7 @@ namespace Game.Shared
         /// <summary>
         /// 起動引数から環境をオーバーライド（開発用）
         /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        // [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void CheckCommandLineArgs()
         {
 #if !RELEASE

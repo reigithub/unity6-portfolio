@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Game.Shared.Realtime.Client;
+using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -14,13 +15,17 @@ namespace Game.Tests.Shared
     public class MatchmakingClientTests
     {
         private IGrpcChannelProvider _mockChannelProvider;
+        private AuthClientFilter _authFilter;
         private MatchmakingClient _client;
 
         [SetUp]
         public void Setup()
         {
             _mockChannelProvider = Substitute.For<IGrpcChannelProvider>();
-            _client = new MatchmakingClient(_mockChannelProvider);
+            var mockAuthSessionService = Substitute.For<IAuthSessionService>();
+            mockAuthSessionService.AuthToken.Returns("test-token");
+            _authFilter = new AuthClientFilter(mockAuthSessionService);
+            _client = new MatchmakingClient(_mockChannelProvider, _authFilter);
         }
 
         [TearDown]
@@ -89,10 +94,12 @@ namespace Game.Tests.Shared
             var matchFoundCalled = false;
             var queueUpdatedCalled = false;
             var cancelledCalled = false;
+            var disconnectedCalled = false;
 
             void OnMatchFound(Game.Library.Shared.Realtime.Hubs.MatchResult _) => matchFoundCalled = true;
             void OnQueueUpdated(int _) => queueUpdatedCalled = true;
             void OnCancelled(string _) => cancelledCalled = true;
+            void OnDisconnected(string _) => disconnectedCalled = true;
 
             // Act: subscribe と unsubscribe が例外なく動作する
             Assert.DoesNotThrow(() =>
@@ -100,15 +107,18 @@ namespace Game.Tests.Shared
                 _client.OnMatchFound += OnMatchFound;
                 _client.OnQueueStatusUpdated += OnQueueUpdated;
                 _client.OnMatchmakingCancelled += OnCancelled;
+                _client.OnDisconnected += OnDisconnected;
 
                 _client.OnMatchFound -= OnMatchFound;
                 _client.OnQueueStatusUpdated -= OnQueueUpdated;
                 _client.OnMatchmakingCancelled -= OnCancelled;
+                _client.OnDisconnected -= OnDisconnected;
             });
 
             Assert.That(matchFoundCalled, Is.False);
             Assert.That(queueUpdatedCalled, Is.False);
             Assert.That(cancelledCalled, Is.False);
+            Assert.That(disconnectedCalled, Is.False);
         }
 
         #endregion

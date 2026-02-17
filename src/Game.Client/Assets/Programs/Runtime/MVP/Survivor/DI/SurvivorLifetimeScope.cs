@@ -106,6 +106,7 @@ namespace Game.MVP.Survivor
             // MagicOnion Services（gRPC Unary + StreamingHub）
             // ========================================
             builder.Register<GrpcChannelProvider>(Lifetime.Singleton).As<IGrpcChannelProvider>();
+            builder.Register<AuthClientFilter>(Lifetime.Singleton);
             builder.Register<MatchmakingClient>(Lifetime.Singleton).As<IMatchmakingClient>();
             builder.Register<LobbyClient>(Lifetime.Singleton).As<ILobbyClient>();
 

@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: unity-accelerator:custom
-    container_name: unity-accelerator
+    container_name: unity-accelerator-runner
     restart: unless-stopped
 
     ports:

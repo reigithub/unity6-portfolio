@@ -29,11 +29,10 @@ namespace Game.App.Bootstrap
         private static IAppServiceProvider _appServiceProvider;
         private static bool _isInitialized;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Startup()
+        internal static void Startup()
         {
             // 安全な起動のため環境切替が機能しているか一番最初に検証する
-            if (!GameEnvironmentHelper.ValidateGameEnvironment())
+            if (!GameEnvironmentHelper.Validate())
             {
                 Debug.LogError($"Invalid Game Environment: {GameEnvironmentHelper.Current}");
                 Application.Quit(-1);

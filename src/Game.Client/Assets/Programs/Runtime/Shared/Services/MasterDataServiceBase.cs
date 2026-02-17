@@ -2,8 +2,6 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Exceptions;
-using MessagePack;
-using MessagePack.Resolvers;
 using UnityEngine;
 
 namespace Game.Shared.Services
@@ -14,30 +12,7 @@ namespace Game.Shared.Services
     /// </summary>
     public abstract class MasterDataServiceBase : IMasterDataService
     {
-        private static bool _isMessagePackInitialized;
-
         public MemoryDatabase MemoryDatabase { get; private set; }
-
-        protected MasterDataServiceBase()
-        {
-            InitializeMessagePack();
-        }
-
-        private static void InitializeMessagePack()
-        {
-            if (_isMessagePackInitialized) return;
-
-            var formatterResolvers = new[]
-            {
-                MasterMemoryResolver.Instance,
-                StandardResolver.Instance
-            };
-            var compositeResolver = CompositeResolver.Create(formatterResolvers);
-            var options = MessagePackSerializerOptions.Standard.WithResolver(compositeResolver);
-            MessagePackSerializer.DefaultOptions = options;
-
-            _isMessagePackInitialized = true;
-        }
 
         /// <summary>
         /// マスターデータバイナリを読み込む（派生クラスで実装）

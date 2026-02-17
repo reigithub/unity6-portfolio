@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Game.Library.Shared.Realtime.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Library.Shared.Realtime.Services;
+using Grpc.Core;
 using MagicOnion.Client;
 using UnityEngine;
 
@@ -14,7 +15,8 @@ namespace Game.Shared.Realtime.Client
     public class MatchmakingClient : IMatchmakingClient, IMatchmakingHubReceiver
     {
         private readonly IGrpcChannelProvider _channelProvider;
-
+        private readonly AuthClientFilter _authFilter;
+        private readonly IClientFilter[] _filters;
         private IMatchmakingHub _hub;
         private string _currentGameMode;
         private bool _disposed;
@@ -24,69 +26,105 @@ namespace Game.Shared.Realtime.Client
         public event Action<MatchResult> OnMatchFound;
         public event Action<int> OnQueueStatusUpdated;
         public event Action<string> OnMatchmakingCancelled;
+        public event Action<string> OnDisconnected;
 
-        public MatchmakingClient(IGrpcChannelProvider channelProvider)
+        public MatchmakingClient(
+            IGrpcChannelProvider channelProvider,
+            AuthClientFilter authFilter)
         {
             _channelProvider = channelProvider;
+            _authFilter = authFilter;
+            _filters = new IClientFilter[] { authFilter };
+        }
+
+        private IMatchmakingService CreateService()
+        {
+            var channel = _channelProvider.GetChannel();
+            return MagicOnionClient.Create<IMatchmakingService>(channel, _filters);
         }
 
         public async Task<MatchmakingResponse> StartMatchmakingAsync(string gameMode)
         {
-            var channel = _channelProvider.GetChannel();
-
-            // 1. Unary RPC でキューに登録
-            var matchmakingService = MagicOnionClient.Create<IMatchmakingService>(channel);
-            var response = await matchmakingService.EnqueueAsync(new MatchmakingRequest { GameMode = gameMode });
-
-            if (!response.Success)
+            try
             {
-                Debug.LogWarning($"[MatchmakingClient] Failed to enqueue: {response.ErrorMessage}");
+                // Unary: キューに登録
+                var response = await CreateService().EnqueueAsync(
+                    new MatchmakingRequest { GameMode = gameMode });
+
+                if (!response.Success)
+                {
+                    Debug.LogWarning($"[MatchmakingClient] Enqueue failed: {response.ErrorMessage}");
+                    return response;
+                }
+
+                // Hub: 通知購読（認証 + Heartbeat）
+                // StreamingHub は IClientFilter 非対応のため CallOptions で認証ヘッダーを渡す
+                var options = StreamingHubClientOptions.CreateWithDefault(
+                        callOptions: new CallOptions(headers: _authFilter.CreateAuthMetadata()))
+                    .WithClientHeartbeatInterval(TimeSpan.FromSeconds(30))
+                    .WithClientHeartbeatTimeout(TimeSpan.FromSeconds(10));
+
+                var channel = _channelProvider.GetChannel();
+                _hub = await StreamingHubClient.ConnectAsync<IMatchmakingHub, IMatchmakingHubReceiver>(
+                    channel, this, options);
+                await _hub.SubscribeAsync(gameMode);
+
+                _currentGameMode = gameMode;
+                IsSearching = true;
+
+                // 切断監視（fire-and-forget）
+                _ = MonitorDisconnectionAsync();
+
                 return response;
             }
-
-            // 2. Hub で通知を購読
-            _hub = await StreamingHubClient.ConnectAsync<IMatchmakingHub, IMatchmakingHubReceiver>(
-                channel, this);
-            await _hub.SubscribeAsync(gameMode);
-
-            _currentGameMode = gameMode;
-            IsSearching = true;
-            Debug.Log($"[MatchmakingClient] Started matchmaking for mode: {gameMode}");
-
-            return response;
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[MatchmakingClient] RPC error in StartMatchmaking: {ex.StatusCode} - {ex.Status.Detail}");
+                return new MatchmakingResponse
+                {
+                    Success = false,
+                    ErrorMessage = ex.Status.Detail
+                };
+            }
         }
 
         public async Task CancelMatchmakingAsync()
         {
             if (!IsSearching) return;
 
-            var channel = _channelProvider.GetChannel();
-
-            // 1. Unary RPC でキューから解除
-            if (!string.IsNullOrEmpty(_currentGameMode))
+            try
             {
-                var matchmakingService = MagicOnionClient.Create<IMatchmakingService>(channel);
-                await matchmakingService.DequeueAsync(new MatchmakingRequest { GameMode = _currentGameMode });
-            }
+                await CreateService().DequeueAsync(
+                    new MatchmakingRequest { GameMode = _currentGameMode });
 
-            // 2. Hub の通知購読解除
-            if (_hub != null)
+                if (_hub != null)
+                {
+                    await _hub.UnsubscribeAsync();
+                    await _hub.DisposeAsync();
+                    _hub = null;
+                }
+            }
+            catch (RpcException ex)
             {
-                await _hub.UnsubscribeAsync();
-                await _hub.DisposeAsync();
-                _hub = null;
+                Debug.LogWarning($"[MatchmakingClient] RPC error in Cancel: {ex.StatusCode}");
             }
-
-            IsSearching = false;
-            _currentGameMode = null;
-            Debug.Log("[MatchmakingClient] Cancelled matchmaking");
+            finally
+            {
+                IsSearching = false;
+            }
         }
 
         public async Task<int> GetQueueCountAsync(string gameMode)
         {
-            var channel = _channelProvider.GetChannel();
-            var matchmakingService = MagicOnionClient.Create<IMatchmakingService>(channel);
-            return await matchmakingService.GetQueueCountAsync(gameMode);
+            try
+            {
+                return await CreateService().GetQueueCountAsync(gameMode);
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[MatchmakingClient] RPC error in GetQueueCount: {ex.StatusCode}");
+                return -1;
+            }
         }
 
         // IMatchmakingHubReceiver implementations
@@ -114,6 +152,25 @@ namespace Game.Shared.Realtime.Client
             OnQueueStatusUpdated?.Invoke(playersInQueue);
         }
 
+        private async Task MonitorDisconnectionAsync()
+        {
+            try
+            {
+                if (_hub == null) return;
+                var reason = await _hub.WaitForDisconnectAsync();
+                if (reason.Type != DisconnectionType.CompletedNormally)
+                {
+                    Debug.LogWarning($"[MatchmakingClient] Unexpected disconnect: {reason.Type}");
+                    IsSearching = false;
+                    OnDisconnected?.Invoke($"Disconnected: {reason.Type}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[MatchmakingClient] Disconnect monitor error: {ex.Message}");
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
@@ -122,7 +179,8 @@ namespace Game.Shared.Realtime.Client
                 IsSearching = false;
                 if (_hub != null)
                 {
-                    _hub.DisposeAsync().GetAwaiter().GetResult();
+                    try { _hub.DisposeAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[MatchmakingClient] Dispose error: {ex.Message}"); }
                     _hub = null;
                 }
             }

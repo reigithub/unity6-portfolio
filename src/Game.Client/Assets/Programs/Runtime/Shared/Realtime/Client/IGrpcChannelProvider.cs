@@ -1,5 +1,5 @@
 using System;
-using Grpc.Net.Client;
+using Grpc.Core;
 
 namespace Game.Shared.Realtime.Client
 {
@@ -11,7 +11,7 @@ namespace Game.Shared.Realtime.Client
         /// <summary>
         /// gRPC チャンネルを取得（遅延初期化）
         /// </summary>
-        GrpcChannel GetChannel();
+        ChannelBase GetChannel();
 
         /// <summary>
         /// チャンネルが接続済みかどうか

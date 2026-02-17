@@ -9,6 +9,13 @@
       },
       "hash": "c4393b091e932835acfa6cda6ead8126f530dade"
     },
+    "com.cysharp.magiconion.client.unity": {
+      "version": "https://github.com/Cysharp/MagicOnion.git?path=src/MagicOnion.Client.Unity/Assets/Scripts/MagicOnion.Client.Unity#7.0.9",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "edce142c6c528a938b10e62108e2382db2516551"
+    },
     "com.cysharp.memorypack": {
       "version": "https://github.com/Cysharp/MemoryPack.git?path=src/MemoryPack.Unity/Assets/MemoryPack.Unity",
       "depth": 0,
@@ -52,6 +59,13 @@
       "source": "git",
       "dependencies": {},
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
+    },
+    "com.cysharp.yetanotherhttphandler": {
+      "version": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#1.11.5",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "3efebda78d62d3b484e6da2f2edb523a08d6786a"
     },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
