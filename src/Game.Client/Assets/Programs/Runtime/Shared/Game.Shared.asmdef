@@ -11,7 +11,8 @@
         "Unity.Addressables",
         "Unity.InputSystem",
         "Unity.ResourceManager",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "Cysharp.Net.Http.YetAnotherHttpHandler"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
