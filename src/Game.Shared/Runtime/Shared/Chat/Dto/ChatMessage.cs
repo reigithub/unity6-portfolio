@@ -1,12 +1,12 @@
 using MessagePack;
 
-namespace Game.Library.Shared.Realtime.Dto
+namespace Game.Library.Shared.Chat.Dto
 {
     /// <summary>
-    /// チャットルームメンバー情報 DTO
+    /// チャットメッセージ
     /// </summary>
     [MessagePackObject]
-    public class ChatRoomMemberInfo
+    public class ChatMessage
     {
         [Key(0)]
         public string UserId { get; set; } = string.Empty;
@@ -15,9 +15,9 @@ namespace Game.Library.Shared.Realtime.Dto
         public string PlayerName { get; set; } = string.Empty;
 
         [Key(2)]
-        public long JoinedAt { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         [Key(3)]
-        public int Permissions { get; set; }
+        public long Timestamp { get; set; }
     }
 }

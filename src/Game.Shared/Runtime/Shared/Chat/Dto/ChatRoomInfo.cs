@@ -1,6 +1,6 @@
 using MessagePack;
 
-namespace Game.Library.Shared.Realtime.Dto
+namespace Game.Library.Shared.Chat.Dto
 {
     /// <summary>
     /// チャットルーム情報 DTO

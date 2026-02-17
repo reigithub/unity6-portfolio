@@ -1,9 +1,9 @@
-using Game.Library.Shared.Realtime.Dto;
-using Game.Realtime.Services;
-using MagicOnion;
+using Game.Library.Shared.Chat.Dto;
+using Game.Server.Services.Chat;
+using Game.Server.Services.Chat.Exceptions;
 using Moq;
 
-namespace Game.Realtime.Tests.Services;
+namespace Game.Server.Tests.Services;
 
 /// <summary>
 /// ChatPermissionValidator のテスト
@@ -34,13 +34,13 @@ public class ChatPermissionValidatorTests
     [Fact]
     public async Task ValidateAsync_Throws_WhenMissingPermission()
     {
-        // Arrange: SendMessage のみ持っている
+        // Arrange
         var permissions = (int)ChatRoomPermissions.SendMessage;
         _roomDataServiceMock.Setup(x => x.GetMemberPermissionsAsync("room1", "user1"))
             .ReturnsAsync(permissions);
 
-        // Act & Assert: Delete 権限がないので例外
-        var ex = await Assert.ThrowsAsync<ReturnStatusException>(
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ChatPermissionException>(
             () => _validator.ValidateAsync("room1", "user1", ChatRoomPermissions.Delete));
         Assert.Contains("Missing permission", ex.Message);
     }
@@ -48,12 +48,12 @@ public class ChatPermissionValidatorTests
     [Fact]
     public async Task ValidateAsync_Throws_WhenNotMember()
     {
-        // Arrange: 非メンバーは permissions = 0
+        // Arrange
         _roomDataServiceMock.Setup(x => x.GetMemberPermissionsAsync("room1", "nonmember"))
             .ReturnsAsync(0);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ReturnStatusException>(
+        await Assert.ThrowsAsync<ChatPermissionException>(
             () => _validator.ValidateAsync("room1", "nonmember", ChatRoomPermissions.SendMessage));
     }
 
@@ -106,7 +106,7 @@ public class ChatPermissionValidatorTests
             .ReturnsAsync(false);
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<ReturnStatusException>(
+        var ex = await Assert.ThrowsAsync<ChatNotFoundException>(
             () => _validator.ValidateRoomExistsAsync("nonexistent"));
         Assert.Contains("not found", ex.Message);
     }
@@ -114,7 +114,7 @@ public class ChatPermissionValidatorTests
     [Fact]
     public async Task HasDefaultPermissionAsync_ReturnsTrue_WhenDefaultPermissionIncludes()
     {
-        // Arrange: Join | SendMessage | Leave = 7
+        // Arrange
         _roomDataServiceMock.Setup(x => x.GetDefaultPermissionsAsync("room1"))
             .ReturnsAsync(7);
 
@@ -128,7 +128,7 @@ public class ChatPermissionValidatorTests
     [Fact]
     public async Task HasDefaultPermissionAsync_ReturnsFalse_WhenDefaultPermissionExcludes()
     {
-        // Arrange: SendMessage | Leave = 6 (Join なし)
+        // Arrange
         _roomDataServiceMock.Setup(x => x.GetDefaultPermissionsAsync("room1"))
             .ReturnsAsync(6);
 

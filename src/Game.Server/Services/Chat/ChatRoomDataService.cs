@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Game.Library.Shared.Realtime.Dto;
+using Game.Library.Shared.Chat.Dto;
 using StackExchange.Redis;
 
-namespace Game.Realtime.Services;
+namespace Game.Server.Services.Chat;
 
 /// <summary>
 /// Valkey ベースのチャットルームデータ管理サービス
@@ -56,11 +56,9 @@ public class ChatRoomDataService : IChatRoomDataService
         var db = _redis.GetDatabase();
         var roomKey = $"{RoomKeyPrefix}{roomId}";
 
-        // ルーム存在チェック
         if (!await db.KeyExistsAsync(roomKey))
             return false;
 
-        // maxMembers キャパシティチェック（0 = 無制限）
         var maxMembers = (int)await db.HashGetAsync(roomKey, "maxMembers");
         if (maxMembers > 0)
         {
@@ -91,7 +89,6 @@ public class ChatRoomDataService : IChatRoomDataService
             _logger.LogDebug("Member {UserId} removed from chat room {RoomId}", userId, roomId);
         }
 
-        // 空になっても自動削除しない（永続的ルーム）
         return removed;
     }
 
@@ -176,7 +173,6 @@ public class ChatRoomDataService : IChatRoomDataService
         var db = _redis.GetDatabase();
         var roomKey = $"{RoomKeyPrefix}{roomId}";
 
-        // メンバーデータ削除 → ルームメタデータ削除
         await db.KeyDeleteAsync($"{roomKey}{MembersSuffix}");
         await db.KeyDeleteAsync(roomKey);
 

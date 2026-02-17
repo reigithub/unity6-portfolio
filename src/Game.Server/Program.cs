@@ -34,14 +34,22 @@ public partial class Program
         // Application Services
         builder.Services.AddApplicationServices(builder.Configuration);
 
-        // CORS
+        // SignalR + MessagePack プロトコル
+        builder.Services.AddSignalR()
+            .AddMessagePackProtocol();
+
+        // Chat サービス登録
+        builder.Services.AddChatServices();
+
+        // CORS（SignalR は AllowCredentials が必要）
         builder.Services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>
             {
-                policy.AllowAnyOrigin()
+                policy.SetIsOriginAllowed(_ => true)
                       .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .AllowCredentials();
             });
         });
 
@@ -73,6 +81,7 @@ public partial class Program
         app.UseAuthorization();
 
         app.MapControllers();
+        app.MapHub<Game.Server.Hubs.ChatHub>("/hubs/chat");
 
         // FluentMigrator: auto-apply migrations in Development
         if (app.Environment.IsDevelopment())

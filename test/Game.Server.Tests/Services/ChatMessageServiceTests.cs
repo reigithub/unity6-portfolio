@@ -1,10 +1,10 @@
-using Game.Library.Shared.Realtime.Hubs;
-using Game.Realtime.Services;
+using Game.Library.Shared.Chat.Dto;
+using Game.Server.Services.Chat;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
 
-namespace Game.Realtime.Tests.Services;
+namespace Game.Server.Tests.Services;
 
 /// <summary>
 /// ChatMessageService のテスト
@@ -90,7 +90,6 @@ public class ChatMessageServiceTests
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
-        // MaxMessagesPerRoom (200) を超える場合
         _dbMock.Setup(x => x.SortedSetLengthAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<double>(),
@@ -109,7 +108,7 @@ public class ChatMessageServiceTests
         // Act
         await _service.SaveMessageAsync("room1", message);
 
-        // Assert: 古いメッセージがトリムされたことを確認
+        // Assert
         _dbMock.Verify(
             x => x.SortedSetRemoveRangeByRankAsync(
                 It.Is<RedisKey>(k => k.ToString() == "chat:messages:room1"),
@@ -181,7 +180,7 @@ public class ChatMessageServiceTests
         // Act
         await _service.GetRecentMessagesAsync("room1", 50);
 
-        // Assert: -count ~ -1 の範囲で取得していることを確認
+        // Assert
         _dbMock.Verify(
             x => x.SortedSetRangeByRankAsync(
                 It.Is<RedisKey>(k => k.ToString() == "chat:messages:room1"),

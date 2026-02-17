@@ -20,6 +20,7 @@ using AuthApiService = Game.Shared.Services.AuthApiService;
 using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
+using Game.Shared.Chat.Client;
 using Game.Shared.Realtime.Client;
 
 namespace Game.MVP.Survivor
@@ -107,6 +108,10 @@ namespace Game.MVP.Survivor
             builder.Register<GrpcChannelProvider>(Lifetime.Singleton).As<IGrpcChannelProvider>();
             builder.Register<MatchmakingClient>(Lifetime.Singleton).As<IMatchmakingClient>();
             builder.Register<LobbyClient>(Lifetime.Singleton).As<ILobbyClient>();
+
+            // ========================================
+            // Chat Services（REST + SignalR）
+            // ========================================
             builder.Register<ChatClient>(Lifetime.Singleton).As<IChatClient>();
 
             // Game Runner (Entry Point)

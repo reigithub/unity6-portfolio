@@ -1,12 +1,11 @@
-using Game.Library.Shared.Realtime.Dto;
-using Grpc.Core;
-using MagicOnion;
+using Game.Library.Shared.Chat.Dto;
+using Game.Server.Services.Chat.Exceptions;
 
-namespace Game.Realtime.Services;
+namespace Game.Server.Services.Chat;
 
 /// <summary>
 /// チャットルーム権限検証ヘルパー
-/// ChatService（Unary）と ChatHub の両方から利用する
+/// Controller と Hub の両方から利用する
 /// </summary>
 public class ChatPermissionValidator
 {
@@ -19,15 +18,14 @@ public class ChatPermissionValidator
 
     /// <summary>
     /// 指定ユーザーが必要権限を持っているか検証する。
-    /// 持っていない場合は ReturnStatusException(PermissionDenied) をスローする。
+    /// 持っていない場合は ChatPermissionException をスローする。
     /// </summary>
     public async Task ValidateAsync(string roomId, string userId, ChatRoomPermissions required)
     {
         var permissions = await _roomDataService.GetMemberPermissionsAsync(roomId, userId);
         if (((ChatRoomPermissions)permissions & required) != required)
         {
-            throw new ReturnStatusException(StatusCode.PermissionDenied,
-                $"Missing permission: {required}");
+            throw new ChatPermissionException($"Missing permission: {required}");
         }
     }
 
@@ -41,13 +39,13 @@ public class ChatPermissionValidator
     }
 
     /// <summary>
-    /// ルームの存在を確認する。存在しない場合は ReturnStatusException(NotFound) をスローする。
+    /// ルームの存在を確認する。存在しない場合は ChatNotFoundException をスローする。
     /// </summary>
     public async Task ValidateRoomExistsAsync(string roomId)
     {
         if (!await _roomDataService.ExistsAsync(roomId))
         {
-            throw new ReturnStatusException(StatusCode.NotFound, "Chat room not found");
+            throw new ChatNotFoundException("Chat room not found");
         }
     }
 

@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Game.Library.Shared.Realtime.Hubs;
+using Game.Library.Shared.Chat.Dto;
 using StackExchange.Redis;
 
-namespace Game.Realtime.Services;
+namespace Game.Server.Services.Chat;
 
 /// <summary>
 /// Valkey ベースのチャットメッセージ永続化サービス
@@ -35,11 +35,8 @@ public class ChatMessageService : IChatMessageService
             timestamp = message.Timestamp,
         });
 
-        // score = Timestamp（UnixTimeMilliseconds）で時系列ソート
         await db.SortedSetAddAsync(key, json, message.Timestamp);
 
-        // 古いメッセージを削除してメモリを節約
-        // 上位 MaxMessagesPerRoom 件だけ残す
         var length = await db.SortedSetLengthAsync(key);
         if (length > MaxMessagesPerRoom)
         {
@@ -56,7 +53,6 @@ public class ChatMessageService : IChatMessageService
         var db = _redis.GetDatabase();
         var key = $"{KeyPrefix}{roomId}";
 
-        // 最新 N 件を取得（スコア降順 = 新しい順）
         var entries = await db.SortedSetRangeByRankAsync(
             key, -count, -1, Order.Ascending);
 

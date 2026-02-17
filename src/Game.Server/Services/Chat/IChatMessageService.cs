@@ -1,6 +1,6 @@
-using Game.Library.Shared.Realtime.Hubs;
+using Game.Library.Shared.Chat.Dto;
 
-namespace Game.Realtime.Services;
+namespace Game.Server.Services.Chat;
 
 /// <summary>
 /// チャットメッセージ永続化サービスインターフェース

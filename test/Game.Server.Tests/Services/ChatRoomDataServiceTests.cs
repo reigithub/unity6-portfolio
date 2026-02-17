@@ -1,9 +1,9 @@
-using Game.Realtime.Services;
+using Game.Server.Services.Chat;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
 
-namespace Game.Realtime.Tests.Services;
+namespace Game.Server.Tests.Services;
 
 /// <summary>
 /// ChatRoomDataService のテスト
@@ -177,7 +177,7 @@ public class ChatRoomDataServiceTests
     [Fact]
     public async Task RemoveMemberAsync_DoesNotDeleteRoom_WhenEmpty()
     {
-        // Arrange: メンバー削除後も自動削除しない
+        // Arrange
         _dbMock.Setup(x => x.HashDeleteAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
@@ -293,7 +293,7 @@ public class ChatRoomDataServiceTests
         // Act
         await _service.DeleteAsync("room1");
 
-        // Assert: メンバーデータとルームメタデータの両方が削除される
+        // Assert
         _dbMock.Verify(
             x => x.KeyDeleteAsync(
                 It.Is<RedisKey>(k => k.ToString() == "chatroom:room1:members"),

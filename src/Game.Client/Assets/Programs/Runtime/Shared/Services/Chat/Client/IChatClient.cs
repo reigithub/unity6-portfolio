@@ -1,22 +1,22 @@
 using System;
 using System.Threading.Tasks;
-using Game.Library.Shared.Realtime.Dto;
-using Game.Library.Shared.Realtime.Hubs;
+using Game.Library.Shared.Chat.Dto;
+using Game.Shared.Dto.Chat;
 
-namespace Game.Shared.Realtime.Client
+namespace Game.Shared.Chat.Client
 {
     /// <summary>
-    /// チャットクライアントインターフェース（Unary + Hub ベース）
-    /// 1ユーザーが複数ルームに同時参加可能
+    /// チャットクライアントインターフェース（REST + SignalR ベース）
+    /// 1接続で複数ルームに同時参加可能
     /// </summary>
     public interface IChatClient : IDisposable
     {
-        // Unary（Hub 接続不要）
+        // REST 操作
 
         /// <summary>
         /// チャットルーム作成
         /// </summary>
-        Task<CreateChatRoomResponse> CreateRoomAsync(CreateChatRoomRequest request);
+        Task<CreateChatRoomRestResponse> CreateRoomAsync(CreateChatRoomRestRequest request);
 
         /// <summary>
         /// チャットルーム削除
@@ -41,14 +41,19 @@ namespace Game.Shared.Realtime.Client
         /// <summary>
         /// チャットルーム情報取得
         /// </summary>
-        Task<ChatRoomInfo> GetRoomInfoAsync(string roomId);
+        Task<ChatRoomInfoResponse> GetRoomInfoAsync(string roomId);
 
         /// <summary>
         /// チャットルームメンバー一覧取得
         /// </summary>
-        Task<ChatRoomMemberInfo[]> GetRoomMembersAsync(string roomId);
+        Task<ChatRoomMemberInfoResponse[]> GetRoomMembersAsync(string roomId);
 
-        // Hub（roomId ごとに接続）
+        // SignalR 操作（1接続で複数ルーム）
+
+        /// <summary>
+        /// SignalR 接続を開始
+        /// </summary>
+        Task ConnectAsync();
 
         /// <summary>
         /// チャットルームに参加

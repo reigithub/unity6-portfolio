@@ -4,6 +4,7 @@ using Game.Server.Database;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
+using Game.Server.Services.Chat;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -74,6 +75,22 @@ public static class ServiceCollectionExtensions
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtSettings.Secret)),
                 };
+
+                // SignalR WebSocket の access_token クエリ文字列対応
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken)
+                            && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                };
             });
 
         services.AddAuthorization();
@@ -119,6 +136,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRankingRepository, DapperRankingRepository>();
         services.AddScoped<ISurvivorScoreRepository, DapperSurvivorScoreRepository>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddChatServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
+        services.AddSingleton<IChatMessageService, ChatMessageService>();
+        services.AddSingleton<ChatPermissionValidator>();
         return services;
     }
 }

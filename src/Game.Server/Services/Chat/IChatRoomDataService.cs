@@ -1,6 +1,6 @@
-using Game.Library.Shared.Realtime.Dto;
+using Game.Library.Shared.Chat.Dto;
 
-namespace Game.Realtime.Services;
+namespace Game.Server.Services.Chat;
 
 /// <summary>
 /// チャットルーム Valkey データ管理サービスインターフェース

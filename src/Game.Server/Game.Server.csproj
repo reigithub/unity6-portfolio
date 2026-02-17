@@ -26,6 +26,9 @@
     <!-- Email -->
     <PackageReference Include="Resend" Version="0.2.1" />
 
+    <!-- SignalR -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.1" />
+
     <!-- Serialization -->
     <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="MasterMemory" Version="3.0.4" />

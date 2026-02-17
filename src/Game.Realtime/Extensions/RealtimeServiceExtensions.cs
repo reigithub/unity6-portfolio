@@ -27,15 +27,6 @@ public static class RealtimeServiceExtensions
         services.Configure<MatchmakingConfiguration>(
             configuration.GetSection("Matchmaking"));
 
-        // Chat Room Data Service
-        services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
-
-        // Chat Permission Validator
-        services.AddSingleton<ChatPermissionValidator>();
-
-        // Chat Message Service
-        services.AddSingleton<IChatMessageService, ChatMessageService>();
-
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();
 

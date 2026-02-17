@@ -1,6 +1,6 @@
 using System;
 
-namespace Game.Library.Shared.Realtime.Dto
+namespace Game.Library.Shared.Chat.Dto
 {
     /// <summary>
     /// チャットルーム権限ビットフラグ
