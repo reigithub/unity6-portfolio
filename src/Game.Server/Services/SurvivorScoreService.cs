@@ -1,4 +1,4 @@
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
@@ -26,7 +26,7 @@ public class SurvivorScoreService : ISurvivorScoreService
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
-        Guid userId, SubmitSurvivorScoreRequest request)
+        Guid userId, ScoreSubmitDto request)
     {
         var validationResult = _survivorScoreValidation.Validate(request);
         if (!validationResult.IsValid)

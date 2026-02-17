@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services.Interfaces;
@@ -40,7 +41,7 @@ public class RankingService : IRankingService
         _logger.LogDebug("Cache miss, fetching ranking from database for stageId={StageId}", stageId);
         var scores = await _rankingRepository.GetTopScoresAsync(stageId, limit, offset);
 
-        var entries = scores.Select((s, index) => new RankingEntryResponse
+        var entries = scores.Select((s, index) => new RankingEntryDto
         {
             Rank = offset + index + 1,
             UserId = s.User?.UserId ?? string.Empty,
@@ -61,7 +62,7 @@ public class RankingService : IRankingService
         };
     }
 
-    public async Task<RankingEntryResponse?> GetUserRankAsync(
+    public async Task<RankingEntryDto?> GetUserRankAsync(
         int stageId, Guid userId)
     {
         var bestScore = await _rankingRepository.GetUserBestScoreAsync(stageId, userId);
@@ -84,7 +85,7 @@ public class RankingService : IRankingService
             rank = await _rankingRepository.GetUserRankAsync(stageId, userId);
         }
 
-        return new RankingEntryResponse
+        return new RankingEntryDto
         {
             Rank = rank,
             UserId = bestScore.User?.UserId ?? string.Empty,

@@ -1,5 +1,6 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
+using Game.Server.Infrastructure;
 using Game.Server.Middleware;
 using Scalar.AspNetCore;
 
@@ -11,8 +12,12 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Controllers
-        builder.Services.AddControllers()
+        // Controllers (MessagePack primary, JSON fallback)
+        builder.Services.AddControllers(options =>
+            {
+                options.InputFormatters.Insert(0, new MessagePackInputFormatter());
+                options.OutputFormatters.Insert(0, new MessagePackOutputFormatter());
+            })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy =

@@ -113,7 +113,7 @@ namespace Game.Tests.MVP
         {
             var result = new SurvivorStageResultData { StageId = 5, Score = 0, Kills = 0 };
             var request = _viewModel.BuildScoreRequest(result, 1);
-            Assert.That(request.stageId, Is.EqualTo(5));
+            Assert.That(request.StageId, Is.EqualTo(5));
         }
 
         [Test]
@@ -121,7 +121,7 @@ namespace Game.Tests.MVP
         {
             var result = new SurvivorStageResultData { StageId = 1, Score = 12345, Kills = 0 };
             var request = _viewModel.BuildScoreRequest(result, 1);
-            Assert.That(request.score, Is.EqualTo(12345));
+            Assert.That(request.Score, Is.EqualTo(12345));
         }
 
         [Test]
@@ -129,7 +129,7 @@ namespace Game.Tests.MVP
         {
             var result = new SurvivorStageResultData { StageId = 1, Score = 0, ClearTime = 98.5f, Kills = 0 };
             var request = _viewModel.BuildScoreRequest(result, 1);
-            Assert.That(request.clearTime, Is.EqualTo(98.5f));
+            Assert.That(request.ClearTime, Is.EqualTo(98.5f));
         }
 
         [Test]
@@ -137,7 +137,7 @@ namespace Game.Tests.MVP
         {
             var result = new SurvivorStageResultData { StageId = 1, Score = 0, Kills = 0 };
             var request = _viewModel.BuildScoreRequest(result, 7);
-            Assert.That(request.waveReached, Is.EqualTo(7));
+            Assert.That(request.WaveReached, Is.EqualTo(7));
         }
 
         [Test]
@@ -145,7 +145,7 @@ namespace Game.Tests.MVP
         {
             var result = new SurvivorStageResultData { StageId = 1, Score = 0, Kills = 42 };
             var request = _viewModel.BuildScoreRequest(result, 1);
-            Assert.That(request.enemiesDefeated, Is.EqualTo(42));
+            Assert.That(request.EnemiesDefeated, Is.EqualTo(42));
         }
 
         #endregion

@@ -1,5 +1,4 @@
-using Game.Server.Dto.Requests;
-using Game.Server.Dto.Responses;
+using Game.Library.Shared.Dto;
 using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;

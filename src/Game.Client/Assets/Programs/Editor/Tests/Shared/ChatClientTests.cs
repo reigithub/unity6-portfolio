@@ -3,8 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
 using Game.Shared.Chat.Client;
-using Game.Shared.Dto.Chat;
 using Game.Shared.Services;
 using Game.Shared.Services.Network.Models;
 using NSubstitute;
@@ -54,31 +54,31 @@ namespace Game.Tests.Shared
         public async Task CreateRoomAsync_ReturnsResponse_WhenSuccess()
         {
             // Arrange
-            var expectedResponse = new CreateChatRoomRestResponse
+            var expectedResponse = new CreateChatRoomResponse
             {
-                success = true,
-                roomId = "room-123",
+                Success = true,
+                RoomId = "room-123",
             };
             _mockApiClient
-                .PostAsync<CreateChatRoomRestRequest, CreateChatRoomRestResponse>(
+                .PostAsync<CreateChatRoomRequest, CreateChatRoomResponse>(
                     Arg.Is("/api/chat/rooms"),
-                    Arg.Any<CreateChatRoomRestRequest>(),
+                    Arg.Any<CreateChatRoomRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomRestResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomResponse>
                 {
                     IsSuccess = true,
                     Data = expectedResponse,
                 }));
 
-            var request = new CreateChatRoomRestRequest { roomName = "Test Room" };
+            var request = new CreateChatRoomRequest { RoomName = "Test Room" };
 
             // Act
             var result = await _client.CreateRoomAsync(request);
 
             // Assert
-            Assert.That(result.success, Is.True);
-            Assert.That(result.roomId, Is.EqualTo("room-123"));
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.RoomId, Is.EqualTo("room-123"));
         }
 
         [Test]
@@ -86,26 +86,26 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<CreateChatRoomRestRequest, CreateChatRoomRestResponse>(
+                .PostAsync<CreateChatRoomRequest, CreateChatRoomResponse>(
                     Arg.Any<string>(),
-                    Arg.Any<CreateChatRoomRestRequest>(),
+                    Arg.Any<CreateChatRoomRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomRestResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomResponse>
                 {
                     IsSuccess = false,
-                    Error = new ApiErrorResponse { message = "Server error" },
+                    Error = new ApiErrorResponse { Message = "Server error" },
                 }));
 
-            var request = new CreateChatRoomRestRequest { roomName = "Test" };
+            var request = new CreateChatRoomRequest { RoomName = "Test" };
             LogAssert.Expect(LogType.Error, "[ChatClient] Failed to create room: Server error");
 
             // Act
             var result = await _client.CreateRoomAsync(request);
 
             // Assert
-            Assert.That(result.success, Is.False);
-            Assert.That(result.errorMessage, Is.EqualTo("Server error"));
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.ErrorMessage, Is.EqualTo("Server error"));
         }
 
         [Test]
@@ -113,26 +113,26 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<CreateChatRoomRestRequest, CreateChatRoomRestResponse>(
+                .PostAsync<CreateChatRoomRequest, CreateChatRoomResponse>(
                     Arg.Any<string>(),
-                    Arg.Any<CreateChatRoomRestRequest>(),
+                    Arg.Any<CreateChatRoomRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomRestResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<CreateChatRoomResponse>
                 {
                     IsSuccess = false,
                     Error = null,
                 }));
 
-            var request = new CreateChatRoomRestRequest();
+            var request = new CreateChatRoomRequest();
             LogAssert.Expect(LogType.Error, "[ChatClient] Failed to create room: Unknown error");
 
             // Act
             var result = await _client.CreateRoomAsync(request);
 
             // Assert
-            Assert.That(result.success, Is.False);
-            Assert.That(result.errorMessage, Is.EqualTo("Unknown error"));
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.ErrorMessage, Is.EqualTo("Unknown error"));
         }
 
         #endregion
@@ -144,14 +144,14 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .DeleteAsync<ChatOperationResponse>(
+                .DeleteAsync<SuccessResponse>(
                     Arg.Is("/api/chat/rooms/room-1"),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -166,11 +166,11 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .DeleteAsync<ChatOperationResponse>(
+                .DeleteAsync<SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = false,
                 }));
@@ -187,14 +187,14 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .DeleteAsync<ChatOperationResponse>(
+                .DeleteAsync<SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = false },
+                    Data = new SuccessResponse { Success = false },
                 }));
 
             // Act
@@ -213,15 +213,15 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Is("/api/chat/rooms/room-1/invite"),
                     Arg.Any<InviteMemberRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -236,12 +236,12 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Any<InviteMemberRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = false,
                 }));
@@ -262,15 +262,15 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Is("/api/chat/rooms/room-1/kick"),
                     Arg.Any<InviteMemberRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -285,12 +285,12 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Any<InviteMemberRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = false,
                 }));
@@ -311,15 +311,15 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<SetPermissionsRequest, ChatOperationResponse>(
+                .PostAsync<SetPermissionsRequest, SuccessResponse>(
                     Arg.Is("/api/chat/rooms/room-1/members/user-2/permissions"),
                     Arg.Any<SetPermissionsRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -334,12 +334,12 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .PostAsync<SetPermissionsRequest, ChatOperationResponse>(
+                .PostAsync<SetPermissionsRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Any<SetPermissionsRequest>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = false,
                 }));
@@ -359,19 +359,19 @@ namespace Game.Tests.Shared
         public async Task GetRoomInfoAsync_ReturnsData_WhenSuccess()
         {
             // Arrange
-            var expected = new ChatRoomInfoResponse
+            var expected = new ChatRoomInfo
             {
-                roomId = "room-1",
-                roomName = "Test Room",
-                currentMembers = 3,
-                maxMembers = 10,
+                RoomId = "room-1",
+                RoomName = "Test Room",
+                CurrentMembers = 3,
+                MaxMembers = 10,
             };
             _mockApiClient
-                .GetAsync<ChatRoomInfoResponse>(
+                .GetAsync<ChatRoomInfo>(
                     Arg.Is("/api/chat/rooms/room-1"),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomInfoResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomInfo>
                 {
                     IsSuccess = true,
                     Data = expected,
@@ -382,9 +382,9 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.roomId, Is.EqualTo("room-1"));
-            Assert.That(result.roomName, Is.EqualTo("Test Room"));
-            Assert.That(result.currentMembers, Is.EqualTo(3));
+            Assert.That(result.RoomId, Is.EqualTo("room-1"));
+            Assert.That(result.RoomName, Is.EqualTo("Test Room"));
+            Assert.That(result.CurrentMembers, Is.EqualTo(3));
         }
 
         [Test]
@@ -392,11 +392,11 @@ namespace Game.Tests.Shared
         {
             // Arrange
             _mockApiClient
-                .GetAsync<ChatRoomInfoResponse>(
+                .GetAsync<ChatRoomInfo>(
                     Arg.Any<string>(),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomInfoResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<ChatRoomInfo>
                 {
                     IsSuccess = false,
                 }));
@@ -418,10 +418,10 @@ namespace Game.Tests.Shared
             // Arrange
             var membersResponse = new ChatRoomMembersResponse
             {
-                members = new System.Collections.Generic.List<ChatRoomMemberInfoResponse>
+                Members = new[]
                 {
-                    new ChatRoomMemberInfoResponse { userId = "user-1", playerName = "Player1" },
-                    new ChatRoomMemberInfoResponse { userId = "user-2", playerName = "Player2" },
+                    new ChatRoomMemberInfo { UserId = "user-1", PlayerName = "Player1" },
+                    new ChatRoomMemberInfo { UserId = "user-2", PlayerName = "Player2" },
                 }
             };
             _mockApiClient
@@ -440,8 +440,8 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(result.Length, Is.EqualTo(2));
-            Assert.That(result[0].userId, Is.EqualTo("user-1"));
-            Assert.That(result[1].playerName, Is.EqualTo("Player2"));
+            Assert.That(result[0].UserId, Is.EqualTo("user-1"));
+            Assert.That(result[1].PlayerName, Is.EqualTo("Player2"));
         }
 
         [Test]
@@ -564,15 +564,15 @@ namespace Game.Tests.Shared
             // Arrange
             InviteMemberRequest capturedRequest = null;
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Do<InviteMemberRequest>(r => capturedRequest = r),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -580,8 +580,8 @@ namespace Game.Tests.Shared
 
             // Assert: リクエストボディの中身を検証
             Assert.That(capturedRequest, Is.Not.Null);
-            Assert.That(capturedRequest.targetUserId, Is.EqualTo("target-user"));
-            Assert.That(capturedRequest.playerName, Is.EqualTo("TargetPlayer"));
+            Assert.That(capturedRequest.TargetUserId, Is.EqualTo("target-user"));
+            Assert.That(capturedRequest.PlayerName, Is.EqualTo("TargetPlayer"));
         }
 
         [Test]
@@ -590,15 +590,15 @@ namespace Game.Tests.Shared
             // Arrange
             InviteMemberRequest capturedRequest = null;
             _mockApiClient
-                .PostAsync<InviteMemberRequest, ChatOperationResponse>(
+                .PostAsync<InviteMemberRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Do<InviteMemberRequest>(r => capturedRequest = r),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -606,8 +606,8 @@ namespace Game.Tests.Shared
 
             // Assert: キック時は playerName が空文字
             Assert.That(capturedRequest, Is.Not.Null);
-            Assert.That(capturedRequest.targetUserId, Is.EqualTo("target-user"));
-            Assert.That(capturedRequest.playerName, Is.EqualTo(string.Empty));
+            Assert.That(capturedRequest.TargetUserId, Is.EqualTo("target-user"));
+            Assert.That(capturedRequest.PlayerName, Is.EqualTo(string.Empty));
         }
 
         [Test]
@@ -616,15 +616,15 @@ namespace Game.Tests.Shared
             // Arrange
             SetPermissionsRequest capturedRequest = null;
             _mockApiClient
-                .PostAsync<SetPermissionsRequest, ChatOperationResponse>(
+                .PostAsync<SetPermissionsRequest, SuccessResponse>(
                     Arg.Any<string>(),
                     Arg.Do<SetPermissionsRequest>(r => capturedRequest = r),
                     Arg.Any<RequestOptions>(),
                     Arg.Any<CancellationToken>())
-                .Returns(UniTask.FromResult(new ApiResponse<ChatOperationResponse>
+                .Returns(UniTask.FromResult(new ApiResponse<SuccessResponse>
                 {
                     IsSuccess = true,
-                    Data = new ChatOperationResponse { success = true },
+                    Data = new SuccessResponse { Success = true },
                 }));
 
             // Act
@@ -632,7 +632,7 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(capturedRequest, Is.Not.Null);
-            Assert.That(capturedRequest.permissions, Is.EqualTo(15));
+            Assert.That(capturedRequest.Permissions, Is.EqualTo(15));
         }
 
         #endregion

@@ -1,4 +1,4 @@
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 
 namespace Game.Server.Services.Interfaces;

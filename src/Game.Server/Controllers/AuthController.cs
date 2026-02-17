@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -82,7 +82,7 @@ public class AuthController : ControllerBase
         var result = await _authService.VerifyEmailAsync(request);
 
         return result.Match(
-            success => Ok(new { message = "Email verified successfully" }),
+            success => Ok(new MessageResponse { Message = "Email verified successfully" }),
             error => error.ToActionResult());
     }
 
@@ -93,7 +93,7 @@ public class AuthController : ControllerBase
         var result = await _authService.ForgotPasswordAsync(request);
 
         return result.Match(
-            success => Ok(new { message = "If the email exists, a reset link has been sent" }),
+            success => Ok(new MessageResponse { Message = "If the email exists, a reset link has been sent" }),
             error => error.ToActionResult());
     }
 
@@ -105,7 +105,7 @@ public class AuthController : ControllerBase
         var result = await _authService.ResetPasswordAsync(request);
 
         return result.Match(
-            success => Ok(new { message = "Password has been reset successfully" }),
+            success => Ok(new MessageResponse { Message = "Password has been reset successfully" }),
             error => error.ToActionResult());
     }
 

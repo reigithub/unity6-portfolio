@@ -1,4 +1,5 @@
-using Game.Server.Dto.Responses;
+using Game.Library.Shared.Dto;
+using MessagePack;
 
 namespace Game.Server.Middleware;
 
@@ -45,8 +46,16 @@ public class ExceptionHandlingMiddleware
         };
 
         context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "application/json";
 
+        var accept = context.Request.Headers.Accept.ToString();
+        if (accept.Contains("application/x-msgpack"))
+        {
+            context.Response.ContentType = "application/x-msgpack";
+            var bytes = MessagePackSerializer.Serialize(response);
+            return context.Response.Body.WriteAsync(bytes, 0, bytes.Length);
+        }
+
+        context.Response.ContentType = "application/json";
         return context.Response.WriteAsJsonAsync(response);
     }
 }

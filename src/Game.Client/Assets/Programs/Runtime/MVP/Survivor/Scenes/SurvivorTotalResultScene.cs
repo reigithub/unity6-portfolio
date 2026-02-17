@@ -114,9 +114,9 @@ namespace Game.MVP.Survivor.Scenes
                     var response = await _scoreApiService.SubmitScoreAsync(request);
                     if (response.IsSuccess)
                     {
-                        if (response.Data?.isNewBest == true)
+                        if (response.Data?.IsNewBest == true)
                         {
-                            SceneComponent.ShowNewBestEffect(result.StageId, response.Data.currentRank);
+                            SceneComponent.ShowNewBestEffect(result.StageId, response.Data.CurrentRank);
                         }
                         continue;
                     }

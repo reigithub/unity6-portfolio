@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Game.Library.Shared.Chat.Dto;
-using Game.Shared.Dto.Chat;
+using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Chat.Client
 {
@@ -21,7 +21,7 @@ namespace Game.Shared.Chat.Client
         /// <summary>
         /// チャットルーム作成
         /// </summary>
-        Task<CreateChatRoomRestResponse> CreateRoomAsync(CreateChatRoomRestRequest request);
+        Task<CreateChatRoomResponse> CreateRoomAsync(CreateChatRoomRequest request);
 
         /// <summary>
         /// チャットルーム削除
@@ -46,12 +46,12 @@ namespace Game.Shared.Chat.Client
         /// <summary>
         /// チャットルーム情報取得
         /// </summary>
-        Task<ChatRoomInfoResponse> GetRoomInfoAsync(string roomId);
+        Task<ChatRoomInfo> GetRoomInfoAsync(string roomId);
 
         /// <summary>
         /// チャットルームメンバー一覧取得
         /// </summary>
-        Task<ChatRoomMemberInfoResponse[]> GetRoomMembersAsync(string roomId);
+        Task<ChatRoomMemberInfo[]> GetRoomMembersAsync(string roomId);
 
         // SignalR 操作（1接続で複数ルーム）
 

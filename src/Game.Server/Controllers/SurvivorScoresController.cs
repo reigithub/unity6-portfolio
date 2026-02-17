@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +22,7 @@ public class SurvivorScoresController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(SurvivorScoreSubmitResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SubmitScore([FromBody] SubmitSurvivorScoreRequest request)
+    public async Task<IActionResult> SubmitScore([FromBody] ScoreSubmitDto request)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {

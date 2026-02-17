@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -30,7 +31,7 @@ public class RankingsController : ControllerBase
 
     [HttpGet("{stageId:int}/me")]
     [Authorize]
-    [ProducesResponseType(typeof(RankingEntryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RankingEntryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyRank(int stageId)
     {

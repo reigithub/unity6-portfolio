@@ -1,6 +1,6 @@
 using System.Linq;
 using Game.MVP.Survivor.SaveData;
-using Game.Shared.Dto.Survivor;
+using Game.Library.Shared.Dto;
 
 namespace Game.MVP.Survivor.Scenes.ViewModels
 {
@@ -16,16 +16,16 @@ namespace Game.MVP.Survivor.Scenes.ViewModels
             return session.StageResults.All(r => r.IsVictory);
         }
 
-        public SubmitSurvivorScoreRequest BuildScoreRequest(
+        public ScoreSubmitDto BuildScoreRequest(
             SurvivorStageResultData result, int currentWave)
         {
-            return new SubmitSurvivorScoreRequest
+            return new ScoreSubmitDto
             {
-                stageId = result.StageId,
-                score = result.Score,
-                clearTime = result.ClearTime,
-                waveReached = currentWave,
-                enemiesDefeated = result.Kills
+                StageId = result.StageId,
+                Score = result.Score,
+                ClearTime = result.ClearTime,
+                WaveReached = currentWave,
+                EnemiesDefeated = result.Kills
             };
         }
     }

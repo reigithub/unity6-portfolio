@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Game.Client.MasterData;
 using Game.MVP.Core.Scenes;
-using Game.Shared.Dto.Survivor;
+using Game.Library.Shared.Dto;
 using R3;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -122,18 +122,18 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// ランキングデータを設定
         /// </summary>
-        public void SetRankingData(RankingResponse ranking, RankingEntry myRank)
+        public void SetRankingData(RankingResponse ranking, RankingEntryDto myRank)
         {
             // ランキングリストをクリア
             if (_rankingList != null)
             {
                 _rankingList.Clear();
 
-                if (ranking.entries != null && ranking.entries.Count > 0)
+                if (ranking.Entries != null && ranking.Entries.Count > 0)
                 {
                     _emptyLabel?.AddToClassList("hidden");
 
-                    foreach (var entry in ranking.entries)
+                    foreach (var entry in ranking.Entries)
                     {
                         var item = CreateRankingEntryItem(entry);
                         _rankingList.Add(item);
@@ -153,18 +153,18 @@ namespace Game.MVP.Survivor.Scenes
                     _myRankContainer.RemoveFromClassList("hidden");
 
                     if (_myRankLabel != null)
-                        _myRankLabel.text = $"#{myRank.rank}";
+                        _myRankLabel.text = $"#{myRank.Rank}";
 
                     if (_myNameLabel != null)
-                        _myNameLabel.text = myRank.userName;
+                        _myNameLabel.text = myRank.UserName;
 
                     if (_myScoreLabel != null)
-                        _myScoreLabel.text = $"{myRank.score:N0}";
+                        _myScoreLabel.text = $"{myRank.Score:N0}";
 
                     if (_myTimeLabel != null)
                     {
-                        var minutes = Mathf.FloorToInt(myRank.clearTime / 60f);
-                        var seconds = Mathf.FloorToInt(myRank.clearTime % 60f);
+                        var minutes = Mathf.FloorToInt(myRank.ClearTime / 60f);
+                        var seconds = Mathf.FloorToInt(myRank.ClearTime % 60f);
                         _myTimeLabel.text = $"{minutes:00}:{seconds:00}";
                     }
                 }
@@ -175,32 +175,32 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private VisualElement CreateRankingEntryItem(RankingEntry entry)
+        private VisualElement CreateRankingEntryItem(RankingEntryDto entry)
         {
             var item = new VisualElement();
             item.AddToClassList("ranking-entry");
 
             // 上位3位のスタイル
-            if (entry.rank <= 3)
+            if (entry.Rank <= 3)
             {
-                item.AddToClassList($"ranking-entry--rank-{entry.rank}");
+                item.AddToClassList($"ranking-entry--rank-{entry.Rank}");
             }
 
             // 順位
-            var rankLabel = new Label($"#{entry.rank}");
+            var rankLabel = new Label($"#{entry.Rank}");
             rankLabel.AddToClassList("entry-rank");
 
             // ユーザー名
-            var nameLabel = new Label(entry.userName);
+            var nameLabel = new Label(entry.UserName);
             nameLabel.AddToClassList("entry-name");
 
             // スコア
-            var scoreLabel = new Label($"{entry.score:N0}");
+            var scoreLabel = new Label($"{entry.Score:N0}");
             scoreLabel.AddToClassList("entry-score");
 
             // タイム
-            var minutes = Mathf.FloorToInt(entry.clearTime / 60f);
-            var seconds = Mathf.FloorToInt(entry.clearTime % 60f);
+            var minutes = Mathf.FloorToInt(entry.ClearTime / 60f);
+            var seconds = Mathf.FloorToInt(entry.ClearTime % 60f);
             var timeLabel = new Label($"{minutes:00}:{seconds:00}");
             timeLabel.AddToClassList("entry-time");
 

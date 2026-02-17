@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Dto.Auth;
+using Game.Library.Shared.Dto;
 using Game.Shared.SaveData;
 using UnityEngine;
 
@@ -31,11 +31,11 @@ namespace Game.Shared.Services
         public async UniTask SaveSessionAsync(LoginResponse response, string authType = "guest")
         {
             _data ??= new SessionSaveData();
-            _data.AuthToken = response.token;
-            _data.UserId = response.userId;
-            _data.UserName = response.userName;
+            _data.AuthToken = response.Token;
+            _data.UserId = response.UserId;
+            _data.UserName = response.UserName;
             _data.AuthType = authType;
-            _data.SigningKey = response.signingKey;
+            _data.SigningKey = response.SigningKey;
             await _storage.SaveAsync(SaveKey, _data);
         }
 

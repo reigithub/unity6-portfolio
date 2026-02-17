@@ -1,4 +1,4 @@
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
@@ -28,7 +28,7 @@ public class SurvivorScoreServiceTests
 
         // デフォルトでバリデーション成功を返す
         _mockScoreValidation
-            .Setup(v => v.Validate(It.IsAny<SubmitSurvivorScoreRequest>()))
+            .Setup(v => v.Validate(It.IsAny<ScoreSubmitDto>()))
             .Returns(RequestValidationResult.Success());
 
         _service = new SurvivorScoreService(
@@ -42,7 +42,7 @@ public class SurvivorScoreServiceTests
     public async Task SubmitScoreAsync_ValidScore_ReturnsSuccess()
     {
         // Arrange
-        var request = new SubmitSurvivorScoreRequest
+        var request = new ScoreSubmitDto
         {
             StageId = 1,
             Score = 5000,
@@ -62,7 +62,7 @@ public class SurvivorScoreServiceTests
         var result = await _service.SubmitScoreAsync(TestUserId, request);
 
         // Assert
-        Dto.Responses.SurvivorScoreSubmitResponse? success = null;
+        SurvivorScoreSubmitResponse? success = null;
         result.Match(
             s => { success = s; return new Microsoft.AspNetCore.Mvc.OkResult(); },
             e => new Microsoft.AspNetCore.Mvc.OkResult());
@@ -76,7 +76,7 @@ public class SurvivorScoreServiceTests
     public async Task SubmitScoreAsync_NotNewBest_SetsIsNewBestFalse()
     {
         // Arrange
-        var request = new SubmitSurvivorScoreRequest
+        var request = new ScoreSubmitDto
         {
             StageId = 1,
             Score = 3000,
@@ -94,7 +94,7 @@ public class SurvivorScoreServiceTests
         var result = await _service.SubmitScoreAsync(TestUserId, request);
 
         // Assert
-        Dto.Responses.SurvivorScoreSubmitResponse? success = null;
+        SurvivorScoreSubmitResponse? success = null;
         result.Match(
             s => { success = s; return new Microsoft.AspNetCore.Mvc.OkResult(); },
             e => new Microsoft.AspNetCore.Mvc.OkResult());

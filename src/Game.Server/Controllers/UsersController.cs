@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Game.Server.Dto.Requests;
+using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;

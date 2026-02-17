@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network.Models;
 using Game.Shared.Services;
 
@@ -50,9 +51,9 @@ namespace Game.Shared.Services.Network
             }
 
             // エラーコードに基づくメッセージを取得
-            if (!string.IsNullOrEmpty(error.error))
+            if (!string.IsNullOrEmpty(error.Error))
             {
-                var errorCodeMessage = GetErrorCodeMessage(error.error);
+                var errorCodeMessage = GetErrorCodeMessage(error.Error);
                 if (errorCodeMessage != null)
                 {
                     return errorCodeMessage;
@@ -60,9 +61,9 @@ namespace Game.Shared.Services.Network
             }
 
             // メッセージがあればそれを返す
-            if (!string.IsNullOrEmpty(error.message))
+            if (!string.IsNullOrEmpty(error.Message))
             {
-                return error.message;
+                return error.Message;
             }
 
             return "不明なエラーが発生しました";
