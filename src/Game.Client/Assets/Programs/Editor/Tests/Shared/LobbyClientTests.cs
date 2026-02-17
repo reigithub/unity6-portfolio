@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Game.Shared.Realtime.Client;
+using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -14,13 +15,17 @@ namespace Game.Tests.Shared
     public class LobbyClientTests
     {
         private IGrpcChannelProvider _mockChannelProvider;
+        private AuthClientFilter _authFilter;
         private LobbyClient _client;
 
         [SetUp]
         public void Setup()
         {
             _mockChannelProvider = Substitute.For<IGrpcChannelProvider>();
-            _client = new LobbyClient(_mockChannelProvider);
+            var mockAuthSessionService = Substitute.For<IAuthSessionService>();
+            mockAuthSessionService.AuthToken.Returns("test-token");
+            _authFilter = new AuthClientFilter(mockAuthSessionService);
+            _client = new LobbyClient(_mockChannelProvider, _authFilter);
         }
 
         [TearDown]
@@ -44,20 +49,14 @@ namespace Game.Tests.Shared
         [Test]
         public async Task SendMessageAsync_DoesNothing_WhenHubNotConnected()
         {
-            // Act: Hub 未接続でもメッセージ送信は例外を投げない
             await _client.SendMessageAsync("Hello");
-
-            // Assert: 例外なしで完了（Hub == null のため何もしない）
             Assert.Pass();
         }
 
         [Test]
         public async Task SetReadyAsync_DoesNothing_WhenHubNotConnected()
         {
-            // Act: Hub 未接続でもレディ設定は例外を投げない
             await _client.SetReadyAsync(true);
-
-            // Assert: 例外なしで完了（Hub == null のため何もしない）
             Assert.Pass();
         }
 
@@ -95,20 +94,20 @@ namespace Game.Tests.Shared
         [Test]
         public void Events_CanBeSubscribedAndUnsubscribed()
         {
-            // Arrange
             var playerJoinedCalled = false;
             var playerLeftCalled = false;
             var messageReceivedCalled = false;
             var readyChangedCalled = false;
             var gameStartingCalled = false;
+            var disconnectedCalled = false;
 
             void OnPlayerJoined(string a, string b) => playerJoinedCalled = true;
             void OnPlayerLeft(string a, string b) => playerLeftCalled = true;
             void OnMessageReceived(string a, string b, string c) => messageReceivedCalled = true;
             void OnReadyChanged(string a, bool b) => readyChangedCalled = true;
             void OnGameStarting(string a, string b, int c) => gameStartingCalled = true;
+            void OnDisconnected(string _) => disconnectedCalled = true;
 
-            // Act: subscribe と unsubscribe が例外なく動作する
             Assert.DoesNotThrow(() =>
             {
                 _client.OnPlayerJoined += OnPlayerJoined;
@@ -116,12 +115,14 @@ namespace Game.Tests.Shared
                 _client.OnMessageReceived += OnMessageReceived;
                 _client.OnPlayerReadyChanged += OnReadyChanged;
                 _client.OnGameStarting += OnGameStarting;
+                _client.OnDisconnected += OnDisconnected;
 
                 _client.OnPlayerJoined -= OnPlayerJoined;
                 _client.OnPlayerLeft -= OnPlayerLeft;
                 _client.OnMessageReceived -= OnMessageReceived;
                 _client.OnPlayerReadyChanged -= OnReadyChanged;
                 _client.OnGameStarting -= OnGameStarting;
+                _client.OnDisconnected -= OnDisconnected;
             });
 
             Assert.That(playerJoinedCalled, Is.False);
@@ -129,6 +130,7 @@ namespace Game.Tests.Shared
             Assert.That(messageReceivedCalled, Is.False);
             Assert.That(readyChangedCalled, Is.False);
             Assert.That(gameStartingCalled, Is.False);
+            Assert.That(disconnectedCalled, Is.False);
         }
 
         #endregion

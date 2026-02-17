@@ -73,5 +73,10 @@ namespace Game.Shared.Realtime.Client
         /// ゲーム開始イベント
         /// </summary>
         event Action<string, string, int> OnGameStarting;
+
+        /// <summary>
+        /// 予期しない切断イベント (reason)
+        /// </summary>
+        event Action<string> OnDisconnected;
     }
 }

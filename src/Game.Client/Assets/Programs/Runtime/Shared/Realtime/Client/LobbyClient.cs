@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Game.Library.Shared.Realtime.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Library.Shared.Realtime.Services;
+using Grpc.Core;
 using MagicOnion.Client;
 using UnityEngine;
 
@@ -14,7 +15,8 @@ namespace Game.Shared.Realtime.Client
     public class LobbyClient : ILobbyClient, ILobbyHubReceiver
     {
         private readonly IGrpcChannelProvider _channelProvider;
-
+        private readonly AuthClientFilter _authFilter;
+        private readonly IClientFilter[] _filters;
         private ILobbyHub _hub;
         private string _currentLobbyId;
         private bool _disposed;
@@ -26,80 +28,146 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, string, string> OnMessageReceived;
         public event Action<string, bool> OnPlayerReadyChanged;
         public event Action<string, string, int> OnGameStarting;
+        public event Action<string> OnDisconnected;
 
-        public LobbyClient(IGrpcChannelProvider channelProvider)
+        public LobbyClient(
+            IGrpcChannelProvider channelProvider,
+            AuthClientFilter authFilter)
         {
             _channelProvider = channelProvider;
+            _authFilter = authFilter;
+            _filters = new IClientFilter[] { authFilter };
+        }
+
+        private ILobbyService CreateService()
+        {
+            var channel = _channelProvider.GetChannel();
+            return MagicOnionClient.Create<ILobbyService>(channel, _filters);
         }
 
         public async Task<CreateLobbyResponse> CreateLobbyAsync(CreateLobbyRequest request)
         {
-            var channel = _channelProvider.GetChannel();
-            var lobbyService = MagicOnionClient.Create<ILobbyService>(channel);
-            var response = await lobbyService.CreateLobbyAsync(request);
-            Debug.Log($"[LobbyClient] Created lobby: {response.LobbyId}");
-            return response;
+            try
+            {
+                var response = await CreateService().CreateLobbyAsync(request);
+                Debug.Log($"[LobbyClient] Created lobby: {response.LobbyId}");
+                return response;
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in CreateLobby: {ex.StatusCode} - {ex.Status.Detail}");
+                throw;
+            }
         }
 
         public async Task<LobbyInfo> JoinLobbyAsync(string lobbyId, string playerName)
         {
-            var channel = _channelProvider.GetChannel();
-            var lobbyService = MagicOnionClient.Create<ILobbyService>(channel);
-            var lobby = await lobbyService.JoinLobbyAsync(lobbyId, playerName);
-            Debug.Log($"[LobbyClient] Joined lobby: {lobbyId}");
-            return lobby;
+            try
+            {
+                var lobby = await CreateService().JoinLobbyAsync(lobbyId, playerName);
+                Debug.Log($"[LobbyClient] Joined lobby: {lobbyId}");
+                return lobby;
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in JoinLobby: {ex.StatusCode} - {ex.Status.Detail}");
+                throw;
+            }
         }
 
         public async Task ConnectToLobbyAsync(string lobbyId, string playerName)
         {
-            var channel = _channelProvider.GetChannel();
-            _hub = await StreamingHubClient.ConnectAsync<ILobbyHub, ILobbyHubReceiver>(
-                channel, this);
-            await _hub.ConnectAsync(lobbyId, playerName);
-            _currentLobbyId = lobbyId;
-            Debug.Log($"[LobbyClient] Connected to lobby hub: {lobbyId}");
+            try
+            {
+                var channel = _channelProvider.GetChannel();
+
+                // StreamingHub は IClientFilter 非対応のため CallOptions で認証ヘッダーを渡す
+                var options = StreamingHubClientOptions.CreateWithDefault(
+                        callOptions: new CallOptions(headers: _authFilter.CreateAuthMetadata()))
+                    .WithClientHeartbeatInterval(TimeSpan.FromSeconds(30))
+                    .WithClientHeartbeatTimeout(TimeSpan.FromSeconds(10));
+
+                _hub = await StreamingHubClient.ConnectAsync<ILobbyHub, ILobbyHubReceiver>(
+                    channel, this, options);
+                await _hub.ConnectAsync(lobbyId, playerName);
+                _currentLobbyId = lobbyId;
+                Debug.Log($"[LobbyClient] Connected to lobby hub: {lobbyId}");
+
+                // 切断監視（fire-and-forget）
+                _ = MonitorDisconnectionAsync();
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in ConnectToLobby: {ex.StatusCode} - {ex.Status.Detail}");
+                throw;
+            }
         }
 
         public async Task LeaveLobbyAsync()
         {
-            if (_hub != null)
+            try
             {
-                await _hub.LeaveAsync();
-                await _hub.DisposeAsync();
-                _hub = null;
-            }
+                if (_hub != null)
+                {
+                    await _hub.LeaveAsync();
+                    await _hub.DisposeAsync();
+                    _hub = null;
+                }
 
-            if (!string.IsNullOrEmpty(_currentLobbyId))
+                if (!string.IsNullOrEmpty(_currentLobbyId))
+                {
+                    await CreateService().LeaveLobbyAsync(_currentLobbyId);
+                    _currentLobbyId = null;
+                }
+
+                Debug.Log("[LobbyClient] Left lobby");
+            }
+            catch (RpcException ex)
             {
-                var channel = _channelProvider.GetChannel();
-                var lobbyService = MagicOnionClient.Create<ILobbyService>(channel);
-                await lobbyService.LeaveLobbyAsync(_currentLobbyId);
-                _currentLobbyId = null;
+                Debug.LogWarning($"[LobbyClient] RPC error in LeaveLobby: {ex.StatusCode}");
             }
-
-            Debug.Log("[LobbyClient] Left lobby");
         }
 
         public async Task<LobbyInfo[]> SearchLobbiesAsync(string gameMode, int maxResults)
         {
-            var channel = _channelProvider.GetChannel();
-            var lobbyService = MagicOnionClient.Create<ILobbyService>(channel);
-            return await lobbyService.SearchLobbiesAsync(gameMode, maxResults);
+            try
+            {
+                return await CreateService().SearchLobbiesAsync(gameMode, maxResults);
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in SearchLobbies: {ex.StatusCode}");
+                return Array.Empty<LobbyInfo>();
+            }
         }
 
         public async Task SendMessageAsync(string message)
         {
-            if (_hub != null)
+            try
             {
-                await _hub.SendMessageAsync(message);
+                if (_hub != null)
+                {
+                    await _hub.SendMessageAsync(message);
+                }
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogWarning($"[LobbyClient] RPC error in SendMessage: {ex.StatusCode}");
             }
         }
 
         public async Task SetReadyAsync(bool isReady)
         {
-            if (_hub != null)
+            try
             {
-                await _hub.SetReadyAsync(isReady);
+                if (_hub != null)
+                {
+                    await _hub.SetReadyAsync(isReady);
+                }
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogWarning($"[LobbyClient] RPC error in SetReady: {ex.StatusCode}");
             }
         }
 
@@ -138,6 +206,24 @@ namespace Game.Shared.Realtime.Client
             OnGameStarting?.Invoke(matchId, serverAddress, serverPort);
         }
 
+        private async Task MonitorDisconnectionAsync()
+        {
+            try
+            {
+                if (_hub == null) return;
+                var reason = await _hub.WaitForDisconnectAsync();
+                if (reason.Type != DisconnectionType.CompletedNormally)
+                {
+                    Debug.LogWarning($"[LobbyClient] Unexpected disconnect: {reason.Type}");
+                    OnDisconnected?.Invoke($"Disconnected: {reason.Type}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[LobbyClient] Disconnect monitor error: {ex.Message}");
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
@@ -145,7 +231,8 @@ namespace Game.Shared.Realtime.Client
                 _disposed = true;
                 if (_hub != null)
                 {
-                    _hub.DisposeAsync().GetAwaiter().GetResult();
+                    try { _hub.DisposeAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[LobbyClient] Dispose error: {ex.Message}"); }
                     _hub = null;
                 }
             }

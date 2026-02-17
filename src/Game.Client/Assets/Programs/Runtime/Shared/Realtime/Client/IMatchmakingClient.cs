@@ -44,5 +44,10 @@ namespace Game.Shared.Realtime.Client
         /// マッチメイキングキャンセルイベント
         /// </summary>
         event Action<string> OnMatchmakingCancelled;
+
+        /// <summary>
+        /// 予期しない切断イベント (reason)
+        /// </summary>
+        event Action<string> OnDisconnected;
     }
 }
