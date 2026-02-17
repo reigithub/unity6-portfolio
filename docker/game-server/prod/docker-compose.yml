@@ -69,6 +69,31 @@ services:
       valkey:
         condition: service_healthy
 
+  # Game Realtime Server（Production 構成でローカル実行）
+  realtime:
+    image: game-realtime-prod
+    container_name: game-server-realtime-prod
+    build:
+      context: ../../..
+      dockerfile: docker/game-realtime/prod/Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Valkey=valkey:6379,abortConnect=false
+      - Jwt__Secret=LocalTestSecretKeyForDevelopmentOnlyDoNotUseInProduction123456
+      - Jwt__Issuer=GameServer
+      - Jwt__Audience=GameClient
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Cloud SQL Proxy（Cloud SQL に接続してローカルテストする場合）
   # 使用する場合は以下をアンコメント
   # cloud-sql-proxy:

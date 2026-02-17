@@ -41,6 +41,7 @@ namespace Game.Shared
         [SerializeField] private GameEnvironment _environment;
         [SerializeField] private DependencyResolverMode _dependencyResolverMode;
         [SerializeField] private string _apiBaseUrl;
+        [SerializeField] private string _grpcBaseUrl;
         [SerializeField] private string _webSocketUrl;
         [SerializeField] private bool _enableDebugLog;
         [SerializeField] private bool _enableAnalytics;
@@ -50,6 +51,7 @@ namespace Game.Shared
         public GameEnvironment Environment => _environment;
         public DependencyResolverMode DependencyResolverMode => _dependencyResolverMode;
         public string ApiBaseUrl => _apiBaseUrl;
+        public string GrpcBaseUrl => _grpcBaseUrl;
         public string WebSocketUrl => _webSocketUrl;
         public bool EnableDebugLog => _enableDebugLog;
         public bool EnableAnalytics => _enableAnalytics;

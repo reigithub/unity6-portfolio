@@ -17,7 +17,9 @@ on:
     paths:
       - 'src/Game.Server/**'
       - 'src/Game.Shared/**'
+      - 'src/Game.Realtime/**'
       - 'test/Game.Server.Tests/**'
+      - 'test/Game.Realtime.Tests/**'
       - '.github/workflows/server-test.yml'
 
 env:
@@ -44,10 +46,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore test/Game.Server.Tests/Game.Server.Tests.csproj
+        run: |
+          dotnet restore test/Game.Server.Tests/Game.Server.Tests.csproj
+          dotnet restore test/Game.Realtime.Tests/Game.Realtime.Tests.csproj
 
       - name: Build
-        run: dotnet build test/Game.Server.Tests/Game.Server.Tests.csproj --no-restore --configuration Release
+        run: |
+          dotnet build test/Game.Server.Tests/Game.Server.Tests.csproj --no-restore --configuration Release
+          dotnet build test/Game.Realtime.Tests/Game.Realtime.Tests.csproj --no-restore --configuration Release
 
       - name: Run unit tests
         run: |
@@ -56,6 +62,15 @@ jobs:
             --configuration Release \
             --filter "FullyQualifiedName!~Integration" \
             --logger "trx;LogFileName=unit-test-results.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+          dotnet test test/Game.Realtime.Tests/Game.Realtime.Tests.csproj \
+            --no-build \
+            --configuration Release \
+            --filter "FullyQualifiedName!~Integration" \
+            --logger "trx;LogFileName=realtime-unit-test-results.trx" \
             --results-directory TestResults \
             --collect:"XPlat Code Coverage" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
@@ -177,7 +192,7 @@ jobs:
               -reports:"$coverage_files" \
               -targetdir:CoverageReport \
               -reporttypes:"Html;MarkdownSummaryGithub;Badges" \
-              -assemblyfilters:"+Game.Server;+Game.Shared" \
+              -assemblyfilters:"+Game.Server;+Game.Shared;+Game.Realtime;+Game.Realtime.Shared" \
               -classfilters:"-*Migrations*"
 
             # サマリーを GitHub Step Summary に出力
