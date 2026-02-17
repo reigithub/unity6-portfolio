@@ -130,7 +130,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("Offline"));
+            Assert.That(result.Error.Error, Is.EqualTo("Offline"));
         }
 
         [Test]
@@ -191,7 +191,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("Offline"));
+            Assert.That(result.Error.Error, Is.EqualTo("Offline"));
         }
 
         #endregion
@@ -211,7 +211,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("CircuitBreakerOpen"));
+            Assert.That(result.Error.Error, Is.EqualTo("CircuitBreakerOpen"));
             Assert.That(result.StatusCode, Is.EqualTo(503));
         }
 
@@ -329,7 +329,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("Offline"));
+            Assert.That(result.Error.Error, Is.EqualTo("Offline"));
         }
 
         #endregion
@@ -348,7 +348,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("CircuitBreakerOpen"));
+            Assert.That(result.Error.Error, Is.EqualTo("CircuitBreakerOpen"));
             Assert.That(result.StatusCode, Is.EqualTo(503));
         }
 
@@ -367,7 +367,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("Offline"));
+            Assert.That(result.Error.Error, Is.EqualTo("Offline"));
         }
 
         #endregion
@@ -385,7 +385,7 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.Error.error, Is.EqualTo("CircuitBreakerOpen"));
+            Assert.That(result.Error.Error, Is.EqualTo("CircuitBreakerOpen"));
             Assert.That(result.StatusCode, Is.EqualTo(503));
         }
 
@@ -401,8 +401,8 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(response.IsSuccess, Is.False);
-            Assert.That(response.Error.error, Is.EqualTo("Offline"));
-            Assert.That(response.Error.IsOfflineError, Is.True);
+            Assert.That(response.Error.Error, Is.EqualTo("Offline"));
+            Assert.That(response.Error.Error, Is.EqualTo("Offline"));
             Assert.That(response.StatusCode, Is.EqualTo(0));
         }
 
@@ -417,9 +417,9 @@ namespace Game.Tests.Shared.Network
 
             // Assert
             Assert.That(response.IsSuccess, Is.False);
-            Assert.That(response.Error.error, Is.EqualTo("CircuitBreakerOpen"));
+            Assert.That(response.Error.Error, Is.EqualTo("CircuitBreakerOpen"));
             Assert.That(response.StatusCode, Is.EqualTo(503));
-            Assert.That(response.Error.message, Does.Contain("30"));
+            Assert.That(response.Error.Message, Does.Contain("30"));
         }
 
         [Test]

@@ -142,13 +142,13 @@ namespace Game.MVP.Survivor.Scenes
             if (profileResult.IsSuccess)
             {
                 var profile = profileResult.Data;
-                var isGuest = AccountLinkDialogViewModel.IsGuest(profile.authType);
+                var isGuest = AccountLinkDialogViewModel.IsGuest(profile.AuthType);
 
                 // Transfer password状態を保存
-                _hasTransferPassword = profile.hasTransferPassword;
-                _currentUserId = profile.userId;
+                _hasTransferPassword = profile.HasTransferPassword;
+                _currentUserId = profile.UserId;
 
-                SceneComponent.ShowStatusView(isGuest, profile.userName, profile.email,
+                SceneComponent.ShowStatusView(isGuest, profile.UserName, profile.Email,
                     _authSessionService.FormatUserId(), _hasValidSession);
             }
             else
@@ -377,10 +377,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _hasTransferPassword = true;
                 // パスワードをローカルに保存
-                await _authSessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+                await _authSessionService.SaveTransferPasswordAsync(response.Data.TransferPassword);
 
-                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
-                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.UserId);
+                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.TransferPassword);
                 SceneComponent.ShowSuccess("Transfer password issued! Save it now.");
             }
             else
@@ -420,10 +420,10 @@ namespace Game.MVP.Survivor.Scenes
             if (response.IsSuccess)
             {
                 // パスワードをローカルに保存（上書き）
-                await _authSessionService.SaveTransferPasswordAsync(response.Data.transferPassword);
+                await _authSessionService.SaveTransferPasswordAsync(response.Data.TransferPassword);
 
-                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.userId);
-                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.transferPassword);
+                var formattedUserId = AccountLinkDialogViewModel.FormatUserId(response.Data.UserId);
+                SceneComponent.ShowTransferPasswordViewWithPassword(formattedUserId, response.Data.TransferPassword);
                 SceneComponent.ShowSuccess("Transfer password reissued! Save it now.");
             }
             else

@@ -2,7 +2,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.MVP.Core.Scenes;
-using Game.Shared.Dto.Survivor;
+using Game.Library.Shared.Dto;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using R3;
@@ -88,7 +88,7 @@ namespace Game.MVP.Survivor.Scenes
             // ランキング取得（キャッシュ対応はSurvivorScoreApiService経由）
             var response = await _scoreApiService.GetRankingAsync(stageId);
 
-            RankingEntry myRank = null;
+            RankingEntryDto myRank = null;
 
             // 認証済みの場合は自分の順位も取得
             if (_authSessionService.IsAuthenticated && response.IsSuccess)
@@ -112,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.ShowCacheNotice(NetworkErrorLocalizer.GetCacheNoticeMessage());
                 }
             }
-            else if (response.Error?.IsOfflineError == true)
+            else if (response.Error?.Error == "Offline")
             {
                 SceneComponent.ShowError(NetworkErrorLocalizer.GetOfflineMessage());
             }
