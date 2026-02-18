@@ -56,10 +56,14 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
-            ?? new JwtSettings { Secret = "development-secret-key-min-32-chars!" };
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection("Jwt"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-        services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+        var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
+            ?? throw new InvalidOperationException(
+                "Jwt configuration section is missing. Ensure 'Jwt' is configured in appsettings.");
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -102,7 +106,10 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration)
     {
         // Request Signing
-        services.Configure<RequestSigningSettings>(configuration.GetSection("RequestSigning"));
+        services.AddOptions<RequestSigningSettings>()
+            .Bind(configuration.GetSection("RequestSigning"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));

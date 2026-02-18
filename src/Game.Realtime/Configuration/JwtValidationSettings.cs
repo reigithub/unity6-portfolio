@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Game.Server.Configuration;
+namespace Game.Realtime.Configuration;
 
-public class JwtSettings
+public class JwtValidationSettings
 {
     [Required(AllowEmptyStrings = false)]
     [MinLength(32, ErrorMessage = "JWT Secret must be at least 32 characters long.")]
@@ -13,10 +13,4 @@ public class JwtSettings
 
     [Required(AllowEmptyStrings = false)]
     public string Audience { get; set; } = "Game.Client";
-
-    [Range(1, int.MaxValue)]
-    public int ExpirationMinutes { get; set; } = 60;
-
-    [Range(1, int.MaxValue)]
-    public int RefreshExpirationDays { get; set; } = 30;
 }
