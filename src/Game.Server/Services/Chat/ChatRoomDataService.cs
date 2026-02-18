@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Game.Library.Shared.Chat.Dto;
+using Medallion.Threading;
 using StackExchange.Redis;
 
 namespace Game.Server.Services.Chat;
@@ -14,11 +15,16 @@ public class ChatRoomDataService : IChatRoomDataService
     private const string MembersSuffix = ":members";
 
     private readonly IConnectionMultiplexer _redis;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<ChatRoomDataService> _logger;
 
-    public ChatRoomDataService(IConnectionMultiplexer redis, ILogger<ChatRoomDataService> logger)
+    public ChatRoomDataService(
+        IConnectionMultiplexer redis,
+        IDistributedLockProvider lockProvider,
+        ILogger<ChatRoomDataService> logger)
     {
         _redis = redis;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -53,30 +59,33 @@ public class ChatRoomDataService : IChatRoomDataService
 
     public async Task<bool> AddMemberAsync(string roomId, string userId, string playerName, int permissions)
     {
-        var db = _redis.GetDatabase();
-        var roomKey = $"{RoomKeyPrefix}{roomId}";
-
-        if (!await db.KeyExistsAsync(roomKey))
-            return false;
-
-        var maxMembers = (int)await db.HashGetAsync(roomKey, "maxMembers");
-        if (maxMembers > 0)
+        await using (await _lockProvider.AcquireLockAsync($"lock:chatroom:{roomId}"))
         {
-            var currentCount = await db.HashLengthAsync($"{roomKey}{MembersSuffix}");
-            if (currentCount >= maxMembers)
+            var db = _redis.GetDatabase();
+            var roomKey = $"{RoomKeyPrefix}{roomId}";
+
+            if (!await db.KeyExistsAsync(roomKey))
                 return false;
+
+            var maxMembers = (int)await db.HashGetAsync(roomKey, "maxMembers");
+            if (maxMembers > 0)
+            {
+                var currentCount = await db.HashLengthAsync($"{roomKey}{MembersSuffix}");
+                if (currentCount >= maxMembers)
+                    return false;
+            }
+
+            var memberData = JsonSerializer.Serialize(new MemberData
+            {
+                playerName = playerName,
+                joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                permissions = permissions,
+            });
+            await db.HashSetAsync($"{roomKey}{MembersSuffix}", userId, memberData);
+
+            _logger.LogDebug("Member {UserId} added to chat room {RoomId}", userId, roomId);
+            return true;
         }
-
-        var memberData = JsonSerializer.Serialize(new MemberData
-        {
-            playerName = playerName,
-            joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            permissions = permissions,
-        });
-        await db.HashSetAsync($"{roomKey}{MembersSuffix}", userId, memberData);
-
-        _logger.LogDebug("Member {UserId} added to chat room {RoomId}", userId, roomId);
-        return true;
     }
 
     public async Task<bool> RemoveMemberAsync(string roomId, string userId)
@@ -148,17 +157,20 @@ public class ChatRoomDataService : IChatRoomDataService
 
     public async Task<bool> SetMemberPermissionsAsync(string roomId, string userId, int permissions)
     {
-        var db = _redis.GetDatabase();
-        var membersKey = $"{RoomKeyPrefix}{roomId}{MembersSuffix}";
-        var raw = await db.HashGetAsync(membersKey, userId);
-        if (!raw.HasValue) return false;
+        await using (await _lockProvider.AcquireLockAsync($"lock:chatroom:{roomId}"))
+        {
+            var db = _redis.GetDatabase();
+            var membersKey = $"{RoomKeyPrefix}{roomId}{MembersSuffix}";
+            var raw = await db.HashGetAsync(membersKey, userId);
+            if (!raw.HasValue) return false;
 
-        var data = JsonSerializer.Deserialize<MemberData>(raw.ToString());
-        if (data == null) return false;
+            var data = JsonSerializer.Deserialize<MemberData>(raw.ToString());
+            if (data == null) return false;
 
-        data.permissions = permissions;
-        await db.HashSetAsync(membersKey, userId, JsonSerializer.Serialize(data));
-        return true;
+            data.permissions = permissions;
+            await db.HashSetAsync(membersKey, userId, JsonSerializer.Serialize(data));
+            return true;
+        }
     }
 
     public async Task<int> GetDefaultPermissionsAsync(string roomId)

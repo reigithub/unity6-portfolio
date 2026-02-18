@@ -6,6 +6,8 @@ using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Interfaces;
+using Medallion.Threading;
+using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
@@ -56,10 +58,14 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
-            ?? new JwtSettings { Secret = "development-secret-key-min-32-chars!" };
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection("Jwt"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-        services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+        var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
+            ?? throw new InvalidOperationException(
+                "Jwt configuration section is missing. Ensure 'Jwt' is configured in appsettings.");
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -102,7 +108,10 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration)
     {
         // Request Signing
-        services.Configure<RequestSigningSettings>(configuration.GetSection("RequestSigning"));
+        services.AddOptions<RequestSigningSettings>()
+            .Bind(configuration.GetSection("RequestSigning"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
@@ -141,6 +150,20 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddChatServices(this IServiceCollection services)
     {
+        // Distributed Lock Provider (レースコンディション防止)
+        services.AddSingleton<IDistributedLockProvider>(sp =>
+        {
+            var redis = sp.GetRequiredService<IConnectionMultiplexer>();
+            return new RedisDistributedSynchronizationProvider(redis.GetDatabase(), options =>
+            {
+                options.Expiry(TimeSpan.FromSeconds(10));
+                options.ExtensionCadence(TimeSpan.FromSeconds(3));
+                options.BusyWaitSleepTime(
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(200));
+            });
+        });
+
         services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
         services.AddSingleton<IChatMessageService, ChatMessageService>();
         services.AddSingleton<ChatPermissionValidator>();

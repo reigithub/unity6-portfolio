@@ -1,4 +1,5 @@
 using System.Text;
+using Game.Realtime.Configuration;
 using Game.Realtime.Extensions;
 using Game.Realtime.Filters;
 using MagicOnion.Server;
@@ -59,10 +60,14 @@ public class Program
         });
 
         // JWT Authentication
-        var jwtSecret = builder.Configuration["Jwt:Secret"]
-            ?? "your-secret-key-must-be-at-least-32-characters-long";
-        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Game.Server";
-        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Game.Client";
+        builder.Services.AddOptions<JwtValidationSettings>()
+            .Bind(builder.Configuration.GetSection("Jwt"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtValidationSettings>()
+            ?? throw new InvalidOperationException(
+                "Jwt configuration section is missing. Ensure 'Jwt' is configured in appsettings.");
 
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -73,10 +78,10 @@ public class Program
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtIssuer,
-                    ValidAudience = jwtAudience,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSecret)),
+                        Encoding.UTF8.GetBytes(jwtSettings.Secret)),
                 };
             });
 
