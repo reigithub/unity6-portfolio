@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Server.Services.Chat;
+using Medallion.Threading;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
@@ -13,6 +14,7 @@ public class ChatMessageServiceTests
 {
     private readonly Mock<IConnectionMultiplexer> _redisMock;
     private readonly Mock<IDatabase> _dbMock;
+    private readonly Mock<IDistributedLockProvider> _lockProviderMock;
     private readonly Mock<ILogger<ChatMessageService>> _loggerMock;
     private readonly ChatMessageService _service;
 
@@ -20,12 +22,20 @@ public class ChatMessageServiceTests
     {
         _redisMock = new Mock<IConnectionMultiplexer>();
         _dbMock = new Mock<IDatabase>();
+        _lockProviderMock = new Mock<IDistributedLockProvider>();
         _loggerMock = new Mock<ILogger<ChatMessageService>>();
 
         _redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_dbMock.Object);
 
-        _service = new ChatMessageService(_redisMock.Object, _loggerMock.Object);
+        // ロックは常に成功（テスト環境ではレースコンディションなし）
+        var lockMock = new Mock<IDistributedLock>();
+        lockMock.Setup(x => x.AcquireAsync(It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<IDistributedSynchronizationHandle>());
+        _lockProviderMock.Setup(x => x.CreateLock(It.IsAny<string>()))
+            .Returns(lockMock.Object);
+
+        _service = new ChatMessageService(_redisMock.Object, _lockProviderMock.Object, _loggerMock.Object);
     }
 
     [Fact]

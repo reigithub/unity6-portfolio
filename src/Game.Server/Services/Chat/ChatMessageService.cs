@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Game.Library.Shared.Dto;
+using Medallion.Threading;
 using StackExchange.Redis;
 
 namespace Game.Server.Services.Chat;
@@ -14,11 +15,16 @@ public class ChatMessageService : IChatMessageService
     private const int MaxMessagesPerRoom = 200;
 
     private readonly IConnectionMultiplexer _redis;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<ChatMessageService> _logger;
 
-    public ChatMessageService(IConnectionMultiplexer redis, ILogger<ChatMessageService> logger)
+    public ChatMessageService(
+        IConnectionMultiplexer redis,
+        IDistributedLockProvider lockProvider,
+        ILogger<ChatMessageService> logger)
     {
         _redis = redis;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -37,12 +43,15 @@ public class ChatMessageService : IChatMessageService
                 timestamp = message.Timestamp,
             });
 
-            await db.SortedSetAddAsync(key, json, message.Timestamp);
-
-            var length = await db.SortedSetLengthAsync(key);
-            if (length > MaxMessagesPerRoom)
+            await using (await _lockProvider.AcquireLockAsync($"lock:chat:messages:{roomId}"))
             {
-                await db.SortedSetRemoveRangeByRankAsync(key, 0, length - MaxMessagesPerRoom - 1);
+                await db.SortedSetAddAsync(key, json, message.Timestamp);
+
+                var length = await db.SortedSetLengthAsync(key);
+                if (length > MaxMessagesPerRoom)
+                {
+                    await db.SortedSetRemoveRangeByRankAsync(key, 0, length - MaxMessagesPerRoom - 1);
+                }
             }
 
             _logger.LogDebug(
