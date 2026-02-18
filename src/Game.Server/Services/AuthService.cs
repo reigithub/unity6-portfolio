@@ -22,19 +22,22 @@ public class AuthService : IAuthService
     private readonly AuthSettings _authSettings;
     private readonly RequestSigningSettings _signingSettings;
     private readonly IEmailService _emailService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IAuthRepository authRepository,
         IOptions<JwtSettings> jwtSettings,
         IOptions<AuthSettings> authSettings,
         IOptions<RequestSigningSettings> signingSettings,
-        IEmailService emailService)
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
         _authRepository = authRepository;
         _jwtSettings = jwtSettings.Value;
         _authSettings = authSettings.Value;
         _signingSettings = signingSettings.Value;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request)
@@ -238,7 +241,12 @@ public class AuthService : IAuthService
         var expiry = DateTime.UtcNow.AddMinutes(_authSettings.PasswordResetExpiryMinutes);
 
         await _authRepository.UpdatePasswordResetTokenAsync(user.Id, resetToken, expiry);
-        await _emailService.SendPasswordResetEmailAsync(request.Email, resetToken);
+
+        var emailResult = await _emailService.SendPasswordResetEmailAsync(request.Email, resetToken);
+        if (emailResult.IsError)
+        {
+            _logger.LogWarning("Failed to send password reset email to {Email}", request.Email);
+        }
 
         return true;
     }
@@ -302,7 +310,12 @@ public class AuthService : IAuthService
             id, request.Email, passwordHash,
             verificationToken, verificationExpiry);
 
-        await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
+        var emailResult = await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
+        if (emailResult.IsError)
+        {
+            _logger.LogWarning("Failed to send verification email to {Email} for user {UserId}, account was linked but email undelivered",
+                request.Email, id);
+        }
 
         // Re-fetch user to get updated state for JWT
         var updatedUser = await _authRepository.GetByIdAsync(id);

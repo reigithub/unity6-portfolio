@@ -36,6 +36,8 @@ public readonly struct Result<TSuccess, TError>
     private readonly TError? _error;
     private readonly bool _isSuccess;
 
+    public bool IsError => !_isSuccess;
+
     private Result(TSuccess success)
     {
         _success = success;

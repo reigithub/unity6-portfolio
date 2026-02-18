@@ -3,6 +3,7 @@ using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -104,6 +105,7 @@ public class GuestLoginTests : IAsyncLifetime
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),
-            mockEmailService.Object);
+            mockEmailService.Object,
+            new Mock<ILogger<AuthService>>().Object);
     }
 }

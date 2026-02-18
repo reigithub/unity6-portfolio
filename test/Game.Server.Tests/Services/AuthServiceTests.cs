@@ -5,6 +5,7 @@ using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -116,7 +117,8 @@ public class AuthServiceTests : IAsyncLifetime
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),
-            mockEmailService.Object);
+            mockEmailService.Object,
+            new Mock<ILogger<AuthService>>().Object);
     }
 
     [Fact]

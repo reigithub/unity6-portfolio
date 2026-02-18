@@ -5,6 +5,7 @@ using Game.Server.Repositories.Dapper;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -225,6 +226,7 @@ public class AccountLockoutTests : IAsyncLifetime
             TestDataFixture.GetJwtOptions(),
             authOptions ?? TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),
-            mockEmailService.Object);
+            mockEmailService.Object,
+            new Mock<ILogger<AuthService>>().Object);
     }
 }
