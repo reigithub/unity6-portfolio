@@ -10,11 +10,13 @@ public class ResendEmailService : IEmailService
 {
     private readonly IResend _resend;
     private readonly ResendSettings _settings;
+    private readonly ILogger<ResendEmailService> _logger;
 
-    public ResendEmailService(IResend resend, IOptions<ResendSettings> settings)
+    public ResendEmailService(IResend resend, IOptions<ResendSettings> settings, ILogger<ResendEmailService> logger)
     {
         _resend = resend;
         _settings = settings.Value;
+        _logger = logger;
     }
 
     public async Task<Result<bool, ApiError>> SendVerificationEmailAsync(string toEmail, string token)
@@ -33,8 +35,16 @@ public class ResendEmailService : IEmailService
             await _resend.EmailSendAsync(message);
             return true;
         }
-        catch (Exception)
+        catch (ResendException ex)
         {
+            _logger.LogError(ex,
+                "Resend API error sending verification email to {ToEmail}: ErrorType={ErrorType}, StatusCode={StatusCode}, IsTransient={IsTransient}",
+                toEmail, ex.ErrorType, ex.StatusCode, ex.IsTransient);
+            return new ApiError("Failed to send verification email", "EMAIL_SEND_FAILED", StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error sending verification email to {ToEmail}", toEmail);
             return new ApiError("Failed to send verification email", "EMAIL_SEND_FAILED", StatusCodes.Status502BadGateway);
         }
     }
@@ -55,8 +65,16 @@ public class ResendEmailService : IEmailService
             await _resend.EmailSendAsync(message);
             return true;
         }
-        catch (Exception)
+        catch (ResendException ex)
         {
+            _logger.LogError(ex,
+                "Resend API error sending password reset email to {ToEmail}: ErrorType={ErrorType}, StatusCode={StatusCode}, IsTransient={IsTransient}",
+                toEmail, ex.ErrorType, ex.StatusCode, ex.IsTransient);
+            return new ApiError("Failed to send password reset email", "EMAIL_SEND_FAILED", StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error sending password reset email to {ToEmail}", toEmail);
             return new ApiError("Failed to send password reset email", "EMAIL_SEND_FAILED", StatusCodes.Status502BadGateway);
         }
     }

@@ -7,6 +7,7 @@ using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tables;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Npgsql;
@@ -280,7 +281,8 @@ public class EmailAuthTests : IAsyncLifetime
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),
-            _mockEmailService.Object);
+            _mockEmailService.Object,
+            new Mock<ILogger<AuthService>>().Object);
     }
 
     private async Task<string?> GetEmailVerificationTokenAsync(string email)
