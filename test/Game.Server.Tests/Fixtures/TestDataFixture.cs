@@ -60,6 +60,11 @@ public static class TestDataFixture
         return new TestDbConnectionFactory(connectionString);
     }
 
+    public static IDbSession CreateDbSession(IDbConnectionFactory connectionFactory)
+    {
+        return new DbSession(connectionFactory);
+    }
+
     public static async Task SeedTestDataAsync(string connectionString)
     {
         using var connection = new NpgsqlConnection(connectionString);

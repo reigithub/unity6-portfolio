@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         IWebHostEnvironment environment)
     {
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
+        services.AddScoped<IDbSession, DbSession>();
         return services;
     }
 

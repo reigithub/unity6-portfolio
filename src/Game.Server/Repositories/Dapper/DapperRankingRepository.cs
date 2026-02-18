@@ -7,18 +7,16 @@ namespace Game.Server.Repositories.Dapper;
 
 public class DapperRankingRepository : IRankingRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IDbSession _dbSession;
 
-    public DapperRankingRepository(IDbConnectionFactory connectionFactory)
+    public DapperRankingRepository(IDbSession dbSession)
     {
-        _connectionFactory = connectionFactory;
+        _dbSession = dbSession;
     }
 
     public async Task<List<SurvivorScore>> GetTopScoresAsync(
         int stageId, int limit, int offset)
     {
-        using var connection = _connectionFactory.CreateConnection();
-
         const string sql =
             @"SELECT s.""Id"", s.""UserId"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
@@ -31,7 +29,7 @@ public class DapperRankingRepository : IRankingRepository
               ORDER BY s.""Score"" DESC, s.""ClearTime"" ASC
               LIMIT @Limit OFFSET @Offset";
 
-        var results = await connection.QueryAsync<SurvivorScore, UserInfo, SurvivorScore>(
+        var results = await _dbSession.Connection.QueryAsync<SurvivorScore, UserInfo, SurvivorScore>(
             sql,
             (score, user) =>
             {
@@ -39,7 +37,8 @@ public class DapperRankingRepository : IRankingRepository
                 return score;
             },
             new { StageId = stageId, Limit = limit, Offset = offset },
-            splitOn: "Id");
+            splitOn: "Id",
+            transaction: _dbSession.Transaction);
 
         return results.AsList();
     }
@@ -47,8 +46,6 @@ public class DapperRankingRepository : IRankingRepository
     public async Task<SurvivorScore?> GetUserBestScoreAsync(
         int stageId, Guid userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
-
         const string sql =
             @"SELECT s.""Id"", s.""UserId"", s.""StageId"", s.""Score"",
                      s.""ClearTime"", s.""WaveReached"", s.""EnemiesDefeated"", s.""RecordedAt"",
@@ -61,7 +58,7 @@ public class DapperRankingRepository : IRankingRepository
               ORDER BY s.""Score"" DESC, s.""ClearTime"" ASC
               LIMIT 1";
 
-        var results = await connection.QueryAsync<SurvivorScore, UserInfo, SurvivorScore>(
+        var results = await _dbSession.Connection.QueryAsync<SurvivorScore, UserInfo, SurvivorScore>(
             sql,
             (score, user) =>
             {
@@ -69,7 +66,8 @@ public class DapperRankingRepository : IRankingRepository
                 return score;
             },
             new { UserId = userId, StageId = stageId },
-            splitOn: "Id");
+            splitOn: "Id",
+            transaction: _dbSession.Transaction);
 
         return results.FirstOrDefault();
     }
@@ -83,8 +81,6 @@ public class DapperRankingRepository : IRankingRepository
             return 0;
         }
 
-        using var connection = _connectionFactory.CreateConnection();
-
         const string sql =
             @"SELECT COUNT(DISTINCT ""UserId"")
               FROM ""Ranking"".""SurvivorScore""
@@ -92,14 +88,15 @@ public class DapperRankingRepository : IRankingRepository
                 AND (""Score"" > @Score
                      OR (""Score"" = @Score AND ""ClearTime"" < @ClearTime))";
 
-        int higherCount = await connection.ExecuteScalarAsync<int>(
+        int higherCount = await _dbSession.Connection.ExecuteScalarAsync<int>(
             sql,
             new
             {
                 StageId = stageId,
                 Score = userBest.Score,
                 ClearTime = userBest.ClearTime,
-            });
+            },
+            transaction: _dbSession.Transaction);
 
         return higherCount + 1;
     }

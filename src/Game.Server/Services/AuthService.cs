@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Game.Server.Configuration;
+using Game.Server.Database;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Tables;
@@ -18,6 +19,7 @@ namespace Game.Server.Services;
 public class AuthService : IAuthService
 {
     private readonly IAuthRepository _authRepository;
+    private readonly IDbSession _dbSession;
     private readonly JwtSettings _jwtSettings;
     private readonly AuthSettings _authSettings;
     private readonly RequestSigningSettings _signingSettings;
@@ -26,6 +28,7 @@ public class AuthService : IAuthService
 
     public AuthService(
         IAuthRepository authRepository,
+        IDbSession dbSession,
         IOptions<JwtSettings> jwtSettings,
         IOptions<AuthSettings> authSettings,
         IOptions<RequestSigningSettings> signingSettings,
@@ -33,6 +36,7 @@ public class AuthService : IAuthService
         ILogger<AuthService> logger)
     {
         _authRepository = authRepository;
+        _dbSession = dbSession;
         _jwtSettings = jwtSettings.Value;
         _authSettings = authSettings.Value;
         _signingSettings = signingSettings.Value;
@@ -79,16 +83,21 @@ public class AuthService : IAuthService
             return new ApiError("Invalid credentials", "INVALID_CREDENTIALS", StatusCodes.Status401Unauthorized);
         }
 
-        // Reset failed attempts on success
-        if (user.FailedLoginAttempts > 0)
+        // Reset failed attempts, update last login, and clear transfer password atomically
+        using (var dbTransaction = _dbSession.BeginScope())
         {
-            await _authRepository.ResetFailedLoginAsync(user.Id);
+            if (user.FailedLoginAttempts > 0)
+            {
+                await _authRepository.ResetFailedLoginAsync(user.Id);
+            }
+
+            await _authRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
+
+            // Clear transfer password after successful login (one-time use)
+            await _authRepository.UpdateTransferPasswordHashAsync(user.Id, null);
+
+            dbTransaction.Commit();
         }
-
-        await _authRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
-
-        // Clear transfer password after successful login (one-time use)
-        await _authRepository.UpdateTransferPasswordHashAsync(user.Id, null);
 
         string token = GenerateJwtToken(user);
         return new LoginResponse
@@ -190,13 +199,17 @@ public class AuthService : IAuthService
             return new ApiError("Invalid credentials", "INVALID_CREDENTIALS", StatusCodes.Status401Unauthorized);
         }
 
-        // Reset failed attempts on success
+        // Reset failed attempts and update last login atomically
+        using var tx = _dbSession.BeginScope();
+
         if (user.FailedLoginAttempts > 0)
         {
             await _authRepository.ResetFailedLoginAsync(user.Id);
         }
 
         await _authRepository.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
+
+        tx.Commit();
 
         string token = GenerateJwtToken(user);
         return new LoginResponse
