@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Game.Library.Shared.Realtime.Dto;
+using Medallion.Threading;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Services;
@@ -10,11 +11,16 @@ namespace Game.Realtime.Services;
 public class LobbyDataService : ILobbyDataService
 {
     private readonly IConnectionMultiplexer _redis;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<LobbyDataService> _logger;
 
-    public LobbyDataService(IConnectionMultiplexer redis, ILogger<LobbyDataService> logger)
+    public LobbyDataService(
+        IConnectionMultiplexer redis,
+        IDistributedLockProvider lockProvider,
+        ILogger<LobbyDataService> logger)
     {
         _redis = redis;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -58,27 +64,30 @@ public class LobbyDataService : ILobbyDataService
 
     public async Task<bool> AddPlayerAsync(string lobbyId, string userId, string playerName)
     {
-        var db = _redis.GetDatabase();
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
+        {
+            var db = _redis.GetDatabase();
 
-        // ロビー存在チェック
-        var exists = await db.KeyExistsAsync($"lobby:{lobbyId}");
-        if (!exists) return false;
+            // ロビー存在チェック
+            var exists = await db.KeyExistsAsync($"lobby:{lobbyId}");
+            if (!exists) return false;
 
-        // 最大人数チェック
-        var maxPlayers = (int)await db.HashGetAsync($"lobby:{lobbyId}", "maxPlayers");
-        var currentCount = await db.HashLengthAsync($"lobby:{lobbyId}:players");
-        if (currentCount >= maxPlayers) return false;
+            // 最大人数チェック
+            var maxPlayers = (int)await db.HashGetAsync($"lobby:{lobbyId}", "maxPlayers");
+            var currentCount = await db.HashLengthAsync($"lobby:{lobbyId}:players");
+            if (currentCount >= maxPlayers) return false;
 
-        // 多重参加防止
-        var currentLobby = await db.StringGetAsync($"lobby:player:{userId}");
-        if (currentLobby.HasValue) return false;
+            // 多重参加防止
+            var currentLobby = await db.StringGetAsync($"lobby:player:{userId}");
+            if (currentLobby.HasValue) return false;
 
-        var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
-        await db.HashSetAsync($"lobby:{lobbyId}:players", userId, playerData);
-        await db.StringSetAsync($"lobby:player:{userId}", lobbyId);
+            var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
+            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, playerData);
+            await db.StringSetAsync($"lobby:player:{userId}", lobbyId);
 
-        _logger.LogDebug("Player {UserId} added to lobby {LobbyId}", userId, lobbyId);
-        return true;
+            _logger.LogDebug("Player {UserId} added to lobby {LobbyId}", userId, lobbyId);
+            return true;
+        }
     }
 
     public async Task<bool> RemovePlayerAsync(string lobbyId, string userId)
@@ -167,16 +176,52 @@ public class LobbyDataService : ILobbyDataService
 
     public async Task<bool> SetReadyAsync(string lobbyId, string userId, bool isReady)
     {
-        var db = _redis.GetDatabase();
-        var raw = await db.HashGetAsync($"lobby:{lobbyId}:players", userId);
-        if (!raw.HasValue) return false;
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
+        {
+            var db = _redis.GetDatabase();
+            var raw = await db.HashGetAsync($"lobby:{lobbyId}:players", userId);
+            if (!raw.HasValue) return false;
 
-        var data = JsonSerializer.Deserialize<PlayerData>(raw.ToString());
-        if (data == null) return false;
+            var data = JsonSerializer.Deserialize<PlayerData>(raw.ToString());
+            if (data == null) return false;
 
-        data.isReady = isReady;
-        await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonSerializer.Serialize(data));
-        return true;
+            data.isReady = isReady;
+            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonSerializer.Serialize(data));
+            return true;
+        }
+    }
+
+    public async Task<(bool Success, bool AllReady)> SetReadyAndCheckAllAsync(string lobbyId, string userId, bool isReady)
+    {
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
+        {
+            var db = _redis.GetDatabase();
+
+            // SetReady
+            var raw = await db.HashGetAsync($"lobby:{lobbyId}:players", userId);
+            if (!raw.HasValue) return (false, false);
+
+            var data = JsonSerializer.Deserialize<PlayerData>(raw.ToString());
+            if (data == null) return (false, false);
+
+            data.isReady = isReady;
+            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonSerializer.Serialize(data));
+
+            // AreAllReady チェック（同じロック内で実行 → アトミック）
+            var hash = await db.HashGetAllAsync($"lobby:{lobbyId}:players");
+            var allReady = hash.Length > 0;
+            foreach (var entry in hash)
+            {
+                var playerData = JsonSerializer.Deserialize<PlayerData>(entry.Value.ToString());
+                if (playerData is not { isReady: true })
+                {
+                    allReady = false;
+                    break;
+                }
+            }
+
+            return (true, allReady);
+        }
     }
 
     public async Task<bool> AreAllReadyAsync(string lobbyId)

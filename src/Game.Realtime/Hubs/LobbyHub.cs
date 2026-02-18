@@ -93,15 +93,16 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     {
         if (string.IsNullOrEmpty(_lobbyId)) return;
 
-        await _lobbyDataService.SetReadyAsync(_lobbyId, _userId, isReady);
+        var (success, allReady) = await _lobbyDataService.SetReadyAndCheckAllAsync(_lobbyId, _userId, isReady);
+        if (!success) return;
 
         if (_currentGroup != null)
         {
             _currentGroup.All.OnPlayerReadyChanged(_userId, isReady);
         }
 
-        // 全員 Ready チェック → ゲーム開始
-        if (isReady && _currentGroup != null && await _lobbyDataService.AreAllReadyAsync(_lobbyId))
+        // 全員 Ready チェック → ゲーム開始（SetReady と AllReady はアトミック）
+        if (isReady && allReady && _currentGroup != null)
         {
             await StartGameAsync();
         }

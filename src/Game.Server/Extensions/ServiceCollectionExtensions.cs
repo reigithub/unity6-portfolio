@@ -6,6 +6,8 @@ using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Interfaces;
+using Medallion.Threading;
+using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
@@ -148,6 +150,20 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddChatServices(this IServiceCollection services)
     {
+        // Distributed Lock Provider (レースコンディション防止)
+        services.AddSingleton<IDistributedLockProvider>(sp =>
+        {
+            var redis = sp.GetRequiredService<IConnectionMultiplexer>();
+            return new RedisDistributedSynchronizationProvider(redis.GetDatabase(), options =>
+            {
+                options.Expiry(TimeSpan.FromSeconds(10));
+                options.ExtensionCadence(TimeSpan.FromSeconds(3));
+                options.BusyWaitSleepTime(
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(200));
+            });
+        });
+
         services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
         services.AddSingleton<IChatMessageService, ChatMessageService>();
         services.AddSingleton<ChatPermissionValidator>();

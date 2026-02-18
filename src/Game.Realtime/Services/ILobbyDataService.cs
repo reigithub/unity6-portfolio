@@ -17,4 +17,5 @@ public interface ILobbyDataService
     Task<bool> AreAllReadyAsync(string lobbyId);
     Task DeleteAsync(string lobbyId);
     Task<string?> GetPlayerLobbyAsync(string userId);
+    Task<(bool Success, bool AllReady)> SetReadyAndCheckAllAsync(string lobbyId, string userId, bool isReady);
 }

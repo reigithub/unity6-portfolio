@@ -1,4 +1,7 @@
 using Game.Realtime.Services;
+using Medallion.Threading;
+using Medallion.Threading.Redis;
+using StackExchange.Redis;
 
 namespace Game.Realtime.Extensions;
 
@@ -14,6 +17,20 @@ public static class RealtimeServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Distributed Lock Provider (レースコンディション防止)
+        services.AddSingleton<IDistributedLockProvider>(sp =>
+        {
+            var redis = sp.GetRequiredService<IConnectionMultiplexer>();
+            return new RedisDistributedSynchronizationProvider(redis.GetDatabase(), options =>
+            {
+                options.Expiry(TimeSpan.FromSeconds(10));
+                options.ExtensionCadence(TimeSpan.FromSeconds(3));
+                options.BusyWaitSleepTime(
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(200));
+            });
+        });
+
         // Match Session Token Service (Dedicated Server 接続認証用)
         services.AddSingleton<IMatchSessionTokenService, MatchSessionTokenService>();
 
