@@ -1,9 +1,8 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
-using Grpc.Core;
+using Game.Realtime.Extensions;
 using MagicOnion;
 using MagicOnion.Server;
-using Microsoft.AspNetCore.Http;
 
 namespace Game.Realtime.Services;
 
@@ -21,14 +20,9 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
         _logger = logger;
     }
 
-    private string GetUserId()
-    {
-        return Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value ?? "";
-    }
-
     public async UnaryResult<CreateLobbyResponse> CreateLobbyAsync(CreateLobbyRequest request)
     {
-        var userId = GetUserId();
+        var userId = Context.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             return new CreateLobbyResponse
@@ -66,7 +60,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyInfo> JoinLobbyAsync(string lobbyId, string playerName)
     {
-        var userId = GetUserId();
+        var userId = Context.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");
@@ -84,7 +78,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<bool> LeaveLobbyAsync(string lobbyId)
     {
-        var userId = GetUserId();
+        var userId = Context.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");

@@ -24,61 +24,96 @@ public class ChatMessageService : IChatMessageService
 
     public async Task SaveMessageAsync(string roomId, ChatMessage message)
     {
-        var db = _redis.GetDatabase();
-        var key = $"{KeyPrefix}{roomId}";
-
-        var json = JsonSerializer.Serialize(new ChatMessageData
+        try
         {
-            userId = message.UserId,
-            playerName = message.PlayerName,
-            content = message.Content,
-            timestamp = message.Timestamp,
-        });
+            var db = _redis.GetDatabase();
+            var key = $"{KeyPrefix}{roomId}";
 
-        await db.SortedSetAddAsync(key, json, message.Timestamp);
+            var json = JsonSerializer.Serialize(new ChatMessageData
+            {
+                userId = message.UserId,
+                playerName = message.PlayerName,
+                content = message.Content,
+                timestamp = message.Timestamp,
+            });
 
-        var length = await db.SortedSetLengthAsync(key);
-        if (length > MaxMessagesPerRoom)
-        {
-            await db.SortedSetRemoveRangeByRankAsync(key, 0, length - MaxMessagesPerRoom - 1);
+            await db.SortedSetAddAsync(key, json, message.Timestamp);
+
+            var length = await db.SortedSetLengthAsync(key);
+            if (length > MaxMessagesPerRoom)
+            {
+                await db.SortedSetRemoveRangeByRankAsync(key, 0, length - MaxMessagesPerRoom - 1);
+            }
+
+            _logger.LogDebug(
+                "Saved chat message from {UserId} in room {RoomId}",
+                message.UserId, roomId);
         }
-
-        _logger.LogDebug(
-            "Saved chat message from {UserId} in room {RoomId}",
-            message.UserId, roomId);
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex, "Redis connection failed, could not save message for roomId={RoomId}", roomId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving chat message for roomId={RoomId}", roomId);
+        }
     }
 
     public async Task<ChatMessage[]> GetRecentMessagesAsync(string roomId, int count)
     {
-        var db = _redis.GetDatabase();
-        var key = $"{KeyPrefix}{roomId}";
-
-        var entries = await db.SortedSetRangeByRankAsync(
-            key, -count, -1, Order.Ascending);
-
-        var messages = new ChatMessage[entries.Length];
-        for (var i = 0; i < entries.Length; i++)
+        try
         {
-            var data = JsonSerializer.Deserialize<ChatMessageData>(entries[i].ToString());
-            messages[i] = new ChatMessage
-            {
-                UserId = data?.userId ?? "",
-                PlayerName = data?.playerName ?? "",
-                Content = data?.content ?? "",
-                Timestamp = data?.timestamp ?? 0,
-            };
-        }
+            var db = _redis.GetDatabase();
+            var key = $"{KeyPrefix}{roomId}";
 
-        return messages;
+            var entries = await db.SortedSetRangeByRankAsync(
+                key, -count, -1, Order.Ascending);
+
+            var messages = new ChatMessage[entries.Length];
+            for (var i = 0; i < entries.Length; i++)
+            {
+                var data = JsonSerializer.Deserialize<ChatMessageData>(entries[i].ToString());
+                messages[i] = new ChatMessage
+                {
+                    UserId = data?.userId ?? "",
+                    PlayerName = data?.playerName ?? "",
+                    Content = data?.content ?? "",
+                    Timestamp = data?.timestamp ?? 0,
+                };
+            }
+
+            return messages;
+        }
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex, "Redis connection failed, returning empty messages for roomId={RoomId}", roomId);
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting recent messages for roomId={RoomId}", roomId);
+            return [];
+        }
     }
 
     public async Task DeleteRoomAsync(string roomId)
     {
-        var db = _redis.GetDatabase();
-        var key = $"{KeyPrefix}{roomId}";
-        await db.KeyDeleteAsync(key);
+        try
+        {
+            var db = _redis.GetDatabase();
+            var key = $"{KeyPrefix}{roomId}";
+            await db.KeyDeleteAsync(key);
 
-        _logger.LogInformation("Deleted chat messages for room {RoomId}", roomId);
+            _logger.LogInformation("Deleted chat messages for room {RoomId}", roomId);
+        }
+        catch (RedisConnectionException ex)
+        {
+            _logger.LogWarning(ex, "Redis connection failed, could not delete room data for roomId={RoomId}", roomId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting chat room data for roomId={RoomId}", roomId);
+        }
     }
 
     private class ChatMessageData
