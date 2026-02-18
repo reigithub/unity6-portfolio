@@ -1,5 +1,5 @@
 using Game.Library.Shared.Dto;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
@@ -13,6 +13,7 @@ public class GuestLoginTests : IAsyncLifetime
 {
     private readonly PostgresContainerFixture _postgres;
     private Game.Server.Database.IDbConnectionFactory _connectionFactory = null!;
+    private Game.Server.Database.IDbSession _dbSession = null!;
 
     public GuestLoginTests(PostgresContainerFixture postgres)
     {
@@ -23,9 +24,13 @@ public class GuestLoginTests : IAsyncLifetime
     {
         await _postgres.ResetUserDataAsync();
         _connectionFactory = TestDataFixture.CreateConnectionFactory(_postgres.ConnectionString);
+        _dbSession = TestDataFixture.CreateDbSession(_connectionFactory);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public async Task DisposeAsync()
+    {
+        await _dbSession.DisposeAsync();
+    }
 
     [Fact]
     public async Task GuestLoginAsync_NewDevice_CreatesNewUser()
@@ -91,7 +96,7 @@ public class GuestLoginTests : IAsyncLifetime
 
     private AuthService CreateAuthService()
     {
-        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var authRepo = new AuthRepository(_dbSession);
         var mockEmailService = new Mock<IEmailService>();
         mockEmailService
             .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -102,6 +107,7 @@ public class GuestLoginTests : IAsyncLifetime
 
         return new AuthService(
             authRepo,
+            _dbSession,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),

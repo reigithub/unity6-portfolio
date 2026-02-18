@@ -3,47 +3,47 @@ using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperUserRepository : IUserRepository
+public class UserRepository : IUserRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IDbSession _dbSession;
 
-    public DapperUserRepository(IDbConnectionFactory connectionFactory)
+    public UserRepository(IDbSession dbSession)
     {
-        _connectionFactory = connectionFactory;
+        _dbSession = dbSession;
     }
 
     public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
-            new { Id = id });
+            new { Id = id },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                      ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
               FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
-            new { UserName = displayName });
+            new { UserName = displayName },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdateAsync(UserInfo user)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""UserName"" = @UserName,
                   ""PasswordHash"" = @PasswordHash,
                   ""Level"" = @Level,
                   ""LastLoginAt"" = @LastLoginAt
               WHERE ""Id"" = @Id",
-            user);
+            user,
+            transaction: _dbSession.Transaction);
     }
 }

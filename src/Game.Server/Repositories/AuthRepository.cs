@@ -3,9 +3,9 @@ using Game.Server.Database;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Tables;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperAuthRepository : IAuthRepository
+public class AuthRepository : IAuthRepository
 {
     private const string SelectColumns =
         @"""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
@@ -15,27 +15,26 @@ public class DapperAuthRepository : IAuthRepository
           ""FailedLoginAttempts"", ""LockoutEndAt"",
           ""CreatedAt"", ""UpdatedAt""";
 
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IDbSession _dbSession;
 
-    public DapperAuthRepository(IDbConnectionFactory connectionFactory)
+    public AuthRepository(IDbSession dbSession)
     {
-        _connectionFactory = connectionFactory;
+        _dbSession = dbSession;
     }
 
     public async Task<bool> ExistsByUserNameAsync(string displayName)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.ExecuteScalarAsync<bool>(
+        return await _dbSession.Connection.ExecuteScalarAsync<bool>(
             @"SELECT CASE WHEN EXISTS (
                 SELECT 1 FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName
               ) THEN 1 ELSE 0 END",
-            new { UserName = displayName });
+            new { UserName = displayName },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo> CreateUserAsync(UserInfo user)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"INSERT INTO ""User"".""UserInfo""
               (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
                ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
@@ -47,152 +46,152 @@ public class DapperAuthRepository : IAuthRepository
                       @EmailVerificationToken, @EmailVerificationExpiry,
                       @PasswordResetToken, @PasswordResetExpiry,
                       @FailedLoginAttempts, @LockoutEndAt)",
-            user);
+            user,
+            transaction: _dbSession.Transaction);
         return user;
     }
 
     public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""UserName"" = @UserName",
-            new { UserName = displayName });
+            new { UserName = displayName },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByUserIdStringAsync(string userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""UserId"" = @UserId",
-            new { UserId = userId });
+            new { UserId = userId },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByIdAsync(Guid id)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""Id"" = @Id",
-            new { Id = id });
+            new { Id = id },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdateLastLoginAsync(Guid id, DateTime lastLoginAt)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo"" SET ""LastLoginAt"" = @LastLoginAt WHERE ""Id"" = @Id",
-            new { Id = id, LastLoginAt = lastLoginAt });
+            new { Id = id, LastLoginAt = lastLoginAt },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByEmailAsync(string email)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""Email"" = @Email",
-            new { Email = email });
+            new { Email = email },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<bool> ExistsByEmailAsync(string email)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.ExecuteScalarAsync<bool>(
+        return await _dbSession.Connection.ExecuteScalarAsync<bool>(
             @"SELECT CASE WHEN EXISTS (
                 SELECT 1 FROM ""User"".""UserInfo"" WHERE ""Email"" = @Email
               ) THEN 1 ELSE 0 END",
-            new { Email = email });
+            new { Email = email },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByDeviceFingerprintAsync(string fingerprint)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo""
               WHERE ""DeviceFingerprint"" = @DeviceFingerprint AND ""AuthType"" = 'Guest'",
-            new { DeviceFingerprint = fingerprint });
+            new { DeviceFingerprint = fingerprint },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByEmailVerificationTokenAsync(string token)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""EmailVerificationToken"" = @Token",
-            new { Token = token });
+            new { Token = token },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task<UserInfo?> GetByPasswordResetTokenAsync(string token)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<UserInfo>(
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo"" WHERE ""PasswordResetToken"" = @Token",
-            new { Token = token });
+            new { Token = token },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdateFailedLoginAsync(Guid id, int attempts, DateTime? lockoutEnd)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""FailedLoginAttempts"" = @Attempts, ""LockoutEndAt"" = @LockoutEnd
               WHERE ""Id"" = @Id",
-            new { Id = id, Attempts = attempts, LockoutEnd = lockoutEnd });
+            new { Id = id, Attempts = attempts, LockoutEnd = lockoutEnd },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task ResetFailedLoginAsync(Guid id)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""FailedLoginAttempts"" = 0, ""LockoutEndAt"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = id });
+            new { Id = id },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdateEmailVerificationAsync(Guid id, bool isVerified)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""IsEmailVerified"" = @IsVerified,
                   ""EmailVerificationToken"" = NULL,
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = id, IsVerified = isVerified });
+            new { Id = id, IsVerified = isVerified },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdatePasswordResetTokenAsync(Guid id, string? token, DateTime? expiry)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""PasswordResetToken"" = @Token,
                   ""PasswordResetExpiry"" = @Expiry
               WHERE ""Id"" = @Id",
-            new { Id = id, Token = token, Expiry = expiry });
+            new { Id = id, Token = token, Expiry = expiry },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdatePasswordHashAsync(Guid id, string passwordHash)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""PasswordHash"" = @PasswordHash,
                   ""PasswordResetToken"" = NULL,
                   ""PasswordResetExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = id, PasswordHash = passwordHash });
+            new { Id = id, PasswordHash = passwordHash },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task LinkEmailAsync(Guid id, string email, string passwordHash,
         string? emailVerificationToken, DateTime? emailVerificationExpiry)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""AuthType"" = 'Email',
                   ""Email"" = @Email,
@@ -208,13 +207,13 @@ public class DapperAuthRepository : IAuthRepository
                 PasswordHash = passwordHash,
                 EmailVerificationToken = emailVerificationToken,
                 EmailVerificationExpiry = emailVerificationExpiry
-            });
+            },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UnlinkEmailAsync(Guid id, string deviceFingerprint)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""AuthType"" = 'Guest',
                   ""Email"" = NULL,
@@ -224,16 +223,17 @@ public class DapperAuthRepository : IAuthRepository
                   ""EmailVerificationToken"" = NULL,
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = id, DeviceFingerprint = deviceFingerprint });
+            new { Id = id, DeviceFingerprint = deviceFingerprint },
+            transaction: _dbSession.Transaction);
     }
 
     public async Task UpdateTransferPasswordHashAsync(Guid id, string? transferPasswordHash)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        await connection.ExecuteAsync(
+        await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
               SET ""TransferPasswordHash"" = @TransferPasswordHash
               WHERE ""Id"" = @Id",
-            new { Id = id, TransferPasswordHash = transferPasswordHash });
+            new { Id = id, TransferPasswordHash = transferPasswordHash },
+            transaction: _dbSession.Transaction);
     }
 }

@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using Dapper;
 using Game.Server.Configuration;
 using Game.Library.Shared.Dto;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tables;
@@ -19,6 +19,7 @@ public class EmailAuthTests : IAsyncLifetime
 {
     private readonly PostgresContainerFixture _postgres;
     private Game.Server.Database.IDbConnectionFactory _connectionFactory = null!;
+    private Game.Server.Database.IDbSession _dbSession = null!;
     private Mock<IEmailService> _mockEmailService = null!;
 
     public EmailAuthTests(PostgresContainerFixture postgres)
@@ -30,6 +31,7 @@ public class EmailAuthTests : IAsyncLifetime
     {
         await _postgres.ResetUserDataAsync();
         _connectionFactory = TestDataFixture.CreateConnectionFactory(_postgres.ConnectionString);
+        _dbSession = TestDataFixture.CreateDbSession(_connectionFactory);
         _mockEmailService = new Mock<IEmailService>();
         _mockEmailService
             .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -39,7 +41,10 @@ public class EmailAuthTests : IAsyncLifetime
             .ReturnsAsync(true);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public async Task DisposeAsync()
+    {
+        await _dbSession.DisposeAsync();
+    }
 
     // --- EmailLogin ---
 
@@ -274,10 +279,11 @@ public class EmailAuthTests : IAsyncLifetime
 
     private AuthService CreateAuthService()
     {
-        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var authRepo = new AuthRepository(_dbSession);
 
         return new AuthService(
             authRepo,
+            _dbSession,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),

@@ -1,7 +1,7 @@
 using Game.Server.Configuration;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
@@ -20,6 +20,7 @@ public class AccountLockoutTests : IAsyncLifetime
 {
     private readonly PostgresContainerFixture _postgres;
     private Game.Server.Database.IDbConnectionFactory _connectionFactory = null!;
+    private Game.Server.Database.IDbSession _dbSession = null!;
 
     // テスト用のEmailユーザー情報
     private const string TestEmail = "existing@example.com";
@@ -35,9 +36,13 @@ public class AccountLockoutTests : IAsyncLifetime
     {
         await _postgres.ResetUserDataAsync();
         _connectionFactory = TestDataFixture.CreateConnectionFactory(_postgres.ConnectionString);
+        _dbSession = TestDataFixture.CreateDbSession(_connectionFactory);
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public async Task DisposeAsync()
+    {
+        await _dbSession.DisposeAsync();
+    }
 
     [Fact]
     public async Task EmailLoginAsync_FiveFailedAttempts_LocksAccount()
@@ -212,7 +217,7 @@ public class AccountLockoutTests : IAsyncLifetime
 
     private AuthService CreateAuthService(IOptions<AuthSettings>? authOptions = null)
     {
-        var authRepo = new DapperAuthRepository(_connectionFactory);
+        var authRepo = new AuthRepository(_dbSession);
         var mockEmailService = new Mock<IEmailService>();
         mockEmailService
             .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -223,6 +228,7 @@ public class AccountLockoutTests : IAsyncLifetime
 
         return new AuthService(
             authRepo,
+            _dbSession,
             TestDataFixture.GetJwtOptions(),
             authOptions ?? TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),
