@@ -1,5 +1,5 @@
 using Game.Library.Shared.Dto;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tests.Fixtures;
@@ -96,7 +96,7 @@ public class GuestLoginTests : IAsyncLifetime
 
     private AuthService CreateAuthService()
     {
-        var authRepo = new DapperAuthRepository(_dbSession);
+        var authRepo = new AuthRepository(_dbSession);
         var mockEmailService = new Mock<IEmailService>();
         mockEmailService
             .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))

@@ -4,13 +4,13 @@ using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperSurvivorScoreRepository : ISurvivorScoreRepository
+public class SurvivorScoreRepository : ISurvivorScoreRepository
 {
     private readonly IDbSession _dbSession;
 
-    public DapperSurvivorScoreRepository(IDbSession dbSession)
+    public SurvivorScoreRepository(IDbSession dbSession)
     {
         _dbSession = dbSession;
     }

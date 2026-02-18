@@ -1,7 +1,7 @@
 using System.Text;
 using Game.Server.Configuration;
 using Game.Server.Database;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Chat;
@@ -141,10 +141,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISurvivorScoreService, SurvivorScoreService>();
 
         // Repositories
-        services.AddScoped<IAuthRepository, DapperAuthRepository>();
-        services.AddScoped<IUserRepository, DapperUserRepository>();
-        services.AddScoped<IRankingRepository, DapperRankingRepository>();
-        services.AddScoped<ISurvivorScoreRepository, DapperSurvivorScoreRepository>();
+        services.AddScoped<IAuthRepository, AuthRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRankingRepository, RankingRepository>();
+        services.AddScoped<ISurvivorScoreRepository, SurvivorScoreRepository>();
 
         return services;
     }

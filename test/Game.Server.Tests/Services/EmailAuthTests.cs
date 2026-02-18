@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using Dapper;
 using Game.Server.Configuration;
 using Game.Library.Shared.Dto;
-using Game.Server.Repositories.Dapper;
+using Game.Server.Repositories;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
 using Game.Server.Tables;
@@ -279,7 +279,7 @@ public class EmailAuthTests : IAsyncLifetime
 
     private AuthService CreateAuthService()
     {
-        var authRepo = new DapperAuthRepository(_dbSession);
+        var authRepo = new AuthRepository(_dbSession);
 
         return new AuthService(
             authRepo,

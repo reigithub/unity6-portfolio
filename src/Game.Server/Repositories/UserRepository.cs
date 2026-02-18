@@ -3,13 +3,13 @@ using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperUserRepository : IUserRepository
+public class UserRepository : IUserRepository
 {
     private readonly IDbSession _dbSession;
 
-    public DapperUserRepository(IDbSession dbSession)
+    public UserRepository(IDbSession dbSession)
     {
         _dbSession = dbSession;
     }

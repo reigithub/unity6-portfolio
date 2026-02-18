@@ -3,13 +3,13 @@ using Game.Server.Database;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperRankingRepository : IRankingRepository
+public class RankingRepository : IRankingRepository
 {
     private readonly IDbSession _dbSession;
 
-    public DapperRankingRepository(IDbSession dbSession)
+    public RankingRepository(IDbSession dbSession)
     {
         _dbSession = dbSession;
     }

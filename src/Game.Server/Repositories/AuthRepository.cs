@@ -3,9 +3,9 @@ using Game.Server.Database;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Tables;
 
-namespace Game.Server.Repositories.Dapper;
+namespace Game.Server.Repositories;
 
-public class DapperAuthRepository : IAuthRepository
+public class AuthRepository : IAuthRepository
 {
     private const string SelectColumns =
         @"""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
@@ -17,7 +17,7 @@ public class DapperAuthRepository : IAuthRepository
 
     private readonly IDbSession _dbSession;
 
-    public DapperAuthRepository(IDbSession dbSession)
+    public AuthRepository(IDbSession dbSession)
     {
         _dbSession = dbSession;
     }
