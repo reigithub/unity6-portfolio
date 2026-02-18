@@ -1,3 +1,4 @@
+using Game.Library.Shared.Constants;
 using Game.MVP.Core.Scenes;
 using R3;
 using UnityEngine;
@@ -271,7 +272,7 @@ namespace Game.MVP.Survivor.Scenes
             _statusView?.RemoveFromClassList("view-panel--hidden");
 
             if (_statusAuthType != null)
-                _statusAuthType.text = isGuest ? "Guest" : "Email";
+                _statusAuthType.text = isGuest ? AuthType.Guest : AuthType.Email;
 
             if (_statusUserId != null)
                 _statusUserId.text = formattedUserId ?? "-";
