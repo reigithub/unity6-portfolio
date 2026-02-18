@@ -51,8 +51,8 @@ public class RankingService : IRankingService
             RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
         }).ToList();
 
-        // キャッシュに保存（バックグラウンドで実行）
-        _ = _cacheService.SetRankingAsync(stageId, entries);
+        // キャッシュに保存（エラーはキャッシュサービス内で処理済み）
+        await _cacheService.SetRankingAsync(stageId, entries);
 
         return new RankingResponse
         {

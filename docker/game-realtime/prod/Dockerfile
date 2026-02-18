@@ -5,6 +5,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+COPY Directory.Packages.props ./
 COPY src/Game.Shared/Game.Shared.csproj src/Game.Shared/
 COPY src/Game.Realtime/Game.Realtime.csproj src/Game.Realtime/
 RUN dotnet restore src/Game.Realtime/Game.Realtime.csproj

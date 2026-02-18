@@ -10,32 +10,32 @@
 
   <ItemGroup>
     <!-- CLI Framework -->
-    <PackageReference Include="ConsoleAppFramework" Version="5.7.13" />
-    <PackageReference Include="Spectre.Console" Version="0.54.0" />
+    <PackageReference Include="ConsoleAppFramework" />
+    <PackageReference Include="Spectre.Console" />
 
     <!-- Protobuf -->
-    <PackageReference Include="Google.Protobuf" Version="3.29.3" />
-    <PackageReference Include="Google.Protobuf.Tools" Version="3.29.3" GeneratePathProperty="true" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Protobuf.Tools" GeneratePathProperty="true" />
 
     <!-- Configuration -->
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
 
     <!-- Database -->
-    <PackageReference Include="Npgsql" Version="9.0.3" />
-    <PackageReference Include="Dapper" Version="2.1.35" />
-    <PackageReference Include="FluentMigrator.Runner" Version="6.2.0" />
-    <PackageReference Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="FluentMigrator.Runner" />
+    <PackageReference Include="FluentMigrator.Runner.Postgres" />
 
     <!-- Serialization -->
-    <PackageReference Include="MessagePack" Version="3.1.3" />
-    <PackageReference Include="MasterMemory" Version="3.0.4" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="MasterMemory" />
 
     <!-- Analyzers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+    <PackageReference Include="StyleCop.Analyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
