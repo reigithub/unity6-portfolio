@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Game.Library.Shared.Constants;
 using Game.Server.Configuration;
 using Game.Server.Database;
 using Game.Library.Shared.Dto;
@@ -54,7 +55,7 @@ public class AuthService : IAuthService
         }
 
         // User ID login is only available for guest accounts (transfer password)
-        if (user.AuthType != "Guest")
+        if (user.AuthType != AuthType.Guest)
         {
             return new ApiError("User ID login is only available for guest accounts. Please use email login.",
                 "NOT_GUEST", StatusCodes.Status400BadRequest);
@@ -152,7 +153,7 @@ public class AuthService : IAuthService
         {
             UserName = $"Guest_{randomSuffix}",
             PasswordHash = null,
-            AuthType = "Guest",
+            AuthType = AuthType.Guest,
             DeviceFingerprint = request.DeviceFingerprint,
         };
 
@@ -299,7 +300,7 @@ public class AuthService : IAuthService
             return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
         }
 
-        if (user.AuthType != "Guest")
+        if (user.AuthType != AuthType.Guest)
         {
             return new ApiError("Only guest accounts can link to email", "NOT_GUEST", StatusCodes.Status400BadRequest);
         }
@@ -354,7 +355,7 @@ public class AuthService : IAuthService
             return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
         }
 
-        if (user.AuthType != "Email")
+        if (user.AuthType != AuthType.Email)
         {
             return new ApiError("Only email accounts can unlink", "NOT_EMAIL", StatusCodes.Status400BadRequest);
         }
@@ -428,7 +429,7 @@ public class AuthService : IAuthService
             return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
         }
 
-        if (user.AuthType != "Guest")
+        if (user.AuthType != AuthType.Guest)
         {
             return new ApiError("Only guest accounts can issue transfer passwords. Please unlink your email first.",
                 "NOT_GUEST", StatusCodes.Status400BadRequest);
