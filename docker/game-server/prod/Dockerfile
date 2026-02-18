@@ -6,6 +6,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # 依存関係のみ先にコピー（キャッシュ活用）
+COPY Directory.Packages.props ./
 COPY src/Game.Shared/Game.Shared.csproj src/Game.Shared/
 COPY src/Game.Server/Game.Server.csproj src/Game.Server/
 RUN dotnet restore src/Game.Shared/Game.Shared.csproj

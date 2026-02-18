@@ -5,6 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # プロジェクトファイルをコピーして依存関係を復元
+COPY Directory.Packages.props ./
 COPY src/Game.Shared/Game.Shared.csproj src/Game.Shared/
 COPY src/Game.Tools/Game.Tools.csproj src/Game.Tools/
 RUN dotnet restore src/Game.Tools/Game.Tools.csproj
