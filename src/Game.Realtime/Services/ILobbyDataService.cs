@@ -1,4 +1,4 @@
-using Game.Library.Shared.Realtime.Dto;
+using Game.Library.Shared.Dto;
 
 namespace Game.Realtime.Services;
 

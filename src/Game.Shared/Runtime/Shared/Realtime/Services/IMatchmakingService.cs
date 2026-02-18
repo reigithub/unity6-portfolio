@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Game.Library.Shared.Realtime.Dto;
+using Game.Library.Shared.Dto;
 using MagicOnion;
 
 namespace Game.Library.Shared.Realtime.Services

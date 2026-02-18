@@ -1,9 +1,12 @@
 using MessagePack;
 
-namespace Game.Library.Shared.Realtime.Dto
+namespace Game.Library.Shared.Dto
 {
+    /// <summary>
+    /// チャットルームメンバー情報 DTO
+    /// </summary>
     [MessagePackObject]
-    public class LobbyPlayerInfo
+    public class ChatRoomMemberInfo
     {
         [Key(0)]
         public string UserId { get; set; } = string.Empty;
@@ -12,9 +15,9 @@ namespace Game.Library.Shared.Realtime.Dto
         public string PlayerName { get; set; } = string.Empty;
 
         [Key(2)]
-        public bool IsReady { get; set; }
+        public long JoinedAt { get; set; }
 
         [Key(3)]
-        public bool IsHost { get; set; }
+        public int Permissions { get; set; }
     }
 }

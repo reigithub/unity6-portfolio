@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Game.Library.Shared.Chat.Dto;
 using Game.Library.Shared.Dto;
 using Game.Shared.Services;
 using Microsoft.AspNetCore.SignalR.Client;

@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using Game.Library.Shared.Chat.Dto;
 using MessagePack;
 using Key = MessagePack.KeyAttribute;
 
