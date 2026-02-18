@@ -7,42 +7,42 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DistributedLock.Redis" Version="1.1.1" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <PackageReference Include="DistributedLock.Redis" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 
     <!-- Database -->
-    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Dapper" />
 
     <!-- Redis/Valkey -->
-    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
-    <PackageReference Include="Npgsql" Version="9.0.3" />
-    <PackageReference Include="FluentMigrator" Version="6.2.0" />
-    <PackageReference Include="FluentMigrator.Runner" Version="6.2.0" />
-    <PackageReference Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="FluentMigrator" />
+    <PackageReference Include="FluentMigrator.Runner" />
+    <PackageReference Include="FluentMigrator.Runner.Postgres" />
 
     <!-- Authentication -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="BCrypt.Net-Next" />
 
     <!-- Email -->
-    <PackageReference Include="Resend" Version="0.2.1" />
+    <PackageReference Include="Resend" />
 
     <!-- SignalR -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" />
 
     <!-- Serialization -->
-    <PackageReference Include="MessagePack" Version="3.1.4" />
-    <PackageReference Include="MasterMemory" Version="3.0.4" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="MasterMemory" />
 
     <!-- API Documentation -->
-    <PackageReference Include="Scalar.AspNetCore" Version="2.12.30" />
+    <PackageReference Include="Scalar.AspNetCore" />
 
     <!-- Analyzers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+    <PackageReference Include="StyleCop.Analyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

@@ -8,28 +8,28 @@
 
   <ItemGroup>
     <!-- MagicOnion -->
-    <PackageReference Include="DistributedLock.Redis" Version="1.1.1" />
-    <PackageReference Include="MagicOnion.Server" Version="7.0.9" />
-    <PackageReference Include="MagicOnion.Server.Redis" Version="7.0.9" />
+    <PackageReference Include="DistributedLock.Redis" />
+    <PackageReference Include="MagicOnion.Server" />
+    <PackageReference Include="MagicOnion.Server.Redis" />
 
     <!-- gRPC -->
-    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.67.0" />
+    <PackageReference Include="Grpc.AspNetCore.Server" />
 
     <!-- Redis/Valkey -->
-    <PackageReference Include="StackExchange.Redis" Version="2.8.41" />
+    <PackageReference Include="StackExchange.Redis" />
 
     <!-- Authentication -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
 
     <!-- Serialization -->
-    <PackageReference Include="MessagePack" Version="3.1.4" />
+    <PackageReference Include="MessagePack" />
 
     <!-- Analyzers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+    <PackageReference Include="StyleCop.Analyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
