@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Dapper;
+using Game.Library.Shared.Constants;
 using Game.Server.Configuration;
 using Game.Library.Shared.Dto;
 using Game.Server.Repositories;
@@ -337,7 +338,7 @@ public class EmailAuthTests : IAsyncLifetime
             UserName = userName,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            AuthType = "Email",
+            AuthType = AuthType.Email,
             EmailVerificationToken = verificationToken,
             EmailVerificationExpiry = DateTime.UtcNow.AddHours(24),
         };

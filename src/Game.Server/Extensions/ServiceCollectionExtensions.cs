@@ -50,7 +50,7 @@ public static class ServiceCollectionExtensions
             }
         });
 
-        services.AddScoped<ISurvivorRankingCacheService, ValkeySurvivorRankingCacheService>();
+        services.AddScoped<ISurvivorRankingCacheService, SurvivorRankingCacheService>();
 
         return services;
     }

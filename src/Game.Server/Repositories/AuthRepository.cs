@@ -1,4 +1,5 @@
 using Dapper;
+using Game.Library.Shared.Constants;
 using Game.Server.Database;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Tables;
@@ -110,8 +111,8 @@ public class AuthRepository : IAuthRepository
         return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}
               FROM ""User"".""UserInfo""
-              WHERE ""DeviceFingerprint"" = @DeviceFingerprint AND ""AuthType"" = 'Guest'",
-            new { DeviceFingerprint = fingerprint },
+              WHERE ""DeviceFingerprint"" = @DeviceFingerprint AND ""AuthType"" = @AuthType",
+            new { DeviceFingerprint = fingerprint, AuthType = AuthType.Guest },
             transaction: _dbSession.Transaction);
     }
 
@@ -193,7 +194,7 @@ public class AuthRepository : IAuthRepository
     {
         await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
-              SET ""AuthType"" = 'Email',
+              SET ""AuthType"" = @AuthType,
                   ""Email"" = @Email,
                   ""PasswordHash"" = @PasswordHash,
                   ""DeviceFingerprint"" = NULL,
@@ -203,6 +204,7 @@ public class AuthRepository : IAuthRepository
             new
             {
                 Id = id,
+                AuthType = AuthType.Email,
                 Email = email,
                 PasswordHash = passwordHash,
                 EmailVerificationToken = emailVerificationToken,
@@ -215,7 +217,7 @@ public class AuthRepository : IAuthRepository
     {
         await _dbSession.Connection.ExecuteAsync(
             @"UPDATE ""User"".""UserInfo""
-              SET ""AuthType"" = 'Guest',
+              SET ""AuthType"" = @AuthType,
                   ""Email"" = NULL,
                   ""PasswordHash"" = NULL,
                   ""DeviceFingerprint"" = @DeviceFingerprint,
@@ -223,7 +225,7 @@ public class AuthRepository : IAuthRepository
                   ""EmailVerificationToken"" = NULL,
                   ""EmailVerificationExpiry"" = NULL
               WHERE ""Id"" = @Id",
-            new { Id = id, DeviceFingerprint = deviceFingerprint },
+            new { Id = id, AuthType = AuthType.Guest, DeviceFingerprint = deviceFingerprint },
             transaction: _dbSession.Transaction);
     }
 

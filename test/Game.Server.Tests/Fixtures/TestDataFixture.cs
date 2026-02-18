@@ -1,4 +1,5 @@
 using Dapper;
+using Game.Library.Shared.Constants;
 using Game.Server.Configuration;
 using Game.Server.Database;
 using Game.Server.Tables;
@@ -79,7 +80,7 @@ public static class TestDataFixture
                 UserName = "Player1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
                 Level = 5,
-                AuthType = "Password",
+                AuthType = AuthType.Email,
             },
             new UserInfo
             {
@@ -88,7 +89,7 @@ public static class TestDataFixture
                 UserName = "Player2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password2!"),
                 Level = 3,
-                AuthType = "Password",
+                AuthType = AuthType.Email,
             },
             new UserInfo
             {
@@ -97,7 +98,7 @@ public static class TestDataFixture
                 UserName = "Player3",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password3!"),
                 Level = 1,
-                AuthType = "Password",
+                AuthType = AuthType.Email,
             },
         };
 
@@ -126,7 +127,7 @@ public static class TestDataFixture
             UserName = "Guest_12345678",
             PasswordHash = null,
             Level = 1,
-            AuthType = "Guest",
+            AuthType = AuthType.Guest,
             DeviceFingerprint = "test-device-fingerprint-0123456789abcdef",
         };
         await connection.ExecuteAsync(
@@ -151,7 +152,7 @@ public static class TestDataFixture
             UserName = "EmailPlayer",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
             Level = 2,
-            AuthType = "Email",
+            AuthType = AuthType.Email,
             Email = "existing@example.com",
             IsEmailVerified = true,
         };
@@ -178,7 +179,7 @@ public static class TestDataFixture
             PasswordHash = null,
             TransferPasswordHash = BCrypt.Net.BCrypt.HashPassword("TransferPW1!"),
             Level = 1,
-            AuthType = "Guest",
+            AuthType = AuthType.Guest,
             DeviceFingerprint = "test-device-fingerprint-transfer-user",
         };
         await connection.ExecuteAsync(

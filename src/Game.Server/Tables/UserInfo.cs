@@ -4,6 +4,7 @@ namespace Game.Server.Tables;
 
 public class UserInfo
 {
+    // DB column is varchar(20). Use AuthType.Guest / AuthType.Email constants for values.
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
     public string UserId { get; set; } = UserIdGenerator.Generate();
@@ -22,7 +23,7 @@ public class UserInfo
 
     public string? Email { get; set; }
 
-    public string AuthType { get; set; } = "Password";
+    public string AuthType { get; set; } = Game.Library.Shared.Constants.AuthType.Guest;
 
     public string? DeviceFingerprint { get; set; }
 

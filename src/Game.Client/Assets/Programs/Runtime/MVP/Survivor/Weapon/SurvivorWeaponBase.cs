@@ -438,4 +438,161 @@ namespace Game.MVP.Survivor.Weapon
             _onCooldownChanged.Dispose();
         }
     }
+
+    /// <summary>
+    /// プール管理機能付き武器基底クラス（ジェネリック）
+    /// 弾やダメージエリアなどのプールアイテムを管理する
+    /// </summary>
+    public abstract class SurvivorWeaponBase<TPoolItem> : SurvivorWeaponBase
+        where TPoolItem : MonoBehaviour, IPoolableWeaponItem
+    {
+        private const float PoolDisposeTimeout = 10f;
+        private const int PoolDisposeCheckInterval = 100;
+
+        private readonly Dictionary<string, WeaponObjectPool<TPoolItem>> _poolsByAssetName = new();
+        private readonly Dictionary<string, GameObject> _loadedPrefabs = new();
+
+        protected WeaponObjectPool<TPoolItem> CurrentPool { get; private set; }
+        protected bool IsPoolInitialized { get; private set; }
+
+        protected SurvivorWeaponBase(SurvivorWeaponMaster weaponMaster) : base(weaponMaster)
+        {
+        }
+
+        public override async UniTask InitializeAsync(
+            Transform poolParent,
+            Transform owner,
+            float damageMultiplier,
+            SurvivorVfxSpawner vfxSpawner)
+        {
+            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner);
+
+            if (!string.IsNullOrEmpty(_currentAssetName))
+            {
+                await GetOrCreatePoolAsync(_currentAssetName);
+            }
+
+            IsPoolInitialized = true;
+        }
+
+        protected override void OnAssetNameChanged(string oldAssetName, string newAssetName)
+        {
+            SwitchPoolAsync(oldAssetName, newAssetName)
+                .ForgetWithHandler($"{GetType().Name}.SwitchPool");
+        }
+
+        private async UniTask SwitchPoolAsync(string oldAssetName, string newAssetName)
+        {
+            try
+            {
+                CurrentPool = await GetOrCreatePoolAsync(newAssetName);
+
+                if (!string.IsNullOrEmpty(oldAssetName) &&
+                    _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
+                {
+                    DisposeOldPoolAsync(oldAssetName, oldPool)
+                        .ForgetWithHandler($"{GetType().Name}.DisposeOldPool");
+                }
+
+                Debug.Log($"[{GetType().Name}] Switched to pool: {newAssetName}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[{GetType().Name}] SwitchPoolAsync failed: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        private async UniTask DisposeOldPoolAsync(string assetName, WeaponObjectPool<TPoolItem> pool)
+        {
+            try
+            {
+                float elapsed = 0f;
+                float checkIntervalSec = PoolDisposeCheckInterval / 1000f;
+
+                while (pool.ActiveCount > 0 && elapsed < PoolDisposeTimeout)
+                {
+                    await UniTask.Delay(PoolDisposeCheckInterval);
+                    elapsed += checkIntervalSec;
+                }
+
+                pool.Clear();
+                _poolsByAssetName.Remove(assetName);
+
+                if (_loadedPrefabs.TryGetValue(assetName, out var prefab))
+                {
+                    AssetService.ReleaseAsset(prefab);
+                    _loadedPrefabs.Remove(assetName);
+                }
+
+                Debug.Log($"[{GetType().Name}] Disposed old pool: {assetName}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[{GetType().Name}] DisposeOldPoolAsync failed for {assetName}: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// アセット名に対応するプールを取得または作成
+        /// </summary>
+        protected async UniTask<WeaponObjectPool<TPoolItem>> GetOrCreatePoolAsync(string assetName)
+        {
+            if (_poolsByAssetName.TryGetValue(assetName, out var existingPool))
+            {
+                CurrentPool = existingPool;
+                return existingPool;
+            }
+
+            var prefab = await AssetService.LoadAssetAsync<GameObject>(assetName);
+            _loadedPrefabs[assetName] = prefab;
+
+            var pool = new WeaponObjectPool<TPoolItem>(
+                prefab,
+                _limit,
+                _poolParent,
+                InitializePoolItem);
+
+            _poolsByAssetName[assetName] = pool;
+            CurrentPool = pool;
+
+            return pool;
+        }
+
+        /// <summary>
+        /// プールアイテム生成時の初期化コールバック（イベント登録用）
+        /// </summary>
+        protected abstract void InitializePoolItem(TPoolItem item);
+
+        /// <summary>
+        /// アイテムを所属するプールに返却する（全プール検索）
+        /// </summary>
+        protected bool TryReturnToAnyPool(TPoolItem item)
+        {
+            foreach (var pool in _poolsByAssetName.Values)
+            {
+                if (pool.TryReturn(item))
+                    return true;
+            }
+            return false;
+        }
+
+        public override void Dispose()
+        {
+            if (_isDisposed) return;
+
+            foreach (var pool in _poolsByAssetName.Values)
+            {
+                pool.Clear();
+            }
+            _poolsByAssetName.Clear();
+
+            foreach (var prefab in _loadedPrefabs.Values)
+            {
+                AssetService.ReleaseAsset(prefab);
+            }
+            _loadedPrefabs.Clear();
+
+            base.Dispose();
+        }
+    }
 }

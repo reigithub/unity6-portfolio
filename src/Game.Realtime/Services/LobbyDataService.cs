@@ -92,22 +92,25 @@ public class LobbyDataService : ILobbyDataService
 
     public async Task<bool> RemovePlayerAsync(string lobbyId, string userId)
     {
-        var db = _redis.GetDatabase();
-
-        var removed = await db.HashDeleteAsync($"lobby:{lobbyId}:players", userId);
-        if (!removed) return false;
-
-        await db.KeyDeleteAsync($"lobby:player:{userId}");
-
-        // プレイヤーがいなくなったらロビーを削除
-        var remainingPlayers = await db.HashLengthAsync($"lobby:{lobbyId}:players");
-        if (remainingPlayers == 0)
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
         {
-            await DeleteAsync(lobbyId);
-        }
+            var db = _redis.GetDatabase();
 
-        _logger.LogDebug("Player {UserId} removed from lobby {LobbyId}", userId, lobbyId);
-        return true;
+            var removed = await db.HashDeleteAsync($"lobby:{lobbyId}:players", userId);
+            if (!removed) return false;
+
+            await db.KeyDeleteAsync($"lobby:player:{userId}");
+
+            // プレイヤーがいなくなったらロビーを削除
+            var remainingPlayers = await db.HashLengthAsync($"lobby:{lobbyId}:players");
+            if (remainingPlayers == 0)
+            {
+                await DeleteAsync(lobbyId);
+            }
+
+            _logger.LogDebug("Player {UserId} removed from lobby {LobbyId}", userId, lobbyId);
+            return true;
+        }
     }
 
     public async Task<LobbyInfo?> GetLobbyAsync(string lobbyId)

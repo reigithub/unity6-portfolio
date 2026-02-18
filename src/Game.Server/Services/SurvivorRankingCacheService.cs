@@ -2,6 +2,7 @@ using System.Text.Json;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
+using Medallion.Threading;
 using StackExchange.Redis;
 
 namespace Game.Server.Services;
@@ -10,21 +11,24 @@ namespace Game.Server.Services;
 /// Valkey (Redis互換) を使用したランキングキャッシュサービス
 /// Sorted Set でランキングを管理し、高速な順位取得を実現
 /// </summary>
-public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
+public class SurvivorRankingCacheService : ISurvivorRankingCacheService
 {
     private readonly IConnectionMultiplexer _redis;
-    private readonly ILogger<ValkeySurvivorRankingCacheService> _logger;
+    private readonly IDistributedLockProvider _lockProvider;
+    private readonly ILogger<SurvivorRankingCacheService> _logger;
     private readonly TimeSpan _defaultExpiry = TimeSpan.FromMinutes(5);
 
     // キー形式
     private const string RankingKeyPrefix = "ranking:survivor:";
     private const string RankingDataKeyPrefix = "ranking:survivor:data:";
 
-    public ValkeySurvivorRankingCacheService(
+    public SurvivorRankingCacheService(
         IConnectionMultiplexer redis,
-        ILogger<ValkeySurvivorRankingCacheService> logger)
+        IDistributedLockProvider lockProvider,
+        ILogger<SurvivorRankingCacheService> logger)
     {
         _redis = redis;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -132,18 +136,22 @@ public class ValkeySurvivorRankingCacheService : ISurvivorRankingCacheService
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
 
-            // 現在のスコアを取得
-            var currentScore = await db.SortedSetScoreAsync(rankingKey, userId.ToString());
-
-            // 新しいスコアが既存のスコアより高い場合のみ更新
-            // スコアは負の値で保存されているため、比較を反転
-            if (currentScore.HasValue && -currentScore.Value >= score)
+            await using (await _lockProvider.AcquireLockAsync($"lock:ranking:survivor:{stageId}"))
             {
-                return false;
+                // 現在のスコアを取得
+                var currentScore = await db.SortedSetScoreAsync(rankingKey, userId.ToString());
+
+                // 新しいスコアが既存のスコアより高い場合のみ更新
+                // スコアは負の値で保存されているため、比較を反転
+                if (currentScore.HasValue && -currentScore.Value >= score)
+                {
+                    return false;
+                }
+
+                // スコアを更新（負の値として保存）
+                await db.SortedSetAddAsync(rankingKey, userId.ToString(), -score);
             }
 
-            // スコアを更新（負の値として保存）
-            await db.SortedSetAddAsync(rankingKey, userId.ToString(), -score);
             return true;
         }
         catch (RedisConnectionException ex)

@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Combat;
-using Game.Shared.Extensions;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -13,7 +9,7 @@ namespace Game.MVP.Survivor.Weapon
     /// 自動発射武器
     /// 最も近い敵に向かって自動的に弾を発射
     /// </summary>
-    public class SurvivorAutoFireWeapon : SurvivorWeaponBase
+    public class SurvivorAutoFireWeapon : SurvivorWeaponBase<SurvivorProjectile>
     {
         // Profiler markers
         private static readonly ProfilerMarker s_fireMarker = new("ProfilerMarker.Weapon.Fire");
@@ -22,16 +18,7 @@ namespace Game.MVP.Survivor.Weapon
         private static readonly ProfilerMarker s_spawnProjectileMarker = new("ProfilerMarker.Weapon.SpawnProjectile");
 
         private const float ProjectileSpawnHeight = 1f;         // 弾の発射高さオフセット
-        private const float PoolDisposeTimeout = 10f;           // プール破棄タイムアウト（秒）
-        private const int PoolDisposeCheckInterval = 100;       // プール破棄チェック間隔（ミリ秒）
         private const int NearbyEnemySearchBufferSize = 50;     // 近くの敵検索バッファサイズ
-
-        // アセット名ごとのプールを管理（レベルアップ時の再利用のため）
-        private readonly Dictionary<string, WeaponObjectPool<SurvivorProjectile>> _poolsByAssetName = new();
-        // ロードしたプレハブを追跡（Dispose時にリリース用）
-        private readonly Dictionary<string, GameObject> _loadedPrefabs = new();
-        private WeaponObjectPool<SurvivorProjectile> _currentPool;
-        private bool _isInitialized;
 
         // Cache
         private readonly Collider[] _hitBuffer = new Collider[NearbyEnemySearchBufferSize];
@@ -40,128 +27,17 @@ namespace Game.MVP.Survivor.Weapon
         {
         }
 
-        public override async UniTask InitializeAsync(
-            Transform poolParent,
-            Transform owner,
-            float damageMultiplier,
-            SurvivorVfxSpawner vfxSpawner)
+        protected override void InitializePoolItem(SurvivorProjectile projectile)
         {
-            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner);
-
-            // 初期プールを作成
-            if (!string.IsNullOrEmpty(_currentAssetName))
-            {
-                await GetOrCreatePoolAsync(_currentAssetName);
-            }
-
-            _isInitialized = true;
-        }
-
-        /// <summary>
-        /// アセット名が変更された時（レベルアップで見た目が変わる場合）
-        /// </summary>
-        protected override void OnAssetNameChanged(string oldAssetName, string newAssetName)
-        {
-            // 非同期でプールを切り替え、古いプールは破棄
-            SwitchPoolAsync(oldAssetName, newAssetName).ForgetWithHandler("SurvivorAutoFireWeapon.SwitchPool");
-        }
-
-        private async UniTask SwitchPoolAsync(string oldAssetName, string newAssetName)
-        {
-            try
-            {
-                // 新しいプールを作成/取得
-                _currentPool = await GetOrCreatePoolAsync(newAssetName);
-
-                // 古いプールを破棄（アクティブなプロジェクタイルがなくなってから）
-                if (!string.IsNullOrEmpty(oldAssetName) && _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
-                {
-                    // 遅延破棄を開始（アクティブなプロジェクタイルが全て戻るまで待つ）
-                    DisposeOldPoolAsync(oldAssetName, oldPool).ForgetWithHandler("SurvivorAutoFireWeapon.DisposeOldPool");
-                }
-
-                Debug.Log($"[SurvivorAutoFireWeapon] Switched to pool: {newAssetName}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[SurvivorAutoFireWeapon] SwitchPoolAsync failed: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        /// <summary>
-        /// 古いプールをアクティブなプロジェクタイルがなくなってから破棄
-        /// </summary>
-        private async UniTask DisposeOldPoolAsync(string assetName, WeaponObjectPool<SurvivorProjectile> pool)
-        {
-            try
-            {
-                // アクティブなプロジェクタイルが全て戻るまで待機
-                float elapsed = 0f;
-                float checkIntervalSec = PoolDisposeCheckInterval / 1000f;
-
-                while (pool.ActiveCount > 0 && elapsed < PoolDisposeTimeout)
-                {
-                    await UniTask.Delay(PoolDisposeCheckInterval);
-                    elapsed += checkIntervalSec;
-                }
-
-                // プールを破棄
-                pool.Clear();
-                _poolsByAssetName.Remove(assetName);
-
-                // ロードしたプレハブをリリース
-                if (_loadedPrefabs.TryGetValue(assetName, out var prefab))
-                {
-                    AssetService.ReleaseAsset(prefab);
-                    _loadedPrefabs.Remove(assetName);
-                }
-
-                Debug.Log($"[SurvivorAutoFireWeapon] Disposed old pool: {assetName}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[SurvivorAutoFireWeapon] DisposeOldPoolAsync failed for {assetName}: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        /// <summary>
-        /// アセット名に対応するプールを取得または作成
-        /// 同じアセット名なら既存プールを再利用
-        /// </summary>
-        private async UniTask<WeaponObjectPool<SurvivorProjectile>> GetOrCreatePoolAsync(string assetName)
-        {
-            // 既存プールがあれば再利用
-            if (_poolsByAssetName.TryGetValue(assetName, out var existingPool))
-            {
-                _currentPool = existingPool;
-                return existingPool;
-            }
-
-            // 新しいプールを作成（Limitをプールサイズとして使用）
-            var prefab = await AssetService.LoadAssetAsync<GameObject>(assetName);
-            _loadedPrefabs[assetName] = prefab; // リリース用に追跡
-
-            var pool = new WeaponObjectPool<SurvivorProjectile>(
-                prefab,
-                _limit,
-                _poolParent,
-                projectile =>
-                {
-                    projectile.OnHit += OnProjectileHit;
-                    projectile.OnLifetimeExpired += ReturnToPool;
-                });
-
-            _poolsByAssetName[assetName] = pool;
-            _currentPool = pool;
-
-            return pool;
+            projectile.OnHit += OnProjectileHit;
+            projectile.OnLifetimeExpired += ReturnToPool;
         }
 
         protected override bool TryAttack()
         {
             using (s_fireMarker.Auto())
             {
-                if (!_isInitialized || _currentPool == null) return false;
+                if (!IsPoolInitialized || CurrentPool == null) return false;
 
                 // ターゲットを取得（ロックオン優先）
                 if (!TryGetTarget(out var target)) return false;
@@ -253,7 +129,7 @@ namespace Game.MVP.Survivor.Weapon
         {
             using (s_spawnProjectileMarker.Auto())
             {
-                var projectile = _currentPool.Get();
+                var projectile = CurrentPool.Get();
                 if (projectile == null) return;
 
                 Vector3 spawnPosition = _owner.position + Vector3.up * ProjectileSpawnHeight;
@@ -276,14 +152,7 @@ namespace Game.MVP.Survivor.Weapon
         private void ReturnToPool(SurvivorProjectile projectile)
         {
             projectile.gameObject.SetActive(false);
-            // プールに戻す（どのプールに属しているかはProjectilePoolが管理）
-            foreach (var pool in _poolsByAssetName.Values)
-            {
-                if (pool.TryReturn(projectile))
-                {
-                    return;
-                }
-            }
+            TryReturnToAnyPool(projectile);
         }
 
         private void OnProjectileHit(SurvivorProjectile projectile, Collider other)
@@ -323,27 +192,6 @@ namespace Game.MVP.Survivor.Weapon
                     ReturnToPool(projectile);
                 }
             }
-        }
-
-        public override void Dispose()
-        {
-            if (_isDisposed) return;
-
-            // 全プールをクリア
-            foreach (var pool in _poolsByAssetName.Values)
-            {
-                pool.Clear();
-            }
-            _poolsByAssetName.Clear();
-
-            // ロードしたプレハブをリリース
-            foreach (var prefab in _loadedPrefabs.Values)
-            {
-                AssetService.ReleaseAsset(prefab);
-            }
-            _loadedPrefabs.Clear();
-
-            base.Dispose();
         }
     }
 }

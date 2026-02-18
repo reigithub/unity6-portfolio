@@ -1,9 +1,8 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
-using Grpc.Core;
+using Game.Realtime.Extensions;
 using MagicOnion;
 using MagicOnion.Server;
-using Microsoft.AspNetCore.Http;
 
 namespace Game.Realtime.Services;
 
@@ -21,14 +20,9 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
         _logger = logger;
     }
 
-    private string GetUserId()
-    {
-        return Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value ?? "";
-    }
-
     public async UnaryResult<MatchmakingResponse> EnqueueAsync(MatchmakingRequest request)
     {
-        var userId = GetUserId();
+        var userId = Context.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             return new MatchmakingResponse
@@ -69,7 +63,7 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
     public async UnaryResult<MatchmakingResponse> DequeueAsync(MatchmakingRequest request)
     {
-        var userId = GetUserId();
+        var userId = Context.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             return new MatchmakingResponse

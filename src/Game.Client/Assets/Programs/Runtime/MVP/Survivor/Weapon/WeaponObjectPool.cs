@@ -10,7 +10,7 @@ namespace Game.MVP.Survivor.Weapon
     /// Projectile、GroundDamageArea等で共通利用
     /// </summary>
     /// <typeparam name="T">プール対象のMonoBehaviour型（IPoolableWeaponItem実装）</typeparam>
-    internal class WeaponObjectPool<T> where T : MonoBehaviour, IPoolableWeaponItem
+    public class WeaponObjectPool<T> where T : MonoBehaviour, IPoolableWeaponItem
     {
         // Profiler markers
         private static readonly ProfilerMarker s_getItemMarker = new("ProfilerMarker.Pool.GetItem");
