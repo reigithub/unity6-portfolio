@@ -2,7 +2,6 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Models;
-using MessagePack;
 
 namespace Game.Shared.Services
 {
@@ -182,10 +181,5 @@ namespace Game.Shared.Services
             }
         }
 
-        /// <summary>
-        /// 空リクエスト用のダミー型（refresh 用）
-        /// </summary>
-        [MessagePackObject(true)]
-        public class EmptyRequest { }
     }
 }

@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Game.Library.Shared.Realtime.Dto;
+using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Realtime.Client
 {

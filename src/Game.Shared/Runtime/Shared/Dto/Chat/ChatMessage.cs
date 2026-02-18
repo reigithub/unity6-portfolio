@@ -1,6 +1,6 @@
 using MessagePack;
 
-namespace Game.Library.Shared.Chat.Dto
+namespace Game.Library.Shared.Dto
 {
     /// <summary>
     /// チャットメッセージ

@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Game.Library.Shared.Chat.Dto;
 using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Chat.Client

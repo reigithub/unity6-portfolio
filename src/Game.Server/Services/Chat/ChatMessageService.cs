@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
 using StackExchange.Redis;
 
 namespace Game.Server.Services.Chat;

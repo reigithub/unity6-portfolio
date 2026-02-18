@@ -1,4 +1,5 @@
-using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
+using Game.Library.Shared.Enums;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
 using Moq;

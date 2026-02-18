@@ -1,6 +1,6 @@
 using System;
 
-namespace Game.Library.Shared.Chat.Dto
+namespace Game.Library.Shared.Enums
 {
     /// <summary>
     /// チャットルーム権限ビットフラグ

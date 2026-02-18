@@ -1,4 +1,4 @@
-using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
 
 namespace Game.Server.Services.Chat;
 

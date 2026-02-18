@@ -1,4 +1,4 @@
-using Game.Library.Shared.Chat.Dto;
+using Game.Library.Shared.Dto;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Microsoft.Extensions.Logging;
