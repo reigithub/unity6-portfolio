@@ -1,6 +1,9 @@
 using Game.Library.Shared.Dto;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
+using Game.Server.Shared.Exceptions;
+using Game.Server.Validation;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -11,137 +14,109 @@ namespace Game.Server.Tests.Hubs;
 /// </summary>
 public class ChatHubTests
 {
+    private readonly Mock<ILogger<ChatHub>> _logger;
+    private readonly Mock<IChatMessageService> _chatMessageService;
+    private readonly Mock<IChatRoomDataService> _roomDataService;
+    private readonly ChatPermissionValidator _validator;
+    private readonly Mock<IChatInputValidator> _chatInputValidator;
+
+    public ChatHubTests()
+    {
+        _logger = new Mock<ILogger<ChatHub>>();
+        _chatMessageService = new Mock<IChatMessageService>();
+        _roomDataService = new Mock<IChatRoomDataService>();
+        _validator = new ChatPermissionValidator(_roomDataService.Object);
+        _chatInputValidator = new Mock<IChatInputValidator>();
+    }
+
+    private ChatHub CreateHub()
+    {
+        return new ChatHub(
+            _logger.Object,
+            _chatMessageService.Object,
+            _roomDataService.Object,
+            _validator,
+            _chatInputValidator.Object);
+    }
+
     [Fact]
     public void ChatHub_CanBeInstantiated()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
-
-        // Act
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
-
-        // Assert
+        var hub = CreateHub();
         Assert.NotNull(hub);
     }
 
     [Fact]
     public void ChatHub_ImplementsHubOfIChatHubClient()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
-
-        // Act
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
-
-        // Assert
-        Assert.IsAssignableFrom<Microsoft.AspNetCore.SignalR.Hub<IChatHubClient>>(hub);
+        var hub = CreateHub();
+        Assert.IsAssignableFrom<Hub<IChatHubClient>>(hub);
     }
 
     [Fact]
-    public async Task GetRecentMessagesAsync_ReturnsEmptyArray_WhenRoomIdEmpty()
+    public async Task GetRecentMessagesAsync_ThrowsErrorException_WhenRoomIdEmpty()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+        _chatInputValidator
+            .Setup(v => v.ValidateRoomId(""))
+            .Throws(new ErrorException("INVALID_INPUT", "Room ID is required and must not exceed 64 characters."));
 
-        // Act
-        var result = await hub.GetRecentMessagesAsync("", 10);
+        var hub = CreateHub();
 
-        // Assert
-        Assert.Empty(result);
+        await Assert.ThrowsAsync<ErrorException>(() => hub.GetRecentMessagesAsync("", 10));
     }
 
     [Fact]
     public async Task GetRecentMessagesAsync_DelegatesToService()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
-
         var expectedMessages = new[]
         {
             new ChatMessage { UserId = "user1", Content = "Hello", Timestamp = 1000 },
         };
-        chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
+        _chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
             .ReturnsAsync(expectedMessages);
 
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+        var hub = CreateHub();
 
-        // Act
         var result = await hub.GetRecentMessagesAsync("room1", 10);
 
-        // Assert
         Assert.Single(result);
         Assert.Equal("user1", result[0].UserId);
     }
 
     [Fact]
-    public async Task GetRecentMessagesAsync_ReturnsEmptyArray_WhenRoomIdTooLong()
+    public async Task GetRecentMessagesAsync_ThrowsErrorException_WhenRoomIdTooLong()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+        var longRoomId = new string('x', 65);
+        _chatInputValidator
+            .Setup(v => v.ValidateRoomId(longRoomId))
+            .Throws(new ErrorException("INVALID_INPUT", "Room ID is required and must not exceed 64 characters."));
 
-        // Act
-        var result = await hub.GetRecentMessagesAsync(new string('x', 65), 10);
+        var hub = CreateHub();
 
-        // Assert
-        Assert.Empty(result);
+        await Assert.ThrowsAsync<ErrorException>(() => hub.GetRecentMessagesAsync(longRoomId, 10));
     }
 
     [Fact]
-    public async Task GetRecentMessagesAsync_ClampsCount_WhenOutOfRange()
+    public async Task GetRecentMessagesAsync_ThrowsErrorException_WhenCountOutOfRange()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
+        _chatInputValidator
+            .Setup(v => v.ValidateMessageCount(200))
+            .Throws(new ErrorException("INVALID_INPUT", "Message count must be between 1 and 100."));
 
-        chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
-            .ReturnsAsync(Array.Empty<ChatMessage>());
+        var hub = CreateHub();
 
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
-
-        // Act
-        await hub.GetRecentMessagesAsync("room1", 200);
-
-        // Assert - count が 10 にクランプされてサービスに渡される
-        chatMessageService.Verify(x => x.GetRecentMessagesAsync("room1", 10), Times.Once);
+        await Assert.ThrowsAsync<ErrorException>(() => hub.GetRecentMessagesAsync("room1", 200));
     }
 
     [Fact]
-    public async Task GetRecentMessagesAsync_ClampsCount_WhenZeroOrNegative()
+    public async Task GetRecentMessagesAsync_ThrowsErrorException_WhenCountZeroOrNegative()
     {
-        // Arrange
-        var logger = new Mock<ILogger<ChatHub>>();
-        var chatMessageService = new Mock<IChatMessageService>();
-        var roomDataService = new Mock<IChatRoomDataService>();
-        var validator = new ChatPermissionValidator(roomDataService.Object);
+        _chatInputValidator
+            .Setup(v => v.ValidateMessageCount(0))
+            .Throws(new ErrorException("INVALID_INPUT", "Message count must be between 1 and 100."));
 
-        chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
-            .ReturnsAsync(Array.Empty<ChatMessage>());
+        var hub = CreateHub();
 
-        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
-
-        // Act
-        await hub.GetRecentMessagesAsync("room1", 0);
-
-        // Assert - count が 10 にクランプされてサービスに渡される
-        chatMessageService.Verify(x => x.GetRecentMessagesAsync("room1", 10), Times.Once);
+        await Assert.ThrowsAsync<ErrorException>(() => hub.GetRecentMessagesAsync("room1", 0));
     }
 }

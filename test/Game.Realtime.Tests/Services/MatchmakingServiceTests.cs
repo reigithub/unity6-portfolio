@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Realtime.Services;
+using Game.Realtime.Validation;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,11 +13,13 @@ namespace Game.Realtime.Tests.Services;
 public class MatchmakingServiceTests
 {
     private readonly Mock<IMatchmakingQueueService> _queueServiceMock;
+    private readonly Mock<IMatchmakingValidator> _matchmakingValidatorMock;
     private readonly Mock<ILogger<MatchmakingService>> _loggerMock;
 
     public MatchmakingServiceTests()
     {
         _queueServiceMock = new Mock<IMatchmakingQueueService>();
+        _matchmakingValidatorMock = new Mock<IMatchmakingValidator>();
         _loggerMock = new Mock<ILogger<MatchmakingService>>();
     }
 
@@ -58,7 +61,7 @@ public class MatchmakingServiceTests
     public void MatchmakingService_CanBeInstantiated()
     {
         // Act
-        var service = new MatchmakingService(_queueServiceMock.Object, _loggerMock.Object);
+        var service = new MatchmakingService(_queueServiceMock.Object, _matchmakingValidatorMock.Object, _loggerMock.Object);
 
         // Assert
         Assert.NotNull(service);

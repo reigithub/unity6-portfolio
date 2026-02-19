@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Realtime.Services;
+using Game.Realtime.Validation;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,11 +13,13 @@ namespace Game.Realtime.Tests.Services;
 public class LobbyServiceTests
 {
     private readonly Mock<ILobbyDataService> _lobbyDataServiceMock;
+    private readonly Mock<ILobbyValidator> _lobbyValidatorMock;
     private readonly Mock<ILogger<LobbyService>> _loggerMock;
 
     public LobbyServiceTests()
     {
         _lobbyDataServiceMock = new Mock<ILobbyDataService>();
+        _lobbyValidatorMock = new Mock<ILobbyValidator>();
         _loggerMock = new Mock<ILogger<LobbyService>>();
     }
 
@@ -24,7 +27,7 @@ public class LobbyServiceTests
     public void LobbyService_CanBeInstantiated()
     {
         // Act
-        var service = new LobbyService(_lobbyDataServiceMock.Object, _loggerMock.Object);
+        var service = new LobbyService(_lobbyDataServiceMock.Object, _lobbyValidatorMock.Object, _loggerMock.Object);
 
         // Assert
         Assert.NotNull(service);
