@@ -1,4 +1,5 @@
 using Game.Realtime.Services;
+using Game.Realtime.Validation;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using StackExchange.Redis;
@@ -50,6 +51,10 @@ public static class RealtimeServiceExtensions
 
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();
+
+        // Validators
+        services.AddSingleton<IMatchmakingValidator, MatchmakingValidator>();
+        services.AddSingleton<ILobbyValidator, LobbyValidator>();
 
         return services;
     }

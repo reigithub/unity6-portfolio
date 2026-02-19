@@ -1,4 +1,5 @@
 using Game.Library.Shared.Dto;
+using Game.Server.Shared.Exceptions;
 using MessagePack;
 
 namespace Game.Server.Middleware;
@@ -31,6 +32,7 @@ public class ExceptionHandlingMiddleware
     {
         var (statusCode, errorCode) = exception switch
         {
+            ErrorException errorEx => (errorEx.StatusCode, errorEx.ErrorCode),
             ArgumentException => (StatusCodes.Status400BadRequest, "BAD_REQUEST"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "UNAUTHORIZED"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "NOT_FOUND"),

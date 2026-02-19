@@ -1,5 +1,6 @@
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
+using Game.Realtime.Validation;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using Microsoft.AspNetCore.Http;
@@ -17,6 +18,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private readonly ILobbyDataService _lobbyDataService;
     private readonly IMatchSessionTokenService _tokenService;
     private readonly GameServerConfiguration _gameServerConfig;
+    private readonly ILobbyValidator _lobbyValidator;
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -27,16 +29,21 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
         IMatchSessionTokenService tokenService,
-        IOptions<GameServerConfiguration> gameServerConfig)
+        IOptions<GameServerConfiguration> gameServerConfig,
+        ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
         _tokenService = tokenService;
         _gameServerConfig = gameServerConfig.Value;
+        _lobbyValidator = lobbyValidator;
     }
 
     public async ValueTask ConnectAsync(string lobbyId, string playerName)
     {
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+        _lobbyValidator.ValidatePlayerName(playerName);
+
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();
         _playerName = playerName;
@@ -80,6 +87,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     public ValueTask SendMessageAsync(string message)
     {
+        _lobbyValidator.ValidateLobbyMessage(message);
+
         if (_currentGroup != null)
         {
             _logger.LogDebug("Player {PlayerName} sent message in lobby {LobbyId}", _playerName, _lobbyId);

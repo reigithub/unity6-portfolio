@@ -1,4 +1,5 @@
 using Game.Realtime.Hubs;
+using Game.Realtime.Validation;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
@@ -16,9 +17,10 @@ public class MatchmakingHubTests
         // Arrange
         var logger = new Mock<ILogger<MatchmakingHub>>();
         var redis = new Mock<IConnectionMultiplexer>();
+        var matchmakingValidator = new Mock<IMatchmakingValidator>();
 
         // Act
-        var hub = new MatchmakingHub(logger.Object, redis.Object);
+        var hub = new MatchmakingHub(logger.Object, redis.Object, matchmakingValidator.Object);
 
         // Assert
         Assert.NotNull(hub);
@@ -30,9 +32,10 @@ public class MatchmakingHubTests
         // Arrange
         var logger = new Mock<ILogger<MatchmakingHub>>();
         var redis = new Mock<IConnectionMultiplexer>();
+        var matchmakingValidator = new Mock<IMatchmakingValidator>();
 
         // Act
-        var hub = new MatchmakingHub(logger.Object, redis.Object);
+        var hub = new MatchmakingHub(logger.Object, redis.Object, matchmakingValidator.Object);
 
         // Assert
         Assert.IsAssignableFrom<Game.Library.Shared.Realtime.Hubs.IMatchmakingHub>(hub);

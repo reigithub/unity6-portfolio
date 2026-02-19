@@ -3,8 +3,8 @@ using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Interfaces;
-using Game.Server.Services.Validations;
 using Game.Server.Tests.Fixtures;
+using Game.Server.Validation;
 using Moq;
 
 namespace Game.Server.Tests.Services;
@@ -16,7 +16,7 @@ public class SurvivorScoreServiceTests
     private readonly Mock<ISurvivorScoreRepository> _mockScoreRepo;
     private readonly Mock<IRankingRepository> _mockRankingRepo;
     private readonly Mock<IRankingService> _mockRankingService;
-    private readonly Mock<ISurvivorScoreValidationService> _mockScoreValidation;
+    private readonly Mock<ISurvivorScoreValidator> _mockScoreValidator;
     private readonly SurvivorScoreService _service;
 
     public SurvivorScoreServiceTests()
@@ -24,18 +24,13 @@ public class SurvivorScoreServiceTests
         _mockScoreRepo = new Mock<ISurvivorScoreRepository>();
         _mockRankingRepo = new Mock<IRankingRepository>();
         _mockRankingService = new Mock<IRankingService>();
-        _mockScoreValidation = new Mock<ISurvivorScoreValidationService>();
-
-        // デフォルトでバリデーション成功を返す
-        _mockScoreValidation
-            .Setup(v => v.Validate(It.IsAny<ScoreSubmitDto>()))
-            .Returns(RequestValidationResult.Success());
+        _mockScoreValidator = new Mock<ISurvivorScoreValidator>();
 
         _service = new SurvivorScoreService(
             _mockScoreRepo.Object,
             _mockRankingRepo.Object,
             _mockRankingService.Object,
-            _mockScoreValidation.Object);
+            _mockScoreValidator.Object);
     }
 
     [Fact]

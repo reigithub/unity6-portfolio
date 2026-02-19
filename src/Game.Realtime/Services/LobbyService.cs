@@ -1,6 +1,7 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
 using Game.Realtime.Extensions;
+using Game.Realtime.Validation;
 using MagicOnion;
 using MagicOnion.Server;
 
@@ -12,11 +13,16 @@ namespace Game.Realtime.Services;
 public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 {
     private readonly ILobbyDataService _lobbyDataService;
+    private readonly ILobbyValidator _lobbyValidator;
     private readonly ILogger<LobbyService> _logger;
 
-    public LobbyService(ILobbyDataService lobbyDataService, ILogger<LobbyService> logger)
+    public LobbyService(
+        ILobbyDataService lobbyDataService,
+        ILobbyValidator lobbyValidator,
+        ILogger<LobbyService> logger)
     {
         _lobbyDataService = lobbyDataService;
+        _lobbyValidator = lobbyValidator;
         _logger = logger;
     }
 
@@ -31,6 +37,8 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
                 ErrorMessage = "User not authenticated",
             };
         }
+
+        _lobbyValidator.ValidateCreateLobbyRequest(request);
 
         try
         {
@@ -66,6 +74,9 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
             throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");
         }
 
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+        _lobbyValidator.ValidatePlayerName(playerName);
+
         var added = await _lobbyDataService.AddPlayerAsync(lobbyId, userId, playerName);
         if (!added)
         {
@@ -89,11 +100,20 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyInfo[]> SearchLobbiesAsync(string gameMode, int maxResults)
     {
+        _lobbyValidator.ValidateGameMode(gameMode);
+
+        if (maxResults <= 0 || maxResults > 50)
+        {
+            maxResults = 10;
+        }
+
         return await _lobbyDataService.SearchPublicAsync(gameMode, maxResults);
     }
 
     public async UnaryResult<LobbyInfo> GetLobbyInfoAsync(string lobbyId)
     {
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+
         var lobby = await _lobbyDataService.GetLobbyAsync(lobbyId);
         if (lobby == null)
         {
@@ -105,6 +125,8 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyPlayerInfo[]> GetLobbyPlayersAsync(string lobbyId)
     {
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+
         return await _lobbyDataService.GetPlayersAsync(lobbyId);
     }
 }

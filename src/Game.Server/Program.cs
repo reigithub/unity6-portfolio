@@ -1,7 +1,9 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
+using Game.Server.Filters;
 using Game.Server.Infrastructure;
 using Game.Server.Middleware;
+using Microsoft.AspNetCore.SignalR;
 using Scalar.AspNetCore;
 
 namespace Game.Server;
@@ -40,7 +42,10 @@ public partial class Program
         builder.Services.AddApplicationServices(builder.Configuration);
 
         // SignalR + MessagePack プロトコル
-        builder.Services.AddSignalR()
+        builder.Services.AddSignalR(options =>
+        {
+            options.AddFilter<ChatValidationFilter>();
+        })
             .AddMessagePackProtocol();
 
         // Chat サービス登録

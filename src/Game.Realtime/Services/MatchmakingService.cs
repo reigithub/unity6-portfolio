@@ -1,6 +1,7 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
 using Game.Realtime.Extensions;
+using Game.Realtime.Validation;
 using MagicOnion;
 using MagicOnion.Server;
 
@@ -12,11 +13,16 @@ namespace Game.Realtime.Services;
 public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmakingService
 {
     private readonly IMatchmakingQueueService _queueService;
+    private readonly IMatchmakingValidator _matchmakingValidator;
     private readonly ILogger<MatchmakingService> _logger;
 
-    public MatchmakingService(IMatchmakingQueueService queueService, ILogger<MatchmakingService> logger)
+    public MatchmakingService(
+        IMatchmakingQueueService queueService,
+        IMatchmakingValidator matchmakingValidator,
+        ILogger<MatchmakingService> logger)
     {
         _queueService = queueService;
+        _matchmakingValidator = matchmakingValidator;
         _logger = logger;
     }
 
@@ -31,6 +37,8 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
                 ErrorMessage = "User not authenticated",
             };
         }
+
+        _matchmakingValidator.ValidateGameMode(request.GameMode);
 
         try
         {
@@ -73,6 +81,8 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
             };
         }
 
+        _matchmakingValidator.ValidateGameMode(request.GameMode);
+
         try
         {
             await _queueService.DequeuePlayerAsync(userId, request.GameMode);
@@ -101,6 +111,8 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
     public async UnaryResult<int> GetQueueCountAsync(string gameMode)
     {
+        _matchmakingValidator.ValidateGameMode(gameMode);
+
         return await _queueService.GetQueueCountAsync(gameMode);
     }
 }

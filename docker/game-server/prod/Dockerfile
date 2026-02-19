@@ -8,12 +8,14 @@ WORKDIR /src
 # 依存関係のみ先にコピー（キャッシュ活用）
 COPY Directory.Packages.props ./
 COPY src/Game.Shared/Game.Shared.csproj src/Game.Shared/
+COPY src/Game.Server.Shared/Game.Server.Shared.csproj src/Game.Server.Shared/
 COPY src/Game.Server/Game.Server.csproj src/Game.Server/
 RUN dotnet restore src/Game.Shared/Game.Shared.csproj
 RUN dotnet restore src/Game.Server/Game.Server.csproj
 
 # ソースコードをコピーしてビルド
 COPY src/Game.Shared/ src/Game.Shared/
+COPY src/Game.Server.Shared/ src/Game.Server.Shared/
 COPY src/Game.Server/ src/Game.Server/
 
 # Release ビルド

@@ -9,11 +9,13 @@ WORKDIR /src
 # Copy project files for restore cache
 COPY Directory.Packages.props ./
 COPY src/Game.Shared/Game.Shared.csproj src/Game.Shared/
+COPY src/Game.Server.Shared/Game.Server.Shared.csproj src/Game.Server.Shared/
 COPY src/Game.Realtime/Game.Realtime.csproj src/Game.Realtime/
 RUN dotnet restore src/Game.Realtime/Game.Realtime.csproj
 
 # Copy source code
 COPY src/Game.Shared/ src/Game.Shared/
+COPY src/Game.Server.Shared/ src/Game.Server.Shared/
 COPY src/Game.Realtime/ src/Game.Realtime/
 
 # Publish
