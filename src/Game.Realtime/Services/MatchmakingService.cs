@@ -32,6 +32,15 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
             };
         }
 
+        if (string.IsNullOrWhiteSpace(request.GameMode) || request.GameMode.Length > 30)
+        {
+            return new MatchmakingResponse
+            {
+                Success = false,
+                ErrorMessage = "Invalid game mode",
+            };
+        }
+
         try
         {
             await _queueService.EnqueuePlayerAsync(userId, request.GameMode);
@@ -73,6 +82,15 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
             };
         }
 
+        if (string.IsNullOrWhiteSpace(request.GameMode) || request.GameMode.Length > 30)
+        {
+            return new MatchmakingResponse
+            {
+                Success = false,
+                ErrorMessage = "Invalid game mode",
+            };
+        }
+
         try
         {
             await _queueService.DequeuePlayerAsync(userId, request.GameMode);
@@ -101,6 +119,11 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
     public async UnaryResult<int> GetQueueCountAsync(string gameMode)
     {
+        if (string.IsNullOrWhiteSpace(gameMode) || gameMode.Length > 30)
+        {
+            return 0;
+        }
+
         return await _queueService.GetQueueCountAsync(gameMode);
     }
 }

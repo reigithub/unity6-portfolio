@@ -37,6 +37,12 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     public async ValueTask ConnectAsync(string lobbyId, string playerName)
     {
+        if (string.IsNullOrWhiteSpace(lobbyId) || lobbyId.Length > 64 ||
+            string.IsNullOrWhiteSpace(playerName) || playerName.Length > 50)
+        {
+            return;
+        }
+
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();
         _playerName = playerName;
@@ -80,6 +86,11 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     public ValueTask SendMessageAsync(string message)
     {
+        if (string.IsNullOrWhiteSpace(message) || message.Length > 200)
+        {
+            return default;
+        }
+
         if (_currentGroup != null)
         {
             _logger.LogDebug("Player {PlayerName} sent message in lobby {LobbyId}", _playerName, _lobbyId);

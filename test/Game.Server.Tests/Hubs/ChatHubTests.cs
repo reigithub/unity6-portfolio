@@ -85,4 +85,63 @@ public class ChatHubTests
         Assert.Single(result);
         Assert.Equal("user1", result[0].UserId);
     }
+
+    [Fact]
+    public async Task GetRecentMessagesAsync_ReturnsEmptyArray_WhenRoomIdTooLong()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<ChatHub>>();
+        var chatMessageService = new Mock<IChatMessageService>();
+        var roomDataService = new Mock<IChatRoomDataService>();
+        var validator = new ChatPermissionValidator(roomDataService.Object);
+        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+
+        // Act
+        var result = await hub.GetRecentMessagesAsync(new string('x', 65), 10);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetRecentMessagesAsync_ClampsCount_WhenOutOfRange()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<ChatHub>>();
+        var chatMessageService = new Mock<IChatMessageService>();
+        var roomDataService = new Mock<IChatRoomDataService>();
+        var validator = new ChatPermissionValidator(roomDataService.Object);
+
+        chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
+            .ReturnsAsync(Array.Empty<ChatMessage>());
+
+        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+
+        // Act
+        await hub.GetRecentMessagesAsync("room1", 200);
+
+        // Assert - count が 10 にクランプされてサービスに渡される
+        chatMessageService.Verify(x => x.GetRecentMessagesAsync("room1", 10), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetRecentMessagesAsync_ClampsCount_WhenZeroOrNegative()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<ChatHub>>();
+        var chatMessageService = new Mock<IChatMessageService>();
+        var roomDataService = new Mock<IChatRoomDataService>();
+        var validator = new ChatPermissionValidator(roomDataService.Object);
+
+        chatMessageService.Setup(x => x.GetRecentMessagesAsync("room1", 10))
+            .ReturnsAsync(Array.Empty<ChatMessage>());
+
+        var hub = new ChatHub(logger.Object, chatMessageService.Object, roomDataService.Object, validator);
+
+        // Act
+        await hub.GetRecentMessagesAsync("room1", 0);
+
+        // Assert - count が 10 にクランプされてサービスに渡される
+        chatMessageService.Verify(x => x.GetRecentMessagesAsync("room1", 10), Times.Once);
+    }
 }

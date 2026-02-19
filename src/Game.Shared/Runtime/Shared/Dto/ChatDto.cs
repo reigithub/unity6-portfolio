@@ -10,13 +10,16 @@ namespace Game.Library.Shared.Dto
     {
         [Key(0)]
         [Required]
+        [StringLength(50, MinimumLength = 1)]
         public string RoomName { get; set; } = string.Empty;
 
         [Key(1)]
         [Required]
+        [StringLength(30, MinimumLength = 1)]
         public string RoomType { get; set; } = string.Empty;
 
         [Key(2)]
+        [Range(2, 100)]
         public int MaxMembers { get; set; }
 
         [Key(3)]
@@ -31,10 +34,12 @@ namespace Game.Library.Shared.Dto
     {
         [Key(0)]
         [Required]
+        [StringLength(128, MinimumLength = 1)]
         public string TargetUserId { get; set; } = string.Empty;
 
         [Key(1)]
         [Required]
+        [StringLength(50, MinimumLength = 1)]
         public string PlayerName { get; set; } = string.Empty;
     }
 

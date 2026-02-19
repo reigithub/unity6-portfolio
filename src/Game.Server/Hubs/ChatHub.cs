@@ -46,6 +46,11 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
+        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
+            throw new HubException("Invalid room ID");
+        if (string.IsNullOrWhiteSpace(playerName) || playerName.Length > 50)
+            throw new HubException("Invalid player name");
+
         try
         {
             await _validator.ValidateRoomExistsAsync(roomId);
@@ -92,6 +97,9 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
+        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
+            throw new HubException("Invalid room ID");
+
         try
         {
             await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.Leave);
@@ -130,6 +138,11 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
+        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
+            throw new HubException("Invalid room ID");
+        if (string.IsNullOrWhiteSpace(content) || content.Length > 500)
+            throw new HubException("Message content is required and must not exceed 500 characters");
+
         try
         {
             await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.SendMessage);
@@ -164,9 +177,14 @@ public class ChatHub : Hub<IChatHubClient>
 
     public async Task<ChatMessage[]> GetRecentMessagesAsync(string roomId, int count)
     {
-        if (string.IsNullOrEmpty(roomId))
+        if (string.IsNullOrEmpty(roomId) || roomId.Length > 64)
         {
             return Array.Empty<ChatMessage>();
+        }
+
+        if (count <= 0 || count > 100)
+        {
+            count = 10;
         }
 
         return await _chatMessageService.GetRecentMessagesAsync(roomId, count);

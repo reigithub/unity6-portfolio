@@ -31,6 +31,11 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
 
     public async ValueTask SubscribeAsync(string gameMode)
     {
+        if (string.IsNullOrWhiteSpace(gameMode) || gameMode.Length > 30)
+        {
+            return;
+        }
+
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();
         _gameMode = gameMode;
