@@ -51,7 +51,8 @@ public class Program
         {
             options.GlobalFilters.Add<JwtAuthenticationFilter>();
             options.GlobalFilters.Add<ValidationExceptionFilter>();
-            options.GlobalStreamingHubFilters.Add<HubValidationExceptionFilter>();
+            options.GlobalStreamingHubFilters.Add<JwtAuthenticationHubFilter>();
+            options.GlobalStreamingHubFilters.Add<ValidationExceptionHubFilter>();
             options.EnableStreamingHubHeartbeat = true;
             options.StreamingHubHeartbeatInterval = TimeSpan.FromSeconds(30);
             options.StreamingHubHeartbeatTimeout = TimeSpan.FromSeconds(10);
