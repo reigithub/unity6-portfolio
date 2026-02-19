@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
+using StackExchange.Redis;
 
 namespace Game.Server.Tests.Integration;
 
@@ -47,6 +48,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var mockValidation = new Mock<ISurvivorScoreValidator>();
             services.RemoveAll<ISurvivorScoreValidator>();
             services.AddSingleton(mockValidation.Object);
+
+            // Replace IConnectionMultiplexer with a mock so that tests
+            // don't require a running Valkey/Redis instance.
+            var mockDb = new Mock<IDatabase>();
+            mockDb.Setup(d => d.PingAsync(It.IsAny<CommandFlags>()))
+                .ReturnsAsync(TimeSpan.FromMilliseconds(1));
+            var mockRedis = new Mock<IConnectionMultiplexer>();
+            mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                .Returns(mockDb.Object);
+            services.RemoveAll<IConnectionMultiplexer>();
+            services.AddSingleton(mockRedis.Object);
 
             // Replace IEmailService with a mock so that tests
             // don't require Resend API credentials.
