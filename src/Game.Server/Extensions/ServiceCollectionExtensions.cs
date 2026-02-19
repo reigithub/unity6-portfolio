@@ -1,6 +1,7 @@
 using System.Text;
 using Game.Server.Configuration;
 using Game.Server.Database;
+using Game.Server.Health;
 using Game.Server.Repositories;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
@@ -150,6 +151,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRankingRepository, RankingRepository>();
         services.AddScoped<ISurvivorScoreRepository, SurvivorScoreRepository>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddAppHealthChecks(this IServiceCollection services)
+    {
+        services.AddHealthChecks()
+            .AddCheck<ValkeyHealthCheck>("valkey", tags: new[] { "ready" })
+            .AddCheck<PostgresHealthCheck>("postgres", tags: new[] { "ready" });
         return services;
     }
 
