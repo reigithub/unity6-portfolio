@@ -1,4 +1,4 @@
-using Game.Server.Health;
+using Game.Server.Shared.Health;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using StackExchange.Redis;

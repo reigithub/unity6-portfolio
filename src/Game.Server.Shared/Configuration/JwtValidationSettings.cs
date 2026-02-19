@@ -1,7 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Game.Realtime.Configuration;
+namespace Game.Server.Shared.Configuration;
 
+/// <summary>
+/// JWT 検証用設定（Server / Realtime 共通）
+/// トークン発行用プロパティは Game.Server の JwtSettings で拡張
+/// </summary>
 public class JwtValidationSettings
 {
     [Required(AllowEmptyStrings = false)]

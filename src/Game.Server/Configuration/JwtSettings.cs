@@ -1,19 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Game.Server.Shared.Configuration;
 
 namespace Game.Server.Configuration;
 
-public class JwtSettings
+public class JwtSettings : JwtValidationSettings
 {
-    [Required(AllowEmptyStrings = false)]
-    [MinLength(32, ErrorMessage = "JWT Secret must be at least 32 characters long.")]
-    public string Secret { get; set; } = string.Empty;
-
-    [Required(AllowEmptyStrings = false)]
-    public string Issuer { get; set; } = "Game.Server";
-
-    [Required(AllowEmptyStrings = false)]
-    public string Audience { get; set; } = "Game.Client";
-
     [Range(1, int.MaxValue)]
     public int ExpirationMinutes { get; set; } = 60;
 

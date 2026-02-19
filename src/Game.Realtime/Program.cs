@@ -1,12 +1,8 @@
-using System.Text;
-using Game.Realtime.Configuration;
 using Game.Realtime.Extensions;
 using Game.Realtime.Filters;
+using Game.Server.Shared.Extensions;
 using MagicOnion.Server;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.IdentityModel.Tokens;
-using StackExchange.Redis;
 
 namespace Game.Realtime;
 
@@ -27,23 +23,9 @@ public class Program
         });
 
         // Valkey/Redis connection
+        builder.Services.AddValkeyConnection(builder.Configuration);
         var valkeyConnectionString = builder.Configuration.GetConnectionString("Valkey")
             ?? "localhost:6379,abortConnect=false";
-        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<ConnectionMultiplexer>>();
-            try
-            {
-                var multiplexer = ConnectionMultiplexer.Connect(valkeyConnectionString);
-                logger.LogInformation("Connected to Valkey/Redis for Realtime server");
-                return multiplexer;
-            }
-            catch (RedisConnectionException ex)
-            {
-                logger.LogWarning(ex, "Failed to connect to Valkey/Redis. Retrying with options...");
-                return ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(valkeyConnectionString));
-            }
-        });
 
         // gRPC + MagicOnion with Redis backplane
         builder.Services.AddGrpc();
@@ -63,32 +45,7 @@ public class Program
         });
 
         // JWT Authentication
-        builder.Services.AddOptions<JwtValidationSettings>()
-            .Bind(builder.Configuration.GetSection("Jwt"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtValidationSettings>()
-            ?? throw new InvalidOperationException(
-                "Jwt configuration section is missing. Ensure 'Jwt' is configured in appsettings.");
-
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings.Issuer,
-                    ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-                };
-            });
-
-        builder.Services.AddAuthorization();
+        builder.Services.AddJwtValidation(builder.Configuration);
 
         // Realtime application services
         builder.Services.AddRealtimeServices(builder.Configuration);

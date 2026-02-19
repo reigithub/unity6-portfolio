@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Game.Realtime.Health;
+namespace Game.Server.Shared.Health;
 
 public static class HealthCheckResponseWriter
 {

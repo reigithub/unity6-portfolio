@@ -1,7 +1,7 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
 using Game.Server.Filters;
-using Game.Server.Health;
+using Game.Server.Shared.Health;
 using Game.Server.Infrastructure;
 using Game.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
