@@ -1,8 +1,10 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
 using Game.Server.Filters;
+using Game.Server.Health;
 using Game.Server.Infrastructure;
 using Game.Server.Middleware;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.SignalR;
 using Scalar.AspNetCore;
 
@@ -51,6 +53,9 @@ public partial class Program
         // Chat サービス登録
         builder.Services.AddChatServices(builder.Configuration);
 
+        // Health Checks
+        builder.Services.AddAppHealthChecks();
+
         // CORS（SignalR は AllowCredentials が必要）
         builder.Services.AddCors(options =>
         {
@@ -90,6 +95,10 @@ public partial class Program
         app.UseMiddleware<RequestSigningMiddleware>();
         app.UseAuthorization();
 
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResponseWriter = HealthCheckResponseWriter.WriteAsync,
+        });
         app.MapControllers();
         app.MapHub<Game.Server.Hubs.ChatHub>("/hubs/chat");
 

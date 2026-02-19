@@ -26,8 +26,9 @@ RUN dotnet publish src/Game.Server/Game.Server.csproj \
 # ===== Runtime Stage =====
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
-# 非rootユーザーで実行（セキュリティ）
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+# curl インストール（ヘルスチェック用）+ 非rootユーザー作成
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appgroup && useradd -r -g appgroup appuser
 
 WORKDIR /app
 COPY --from=build /app/publish .

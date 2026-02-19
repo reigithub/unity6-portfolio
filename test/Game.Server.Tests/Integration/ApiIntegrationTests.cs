@@ -37,7 +37,7 @@ public class ApiIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task HealthEndpoint_Returns200()
     {
-        var response = await _client.GetAsync("/api/health");
+        var response = await _client.GetAsync("/health");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 

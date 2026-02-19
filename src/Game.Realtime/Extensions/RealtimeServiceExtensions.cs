@@ -1,7 +1,9 @@
+using Game.Realtime.Health;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Extensions;
@@ -56,6 +58,10 @@ public static class RealtimeServiceExtensions
         services.AddSingleton<IMatchmakingValidator, MatchmakingValidator>();
         services.AddSingleton<ILobbyValidator, LobbyValidator>();
 
+        // Health Checks
+        services.AddHealthChecks()
+            .AddCheck<ValkeyHealthCheck>("valkey", tags: new[] { "ready" });
+
         return services;
     }
 
@@ -64,8 +70,11 @@ public static class RealtimeServiceExtensions
     /// </summary>
     public static WebApplication MapRealtimeEndpoints(this WebApplication app)
     {
-        // Health check endpoint (gRPC Health Checking Protocol)
-        app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Game.Realtime" }));
+        // Health check endpoint
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResponseWriter = HealthCheckResponseWriter.WriteAsync,
+        });
 
         return app;
     }
