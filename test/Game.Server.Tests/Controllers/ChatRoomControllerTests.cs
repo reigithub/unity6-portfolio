@@ -41,7 +41,7 @@ public class ChatRoomControllerTests
             _loggerMock.Object);
 
         // 認証済みユーザーを設定
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "test-user-id") };
+        var claims = new[] { new Claim("sub", "test-user-id") };
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
         _controller.ControllerContext = new ControllerContext

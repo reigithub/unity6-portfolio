@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Validation;
+using Game.Server.Shared.Extensions;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using StackExchange.Redis;
@@ -36,7 +37,7 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
     {
         _matchmakingValidator.ValidateGameMode(gameMode);
 
-        _userId = Context.CallContext.GetHttpContext().User!.FindFirst("sub")!.Value;
+        _userId = Context.CallContext.GetHttpContext().User!.GetUserId()!;
         _gameMode = gameMode;
 
         var queueGroupName = $"matchmaking:{gameMode}";

@@ -1,3 +1,4 @@
+using Game.Server.Shared.Extensions;
 using Grpc.Core;
 using MagicOnion;
 using MagicOnion.Server;
@@ -33,7 +34,7 @@ public class JwtAuthenticationFilter : MagicOnionFilterAttribute
         // 認証済みユーザー情報をセット
         httpContext.User = authResult.Principal!;
 
-        var userId = httpContext.User.FindFirst("sub")?.Value ?? "unknown";
+        var userId = httpContext.User.GetUserId() ?? "unknown";
         logger.LogDebug("Authenticated gRPC request from user {UserId}", userId);
 
         await next(context);

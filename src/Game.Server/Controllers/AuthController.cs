@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,7 +35,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh([FromBody] EmptyRequest _)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
@@ -116,7 +116,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> LinkEmail([FromBody] LinkEmailRequest request)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
@@ -134,7 +134,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UnlinkEmail([FromQuery] string deviceFingerprint)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
@@ -152,7 +152,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> IssueTransferPassword([FromBody] EmptyRequest _)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }

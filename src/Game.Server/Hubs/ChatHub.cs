@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Enums;
 using Game.Server.Services.Chat;
+using Game.Server.Shared.Extensions;
 using Game.Server.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -38,14 +38,9 @@ public class ChatHub : Hub<IChatHubClient>
         _chatInputValidator = chatInputValidator;
     }
 
-    private string GetUserId()
-    {
-        return Context.User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-    }
-
     public async Task JoinAsync(string roomId, string playerName)
     {
-        var userId = GetUserId();
+        var userId = Context.User?.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
@@ -83,7 +78,7 @@ public class ChatHub : Hub<IChatHubClient>
 
     public async Task LeaveAsync(string roomId)
     {
-        var userId = GetUserId();
+        var userId = Context.User?.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
@@ -112,7 +107,7 @@ public class ChatHub : Hub<IChatHubClient>
 
     public async Task SendMessageAsync(string roomId, string content)
     {
-        var userId = GetUserId();
+        var userId = Context.User?.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
@@ -150,7 +145,7 @@ public class ChatHub : Hub<IChatHubClient>
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = GetUserId();
+        var userId = Context.User?.GetUserId() ?? "";
 
         if (ConnectionRooms.TryRemove(Context.ConnectionId, out var rooms))
         {

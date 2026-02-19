@@ -1,9 +1,9 @@
-using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Enums;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
+using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -35,17 +35,12 @@ public class ChatRoomController : ControllerBase
         _logger = logger;
     }
 
-    private string GetUserId()
-    {
-        return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-    }
-
     [HttpPost]
     [ProducesResponseType(typeof(CreateChatRoomResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateRoom([FromBody] CreateChatRoomRequest request)
     {
-        var userId = GetUserId();
+        var userId = User.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
@@ -83,7 +78,7 @@ public class ChatRoomController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteRoom(string roomId)
     {
-        var userId = GetUserId();
+        var userId = User.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
@@ -145,7 +140,7 @@ public class ChatRoomController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> InviteMember(string roomId, [FromBody] InviteMemberRequest request)
     {
-        var userId = GetUserId();
+        var userId = User.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
@@ -183,7 +178,7 @@ public class ChatRoomController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> KickMember(string roomId, [FromBody] InviteMemberRequest request)
     {
-        var userId = GetUserId();
+        var userId = User.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
@@ -225,7 +220,7 @@ public class ChatRoomController : ControllerBase
         string targetUserId,
         [FromBody] SetPermissionsRequest request)
     {
-        var userId = GetUserId();
+        var userId = User.GetUserId() ?? "";
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 

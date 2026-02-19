@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +24,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMe()
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
@@ -38,7 +38,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateUserRequest request)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
