@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 
-namespace Game.Server.Health;
+namespace Game.Server.Shared.Health;
 
 public class ValkeyHealthCheck : IHealthCheck
 {

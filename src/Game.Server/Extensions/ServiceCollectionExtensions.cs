@@ -1,4 +1,3 @@
-using System.Text;
 using Game.Server.Configuration;
 using Game.Server.Database;
 using Game.Server.Health;
@@ -7,12 +6,10 @@ using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Extensions;
+using Game.Server.Shared.Health;
 using Game.Server.Validation;
-using Medallion.Threading;
-using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using StackExchange.Redis;
 
 namespace Game.Server.Extensions;
 
@@ -32,25 +29,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Valkey") ?? "localhost:6379,abortConnect=false";
-
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<ConnectionMultiplexer>>();
-            try
-            {
-                var multiplexer = ConnectionMultiplexer.Connect(connectionString);
-                logger.LogInformation("Connected to Valkey/Redis");
-                return multiplexer;
-            }
-            catch (RedisConnectionException ex)
-            {
-                logger.LogWarning(ex, "Failed to connect to Valkey/Redis. Cache will be unavailable.");
-                // 接続失敗時も起動を継続するためにnullではなく接続を試みたインスタンスを返す
-                // キャッシュサービス側で接続エラーをハンドリング
-                return ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(connectionString));
-            }
-        });
+        services.AddValkeyConnection(configuration);
 
         // Ranking Cache Settings
         services.Configure<RankingCacheSettings>(configuration.GetSection("RankingCache"));
@@ -64,48 +43,31 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddJwtValidation(configuration, options =>
+        {
+            // Game.Server 固有: SignalR WebSocket の access_token クエリ文字列対応
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken)
+                        && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
+            };
+        });
+
+        // Game.Server 固有: トークン発行用設定
         services.AddOptions<JwtSettings>()
             .Bind(configuration.GetSection("Jwt"))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
-            ?? throw new InvalidOperationException(
-                "Jwt configuration section is missing. Ensure 'Jwt' is configured in appsettings.");
-
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings.Issuer,
-                    ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-                };
-
-                // SignalR WebSocket の access_token クエリ文字列対応
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
-                        var accessToken = context.Request.Query["access_token"];
-                        if (!string.IsNullOrEmpty(accessToken)
-                            && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
-                        {
-                            context.Token = accessToken;
-                        }
-
-                        return Task.CompletedTask;
-                    },
-                };
-            });
-
-        services.AddAuthorization();
         return services;
     }
 
@@ -170,18 +132,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ChatSettings>(configuration.GetSection("Chat"));
 
         // Distributed Lock Provider (レースコンディション防止)
-        services.AddSingleton<IDistributedLockProvider>(sp =>
-        {
-            var redis = sp.GetRequiredService<IConnectionMultiplexer>();
-            return new RedisDistributedSynchronizationProvider(redis.GetDatabase(), options =>
-            {
-                options.Expiry(TimeSpan.FromSeconds(10));
-                options.ExtensionCadence(TimeSpan.FromSeconds(3));
-                options.BusyWaitSleepTime(
-                    TimeSpan.FromMilliseconds(10),
-                    TimeSpan.FromMilliseconds(200));
-            });
-        });
+        services.AddDistributedLock();
 
         services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
         services.AddSingleton<IChatMessageService, ChatMessageService>();
