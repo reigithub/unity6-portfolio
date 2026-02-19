@@ -4,12 +4,12 @@ using MagicOnion.Server.Hubs;
 
 namespace Game.Realtime.Tests.Filters;
 
-public class HubValidationExceptionFilterTests
+public class ValidationExceptionHubFilterTests
 {
     /// <summary>
     /// StreamingHubContext は sealed でモック不可のため、ロギングをスキップするテスト用サブクラス
     /// </summary>
-    private class TestableFilter : HubValidationExceptionFilter
+    private class TestableFilter : ValidationExceptionHubFilter
     {
         public ErrorException? CapturedError { get; private set; }
 

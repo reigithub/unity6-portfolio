@@ -3,7 +3,6 @@ using Game.Realtime.Services;
 using Game.Realtime.Validation;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace Game.Realtime.Hubs;
@@ -44,8 +43,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         _lobbyValidator.ValidateLobbyId(lobbyId);
         _lobbyValidator.ValidatePlayerName(playerName);
 
-        _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
-            ?? ConnectionId.ToString();
+        _userId = Context.CallContext.GetHttpContext().User!.FindFirst("sub")!.Value;
         _playerName = playerName;
         _lobbyId = lobbyId;
 
