@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9471648ad196c884282ee28e583fde6e, type: 3}
   m_Name: GameEnvironmentSettings
   m_EditorClassIdentifier: Game.Shared::Game.Shared.GameEnvironmentSettings
-  _environment: 1
+  _environment: 0
   _configs:
   - _environment: 0
     _dependencyResolverMode: 1
     _apiBaseUrl: http://localhost:5000
+    _grpcBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -28,6 +29,7 @@ MonoBehaviour:
   - _environment: 1
     _dependencyResolverMode: 1
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
+    _grpcBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -39,6 +41,7 @@ MonoBehaviour:
   - _environment: 1000
     _dependencyResolverMode: 1
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
+    _grpcBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -50,6 +53,7 @@ MonoBehaviour:
   - _environment: 2000
     _dependencyResolverMode: 1
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
+    _grpcBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
@@ -61,6 +65,7 @@ MonoBehaviour:
   - _environment: 3000
     _dependencyResolverMode: 1
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
+    _grpcBaseUrl: 
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
