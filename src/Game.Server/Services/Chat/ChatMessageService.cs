@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Game.Library.Shared.Dto;
+using Game.Server.Configuration;
 using Medallion.Threading;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace Game.Server.Services.Chat;
@@ -12,19 +14,21 @@ namespace Game.Server.Services.Chat;
 public class ChatMessageService : IChatMessageService
 {
     private const string KeyPrefix = "chat:messages:";
-    private const int MaxMessagesPerRoom = 200;
 
     private readonly IConnectionMultiplexer _redis;
     private readonly IDistributedLockProvider _lockProvider;
+    private readonly int _maxMessagesPerRoom;
     private readonly ILogger<ChatMessageService> _logger;
 
     public ChatMessageService(
         IConnectionMultiplexer redis,
         IDistributedLockProvider lockProvider,
+        IOptions<ChatSettings> chatSettings,
         ILogger<ChatMessageService> logger)
     {
         _redis = redis;
         _lockProvider = lockProvider;
+        _maxMessagesPerRoom = chatSettings.Value.MaxMessagesPerRoom;
         _logger = logger;
     }
 
@@ -48,9 +52,9 @@ public class ChatMessageService : IChatMessageService
                 await db.SortedSetAddAsync(key, json, message.Timestamp);
 
                 var length = await db.SortedSetLengthAsync(key);
-                if (length > MaxMessagesPerRoom)
+                if (length > _maxMessagesPerRoom)
                 {
-                    await db.SortedSetRemoveRangeByRankAsync(key, 0, length - MaxMessagesPerRoom - 1);
+                    await db.SortedSetRemoveRangeByRankAsync(key, 0, length - _maxMessagesPerRoom - 1);
                 }
             }
 

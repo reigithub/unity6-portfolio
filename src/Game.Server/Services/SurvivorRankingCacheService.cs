@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Game.Library.Shared.Dto;
+using Game.Server.Configuration;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Medallion.Threading;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace Game.Server.Services;
@@ -16,7 +18,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
     private readonly IConnectionMultiplexer _redis;
     private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<SurvivorRankingCacheService> _logger;
-    private readonly TimeSpan _defaultExpiry = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _defaultExpiry;
 
     // キー形式
     private const string RankingKeyPrefix = "ranking:survivor:";
@@ -25,10 +27,12 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
     public SurvivorRankingCacheService(
         IConnectionMultiplexer redis,
         IDistributedLockProvider lockProvider,
+        IOptions<RankingCacheSettings> cacheSettings,
         ILogger<SurvivorRankingCacheService> logger)
     {
         _redis = redis;
         _lockProvider = lockProvider;
+        _defaultExpiry = TimeSpan.FromMinutes(cacheSettings.Value.DefaultExpiryMinutes);
         _logger = logger;
     }
 

@@ -50,6 +50,9 @@ public static class ServiceCollectionExtensions
             }
         });
 
+        // Ranking Cache Settings
+        services.Configure<RankingCacheSettings>(configuration.GetSection("RankingCache"));
+
         services.AddScoped<ISurvivorRankingCacheService, SurvivorRankingCacheService>();
 
         return services;
@@ -149,8 +152,13 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddChatServices(this IServiceCollection services)
+    public static IServiceCollection AddChatServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        // Chat Settings
+        services.Configure<ChatSettings>(configuration.GetSection("Chat"));
+
         // Distributed Lock Provider (レースコンディション防止)
         services.AddSingleton<IDistributedLockProvider>(sp =>
         {

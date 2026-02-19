@@ -11,8 +11,6 @@ namespace Game.Realtime.Services;
 /// </summary>
 public class MatchmakingProcessor : BackgroundService
 {
-    private static readonly TimeSpan ProcessingInterval = TimeSpan.FromSeconds(2);
-
     private readonly IMatchmakingQueueService _queueService;
     private readonly IMatchSessionTokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
@@ -55,7 +53,7 @@ public class MatchmakingProcessor : BackgroundService
                 _logger.LogError(ex, "Error in matchmaking processor loop");
             }
 
-            await Task.Delay(ProcessingInterval, stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(_config.ProcessingIntervalSeconds), stoppingToken);
         }
 
         _logger.LogInformation("MatchmakingProcessor stopped");

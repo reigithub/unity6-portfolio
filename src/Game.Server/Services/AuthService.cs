@@ -148,7 +148,8 @@ public class AuthService : IAuthService
             };
         }
 
-        var randomSuffix = RandomNumberGenerator.GetInt32(10000000, 99999999).ToString();
+        var randomSuffix = RandomNumberGenerator.GetInt32(
+            _authSettings.GuestNameRandomMin, _authSettings.GuestNameRandomMax).ToString();
         var user = new UserInfo
         {
             UserName = $"Guest_{randomSuffix}",
