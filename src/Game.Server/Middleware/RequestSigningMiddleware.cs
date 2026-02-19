@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Game.Library.Shared.RequestSigning;
 using Game.Server.Configuration;
+using Game.Server.Shared.Extensions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -45,7 +45,7 @@ public class RequestSigningMiddleware
         }
 
         // JWT から userId を取得
-        var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = context.User?.GetUserId();
         if (string.IsNullOrEmpty(userId))
         {
             _logger.LogWarning("No authenticated user for signed request: {Path}", context.Request.Path);

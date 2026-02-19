@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +24,7 @@ public class SurvivorScoresController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SubmitScore([FromBody] ScoreSubmitDto request)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }
@@ -42,7 +42,7 @@ public class SurvivorScoresController : ControllerBase
         [FromQuery] int? stageId = null,
         [FromQuery] int limit = 50)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();
         }

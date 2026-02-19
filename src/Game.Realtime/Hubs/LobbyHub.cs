@@ -1,6 +1,7 @@
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
+using Game.Server.Shared.Extensions;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using Microsoft.Extensions.Options;
@@ -43,7 +44,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         _lobbyValidator.ValidateLobbyId(lobbyId);
         _lobbyValidator.ValidatePlayerName(playerName);
 
-        _userId = Context.CallContext.GetHttpContext().User!.FindFirst("sub")!.Value;
+        _userId = Context.CallContext.GetHttpContext().User!.GetUserId()!;
         _playerName = playerName;
         _lobbyId = lobbyId;
 
