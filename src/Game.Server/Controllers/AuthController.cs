@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     [Authorize]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Refresh()
+    public async Task<IActionResult> Refresh([FromBody] EmptyRequest _)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
@@ -150,7 +150,7 @@ public class AuthController : ControllerBase
     [Authorize]
     [ProducesResponseType(typeof(TransferPasswordResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> IssueTransferPassword()
+    public async Task<IActionResult> IssueTransferPassword([FromBody] EmptyRequest _)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {

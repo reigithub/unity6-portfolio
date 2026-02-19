@@ -1,7 +1,9 @@
 using Game.Library.Shared.Dto;
+using Game.Server.Configuration;
 using Game.Server.Services.Chat;
 using Medallion.Threading;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 
@@ -35,7 +37,9 @@ public class ChatMessageServiceTests
         _lockProviderMock.Setup(x => x.CreateLock(It.IsAny<string>()))
             .Returns(lockMock.Object);
 
-        _service = new ChatMessageService(_redisMock.Object, _lockProviderMock.Object, _loggerMock.Object);
+        _service = new ChatMessageService(
+            _redisMock.Object, _lockProviderMock.Object,
+            Options.Create(new ChatSettings()), _loggerMock.Object);
     }
 
     [Fact]

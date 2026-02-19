@@ -90,6 +90,13 @@ public class Program
         // Realtime application services
         builder.Services.AddRealtimeServices(builder.Configuration);
 
+        // Graceful shutdown timeout
+        builder.Services.Configure<HostOptions>(options =>
+        {
+            options.ShutdownTimeout = TimeSpan.FromSeconds(
+                builder.Configuration.GetValue("Hosting:ShutdownTimeoutSeconds", 60));
+        });
+
         var app = builder.Build();
 
         // ASP.NET Core authentication / authorization middleware
@@ -99,14 +106,6 @@ public class Program
         // Map MagicOnion hubs & health check
         app.MapMagicOnionService();
         app.MapRealtimeEndpoints();
-
-        // Graceful shutdown
-        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-        lifetime.ApplicationStopping.Register(() =>
-        {
-            app.Logger.LogInformation("Realtime server shutting down gracefully...");
-            Thread.Sleep(TimeSpan.FromSeconds(60));
-        });
 
         app.Run();
     }

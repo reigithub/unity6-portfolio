@@ -44,7 +44,7 @@ public partial class Program
             .AddMessagePackProtocol();
 
         // Chat サービス登録
-        builder.Services.AddChatServices();
+        builder.Services.AddChatServices(builder.Configuration);
 
         // CORS（SignalR は AllowCredentials が必要）
         builder.Services.AddCors(options =>
