@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Game.Library.Shared.Realtime.Hubs;
+using Game.Realtime.Validation;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
 {
     private readonly ILogger<MatchmakingHub> _logger;
     private readonly IConnectionMultiplexer _redis;
+    private readonly IMatchmakingValidator _matchmakingValidator;
 
     private IGroup<IMatchmakingHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -23,18 +25,17 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
 
     public MatchmakingHub(
         ILogger<MatchmakingHub> logger,
-        IConnectionMultiplexer redis)
+        IConnectionMultiplexer redis,
+        IMatchmakingValidator matchmakingValidator)
     {
         _logger = logger;
         _redis = redis;
+        _matchmakingValidator = matchmakingValidator;
     }
 
     public async ValueTask SubscribeAsync(string gameMode)
     {
-        if (string.IsNullOrWhiteSpace(gameMode) || gameMode.Length > 30)
-        {
-            return;
-        }
+        _matchmakingValidator.ValidateGameMode(gameMode);
 
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();

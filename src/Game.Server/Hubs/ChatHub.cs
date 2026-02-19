@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Enums;
 using Game.Server.Services.Chat;
-using Game.Server.Services.Chat.Exceptions;
+using Game.Server.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -22,17 +22,20 @@ public class ChatHub : Hub<IChatHubClient>
     private readonly IChatMessageService _chatMessageService;
     private readonly IChatRoomDataService _roomDataService;
     private readonly ChatPermissionValidator _validator;
+    private readonly IChatInputValidator _chatInputValidator;
 
     public ChatHub(
         ILogger<ChatHub> logger,
         IChatMessageService chatMessageService,
         IChatRoomDataService roomDataService,
-        ChatPermissionValidator validator)
+        ChatPermissionValidator validator,
+        IChatInputValidator chatInputValidator)
     {
         _logger = logger;
         _chatMessageService = chatMessageService;
         _roomDataService = roomDataService;
         _validator = validator;
+        _chatInputValidator = chatInputValidator;
     }
 
     private string GetUserId()
@@ -46,49 +49,36 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
-        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
-            throw new HubException("Invalid room ID");
-        if (string.IsNullOrWhiteSpace(playerName) || playerName.Length > 50)
-            throw new HubException("Invalid player name");
+        _chatInputValidator.ValidateRoomId(roomId);
+        _chatInputValidator.ValidatePlayerName(playerName);
 
-        try
+        await _validator.ValidateRoomExistsAsync(roomId);
+
+        if (!await _validator.HasDefaultPermissionAsync(roomId, ChatRoomPermissions.Join))
         {
-            await _validator.ValidateRoomExistsAsync(roomId);
-
-            if (!await _validator.HasDefaultPermissionAsync(roomId, ChatRoomPermissions.Join))
-            {
-                throw new HubException("This room does not allow self-join");
-            }
-
-            var defaultPermissions = await _roomDataService.GetDefaultPermissionsAsync(roomId);
-            var added = await _roomDataService.AddMemberAsync(roomId, userId, playerName, defaultPermissions);
-            if (!added)
-            {
-                throw new HubException("Cannot join chat room (room full or does not exist)");
-            }
-
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-            var rooms = ConnectionRooms.GetOrAdd(Context.ConnectionId, _ => new HashSet<string>());
-            lock (rooms)
-            {
-                rooms.Add(roomId);
-            }
-
-            _logger.LogInformation(
-                "Player {PlayerName} ({UserId}) joined chat room {RoomId}",
-                playerName, userId, roomId);
-
-            await Clients.Group(roomId).OnPlayerJoined(roomId, userId, playerName);
+            throw new HubException("This room does not allow self-join");
         }
-        catch (ChatNotFoundException ex)
+
+        var defaultPermissions = await _roomDataService.GetDefaultPermissionsAsync(roomId);
+        var added = await _roomDataService.AddMemberAsync(roomId, userId, playerName, defaultPermissions);
+        if (!added)
         {
-            throw new HubException(ex.Message);
+            throw new HubException("Cannot join chat room (room full or does not exist)");
         }
-        catch (ChatPermissionException ex)
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+
+        var rooms = ConnectionRooms.GetOrAdd(Context.ConnectionId, _ => new HashSet<string>());
+        lock (rooms)
         {
-            throw new HubException(ex.Message);
+            rooms.Add(roomId);
         }
+
+        _logger.LogInformation(
+            "Player {PlayerName} ({UserId}) joined chat room {RoomId}",
+            playerName, userId, roomId);
+
+        await Clients.Group(roomId).OnPlayerJoined(roomId, userId, playerName);
     }
 
     public async Task LeaveAsync(string roomId)
@@ -97,39 +87,27 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
-        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
-            throw new HubException("Invalid room ID");
+        _chatInputValidator.ValidateRoomId(roomId);
 
-        try
+        await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.Leave);
+
+        var member = await GetMemberPlayerNameAsync(roomId, userId);
+        await _roomDataService.RemoveMemberAsync(roomId, userId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
+
+        if (ConnectionRooms.TryGetValue(Context.ConnectionId, out var rooms))
         {
-            await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.Leave);
-
-            var member = await GetMemberPlayerNameAsync(roomId, userId);
-            await _roomDataService.RemoveMemberAsync(roomId, userId);
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
-
-            if (ConnectionRooms.TryGetValue(Context.ConnectionId, out var rooms))
+            lock (rooms)
             {
-                lock (rooms)
-                {
-                    rooms.Remove(roomId);
-                }
+                rooms.Remove(roomId);
             }
+        }
 
-            _logger.LogInformation(
-                "Player ({UserId}) left chat room {RoomId}",
-                userId, roomId);
+        _logger.LogInformation(
+            "Player ({UserId}) left chat room {RoomId}",
+            userId, roomId);
 
-            await Clients.Group(roomId).OnPlayerLeft(roomId, userId, member);
-        }
-        catch (ChatNotFoundException ex)
-        {
-            throw new HubException(ex.Message);
-        }
-        catch (ChatPermissionException ex)
-        {
-            throw new HubException(ex.Message);
-        }
+        await Clients.Group(roomId).OnPlayerLeft(roomId, userId, member);
     }
 
     public async Task SendMessageAsync(string roomId, string content)
@@ -138,54 +116,34 @@ public class ChatHub : Hub<IChatHubClient>
         if (string.IsNullOrEmpty(userId))
             throw new HubException("User not authenticated");
 
-        if (string.IsNullOrWhiteSpace(roomId) || roomId.Length > 64)
-            throw new HubException("Invalid room ID");
-        if (string.IsNullOrWhiteSpace(content) || content.Length > 500)
-            throw new HubException("Message content is required and must not exceed 500 characters");
+        _chatInputValidator.ValidateRoomId(roomId);
+        _chatInputValidator.ValidateMessageContent(content);
 
-        try
+        await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.SendMessage);
+
+        var playerName = await GetMemberPlayerNameAsync(roomId, userId);
+
+        var message = new ChatMessage
         {
-            await _validator.ValidateAsync(roomId, userId, ChatRoomPermissions.SendMessage);
+            UserId = userId,
+            PlayerName = playerName,
+            Content = content,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        };
 
-            var playerName = await GetMemberPlayerNameAsync(roomId, userId);
+        await _chatMessageService.SaveMessageAsync(roomId, message);
 
-            var message = new ChatMessage
-            {
-                UserId = userId,
-                PlayerName = playerName,
-                Content = content,
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            };
+        _logger.LogDebug(
+            "Player ({UserId}) sent chat message in room {RoomId}",
+            userId, roomId);
 
-            await _chatMessageService.SaveMessageAsync(roomId, message);
-
-            _logger.LogDebug(
-                "Player ({UserId}) sent chat message in room {RoomId}",
-                userId, roomId);
-
-            await Clients.Group(roomId).OnMessageReceived(roomId, message);
-        }
-        catch (ChatNotFoundException ex)
-        {
-            throw new HubException(ex.Message);
-        }
-        catch (ChatPermissionException ex)
-        {
-            throw new HubException(ex.Message);
-        }
+        await Clients.Group(roomId).OnMessageReceived(roomId, message);
     }
 
     public async Task<ChatMessage[]> GetRecentMessagesAsync(string roomId, int count)
     {
-        if (string.IsNullOrEmpty(roomId) || roomId.Length > 64)
-        {
-            return Array.Empty<ChatMessage>();
-        }
-
-        if (count <= 0 || count > 100)
-        {
-            count = 10;
-        }
+        _chatInputValidator.ValidateRoomId(roomId);
+        _chatInputValidator.ValidateMessageCount(count);
 
         return await _chatMessageService.GetRecentMessagesAsync(roomId, count);
     }

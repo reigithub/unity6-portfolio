@@ -1,6 +1,7 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
 using Game.Realtime.Extensions;
+using Game.Realtime.Validation;
 using MagicOnion;
 using MagicOnion.Server;
 
@@ -12,11 +13,16 @@ namespace Game.Realtime.Services;
 public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 {
     private readonly ILobbyDataService _lobbyDataService;
+    private readonly ILobbyValidator _lobbyValidator;
     private readonly ILogger<LobbyService> _logger;
 
-    public LobbyService(ILobbyDataService lobbyDataService, ILogger<LobbyService> logger)
+    public LobbyService(
+        ILobbyDataService lobbyDataService,
+        ILobbyValidator lobbyValidator,
+        ILogger<LobbyService> logger)
     {
         _lobbyDataService = lobbyDataService;
+        _lobbyValidator = lobbyValidator;
         _logger = logger;
     }
 
@@ -32,17 +38,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
             };
         }
 
-        if (string.IsNullOrWhiteSpace(request.LobbyName) || request.LobbyName.Length > 50 ||
-            string.IsNullOrWhiteSpace(request.GameMode) || request.GameMode.Length > 30 ||
-            string.IsNullOrWhiteSpace(request.PlayerName) || request.PlayerName.Length > 50 ||
-            request.MaxPlayers < 2 || request.MaxPlayers > 16)
-        {
-            return new CreateLobbyResponse
-            {
-                Success = false,
-                ErrorMessage = "Invalid lobby parameters",
-            };
-        }
+        _lobbyValidator.ValidateCreateLobbyRequest(request);
 
         try
         {
@@ -78,11 +74,8 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
             throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");
         }
 
-        if (string.IsNullOrWhiteSpace(lobbyId) || lobbyId.Length > 64 ||
-            string.IsNullOrWhiteSpace(playerName) || playerName.Length > 50)
-        {
-            throw new ReturnStatusException(Grpc.Core.StatusCode.InvalidArgument, "Invalid parameters");
-        }
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+        _lobbyValidator.ValidatePlayerName(playerName);
 
         var added = await _lobbyDataService.AddPlayerAsync(lobbyId, userId, playerName);
         if (!added)
@@ -107,10 +100,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyInfo[]> SearchLobbiesAsync(string gameMode, int maxResults)
     {
-        if (string.IsNullOrWhiteSpace(gameMode) || gameMode.Length > 30)
-        {
-            return Array.Empty<LobbyInfo>();
-        }
+        _lobbyValidator.ValidateGameMode(gameMode);
 
         if (maxResults <= 0 || maxResults > 50)
         {
@@ -122,10 +112,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyInfo> GetLobbyInfoAsync(string lobbyId)
     {
-        if (string.IsNullOrWhiteSpace(lobbyId) || lobbyId.Length > 64)
-        {
-            throw new ReturnStatusException(Grpc.Core.StatusCode.InvalidArgument, "Invalid lobby ID");
-        }
+        _lobbyValidator.ValidateLobbyId(lobbyId);
 
         var lobby = await _lobbyDataService.GetLobbyAsync(lobbyId);
         if (lobby == null)
@@ -138,10 +125,7 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
     public async UnaryResult<LobbyPlayerInfo[]> GetLobbyPlayersAsync(string lobbyId)
     {
-        if (string.IsNullOrWhiteSpace(lobbyId) || lobbyId.Length > 64)
-        {
-            throw new ReturnStatusException(Grpc.Core.StatusCode.InvalidArgument, "Invalid lobby ID");
-        }
+        _lobbyValidator.ValidateLobbyId(lobbyId);
 
         return await _lobbyDataService.GetPlayersAsync(lobbyId);
     }

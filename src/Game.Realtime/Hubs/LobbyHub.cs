@@ -1,5 +1,6 @@
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
+using Game.Realtime.Validation;
 using Grpc.Core;
 using MagicOnion.Server.Hubs;
 using Microsoft.AspNetCore.Http;
@@ -17,6 +18,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private readonly ILobbyDataService _lobbyDataService;
     private readonly IMatchSessionTokenService _tokenService;
     private readonly GameServerConfiguration _gameServerConfig;
+    private readonly ILobbyValidator _lobbyValidator;
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -27,21 +29,20 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
         IMatchSessionTokenService tokenService,
-        IOptions<GameServerConfiguration> gameServerConfig)
+        IOptions<GameServerConfiguration> gameServerConfig,
+        ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
         _tokenService = tokenService;
         _gameServerConfig = gameServerConfig.Value;
+        _lobbyValidator = lobbyValidator;
     }
 
     public async ValueTask ConnectAsync(string lobbyId, string playerName)
     {
-        if (string.IsNullOrWhiteSpace(lobbyId) || lobbyId.Length > 64 ||
-            string.IsNullOrWhiteSpace(playerName) || playerName.Length > 50)
-        {
-            return;
-        }
+        _lobbyValidator.ValidateLobbyId(lobbyId);
+        _lobbyValidator.ValidatePlayerName(playerName);
 
         _userId = Context.CallContext.GetHttpContext().User?.FindFirst("sub")?.Value
             ?? ConnectionId.ToString();
@@ -86,10 +87,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     public ValueTask SendMessageAsync(string message)
     {
-        if (string.IsNullOrWhiteSpace(message) || message.Length > 200)
-        {
-            return default;
-        }
+        _lobbyValidator.ValidateLobbyMessage(message);
 
         if (_currentGroup != null)
         {

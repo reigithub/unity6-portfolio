@@ -3,6 +3,7 @@ using Game.Server.Dto.Responses;
 using Game.Server.Tables;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services.Interfaces;
+using Game.Server.Validation;
 
 namespace Game.Server.Services;
 
@@ -11,28 +12,25 @@ public class SurvivorScoreService : ISurvivorScoreService
     private readonly ISurvivorScoreRepository _scoreRepository;
     private readonly IRankingRepository _rankingRepository;
     private readonly IRankingService _rankingService;
-    private readonly ISurvivorScoreValidationService _survivorScoreValidation;
+    private readonly ISurvivorScoreValidator _survivorScoreValidator;
 
     public SurvivorScoreService(
         ISurvivorScoreRepository scoreRepository,
         IRankingRepository rankingRepository,
         IRankingService rankingService,
-        ISurvivorScoreValidationService survivorScoreValidation)
+        ISurvivorScoreValidator survivorScoreValidator)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
         _rankingService = rankingService;
-        _survivorScoreValidation = survivorScoreValidation;
+        _survivorScoreValidator = survivorScoreValidator;
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
         Guid userId, ScoreSubmitDto request)
     {
-        var validationResult = _survivorScoreValidation.Validate(request);
-        if (!validationResult.IsValid)
-        {
-            return new ApiError(validationResult.ErrorMessage!, "INVALID_SCORE", 400);
-        }
+        _survivorScoreValidator.Validate(request);
+        // ErrorException("INVALID_SCORE") は ExceptionHandlingMiddleware が処理
 
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
             request.StageId, userId);

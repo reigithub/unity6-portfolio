@@ -6,6 +6,7 @@ using Game.Server.Repositories.Interfaces;
 using Game.Server.Services;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Interfaces;
+using Game.Server.Validation;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -140,7 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRankingService, RankingService>();
-        services.AddScoped<ISurvivorScoreValidationService, SurvivorScoreValidationService>();
+        services.AddScoped<ISurvivorScoreValidator, SurvivorScoreValidator>();
         services.AddScoped<ISurvivorScoreService, SurvivorScoreService>();
 
         // Repositories
@@ -176,6 +177,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IChatRoomDataService, ChatRoomDataService>();
         services.AddSingleton<IChatMessageService, ChatMessageService>();
         services.AddSingleton<ChatPermissionValidator>();
+        services.AddSingleton<IChatInputValidator, ChatInputValidator>();
         return services;
     }
 }

@@ -50,6 +50,8 @@ public class Program
         builder.Services.AddMagicOnion(options =>
         {
             options.GlobalFilters.Add<JwtAuthenticationFilter>();
+            options.GlobalFilters.Add<ValidationExceptionFilter>();
+            options.GlobalStreamingHubFilters.Add<HubValidationExceptionFilter>();
             options.EnableStreamingHubHeartbeat = true;
             options.StreamingHubHeartbeatInterval = TimeSpan.FromSeconds(30);
             options.StreamingHubHeartbeatTimeout = TimeSpan.FromSeconds(10);

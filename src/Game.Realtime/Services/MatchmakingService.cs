@@ -1,6 +1,7 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Services;
 using Game.Realtime.Extensions;
+using Game.Realtime.Validation;
 using MagicOnion;
 using MagicOnion.Server;
 
@@ -12,11 +13,16 @@ namespace Game.Realtime.Services;
 public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmakingService
 {
     private readonly IMatchmakingQueueService _queueService;
+    private readonly IMatchmakingValidator _matchmakingValidator;
     private readonly ILogger<MatchmakingService> _logger;
 
-    public MatchmakingService(IMatchmakingQueueService queueService, ILogger<MatchmakingService> logger)
+    public MatchmakingService(
+        IMatchmakingQueueService queueService,
+        IMatchmakingValidator matchmakingValidator,
+        ILogger<MatchmakingService> logger)
     {
         _queueService = queueService;
+        _matchmakingValidator = matchmakingValidator;
         _logger = logger;
     }
 
@@ -32,14 +38,7 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
             };
         }
 
-        if (string.IsNullOrWhiteSpace(request.GameMode) || request.GameMode.Length > 30)
-        {
-            return new MatchmakingResponse
-            {
-                Success = false,
-                ErrorMessage = "Invalid game mode",
-            };
-        }
+        _matchmakingValidator.ValidateGameMode(request.GameMode);
 
         try
         {
@@ -82,14 +81,7 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
             };
         }
 
-        if (string.IsNullOrWhiteSpace(request.GameMode) || request.GameMode.Length > 30)
-        {
-            return new MatchmakingResponse
-            {
-                Success = false,
-                ErrorMessage = "Invalid game mode",
-            };
-        }
+        _matchmakingValidator.ValidateGameMode(request.GameMode);
 
         try
         {
@@ -119,10 +111,7 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
     public async UnaryResult<int> GetQueueCountAsync(string gameMode)
     {
-        if (string.IsNullOrWhiteSpace(gameMode) || gameMode.Length > 30)
-        {
-            return 0;
-        }
+        _matchmakingValidator.ValidateGameMode(gameMode);
 
         return await _queueService.GetQueueCountAsync(gameMode);
     }
