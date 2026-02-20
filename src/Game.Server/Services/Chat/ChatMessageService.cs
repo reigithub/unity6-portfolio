@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Game.Library.Shared.Dto;
 using Game.Server.Configuration;
+using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -32,9 +33,10 @@ public class ChatMessageService : IChatMessageService
         _logger = logger;
     }
 
-    public async Task SaveMessageAsync(string roomId, ChatMessage message)
+    public Task SaveMessageAsync(string roomId, ChatMessage message)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             var key = $"{KeyPrefix}{roomId}";
@@ -61,20 +63,15 @@ public class ChatMessageService : IChatMessageService
             _logger.LogDebug(
                 "Saved chat message from {UserId} in room {RoomId}",
                 message.UserId, roomId);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, could not save message for roomId={RoomId}", roomId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving chat message for roomId={RoomId}", roomId);
-        }
+        },
+        _logger,
+        nameof(SaveMessageAsync));
     }
 
-    public async Task<ChatMessage[]> GetRecentMessagesAsync(string roomId, int count)
+    public Task<ChatMessage[]> GetRecentMessagesAsync(string roomId, int count)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             var key = $"{KeyPrefix}{roomId}";
@@ -96,37 +93,25 @@ public class ChatMessageService : IChatMessageService
             }
 
             return messages;
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, returning empty messages for roomId={RoomId}", roomId);
-            return [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting recent messages for roomId={RoomId}", roomId);
-            return [];
-        }
+        },
+        fallback: [],
+        _logger,
+        nameof(GetRecentMessagesAsync));
     }
 
-    public async Task DeleteRoomAsync(string roomId)
+    public Task DeleteRoomAsync(string roomId)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             var key = $"{KeyPrefix}{roomId}";
             await db.KeyDeleteAsync(key);
 
             _logger.LogInformation("Deleted chat messages for room {RoomId}", roomId);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, could not delete room data for roomId={RoomId}", roomId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting chat room data for roomId={RoomId}", roomId);
-        }
+        },
+        _logger,
+        nameof(DeleteRoomAsync));
     }
 
     private class ChatMessageData
