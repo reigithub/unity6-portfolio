@@ -7,14 +7,28 @@ using Game.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.SignalR;
 using Scalar.AspNetCore;
+using Serilog;
 
 namespace Game.Server;
 
 public partial class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
+        // Bootstrap logger（ホスト構築前のエラーもキャプチャ）
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
+
+        try
+        {
         var builder = WebApplication.CreateBuilder(args);
+
+        // Serilog を MEL プロバイダーとして登録
+        builder.Services.AddSerilog((services, lc) => lc
+            .ReadFrom.Configuration(builder.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext());
 
         // Controllers (MessagePack primary, JSON fallback)
         builder.Services.AddControllers(options =>
@@ -85,7 +99,7 @@ public partial class Program
             });
         }
 
-        app.UseMiddleware<RequestLoggingMiddleware>();
+        app.UseSerilogRequestLogging();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.UseHttpsRedirection();
@@ -115,5 +129,14 @@ public partial class Program
         }
 
         app.Run();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
     }
 }
