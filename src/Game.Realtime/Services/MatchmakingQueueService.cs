@@ -1,3 +1,4 @@
+using Game.Server.Shared.Valkey;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Services;
@@ -18,67 +19,52 @@ public class MatchmakingQueueService : IMatchmakingQueueService
         _logger = logger;
     }
 
-    public async Task EnqueuePlayerAsync(string userId, string gameMode)
+    public Task EnqueuePlayerAsync(string userId, string gameMode)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             var score = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             await db.SortedSetAddAsync($"{QueueKeyPrefix}{gameMode}", userId, score);
 
             _logger.LogDebug("Player {UserId} enqueued for mode {GameMode}", userId, gameMode);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, could not enqueue player {UserId} for mode {GameMode}", userId, gameMode);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error enqueuing player {UserId} for gameMode={GameMode}", userId, gameMode);
-        }
+        },
+        _logger,
+        nameof(EnqueuePlayerAsync));
     }
 
-    public async Task DequeuePlayerAsync(string userId, string gameMode)
+    public Task DequeuePlayerAsync(string userId, string gameMode)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             await db.SortedSetRemoveAsync($"{QueueKeyPrefix}{gameMode}", userId);
 
             _logger.LogDebug("Player {UserId} dequeued from mode {GameMode}", userId, gameMode);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, could not dequeue player {UserId} from mode {GameMode}", userId, gameMode);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error dequeuing player {UserId} for gameMode={GameMode}", userId, gameMode);
-        }
+        },
+        _logger,
+        nameof(DequeuePlayerAsync));
     }
 
-    public async Task<int> GetQueueCountAsync(string gameMode)
+    public Task<int> GetQueueCountAsync(string gameMode)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             return (int)await db.SortedSetLengthAsync($"{QueueKeyPrefix}{gameMode}");
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, returning 0 for queue count for gameMode={GameMode}", gameMode);
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting queue count for gameMode={GameMode}", gameMode);
-            return 0;
-        }
+        },
+        fallback: 0,
+        _logger,
+        nameof(GetQueueCountAsync));
     }
 
-    public async Task<string[]> DequeueTopPlayersAsync(string gameMode, int count)
+    public Task<string[]> DequeueTopPlayersAsync(string gameMode, int count)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = _redis.GetDatabase();
             var key = $"{QueueKeyPrefix}{gameMode}";
@@ -98,16 +84,9 @@ public class MatchmakingQueueService : IMatchmakingQueueService
                 gameMode);
 
             return playerIds;
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, returning empty array for gameMode={GameMode}", gameMode);
-            return [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error dequeuing top players for gameMode={GameMode}", gameMode);
-            return [];
-        }
+        },
+        fallback: [],
+        _logger,
+        nameof(DequeueTopPlayersAsync));
     }
 }

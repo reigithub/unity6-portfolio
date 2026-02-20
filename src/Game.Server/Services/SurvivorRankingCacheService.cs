@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Game.Library.Shared.Dto;
 using Game.Server.Configuration;
-using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -41,9 +41,10 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
     private static string GetRankingKey(int stageId) => $"{RankingKeyPrefix}{stageId}";
     private static string GetRankingDataKey(int stageId) => $"{RankingDataKeyPrefix}{stageId}";
 
-    public async Task<List<RankingEntryDto>?> GetRankingAsync(int stageId, int limit, int offset)
+    public Task<List<RankingEntryDto>?> GetRankingAsync(int stageId, int limit, int offset)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = GetDatabase();
             var dataKey = GetRankingDataKey(stageId);
@@ -79,22 +80,16 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
 
             _logger.LogDebug("Cache hit for ranking stageId={StageId}, count={Count}", stageId, result.Count);
             return result;
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, falling back to database");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting ranking from cache for stageId={StageId}", stageId);
-            return null;
-        }
+        },
+        fallback: null,
+        _logger,
+        nameof(GetRankingAsync));
     }
 
-    public async Task SetRankingAsync(int stageId, List<RankingEntryDto> entries, TimeSpan? expiry = null)
+    public Task SetRankingAsync(int stageId, List<RankingEntryDto> entries, TimeSpan? expiry = null)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
@@ -122,20 +117,15 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
             await Task.WhenAll(tasks);
 
             _logger.LogDebug("Cached ranking for stageId={StageId}, count={Count}", stageId, entries.Count);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, skipping cache set");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting ranking cache for stageId={StageId}", stageId);
-        }
+        },
+        _logger,
+        nameof(SetRankingAsync));
     }
 
-    public async Task<bool> AddScoreAsync(int stageId, Guid userId, int score)
+    public Task<bool> AddScoreAsync(int stageId, Guid userId, int score)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
@@ -157,22 +147,16 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
             }
 
             return true;
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, skipping score add");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding score to cache for stageId={StageId}, userId={UserId}", stageId, userId);
-            return false;
-        }
+        },
+        fallback: false,
+        _logger,
+        nameof(AddScoreAsync));
     }
 
-    public async Task<long?> GetPlayerRankAsync(int stageId, Guid userId)
+    public Task<long?> GetPlayerRankAsync(int stageId, Guid userId)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
@@ -181,26 +165,20 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
             if (rank.HasValue)
             {
                 // 0始まりを1始まりに変換
-                return rank.Value + 1;
+                return (long?)(rank.Value + 1);
             }
 
             return null;
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, returning null for rank");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting player rank from cache for stageId={StageId}, userId={UserId}", stageId, userId);
-            return null;
-        }
+        },
+        fallback: null,
+        _logger,
+        nameof(GetPlayerRankAsync));
     }
 
-    public async Task InvalidateAsync(int stageId)
+    public Task InvalidateAsync(int stageId)
     {
-        try
+        return ValkeyExecutor.ExecuteAsync(
+        async () =>
         {
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
@@ -211,14 +189,8 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
                 db.KeyDeleteAsync(dataKey));
 
             _logger.LogDebug("Invalidated cache for stageId={StageId}", stageId);
-        }
-        catch (RedisConnectionException ex)
-        {
-            _logger.LogWarning(ex, "Redis connection failed, skipping cache invalidation");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error invalidating cache for stageId={StageId}", stageId);
-        }
+        },
+        _logger,
+        nameof(InvalidateAsync));
     }
 }
