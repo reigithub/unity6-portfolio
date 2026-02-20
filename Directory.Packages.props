@@ -23,6 +23,11 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.8.41" />
     <PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
 
+    <!-- Logging -->
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+
     <!-- Serialization -->
     <PackageVersion Include="MessagePack" Version="3.1.4" />
     <PackageVersion Include="MasterMemory" Version="3.0.4" />

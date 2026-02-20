@@ -3,14 +3,28 @@ using Game.Realtime.Filters;
 using Game.Server.Shared.Extensions;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Serilog;
 
 namespace Game.Realtime;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
+        // Bootstrap logger（ホスト構築前のエラーもキャプチャ）
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
+
+        try
+        {
         var builder = WebApplication.CreateBuilder(args);
+
+        // Serilog を MELプロバイダーとして登録
+        builder.Services.AddSerilog((services, lc) => lc
+            .ReadFrom.Configuration(builder.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext());
 
         // Kestrel: HTTP/1.1 + HTTP/2 on port 5001
         // Http1AndHttp2 allows gRPC (h2c) and plain HTTP health checks
@@ -68,5 +82,14 @@ public class Program
         app.MapRealtimeEndpoints();
 
         app.Run();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
     }
 }
