@@ -24,7 +24,9 @@ public class SerilogRequestLoggingTests : IAsyncLifetime
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.UseEnvironment("Development");
+                // Development だと FluentMigrator の自動マイグレーションが走り
+                // ダミー接続文字列では DB 接続に失敗するため Testing を使用
+                builder.UseEnvironment("Testing");
 
                 builder.ConfigureServices(services =>
                 {
