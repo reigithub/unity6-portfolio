@@ -62,7 +62,7 @@ jobs:
       build_profile_type: ${{ steps.profile.outputs.type }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           sparse-checkout: .github
 
@@ -102,14 +102,14 @@ jobs:
     runs-on: [self-hosted, linux, unity, docker]
     needs: load-config
     if: ${{ !inputs.skip_tests }}
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -154,7 +154,7 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/playmode-test.log"
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: Test-Results
@@ -173,7 +173,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneWindows64' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -184,7 +184,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -215,14 +215,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-windows.log"
 
       - name: Upload Windows build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Windows-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Windows/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: Windows-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -239,7 +239,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneLinux64' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -250,7 +250,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -281,14 +281,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-linux.log"
 
       - name: Upload Linux build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Linux-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Linux/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: Linux-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -305,7 +305,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'StandaloneOSX' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -316,7 +316,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -347,14 +347,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-macos.log"
 
       - name: Upload macOS build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: macOS-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/macOS/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: macOS-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -371,7 +371,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'WebGL' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -382,7 +382,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -413,14 +413,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-webgl.log"
 
       - name: Upload WebGL build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: WebGL-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/WebGL/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: WebGL-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -437,7 +437,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'Android' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -448,7 +448,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -479,14 +479,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-android.log"
 
       - name: Upload Android build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Android-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Android/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: Android-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -503,7 +503,7 @@ jobs:
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (inputs.build_target == 'iOS' || inputs.build_target == 'All')
-    timeout-minutes: 7200
+    timeout-minutes: 180
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -514,7 +514,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -545,14 +545,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-ios.log"
 
       - name: Upload iOS build (Xcode Project)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: iOS-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/iOS/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: iOS-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -580,19 +580,19 @@ jobs:
 
     steps:
       - name: Download WebGL build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: WebGL-Build-${{ env.BUILD_TIMESTAMP }}
           path: ./webgl-build
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d # v4.0.0
 
       - name: Upload to Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: ./webgl-build
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
