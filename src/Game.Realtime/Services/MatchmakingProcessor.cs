@@ -89,10 +89,8 @@ public class MatchmakingProcessor : BackgroundService
                     playerIds.Length, matchSize, gameMode);
 
                 // 足りない場合は再エンキュー
-                foreach (var playerId in playerIds)
-                {
-                    await _queueService.EnqueuePlayerAsync(playerId, gameMode);
-                }
+                await Task.WhenAll(playerIds.Select(playerId =>
+                    _queueService.EnqueuePlayerAsync(playerId, gameMode)));
                 break;
             }
 
@@ -105,10 +103,8 @@ public class MatchmakingProcessor : BackgroundService
         var matchId = Guid.NewGuid().ToString("N");
 
         // 各プレイヤーにセッショントークン発行
-        foreach (var playerId in playerIds)
-        {
-            await _tokenService.IssueTokenAsync(playerId, matchId);
-        }
+        await Task.WhenAll(playerIds.Select(playerId =>
+            _tokenService.IssueTokenAsync(playerId, matchId)));
 
         var matchResult = new MatchResult
         {
@@ -122,11 +118,11 @@ public class MatchmakingProcessor : BackgroundService
         var subscriber = _redis.GetSubscriber();
 
         // Per-user チャネルで通知（マッチしたプレイヤーのみ）
-        foreach (var playerId in playerIds)
+        await Task.WhenAll(playerIds.Select(playerId =>
         {
             var channel = RedisChannel.Literal($"matchmaking:notify:{playerId}");
-            await subscriber.PublishAsync(channel, json);
-        }
+            return subscriber.PublishAsync(channel, json);
+        }));
 
         _logger.LogInformation(
             "Match {MatchId} created for mode {GameMode} with {PlayerCount} players: [{PlayerIds}]",
