@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
@@ -40,6 +41,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             _onOptionSelected.Dispose();
             _onCloseClicked.Dispose();
+
+            foreach (var sprite in _iconCache.Values)
+            {
+                _assetService.ReleaseAsset(sprite);
+            }
+            _iconCache.Clear();
+
             base.OnDestroy();
         }
 
@@ -225,8 +233,9 @@ namespace Game.MVP.Survivor.Scenes
                     thumbnail?.AddToClassList("option__thumbnail--empty");
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.LogWarning($"[LevelUpDialog] Failed to load icon '{iconAssetName}': {ex.Message}");
                 // エラー時はプレースホルダーを表示
                 thumbnail?.RemoveFromClassList("option__thumbnail--loading");
                 thumbnail?.AddToClassList("option__thumbnail--empty");

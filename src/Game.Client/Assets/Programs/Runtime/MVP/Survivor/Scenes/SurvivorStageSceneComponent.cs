@@ -107,6 +107,9 @@ namespace Game.MVP.Survivor.Scenes
         private float _timeLimit = 0f;
         private int _totalWaves = 1;
 
+        private const int WaveBannerDisplayDurationMs = 2500;
+        private const int WaveBannerFadeOutDurationMs = 300;
+
         protected override void OnDestroy()
         {
             _bannerCts?.Cancel();
@@ -138,6 +141,12 @@ namespace Game.MVP.Survivor.Scenes
 
             _flashCtsMap.Clear();
             _weaponCards.Clear();
+
+            foreach (var sprite in _iconCache.Values)
+            {
+                _assetService.ReleaseAsset(sprite);
+            }
+            _iconCache.Clear();
 
             base.OnDestroy();
         }
@@ -442,14 +451,14 @@ namespace Game.MVP.Survivor.Scenes
         {
             try
             {
-                await UniTask.Delay(2500, cancellationToken: ct);
+                await UniTask.Delay(WaveBannerDisplayDurationMs, cancellationToken: ct);
 
                 if (_waveBanner != null)
                 {
                     _waveBanner.AddToClassList("wave-banner--fade-out");
                 }
 
-                await UniTask.Delay(300, cancellationToken: ct);
+                await UniTask.Delay(WaveBannerFadeOutDurationMs, cancellationToken: ct);
 
                 if (_waveBanner != null)
                 {
