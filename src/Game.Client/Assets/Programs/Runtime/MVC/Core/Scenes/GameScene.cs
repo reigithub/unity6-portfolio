@@ -1,6 +1,7 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Extensions;
+using Game.Shared.Scenes;
 using Game.Core.Services;
 using Game.MVC.Core.Enums;
 using UnityEngine;

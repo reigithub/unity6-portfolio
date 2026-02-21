@@ -1,7 +1,7 @@
 ﻿using Game.ScoreTimeAttack.Enemy;
 using Game.ScoreTimeAttack.Item;
 using Game.ScoreTimeAttack.Player;
-using Game.MVC.Core.Scenes;
+using Game.Shared.Scenes;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
