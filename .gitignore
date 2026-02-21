@@ -9,6 +9,9 @@ docker/unity-ci/.env
 docker/unity-ci/volumes/
 docker/unity-ci/unity-license/
 
+# Local appsettings overrides
+appsettings.*.local.json
+
 # Unity license files
 *.ulf
 *.alf
