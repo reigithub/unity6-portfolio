@@ -102,19 +102,19 @@ namespace Game.App.Title
             _scoreTimeAttackButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                SelectGameModeAsync(GameMode.MvcScoreTimeAttack).Forget();
+                SelectGameModeAsync(GameMode.MvcScoreTimeAttack).ForgetWithHandler("AppTitleSceneComponent.SelectGameMode");
             });
 
             _survivorButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                SelectGameModeAsync(GameMode.MvpSurvivor).Forget();
+                SelectGameModeAsync(GameMode.MvpSurvivor).ForgetWithHandler("AppTitleSceneComponent.SelectGameMode");
             });
 
             _quitButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                QuitGameAsync().Forget();
+                QuitGameAsync().ForgetWithHandler("AppTitleSceneComponent.QuitGame");
             });
         }
 
