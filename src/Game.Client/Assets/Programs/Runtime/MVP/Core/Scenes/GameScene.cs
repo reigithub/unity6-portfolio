@@ -4,6 +4,7 @@ using DG.Tweening;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Enums;
 using Game.Shared.Extensions;
+using Game.Shared.Scenes;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;

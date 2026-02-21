@@ -1,4 +1,4 @@
-using Game.MVP.Core.Scenes;
+using Game.Shared.Scenes;
 using Game.MVP.Survivor.Player;
 using UnityEngine;
 using UnityEngine.SceneManagement;

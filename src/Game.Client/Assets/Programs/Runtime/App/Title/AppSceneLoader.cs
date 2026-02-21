@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Exceptions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.App.Title
 {
@@ -13,6 +14,7 @@ namespace Game.App.Title
     public class AppSceneLoader
     {
         private GameObject _currentInstance;
+        private AsyncOperationHandle<GameObject> _currentHandle;
 
         public async UniTask<T> LoadAsync<T>(string address) where T : Component
         {
@@ -27,8 +29,8 @@ namespace Game.App.Title
             try
             {
                 // Addressablesから読み込み
-                var handle = Addressables.LoadAssetAsync<GameObject>(address);
-                var prefab = await handle.ToUniTask();
+                _currentHandle = Addressables.LoadAssetAsync<GameObject>(address);
+                var prefab = await _currentHandle.ToUniTask();
 
                 if (prefab == null)
                 {
@@ -46,6 +48,8 @@ namespace Game.App.Title
                 {
                     UnityEngine.Object.Destroy(_currentInstance);
                     _currentInstance = null;
+                    Addressables.Release(_currentHandle);
+                    _currentHandle = default;
                     throw new GameAssetLoadException(address, typeof(T), $"Component {typeof(T).Name} not found on prefab: {address}");
                 }
 
@@ -57,6 +61,11 @@ namespace Game.App.Title
             }
             catch (Exception ex)
             {
+                if (_currentHandle.IsValid())
+                {
+                    Addressables.Release(_currentHandle);
+                    _currentHandle = default;
+                }
                 Debug.LogError($"[AppSceneLoader] Failed to load {address}: {ex.Message}");
                 throw new GameAssetLoadException(address, typeof(T), $"Failed to load prefab: {address}", ex);
             }
@@ -68,6 +77,12 @@ namespace Game.App.Title
             {
                 UnityEngine.Object.Destroy(_currentInstance);
                 _currentInstance = null;
+            }
+
+            if (_currentHandle.IsValid())
+            {
+                Addressables.Release(_currentHandle);
+                _currentHandle = default;
             }
         }
     }
