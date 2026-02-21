@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Enums;
 using Game.Server.Services.Chat;
@@ -16,7 +15,7 @@ namespace Game.Server.Hubs;
 [Authorize]
 public class ChatHub : Hub<IChatHubClient>
 {
-    private static readonly ConcurrentDictionary<string, HashSet<string>> ConnectionRooms = new();
+    private const string RoomsKey = "JoinedRooms";
 
     private readonly ILogger<ChatHub> _logger;
     private readonly IChatMessageService _chatMessageService;
@@ -62,12 +61,7 @@ public class ChatHub : Hub<IChatHubClient>
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-        var rooms = ConnectionRooms.GetOrAdd(Context.ConnectionId, _ => new HashSet<string>());
-        lock (rooms)
-        {
-            rooms.Add(roomId);
-        }
+        GetConnectionRooms().Add(roomId);
 
         _logger.LogInformation(
             "Player {PlayerName} ({UserId}) joined chat room {RoomId}",
@@ -90,13 +84,7 @@ public class ChatHub : Hub<IChatHubClient>
         await _roomDataService.RemoveMemberAsync(roomId, userId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
 
-        if (ConnectionRooms.TryGetValue(Context.ConnectionId, out var rooms))
-        {
-            lock (rooms)
-            {
-                rooms.Remove(roomId);
-            }
-        }
+        GetConnectionRooms().Remove(roomId);
 
         _logger.LogInformation(
             "Player ({UserId}) left chat room {RoomId}",
@@ -147,21 +135,13 @@ public class ChatHub : Hub<IChatHubClient>
     {
         var userId = Context.User?.GetUserId() ?? "";
 
-        if (ConnectionRooms.TryRemove(Context.ConnectionId, out var rooms))
+        var rooms = GetConnectionRooms();
+        foreach (var roomId in rooms.ToArray())
         {
-            string[] roomsCopy;
-            lock (rooms)
-            {
-                roomsCopy = rooms.ToArray();
-            }
-
-            foreach (var roomId in roomsCopy)
-            {
-                var playerName = await GetMemberPlayerNameAsync(roomId, userId);
-                await _roomDataService.RemoveMemberAsync(roomId, userId);
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
-                await Clients.Group(roomId).OnPlayerLeft(roomId, userId, playerName);
-            }
+            var playerName = await GetMemberPlayerNameAsync(roomId, userId);
+            await _roomDataService.RemoveMemberAsync(roomId, userId);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
+            await Clients.Group(roomId).OnPlayerLeft(roomId, userId, playerName);
         }
 
         _logger.LogInformation(
@@ -169,6 +149,18 @@ public class ChatHub : Hub<IChatHubClient>
             userId);
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private HashSet<string> GetConnectionRooms()
+    {
+        if (Context.Items.TryGetValue(RoomsKey, out var obj) && obj is HashSet<string> rooms)
+        {
+            return rooms;
+        }
+
+        var newRooms = new HashSet<string>();
+        Context.Items[RoomsKey] = newRooms;
+        return newRooms;
     }
 
     private async Task<string> GetMemberPlayerNameAsync(string roomId, string userId)
