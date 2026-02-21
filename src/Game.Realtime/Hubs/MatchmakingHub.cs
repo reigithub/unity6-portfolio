@@ -53,7 +53,14 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
                 var result = JsonSerializer.Deserialize<MatchResult>(message.ToString());
                 if (result != null)
                 {
-                    Client.OnMatchFound(result);
+                    try
+                    {
+                        Client.OnMatchFound(result);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send match notification to user {UserId}", _userId);
+                    }
                 }
             }
             catch (Exception ex)
@@ -66,9 +73,16 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
         var queueChannel = RedisChannel.Literal($"matchmaking:queue:{gameMode}");
         await _subscriber.SubscribeAsync(queueChannel, (_, message) =>
         {
-            if (int.TryParse(message.ToString(), out var count))
+            try
             {
-                Client.OnQueueStatusUpdated(count);
+                if (int.TryParse(message.ToString(), out var count))
+                {
+                    Client.OnQueueStatusUpdated(count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send queue status update to user {UserId}", _userId);
             }
         });
 
