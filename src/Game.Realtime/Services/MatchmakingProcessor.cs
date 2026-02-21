@@ -81,6 +81,8 @@ public class MatchmakingProcessor : BackgroundService
 
             if (queueCount < matchSize) break;
 
+            stoppingToken.ThrowIfCancellationRequested();
+
             var playerIds = await _queueService.DequeueTopPlayersAsync(gameMode, matchSize);
             if (playerIds.Length < matchSize)
             {
