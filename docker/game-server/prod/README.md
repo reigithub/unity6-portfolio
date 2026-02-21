@@ -41,10 +41,43 @@ DB_NAME=gamedb
 DB_USER=gameserver
 DB_PASSWORD=secure-password-here
 SERVICE_NAME=game-server
-JWT_SECRET_KEY=your-32-char-minimum-secret-key
-JWT_ISSUER=GameServer
-JWT_AUDIENCE=GameClient
+
+# Secret Manager シークレット名
+SECRET_DB_CONNECTION=game-server-db-connection-string
+SECRET_JWT=game-jwt-secret
+SECRET_RESEND=game-resend-api-key
+
+Jwt__Issuer=Game.Server
+Jwt__Audience=Game.Client
 ```
+
+### 2. Secret Manager の設定
+
+機密情報は Google Cloud Secret Manager で管理します。
+
+```bash
+# シークレットを作成
+# ConnectionStrings__Default: Cloud SQL 接続文字列全体を格納
+echo -n "Host=/cloudsql/PROJECT:REGION:INSTANCE;Database=gamedb;Username=gameserver;Password=YOUR_PASSWORD" \
+  | gcloud secrets create game-server-db-connection-string --data-file=-
+
+echo -n "your-jwt-secret-key-min-32-characters" \
+  | gcloud secrets create game-jwt-secret --data-file=-
+
+echo -n "re_xxxxxxxx" \
+  | gcloud secrets create game-resend-api-key --data-file=-
+
+# Cloud Run サービスアカウントに読み取り権限を付与
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+
+for SECRET in game-server-db-connection-string game-jwt-secret game-resend-api-key; do
+  gcloud secrets add-iam-policy-binding $SECRET \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
+done
+```
+
+> **注意**: `DB_PASSWORD` は `.env` に残りますが、これはローカルの db.sh/db.ps1（Cloud SQL Proxy 経由）でのみ使用されます。Cloud Run へのデプロイでは Secret Manager のシークレットが使用されます。
 
 ## デプロイ方法
 
@@ -136,12 +169,12 @@ Cloud Run デプロイ時に Cloud SQL を接続：
 # 接続名を取得
 $CONNECTION_NAME = gcloud sql instances describe $env:INSTANCE_NAME --format="value(connectionName)"
 
-# Cloud SQL 付きでデプロイ
+# Cloud SQL 付きでデプロイ（機密情報は Secret Manager から取得）
 gcloud run deploy $env:SERVICE_NAME `
   --image="${IMAGE}:latest" `
   --region=$env:REGION `
   --add-cloudsql-instances=$CONNECTION_NAME `
-  --set-env-vars="ConnectionStrings__Default=Host=/cloudsql/$CONNECTION_NAME;Database=$env:DB_NAME;Username=$env:DB_USER;Password=$env:DB_PASSWORD"
+  --set-secrets="ConnectionStrings__Default=$env:SECRET_DB_CONNECTION`:latest"
 ```
 
 ## Memorystore for Valkey 設定

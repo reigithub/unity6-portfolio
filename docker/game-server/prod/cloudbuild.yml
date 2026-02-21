@@ -4,9 +4,11 @@
 # 使用方法（Cloud Shell または gcloud CLI）:
 #   cd Unity6Portfolio
 #   gcloud builds submit --config=docker/game-server/prod/cloudbuild.yml \
-#     --substitutions=_INSTANCE_NAME=game-db,_DB_NAME=gamedb,_DB_USER=gameserver,_DB_PASSWORD=xxx
+#     --substitutions=_INSTANCE_NAME=game-db
 #
-# 注意: 機密情報は Secret Manager を使用することを推奨
+# 機密情報は Google Cloud Secret Manager で管理
+# 事前に Secret Manager にシークレットを作成し、Cloud Run サービスアカウントに
+# roles/secretmanager.secretAccessor を付与してください
 
 steps:
   # ===== Docker イメージをビルド =====
@@ -58,6 +60,10 @@ steps:
       - '-c'
       - |
         CONNECTION_NAME=$(cat /workspace/connection_name.txt)
+        SECRETS="ConnectionStrings__Default=${_SECRET_DB_CONNECTION}:latest,Jwt__Secret=${_SECRET_JWT}:latest,RequestSigning__SecretKey=${_SECRET_REQUEST_SIGNING}:latest"
+        if [ -n "${_SECRET_RESEND}" ]; then
+          SECRETS="$${SECRETS},Resend__ApiKey=${_SECRET_RESEND}:latest"
+        fi
         gcloud run deploy ${_SERVICE_NAME} \
           --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/game-server:${SHORT_SHA} \
           --region=${_REGION} \
@@ -66,11 +72,10 @@ steps:
           --add-cloudsql-instances=$${CONNECTION_NAME} \
           --vpc-connector=${_VPC_CONNECTOR} \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
-          --set-env-vars="ConnectionStrings__Default=Host=/cloudsql/$${CONNECTION_NAME};Database=${_DB_NAME};Username=${_DB_USER};Password=${_DB_PASSWORD}" \
           --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
-          --set-env-vars="Jwt__Secret=${_JWT_SECRET}" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
+          --set-secrets="$${SECRETS}" \
           --memory=512Mi \
           --cpu=1 \
           --min-instances=0 \
@@ -84,10 +89,12 @@ substitutions:
   _REPO_NAME: game-server
   _SERVICE_NAME: game-server
   _INSTANCE_NAME: game-db
-  _DB_NAME: gamedb
-  _DB_USER: gameserver
-  _DB_PASSWORD: ''
-  _JWT_SECRET: ''
+  # Secret Manager シークレット名
+  _SECRET_DB_CONNECTION: game-server-db-connection-string
+  _SECRET_JWT: game-jwt-secret
+  _SECRET_REQUEST_SIGNING: game-request-signing-secret
+  _SECRET_RESEND: ''
+  # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
   # Memorystore for Valkey 設定

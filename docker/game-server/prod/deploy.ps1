@@ -34,17 +34,12 @@ if (Test-Path $EnvFile) {
 }
 
 # Check required variables
-$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "DB_NAME", "DB_USER", "DB_PASSWORD")
+$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "SECRET_DB_CONNECTION", "SECRET_JWT", "SECRET_REQUEST_SIGNING")
 foreach ($var in $RequiredVars) {
     if (-not (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue)) {
         Write-Host "[ERROR] Required variable $var is not set in .env" -ForegroundColor Red
         exit 1
     }
-}
-
-# Check JWT settings (warning only)
-if (-not $env:Jwt__Secret) {
-    Write-Host "[WARN] Jwt__Secret is not set. JWT authentication may fail." -ForegroundColor Yellow
 }
 
 $IMAGE = "$env:REGION-docker.pkg.dev/$env:PROJECT_ID/$env:REPO_NAME/game-server"
@@ -108,22 +103,13 @@ if (-not $BuildOnly) {
     # Cloud Run deployment
     Write-Host "[4/4] Deploying to Cloud Run..." -ForegroundColor Yellow
 
-    # Build connection string
-    $ConnectionString = "Host=/cloudsql/$CONNECTION_NAME;Database=$env:DB_NAME;Username=$env:DB_USER;Password=$env:DB_PASSWORD"
-
-    # Build environment variables
+    # Build environment variables (non-sensitive only)
     $EnvVars = @(
-        "ASPNETCORE_ENVIRONMENT=Production",
-        "ConnectionStrings__Default=$ConnectionString"
+        "ASPNETCORE_ENVIRONMENT=Production"
     )
 
-    # Add JWT settings if configured
-    if ($env:Jwt__Secret) { $EnvVars += "Jwt__Secret=$env:Jwt__Secret" }
     if ($env:Jwt__Issuer) { $EnvVars += "Jwt__Issuer=$env:Jwt__Issuer" }
     if ($env:Jwt__Audience) { $EnvVars += "Jwt__Audience=$env:Jwt__Audience" }
-
-    # Add Resend settings if configured
-    if ($env:Resend__ApiKey) { $EnvVars += "Resend__ApiKey=$env:Resend__ApiKey" }
 
     # Add Valkey settings if configured
     if ($ValkeyEnabled) {
@@ -132,6 +118,15 @@ if (-not $BuildOnly) {
     }
 
     $EnvVarsString = $EnvVars -join ","
+
+    # Build Secret Manager secrets
+    $Secrets = @(
+        "ConnectionStrings__Default=$env:SECRET_DB_CONNECTION`:latest",
+        "Jwt__Secret=$env:SECRET_JWT`:latest",
+        "RequestSigning__SecretKey=$env:SECRET_REQUEST_SIGNING`:latest"
+    )
+    if ($env:SECRET_RESEND) { $Secrets += "Resend__ApiKey=$env:SECRET_RESEND`:latest" }
+    $SecretsString = $Secrets -join ","
 
     # Build deploy command
     $DeployArgs = @(
@@ -142,6 +137,7 @@ if (-not $BuildOnly) {
         "--allow-unauthenticated",
         "--add-cloudsql-instances=$CONNECTION_NAME",
         "--set-env-vars=$EnvVarsString",
+        "--set-secrets=$SecretsString",
         "--memory=512Mi",
         "--cpu=1",
         "--min-instances=0",
