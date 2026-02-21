@@ -37,7 +37,7 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
     {
         _matchmakingValidator.ValidateGameMode(gameMode);
 
-        _userId = Context.CallContext.GetHttpContext().User!.GetUserId()!;
+        _userId = Context.CallContext.GetHttpContext().User.GetRequiredUserId();
         _gameMode = gameMode;
 
         var queueGroupName = $"matchmaking:{gameMode}";

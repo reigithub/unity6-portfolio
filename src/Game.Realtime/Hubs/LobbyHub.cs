@@ -44,7 +44,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         _lobbyValidator.ValidateLobbyId(lobbyId);
         _lobbyValidator.ValidatePlayerName(playerName);
 
-        _userId = Context.CallContext.GetHttpContext().User!.GetUserId()!;
+        _userId = Context.CallContext.GetHttpContext().User.GetRequiredUserId();
         _playerName = playerName;
         _lobbyId = lobbyId;
 
