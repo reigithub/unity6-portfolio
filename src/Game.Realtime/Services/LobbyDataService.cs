@@ -116,11 +116,17 @@ public class LobbyDataService : ILobbyDataService
     public async Task<LobbyInfo?> GetLobbyAsync(string lobbyId)
     {
         var db = _redis.GetDatabase();
-        var hash = await db.HashGetAllAsync($"lobby:{lobbyId}");
+
+        var batch = db.CreateBatch();
+        var hashTask = batch.HashGetAllAsync($"lobby:{lobbyId}");
+        var countTask = batch.HashLengthAsync($"lobby:{lobbyId}:players");
+        batch.Execute();
+
+        var hash = await hashTask;
         if (hash.Length == 0) return null;
 
         var dict = hash.ToDictionary(h => h.Name.ToString(), h => h.Value);
-        var playerCount = await db.HashLengthAsync($"lobby:{lobbyId}:players");
+        var playerCount = await countTask;
 
         return new LobbyInfo
         {
@@ -137,8 +143,14 @@ public class LobbyDataService : ILobbyDataService
     public async Task<LobbyPlayerInfo[]> GetPlayersAsync(string lobbyId)
     {
         var db = _redis.GetDatabase();
-        var hash = await db.HashGetAllAsync($"lobby:{lobbyId}:players");
-        var hostUserId = (string?)await db.HashGetAsync($"lobby:{lobbyId}", "hostUserId") ?? "";
+
+        var batch = db.CreateBatch();
+        var hashTask = batch.HashGetAllAsync($"lobby:{lobbyId}:players");
+        var hostTask = batch.HashGetAsync($"lobby:{lobbyId}", "hostUserId");
+        batch.Execute();
+
+        var hash = await hashTask;
+        var hostUserId = (string?)await hostTask ?? "";
 
         var players = new LobbyPlayerInfo[hash.Length];
         for (var i = 0; i < hash.Length; i++)
@@ -160,17 +172,43 @@ public class LobbyDataService : ILobbyDataService
     public async Task<LobbyInfo[]> SearchPublicAsync(string gameMode, int maxResults)
     {
         var db = _redis.GetDatabase();
-        var lobbyIds = await db.SetMembersAsync($"lobby:public:{gameMode}");
+        var allLobbyIds = await db.SetMembersAsync($"lobby:public:{gameMode}");
+        if (allLobbyIds.Length == 0) return Array.Empty<LobbyInfo>();
+
+        // 満員ロビー除外バッファとして maxResults の2倍までに制限
+        var lobbyIds = allLobbyIds.Length > maxResults * 2
+            ? allLobbyIds.AsSpan(0, maxResults * 2).ToArray()
+            : allLobbyIds;
+
+        var batch = db.CreateBatch();
+        var hashTasks = lobbyIds.Select(id => batch.HashGetAllAsync($"lobby:{id}")).ToArray();
+        var countTasks = lobbyIds.Select(id => batch.HashLengthAsync($"lobby:{id}:players")).ToArray();
+        batch.Execute();
 
         var results = new List<LobbyInfo>();
-        foreach (var id in lobbyIds)
+        for (var i = 0; i < lobbyIds.Length; i++)
         {
             if (results.Count >= maxResults) break;
 
-            var lobby = await GetLobbyAsync(id.ToString());
-            if (lobby != null && lobby.CurrentPlayers < lobby.MaxPlayers)
+            var hash = await hashTasks[i];
+            if (hash.Length == 0) continue;
+
+            var dict = hash.ToDictionary(h => h.Name.ToString(), h => h.Value);
+            var playerCount = (int)await countTasks[i];
+            var mp = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var v) ? v : 4;
+
+            if (playerCount < mp)
             {
-                results.Add(lobby);
+                results.Add(new LobbyInfo
+                {
+                    LobbyId = lobbyIds[i].ToString(),
+                    LobbyName = dict.GetValueOrDefault("name", ""),
+                    HostUserId = dict.GetValueOrDefault("hostUserId", ""),
+                    GameMode = dict.GetValueOrDefault("gameMode", ""),
+                    CurrentPlayers = playerCount,
+                    MaxPlayers = mp,
+                    IsPublic = dict.GetValueOrDefault("isPublic", "0") == "1",
+                });
             }
         }
 
@@ -245,25 +283,34 @@ public class LobbyDataService : ILobbyDataService
     {
         var db = _redis.GetDatabase();
 
-        // ゲームモード取得（公開ロビー一覧から削除するため）
-        var gameMode = (string?)await db.HashGetAsync($"lobby:{lobbyId}", "gameMode");
+        // Phase 1: メタデータ取得（gameMode + players を1バッチ）
+        var readBatch = db.CreateBatch();
+        var gameModeTask = readBatch.HashGetAsync($"lobby:{lobbyId}", "gameMode");
+        var playersTask = readBatch.HashGetAllAsync($"lobby:{lobbyId}:players");
+        readBatch.Execute();
 
-        // プレイヤーの参加記録を削除
-        var playerEntries = await db.HashGetAllAsync($"lobby:{lobbyId}:players");
+        var gameMode = (string?)await gameModeTask;
+        var playerEntries = await playersTask;
+
+        // Phase 2: 全削除を1バッチ
+        var deleteBatch = db.CreateBatch();
+        var deleteTasks = new List<Task>();
+
         foreach (var entry in playerEntries)
         {
-            await db.KeyDeleteAsync($"lobby:player:{entry.Name}");
+            deleteTasks.Add(deleteBatch.KeyDeleteAsync($"lobby:player:{entry.Name}"));
         }
 
-        // ロビーデータ削除
-        await db.KeyDeleteAsync($"lobby:{lobbyId}");
-        await db.KeyDeleteAsync($"lobby:{lobbyId}:players");
+        deleteTasks.Add(deleteBatch.KeyDeleteAsync($"lobby:{lobbyId}"));
+        deleteTasks.Add(deleteBatch.KeyDeleteAsync($"lobby:{lobbyId}:players"));
 
-        // 公開ロビー一覧から削除
         if (!string.IsNullOrEmpty(gameMode))
         {
-            await db.SetRemoveAsync($"lobby:public:{gameMode}", lobbyId);
+            deleteTasks.Add(deleteBatch.SetRemoveAsync($"lobby:public:{gameMode}", lobbyId));
         }
+
+        deleteBatch.Execute();
+        await Task.WhenAll(deleteTasks);
 
         _logger.LogInformation("Lobby {LobbyId} deleted", lobbyId);
     }
