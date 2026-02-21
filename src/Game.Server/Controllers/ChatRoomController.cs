@@ -44,32 +44,20 @@ public class ChatRoomController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        try
+        var roomId = await _roomDataService.CreateAsync(
+            request.RoomName, request.RoomType, request.MaxMembers, request.DefaultPermissions);
+
+        await _roomDataService.AddMemberAsync(roomId, userId, request.RoomName, request.CreatorPermissions);
+
+        _logger.LogInformation(
+            "Chat room {RoomId} created by {UserId} (type: {RoomType})",
+            roomId, userId, request.RoomType);
+
+        return Ok(new CreateChatRoomResponse
         {
-            var roomId = await _roomDataService.CreateAsync(
-                request.RoomName, request.RoomType, request.MaxMembers, request.DefaultPermissions);
-
-            await _roomDataService.AddMemberAsync(roomId, userId, request.RoomName, request.CreatorPermissions);
-
-            _logger.LogInformation(
-                "Chat room {RoomId} created by {UserId} (type: {RoomType})",
-                roomId, userId, request.RoomType);
-
-            return Ok(new CreateChatRoomResponse
-            {
-                Success = true,
-                RoomId = roomId,
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create chat room for user {UserId}", userId);
-            return Ok(new CreateChatRoomResponse
-            {
-                Success = false,
-                ErrorMessage = "Failed to create chat room",
-            });
-        }
+            Success = true,
+            RoomId = roomId,
+        });
     }
 
     [HttpDelete("{roomId}")]

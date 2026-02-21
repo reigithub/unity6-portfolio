@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Game.Library.Shared.Dto;
+using Game.Library.Shared.Enums;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Shared.Exceptions;
@@ -37,6 +39,45 @@ public class ChatHubTests
             _roomDataService.Object,
             _validator,
             _chatInputValidator.Object);
+    }
+
+    private (ChatHub Hub, Mock<IGroupManager> Groups, Mock<IChatHubClient> Client, Dictionary<object, object?> Items) CreateHubWithContext(
+        string connectionId = "test-conn",
+        string userId = "user-1")
+    {
+        var hub = CreateHub();
+
+        var items = new Dictionary<object, object?>();
+        var mockContext = new Mock<HubCallerContext>();
+        mockContext.Setup(c => c.ConnectionId).Returns(connectionId);
+        mockContext.Setup(c => c.Items).Returns(items);
+
+        var claims = new[] { new Claim("sub", userId) };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        mockContext.Setup(c => c.User).Returns(new ClaimsPrincipal(identity));
+
+        var mockGroups = new Mock<IGroupManager>();
+        var mockClient = new Mock<IChatHubClient>();
+        var mockClients = new Mock<IHubCallerClients<IChatHubClient>>();
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockClient.Object);
+
+        hub.Context = mockContext.Object;
+        hub.Groups = mockGroups.Object;
+        hub.Clients = mockClients.Object;
+
+        return (hub, mockGroups, mockClient, items);
+    }
+
+    private void SetupRoomMocks(string roomId, int permissions = (int)(ChatRoomPermissions.Join | ChatRoomPermissions.Leave | ChatRoomPermissions.SendMessage))
+    {
+        _roomDataService.Setup(r => r.ExistsAsync(roomId)).ReturnsAsync(true);
+        _roomDataService.Setup(r => r.GetDefaultPermissionsAsync(roomId)).ReturnsAsync(permissions);
+        _roomDataService.Setup(r => r.AddMemberAsync(roomId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(true);
+        _roomDataService.Setup(r => r.GetMemberPermissionsAsync(roomId, It.IsAny<string>())).ReturnsAsync(permissions);
+        _roomDataService.Setup(r => r.GetMembersAsync(roomId)).ReturnsAsync(new[]
+        {
+            new ChatRoomMemberInfo { UserId = "user-1", PlayerName = "Player1", Permissions = permissions },
+        });
     }
 
     [Fact]
@@ -118,5 +159,64 @@ public class ChatHubTests
         var hub = CreateHub();
 
         await Assert.ThrowsAsync<ErrorException>(() => hub.GetRecentMessagesAsync("room1", 0));
+    }
+
+    [Fact]
+    public async Task JoinAsync_AddsRoomToConnectionItems()
+    {
+        SetupRoomMocks("room1");
+        var (hub, mockGroups, mockClient, items) = CreateHubWithContext();
+
+        await hub.JoinAsync("room1", "Player1");
+
+        mockGroups.Verify(g => g.AddToGroupAsync("test-conn", "room1", default), Times.Once);
+        mockClient.Verify(c => c.OnPlayerJoined("room1", "user-1", "Player1"), Times.Once);
+        Assert.True(items.ContainsKey("JoinedRooms"));
+        var rooms = (HashSet<string>)items["JoinedRooms"]!;
+        Assert.Contains("room1", rooms);
+    }
+
+    [Fact]
+    public async Task LeaveAsync_RemovesRoomFromConnectionItems()
+    {
+        SetupRoomMocks("room1");
+        var (hub, mockGroups, mockClient, items) = CreateHubWithContext();
+
+        await hub.JoinAsync("room1", "Player1");
+        await hub.LeaveAsync("room1");
+
+        mockGroups.Verify(g => g.RemoveFromGroupAsync("test-conn", "room1", default), Times.Once);
+        mockClient.Verify(c => c.OnPlayerLeft("room1", "user-1", "Player1"), Times.Once);
+        var rooms = (HashSet<string>)items["JoinedRooms"]!;
+        Assert.Empty(rooms);
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_CleansUpAllRooms()
+    {
+        SetupRoomMocks("room1");
+        SetupRoomMocks("room2");
+        var (hub, mockGroups, mockClient, _) = CreateHubWithContext();
+
+        await hub.JoinAsync("room1", "Player1");
+        await hub.JoinAsync("room2", "Player1");
+        await hub.OnDisconnectedAsync(null);
+
+        mockGroups.Verify(g => g.RemoveFromGroupAsync("test-conn", "room1", default), Times.Once);
+        mockGroups.Verify(g => g.RemoveFromGroupAsync("test-conn", "room2", default), Times.Once);
+        _roomDataService.Verify(r => r.RemoveMemberAsync("room1", "user-1"), Times.Once);
+        _roomDataService.Verify(r => r.RemoveMemberAsync("room2", "user-1"), Times.Once);
+        mockClient.Verify(c => c.OnPlayerLeft("room1", "user-1", "Player1"), Times.Once);
+        mockClient.Verify(c => c.OnPlayerLeft("room2", "user-1", "Player1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task OnDisconnectedAsync_NoErrorWhenNoRoomsJoined()
+    {
+        var (hub, mockGroups, _, _) = CreateHubWithContext();
+
+        await hub.OnDisconnectedAsync(null);
+
+        mockGroups.Verify(g => g.RemoveFromGroupAsync(It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
     }
 }

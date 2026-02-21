@@ -221,6 +221,27 @@ public class ChatRoomControllerTests
     }
 
     [Fact]
+    public async Task CreateRoom_PropagatesException_WhenServiceFails()
+    {
+        // Arrange
+        _roomDataServiceMock.Setup(x => x.CreateAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ThrowsAsync(new InvalidOperationException("Redis connection failed"));
+
+        var request = new CreateChatRoomRequest
+        {
+            RoomName = "Test Room",
+            RoomType = "general",
+            MaxMembers = 10,
+            DefaultPermissions = 7,
+            CreatorPermissions = 255,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _controller.CreateRoom(request));
+    }
+
+    [Fact]
     public void ChatRoomInfo_DefaultValues_AreCorrect()
     {
         // Act
