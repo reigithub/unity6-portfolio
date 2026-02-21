@@ -9,7 +9,7 @@ namespace Game.Server.Tests.Fixtures;
 public class PostgresContainerFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:17")
+        .WithImage("postgres:17.8-alpine")
         .Build();
 
     public string ConnectionString => _container.GetConnectionString();
