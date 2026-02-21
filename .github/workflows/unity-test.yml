@@ -31,7 +31,7 @@ jobs:
       artifact_retention_days: ${{ steps.config.outputs.ARTIFACT_RETENTION_DAYS }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           sparse-checkout: .github
 
@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -88,7 +88,7 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/editmode-test.log"
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: EditMode-Test-Results
@@ -98,7 +98,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
         if: always()
         with:
           name: EditMode Test Report
@@ -112,7 +112,7 @@ jobs:
     name: PlayMode Tests
     runs-on: [self-hosted, linux, unity, docker]
     needs: [load-config, test-editmode]
-    timeout-minutes: 7200
+    timeout-minutes: 120
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
@@ -120,7 +120,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           lfs: false
           clean: false
@@ -151,7 +151,7 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/playmode-test.log"
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: PlayMode-Test-Results
@@ -161,7 +161,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
         if: always()
         with:
           name: PlayMode Test Report
