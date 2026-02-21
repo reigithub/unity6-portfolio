@@ -139,6 +139,12 @@ namespace Game.MVP.Survivor.Scenes
             _flashCtsMap.Clear();
             _weaponCards.Clear();
 
+            foreach (var sprite in _iconCache.Values)
+            {
+                _assetService.ReleaseAsset(sprite);
+            }
+            _iconCache.Clear();
+
             base.OnDestroy();
         }
 

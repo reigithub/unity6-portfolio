@@ -40,6 +40,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             _onOptionSelected.Dispose();
             _onCloseClicked.Dispose();
+
+            foreach (var sprite in _iconCache.Values)
+            {
+                _assetService.ReleaseAsset(sprite);
+            }
+            _iconCache.Clear();
+
             base.OnDestroy();
         }
 
