@@ -107,8 +107,16 @@ public class RequestSigningMiddleware
         }
 
         // Nonce 重複チェック（Valkey）
-        var nonceAccepted = await TryAcceptNonce(context, nonce!);
-        if (!nonceAccepted)
+        var nonceResult = await TryAcceptNonce(context, nonce!);
+        if (nonceResult == NonceResult.Unavailable)
+        {
+            _logger.LogWarning("Nonce validation unavailable (Valkey down)");
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsJsonAsync(new { error = "SERVICE_UNAVAILABLE", message = "Service temporarily unavailable." });
+            return;
+        }
+
+        if (nonceResult == NonceResult.Replayed)
         {
             _logger.LogWarning("Nonce replay detected: {Nonce}", nonce.ToString());
             context.Response.StatusCode = 401;
@@ -158,16 +166,17 @@ public class RequestSigningMiddleware
         return ms.ToArray();
     }
 
-    private async Task<bool> TryAcceptNonce(HttpContext context, string nonce)
+    private enum NonceResult { Accepted, Replayed, Unavailable }
+
+    private async Task<NonceResult> TryAcceptNonce(HttpContext context, string nonce)
     {
         try
         {
             var redis = context.RequestServices.GetService<IConnectionMultiplexer>();
             if (redis == null || !redis.IsConnected)
             {
-                // Valkey 未接続時は署名検証のみで通過（Nonce チェックは省略）
-                _logger.LogWarning("Valkey not available, skipping nonce check");
-                return true;
+                _logger.LogWarning("Valkey not available, rejecting request for nonce validation");
+                return NonceResult.Unavailable;
             }
 
             var db = redis.GetDatabase();
@@ -176,12 +185,12 @@ public class RequestSigningMiddleware
                 TimeSpan.FromSeconds(RequestSigningConstants.NonceExpirySeconds),
                 When.NotExists);
 
-            return wasSet;
+            return wasSet ? NonceResult.Accepted : NonceResult.Replayed;
         }
         catch (RedisConnectionException ex)
         {
-            _logger.LogWarning(ex, "Valkey connection error during nonce check, allowing request");
-            return true;
+            _logger.LogWarning(ex, "Valkey connection error during nonce check, rejecting request");
+            return NonceResult.Unavailable;
         }
     }
 }

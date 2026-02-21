@@ -54,7 +54,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var mockDb = new Mock<IDatabase>();
             mockDb.Setup(d => d.PingAsync(It.IsAny<CommandFlags>()))
                 .ReturnsAsync(TimeSpan.FromMilliseconds(1));
+            // Nonce check の StringSetAsync が常に true を返すよう設定
+            mockDb.SetReturnsDefault(Task.FromResult(true));
             var mockRedis = new Mock<IConnectionMultiplexer>();
+            mockRedis.Setup(r => r.IsConnected).Returns(true);
             mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
                 .Returns(mockDb.Object);
             services.RemoveAll<IConnectionMultiplexer>();
