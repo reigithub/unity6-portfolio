@@ -13,6 +13,7 @@ public class LobbyDataServiceTests
 {
     private readonly Mock<IConnectionMultiplexer> _redisMock;
     private readonly Mock<IDatabase> _dbMock;
+    private readonly Mock<IBatch> _batchMock;
     private readonly Mock<ILogger<LobbyDataService>> _loggerMock;
     private readonly Mock<IDistributedLockProvider> _lockProviderMock;
     private readonly LobbyDataService _service;
@@ -21,11 +22,15 @@ public class LobbyDataServiceTests
     {
         _redisMock = new Mock<IConnectionMultiplexer>();
         _dbMock = new Mock<IDatabase>();
+        _batchMock = new Mock<IBatch>();
         _loggerMock = new Mock<ILogger<LobbyDataService>>();
         _lockProviderMock = new Mock<IDistributedLockProvider>();
 
         _redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_dbMock.Object);
+
+        _dbMock.Setup(x => x.CreateBatch(It.IsAny<object>()))
+            .Returns(_batchMock.Object);
 
         // ロックは常に成功（テスト環境ではレースコンディションなし）
         var lockMock = new Mock<IDistributedLock>();
@@ -173,10 +178,15 @@ public class LobbyDataServiceTests
     public async Task GetLobbyAsync_ReturnsNull_WhenNotExists()
     {
         // Arrange
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(Array.Empty<HashEntry>());
+
+        _batchMock.Setup(x => x.HashLengthAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(0);
 
         // Act
         var result = await _service.GetLobbyAsync("nonexistent");
@@ -198,12 +208,12 @@ public class LobbyDataServiceTests
             new("isPublic", "1"),
         };
 
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:testlobby"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(hash);
 
-        _dbMock.Setup(x => x.HashLengthAsync(
+        _batchMock.Setup(x => x.HashLengthAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:testlobby:players"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(2);
@@ -345,7 +355,7 @@ public class LobbyDataServiceTests
     [Fact]
     public async Task RemovePlayerAsync_DeletesLobby_WhenLastPlayerLeaves()
     {
-        // Arrange
+        // Arrange: RemovePlayerAsync 用（直接 db 呼出）
         _dbMock.Setup(x => x.HashDeleteAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1:players"),
                 It.Is<RedisValue>(v => v.ToString() == "user1"),
@@ -363,19 +373,24 @@ public class LobbyDataServiceTests
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(0);
 
-        // DeleteAsync 内で必要なセットアップ
-        _dbMock.Setup(x => x.HashGetAsync(
+        // Arrange: DeleteAsync 用（batch 経由）
+        _batchMock.Setup(x => x.HashGetAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1"),
                 It.Is<RedisValue>(v => v.ToString() == "gameMode"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(new RedisValue("survival"));
 
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1:players"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(Array.Empty<HashEntry>());
 
-        _dbMock.Setup(x => x.SetRemoveAsync(
+        _batchMock.Setup(x => x.KeyDeleteAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _batchMock.Setup(x => x.SetRemoveAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<CommandFlags>()))
@@ -387,8 +402,8 @@ public class LobbyDataServiceTests
         // Assert
         Assert.True(result);
 
-        // ロビーデータが削除されたことを確認
-        _dbMock.Verify(
+        // ロビーデータが削除されたことを確認（batch 経由）
+        _batchMock.Verify(
             x => x.KeyDeleteAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1"),
                 It.IsAny<CommandFlags>()),
@@ -422,12 +437,12 @@ public class LobbyDataServiceTests
             new("user2", """{"playerName":"Guest","isReady":false,"joinedAt":2000}"""),
         };
 
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1:players"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(playerHash);
 
-        _dbMock.Setup(x => x.HashGetAsync(
+        _batchMock.Setup(x => x.HashGetAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1"),
                 It.Is<RedisValue>(v => v.ToString() == "hostUserId"),
                 It.IsAny<CommandFlags>()))
@@ -629,14 +644,14 @@ public class LobbyDataServiceTests
     [Fact]
     public async Task DeleteAsync_RemovesAllLobbyData()
     {
-        // Arrange
-        _dbMock.Setup(x => x.HashGetAsync(
+        // Arrange: readBatch 用
+        _batchMock.Setup(x => x.HashGetAsync(
                 It.IsAny<RedisKey>(),
                 It.Is<RedisValue>(v => v.ToString() == "gameMode"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(new RedisValue("survival"));
 
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(new HashEntry[]
@@ -645,12 +660,13 @@ public class LobbyDataServiceTests
                 new("user2", "{}"),
             });
 
-        _dbMock.Setup(x => x.KeyDeleteAsync(
+        // Arrange: deleteBatch 用
+        _batchMock.Setup(x => x.KeyDeleteAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
-        _dbMock.Setup(x => x.SetRemoveAsync(
+        _batchMock.Setup(x => x.SetRemoveAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<CommandFlags>()))
@@ -660,21 +676,21 @@ public class LobbyDataServiceTests
         await _service.DeleteAsync("lobby1");
 
         // Assert: プレイヤーの参加記録が削除されたことを確認
-        _dbMock.Verify(
+        _batchMock.Verify(
             x => x.KeyDeleteAsync(
                 It.Is<RedisKey>(k => k.ToString().StartsWith("lobby:player:")),
                 It.IsAny<CommandFlags>()),
             Times.Exactly(2));
 
         // Assert: ロビーデータが削除されたことを確認
-        _dbMock.Verify(
+        _batchMock.Verify(
             x => x.KeyDeleteAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:lobby1"),
                 It.IsAny<CommandFlags>()),
             Times.Once);
 
         // Assert: 公開ロビー一覧から削除されたことを確認
-        _dbMock.Verify(
+        _batchMock.Verify(
             x => x.SetRemoveAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:public:survival"),
                 It.IsAny<RedisValue>(),
@@ -683,7 +699,7 @@ public class LobbyDataServiceTests
     }
 
     /// <summary>
-    /// SearchPublicAsync テスト用ヘルパー: 指定ロビーの Hash と players 長をセットアップ
+    /// SearchPublicAsync テスト用ヘルパー: 指定ロビーの Hash と players 長をセットアップ（batch 対応）
     /// </summary>
     private void SetupLobbyHash(string lobbyId, int currentPlayers, int maxPlayers)
     {
@@ -696,12 +712,12 @@ public class LobbyDataServiceTests
             new("isPublic", "1"),
         };
 
-        _dbMock.Setup(x => x.HashGetAllAsync(
+        _batchMock.Setup(x => x.HashGetAllAsync(
                 It.Is<RedisKey>(k => k.ToString() == $"lobby:{lobbyId}"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(hash);
 
-        _dbMock.Setup(x => x.HashLengthAsync(
+        _batchMock.Setup(x => x.HashLengthAsync(
                 It.Is<RedisKey>(k => k.ToString() == $"lobby:{lobbyId}:players"),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(currentPlayers);
