@@ -10,7 +10,7 @@
 services:
   # ローカルテスト用 PostgreSQL
   db:
-    image: postgres:17
+    image: postgres:17.8-alpine
     container_name: game-server-db-prod
     environment:
       POSTGRES_DB: gameserver
