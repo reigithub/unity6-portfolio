@@ -7,6 +7,9 @@ using Game.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.SignalR;
 using Scalar.AspNetCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 
 namespace Game.Server;
@@ -84,6 +87,19 @@ public partial class Program
 
         // Response Caching
         builder.Services.AddResponseCaching();
+
+        // OpenTelemetry トレース・メトリクス（Development: Aspire Dashboard 検証）
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Services.AddOpenTelemetry()
+                .ConfigureResource(r => r.AddService("game-server"))
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddOtlpExporter(o => o.Endpoint = new Uri("http://localhost:18889")))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddOtlpExporter(o => o.Endpoint = new Uri("http://localhost:18889")));
+        }
 
         var app = builder.Build();
 
