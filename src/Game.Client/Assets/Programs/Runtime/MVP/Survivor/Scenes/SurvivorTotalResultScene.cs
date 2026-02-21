@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
@@ -106,26 +107,38 @@ namespace Game.MVP.Survivor.Scenes
 
             foreach (var result in session.StageResults)
             {
-                var request = _viewModel.BuildScoreRequest(result, session.CurrentWave);
-
-                // オンライン時は即座に送信を試行
-                if (_networkService.IsConnected)
+                try
                 {
-                    var response = await _scoreApiService.SubmitScoreAsync(request);
-                    if (response.IsSuccess)
+                    var request = _viewModel.BuildScoreRequest(result, session.CurrentWave);
+
+                    // オンライン時は即座に送信を試行
+                    if (_networkService.IsConnected)
                     {
-                        if (response.Data?.IsNewBest == true)
+                        var response = await _scoreApiService.SubmitScoreAsync(request);
+                        if (response.IsSuccess)
                         {
-                            SceneComponent.ShowNewBestEffect(result.StageId, response.Data.CurrentRank);
+                            if (response.Data?.IsNewBest == true)
+                            {
+                                SceneComponent.ShowNewBestEffect(result.StageId, response.Data.CurrentRank);
+                            }
+                            continue;
                         }
-                        continue;
                     }
+
+                    // オフラインまたは失敗時はキューに追加
+                    await _scoreApiService.EnqueueSubmitScoreAsync(request);
+                    SceneComponent.ShowScoreQueuedNotice(result.StageId);
                 }
-
-                // オフラインまたは失敗時はキューに追加
-                await _scoreApiService.EnqueueSubmitScoreAsync(request);
-
-                SceneComponent.ShowScoreQueuedNotice(result.StageId);
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogError(
+                        $"[SurvivorTotalResultScene] Failed to submit score for stage {result.StageId}: {ex.Message}");
+                    SceneComponent.ShowScoreQueuedNotice(result.StageId);
+                }
             }
 
             SceneComponent.HideScoreSubmissionStatus();
