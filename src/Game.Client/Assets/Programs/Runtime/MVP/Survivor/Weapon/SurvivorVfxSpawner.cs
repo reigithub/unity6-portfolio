@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Extensions;
+
 using Game.Shared.Services;
 using Unity.Profiling;
 using UnityEngine;
@@ -117,7 +117,7 @@ namespace Game.MVP.Survivor.Weapon
                 // プールがなければ動的に作成開始
                 if (!_pools.ContainsKey(assetName))
                 {
-                    PreloadEffectAsync(assetName).ForgetWithHandler("SurvivorVfxSpawner.PreloadEffect");
+                    PreloadEffectAsync(assetName).Forget();
                     return;
                 }
 

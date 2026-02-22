@@ -477,8 +477,7 @@ namespace Game.MVP.Survivor.Weapon
 
         protected override void OnAssetNameChanged(string oldAssetName, string newAssetName)
         {
-            SwitchPoolAsync(oldAssetName, newAssetName)
-                .ForgetWithHandler($"{GetType().Name}.SwitchPool");
+            SwitchPoolAsync(oldAssetName, newAssetName).Forget();
         }
 
         private async UniTask SwitchPoolAsync(string oldAssetName, string newAssetName)
@@ -490,8 +489,7 @@ namespace Game.MVP.Survivor.Weapon
                 if (!string.IsNullOrEmpty(oldAssetName) &&
                     _poolsByAssetName.TryGetValue(oldAssetName, out var oldPool))
                 {
-                    DisposeOldPoolAsync(oldAssetName, oldPool)
-                        .ForgetWithHandler($"{GetType().Name}.DisposeOldPool");
+                    DisposeOldPoolAsync(oldAssetName, oldPool).Forget();
                 }
 
                 Debug.Log($"[{GetType().Name}] Switched to pool: {newAssetName}");
