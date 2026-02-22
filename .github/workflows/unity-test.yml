@@ -18,6 +18,10 @@ on:
       - '.github/workflows/unity-test.yml'
       - '.github/unity-ci.ini'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================
   # 設定読み込み

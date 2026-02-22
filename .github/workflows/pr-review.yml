@@ -13,6 +13,10 @@ on:
       - '.editorconfig'
       - 'src/Game.Client/.editorconfig'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================
   # 変更ファイル分析

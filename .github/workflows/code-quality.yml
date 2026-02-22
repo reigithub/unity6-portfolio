@@ -20,6 +20,10 @@ on:
       - 'src/Game.Client/.editorconfig'
       - '.github/workflows/code-quality.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================
   # フォーマットチェック（軽量・高速）
