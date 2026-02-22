@@ -4,9 +4,9 @@
 # 使用方法（Cloud Shell または gcloud CLI）:
 #   cd Unity6Portfolio
 #   gcloud builds submit --config=docker/game-realtime/prod/cloudbuild.yml \
-#     --substitutions=_JWT_SECRET=xxx,_VALKEY_HOST=10.0.0.3
+#     --substitutions=_VALKEY_HOST=10.0.0.3
 #
-# 注意: 機密情報は Secret Manager を使用することを推奨
+# 機密情報は Google Cloud Secret Manager で管理
 
 steps:
   # ===== Docker イメージをビルド =====
@@ -57,9 +57,9 @@ steps:
           --vpc-connector=${_VPC_CONNECTOR} \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
           --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
-          --set-env-vars="Jwt__Secret=${_JWT_SECRET}" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
+          --set-secrets="Jwt__Secret=${_SECRET_JWT}:latest" \
           --memory=512Mi \
           --cpu=1 \
           --min-instances=1 \
@@ -72,9 +72,11 @@ steps:
 # ===== 変数（デフォルト値） =====
 substitutions:
   _REGION: asia-northeast1
-  _REPO_NAME: game-server
+  _REPO_NAME: game-realtime
   _SERVICE_NAME: game-realtime
-  _JWT_SECRET: ''
+  # Secret Manager シークレット名
+  _SECRET_JWT: game-jwt-secret
+  # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
   # Memorystore for Valkey 設定

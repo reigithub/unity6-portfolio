@@ -34,17 +34,12 @@ if (Test-Path $EnvFile) {
 }
 
 # Check required variables
-$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "DB_NAME", "DB_USER", "DB_PASSWORD")
+$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "SECRET_DB_CONNECTION", "SECRET_JWT", "SECRET_REQUEST_SIGNING", "SECRET_VALKEY_CONNECTION")
 foreach ($var in $RequiredVars) {
     if (-not (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue)) {
         Write-Host "[ERROR] Required variable $var is not set in .env" -ForegroundColor Red
         exit 1
     }
-}
-
-# Check JWT settings (warning only)
-if (-not $env:Jwt__Secret) {
-    Write-Host "[WARN] Jwt__Secret is not set. JWT authentication may fail." -ForegroundColor Yellow
 }
 
 $IMAGE = "$env:REGION-docker.pkg.dev/$env:PROJECT_ID/$env:REPO_NAME/game-server"
@@ -57,12 +52,10 @@ if (-not $CONNECTION_NAME) {
     exit 1
 }
 
-# Check Valkey settings (warning only)
-$ValkeyEnabled = $false
-if ($env:VALKEY_HOST -and $env:VPC_CONNECTOR) {
-    $ValkeyEnabled = $true
-} elseif ($env:VALKEY_HOST -or $env:VPC_CONNECTOR) {
-    Write-Host "[WARN] Valkey requires both VALKEY_HOST and VPC_CONNECTOR to be set." -ForegroundColor Yellow
+# Check VPC Connector (required for Memorystore access)
+$VpcConnectorEnabled = $false
+if ($env:VPC_CONNECTOR) {
+    $VpcConnectorEnabled = $true
 }
 
 Write-Host ""
@@ -73,12 +66,10 @@ Write-Host "SERVICE_NAME:    $env:SERVICE_NAME"
 Write-Host "IMAGE:           ${IMAGE}:${Tag}"
 Write-Host "CLOUD_SQL:       $CONNECTION_NAME"
 Write-Host "DATABASE:        $env:DB_NAME"
-if ($ValkeyEnabled) {
-    Write-Host "VALKEY:          $env:VALKEY_HOST`:$env:VALKEY_PORT"
+if ($VpcConnectorEnabled) {
     Write-Host "VPC_CONNECTOR:   $env:VPC_CONNECTOR"
-} else {
-    Write-Host "VALKEY:          (not configured)"
 }
+Write-Host "VALKEY_SECRET:   $env:SECRET_VALKEY_CONNECTION"
 Write-Host "=================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -108,30 +99,25 @@ if (-not $BuildOnly) {
     # Cloud Run deployment
     Write-Host "[4/4] Deploying to Cloud Run..." -ForegroundColor Yellow
 
-    # Build connection string
-    $ConnectionString = "Host=/cloudsql/$CONNECTION_NAME;Database=$env:DB_NAME;Username=$env:DB_USER;Password=$env:DB_PASSWORD"
-
-    # Build environment variables
+    # Build environment variables (non-sensitive only)
     $EnvVars = @(
-        "ASPNETCORE_ENVIRONMENT=Production",
-        "ConnectionStrings__Default=$ConnectionString"
+        "ASPNETCORE_ENVIRONMENT=Production"
     )
 
-    # Add JWT settings if configured
-    if ($env:Jwt__Secret) { $EnvVars += "Jwt__Secret=$env:Jwt__Secret" }
     if ($env:Jwt__Issuer) { $EnvVars += "Jwt__Issuer=$env:Jwt__Issuer" }
     if ($env:Jwt__Audience) { $EnvVars += "Jwt__Audience=$env:Jwt__Audience" }
 
-    # Add Resend settings if configured
-    if ($env:Resend__ApiKey) { $EnvVars += "Resend__ApiKey=$env:Resend__ApiKey" }
-
-    # Add Valkey settings if configured
-    if ($ValkeyEnabled) {
-        $ValkeyPort = if ($env:VALKEY_PORT) { $env:VALKEY_PORT } else { "6379" }
-        $EnvVars += "ConnectionStrings__Valkey=$env:VALKEY_HOST`:${ValkeyPort},abortConnect=false,connectTimeout=5000"
-    }
-
     $EnvVarsString = $EnvVars -join ","
+
+    # Build Secret Manager secrets
+    $Secrets = @(
+        "ConnectionStrings__Default=$env:SECRET_DB_CONNECTION`:latest",
+        "Jwt__Secret=$env:SECRET_JWT`:latest",
+        "RequestSigning__SecretKey=$env:SECRET_REQUEST_SIGNING`:latest",
+        "ConnectionStrings__Valkey=$env:SECRET_VALKEY_CONNECTION`:latest"
+    )
+    if ($env:SECRET_RESEND) { $Secrets += "Resend__ApiKey=$env:SECRET_RESEND`:latest" }
+    $SecretsString = $Secrets -join ","
 
     # Build deploy command
     $DeployArgs = @(
@@ -142,6 +128,7 @@ if (-not $BuildOnly) {
         "--allow-unauthenticated",
         "--add-cloudsql-instances=$CONNECTION_NAME",
         "--set-env-vars=$EnvVarsString",
+        "--set-secrets=$SecretsString",
         "--memory=512Mi",
         "--cpu=1",
         "--min-instances=0",
@@ -151,7 +138,7 @@ if (-not $BuildOnly) {
     )
 
     # Add VPC Connector if Valkey is enabled
-    if ($ValkeyEnabled) {
+    if ($VpcConnectorEnabled) {
         $DeployArgs += "--vpc-connector=$env:VPC_CONNECTOR"
     }
 

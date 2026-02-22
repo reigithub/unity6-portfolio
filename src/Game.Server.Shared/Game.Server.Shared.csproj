@@ -21,6 +21,7 @@
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="DistributedLock.Redis" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Google.Apis.Auth" />
   </ItemGroup>
 
 </Project>
