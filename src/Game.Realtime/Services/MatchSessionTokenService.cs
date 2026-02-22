@@ -58,7 +58,15 @@ public class MatchSessionTokenService : IMatchSessionTokenService
             return null;
         }
 
-        return JsonSerializer.Deserialize<SessionTokenInfo>(value!);
+        try
+        {
+            return JsonSerializer.Deserialize<SessionTokenInfo>(value!);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize session token: {Token}", token[..Math.Min(8, token.Length)]);
+            return null;
+        }
     }
 
     public async Task RevokeTokenAsync(string token)
