@@ -4,10 +4,10 @@
 # - ディレクトリ初期化処理
 # - パーミッション設定
 #
-# Note: ベースイメージのパッケージリストが古いため curl インストール不可
-#       ヘルスチェックは Runner からの接続で代替
+# ベースイメージ: https://hub.docker.com/r/unity/accelerator
+# ※ unitytechnologies/accelerator は非推奨（2022年以降更新なし）
 
-FROM unitytechnologies/accelerator:latest
+FROM unity/accelerator:v1.5.99-g262ce04b
 
 # カスタムエントリポイントをコピー
 COPY entrypoint.sh /custom-entrypoint.sh
