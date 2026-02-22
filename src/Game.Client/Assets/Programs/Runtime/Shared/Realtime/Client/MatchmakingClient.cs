@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
@@ -18,6 +19,7 @@ namespace Game.Shared.Realtime.Client
         private readonly AuthClientFilter _authFilter;
         private readonly IClientFilter[] _filters;
         private IMatchmakingHub _hub;
+        private CancellationTokenSource _monitorCts;
         private string _currentGameMode;
         private bool _disposed;
 
@@ -72,8 +74,9 @@ namespace Game.Shared.Realtime.Client
                 _currentGameMode = gameMode;
                 IsSearching = true;
 
-                // 切断監視（fire-and-forget）
-                _ = MonitorDisconnectionAsync();
+                // 切断監視
+                _monitorCts = new CancellationTokenSource();
+                _ = MonitorDisconnectionAsync(_monitorCts.Token);
 
                 return response;
             }
@@ -96,6 +99,10 @@ namespace Game.Shared.Realtime.Client
             {
                 await CreateService().DequeueAsync(
                     new MatchmakingRequest { GameMode = _currentGameMode });
+
+                _monitorCts?.Cancel();
+                _monitorCts?.Dispose();
+                _monitorCts = null;
 
                 if (_hub != null)
                 {
@@ -152,12 +159,13 @@ namespace Game.Shared.Realtime.Client
             OnQueueStatusUpdated?.Invoke(playersInQueue);
         }
 
-        private async Task MonitorDisconnectionAsync()
+        private async Task MonitorDisconnectionAsync(CancellationToken cancellationToken)
         {
             try
             {
                 if (_hub == null) return;
                 var reason = await _hub.WaitForDisconnectAsync();
+                if (cancellationToken.IsCancellationRequested) return;
                 if (reason.Type != DisconnectionType.CompletedNormally)
                 {
                     Debug.LogWarning($"[MatchmakingClient] Unexpected disconnect: {reason.Type}");
@@ -167,7 +175,10 @@ namespace Game.Shared.Realtime.Client
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[MatchmakingClient] Disconnect monitor error: {ex.Message}");
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Debug.LogWarning($"[MatchmakingClient] Disconnect monitor error: {ex.Message}");
+                }
             }
         }
 
@@ -177,6 +188,9 @@ namespace Game.Shared.Realtime.Client
             {
                 _disposed = true;
                 IsSearching = false;
+                _monitorCts?.Cancel();
+                _monitorCts?.Dispose();
+                _monitorCts = null;
                 if (_hub != null)
                 {
                     try { _hub.DisposeAsync().GetAwaiter().GetResult(); }
