@@ -1,6 +1,63 @@
 version: 2
 updates:
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # NuGet（Directory.Packages.props で一元管理）
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-minor:
+        update-types: ["minor", "patch"]
+
+  # Docker — .NET ベースイメージ
+  - package-ecosystem: "docker"
+    directory: "/docker/game-server"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-images:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker/game-server/prod"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-images:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker/game-realtime"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-images:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker/game-realtime/prod"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-images:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker/migrate"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-images:
+        patterns: ["*"]
+
+  # Docker — Unity Accelerator
+  - package-ecosystem: "docker"
+    directory: "/docker/unity-accelerator"
     schedule:
       interval: "weekly"
