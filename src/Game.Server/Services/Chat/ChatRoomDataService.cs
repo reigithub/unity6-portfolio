@@ -90,15 +90,18 @@ public class ChatRoomDataService : IChatRoomDataService
 
     public async Task<bool> RemoveMemberAsync(string roomId, string userId)
     {
-        var db = _redis.GetDatabase();
-        var removed = await db.HashDeleteAsync($"{RoomKeyPrefix}{roomId}{MembersSuffix}", userId);
-
-        if (removed)
+        await using (await _lockProvider.AcquireLockAsync($"lock:chatroom:{roomId}"))
         {
-            _logger.LogDebug("Member {UserId} removed from chat room {RoomId}", userId, roomId);
-        }
+            var db = _redis.GetDatabase();
+            var removed = await db.HashDeleteAsync($"{RoomKeyPrefix}{roomId}{MembersSuffix}", userId);
 
-        return removed;
+            if (removed)
+            {
+                _logger.LogDebug("Member {UserId} removed from chat room {RoomId}", userId, roomId);
+            }
+
+            return removed;
+        }
     }
 
     public async Task<ChatRoomInfo?> GetRoomAsync(string roomId)

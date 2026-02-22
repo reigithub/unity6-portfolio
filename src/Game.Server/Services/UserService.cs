@@ -2,6 +2,7 @@ using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services.Interfaces;
+using Npgsql;
 
 namespace Game.Server.Services;
 
@@ -54,7 +55,14 @@ public class UserService : IUserService
             user.UserName = request.UserName;
         }
 
-        await _userRepository.UpdateAsync(user);
+        try
+        {
+            await _userRepository.UpdateAsync(user);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
+        {
+            return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
+        }
 
         return new UserResponse
         {

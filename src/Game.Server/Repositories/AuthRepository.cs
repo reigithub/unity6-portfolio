@@ -52,6 +52,27 @@ public class AuthRepository : IAuthRepository
         return user;
     }
 
+    public async Task<UserInfo?> CreateGuestUserAsync(UserInfo user)
+    {
+        return await _dbSession.Connection.QuerySingleOrDefaultAsync<UserInfo>(
+            $@"INSERT INTO ""User"".""UserInfo""
+              (""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+               ""Email"", ""AuthType"", ""DeviceFingerprint"", ""IsEmailVerified"",
+               ""EmailVerificationToken"", ""EmailVerificationExpiry"",
+               ""PasswordResetToken"", ""PasswordResetExpiry"",
+               ""FailedLoginAttempts"", ""LockoutEndAt"")
+              VALUES (@Id, @UserId, @UserName, @PasswordHash, @Level, @RegisteredAt, @LastLoginAt,
+                      @Email, @AuthType, @DeviceFingerprint, @IsEmailVerified,
+                      @EmailVerificationToken, @EmailVerificationExpiry,
+                      @PasswordResetToken, @PasswordResetExpiry,
+                      @FailedLoginAttempts, @LockoutEndAt)
+              ON CONFLICT (""DeviceFingerprint"") WHERE ""DeviceFingerprint"" IS NOT NULL
+              DO NOTHING
+              RETURNING {SelectColumns}",
+            user,
+            transaction: _dbSession.Transaction);
+    }
+
     public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
         return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(

@@ -8,6 +8,12 @@ public interface IAuthRepository
 
     Task<UserInfo> CreateUserAsync(UserInfo user);
 
+    /// <summary>
+    /// ゲストユーザー作成（INSERT ON CONFLICT DO NOTHING で重複DeviceFingerprint安全）
+    /// 戻り値がnullの場合、DeviceFingerprint重複によりINSERTがスキップされたことを示す
+    /// </summary>
+    Task<UserInfo?> CreateGuestUserAsync(UserInfo user);
+
     Task<UserInfo?> GetByUserNameAsync(string displayName);
 
     Task<UserInfo?> GetByUserIdStringAsync(string userId);
