@@ -17,6 +17,8 @@ public static class AppConfig
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: true)
                 .AddJsonFile($"appsettings.{environment}.json", optional: true)
+                .AddEnvironmentVariables()
+                .AddUserSecrets<Program>(optional: true)
                 .Build();
             _configurations[environment] = config;
         }

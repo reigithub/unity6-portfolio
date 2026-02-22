@@ -3,15 +3,15 @@ services:
     image: postgres:17.8-alpine
     container_name: game-server-db
     environment:
-      POSTGRES_DB: gameserver
-      POSTGRES_USER: gameuser
-      POSTGRES_PASSWORD: gamepassword
+      POSTGRES_DB: ${POSTGRES_DB:-gameserver}
+      POSTGRES_USER: ${POSTGRES_USER:-gameuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gameuser -d gameserver"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gameuser} -d ${POSTGRES_DB:-gameserver}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,7 +40,7 @@ services:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__Default=Host=db;Database=gameserver;Username=gameuser;Password=gamepassword
+      - ConnectionStrings__Default=Host=db;Database=${POSTGRES_DB:-gameserver};Username=${POSTGRES_USER:-gameuser};Password=${POSTGRES_PASSWORD:?err}
       - ConnectionStrings__Valkey=valkey:6379,abortConnect=false,connectTimeout=5000
     depends_on:
       db:
@@ -65,7 +65,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Valkey=valkey:6379,abortConnect=false,connectTimeout=5000
-      - Jwt__Secret=your-secret-key-must-be-at-least-32-characters-long
+      - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
       - Jwt__Issuer=Game.Server
       - Jwt__Audience=Game.Client
     depends_on:
