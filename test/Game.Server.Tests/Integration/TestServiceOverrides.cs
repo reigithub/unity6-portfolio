@@ -27,9 +27,9 @@ internal static class TestServiceOverrides
         services.RemoveAll<IMasterDataService>();
         services.AddSingleton(mockMasterData.Object);
 
-        // ScoreValidator
-        var mockValidation = new Mock<ISurvivorScoreValidator>();
-        services.RemoveAll<ISurvivorScoreValidator>();
+        // SurvivorValidator
+        var mockValidation = new Mock<ISurvivorValidator>();
+        services.RemoveAll<ISurvivorValidator>();
         services.AddSingleton(mockValidation.Object);
 
         // Valkey/Redis

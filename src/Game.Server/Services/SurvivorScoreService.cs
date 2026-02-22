@@ -12,24 +12,24 @@ public class SurvivorScoreService : ISurvivorScoreService
     private readonly ISurvivorScoreRepository _scoreRepository;
     private readonly IRankingRepository _rankingRepository;
     private readonly IRankingService _rankingService;
-    private readonly ISurvivorScoreValidator _survivorScoreValidator;
+    private readonly ISurvivorValidator _survivorValidator;
 
     public SurvivorScoreService(
         ISurvivorScoreRepository scoreRepository,
         IRankingRepository rankingRepository,
         IRankingService rankingService,
-        ISurvivorScoreValidator survivorScoreValidator)
+        ISurvivorValidator survivorValidator)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
         _rankingService = rankingService;
-        _survivorScoreValidator = survivorScoreValidator;
+        _survivorValidator = survivorValidator;
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
         Guid userId, ScoreSubmitDto request)
     {
-        _survivorScoreValidator.Validate(request);
+        _survivorValidator.ValidateScoreSubmit(request);
         // ErrorException("INVALID_SCORE") は ExceptionHandlingMiddleware が処理
 
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
