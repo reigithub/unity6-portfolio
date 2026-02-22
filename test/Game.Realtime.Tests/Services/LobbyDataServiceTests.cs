@@ -63,9 +63,8 @@ public class LobbyDataServiceTests
         _dbMock.Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
-                It.IsAny<When>(),
+                It.IsAny<Expiration>(),
+                It.IsAny<ValueCondition>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
@@ -285,9 +284,8 @@ public class LobbyDataServiceTests
         _dbMock.Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
-                It.IsAny<When>(),
+                It.IsAny<Expiration>(),
+                It.IsAny<ValueCondition>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
@@ -312,9 +310,8 @@ public class LobbyDataServiceTests
             x => x.StringSetAsync(
                 It.Is<RedisKey>(k => k.ToString() == "lobby:player:user1"),
                 It.Is<RedisValue>(v => v.ToString() == "lobby1"),
-                It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
-                It.IsAny<When>(),
+                It.IsAny<Expiration>(),
+                It.IsAny<ValueCondition>(),
                 It.IsAny<CommandFlags>()),
             Times.Once);
     }
