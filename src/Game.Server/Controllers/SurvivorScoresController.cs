@@ -2,6 +2,7 @@ using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
+using Game.Server.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,10 +14,12 @@ namespace Game.Server.Controllers;
 public class SurvivorScoresController : ControllerBase
 {
     private readonly ISurvivorScoreService _scoreService;
+    private readonly ISurvivorValidator _survivorValidator;
 
-    public SurvivorScoresController(ISurvivorScoreService scoreService)
+    public SurvivorScoresController(ISurvivorScoreService scoreService, ISurvivorValidator survivorValidator)
     {
         _scoreService = scoreService;
+        _survivorValidator = survivorValidator;
     }
 
     [HttpPost]
@@ -42,6 +45,12 @@ public class SurvivorScoresController : ControllerBase
         [FromQuery] int? stageId = null,
         [FromQuery] int limit = 50)
     {
+        if (stageId.HasValue)
+        {
+            _survivorValidator.ValidateStageId(stageId.Value);
+        }
+        _survivorValidator.ValidateLimit(limit);
+
         if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();

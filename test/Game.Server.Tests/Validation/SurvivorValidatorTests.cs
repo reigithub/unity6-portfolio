@@ -11,7 +11,7 @@ using Moq;
 
 namespace Game.Server.Tests.Validation;
 
-public class SurvivorScoreValidatorTests
+public class SurvivorValidatorTests
 {
     // テストデータ: StageId=1, TimeLimit=120, 3ウェーブ
     //   Wave 1: ScoreMultiplier=100
@@ -19,9 +19,9 @@ public class SurvivorScoreValidatorTests
     //   Wave 3: ScoreMultiplier=200
     // Score 上限 (WaveReached=3): 120×(100+150+200) = 54,000
 
-    private readonly SurvivorScoreValidator _validator;
+    private readonly SurvivorValidator _validator;
 
-    public SurvivorScoreValidatorTests()
+    public SurvivorValidatorTests()
     {
         var resolver = CompositeResolver.Create(MasterMemoryResolver.Instance, StandardResolver.Instance);
         var builder = new DatabaseBuilder(resolver);
@@ -47,9 +47,9 @@ public class SurvivorScoreValidatorTests
         var mockMasterData = new Mock<IMasterDataService>();
         mockMasterData.Setup(m => m.MemoryDatabase).Returns(db);
 
-        _validator = new SurvivorScoreValidator(
+        _validator = new SurvivorValidator(
             mockMasterData.Object,
-            Mock.Of<ILogger<SurvivorScoreValidator>>());
+            Mock.Of<ILogger<SurvivorValidator>>());
     }
 
     private static ScoreSubmitDto ValidRequest() => new()
@@ -69,7 +69,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.StageId = 999;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -81,7 +81,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.Score = -1;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -93,7 +93,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.EnemiesDefeated = -1;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -105,7 +105,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.ClearTime = 126f; // TimeLimit(120) + buffer(5) を超過
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -117,7 +117,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.ClearTime = 0f;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -127,7 +127,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.ClearTime = -1f;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -139,7 +139,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.WaveReached = -1;
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -149,7 +149,7 @@ public class SurvivorScoreValidatorTests
         var request = ValidRequest();
         request.WaveReached = 4; // 最大3
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -160,7 +160,7 @@ public class SurvivorScoreValidatorTests
         request.WaveReached = 0;
         request.Score = 0; // WaveReached=0 なら Score=0 のみ有効
 
-        _validator.Validate(request); // 例外なし
+        _validator.ValidateScoreSubmit(request); // 例外なし
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class SurvivorScoreValidatorTests
         request.WaveReached = 3;
         request.Score = 50000; // 上限 54,000 以内
 
-        _validator.Validate(request); // 例外なし
+        _validator.ValidateScoreSubmit(request); // 例外なし
     }
 
     // --- 7. Score 上限 ---
@@ -182,7 +182,7 @@ public class SurvivorScoreValidatorTests
         request.WaveReached = 3;
         request.Score = 54001; // 上限 54,000 を超過
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -193,7 +193,7 @@ public class SurvivorScoreValidatorTests
         request.WaveReached = 3;
         request.Score = 54000; // 上限ちょうど: 120×(100+150+200) = 54,000
 
-        _validator.Validate(request); // 例外なし
+        _validator.ValidateScoreSubmit(request); // 例外なし
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class SurvivorScoreValidatorTests
         request.WaveReached = 0;
         request.Score = 1; // WaveReached=0 → 上限は 0、Score > 0 は不正
 
-        var ex = Assert.Throws<ErrorException>(() => _validator.Validate(request));
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
         Assert.Equal("INVALID_SCORE", ex.ErrorCode);
     }
 
@@ -212,6 +212,6 @@ public class SurvivorScoreValidatorTests
     [Fact]
     public void Validate_AllFieldsValid_Passes()
     {
-        _validator.Validate(ValidRequest()); // 例外なし
+        _validator.ValidateScoreSubmit(ValidRequest()); // 例外なし
     }
 }

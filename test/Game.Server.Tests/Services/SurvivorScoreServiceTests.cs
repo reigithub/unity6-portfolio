@@ -16,7 +16,7 @@ public class SurvivorScoreServiceTests
     private readonly Mock<ISurvivorScoreRepository> _mockScoreRepo;
     private readonly Mock<IRankingRepository> _mockRankingRepo;
     private readonly Mock<IRankingService> _mockRankingService;
-    private readonly Mock<ISurvivorScoreValidator> _mockScoreValidator;
+    private readonly Mock<ISurvivorValidator> _mockScoreValidator;
     private readonly SurvivorScoreService _service;
 
     public SurvivorScoreServiceTests()
@@ -24,7 +24,7 @@ public class SurvivorScoreServiceTests
         _mockScoreRepo = new Mock<ISurvivorScoreRepository>();
         _mockRankingRepo = new Mock<IRankingRepository>();
         _mockRankingService = new Mock<IRankingService>();
-        _mockScoreValidator = new Mock<ISurvivorScoreValidator>();
+        _mockScoreValidator = new Mock<ISurvivorValidator>();
 
         _service = new SurvivorScoreService(
             _mockScoreRepo.Object,

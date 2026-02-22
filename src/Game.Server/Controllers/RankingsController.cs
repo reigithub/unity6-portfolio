@@ -2,6 +2,7 @@ using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
+using Game.Server.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,10 +13,12 @@ namespace Game.Server.Controllers;
 public class RankingsController : ControllerBase
 {
     private readonly IRankingService _rankingService;
+    private readonly ISurvivorValidator _survivorValidator;
 
-    public RankingsController(IRankingService rankingService)
+    public RankingsController(IRankingService rankingService, ISurvivorValidator survivorValidator)
     {
         _rankingService = rankingService;
+        _survivorValidator = survivorValidator;
     }
 
     [HttpGet("{stageId:int}")]
@@ -25,6 +28,10 @@ public class RankingsController : ControllerBase
         [FromQuery] int limit = 100,
         [FromQuery] int offset = 0)
     {
+        _survivorValidator.ValidateStageId(stageId);
+        _survivorValidator.ValidateLimit(limit);
+        _survivorValidator.ValidateOffset(offset);
+
         var result = await _rankingService.GetRankingAsync(stageId, limit, offset);
         return Ok(result);
     }
@@ -35,6 +42,8 @@ public class RankingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyRank(int stageId)
     {
+        _survivorValidator.ValidateStageId(stageId);
+
         if (!Guid.TryParse(User.GetUserId(), out var userId))
         {
             return Unauthorized();

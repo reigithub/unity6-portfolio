@@ -104,7 +104,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRankingService, RankingService>();
-        services.AddScoped<ISurvivorScoreValidator, SurvivorScoreValidator>();
+        services.AddScoped<ISurvivorValidator, SurvivorValidator>();
         services.AddScoped<ISurvivorScoreService, SurvivorScoreService>();
 
         // Repositories

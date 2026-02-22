@@ -43,10 +43,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IMasterDataService>();
             services.AddSingleton(mockMasterData.Object);
 
-            // Replace ISurvivorScoreValidator with a mock so that tests
-            // don't require master data for score validation.
-            var mockValidation = new Mock<ISurvivorScoreValidator>();
-            services.RemoveAll<ISurvivorScoreValidator>();
+            // Replace ISurvivorValidator with a mock so that tests
+            // don't require master data for survivor validation.
+            var mockValidation = new Mock<ISurvivorValidator>();
+            services.RemoveAll<ISurvivorValidator>();
             services.AddSingleton(mockValidation.Object);
 
             // Replace IConnectionMultiplexer with a mock so that tests

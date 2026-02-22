@@ -4,25 +4,30 @@ using Game.Server.Shared.Exceptions;
 
 namespace Game.Server.Validation;
 
-public interface ISurvivorScoreValidator
+public interface ISurvivorValidator
 {
-    void Validate(ScoreSubmitDto request);
+    void ValidateScoreSubmit(ScoreSubmitDto request);
+    void ValidateStageId(int stageId);
+    void ValidateLimit(int limit);
+    void ValidateOffset(int offset);
 }
 
-public class SurvivorScoreValidator : ISurvivorScoreValidator
+public class SurvivorValidator : ISurvivorValidator
 {
     private const float ClearTimeBufferSeconds = 5f;
+    private const int MaxLimit = 1000;
+    private const int MaxOffset = 100000;
 
     private readonly IMasterDataService _masterData;
-    private readonly ILogger<SurvivorScoreValidator> _logger;
+    private readonly ILogger<SurvivorValidator> _logger;
 
-    public SurvivorScoreValidator(IMasterDataService masterData, ILogger<SurvivorScoreValidator> logger)
+    public SurvivorValidator(IMasterDataService masterData, ILogger<SurvivorValidator> logger)
     {
         _masterData = masterData;
         _logger = logger;
     }
 
-    public void Validate(ScoreSubmitDto request)
+    public void ValidateScoreSubmit(ScoreSubmitDto request)
     {
         // 1. ステージ存在チェック
         if (!_masterData.MemoryDatabase.SurvivorStageMasterTable.TryFindById(request.StageId, out var stage))
@@ -91,6 +96,32 @@ public class SurvivorScoreValidator : ISurvivorScoreValidator
                 "Score rejected: {Score} exceeds upper bound {UpperBound} for Stage {StageId}",
                 request.Score, scoreUpperBound, request.StageId);
             throw new ErrorException("INVALID_SCORE", "Score exceeds maximum possible value.");
+        }
+    }
+
+    public void ValidateStageId(int stageId)
+    {
+        if (stageId <= 0)
+        {
+            throw new ErrorException("INVALID_INPUT", "Stage ID must be greater than 0.");
+        }
+    }
+
+    public void ValidateLimit(int limit)
+    {
+        if (limit < 1 || limit > MaxLimit)
+        {
+            throw new ErrorException("INVALID_INPUT",
+                $"Limit must be between 1 and {MaxLimit}.");
+        }
+    }
+
+    public void ValidateOffset(int offset)
+    {
+        if (offset < 0 || offset > MaxOffset)
+        {
+            throw new ErrorException("INVALID_INPUT",
+                $"Offset must be between 0 and {MaxOffset}.");
         }
     }
 }
