@@ -69,7 +69,6 @@
   -->
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" VersionOverride="3.33.5" />
     <ProjectReference Include="..\Game.Shared\Game.Shared.csproj" />
     <ProjectReference Include="..\Game.Server.Shared\Game.Server.Shared.csproj" />
   </ItemGroup>
