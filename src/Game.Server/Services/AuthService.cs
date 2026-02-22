@@ -13,6 +13,7 @@ using Game.Server.Services.Interfaces;
 using Game.Server.Validation;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using HMACSHA256Crypto = System.Security.Cryptography.HMACSHA256;
 
 namespace Game.Server.Services;
@@ -158,16 +159,36 @@ public class AuthService : IAuthService
             DeviceFingerprint = request.DeviceFingerprint,
         };
 
-        await _authRepository.CreateUserAsync(user);
+        var created = await _authRepository.CreateGuestUserAsync(user);
+        if (created == null)
+        {
+            // DeviceFingerprint重複: 既存ユーザーを再取得してログイン
+            existingUser = await _authRepository.GetByDeviceFingerprintAsync(request.DeviceFingerprint);
+            if (existingUser == null)
+            {
+                return new ApiError("Guest login failed", "GUEST_LOGIN_FAILED", StatusCodes.Status500InternalServerError);
+            }
 
-        string newToken = GenerateJwtToken(user);
+            await _authRepository.UpdateLastLoginAsync(existingUser.Id, DateTime.UtcNow);
+            string existingToken = GenerateJwtToken(existingUser);
+            return new LoginResponse
+            {
+                UserId = existingUser.UserId,
+                UserName = existingUser.UserName,
+                Token = existingToken,
+                IsNewUser = false,
+                SigningKey = DeriveUserSigningKey(existingUser.Id),
+            };
+        }
+
+        string newToken = GenerateJwtToken(created);
         return new LoginResponse
         {
-            UserId = user.UserId,
-            UserName = user.UserName,
+            UserId = created.UserId,
+            UserName = created.UserName,
             Token = newToken,
             IsNewUser = true,
-            SigningKey = DeriveUserSigningKey(user.Id),
+            SigningKey = DeriveUserSigningKey(created.Id),
         };
     }
 
@@ -321,9 +342,16 @@ public class AuthService : IAuthService
         var verificationToken = GenerateSecureToken();
         var verificationExpiry = DateTime.UtcNow.AddHours(_authSettings.EmailVerificationExpiryHours);
 
-        await _authRepository.LinkEmailAsync(
-            id, request.Email, passwordHash,
-            verificationToken, verificationExpiry);
+        try
+        {
+            await _authRepository.LinkEmailAsync(
+                id, request.Email, passwordHash,
+                verificationToken, verificationExpiry);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
+        {
+            return new ApiError("Email already exists", "DUPLICATE_EMAIL", StatusCodes.Status409Conflict);
+        }
 
         var emailResult = await _emailService.SendVerificationEmailAsync(request.Email, verificationToken);
         if (emailResult.IsError)

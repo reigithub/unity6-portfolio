@@ -45,6 +45,15 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
             var lobbyId = await _lobbyDataService.CreateAsync(
                 userId, request.PlayerName, request.LobbyName, request.GameMode, request.MaxPlayers, request.IsPublic);
 
+            if (lobbyId == null)
+            {
+                return new CreateLobbyResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Player is already in a lobby",
+                };
+            }
+
             _logger.LogInformation(
                 "Lobby {LobbyId} created by {UserId} (mode: {GameMode})",
                 lobbyId, userId, request.GameMode);

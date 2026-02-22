@@ -695,6 +695,65 @@ public class LobbyDataServiceTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task DeleteAsync_AcquiresLock()
+    {
+        // Arrange
+        _batchMock.Setup(x => x.HashGetAsync(
+                It.IsAny<RedisKey>(),
+                It.Is<RedisValue>(v => v.ToString() == "gameMode"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue("survival"));
+        _batchMock.Setup(x => x.HashGetAllAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(Array.Empty<HashEntry>());
+        _batchMock.Setup(x => x.KeyDeleteAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+        _batchMock.Setup(x => x.SetRemoveAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        // Act
+        await _service.DeleteAsync("lobby1");
+
+        // Assert: ロックが取得されたことを確認
+        _lockProviderMock.Verify(
+            x => x.CreateLock(It.Is<string>(s => s == "lock:lobby:lobby1")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsNull_WhenHostAlreadyInLobby()
+    {
+        // Arrange: StringSetAsync with When.NotExists returns false (key already exists)
+        _dbMock.Setup(x => x.StringSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:player:host1"),
+                It.IsAny<RedisValue>(),
+                It.IsAny<Expiration>(),
+                It.Is<ValueCondition>(w => w.Equals(ValueCondition.NotExists)),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _service.CreateAsync("host1", "HostPlayer", "Test Lobby", "survival", 4, true);
+
+        // Assert
+        Assert.Null(result);
+
+        // ロビーデータは作成されていないことを確認
+        _dbMock.Verify(
+            x => x.HashSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<HashEntry[]>(),
+                It.IsAny<CommandFlags>()),
+            Times.Never);
+    }
+
     /// <summary>
     /// SearchPublicAsync テスト用ヘルパー: 指定ロビーの Hash と players 長をセットアップ（batch 対応）
     /// </summary>

@@ -24,11 +24,19 @@ public class LobbyDataService : ILobbyDataService
         _logger = logger;
     }
 
-    public async Task<string> CreateAsync(
+    public async Task<string?> CreateAsync(
         string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic)
     {
         var db = _redis.GetDatabase();
         var lobbyId = Guid.NewGuid().ToString("N");
+
+        // ホストが既にロビーに参加中かチェック（原子的）
+        var set = await db.StringSetAsync($"lobby:player:{hostUserId}", lobbyId, when: When.NotExists);
+        if (!set)
+        {
+            _logger.LogWarning("Player {HostUserId} is already in a lobby, cannot create new one", hostUserId);
+            return null;
+        }
 
         var lobbyKey = $"lobby:{lobbyId}";
         var entries = new HashEntry[]
@@ -45,9 +53,6 @@ public class LobbyDataService : ILobbyDataService
         // ホストをプレイヤーとして追加
         var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
         await db.HashSetAsync($"lobby:{lobbyId}:players", hostUserId, playerData);
-
-        // プレイヤーの現在ロビーを記録
-        await db.StringSetAsync($"lobby:player:{hostUserId}", lobbyId);
 
         // 公開ロビー一覧に追加
         if (isPublic)
@@ -105,7 +110,7 @@ public class LobbyDataService : ILobbyDataService
             var remainingPlayers = await db.HashLengthAsync($"lobby:{lobbyId}:players");
             if (remainingPlayers == 0)
             {
-                await DeleteAsync(lobbyId);
+                await DeleteCoreAsync(lobbyId);
             }
 
             _logger.LogDebug("Player {UserId} removed from lobby {LobbyId}", userId, lobbyId);
@@ -280,6 +285,18 @@ public class LobbyDataService : ILobbyDataService
     }
 
     public async Task DeleteAsync(string lobbyId)
+    {
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
+        {
+            await DeleteCoreAsync(lobbyId);
+        }
+    }
+
+    /// <summary>
+    /// ロビー削除の内部実装（ロック保持前提）
+    /// RemovePlayerAsync から呼ばれる場合は既にロック保持済みのため、直接呼び出す
+    /// </summary>
+    private async Task DeleteCoreAsync(string lobbyId)
     {
         var db = _redis.GetDatabase();
 

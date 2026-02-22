@@ -335,6 +335,25 @@ public class ChatRoomDataServiceTests
     }
 
     [Fact]
+    public async Task RemoveMemberAsync_AcquiresLock()
+    {
+        // Arrange
+        _dbMock.Setup(x => x.HashDeleteAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        // Act
+        await _service.RemoveMemberAsync("room1", "user1");
+
+        // Assert: ロックが取得されたことを確認
+        _lockProviderMock.Verify(
+            x => x.CreateLock(It.Is<string>(s => s == "lock:chatroom:room1")),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GetDefaultPermissionsAsync_ReturnsDefaultPermissions()
     {
         // Arrange

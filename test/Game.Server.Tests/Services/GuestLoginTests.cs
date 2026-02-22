@@ -94,9 +94,51 @@ public class GuestLoginTests : IAsyncLifetime
         Assert.True(response2.IsNewUser);
     }
 
+    [Fact]
+    public async Task GuestLoginAsync_ConcurrentSameDevice_OnlyCreatesOneUser()
+    {
+        // Arrange
+        var fingerprint = "concurrent-test-device-001";
+        var request = new GuestLoginRequest { DeviceFingerprint = fingerprint };
+
+        // Act: 同時に10リクエスト（各タスクが独自のDB接続を使用）
+        var tasks = Enumerable.Range(0, 10)
+            .Select(async _ =>
+            {
+                var session = TestDataFixture.CreateDbSession(_connectionFactory);
+                try
+                {
+                    var service = CreateAuthService(session);
+                    return await service.GuestLoginAsync(request);
+                }
+                finally
+                {
+                    await session.DisposeAsync();
+                }
+            })
+            .ToArray();
+        var results = await Task.WhenAll(tasks);
+
+        // Assert: 全リクエスト成功し、全て同じUserId
+        var userIds = results
+            .Select(r => AuthServiceTests.ExtractSuccess(r)!.UserId)
+            .Distinct()
+            .ToList();
+        Assert.Single(userIds);
+
+        // 新規ユーザーは1人だけ
+        var newUserCount = results.Count(r => AuthServiceTests.ExtractSuccess(r)!.IsNewUser);
+        Assert.Equal(1, newUserCount);
+    }
+
     private AuthService CreateAuthService()
     {
-        var authRepo = new AuthRepository(_dbSession);
+        return CreateAuthService(_dbSession);
+    }
+
+    private static AuthService CreateAuthService(Game.Server.Database.IDbSession dbSession)
+    {
+        var authRepo = new AuthRepository(dbSession);
         var mockEmailService = new Mock<IEmailService>();
         mockEmailService
             .Setup(e => e.SendVerificationEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -107,7 +149,7 @@ public class GuestLoginTests : IAsyncLifetime
 
         return new AuthService(
             authRepo,
-            _dbSession,
+            dbSession,
             TestDataFixture.GetJwtOptions(),
             TestDataFixture.GetAuthOptions(),
             TestDataFixture.GetSigningOptions(),

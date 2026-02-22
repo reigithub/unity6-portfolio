@@ -2,6 +2,7 @@ using Game.Library.Shared.Dto;
 using Game.Server.Dto.Responses;
 using Game.Server.Repositories.Interfaces;
 using Game.Server.Services.Interfaces;
+using Medallion.Threading;
 
 namespace Game.Server.Services;
 
@@ -9,15 +10,18 @@ public class RankingService : IRankingService
 {
     private readonly IRankingRepository _rankingRepository;
     private readonly ISurvivorRankingCacheService _cacheService;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<RankingService> _logger;
 
     public RankingService(
         IRankingRepository rankingRepository,
         ISurvivorRankingCacheService cacheService,
+        IDistributedLockProvider lockProvider,
         ILogger<RankingService> logger)
     {
         _rankingRepository = rankingRepository;
         _cacheService = cacheService;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -37,29 +41,45 @@ public class RankingService : IRankingService
             };
         }
 
-        // キャッシュミス: DBから取得
-        _logger.LogDebug("Cache miss, fetching ranking from database for stageId={StageId}", stageId);
-        var scores = await _rankingRepository.GetTopScoresAsync(stageId, limit, offset);
-
-        var entries = scores.Select((s, index) => new RankingEntryDto
+        // キャッシュミス: ロック取得してDBから取得（スタンピード防止）
+        await using (await _lockProvider.AcquireLockAsync($"lock:ranking:cache:{stageId}"))
         {
-            Rank = offset + index + 1,
-            UserId = s.User?.UserId ?? string.Empty,
-            UserName = s.User?.UserName ?? string.Empty,
-            Score = s.Score,
-            ClearTime = s.ClearTime,
-            RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
-        }).ToList();
+            // ロック取得後にキャッシュを再チェック（double-checked locking）
+            cachedEntries = await _cacheService.GetRankingAsync(stageId, limit, offset);
+            if (cachedEntries != null)
+            {
+                _logger.LogDebug("Cache hit after lock for stageId={StageId}", stageId);
+                return new RankingResponse
+                {
+                    StageId = stageId,
+                    TotalCount = cachedEntries.Count,
+                    Entries = cachedEntries,
+                };
+            }
 
-        // キャッシュに保存（エラーはキャッシュサービス内で処理済み）
-        await _cacheService.SetRankingAsync(stageId, entries);
+            _logger.LogDebug("Cache miss, fetching ranking from database for stageId={StageId}", stageId);
+            var scores = await _rankingRepository.GetTopScoresAsync(stageId, limit, offset);
 
-        return new RankingResponse
-        {
-            StageId = stageId,
-            TotalCount = entries.Count,
-            Entries = entries,
-        };
+            var entries = scores.Select((s, index) => new RankingEntryDto
+            {
+                Rank = offset + index + 1,
+                UserId = s.User?.UserId ?? string.Empty,
+                UserName = s.User?.UserName ?? string.Empty,
+                Score = s.Score,
+                ClearTime = s.ClearTime,
+                RecordedAt = new DateTimeOffset(s.RecordedAt, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+            }).ToList();
+
+            // キャッシュに保存（エラーはキャッシュサービス内で処理済み）
+            await _cacheService.SetRankingAsync(stageId, entries);
+
+            return new RankingResponse
+            {
+                StageId = stageId,
+                TotalCount = entries.Count,
+                Entries = entries,
+            };
+        }
     }
 
     public async Task<RankingEntryDto?> GetUserRankAsync(

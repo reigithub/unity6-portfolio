@@ -1,3 +1,4 @@
+using System.Threading;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
@@ -24,6 +25,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private string _userId = string.Empty;
     private string _playerName = string.Empty;
     private string _lobbyId = string.Empty;
+    private int _hasLeft;
 
     public LobbyHub(
         ILogger<LobbyHub> logger,
@@ -59,6 +61,9 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     public async ValueTask LeaveAsync()
     {
+        if (Interlocked.CompareExchange(ref _hasLeft, 1, 0) != 0)
+            return;
+
         if (_currentGroup != null)
         {
             _logger.LogInformation(
@@ -139,6 +144,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     protected override async ValueTask OnDisconnected()
     {
+        if (Interlocked.CompareExchange(ref _hasLeft, 1, 0) != 0)
+        {
+            _logger.LogDebug(
+                "Player {PlayerName} ({UserId}) already left lobby {LobbyId}, skipping OnDisconnected cleanup",
+                _playerName, _userId, _lobbyId);
+            return;
+        }
+
         if (_currentGroup != null)
         {
             _currentGroup.All.OnPlayerLeft(_userId, _playerName);
