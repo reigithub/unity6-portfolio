@@ -174,6 +174,27 @@ namespace Game.Shared.Chat.Client
                 "GetRecentMessagesAsync", roomId, count);
         }
 
+        public async Task DisconnectAsync()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                if (_hubConnection != null)
+                {
+                    try
+                    {
+                        await _hubConnection.StopAsync();
+                        await _hubConnection.DisposeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ChatClient] Disconnect error: {ex.Message}");
+                    }
+                    _hubConnection = null;
+                }
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
@@ -181,8 +202,10 @@ namespace Game.Shared.Chat.Client
                 _disposed = true;
                 if (_hubConnection != null)
                 {
-                    _hubConnection.StopAsync().GetAwaiter().GetResult();
-                    _hubConnection.DisposeAsync().GetAwaiter().GetResult();
+                    try { _hubConnection.StopAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[ChatClient] Dispose Stop error: {ex.Message}"); }
+                    try { _hubConnection.DisposeAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[ChatClient] Dispose error: {ex.Message}"); }
                     _hubConnection = null;
                 }
             }
