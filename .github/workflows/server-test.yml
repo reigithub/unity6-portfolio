@@ -22,6 +22,10 @@ on:
       - 'test/Game.Realtime.Tests/**'
       - '.github/workflows/server-test.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOTNET_VERSION: '9.0.x'
   DOTNET_NOLOGO: true

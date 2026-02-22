@@ -50,6 +50,10 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
 env:
   R2_BUCKET_NAME: unity6-portfolio
   R2_CUSTOM_DOMAIN: rei-unity6-portfolio.com

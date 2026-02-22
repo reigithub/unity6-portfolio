@@ -46,6 +46,10 @@ on:
           - Review
           - Release
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   # ============================================
   # 設定読み込み
