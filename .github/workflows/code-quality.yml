@@ -91,7 +91,6 @@ jobs:
   dotnet-format:
     name: dotnet format Check
     runs-on: ubuntu-latest
-    # Server/Shared が存在する場合のみ実行
     continue-on-error: true
     steps:
       - name: Checkout repository
@@ -138,10 +137,10 @@ jobs:
   unity-analyze:
     name: Unity Analyzer
     runs-on: [self-hosted, linux, unity, docker]
+    continue-on-error: true
     # PR 時のみ実行（リソース節約）
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
-    continue-on-error: true
 
     steps:
       - name: Checkout repository
@@ -232,6 +231,7 @@ jobs:
             echo "### Critical Issues" >> $GITHUB_STEP_SUMMARY
             echo "- UNT0002: Use == operator for null checks on Unity objects" >> $GITHUB_STEP_SUMMARY
             grep "error UNT0002" "$log_file" | head -5 >> $GITHUB_STEP_SUMMARY
+            exit 1
           fi
 
           echo "::endgroup::"

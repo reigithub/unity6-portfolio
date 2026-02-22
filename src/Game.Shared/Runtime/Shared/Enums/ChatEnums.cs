@@ -8,14 +8,14 @@ namespace Game.Library.Shared.Enums
     [Flags]
     public enum ChatRoomPermissions
     {
-        None         = 0,
-        Join         = 1 << 0,
-        SendMessage  = 1 << 1,
-        Leave        = 1 << 2,
-        Invite       = 1 << 3,
-        Kick         = 1 << 4,
-        Delete       = 1 << 5,
+        None = 0,
+        Join = 1 << 0,
+        SendMessage = 1 << 1,
+        Leave = 1 << 2,
+        Invite = 1 << 3,
+        Kick = 1 << 4,
+        Delete = 1 << 5,
         ManageMember = 1 << 6,
-        ManageRoom   = 1 << 7,
+        ManageRoom = 1 << 7,
     }
 }

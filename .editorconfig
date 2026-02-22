@@ -179,6 +179,9 @@ dotnet_diagnostic.SA1640.severity = none       # File header must have valid com
 dotnet_diagnostic.SA1641.severity = none       # File header company name text must match
 dotnet_diagnostic.SA1642.severity = none       # Constructor summary must begin with standard text
 dotnet_diagnostic.SA1643.severity = none       # Destructor summary must begin with standard text
+dotnet_diagnostic.SA1618.severity = none       # Missing documentation for type parameter
+dotnet_diagnostic.SA1629.severity = none       # Documentation text should end with a period
+dotnet_diagnostic.SA1649.severity = none       # File name should match first type name
 
 # --- Readability ---
 dotnet_diagnostic.SA1101.severity = none       # this. 強制 → 本プロジェクトは this. 不使用 (dotnet/runtime 準拠)
@@ -201,6 +204,7 @@ dotnet_diagnostic.SA1202.severity = none       # アクセスレベル順の強�
 dotnet_diagnostic.SA1204.severity = none       # static メンバーを先に → 機能単位グループ化を許容
 
 # --- Spacing (モダン C# との競合) ---
+dotnet_diagnostic.SA1000.severity = none       # new キーワード後のスペース → target-typed new() と WHITESPACE ルールが競合
 dotnet_diagnostic.SA1010.severity = none       # 開き角括弧 → C# 12 コレクション式 [1,2,3] で誤検知
 dotnet_diagnostic.SA1011.severity = none       # 閉じ角括弧 → Nullable 配列 byte[]? で誤検知
 
