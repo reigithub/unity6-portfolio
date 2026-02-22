@@ -139,7 +139,7 @@ public class LobbyDataService : ILobbyDataService
             LobbyName = dict.GetValueOrDefault("name", ""),
             HostUserId = dict.GetValueOrDefault("hostUserId", ""),
             GameMode = dict.GetValueOrDefault("gameMode", ""),
-            CurrentPlayers = (int)playerCount,
+            CurrentPlayers = checked((int)playerCount),
             MaxPlayers = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var mp) ? mp : 4,
             IsPublic = dict.GetValueOrDefault("isPublic", "0") == "1",
         };
@@ -199,7 +199,7 @@ public class LobbyDataService : ILobbyDataService
             if (hash.Length == 0) continue;
 
             var dict = hash.ToDictionary(h => h.Name.ToString(), h => h.Value);
-            var playerCount = (int)await countTasks[i];
+            var playerCount = checked((int)await countTasks[i]);
             var mp = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var v) ? v : 4;
 
             if (playerCount < mp)
