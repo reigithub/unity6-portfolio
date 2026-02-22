@@ -6,32 +6,32 @@ namespace Game.Library.Shared
 {
     internal interface IState
     {
-        public void Enter()
+        void Enter()
         {
         }
 
-        public void Update()
+        void Update()
         {
         }
 
         // MonoBehavior.FixedUpdate
-        public void FixedUpdate()
+        void FixedUpdate()
         {
         }
 
         // MonoBehavior.LateUpdate
-        public void LateUpdate()
+        void LateUpdate()
         {
         }
 
-        public void Exit()
+        void Exit()
         {
         }
     }
 
     internal interface IStateMachineContext<out TContext>
     {
-        public TContext Context { get; }
+        TContext Context { get; }
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ namespace Game.Library.Shared
     {
         Waiting,   // 遷移リクエストしたが順番待ち、次回Updateで再度リクエスト
         Succeeded, // 遷移リクエストが受付られ、次回Updateで処理される
-        Failed     // 遷移テーブルにないリクエスト
+        Failed // 遷移テーブルにないリクエスト
     }
 
     /// <summary>

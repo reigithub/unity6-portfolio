@@ -7,7 +7,6 @@ namespace Game.Library.Shared.Dto
     // ============================================================
     // Request DTOs
     // ============================================================
-
     [MessagePackObject]
     public class LoginRequest
     {
@@ -97,7 +96,6 @@ namespace Game.Library.Shared.Dto
     // ============================================================
     // Response DTOs
     // ============================================================
-
     [MessagePackObject]
     public class LoginResponse
     {

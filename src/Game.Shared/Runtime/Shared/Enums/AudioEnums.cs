@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Game.Library.Shared.Enums
+﻿namespace Game.Library.Shared.Enums
 {
     public enum AudioCategory
     {

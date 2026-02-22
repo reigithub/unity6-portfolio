@@ -30,5 +30,7 @@ namespace Game.Library.Shared.Dto
     }
 
     [MessagePackObject]
-    public class EmptyRequest { }
+    public class EmptyRequest
+    {
+    }
 }
