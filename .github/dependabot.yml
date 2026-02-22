@@ -15,7 +15,7 @@ updates:
       dotnet-minor:
         update-types: ["minor", "patch"]
 
-  # Docker — .NET ベースイメージ
+  # Docker — .NET ベースイメージ（メジャーバージョンは手動管理）
   - package-ecosystem: "docker"
     directory: "/docker/game-server"
     schedule:
@@ -23,6 +23,11 @@ updates:
     groups:
       dotnet-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/docker/game-server/prod"
@@ -31,6 +36,11 @@ updates:
     groups:
       dotnet-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/docker/game-realtime"
@@ -39,6 +49,11 @@ updates:
     groups:
       dotnet-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/docker/game-realtime/prod"
@@ -47,6 +62,11 @@ updates:
     groups:
       dotnet-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/docker/migrate"
@@ -55,6 +75,9 @@ updates:
     groups:
       dotnet-images:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
 
   # Docker — Unity Accelerator
   - package-ecosystem: "docker"
