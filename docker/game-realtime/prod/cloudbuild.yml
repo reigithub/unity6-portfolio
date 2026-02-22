@@ -72,7 +72,7 @@ steps:
 # ===== 変数（デフォルト値） =====
 substitutions:
   _REGION: asia-northeast1
-  _REPO_NAME: game-server
+  _REPO_NAME: game-realtime
   _SERVICE_NAME: game-realtime
   # Secret Manager シークレット名
   _SECRET_JWT: game-jwt-secret
