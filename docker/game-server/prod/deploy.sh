@@ -39,7 +39,7 @@ else
 fi
 
 # 必須変数の確認
-REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME" "INSTANCE_NAME" "SECRET_DB_CONNECTION" "SECRET_JWT" "SECRET_REQUEST_SIGNING")
+REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME" "INSTANCE_NAME" "SECRET_DB_CONNECTION" "SECRET_JWT" "SECRET_REQUEST_SIGNING" "SECRET_VALKEY_CONNECTION")
 for var in "${REQUIRED_VARS[@]}"; do
     if [[ -z "${!var}" ]]; then
         echo "[ERROR] Required variable $var is not set in .env"
@@ -57,12 +57,10 @@ if [[ -z "$CONNECTION_NAME" ]]; then
     exit 1
 fi
 
-# Valkey 設定の確認
-VALKEY_ENABLED=false
-if [[ -n "$VALKEY_HOST" && -n "$VPC_CONNECTOR" ]]; then
-    VALKEY_ENABLED=true
-elif [[ -n "$VALKEY_HOST" || -n "$VPC_CONNECTOR" ]]; then
-    echo "[WARN] Valkey requires both VALKEY_HOST and VPC_CONNECTOR to be set."
+# VPC Connector の確認（Memorystore 接続に必要）
+VPC_CONNECTOR_ENABLED=false
+if [[ -n "$VPC_CONNECTOR" ]]; then
+    VPC_CONNECTOR_ENABLED=true
 fi
 
 echo ""
@@ -73,12 +71,10 @@ echo "SERVICE_NAME:    $SERVICE_NAME"
 echo "IMAGE:           ${IMAGE}:${TAG}"
 echo "CLOUD_SQL:       $CONNECTION_NAME"
 echo "DATABASE:        $DB_NAME"
-if [[ "$VALKEY_ENABLED" == "true" ]]; then
-    echo "VALKEY:          ${VALKEY_HOST}:${VALKEY_PORT:-6379}"
+if [[ "$VPC_CONNECTOR_ENABLED" == "true" ]]; then
     echo "VPC_CONNECTOR:   $VPC_CONNECTOR"
-else
-    echo "VALKEY:          (not configured)"
 fi
+echo "VALKEY_SECRET:   $SECRET_VALKEY_CONNECTION"
 echo "================================="
 echo ""
 
@@ -109,16 +105,11 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     [[ -n "$Jwt__Issuer" ]] && ENV_VARS="$ENV_VARS,Jwt__Issuer=$Jwt__Issuer"
     [[ -n "$Jwt__Audience" ]] && ENV_VARS="$ENV_VARS,Jwt__Audience=$Jwt__Audience"
 
-    # Valkey 設定を追加（設定されている場合）
-    if [[ "$VALKEY_ENABLED" == "true" ]]; then
-        VALKEY_PORT="${VALKEY_PORT:-6379}"
-        ENV_VARS="$ENV_VARS,ConnectionStrings__Valkey=${VALKEY_HOST}:${VALKEY_PORT},abortConnect=false,connectTimeout=5000"
-    fi
-
     # Secret Manager シークレットを構築
     SECRETS="ConnectionStrings__Default=${SECRET_DB_CONNECTION}:latest"
     SECRETS="$SECRETS,Jwt__Secret=${SECRET_JWT}:latest"
     SECRETS="$SECRETS,RequestSigning__SecretKey=${SECRET_REQUEST_SIGNING}:latest"
+    SECRETS="$SECRETS,ConnectionStrings__Valkey=${SECRET_VALKEY_CONNECTION}:latest"
     [[ -n "$SECRET_RESEND" ]] && SECRETS="$SECRETS,Resend__ApiKey=${SECRET_RESEND}:latest"
 
     # デプロイコマンドを構築
@@ -140,7 +131,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     )
 
     # VPC Connector を追加（Valkey 有効時）
-    if [[ "$VALKEY_ENABLED" == "true" ]]; then
+    if [[ "$VPC_CONNECTOR_ENABLED" == "true" ]]; then
         DEPLOY_ARGS+=("--vpc-connector=$VPC_CONNECTOR")
     fi
 

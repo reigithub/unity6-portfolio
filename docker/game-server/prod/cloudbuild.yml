@@ -60,7 +60,7 @@ steps:
       - '-c'
       - |
         CONNECTION_NAME=$(cat /workspace/connection_name.txt)
-        SECRETS="ConnectionStrings__Default=${_SECRET_DB_CONNECTION}:latest,Jwt__Secret=${_SECRET_JWT}:latest,RequestSigning__SecretKey=${_SECRET_REQUEST_SIGNING}:latest"
+        SECRETS="ConnectionStrings__Default=${_SECRET_DB_CONNECTION}:latest,Jwt__Secret=${_SECRET_JWT}:latest,RequestSigning__SecretKey=${_SECRET_REQUEST_SIGNING}:latest,ConnectionStrings__Valkey=${_SECRET_VALKEY_CONNECTION}:latest"
         if [ -n "${_SECRET_RESEND}" ]; then
           SECRETS="$${SECRETS},Resend__ApiKey=${_SECRET_RESEND}:latest"
         fi
@@ -72,7 +72,6 @@ steps:
           --add-cloudsql-instances=$${CONNECTION_NAME} \
           --vpc-connector=${_VPC_CONNECTOR} \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
-          --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
           --set-secrets="$${SECRETS}" \
@@ -94,12 +93,10 @@ substitutions:
   _SECRET_JWT: game-jwt-secret
   _SECRET_REQUEST_SIGNING: game-request-signing-secret
   _SECRET_RESEND: ''
+  _SECRET_VALKEY_CONNECTION: game-valkey-connection
   # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
-  # Memorystore for Valkey 設定
-  _VALKEY_HOST: ''
-  _VALKEY_PORT: '6379'
   # VPC Connector（Memorystore 接続に必要）
   _VPC_CONNECTOR: ''
 
