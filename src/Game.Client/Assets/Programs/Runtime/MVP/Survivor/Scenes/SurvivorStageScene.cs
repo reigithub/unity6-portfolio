@@ -1,13 +1,11 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
-using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using R3.Triggers;
@@ -259,7 +257,7 @@ namespace Game.MVP.Survivor.Scenes
                 totalKills: _stageModel.TotalKills.Value
             );
 
-            SaveCurrentSessionAsync().ForgetWithHandler("SurvivorStageScene.SaveCurrentSession");
+            SaveCurrentSessionAsync().Forget();
         }
 
         private async UniTask SaveCurrentSessionAsync()

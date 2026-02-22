@@ -173,7 +173,7 @@ namespace Game.MVP.Survivor.Item
                 // プールがなければ動的に作成
                 if (!_pools.ContainsKey(itemId))
                 {
-                    PreloadItemAsync(itemId).ForgetWithHandler("SurvivorItemSpawner.PreloadItem");
+                    PreloadItemAsync(itemId).Forget();
                     return;
                 }
 

@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using Game.App.Services;
 using Game.Library.Shared.Enums;
 using Game.Shared.Enums;
-using Game.Shared.Extensions;
 using Game.Shared.Services;
 using Game.Shared.Services.RemoteAsset;
 using R3;
@@ -66,7 +65,7 @@ namespace Game.App.Title
             ShowPanel(_initialPanel);
             UpdateVersionText();
 
-            PlayGameReadySoundAsync().ForgetWithHandler("AppTitleSceneComponent.PlayGameReadySound");
+            PlayGameReadySoundAsync().Forget();
         }
 
         private void SetupUIElements()
@@ -102,26 +101,26 @@ namespace Game.App.Title
             _scoreTimeAttackButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                SelectGameModeAsync(GameMode.MvcScoreTimeAttack).ForgetWithHandler("AppTitleSceneComponent.SelectGameMode");
+                SelectGameModeAsync(GameMode.MvcScoreTimeAttack).Forget();
             });
 
             _survivorButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                SelectGameModeAsync(GameMode.MvpSurvivor).ForgetWithHandler("AppTitleSceneComponent.SelectGameMode");
+                SelectGameModeAsync(GameMode.MvpSurvivor).Forget();
             });
 
             _quitButton?.RegisterCallback<ClickEvent>(_ =>
             {
                 SetModeButtonsEnabled(false);
-                QuitGameAsync().ForgetWithHandler("AppTitleSceneComponent.QuitGame");
+                QuitGameAsync().Forget();
             });
         }
 
         private void OnGameStartClicked()
         {
             _gameStartButton.SetEnabled(false);
-            HandleGameStartAsync().ForgetWithHandler("AppTitleSceneComponent.HandleGameStart");
+            HandleGameStartAsync().Forget();
         }
 
         private async UniTask HandleGameStartAsync()
@@ -201,7 +200,7 @@ namespace Game.App.Title
         private void OnRetryClicked()
         {
             _retryButton.SetEnabled(false);
-            StartDownloadAsync().ForgetWithHandler("AppTitleSceneComponent.RetryDownload");
+            StartDownloadAsync().Forget();
         }
 
         private void ShowError(string message)
@@ -271,7 +270,7 @@ namespace Game.App.Title
             if (AudioService != null)
             {
                 AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token)
-                    .ForgetWithHandler("AppTitleSceneComponent.PlayUIButtonSound");
+                    .Forget();
                 await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
             }
         }

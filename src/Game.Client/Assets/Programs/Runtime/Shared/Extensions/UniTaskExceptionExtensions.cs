@@ -5,98 +5,12 @@ using UnityEngine;
 namespace Game.Shared.Extensions
 {
     /// <summary>
-    /// UniTaskの例外処理拡張メソッド
-    /// .Forget()呼び出し時の例外ロストを防ぐためのユーティリティ
+    /// UniTaskの例外処理・リトライ拡張メソッド
+    /// NOTE: .Forget() の例外は UniTaskScheduler.UnobservedTaskException 経由で
+    /// GameBootstrap.OnUnobservedTaskException がスタックトレース付きでログ出力する
     /// </summary>
     public static class UniTaskExceptionExtensions
     {
-        /// <summary>
-        /// 例外をログ出力しながらForgetする
-        /// .Forget()の代わりに使用することで、非同期処理の例外を追跡可能にする
-        /// </summary>
-        /// <param name="task">対象のUniTask</param>
-        /// <param name="context">ログに出力するコンテキスト情報（クラス名やメソッド名など）</param>
-        public static async void ForgetWithHandler(this UniTask task, string context)
-        {
-            try
-            {
-                await task;
-            }
-            catch (OperationCanceledException)
-            {
-                // キャンセルは正常系として無視
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[{context}] Unhandled exception in async operation: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        /// <summary>
-        /// 例外をログ出力しながらForgetする（戻り値あり版）
-        /// </summary>
-        /// <typeparam name="T">戻り値の型</typeparam>
-        /// <param name="task">対象のUniTask</param>
-        /// <param name="context">ログに出力するコンテキスト情報</param>
-        public static async void ForgetWithHandler<T>(this UniTask<T> task, string context)
-        {
-            try
-            {
-                await task;
-            }
-            catch (OperationCanceledException)
-            {
-                // キャンセルは正常系として無視
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[{context}] Unhandled exception in async operation: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        /// <summary>
-        /// 例外をカスタムハンドラーで処理しながらForgetする
-        /// </summary>
-        /// <param name="task">対象のUniTask</param>
-        /// <param name="onException">例外発生時のコールバック</param>
-        public static async void ForgetWithHandler(this UniTask task, Action<Exception> onException)
-        {
-            try
-            {
-                await task;
-            }
-            catch (OperationCanceledException)
-            {
-                // キャンセルは正常系として無視
-            }
-            catch (Exception ex)
-            {
-                onException?.Invoke(ex);
-            }
-        }
-
-        /// <summary>
-        /// 例外をカスタムハンドラーで処理しながらForgetする（戻り値あり版）
-        /// </summary>
-        /// <typeparam name="T">戻り値の型</typeparam>
-        /// <param name="task">対象のUniTask</param>
-        /// <param name="onException">例外発生時のコールバック</param>
-        public static async void ForgetWithHandler<T>(this UniTask<T> task, Action<Exception> onException)
-        {
-            try
-            {
-                await task;
-            }
-            catch (OperationCanceledException)
-            {
-                // キャンセルは正常系として無視
-            }
-            catch (Exception ex)
-            {
-                onException?.Invoke(ex);
-            }
-        }
-
         /// <summary>
         /// 例外発生時にフォールバック処理を実行しながらForgetする
         /// </summary>
