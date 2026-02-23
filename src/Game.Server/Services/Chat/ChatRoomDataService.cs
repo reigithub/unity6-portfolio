@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Server.Shared.Extensions;
+using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using StackExchange.Redis;
 
@@ -67,7 +68,14 @@ public class ChatRoomDataService : IChatRoomDataService
             if (!await db.KeyExistsAsync(roomKey))
                 return false;
 
-            var maxMembers = (int)await db.HashGetAsync(roomKey, "maxMembers");
+            var maxMembersValue = await db.HashGetAsync(roomKey, "maxMembers");
+            if (!maxMembersValue.HasValue)
+            {
+                _logger.LogWarning("maxMembers field missing for room {RoomId}", roomId);
+                return false;
+            }
+
+            var maxMembers = maxMembersValue.ToInt();
             if (maxMembers > 0)
             {
                 var currentCount = await db.HashLengthAsync($"{roomKey}{MembersSuffix}");
@@ -117,12 +125,12 @@ public class ChatRoomDataService : IChatRoomDataService
         return new ChatRoomInfo
         {
             RoomId = roomId,
-            RoomName = dict.GetValueOrDefault("name", ""),
-            RoomType = dict.GetValueOrDefault("roomType", ""),
+            RoomName = dict.GetString("name"),
+            RoomType = dict.GetString("roomType"),
             CurrentMembers = (int)memberCount,
-            MaxMembers = int.TryParse(dict.GetValueOrDefault("maxMembers", "0"), out var mm) ? mm : 0,
-            CreatedAt = long.TryParse(dict.GetValueOrDefault("createdAt", "0"), out var ca) ? ca : 0,
-            DefaultPermissions = int.TryParse(dict.GetValueOrDefault("defaultPermissions", "0"), out var dp) ? dp : 0,
+            MaxMembers = dict.GetInt("maxMembers"),
+            CreatedAt = dict.GetLong("createdAt"),
+            DefaultPermissions = dict.GetInt("defaultPermissions"),
         };
     }
 
@@ -180,7 +188,7 @@ public class ChatRoomDataService : IChatRoomDataService
     {
         var db = _redis.GetDatabase();
         var value = await db.HashGetAsync($"{RoomKeyPrefix}{roomId}", "defaultPermissions");
-        return int.TryParse(value, out var dp) ? dp : 0;
+        return value.ToInt();
     }
 
     public async Task DeleteAsync(string roomId)

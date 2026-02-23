@@ -263,6 +263,18 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task DisconnectAsync()
+        {
+            _monitorCts?.Cancel();
+            _monitorCts?.Dispose();
+            _monitorCts = null;
+            if (_hub != null)
+            {
+                await _hub.DisposeAsync();
+                _hub = null;
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
@@ -273,11 +285,17 @@ namespace Game.Shared.Realtime.Client
                 _monitorCts = null;
                 if (_hub != null)
                 {
-                    try { _hub.DisposeAsync().GetAwaiter().GetResult(); }
-                    catch (Exception ex) { Debug.LogWarning($"[LobbyClient] Dispose error: {ex.Message}"); }
+                    var hub = _hub;
                     _hub = null;
+                    _ = DisposeHubSafelyAsync(hub);
                 }
             }
+        }
+
+        private static async Task DisposeHubSafelyAsync(ILobbyHub hub)
+        {
+            try { await hub.DisposeAsync(); }
+            catch (Exception ex) { Debug.LogWarning($"[LobbyClient] Background dispose error: {ex.Message}"); }
         }
     }
 }
