@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Server.Shared.Extensions;
+using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using StackExchange.Redis;
 
@@ -78,7 +79,14 @@ public class LobbyDataService : ILobbyDataService
             if (!exists) return false;
 
             // 最大人数チェック
-            var maxPlayers = (int)await db.HashGetAsync($"lobby:{lobbyId}", "maxPlayers");
+            var maxPlayersValue = await db.HashGetAsync($"lobby:{lobbyId}", "maxPlayers");
+            if (!maxPlayersValue.HasValue)
+            {
+                _logger.LogWarning("maxPlayers field missing for lobby {LobbyId}", lobbyId);
+                return false;
+            }
+
+            var maxPlayers = maxPlayersValue.ToInt();
             var currentCount = await db.HashLengthAsync($"lobby:{lobbyId}:players");
             if (currentCount >= maxPlayers) return false;
 
@@ -136,12 +144,12 @@ public class LobbyDataService : ILobbyDataService
         return new LobbyInfo
         {
             LobbyId = lobbyId,
-            LobbyName = dict.GetValueOrDefault("name", ""),
-            HostUserId = dict.GetValueOrDefault("hostUserId", ""),
-            GameMode = dict.GetValueOrDefault("gameMode", ""),
+            LobbyName = dict.GetString("name"),
+            HostUserId = dict.GetString("hostUserId"),
+            GameMode = dict.GetString("gameMode"),
             CurrentPlayers = checked((int)playerCount),
-            MaxPlayers = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var mp) ? mp : 4,
-            IsPublic = dict.GetValueOrDefault("isPublic", "0") == "1",
+            MaxPlayers = dict.GetInt("maxPlayers", 4),
+            IsPublic = dict.GetBool("isPublic"),
         };
     }
 
@@ -200,19 +208,19 @@ public class LobbyDataService : ILobbyDataService
 
             var dict = hash.ToDictionary(h => h.Name.ToString(), h => h.Value);
             var playerCount = checked((int)await countTasks[i]);
-            var mp = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var v) ? v : 4;
+            var mp = dict.GetInt("maxPlayers", 4);
 
             if (playerCount < mp)
             {
                 results.Add(new LobbyInfo
                 {
                     LobbyId = lobbyIds[i].ToString(),
-                    LobbyName = dict.GetValueOrDefault("name", ""),
-                    HostUserId = dict.GetValueOrDefault("hostUserId", ""),
-                    GameMode = dict.GetValueOrDefault("gameMode", ""),
+                    LobbyName = dict.GetString("name"),
+                    HostUserId = dict.GetString("hostUserId"),
+                    GameMode = dict.GetString("gameMode"),
                     CurrentPlayers = playerCount,
                     MaxPlayers = mp,
-                    IsPublic = dict.GetValueOrDefault("isPublic", "0") == "1",
+                    IsPublic = dict.GetBool("isPublic"),
                 });
             }
         }
