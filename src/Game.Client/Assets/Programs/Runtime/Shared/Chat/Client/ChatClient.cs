@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
@@ -18,6 +19,7 @@ namespace Game.Shared.Chat.Client
     public class ChatClient : IChatClient
     {
         private readonly IApiClient _apiClient;
+        private readonly Dictionary<string, string> _joinedRooms = new();
         private string _hubUrl;
         private Func<Task<string>> _accessTokenProvider;
         private HubConnection _hubConnection;
@@ -142,6 +144,7 @@ namespace Game.Shared.Chat.Client
                 .Build();
 
             RegisterCallbacks();
+            RegisterReconnectHandler();
 
             await _hubConnection.StartAsync();
             Debug.Log("[ChatClient] Connected to SignalR chat hub");
@@ -151,6 +154,7 @@ namespace Game.Shared.Chat.Client
         {
             EnsureConnected();
             await _hubConnection.InvokeAsync("JoinAsync", roomId, playerName);
+            _joinedRooms[roomId] = playerName;
             Debug.Log($"[ChatClient] Joined chat room: {roomId}");
         }
 
@@ -158,6 +162,7 @@ namespace Game.Shared.Chat.Client
         {
             EnsureConnected();
             await _hubConnection.InvokeAsync("LeaveAsync", roomId);
+            _joinedRooms.Remove(roomId);
             Debug.Log($"[ChatClient] Left chat room: {roomId}");
         }
 
@@ -174,15 +179,40 @@ namespace Game.Shared.Chat.Client
                 "GetRecentMessagesAsync", roomId, count);
         }
 
+        public async Task DisconnectAsync()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                _joinedRooms.Clear();
+                if (_hubConnection != null)
+                {
+                    try
+                    {
+                        await _hubConnection.StopAsync();
+                        await _hubConnection.DisposeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ChatClient] Disconnect error: {ex.Message}");
+                    }
+                    _hubConnection = null;
+                }
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
             {
                 _disposed = true;
+                _joinedRooms.Clear();
                 if (_hubConnection != null)
                 {
-                    _hubConnection.StopAsync().GetAwaiter().GetResult();
-                    _hubConnection.DisposeAsync().GetAwaiter().GetResult();
+                    try { _hubConnection.StopAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[ChatClient] Dispose Stop error: {ex.Message}"); }
+                    try { _hubConnection.DisposeAsync().GetAwaiter().GetResult(); }
+                    catch (Exception ex) { Debug.LogWarning($"[ChatClient] Dispose error: {ex.Message}"); }
                     _hubConnection = null;
                 }
             }
@@ -220,6 +250,26 @@ namespace Game.Shared.Chat.Client
                     Debug.Log($"[ChatClient] Permissions changed in {roomId}: {permissions}");
                     OnPermissionsChanged?.Invoke(roomId, permissions);
                 });
+        }
+
+        private void RegisterReconnectHandler()
+        {
+            _hubConnection.Reconnected += async _ =>
+            {
+                Debug.Log($"[ChatClient] Reconnected to SignalR hub, re-joining {_joinedRooms.Count} rooms");
+                foreach (var (roomId, playerName) in _joinedRooms)
+                {
+                    try
+                    {
+                        await _hubConnection.InvokeAsync("JoinAsync", roomId, playerName);
+                        Debug.Log($"[ChatClient] Re-joined room: {roomId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ChatClient] Failed to re-join room {roomId}: {ex.Message}");
+                    }
+                }
+            };
         }
 
         private void EnsureConnected()

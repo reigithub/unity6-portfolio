@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Game.Library.Shared.Dto;
+using Game.Server.Shared.Extensions;
 using Medallion.Threading;
 using StackExchange.Redis;
 
@@ -51,7 +51,7 @@ public class LobbyDataService : ILobbyDataService
         await db.HashSetAsync(lobbyKey, entries);
 
         // ホストをプレイヤーとして追加
-        var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
+        var playerData = JsonHelper.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
         await db.HashSetAsync($"lobby:{lobbyId}:players", hostUserId, playerData);
 
         // 公開ロビー一覧に追加
@@ -86,7 +86,7 @@ public class LobbyDataService : ILobbyDataService
             var currentLobby = await db.StringGetAsync($"lobby:player:{userId}");
             if (currentLobby.HasValue) return false;
 
-            var playerData = JsonSerializer.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
+            var playerData = JsonHelper.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
             await db.HashSetAsync($"lobby:{lobbyId}:players", userId, playerData);
             await db.StringSetAsync($"lobby:player:{userId}", lobbyId);
 
@@ -139,7 +139,7 @@ public class LobbyDataService : ILobbyDataService
             LobbyName = dict.GetValueOrDefault("name", ""),
             HostUserId = dict.GetValueOrDefault("hostUserId", ""),
             GameMode = dict.GetValueOrDefault("gameMode", ""),
-            CurrentPlayers = (int)playerCount,
+            CurrentPlayers = checked((int)playerCount),
             MaxPlayers = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var mp) ? mp : 4,
             IsPublic = dict.GetValueOrDefault("isPublic", "0") == "1",
         };
@@ -161,7 +161,7 @@ public class LobbyDataService : ILobbyDataService
         for (var i = 0; i < hash.Length; i++)
         {
             var userId = hash[i].Name.ToString();
-            var data = JsonSerializer.Deserialize<PlayerData>(hash[i].Value.ToString());
+            var data = JsonHelper.TryDeserialize<PlayerData>(hash[i].Value.ToString(), _logger, "player data");
             players[i] = new LobbyPlayerInfo
             {
                 UserId = userId,
@@ -199,7 +199,7 @@ public class LobbyDataService : ILobbyDataService
             if (hash.Length == 0) continue;
 
             var dict = hash.ToDictionary(h => h.Name.ToString(), h => h.Value);
-            var playerCount = (int)await countTasks[i];
+            var playerCount = checked((int)await countTasks[i]);
             var mp = int.TryParse(dict.GetValueOrDefault("maxPlayers", "4"), out var v) ? v : 4;
 
             if (playerCount < mp)
@@ -228,11 +228,11 @@ public class LobbyDataService : ILobbyDataService
             var raw = await db.HashGetAsync($"lobby:{lobbyId}:players", userId);
             if (!raw.HasValue) return false;
 
-            var data = JsonSerializer.Deserialize<PlayerData>(raw.ToString());
+            var data = JsonHelper.TryDeserialize<PlayerData>(raw.ToString(), _logger, "player data");
             if (data == null) return false;
 
             data.isReady = isReady;
-            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonSerializer.Serialize(data));
+            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonHelper.Serialize(data));
             return true;
         }
     }
@@ -247,18 +247,18 @@ public class LobbyDataService : ILobbyDataService
             var raw = await db.HashGetAsync($"lobby:{lobbyId}:players", userId);
             if (!raw.HasValue) return (false, false);
 
-            var data = JsonSerializer.Deserialize<PlayerData>(raw.ToString());
+            var data = JsonHelper.TryDeserialize<PlayerData>(raw.ToString(), _logger, "player data");
             if (data == null) return (false, false);
 
             data.isReady = isReady;
-            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonSerializer.Serialize(data));
+            await db.HashSetAsync($"lobby:{lobbyId}:players", userId, JsonHelper.Serialize(data));
 
             // AreAllReady チェック（同じロック内で実行 → アトミック）
             var hash = await db.HashGetAllAsync($"lobby:{lobbyId}:players");
             var allReady = hash.Length > 0;
             foreach (var entry in hash)
             {
-                var playerData = JsonSerializer.Deserialize<PlayerData>(entry.Value.ToString());
+                var playerData = JsonHelper.TryDeserialize<PlayerData>(entry.Value.ToString(), _logger, "player data");
                 if (playerData is not { isReady: true })
                 {
                     allReady = false;
@@ -277,7 +277,7 @@ public class LobbyDataService : ILobbyDataService
 
         foreach (var entry in hash)
         {
-            var data = JsonSerializer.Deserialize<PlayerData>(entry.Value.ToString());
+            var data = JsonHelper.TryDeserialize<PlayerData>(entry.Value.ToString(), _logger, "player data");
             if (data is not { isReady: true }) return false;
         }
 

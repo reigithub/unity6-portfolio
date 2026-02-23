@@ -205,7 +205,7 @@ namespace Game.MVP.Survivor
             _queueProcessingSubscription = null;
 
             // チャットクライアント切断
-            _chatClient?.Dispose();
+            if (_chatClient != null) { await _chatClient.DisconnectAsync(); }
 
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();

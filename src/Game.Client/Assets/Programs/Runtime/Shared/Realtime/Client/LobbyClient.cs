@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
@@ -18,6 +19,7 @@ namespace Game.Shared.Realtime.Client
         private readonly AuthClientFilter _authFilter;
         private readonly IClientFilter[] _filters;
         private ILobbyHub _hub;
+        private CancellationTokenSource _monitorCts;
         private string _currentLobbyId;
         private bool _disposed;
 
@@ -94,8 +96,9 @@ namespace Game.Shared.Realtime.Client
                 _currentLobbyId = lobbyId;
                 Debug.Log($"[LobbyClient] Connected to lobby hub: {lobbyId}");
 
-                // 切断監視（fire-and-forget）
-                _ = MonitorDisconnectionAsync();
+                // 切断監視
+                _monitorCts = new CancellationTokenSource();
+                _ = MonitorDisconnectionAsync(_monitorCts.Token);
             }
             catch (RpcException ex)
             {
@@ -108,6 +111,10 @@ namespace Game.Shared.Realtime.Client
         {
             try
             {
+                _monitorCts?.Cancel();
+                _monitorCts?.Dispose();
+                _monitorCts = null;
+
                 if (_hub != null)
                 {
                     await _hub.LeaveAsync();
@@ -234,12 +241,13 @@ namespace Game.Shared.Realtime.Client
             OnGameStarting?.Invoke(matchId, serverAddress, serverPort);
         }
 
-        private async Task MonitorDisconnectionAsync()
+        private async Task MonitorDisconnectionAsync(CancellationToken cancellationToken)
         {
             try
             {
                 if (_hub == null) return;
                 var reason = await _hub.WaitForDisconnectAsync();
+                if (cancellationToken.IsCancellationRequested) return;
                 if (reason.Type != DisconnectionType.CompletedNormally)
                 {
                     Debug.LogWarning($"[LobbyClient] Unexpected disconnect: {reason.Type}");
@@ -248,7 +256,10 @@ namespace Game.Shared.Realtime.Client
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[LobbyClient] Disconnect monitor error: {ex.Message}");
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Debug.LogWarning($"[LobbyClient] Disconnect monitor error: {ex.Message}");
+                }
             }
         }
 
@@ -257,6 +268,9 @@ namespace Game.Shared.Realtime.Client
             if (!_disposed)
             {
                 _disposed = true;
+                _monitorCts?.Cancel();
+                _monitorCts?.Dispose();
+                _monitorCts = null;
                 if (_hub != null)
                 {
                     try { _hub.DisposeAsync().GetAwaiter().GetResult(); }

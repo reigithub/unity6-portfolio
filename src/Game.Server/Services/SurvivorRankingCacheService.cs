@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Game.Library.Shared.Dto;
 using Game.Server.Configuration;
 using Game.Server.Services.Interfaces;
+using Game.Server.Shared.Extensions;
 using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using Microsoft.Extensions.Options;
@@ -57,7 +57,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
                 return null;
             }
 
-            var entries = JsonSerializer.Deserialize<List<RankingEntryDto>>(cachedData!);
+            var entries = JsonHelper.TryDeserialize<List<RankingEntryDto>>(cachedData!, _logger, $"ranking cache stageId={stageId}");
             if (entries == null || entries.Count == 0)
             {
                 return null;
@@ -110,7 +110,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
             tasks.Add(batch.KeyExpireAsync(rankingKey, ttl));
 
             // ランキングデータをJSON形式で保存
-            var json = JsonSerializer.Serialize(entries);
+            var json = JsonHelper.Serialize(entries);
             tasks.Add(batch.StringSetAsync(dataKey, json, ttl));
 
             batch.Execute();

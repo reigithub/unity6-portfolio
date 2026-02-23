@@ -60,6 +60,11 @@ namespace Game.Shared.Chat.Client
         Task ConnectAsync();
 
         /// <summary>
+        /// SignalR 接続を切断し、リソースを解放する（非同期）
+        /// </summary>
+        Task DisconnectAsync();
+
+        /// <summary>
         /// チャットルームに参加
         /// </summary>
         Task JoinAsync(string roomId, string playerName);

@@ -90,7 +90,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMasterDataService, MasterDataService>();
 
         // Resend client
-        services.AddHttpClient<Resend.ResendClient>();
+        services.AddHttpClient<Resend.ResendClient>()
+            .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
         services.Configure<Resend.ResendClientOptions>(o =>
         {
             o.ApiToken = configuration.GetSection("Resend")["ApiKey"] ?? string.Empty;

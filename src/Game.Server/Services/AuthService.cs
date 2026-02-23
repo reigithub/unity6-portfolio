@@ -361,12 +361,13 @@ public class AuthService : IAuthService
         }
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(id);
-        string token = GenerateJwtToken(updatedUser!);
+        var updatedUser = await _authRepository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"User {id} not found after update");
+        string token = GenerateJwtToken(updatedUser);
 
         return new AccountLinkResponse
         {
-            UserId = updatedUser!.UserId,
+            UserId = updatedUser.UserId,
             UserName = updatedUser.UserName,
             Token = token,
             AuthType = updatedUser.AuthType,
@@ -397,12 +398,13 @@ public class AuthService : IAuthService
         await _authRepository.UnlinkEmailAsync(id, deviceFingerprint);
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(id);
-        string token = GenerateJwtToken(updatedUser!);
+        var updatedUser = await _authRepository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"User {id} not found after update");
+        string token = GenerateJwtToken(updatedUser);
 
         return new AccountLinkResponse
         {
-            UserId = updatedUser!.UserId,
+            UserId = updatedUser.UserId,
             UserName = updatedUser.UserName,
             Token = token,
             AuthType = updatedUser.AuthType,

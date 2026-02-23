@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Net.Http;
 using Grpc.Net.Client;
 using MagicOnion.Client;
@@ -20,7 +21,14 @@ namespace Game.Shared.Realtime
             GrpcChannelProviderHost.Initialize(new DefaultGrpcChannelProvider(
                 () => new GrpcChannelOptions
                 {
-                    HttpHandler = new YetAnotherHttpHandler { Http2Only = true },
+                    HttpHandler = new YetAnotherHttpHandler
+                    {
+                        Http2Only = true,
+                        ConnectTimeout = TimeSpan.FromSeconds(10),
+                        Http2KeepAliveInterval = TimeSpan.FromSeconds(30),
+                        Http2KeepAliveTimeout = TimeSpan.FromSeconds(10),
+                        Http2KeepAliveWhileIdle = true,
+                    },
                     DisposeHttpClient = true,
                 }));
 

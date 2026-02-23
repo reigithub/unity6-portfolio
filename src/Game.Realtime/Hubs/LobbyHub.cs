@@ -127,15 +127,21 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     private async ValueTask StartGameAsync()
     {
-        var matchId = Guid.NewGuid().ToString("N");
         var players = await _lobbyDataService.GetPlayersAsync(_lobbyId);
+        if (players.Length == 0 || _currentGroup == null)
+        {
+            _logger.LogWarning("StartGameAsync aborted: lobby {LobbyId} has no players or group is null", _lobbyId);
+            return;
+        }
+
+        var matchId = Guid.NewGuid().ToString("N");
 
         foreach (var player in players)
         {
             await _tokenService.IssueTokenAsync(player.UserId, matchId);
         }
 
-        _currentGroup!.All.OnGameStarting(matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort);
+        _currentGroup.All.OnGameStarting(matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort);
 
         _logger.LogInformation(
             "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",

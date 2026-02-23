@@ -54,7 +54,7 @@ public class MatchmakingQueueService : IMatchmakingQueueService
         async () =>
         {
             var db = _redis.GetDatabase();
-            return (int)await db.SortedSetLengthAsync($"{QueueKeyPrefix}{gameMode}");
+            return checked((int)await db.SortedSetLengthAsync($"{QueueKeyPrefix}{gameMode}"));
         },
         fallback: 0,
         _logger,
