@@ -26,6 +26,11 @@ namespace Game.Shared.Realtime.Client
         Task CancelMatchmakingAsync();
 
         /// <summary>
+        /// Hub 接続を切断しリソースを解放する（非同期）
+        /// </summary>
+        Task DisconnectAsync();
+
+        /// <summary>
         /// キュー人数取得（Unary のみ）
         /// </summary>
         Task<int> GetQueueCountAsync(string gameMode);

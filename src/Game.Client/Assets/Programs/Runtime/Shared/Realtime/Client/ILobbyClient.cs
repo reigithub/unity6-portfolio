@@ -35,6 +35,11 @@ namespace Game.Shared.Realtime.Client
         Task LeaveLobbyAsync();
 
         /// <summary>
+        /// Hub 接続を切断しリソースを解放する（非同期）
+        /// </summary>
+        Task DisconnectAsync();
+
+        /// <summary>
         /// ロビー検索（Unary のみ）
         /// </summary>
         Task<LobbyInfo[]> SearchLobbiesAsync(string gameMode, int maxResults);

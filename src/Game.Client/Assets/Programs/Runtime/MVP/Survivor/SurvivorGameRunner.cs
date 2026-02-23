@@ -9,6 +9,7 @@ using Game.MVP.Survivor.Scenes;
 using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Chat.Client;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Queue;
@@ -41,6 +42,8 @@ namespace Game.MVP.Survivor
         private readonly IRequestQueue _requestQueue;
         private readonly INetworkService _networkService;
         private readonly IChatClient _chatClient;
+        private readonly IMatchmakingClient _matchmakingClient;
+        private readonly ILobbyClient _lobbyClient;
 
         private GameObject _gameRootInstance;
         private SurvivorGameRootController _gameRootController;
@@ -61,7 +64,9 @@ namespace Game.MVP.Survivor
             IAuthApiService authApiService,
             IRequestQueue requestQueue,
             INetworkService networkService,
-            IChatClient chatClient)
+            IChatClient chatClient,
+            IMatchmakingClient matchmakingClient,
+            ILobbyClient lobbyClient)
         {
             _container = container;
             _sceneService = sceneService;
@@ -78,6 +83,8 @@ namespace Game.MVP.Survivor
             _requestQueue = requestQueue;
             _networkService = networkService;
             _chatClient = chatClient;
+            _matchmakingClient = matchmakingClient;
+            _lobbyClient = lobbyClient;
         }
 
         public async UniTask StartupAsync()
@@ -204,8 +211,10 @@ namespace Game.MVP.Survivor
             _queueProcessingSubscription?.Dispose();
             _queueProcessingSubscription = null;
 
-            // チャットクライアント切断
+            // クライアント切断
             if (_chatClient != null) { await _chatClient.DisconnectAsync(); }
+            if (_matchmakingClient != null) { await _matchmakingClient.DisconnectAsync(); }
+            if (_lobbyClient != null) { await _lobbyClient.DisconnectAsync(); }
 
             // セーブデータ保存（変更がある場合のみ）
             await _saveService.SaveIfDirtyAsync();
