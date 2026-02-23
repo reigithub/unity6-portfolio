@@ -1,0 +1,322 @@
+/* ===========================================
+   Survivor Lobby Room Scene Styles
+   =========================================== */
+
+/* ===========================================
+   Root & Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 40px;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header-title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    margin-left: 24px;
+}
+
+.header__spacer {
+    flex-grow: 1;
+}
+
+.header-button {
+    height: 48px;
+    padding-left: 24px;
+    padding-right: 24px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.header-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: rgb(255, 255, 255);
+    scale: 1.05;
+}
+
+.header-button:active {
+    scale: 0.95;
+}
+
+.player-count-label {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+/* ===========================================
+   Content Layout
+   =========================================== */
+
+.content {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+/* ===========================================
+   Player List Panel
+   =========================================== */
+
+.player-list-panel {
+    width: 40%;
+    min-width: 320px;
+    margin-right: 24px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    padding: 24px;
+}
+
+.panel-title {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+}
+
+.player-list {
+    flex-grow: 1;
+}
+
+/* ===========================================
+   Player Item
+   =========================================== */
+
+.player-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 20px;
+    margin-bottom: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.player-item--ready {
+    background-color: rgba(80, 200, 120, 0.15);
+    border-color: rgba(80, 200, 120, 0.4);
+}
+
+.player-item__name {
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    flex-grow: 1;
+}
+
+.player-item__host-badge {
+    font-size: 12px;
+    color: rgba(255, 200, 100, 0.9);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    background-color: rgba(255, 200, 100, 0.15);
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(255, 200, 100, 0.3);
+    margin-right: 12px;
+}
+
+.player-item__status {
+    font-size: 14px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 6px 14px;
+    border-radius: 12px;
+    border-width: 1px;
+}
+
+.player-item__status--ready {
+    color: rgb(120, 255, 150);
+    background-color: rgba(80, 200, 120, 0.2);
+    border-color: rgba(80, 200, 120, 0.4);
+}
+
+.player-item__status--not-ready {
+    color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ===========================================
+   Chat Panel
+   =========================================== */
+
+.chat-panel {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    padding: 24px;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    margin-bottom: 12px;
+}
+
+.chat-message {
+    margin-bottom: 6px;
+    padding: 6px 12px;
+}
+
+.chat-message__sender {
+    font-size: 13px;
+    color: rgba(100, 180, 255, 0.9);
+    -unity-font-style: bold;
+    margin-bottom: 2px;
+}
+
+.chat-message__text {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: normal;
+}
+
+.chat-message--system {
+    padding: 8px 12px;
+    background-color: rgba(255, 200, 100, 0.1);
+    border-radius: 8px;
+}
+
+.chat-message--system .chat-message__text {
+    color: rgba(255, 200, 100, 0.7);
+    font-size: 13px;
+    -unity-font-style: italic;
+}
+
+.chat-input-area {
+    flex-direction: row;
+    align-items: center;
+}
+
+.chat-input {
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.chat-input > .unity-text-field__input {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgb(255, 255, 255);
+    font-size: 15px;
+    padding: 10px 14px;
+}
+
+.chat-input > .unity-text-field__input:focus {
+    border-color: rgba(100, 180, 255, 0.6);
+}
+
+.send-button {
+    height: 44px;
+    padding-left: 20px;
+    padding-right: 20px;
+    font-size: 16px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(60, 140, 255, 0.7);
+    border-radius: 22px;
+    border-width: 2px;
+    border-color: rgba(100, 180, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.send-button:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+    scale: 1.05;
+}
+
+.send-button:active {
+    scale: 0.95;
+}
+
+/* ===========================================
+   Footer
+   =========================================== */
+
+.footer {
+    margin-top: 24px;
+    align-items: center;
+}
+
+.ready-button {
+    width: 300px;
+    height: 72px;
+    font-size: 28px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(80, 180, 80, 0.7);
+    border-radius: 36px;
+    border-width: 3px;
+    border-color: rgba(120, 220, 120, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    transition-duration: 0.12s;
+}
+
+.ready-button:hover {
+    background-color: rgba(100, 200, 100, 0.85);
+    border-color: rgba(140, 240, 140, 0.8);
+    scale: 1.05;
+}
+
+.ready-button:active {
+    scale: 0.95;
+}
+
+.ready-button--active {
+    background-color: rgba(60, 140, 255, 0.8);
+    border-color: rgb(100, 180, 255);
+}
+
+.ready-button--active:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+}
+
+/* ===========================================
+   Notification
+   =========================================== */
+
+.notification-label {
+    display: none;
+    font-size: 16px;
+    color: rgba(255, 200, 100, 0.9);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 12px 24px;
+    background-color: rgba(255, 200, 100, 0.1);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 200, 100, 0.3);
+    margin-top: 12px;
+}

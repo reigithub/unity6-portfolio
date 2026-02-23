@@ -1,0 +1,370 @@
+/* ===========================================
+   Survivor Lobby Scene Styles
+   =========================================== */
+
+/* ===========================================
+   Root & Layout
+   =========================================== */
+
+.root {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 40px;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header-title {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    margin-left: 24px;
+}
+
+.header__spacer {
+    flex-grow: 1;
+}
+
+.header-button {
+    height: 48px;
+    padding-left: 24px;
+    padding-right: 24px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.header-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: rgb(255, 255, 255);
+    scale: 1.05;
+}
+
+.header-button:active {
+    scale: 0.95;
+}
+
+/* ===========================================
+   Content Layout
+   =========================================== */
+
+.content {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+/* ===========================================
+   Lobby List Panel
+   =========================================== */
+
+.lobby-list-panel {
+    flex-grow: 1;
+    margin-right: 24px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    padding: 24px;
+}
+
+.panel-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.panel-title {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.8);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+}
+
+.action-button {
+    height: 40px;
+    padding-left: 20px;
+    padding-right: 20px;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(60, 140, 255, 0.5);
+    border-radius: 20px;
+    border-width: 2px;
+    border-color: rgba(100, 180, 255, 0.5);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.action-button:hover {
+    background-color: rgba(80, 160, 255, 0.7);
+    border-color: rgba(130, 200, 255, 0.8);
+    scale: 1.03;
+}
+
+.action-button:active {
+    scale: 0.97;
+}
+
+.lobby-list {
+    flex-grow: 1;
+}
+
+.empty-label {
+    display: none;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.4);
+    -unity-text-align: middle-center;
+    padding: 40px;
+}
+
+/* ===========================================
+   Lobby Item
+   =========================================== */
+
+.lobby-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 20px;
+    margin-bottom: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    transition-duration: 0.12s;
+}
+
+.lobby-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.lobby-item__info {
+    flex-grow: 1;
+}
+
+.lobby-item__name {
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    margin-bottom: 4px;
+}
+
+.lobby-item__details {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 1px;
+}
+
+.lobby-item__join-button {
+    height: 40px;
+    padding-left: 24px;
+    padding-right: 24px;
+    font-size: 16px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(60, 140, 255, 0.7);
+    border-radius: 20px;
+    border-width: 2px;
+    border-color: rgba(100, 180, 255, 0.6);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    transition-duration: 0.12s;
+}
+
+.lobby-item__join-button:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+    scale: 1.05;
+}
+
+.lobby-item__join-button:active {
+    scale: 0.95;
+}
+
+/* ===========================================
+   Action Panel
+   =========================================== */
+
+.action-panel {
+    width: 380px;
+    min-width: 340px;
+}
+
+.action-section {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+}
+
+/* ===========================================
+   Form Fields
+   =========================================== */
+
+.text-field {
+    margin-bottom: 12px;
+}
+
+.text-field > Label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    min-width: 100px;
+}
+
+.text-field > .unity-text-field__input {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgb(255, 255, 255);
+    font-size: 16px;
+    padding: 8px 12px;
+}
+
+.text-field > .unity-text-field__input:focus {
+    border-color: rgba(100, 180, 255, 0.6);
+}
+
+.slider-field {
+    margin-bottom: 16px;
+}
+
+.slider-field > Label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    min-width: 100px;
+}
+
+/* ===========================================
+   Menu Buttons
+   =========================================== */
+
+.menu-button {
+    height: 56px;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    transition-duration: 0.12s;
+}
+
+.menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    scale: 1.03;
+}
+
+.menu-button:active {
+    scale: 0.97;
+}
+
+.menu-button--primary {
+    background-color: rgba(60, 140, 255, 0.8);
+    border-color: rgb(100, 180, 255);
+}
+
+.menu-button--primary:hover {
+    background-color: rgba(80, 160, 255, 0.9);
+    border-color: rgb(130, 200, 255);
+    scale: 1.05;
+}
+
+.menu-button--secondary {
+    background-color: rgba(80, 180, 80, 0.7);
+    border-color: rgba(120, 220, 120, 0.6);
+}
+
+.menu-button--secondary:hover {
+    background-color: rgba(100, 200, 100, 0.85);
+    border-color: rgba(140, 240, 140, 0.8);
+    scale: 1.05;
+}
+
+.menu-button--danger {
+    background-color: rgba(180, 60, 60, 0.6);
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.menu-button--danger:hover {
+    background-color: rgba(200, 70, 70, 0.8);
+    border-color: rgba(240, 100, 100, 0.8);
+}
+
+/* ===========================================
+   Matchmaking Status
+   =========================================== */
+
+.matchmaking-status {
+    margin-top: 12px;
+    padding: 16px;
+    background-color: rgba(60, 140, 255, 0.15);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(100, 180, 255, 0.3);
+}
+
+.matchmaking-status--hidden {
+    display: none;
+}
+
+.matchmaking-label {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.queue-count-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 12px;
+}
+
+/* ===========================================
+   Error Label
+   =========================================== */
+
+.error-label {
+    display: none;
+    font-size: 20px;
+    color: rgb(255, 120, 100);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    padding: 16px 32px;
+    background-color: rgba(200, 60, 60, 0.25);
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(255, 100, 80, 0.4);
+    align-self: center;
+    margin-top: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
