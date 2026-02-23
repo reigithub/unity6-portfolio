@@ -32,6 +32,18 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => OnStartGame().Forget())
                 .AddTo(Disposables);
 
+            SceneComponent.OnSinglePlayerClicked
+                .Subscribe(_ => OnSinglePlayer().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnMultiplayerClicked
+                .Subscribe(_ => OnMultiplayer().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnPlayModeBackClicked
+                .Subscribe(_ => OnPlayModeBack())
+                .AddTo(Disposables);
+
             SceneComponent.OnReturnClicked
                 .Subscribe(_ => OnReturn().Forget())
                 .AddTo(Disposables);
@@ -65,9 +77,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnStartGame()
         {
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
+            SceneComponent.ShowPlayModeMenu();
+        }
+
+        private async UniTaskVoid OnSinglePlayer()
+        {
             SceneComponent.SetInteractables(false);
             SceneComponent.ClearError();
-            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
 
             // セッション有効性を確認し、必要に応じて再認証
             if (!await EnsureValidSessionAsync())
@@ -77,6 +94,27 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+        }
+
+        private async UniTaskVoid OnMultiplayer()
+        {
+            SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
+
+            // セッション有効性を確認し、必要に応じて再認証
+            if (!await EnsureValidSessionAsync())
+            {
+                SceneComponent.SetInteractables(true);
+                return;
+            }
+
+            await _sceneService.TransitionAsync<SurvivorLobbyScene>();
+        }
+
+        private void OnPlayModeBack()
+        {
+            SceneComponent.ClearError();
+            SceneComponent.ShowMainMenu();
         }
 
         /// <summary>

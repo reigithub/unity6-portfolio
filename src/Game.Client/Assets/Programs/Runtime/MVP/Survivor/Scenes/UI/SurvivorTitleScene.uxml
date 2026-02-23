@@ -28,9 +28,18 @@
 
             <!-- Right: Menu Panel -->
             <ui:VisualElement name="menu-panel" class="menu-panel">
-                <ui:Button text="START GAME" name="start-button" class="menu-button menu-button--primary" />
-                <ui:Button text="RETURN TO TITLE" name="return-button" class="menu-button" />
-                <ui:Button text="QUIT" name="quit-button" class="menu-button menu-button--danger" />
+                <!-- Main Menu -->
+                <ui:VisualElement name="main-menu">
+                    <ui:Button text="START GAME" name="start-button" class="menu-button menu-button--primary" />
+                    <ui:Button text="RETURN TO TITLE" name="return-button" class="menu-button" />
+                    <ui:Button text="QUIT" name="quit-button" class="menu-button menu-button--danger" />
+                </ui:VisualElement>
+                <!-- Play Mode Selection -->
+                <ui:VisualElement name="play-mode-menu" class="menu--hidden">
+                    <ui:Button text="SINGLE PLAYER" name="single-player-button" class="menu-button menu-button--primary" />
+                    <ui:Button text="MULTI PLAYER" name="multiplayer-button" class="menu-button menu-button--secondary" />
+                    <ui:Button text="BACK" name="play-mode-back-button" class="menu-button" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 
