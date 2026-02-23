@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Game.Library.Shared.Dto;
+using Game.Server.Shared.Extensions;
 using Medallion.Threading;
 using StackExchange.Redis;
 
@@ -75,7 +75,7 @@ public class ChatRoomDataService : IChatRoomDataService
                     return false;
             }
 
-            var memberData = JsonSerializer.Serialize(new MemberData
+            var memberData = JsonHelper.Serialize(new MemberData
             {
                 playerName = playerName,
                 joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
@@ -135,7 +135,7 @@ public class ChatRoomDataService : IChatRoomDataService
         for (var i = 0; i < hash.Length; i++)
         {
             var userId = hash[i].Name.ToString();
-            var data = JsonSerializer.Deserialize<MemberData>(hash[i].Value.ToString());
+            var data = JsonHelper.TryDeserialize<MemberData>(hash[i].Value.ToString(), _logger, "chat room member");
             members[i] = new ChatRoomMemberInfo
             {
                 UserId = userId,
@@ -154,7 +154,7 @@ public class ChatRoomDataService : IChatRoomDataService
         var raw = await db.HashGetAsync($"{RoomKeyPrefix}{roomId}{MembersSuffix}", userId);
         if (!raw.HasValue) return 0;
 
-        var data = JsonSerializer.Deserialize<MemberData>(raw.ToString());
+        var data = JsonHelper.TryDeserialize<MemberData>(raw.ToString(), _logger, "member permissions");
         return data?.permissions ?? 0;
     }
 
@@ -167,11 +167,11 @@ public class ChatRoomDataService : IChatRoomDataService
             var raw = await db.HashGetAsync(membersKey, userId);
             if (!raw.HasValue) return false;
 
-            var data = JsonSerializer.Deserialize<MemberData>(raw.ToString());
+            var data = JsonHelper.TryDeserialize<MemberData>(raw.ToString(), _logger, "member permissions");
             if (data == null) return false;
 
             data.permissions = permissions;
-            await db.HashSetAsync(membersKey, userId, JsonSerializer.Serialize(data));
+            await db.HashSetAsync(membersKey, userId, JsonHelper.Serialize(data));
             return true;
         }
     }

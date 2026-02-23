@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Game.Library.Shared.Realtime.Hubs;
+using Game.Server.Shared.Extensions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -116,7 +116,7 @@ public class MatchmakingProcessor : BackgroundService
             ServerPort = _gameServerConfig.ServerPort,
         };
 
-        var json = JsonSerializer.Serialize(matchResult);
+        var json = JsonHelper.Serialize(matchResult);
         var subscriber = _redis.GetSubscriber();
 
         // Per-user チャネルで通知（マッチしたプレイヤーのみ）

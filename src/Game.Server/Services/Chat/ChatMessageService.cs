@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Game.Library.Shared.Dto;
 using Game.Server.Configuration;
+using Game.Server.Shared.Extensions;
 using Game.Server.Shared.Valkey;
 using Medallion.Threading;
 using Microsoft.Extensions.Options;
@@ -41,7 +41,7 @@ public class ChatMessageService : IChatMessageService
             var db = _redis.GetDatabase();
             var key = $"{KeyPrefix}{roomId}";
 
-            var json = JsonSerializer.Serialize(new ChatMessageData
+            var json = JsonHelper.Serialize(new ChatMessageData
             {
                 userId = message.UserId,
                 playerName = message.PlayerName,
@@ -82,7 +82,7 @@ public class ChatMessageService : IChatMessageService
             var messages = new ChatMessage[entries.Length];
             for (var i = 0; i < entries.Length; i++)
             {
-                var data = JsonSerializer.Deserialize<ChatMessageData>(entries[i].ToString());
+                var data = JsonHelper.TryDeserialize<ChatMessageData>(entries[i].ToString(), _logger, $"chat message in room {roomId}");
                 messages[i] = new ChatMessage
                 {
                     UserId = data?.userId ?? "",

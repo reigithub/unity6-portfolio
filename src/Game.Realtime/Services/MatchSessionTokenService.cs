@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using System.Text.Json;
+using Game.Server.Shared.Extensions;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Services;
@@ -35,7 +35,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
         };
 
         var db = _redis.GetDatabase();
-        var serialized = JsonSerializer.Serialize(info);
+        var serialized = JsonHelper.Serialize(info);
         await db.StringSetAsync($"{KeyPrefix}{token}", serialized, tokenExpiry);
 
         _logger.LogInformation(
@@ -58,15 +58,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
             return null;
         }
 
-        try
-        {
-            return JsonSerializer.Deserialize<SessionTokenInfo>(value!);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize session token: {Token}", token[..Math.Min(8, token.Length)]);
-            return null;
-        }
+        return JsonHelper.TryDeserialize<SessionTokenInfo>(value!, _logger, $"session token {token[..Math.Min(8, token.Length)]}");
     }
 
     public async Task RevokeTokenAsync(string token)
