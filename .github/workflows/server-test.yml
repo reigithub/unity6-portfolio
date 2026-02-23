@@ -5,6 +5,7 @@ name: Server Test
 # - 単体テスト（xUnit）
 # - 統合テスト（Testcontainers + PostgreSQL）
 # - コードカバレッジレポート
+# - 脆弱性パッケージ検査
 # ============================================
 
 on:
@@ -32,6 +33,37 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  # ============================================
+  # 脆弱性パッケージ検査
+  # ============================================
+  vulnerability-check:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore packages
+        run: dotnet restore src/Game.Server/Game.Server.csproj
+
+      - name: Check for vulnerable packages
+        run: |
+          OUTPUT=$(dotnet list src/Game.Server/Game.Server.csproj package --vulnerable --include-transitive 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "has the following vulnerable packages"; then
+            echo ""
+            echo "::error::Vulnerable packages detected. Update affected packages or review the vulnerabilities."
+            exit 1
+          fi
+          echo "No vulnerable packages found."
+
   # ============================================
   # 単体テスト（高速・Dockerなし）
   # ============================================
@@ -237,7 +269,7 @@ jobs:
   summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, coverage-report]
+    needs: [unit-tests, integration-tests, coverage-report, vulnerability-check]
     if: always()
 
     steps:
@@ -273,4 +305,13 @@ jobs:
             echo "| Coverage Report | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| Coverage Report | ⚠️ Issues |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Vulnerability Check
+          if [ "${{ needs.vulnerability-check.result }}" == "success" ]; then
+            echo "| Vulnerability Check | ✅ No Issues |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.vulnerability-check.result }}" == "skipped" ]; then
+            echo "| Vulnerability Check | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Vulnerability Check | ❌ Vulnerable Packages Found |" >> $GITHUB_STEP_SUMMARY
           fi

@@ -2,7 +2,7 @@
 # Game.Realtime 本番用 Dockerfile
 
 # ===== Build Stage =====
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.311 AS build
 WORKDIR /src
 
 COPY Directory.Packages.props ./
@@ -20,7 +20,7 @@ RUN dotnet publish src/Game.Realtime/Game.Realtime.csproj \
     -o /app/publish
 
 # ===== Runtime Stage =====
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.13 AS runtime
 
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
