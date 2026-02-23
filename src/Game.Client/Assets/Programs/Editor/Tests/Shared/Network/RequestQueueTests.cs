@@ -329,7 +329,7 @@ namespace Game.Tests.Shared.Network
         #region QueuedRequest Tests
 
         [Test]
-        public void QueuedRequest_IsExpired_WhenPastExpiration()
+        public async Task QueuedRequest_IsExpired_WhenPastExpiration()
         {
             // Arrange
             var request = new QueuedRequest(
@@ -342,7 +342,7 @@ namespace Game.Tests.Shared.Network
                 expiration: TimeSpan.FromMilliseconds(1));
 
             // Act - 少し待つ
-            Task.Delay(10).Wait();
+            await Task.Delay(10);
 
             // Assert
             Assert.That(request.IsExpired, Is.True);
@@ -365,7 +365,7 @@ namespace Game.Tests.Shared.Network
         }
 
         [Test]
-        public void QueuedRequest_CannotRetry_WhenExpired()
+        public async Task QueuedRequest_CannotRetry_WhenExpired()
         {
             // Arrange - 非常に短い有効期限を設定
             var request = new QueuedRequest(
@@ -378,7 +378,7 @@ namespace Game.Tests.Shared.Network
                 expiration: TimeSpan.FromMilliseconds(1));
 
             // Act - 有効期限切れを待つ
-            Task.Delay(10).Wait();
+            await Task.Delay(10);
 
             // Assert
             Assert.That(request.IsExpired, Is.True);
