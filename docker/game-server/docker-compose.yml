@@ -42,6 +42,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Default=Host=db;Database=${POSTGRES_DB:-gameserver};Username=${POSTGRES_USER:-gameuser};Password=${POSTGRES_PASSWORD:?err}
       - ConnectionStrings__Valkey=valkey:6379,abortConnect=false,connectTimeout=5000
+      - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
+      - Jwt__Issuer=Game.Server
+      - Jwt__Audience=Game.Client
     depends_on:
       db:
         condition: service_healthy
@@ -72,7 +75,7 @@ services:
       valkey:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5001/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf --http2-prior-knowledge http://localhost:5001/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
