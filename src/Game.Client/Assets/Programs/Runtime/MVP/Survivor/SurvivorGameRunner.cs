@@ -17,9 +17,6 @@ using R3;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
-#if UNITY_EDITOR
-using Game.Shared.Multiplayer;
-#endif
 
 namespace Game.MVP.Survivor
 {
@@ -92,11 +89,6 @@ namespace Game.MVP.Survivor
 
         public async UniTask StartupAsync()
         {
-#if UNITY_EDITOR
-            // 0. MPPMクローン分離（セーブデータ読み込みより前に実行）
-            InitializeMppmClonePathIfNeeded();
-#endif
-
             // 1. サービス起動
             _audioService.Startup();
             _inputService.Startup();
@@ -213,24 +205,6 @@ namespace Game.MVP.Survivor
             }
         }
 
-
-#if UNITY_EDITOR
-        /// <summary>
-        /// MPPMクローンの場合、セーブデータパスを分離する
-        /// CloneId（MPPMが割り当てるVirtualProjectIdentifier）をサブパスに使用
-        /// セーブデータ・セッションの読み書きより前に呼ぶ必要がある
-        /// </summary>
-        private void InitializeMppmClonePathIfNeeded()
-        {
-            if (!MppmHelper.IsClone)
-            {
-                return;
-            }
-
-            GameEnvironmentHelper.SetInstanceSubPath(MppmHelper.CloneId);
-            Debug.Log($"[SurvivorGameRunner] MPPM clone detected, data path separated (CloneId: {MppmHelper.CloneId})");
-        }
-#endif
 
         public async UniTask ShutdownAsync()
         {

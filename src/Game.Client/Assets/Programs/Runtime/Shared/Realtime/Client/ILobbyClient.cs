@@ -70,6 +70,11 @@ namespace Game.Shared.Realtime.Client
         Task SetReadyAsync(bool isReady);
 
         /// <summary>
+        /// 自分が参加中のロビーを取得（未参加時は null）
+        /// </summary>
+        Task<LobbyInfo> GetMyLobbyAsync();
+
+        /// <summary>
         /// プレイヤー参加イベント
         /// </summary>
         event Action<string, string> OnPlayerJoined;

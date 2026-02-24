@@ -50,6 +50,9 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         _playerName = playerName;
         _lobbyId = lobbyId;
 
+        // 再接続時にレディ状態をリセット
+        await _lobbyDataService.SetReadyAsync(lobbyId, _userId, false);
+
         _currentGroup = await Group.AddAsync(lobbyId);
 
         _logger.LogInformation(

@@ -16,6 +16,9 @@ using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
+#if UNITY_EDITOR
+using Game.Shared.Multiplayer;
+#endif
 
 namespace Game.App.Bootstrap
 {
@@ -68,6 +71,11 @@ namespace Game.App.Bootstrap
         private static async UniTask InitializeAsync()
         {
             Debug.Log("[GameBootstrap] Initializing...");
+
+#if UNITY_EDITOR
+            // MPPMクローンのデータパス分離（PersistentDataPath を使う全処理より前に実行）
+            InitializeMppmClonePathIfNeeded();
+#endif
 
             // カスタムキャッシュパスを設定（Addressables 初期化前に実行）
             SetupCustomAssetCache();
@@ -193,6 +201,21 @@ namespace Game.App.Bootstrap
         {
             Debug.LogError($"[UniTask] Unobserved exception: {ex}");
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// MPPMクローンの場合、セーブデータパスを分離する
+        /// CloneId（MPPMが割り当てるVirtualProjectIdentifier）をサブパスに使用
+        /// PersistentDataPath を参照する全処理より前に呼ぶ必要がある
+        /// </summary>
+        private static void InitializeMppmClonePathIfNeeded()
+        {
+            if (!MppmHelper.IsClone) return;
+
+            GameEnvironmentHelper.SetInstanceSubPath(MppmHelper.CloneId);
+            Debug.Log($"[GameBootstrap] MPPM clone detected, data path separated (CloneId: {MppmHelper.CloneId})");
+        }
+#endif
 
         /// <summary>
         /// ダウンロードしたアセットの保存先をカスタマイズ

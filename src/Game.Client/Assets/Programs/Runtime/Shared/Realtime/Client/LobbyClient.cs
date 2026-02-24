@@ -176,6 +176,19 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task<LobbyInfo> GetMyLobbyAsync()
+        {
+            try
+            {
+                return await CreateService().GetMyLobbyAsync();
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in GetMyLobby: {ex.StatusCode}");
+                return null;
+            }
+        }
+
         public async Task SendMessageAsync(string message)
         {
             try

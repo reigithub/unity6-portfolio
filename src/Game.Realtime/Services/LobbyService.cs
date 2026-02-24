@@ -138,4 +138,27 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
 
         return await _lobbyDataService.GetPlayersAsync(lobbyId);
     }
+
+    public async UnaryResult<LobbyInfo> GetMyLobbyAsync()
+    {
+        var userId = Context.GetUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");
+        }
+
+        var lobbyId = await _lobbyDataService.GetPlayerLobbyAsync(userId);
+        if (string.IsNullOrEmpty(lobbyId))
+        {
+            throw new ReturnStatusException(Grpc.Core.StatusCode.NotFound, "Player is not in any lobby");
+        }
+
+        var lobby = await _lobbyDataService.GetLobbyAsync(lobbyId);
+        if (lobby == null)
+        {
+            throw new ReturnStatusException(Grpc.Core.StatusCode.NotFound, "Lobby not found");
+        }
+
+        return lobby;
+    }
 }

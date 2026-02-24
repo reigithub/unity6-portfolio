@@ -38,5 +38,10 @@ namespace Game.Library.Shared.Realtime.Services
         /// ロビーのプレイヤー一覧を取得
         /// </summary>
         UnaryResult<LobbyPlayerInfo[]> GetLobbyPlayersAsync(string lobbyId);
+
+        /// <summary>
+        /// 自分が参加中のロビーを取得（未参加時は null）
+        /// </summary>
+        UnaryResult<LobbyInfo> GetMyLobbyAsync();
     }
 }
