@@ -24,6 +24,7 @@ namespace Game.Shared.Realtime.Client
         private bool _disposed;
 
         public bool IsConnected => _hub != null && !_disposed;
+        public string CurrentLobbyId => _currentLobbyId;
 
         public event Action<string, string> OnPlayerJoined;
         public event Action<string, string> OnPlayerLeft;

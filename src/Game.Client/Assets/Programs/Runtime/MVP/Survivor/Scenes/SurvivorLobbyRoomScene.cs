@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.MVP.Core.Scenes;
 using Game.Shared.Realtime.Client;
-using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using VContainer;
@@ -14,7 +13,6 @@ namespace Game.MVP.Survivor.Scenes
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ILobbyClient _lobbyClient;
-        [Inject] private readonly IAuthSessionService _authSessionService;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
@@ -77,39 +75,19 @@ namespace Game.MVP.Survivor.Scenes
         {
             try
             {
-                // LobbyClient が接続済みの場合、接続中のロビー情報を取得
-                // まずプレイヤー一覧で lobbyId を取得するために検索
-                var lobbies = await _lobbyClient.SearchLobbiesAsync("survival", 50);
-                LobbyInfo currentLobby = null;
-
-                // 接続済みなので、自分がいるロビーを探す
-                var myUserId = _authSessionService.UserId;
-                foreach (var lobby in lobbies)
+                _currentLobbyId = _lobbyClient.CurrentLobbyId;
+                if (string.IsNullOrEmpty(_currentLobbyId))
                 {
-                    var players = await _lobbyClient.GetLobbyPlayersAsync(lobby.LobbyId);
-                    foreach (var player in players)
-                    {
-                        if (player.UserId == myUserId)
-                        {
-                            currentLobby = lobby;
-                            break;
-                        }
-                    }
-                    if (currentLobby != null) break;
-                }
-
-                if (currentLobby != null)
-                {
-                    _currentLobbyId = currentLobby.LobbyId;
-                    SceneComponent.SetLobbyInfo(currentLobby.LobbyName, currentLobby.MaxPlayers);
-                    var playerList = await _lobbyClient.GetLobbyPlayersAsync(_currentLobbyId);
-                    SceneComponent.InitializePlayers(playerList);
-                }
-                else
-                {
-                    Debug.LogWarning("[SurvivorLobbyRoomScene] Could not find current lobby");
+                    Debug.LogWarning("[SurvivorLobbyRoomScene] No current lobby ID");
                     SceneComponent.SetLobbyInfo("LOBBY ROOM", 4);
+                    return;
                 }
+
+                var lobbyInfo = await _lobbyClient.GetLobbyInfoAsync(_currentLobbyId);
+                SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
+
+                var playerList = await _lobbyClient.GetLobbyPlayersAsync(_currentLobbyId);
+                SceneComponent.InitializePlayers(playerList);
             }
             catch (Exception ex)
             {
