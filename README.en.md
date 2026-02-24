@@ -7,11 +7,19 @@ A game development portfolio project using Unity 6 (Monorepo Structure)
 ```
 Unity6Portfolio/
 ├── src/
-│   ├── Game.Client/        # Unity Client (Unity 6)
-│   ├── Game.Server/        # Game Server (ASP.NET Core 9)
-│   └── Game.Shared/        # Shared Library (.NET + Unity Package)
-└── test/
-    └── Game.Server.Tests/  # Server Tests
+│   ├── Game.Client/          # Unity Client (Unity 6)
+│   ├── Game.Server/          # REST API Server (ASP.NET Core 9)
+│   ├── Game.Realtime/        # Realtime Server (MagicOnion gRPC)
+│   ├── Game.Shared/          # Shared Library (.NET + Unity Package)
+│   ├── Game.Server.Shared/   # Server Shared Library
+│   ├── Game.Client.Linked/   # MasterData Bridge
+│   └── Game.Tools/           # CLI Tools (.NET 9)
+├── test/
+│   ├── Game.Server.Tests/    # Server Tests
+│   └── Game.Realtime.Tests/  # Realtime Server Tests
+├── docker/                   # Docker Configuration
+├── masterdata/               # Protobuf Schemas + TSV Data
+└── docs/                     # Technical Documentation
 ```
 
 ---
@@ -134,16 +142,16 @@ dotnet test
 │                     Unity6Portfolio                          │
 │                       (Monorepo)                             │
 └─────────────────────────────────────────────────────────────┘
-        ↓                    ↓                    ↓
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Game.Client   │  │   Game.Server   │  │   Game.Shared   │
-│  (Unity 6)      │  │ (ASP.NET Core)  │  │ (.NET + Unity)  │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-        ↘                    ↓                    ↙
-                    ┌─────────────────┐
-                    │  Shared DTO/IF  │
-                    │  (Game.Shared)  │
-                    └─────────────────┘
+        ↓              ↓              ↓              ↓
+┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐
+│Game.Client │  │Game.Server │  │Game.Realtime│  │ Game.Shared│
+│ (Unity 6)  │  │ (REST API) │  │(gRPC/Hub)  │  │(.NET+Unity)│
+└────────────┘  └────────────┘  └────────────┘  └────────────┘
+        ↘              ↓              ↓              ↙
+               ┌─────────────────────────────┐
+               │   Shared DTO/IF (Game.Shared) │
+               │  Unary RPC / Hub Interfaces   │
+               └─────────────────────────────┘
 ```
 
 ### Client Architecture
@@ -197,6 +205,10 @@ dotnet test
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
 * **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
 * **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
+* **Lobby System**: Real-time lobby via MagicOnion StreamingHub (create/join/leave/ready/game start), Valkey persistence
+* **Matchmaking System**: Queue-based matchmaking, real-time notifications via Redis Pub/Sub, session token issuance
+* **Real-time Chat**: Room-based messaging via SignalR + MagicOnion
+* **MPPM Support**: Multi-editor multiplayer testing with Multiplayer Play Mode, per-clone data path isolation
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
 * **CI/CD**: Automated testing (Client 773 + Server 56 = 829 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
@@ -223,7 +235,10 @@ dotnet test
 | Game.MVC.ScoreTimeAttack | Time attack game implementation | MVC.Core, Game.Client.MasterData |
 | Game.MVP.Core | MVP pattern foundation, VContainer | Shared |
 | Game.MVP.Survivor | Survivor game implementation | MVP.Core, VContainer |
-| **Game.Server** | ASP.NET Core API Server | Shared |
+| Game.Client.Realtime | Realtime client (MagicOnion) | Shared |
+| **Game.Server** | REST API Server (ASP.NET Core 9) | Shared, Server.Shared |
+| **Game.Realtime** | Realtime Server (MagicOnion gRPC) | Shared, Server.Shared |
+| **Game.Server.Shared** | Server shared infrastructure (JWT, Valkey, Health) | - |
 
 </details>
 
@@ -430,6 +445,44 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 </details>
 
+<details><summary>Multiplayer System</summary>
+
+Real-time multiplayer infrastructure using MagicOnion (gRPC StreamingHub) + Valkey:
+
+**Communication Protocols:**
+```
+┌─────────────┐    REST (HTTP/1.1)     ┌─────────────┐
+│ Game.Client │◄──────────────────────►│ Game.Server │
+│   (Unity)   │    gRPC (HTTP/2)       │ (REST API)  │
+│             │◄──────────────────────►├─────────────┤
+│             │   StreamingHub         │Game.Realtime│
+│             │◄══════════════════════►│(gRPC/Hub)   │
+└─────────────┘                        └──────┬──────┘
+                                              │
+                                       ┌──────┴──────┐
+                                       │   Valkey    │
+                                       │  (Redis)    │
+                                       └─────────────┘
+```
+
+**Lobby System:**
+- Unary RPC: Lobby creation, join, leave, search, info retrieval
+- StreamingHub: Real-time events (player join/leave, chat, ready state, game start)
+- Valkey persistence: Lobby info, player list, ready state via Hash/String
+- Auto-rejoin: Automatic lobby reconnection after game completion
+
+**Matchmaking System:**
+- Real-time queue status notifications via Redis Pub/Sub
+- Background matching processor
+- Session token issuance (match authentication)
+
+**MPPM (Multiplayer Play Mode) Support:**
+- Launch multiple clone instances within the editor for multiplayer testing
+- Per-clone data path isolation (save data, session, audio settings)
+- Auto-detection and path switching at GameBootstrap startup
+
+</details>
+
 <details><summary>Authentication & Account Management System</summary>
 
 Server-integrated authentication and session management system:
@@ -551,34 +604,55 @@ Unity6Portfolio/
 │   │
 │   ├── Game.Client.Linked/             # MasterData Bridge (.NET SDK format)
 │   │
-│   ├── Game.Server/                    # ASP.NET Core 9 Server
-│   │   ├── Controllers/
-│   │   ├── Services/
+│   ├── Game.Server/                    # REST API Server (ASP.NET Core 9)
+│   │   ├── Controllers/                API endpoints
+│   │   ├── Services/                   Business logic
+│   │   ├── Repositories/              Data access (Dapper)
+│   │   ├── Hubs/                       SignalR Hub (chat)
 │   │   └── Program.cs
 │   │
-│   ├── Game.Shared/                    # Shared Library
+│   ├── Game.Realtime/                  # Realtime Server (MagicOnion gRPC)
+│   │   ├── Hubs/                       StreamingHub (lobby, matchmaking)
+│   │   ├── Services/                   Lobby data, matching logic
+│   │   ├── Filters/                    JWT auth, validation
+│   │   └── Program.cs
+│   │
+│   ├── Game.Server.Shared/             # Server Shared Library
+│   │   ├── Extensions/                 JWT validation, user ID extraction
+│   │   ├── Health/                     Health check infrastructure
+│   │   └── Valkey/                     Redis/Valkey operations
+│   │
+│   ├── Game.Shared/                    # Shared Library (.NET + Unity Package)
 │   │   ├── Game.Shared.csproj          .NET Project
 │   │   ├── package.json                Unity Package Definition
 │   │   └── Runtime/
 │   │       └── Shared/
+│   │           ├── Dto/                Shared DTOs
 │   │           ├── Enums/              AudioCategory, etc.
-│   │           └── MasterData/         Master data definitions
+│   │           ├── MasterData/         Master data definitions
+│   │           └── Realtime/           Hub/Service interfaces
+│   │               ├── Hubs/           ILobbyHub, IMatchmakingHub
+│   │               └── Services/       ILobbyService, IMatchmakingService
 │   │
 │   └── Game.Tools/                     # CLI Tools (.NET 9)
 │
 ├── masterdata/                         # Protobuf Schemas + TSV Data
 │
 ├── docker/                             # Docker Configuration
+│   ├── game-server/                    # Game.Server + PostgreSQL + Valkey
+│   ├── game-realtime/                  # Game.Realtime (gRPC)
+│   ├── observability/                  # OpenTelemetry / Aspire Dashboard
+│   ├── migrate/                        # DB migration
 │   ├── unity-accelerator/              # Unity Accelerator Cache Server
-│   ├── unity-ci/                       # Unity CI Runner (for GitHub Actions)
-│   └── game-server/                    # Game.Server (ASP.NET Core + PostgreSQL)
+│   └── unity-ci/                       # Unity CI Runner (for GitHub Actions)
 │
 ├── docs/                               # Technical Documentation
 │
 ├── scripts/                            # Build/Format Scripts
 │
 └── test/
-    └── Game.Server.Tests/              # Server Tests
+    ├── Game.Server.Tests/              # Server Tests
+    └── Game.Realtime.Tests/            # Realtime Server Tests
 ```
 
 ---
@@ -646,28 +720,48 @@ Unity6Portfolio/
 
 ## Languages/Libraries/Tools
 
-| Language/Framework | Version |
-|-------------------|---------|
-| Unity | 6000.3.2f1 |
-| .NET SDK | 9.0 |
-| C# | 9.0 |
-| cysharp/MessagePipe | 1.8.1 |
-| cysharp/R3 | 1.3.0 |
-| cysharp/UniTask | 2.5.10 |
-| cysharp/MasterMemory | 3.0.4 |
-| cysharp/MessagePack | 3.1.3 |
-| cysharp/MemoryPack | 1.21.3 |
-| hadashiA/VContainer | 1.17.0 |
-| NSubstitute | 5.3.0 |
-| xUnit | 2.x |
-| Unity.Entities (DOTS)| 1.4.4 |
-| Unity.Burst | 1.8.27 |
-| Unity.Collections | 2.6.4 |
-| Unity.Mathematics | 1.3.3 |
-| DOTween | 1.2.790 |
-| HotReload | 1.13.13 |
+**Client (Unity):**
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Unity | 6000.3.2f1 | Game engine |
+| cysharp/UniTask | 2.5.10 | Async processing |
+| cysharp/R3 | 1.3.0 | Reactive programming (MVP) |
+| cysharp/MessagePipe | 1.8.1 | Pub/Sub messaging (MVC) |
+| cysharp/MasterMemory | 3.0.4 | In-memory master data DB |
+| cysharp/MessagePack | 3.1.3 | Binary serialization |
+| cysharp/MemoryPack | 1.21.3 | Save data serialization |
+| hadashiA/VContainer | 1.17.0 | DI container (MVP) |
+| MagicOnion.Client | 7.0.3 | gRPC StreamingHub client |
+| Unity.Entities (DOTS)| 1.4.4 | ECS enemy system |
+| Unity.Burst | 1.8.27 | Burst compiler |
+| DOTween | 1.2.790 | Animation |
+
+**Server (ASP.NET Core 9):**
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| .NET SDK | 9.0 | Runtime |
+| MagicOnion.Server | 7.0.3 | gRPC StreamingHub server |
+| Grpc.AspNetCore | 2.71.0 | gRPC infrastructure |
+| Dapper | 2.1.66 | Micro-ORM |
+| Npgsql | 9.0.3 | PostgreSQL driver |
+| FluentMigrator | 6.2.0 | DB migrations |
+| StackExchange.Redis | 2.8.41 | Valkey/Redis client |
+| Serilog | 9.0.0 | Structured logging |
+| OpenTelemetry | 1.11.2 | Distributed tracing & metrics |
+| Scalar.AspNetCore | 2.0.36 | OpenAPI documentation UI |
+| BCrypt.Net-Next | 4.0.3 | Password hashing |
+
+**Development Tools:**
+
+| Tool | Version |
+|------|---------|
 | JetBrains Rider | 2025.3.0.2 |
 | Claude Code | - |
+| HotReload | 1.13.13 |
+| xUnit | 2.x |
+| NSubstitute | 5.3.0 |
 
 ---
 
@@ -689,7 +783,7 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 7 weeks (as of 2026/2/14)
+* Approximately 8 weeks (as of 2026/2/25)
 
 ---
 
@@ -721,6 +815,9 @@ Unity6Portfolio/
   - Wave management (staged enemy spawning)
   - Item drops and attraction
   - Stage clear and record saving
+  - Multiplayer lobby (create/join/chat/ready)
+  - Matchmaking (queue-based auto matching)
+  - Auto-rejoin lobby after game completion
 
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended

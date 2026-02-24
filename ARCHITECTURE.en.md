@@ -2,8 +2,8 @@
 
 [日本語版はこちら](ARCHITECTURE.md)
 
-**Version**: 1.7
-**Last Updated**: February 15, 2026
+**Version**: 1.8
+**Last Updated**: February 25, 2026
 
 ---
 
@@ -143,6 +143,49 @@ graph TB
     MVPS --> AAS
 ```
 
+### 2.3 Server Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       Game.Client (Unity 6)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │  IApiClient   │  │ ILobbyClient │  │ IChatClient  │              │
+│  │  (REST/HTTP)  │  │ (gRPC/Hub)   │  │ (SignalR)    │              │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘              │
+└─────────┼──────────────────┼──────────────────┼─────────────────────┘
+          │ HTTP/1.1         │ HTTP/2 (gRPC)    │ WebSocket
+          ▼                  ▼                  ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   Game.Server   │  │  Game.Realtime  │  │   Game.Server   │
+│   (REST API)    │  │  (MagicOnion)   │  │   (SignalR Hub) │
+│   Port: 5000    │  │   Port: 5001    │  │   Port: 5000    │
+├─────────────────┤  ├─────────────────┤  ├─────────────────┤
+│  Controllers/   │  │  LobbyHub       │  │  ChatHub        │
+│  Auth, Users,   │  │  MatchmakingHub │  │                 │
+│  Scores, Ranks  │  │                 │  │                 │
+└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+         │                    │                     │
+         ▼                    ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────┐   │
+│  │PostgreSQL│  │  Valkey   │  │  Game.Server.Shared      │   │
+│  │ (Users,  │  │ (Lobby,  │  │  (JWT, Health, Extensions)│   │
+│  │  Scores) │  │  Queue,  │  │                           │   │
+│  │          │  │  Cache)  │  │                           │   │
+│  └──────────┘  └──────────┘  └──────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Communication Protocols:**
+
+| Protocol | Server | Usage | Characteristics |
+|----------|--------|-------|----------------|
+| REST (HTTP/1.1) | Game.Server | Auth, user management, scores, rankings | Request/response |
+| gRPC (HTTP/2) | Game.Realtime | Lobby operations (Unary RPC) | High-efficiency binary |
+| StreamingHub | Game.Realtime | Real-time events (lobby, matchmaking) | Server push, bidirectional |
+| SignalR (WebSocket) | Game.Server | Chat messaging | Real-time, room-based |
+
 ---
 
 ## 3. Monorepo Structure
@@ -154,66 +197,100 @@ This project adopts a monorepo structure, managing the client, server, and share
 ```
 Unity6Portfolio/
 ├── src/
-│   ├── Game.Client/        # Unity client (Unity 6)
+│   ├── Game.Client/          # Unity client (Unity 6)
 │   │   ├── Assets/
-│   │   │   └── Programs/   # Game code
+│   │   │   └── Programs/     # Game code
 │   │   └── Packages/
 │   │
-│   ├── Game.Server/        # Game server (ASP.NET Core 9)
+│   ├── Game.Server/          # REST API server (ASP.NET Core 9)
 │   │   ├── Controllers/
 │   │   ├── Services/
 │   │   └── Program.cs
 │   │
-│   └── Game.Shared/        # Shared library (.NET + Unity Package)
+│   ├── Game.Realtime/        # Realtime server (MagicOnion gRPC)
+│   │   ├── Hubs/             # StreamingHub (LobbyHub, MatchmakingHub)
+│   │   ├── Services/         # Unary RPC (LobbyService)
+│   │   └── Program.cs
+│   │
+│   ├── Game.Server.Shared/   # Server shared library
+│   │   ├── Extensions/       # JWT auth, health checks
+│   │   └── Configuration/    # Shared configuration
+│   │
+│   └── Game.Shared/          # Shared library (.NET + Unity Package)
 │       ├── Runtime/
 │       │   └── Shared/
-│       │       ├── Enums/        # AudioCategory, etc.
-│       │       └── MasterData/   # Master data definitions
-│       ├── Game.Shared.csproj    # .NET project
-│       └── package.json          # Unity package definition
+│       │       ├── Dto/           # Communication DTOs (LobbyInfo, etc.)
+│       │       ├── Enums/         # AudioCategory, etc.
+│       │       ├── MasterData/    # Master data definitions
+│       │       └── Realtime/      # Hub/Service interfaces
+│       ├── Game.Shared.csproj     # .NET project
+│       └── package.json           # Unity package definition
 │
 ├── test/
-│   └── Game.Server.Tests/  # Server tests
+│   ├── Game.Server.Tests/    # Server tests
+│   └── Game.Realtime.Tests/  # Realtime server tests
 │
-├── docs/                   # Documentation
+├── docs/                     # Documentation
 ├── docker/
-│   ├── unity-accelerator/  # Unity Accelerator cache server
-│   ├── unity-ci/           # Unity CI Runner (Docker + GitHub Actions)
-│   ├── game-server/        # Game.Server (ASP.NET Core + PostgreSQL)
-│   └── migrate/            # DB Migration Runner (FluentMigrator)
-├── scripts/                # Build and format scripts
+│   ├── unity-accelerator/    # Unity Accelerator cache server
+│   ├── unity-ci/             # Unity CI Runner (Docker + GitHub Actions)
+│   ├── game-server/          # Game.Server + Game.Realtime (Docker Compose)
+│   └── migrate/              # DB Migration Runner (FluentMigrator)
+├── scripts/                  # Build and format scripts
 └── .github/
-    └── workflows/          # GitHub Actions
+    └── workflows/            # GitHub Actions
 ```
 
 ### 3.2 Role of Game.Shared
 
-Master data definitions are separated into a shared library, achieving the following benefits:
+Master data definitions, communication DTOs, and realtime interfaces are separated into a shared library, achieving the following benefits:
 
 | Benefit | Description |
 |---------|-------------|
-| Client-server sharing | Same DTOs can be shared between Unity and ASP.NET Core |
+| Client-server sharing | Same DTOs and Hub/Service interfaces shared across Unity, ASP.NET Core, and MagicOnion |
 | Clear dependency hierarchy | Placed at the lowest layer to prevent circular references |
 | Build time reduction | Separates infrequently changed code |
 | Version management | Enables versioning at the package level |
 
-### 3.3 Inter-Project Dependencies
+### 3.3 Role of Game.Server.Shared
+
+A shared foundation library used by both the REST API server (Game.Server) and realtime server (Game.Realtime):
+
+| Feature | Description |
+|---------|-------------|
+| JWT Authentication | Common auth middleware configuration (token validation, userId extraction) |
+| Health Check | Shared `/health` endpoint implementation |
+| Configuration | Common configuration classes such as GameServerConfiguration |
+| Extensions | Utilities like userId extraction from ClaimsPrincipal |
+
+### 3.4 Inter-Project Dependencies
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Unity6Portfolio                          │
 │                       (Monorepo)                            │
 └─────────────────────────────────────────────────────────────┘
-        ↓                    ↓                    ↓
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Game.Client   │  │   Game.Server   │  │   Game.Shared   │
-│  (Unity 6)      │  │ (ASP.NET Core)  │  │ (.NET + Unity)  │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-        ↘                    ↓                    ↙
-                    ┌─────────────────┐
-                    │ Shared DTO/IF   │
-                    │  (Game.Shared)  │
-                    └─────────────────┘
+     ↓            ↓              ↓              ↓
+┌──────────┐ ┌──────────┐ ┌────────────┐ ┌──────────────────┐
+│  Game.   │ │  Game.   │ │   Game.    │ │  Game.Server.    │
+│  Client  │ │  Server  │ │  Realtime  │ │  Shared          │
+│(Unity 6) │ │(REST API)│ │(MagicOnion)│ │(Common Found.)   │
+└────┬─────┘ └────┬─────┘ └─────┬──────┘ └────────┬─────────┘
+     │            │             │                  │
+     │            ├─────────────┤                  │
+     │            │ shared ref  │                  │
+     │            ▼             ▼                  │
+     │       ┌──────────────────────┐              │
+     │       │   Game.Server.Shared │◀─────────────┘
+     │       │   (JWT, Health, etc.)│
+     │       └──────────┬───────────┘
+     │                  │
+     └────────┬─────────┘
+              ▼
+     ┌─────────────────┐
+     │   Game.Shared   │
+     │(DTO, IF, Master)│
+     └─────────────────┘
 ```
 
 ---
@@ -296,12 +373,16 @@ Master data definitions are separated into a shared library, achieving the follo
 
 | Project | Role | Key Dependencies |
 |---------|------|-----------------|
-| **Game.Server** | REST API server | ASP.NET Core 9, Dapper, Npgsql, FluentMigrator, StackExchange.Redis |
+| **Game.Server** | REST API server | ASP.NET Core 9, Dapper, Npgsql, FluentMigrator, StackExchange.Redis, SignalR |
+| **Game.Realtime** | Realtime gRPC server | MagicOnion.Server, StackExchange.Redis, Game.Server.Shared |
+| **Game.Server.Shared** | Server shared foundation | ASP.NET Core 9, JWT auth, health checks |
 | **Game.Tools** | CLI tools (master data management, etc.) | ConsoleAppFramework, Google.Protobuf, MasterMemory |
 | **Game.Client.Linked** | Client MemoryTable reference bridge | MasterMemory, MessagePack |
-| **Game.Shared** | Shared library (.NET version) | MasterMemory, MessagePack |
+| **Game.Shared** | Shared library (.NET version) | MasterMemory, MessagePack, MagicOnion.Abstractions |
 
 #### Server Endpoint Structure
+
+**Game.Server (REST API — Port 5000):**
 
 | Controller | Endpoint | Role |
 |------------|----------|------|
@@ -309,7 +390,16 @@ Master data definitions are separated into a shared library, achieving the follo
 | **UsersController** | GET/PUT /api/users/* | User info retrieval and update |
 | **SurvivorScoresController** | POST /api/survivor/scores | Score submission |
 | **RankingsController** | GET /api/survivor/rankings/* | Ranking retrieval, own rank |
+| **ChatHub** | /hubs/chat (SignalR) | Real-time chat |
 | **HealthController** | GET /api/health | Health check |
+
+**Game.Realtime (gRPC — Port 5001):**
+
+| Service/Hub | Protocol | Role |
+|-------------|----------|------|
+| **LobbyService** | Unary RPC | Lobby create/join/leave/search |
+| **LobbyHub** | StreamingHub | Lobby real-time events (chat, ready, game start) |
+| **MatchmakingHub** | StreamingHub | Matchmaking queue management, match found notifications |
 
 ### 4.3 Circular Reference Prevention Design
 
@@ -449,7 +539,19 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
     [*] --> TitleScene: Launch
-    TitleScene --> StageScene: Start Game
+
+    state "Solo Play" as Solo {
+        TitleScene --> StageScene: SOLO
+    }
+
+    state "Multiplayer" as Multi {
+        TitleScene --> LobbyScene: MULTI
+        TitleScene --> LobbyRoomScene: MULTI (auto-rejoin)
+        LobbyScene --> LobbyRoomScene: Join/Create Lobby
+        LobbyRoomScene --> MatchmakingScene: All Ready
+        MatchmakingScene --> StageScene: Match Found
+    }
+
     StageScene --> ResultScene: Game Over
     StageScene --> PauseDialog: Pause
     PauseDialog --> StageScene: Resume
@@ -462,6 +564,7 @@ stateDiagram-v2
 
     ResultScene --> TitleScene: To Title
     ResultScene --> StageScene: Retry
+    LobbyRoomScene --> LobbyScene: Leave
 ```
 
 ### 6.3 Scene Inheritance Hierarchy
@@ -953,6 +1056,140 @@ User authentication and session management via server integration:
 | `SessionSaveData` | Session persistence data |
 | `AuthDto` | Authentication request/response DTOs |
 
+#### 7.4.1 Server Security Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Server Security Architecture                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Game.Client (Unity 6)                                          │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ JWT Bearer Token (Authorization header)                 │     │
+│  │ HMAC-SHA256 Signature + Timestamp + Nonce (REST only)   │     │
+│  └─────────────┬─────────────────────────┬────────────────┘     │
+│                │                         │                       │
+│      REST (HTTP/1.1)              gRPC (HTTP/2)                 │
+│                │                         │                       │
+│                ▼                         ▼                       │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐    │
+│  │   Game.Server        │  │      Game.Realtime           │    │
+│  │                      │  │                              │    │
+│  │  RequestSigning      │  │  JwtAuthentication           │    │
+│  │  Middleware           │  │  Filter (Unary)              │    │
+│  │  ├ HMAC-SHA256 verify│  │  JwtAuthentication           │    │
+│  │  ├ Timestamp check   │  │  HubFilter (StreamingHub)   │    │
+│  │  └ Nonce replay prev.│  │  ├ ASP.NET Core Auth integ. │    │
+│  │                      │  │  └ gRPC status code response │    │
+│  │  ASP.NET Core Auth   │  │                              │    │
+│  │  ├ JWT Bearer verify │  │  ValidationException         │    │
+│  │  └ Claims extraction │  │  Filter / HubFilter          │    │
+│  │                      │  │  ├ Unary: gRPC error conv.  │    │
+│  │  AccountLockout      │  │  └ Hub: swallow (no disconn.)│    │
+│  │  ├ 5 fails→15m lock  │  │                              │    │
+│  │  └ DB tracking       │  │  MatchSessionToken           │    │
+│  │                      │  │  ├ CSPRNG 256-bit gen       │    │
+│  │  PasswordValidator   │  │  ├ Valkey storage (5m TTL)  │    │
+│  │  ├ 8+ characters     │  │  └ Explicit revocation      │    │
+│  │  ├ Upper/lower/digit │  │                              │    │
+│  │  └ Special character  │  │                              │    │
+│  └──────────────────────┘  └──────────────────────────────┘    │
+│                │                         │                       │
+│                ▼                         ▼                       │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                  Shared Foundation                         │  │
+│  │  ┌─────────────────┐  ┌──────────────────────────────┐   │  │
+│  │  │ JWT Config       │  │ Distributed Lock             │   │  │
+│  │  │ (Game.Server.   │  │ (Medallion.Threading +       │   │  │
+│  │  │  Shared)        │  │  Redis)                      │   │  │
+│  │  │ Secret ≥32 chars │  │ 10s Expiry + 3s auto-renew  │   │  │
+│  │  │ Issuer/Audience │  │ Lobby join, chat exclusivity │   │  │
+│  │  └─────────────────┘  └──────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Security Layer Overview:**
+
+| Layer | Mechanism | Technology | Key Features |
+|-------|-----------|-----------|--------------|
+| gRPC/MagicOnion Auth | JWT Bearer | ASP.NET Core Auth | Global filters, HTTP/2 only, gRPC error codes |
+| REST Auth | JWT Bearer + Request Signing | HMAC-SHA256 Middleware | Per-user derived keys, timestamp + nonce validation |
+| Session Tokens | Stateful tokens | CSPRNG + Valkey | 5-min TTL, Base64URL, revocable |
+| Input Validation | Structured error codes | Custom validators | Length limits, required checks, range validation |
+| Concurrency Control | Distributed locks | Redis Medallion | 10s expiry + 3s auto-renewal |
+| Account Protection | Lockout | DB tracking | 5 failures → 15-min lock |
+| Password Policy | Complexity rules | Regex validation | 8+ chars, upper/lower/digit/special |
+| Permission Model | Bitwise flags | Claims-based | Per-chat-room permission checks |
+
+**gRPC Auth vs REST Auth Differences:**
+
+| Aspect | Game.Server (REST) | Game.Realtime (gRPC) |
+|--------|-------------------|---------------------|
+| Auth Method | JWT + HMAC signature | JWT only |
+| Application | ASP.NET Middleware | MagicOnion global filters |
+| Nonce Validation | Yes (replay prevention) | No (unnecessary for bidirectional gRPC) |
+| Error Format | HTTP 401/403 | gRPC StatusCode.Unauthenticated |
+| Validation | Controller attributes | Custom filters + ErrorException |
+
+**Validation Filter Design:**
+
+In StreamingHub, throwing an exception **disconnects the client**, so different strategies are used for Unary vs Hub:
+
+| Filter | Target | ErrorException Handling |
+|--------|--------|----------------------|
+| `ValidationExceptionFilter` | Unary RPC | Converts to `ReturnStatusException(InvalidArgument)` and rethrows |
+| `ValidationExceptionHubFilter` | StreamingHub | Logs only, swallows exception to prevent disconnection |
+
+**Input Validation Rules:**
+
+| Validator | Field | Rule |
+|-----------|-------|------|
+| `LobbyValidator` | lobbyId | Required, max 64 chars |
+| | playerName | Required, max 50 chars |
+| | lobbyName | Required, max 50 chars |
+| | gameMode | Required, max 30 chars |
+| | maxPlayers | 2–16 |
+| | message | Required, max 200 chars |
+| `MatchmakingValidator` | gameMode | Required, max 30 chars |
+| `ChatInputValidator` | roomId | Required, max 64 chars |
+| | playerName | Required, max 50 chars |
+| | message | Required, max 500 chars |
+| `PasswordValidator` | password | 8+ chars, upper/lower/digit/special |
+
+**Request Signing Flow (REST API):**
+
+```
+Client                          Server Middleware               Valkey
+  │                                 │                            │
+  │ HMAC-SHA256(                    │                            │
+  │   key=HMAC(secret,userId),     │                            │
+  │   data=method+path+body+ts)    │                            │
+  │                                 │                            │
+  │ Headers:                        │                            │
+  │   X-Signature: {hmac}          │                            │
+  │   X-Timestamp: {unix_sec}      │                            │
+  │   X-Nonce: {uuid}              │                            │
+  │─────────────────────────────▶│                            │
+  │                                 │                            │
+  │                                 │ 1. Timestamp validation   │
+  │                                 │    (within tolerance?)     │
+  │                                 │                            │
+  │                                 │ 2. Nonce duplicate check  │
+  │                                 │───────────────────────────▶│
+  │                                 │    SETNX nonce:{uuid}     │
+  │                                 │    TTL 300s               │
+  │                                 │◀───────────────────────────│
+  │                                 │                            │
+  │                                 │ 3. HMAC-SHA256 recompute  │
+  │                                 │    Verify with user-      │
+  │                                 │    derived key            │
+  │                                 │                            │
+  │                  200 OK         │                            │
+  │◀─────────────────────────────│                            │
+```
+
 ### 7.5 Ranking System Flow
 
 A ranking system utilizing server-side Valkey cache:
@@ -1142,6 +1379,140 @@ The client-side network communication is designed with clear separation of respo
 │  [MVC-side improvement] High-frequency events from             │
 │  OnTriggerEnter/OnCollisionEnter have been changed to          │
 │  direct calls via IPlayerCollisionHandler                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.8 Realtime Communication Flow (MagicOnion)
+
+Lobby and matchmaking communication flow:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              Realtime Communication Flow                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  (1) Lobby Create/Join (Unary RPC)                              │
+│  ┌──────────────┐        ┌──────────────────┐                   │
+│  │ ILobbyClient │───────▶│  ILobbyService   │                   │
+│  │  (Client)    │  gRPC  │  (Game.Realtime) │                   │
+│  ├──────────────┤        ├──────────────────┤                   │
+│  │CreateLobby() │        │CreateLobbyAsync()│                   │
+│  │JoinLobby()   │        │JoinLobbyAsync()  │──▶ Valkey         │
+│  │LeaveLobby()  │        │LeaveLobbyAsync() │   lobby:{id}     │
+│  │SearchLobbies()│       │GetMyLobbyAsync() │   lobby:player:  │
+│  └──────────────┘        └──────────────────┘    {userId}       │
+│                                                                 │
+│  (2) Real-time Events (StreamingHub)                            │
+│  ┌──────────────┐        ┌──────────────────┐                   │
+│  │ ILobbyClient │◀══════▶│    LobbyHub      │                   │
+│  │  (Hub conn.) │ bidir. │  (StreamingHub)  │                   │
+│  ├──────────────┤        ├──────────────────┤                   │
+│  │Connect()     │        │OnPlayerJoined()  │ <- IGroup broadcast│
+│  │SetReady()    │        │OnPlayerLeft()    │                   │
+│  │SendMessage() │        │OnPlayerReady()   │                   │
+│  │Leave()       │        │OnGameStarting()  │                   │
+│  └──────────────┘        └──────────────────┘                   │
+│                                                                 │
+│  (3) Matchmaking (StreamingHub)                                 │
+│  ┌──────────────┐        ┌──────────────────┐                   │
+│  │ IMatchmaking │◀══════▶│ MatchmakingHub   │                   │
+│  │   Client     │ bidir. │  (StreamingHub)  │                   │
+│  ├──────────────┤        ├──────────────────┤                   │
+│  │JoinQueue()   │        │OnMatchFound()    │ <- Valkey Queue    │
+│  │LeaveQueue()  │        │OnQueueUpdate()   │                   │
+│  └──────────────┘        └────────┬─────────┘                   │
+│                                   │                              │
+│                                   ▼                              │
+│                          ┌──────────────────┐                   │
+│                          │ IMatchSession    │                   │
+│                          │ TokenService     │                   │
+│                          │ (JWT issuance)   │                   │
+│                          └──────────────────┘                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Lobby Data Structure (Valkey)
+
+| Key | Type | Content | TTL |
+|-----|------|---------|-----|
+| `lobby:{lobbyId}` | Hash | Lobby info (host, game mode, public setting) | None |
+| `lobby:{lobbyId}:players` | Hash | Player list (userId -> playerName, isReady) | None |
+| `lobby:player:{userId}` | String | Current lobby ID (reverse lookup) | None |
+| `lobby:public:{gameMode}` | Set | Public lobby search index | None |
+
+#### Game Start Sequence
+
+```
+Player1(Host)     Player2          LobbyHub        Valkey
+    │               │                 │               │
+    │ SetReady(true) │                 │               │
+    │───────────────────────────────▶│               │
+    │               │                 │ SetReadyAsync │
+    │               │                 │──────────────▶│
+    │               │  OnPlayerReady  │               │
+    │◀──────────────│◀────────────────│               │
+    │               │                 │               │
+    │               │ SetReady(true)  │               │
+    │               │────────────────▶│               │
+    │               │                 │ SetReadyAndCheckAll
+    │               │                 │──────────────▶│
+    │               │                 │   allReady!   │
+    │               │                 │◀──────────────│
+    │               │                 │               │
+    │               │                 │ StartGameAsync│
+    │               │                 │  IssueToken() │
+    │  OnGameStarting(matchId, addr, port)            │
+    │◀──────────────│◀────────────────│               │
+    │               │                 │               │
+    │  ConnectToGameServer(matchId)   │               │
+    │───────────────────────────────────────────────▶ │
+```
+
+#### Lobby Auto-Rejoin Flow
+
+Navigation back to lobby after gameplay:
+
+```
+Title -> MULTI -> EnsureValidSession -> TryAutoRejoinAsync()
+  |-- GetMyLobbyAsync() -> lobby exists -> ConnectToLobbyAsync -> LobbyRoomScene
+  |-- GetMyLobbyAsync() -> no lobby -> LobbyScene (normal flow)
+```
+
+#### Related Classes
+
+| Class | Location | Role |
+|-------|----------|------|
+| `ILobbyService` | Game.Shared | Lobby Unary RPC interface |
+| `LobbyService` | Game.Realtime | Lobby Unary RPC implementation |
+| `ILobbyHub` / `ILobbyHubReceiver` | Game.Shared | Lobby StreamingHub interface |
+| `LobbyHub` | Game.Realtime | Lobby StreamingHub implementation |
+| `ILobbyClient` | Game.Client | Client-side lobby operation interface |
+| `LobbyClient` | Game.Client | Unary + Hub integrated client implementation |
+| `ILobbyDataService` | Game.Realtime | Valkey data access |
+| `LobbyDataService` | Game.Realtime | Lobby data CRUD (Valkey Hash/Set) |
+| `IMatchSessionTokenService` | Game.Realtime | Match session JWT token issuance |
+
+### 7.9 Chat Communication Flow (SignalR)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   Chat Communication Flow                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐         ┌──────────────────┐                  │
+│  │ IChatClient  │◀═══════▶│    ChatHub       │                  │
+│  │  (Client)    │WebSocket│  (Game.Server)   │                  │
+│  ├──────────────┤         ├──────────────────┤                  │
+│  │JoinRoom()    │         │OnMessageReceived │                  │
+│  │LeaveRoom()   │         │OnUserJoined()    │                  │
+│  │SendMessage() │         │OnUserLeft()      │                  │
+│  └──────────────┘         └──────────────────┘                  │
+│                                                                 │
+│  Chat is provided as a general-purpose feature via              │
+│  Game.Server (SignalR). In-lobby chat is also supported         │
+│  through LobbyHub.SendMessageAsync().                           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1661,6 +2032,28 @@ Unity6Portfolio/
 | **Impact** | Up to 20.3x speedup in spawn position calculation. A/B comparison via Inspector toggle |
 | **Status** | Adopted |
 
+#### ADR-006: MagicOnion Selection (Realtime Communication)
+
+| Item | Details |
+|------|---------|
+| **Decision** | Adopt MagicOnion for realtime communication |
+| **Context** | Bidirectional real-time communication needed for lobby and matchmaking |
+| **Alternatives** | A) Photon B) MagicOnion C) Mirror D) Custom WebSocket |
+| **Rationale** | Type-safe RPC via shared C# interfaces, efficient gRPC-based communication, supports both Unary and StreamingHub |
+| **Impact** | Interface sharing between client and server eliminates code generation. Low-latency communication via HTTP/2 |
+| **Status** | Adopted |
+
+#### ADR-007: Server Separation (REST + gRPC)
+
+| Item | Details |
+|------|---------|
+| **Decision** | Separate REST API server (Game.Server) and realtime server (Game.Realtime) |
+| **Context** | Needed clear separation of responsibilities between auth/user management and realtime communication |
+| **Alternatives** | A) Single server B) Process separation C) Microservices |
+| **Rationale** | REST API is stateless while StreamingHub is stateful — different characteristics. Enables independent scaling |
+| **Impact** | Common foundation (JWT auth, etc.) shared via Game.Server.Shared. Managed together with Docker Compose |
+| **Status** | Adopted |
+
 ### 11.2 Known Technical Debt
 
 | Item | Details | Priority | Status |
@@ -1670,6 +2063,7 @@ Unity6Portfolio/
 | ~~XML documentation~~ | ~~Partially missing~~ | ~~Low~~ | Major interfaces completed |
 | ~~Asset delivery~~ | ~~Local only~~ | ~~Medium~~ | Local/remote auto-switching |
 | ~~Network features~~ | ~~Server communication not implemented~~ | ~~High~~ | Ranking and auth completed |
+| ~~Multiplayer~~ | ~~Multiplayer not implemented~~ | ~~High~~ | Lobby and matchmaking completed |
 | P3 feature additions | Localization, in-app purchase system, etc. | Low | Not started (optional) |
 
 **Resolved Items**:
@@ -1683,6 +2077,7 @@ Unity6Portfolio/
 - Ranking system: Valkey cache, Cloud Run production deployment (2026/02)
 - Addressables sync: Editor auto-sync system for team development (2026/02)
 - ECS enemy system: DOTS (Entities + Jobs + Burst) hybrid implementation, up to 20.3x speedup in spawn calculation (2026/02)
+- Multiplayer: Lobby and matchmaking via MagicOnion gRPC, SignalR chat, MPPM support (2026/02)
 
 ---
 
@@ -1696,6 +2091,9 @@ Unity6Portfolio/
 | **SceneComponent** | MonoBehaviour associated with a GameScene |
 | **LifetimeScope** | VContainer DI container scope |
 | **MasterData** | Read-only game configuration data |
+| **Unary RPC** | MagicOnion request/response RPC |
+| **StreamingHub** | MagicOnion real-time bidirectional communication hub |
+| **MPPM** | Multiplayer Play Mode (in-editor multiplayer testing in Unity) |
 
 ### B. Related Documents
 
