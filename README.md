@@ -7,11 +7,19 @@ Unity 6 を使用したゲーム開発ポートフォリオプロジェクト（
 ```
 Unity6Portfolio/
 ├── src/
-│   ├── Game.Client/        # Unity クライアント (Unity 6)
-│   ├── Game.Server/        # ゲームサーバー (ASP.NET Core 9)
-│   └── Game.Shared/        # 共有ライブラリ (.NET + Unity Package)
-└── test/
-    └── Game.Server.Tests/  # サーバーテスト
+│   ├── Game.Client/          # Unity クライアント (Unity 6)
+│   ├── Game.Server/          # REST API サーバー (ASP.NET Core 9)
+│   ├── Game.Realtime/        # リアルタイムサーバー (MagicOnion gRPC)
+│   ├── Game.Shared/          # 共有ライブラリ (.NET + Unity Package)
+│   ├── Game.Server.Shared/   # サーバー共有ライブラリ
+│   ├── Game.Client.Linked/   # MasterData ブリッジ
+│   └── Game.Tools/           # CLI ツール (.NET 9)
+├── test/
+│   ├── Game.Server.Tests/    # サーバーテスト
+│   └── Game.Realtime.Tests/  # リアルタイムサーバーテスト
+├── docker/                   # Docker 構成
+├── masterdata/               # Protobuf スキーマ + TSV データ
+└── docs/                     # 技術ドキュメント
 ```
 
 ---
@@ -133,16 +141,16 @@ dotnet test
 │                     Unity6Portfolio                          │
 │                      (モノレポ)                               │
 └─────────────────────────────────────────────────────────────┘
-        ↓                    ↓                    ↓
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Game.Client   │  │   Game.Server   │  │   Game.Shared   │
-│  (Unity 6)      │  │ (ASP.NET Core)  │  │ (.NET + Unity)  │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-        ↘                    ↓                    ↙
-                    ┌─────────────────┐
-                    │  共有DTO/IF     │
-                    │  (Game.Shared)  │
-                    └─────────────────┘
+        ↓              ↓              ↓              ↓
+┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐
+│Game.Client │  │Game.Server │  │Game.Realtime│  │ Game.Shared│
+│ (Unity 6)  │  │ (REST API) │  │(gRPC/Hub)  │  │(.NET+Unity)│
+└────────────┘  └────────────┘  └────────────┘  └────────────┘
+        ↘              ↓              ↓              ↙
+               ┌─────────────────────────────┐
+               │    共有DTO/IF (Game.Shared)  │
+               │  Unary RPC / Hub インターフェース │
+               └─────────────────────────────┘
 ```
 
 ### クライアント内アーキテクチャ
@@ -196,6 +204,10 @@ dotnet test
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
 * **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
 * **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
+* **ロビーシステム**: MagicOnion StreamingHubによるリアルタイムロビー（作成/参加/退出/レディ/ゲーム開始）、Valkey永続化
+* **マッチメイキングシステム**: キューベースのマッチメイキング、Redis Pub/Subによるリアルタイム通知、セッショントークン発行
+* **リアルタイムチャット**: SignalR + MagicOnionによるルームベースメッセージング
+* **MPPM対応**: Multiplayer Play Modeによるエディタ内マルチプレイテスト、クローン別データパス分離
 * **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
 * **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント773 + サーバー56 = 829テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
@@ -222,7 +234,10 @@ dotnet test
 | Game.MVC.ScoreTimeAttack | タイムアタックゲーム実装 | MVC.Core, Game.Client.MasterData |
 | Game.MVP.Core | MVPパターン基盤、VContainer | Shared |
 | Game.MVP.Survivor | サバイバーゲーム実装 | MVP.Core, VContainer |
-| **Game.Server** | ASP.NET Core API サーバー | Shared |
+| Game.Client.Realtime | リアルタイムクライアント（MagicOnion） | Shared |
+| **Game.Server** | REST API サーバー（ASP.NET Core 9） | Shared, Server.Shared |
+| **Game.Realtime** | リアルタイムサーバー（MagicOnion gRPC） | Shared, Server.Shared |
+| **Game.Server.Shared** | サーバー共有基盤（JWT, Valkey, Health） | - |
 
 </details>
 
@@ -429,6 +444,44 @@ dotnet run --project src/Game.Tools -- seeddata diff --source-dir masterdata/raw
 
 </details>
 
+<details><summary>マルチプレイヤーシステム</summary>
+
+MagicOnion（gRPC StreamingHub）+ Valkey によるリアルタイムマルチプレイヤー基盤:
+
+**通信プロトコル:**
+```
+┌─────────────┐    REST (HTTP/1.1)     ┌─────────────┐
+│ Game.Client │◄──────────────────────►│ Game.Server │
+│   (Unity)   │    gRPC (HTTP/2)       │ (REST API)  │
+│             │◄──────────────────────►├─────────────┤
+│             │   StreamingHub         │Game.Realtime│
+│             │◄══════════════════════►│(gRPC/Hub)   │
+└─────────────┘                        └──────┬──────┘
+                                              │
+                                       ┌──────┴──────┐
+                                       │   Valkey    │
+                                       │  (Redis)    │
+                                       └─────────────┘
+```
+
+**ロビーシステム:**
+- Unary RPC: ロビー作成・参加・退出・検索・情報取得
+- StreamingHub: リアルタイムイベント（プレイヤー参加/退出、チャット、レディ状態、ゲーム開始）
+- Valkey永続化: ロビー情報、プレイヤー一覧、レディ状態をHash/Stringで管理
+- 自動復帰: ゲーム終了後のロビー自動再参加
+
+**マッチメイキングシステム:**
+- Redis Pub/Subによるキュー状態リアルタイム通知
+- バックグラウンドマッチングプロセッサ
+- セッショントークン発行（マッチ参加認証）
+
+**MPPM（Multiplayer Play Mode）対応:**
+- エディタ内で複数クローンインスタンスを起動しマルチプレイテスト
+- クローンごとのデータパス分離（セーブデータ・セッション・オーディオ設定）
+- GameBootstrap起動時に自動検出・パス切り替え
+
+</details>
+
 <details><summary>認証・アカウント管理システム</summary>
 
 サーバー連携による認証・セッション管理システム:
@@ -552,34 +605,55 @@ Unity6Portfolio/
 │   │
 │   ├── Game.Client.Linked/             # MasterDataブリッジ(.NET SDK形式)
 │   │
-│   ├── Game.Server/                    # ASP.NET Core 9 サーバー
-│   │   ├── Controllers/
-│   │   ├── Services/
+│   ├── Game.Server/                    # REST API サーバー (ASP.NET Core 9)
+│   │   ├── Controllers/                API エンドポイント
+│   │   ├── Services/                   ビジネスロジック
+│   │   ├── Repositories/              データアクセス (Dapper)
+│   │   ├── Hubs/                       SignalR Hub (チャット)
 │   │   └── Program.cs
 │   │
-│   ├── Game.Shared/                    # 共有ライブラリ
+│   ├── Game.Realtime/                  # リアルタイムサーバー (MagicOnion gRPC)
+│   │   ├── Hubs/                       StreamingHub (ロビー, マッチメイキング)
+│   │   ├── Services/                   ロビーデータ, マッチング処理
+│   │   ├── Filters/                    JWT認証, バリデーション
+│   │   └── Program.cs
+│   │
+│   ├── Game.Server.Shared/             # サーバー共有ライブラリ
+│   │   ├── Extensions/                 JWT検証, ユーザーID取得
+│   │   ├── Health/                     ヘルスチェック基盤
+│   │   └── Valkey/                     Redis/Valkey操作
+│   │
+│   ├── Game.Shared/                    # 共有ライブラリ (.NET + Unity Package)
 │   │   ├── Game.Shared.csproj          .NET プロジェクト
 │   │   ├── package.json                Unity パッケージ定義
 │   │   └── Runtime/
 │   │       └── Shared/
+│   │           ├── Dto/                共有DTO
 │   │           ├── Enums/              AudioCategory等
-│   │           └── MasterData/         マスターデータ定義
+│   │           ├── MasterData/         マスターデータ定義
+│   │           └── Realtime/           Hub/Service インターフェース
+│   │               ├── Hubs/           ILobbyHub, IMatchmakingHub
+│   │               └── Services/       ILobbyService, IMatchmakingService
 │   │
-│   └── Game.Tools/                     # CLIツール(.NET 9)
+│   └── Game.Tools/                     # CLIツール (.NET 9)
 │
 ├── masterdata/                         # Protobufスキーマ + TSVデータ
 │
 ├── docker/                             # Docker構成
+│   ├── game-server/                    # Game.Server + PostgreSQL + Valkey
+│   ├── game-realtime/                  # Game.Realtime (gRPC)
+│   ├── observability/                  # OpenTelemetry / Aspire Dashboard
+│   ├── migrate/                        # DBマイグレーション
 │   ├── unity-accelerator/              # Unity Accelerator キャッシュサーバー
-│   ├── unity-ci/                       # Unity CI Runner (GitHub Actions用)
-│   └── game-server/                    # Game.Server (ASP.NET Core + PostgreSQL)
+│   └── unity-ci/                       # Unity CI Runner (GitHub Actions用)
 │
 ├── docs/                               # 技術ドキュメント
 │
 ├── scripts/                            # ビルド・フォーマットスクリプト
 │
 └── test/
-    └── Game.Server.Tests/              # サーバーテスト
+    ├── Game.Server.Tests/              # サーバーテスト
+    └── Game.Realtime.Tests/            # リアルタイムサーバーテスト
 ```
 
 ---
@@ -647,28 +721,48 @@ Unity6Portfolio/
 
 ## 使用言語/ライブラリ/ツール
 
-| 言語・フレームワーク等   | バージョン   |
+**クライアント (Unity):**
+
+| ライブラリ              | バージョン   | 用途                          |
+|----------------------|------------|-------------------------------|
+| Unity                | 6000.3.2f1 | ゲームエンジン                  |
+| cysharp/UniTask      | 2.5.10     | 非同期処理                     |
+| cysharp/R3           | 1.3.0      | リアクティブプログラミング (MVP)  |
+| cysharp/MessagePipe  | 1.8.1      | Pub/Sub メッセージング (MVC)    |
+| cysharp/MasterMemory | 3.0.4      | インメモリマスターデータDB       |
+| cysharp/MessagePack  | 3.1.3      | バイナリシリアライズ             |
+| cysharp/MemoryPack   | 1.21.3     | セーブデータシリアライズ          |
+| hadashiA/VContainer  | 1.17.0     | DIコンテナ (MVP)               |
+| MagicOnion.Client    | 7.0.3      | gRPC StreamingHub クライアント  |
+| Unity.Entities (DOTS)| 1.4.4      | ECS敵システム                  |
+| Unity.Burst          | 1.8.27     | Burst コンパイラ               |
+| DOTween              | 1.2.790    | アニメーション                  |
+
+**サーバー (ASP.NET Core 9):**
+
+| ライブラリ              | バージョン   | 用途                          |
+|----------------------|------------|-------------------------------|
+| .NET SDK             | 9.0        | ランタイム                     |
+| MagicOnion.Server    | 7.0.3      | gRPC StreamingHub サーバー     |
+| Grpc.AspNetCore      | 2.71.0     | gRPC 基盤                     |
+| Dapper               | 2.1.66     | マイクロORM                    |
+| Npgsql               | 9.0.3      | PostgreSQL ドライバ            |
+| FluentMigrator       | 6.2.0      | DBマイグレーション               |
+| StackExchange.Redis  | 2.8.41     | Valkey/Redis クライアント       |
+| Serilog              | 9.0.0      | 構造化ログ                     |
+| OpenTelemetry        | 1.11.2     | 分散トレーシング・メトリクス       |
+| Scalar.AspNetCore    | 2.0.36     | OpenAPI ドキュメントUI          |
+| BCrypt.Net-Next      | 4.0.3      | パスワードハッシュ               |
+
+**開発ツール:**
+
+| ツール                | バージョン   |
 |----------------------|------------|
-| Unity                | 6000.3.2f1 |
-| .NET SDK             | 9.0        |
-| C#                   | 9.0        |
-| cysharp/MessagePipe  | 1.8.1      |
-| cysharp/R3           | 1.3.0      |
-| cysharp/UniTask      | 2.5.10     |
-| cysharp/MasterMemory | 3.0.4      |
-| cysharp/MessagePack  | 3.1.3      |
-| cysharp/MemoryPack   | 1.21.3     |
-| hadashiA/VContainer  | 1.17.0     |
-| NSubstitute          | 5.3.0      |
-| xUnit                | 2.x        |
-| Unity.Entities (DOTS)| 1.4.4      |
-| Unity.Burst          | 1.8.27     |
-| Unity.Collections    | 2.6.4      |
-| Unity.Mathematics    | 1.3.3      |
-| DOTween              | 1.2.790    |
-| HotReload            | 1.13.13    |
 | JetBrains Rider      | 2025.3.0.2 |
 | Claude Code          | -          |
+| HotReload            | 1.13.13    |
+| xUnit                | 2.x        |
+| NSubstitute          | 5.3.0      |
 
 ---
 
@@ -690,7 +784,7 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約7週間 (2026/2/14時点)
+* 約8週間 (2026/2/25時点)
 
 ---
 
@@ -722,6 +816,9 @@ Unity6Portfolio/
   - ウェーブ管理（敵の段階的出現）
   - アイテムドロップ・吸引
   - ステージクリア・記録データ保存
+  - マルチプレイヤーロビー（作成/参加/チャット/レディ）
+  - マッチメイキング（キューベース自動マッチング）
+  - ゲーム終了後のロビー自動復帰
 
 ### ダウンロード
 * 実行形式: [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨
