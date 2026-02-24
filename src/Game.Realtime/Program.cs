@@ -29,13 +29,12 @@ public class Program
             .ReadFrom.Services(services)
             .Enrich.FromLogContext());
 
-        // Kestrel: HTTP/1.1 + HTTP/2 on port 5001
-        // Http1AndHttp2 allows gRPC (h2c) and plain HTTP health checks
+        // Kestrel: HTTP/2 only on port 5001
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(5001, listenOptions =>
             {
-                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                listenOptions.Protocols = HttpProtocols.Http2;
             });
         });
 
