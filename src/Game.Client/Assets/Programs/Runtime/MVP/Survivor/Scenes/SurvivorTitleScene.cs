@@ -1,10 +1,13 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using R3;
+using UnityEngine;
 using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
@@ -20,6 +23,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly INetworkService _networkService;
+        [Inject] private readonly ILobbyClient _lobbyClient;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -30,6 +34,18 @@ namespace Game.MVP.Survivor.Scenes
             // Viewのイベントを購読
             SceneComponent.OnStartGameClicked
                 .Subscribe(_ => OnStartGame().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnSinglePlayerClicked
+                .Subscribe(_ => OnSinglePlayer().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnMultiplayerClicked
+                .Subscribe(_ => OnMultiplayer().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnPlayModeBackClicked
+                .Subscribe(_ => OnPlayModeBack())
                 .AddTo(Disposables);
 
             SceneComponent.OnReturnClicked
@@ -65,9 +81,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnStartGame()
         {
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
+            SceneComponent.ShowPlayModeMenu();
+        }
+
+        private async UniTaskVoid OnSinglePlayer()
+        {
             SceneComponent.SetInteractables(false);
             SceneComponent.ClearError();
-            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
 
             // セッション有効性を確認し、必要に応じて再認証
             if (!await EnsureValidSessionAsync())
@@ -77,6 +98,56 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+        }
+
+        private async UniTaskVoid OnMultiplayer()
+        {
+            SceneComponent.SetInteractables(false);
+            SceneComponent.ClearError();
+
+            // セッション有効性を確認し、必要に応じて再認証
+            if (!await EnsureValidSessionAsync())
+            {
+                SceneComponent.SetInteractables(true);
+                return;
+            }
+
+            // 参加済みロビーがあれば直接ロビールームへ
+            if (await TryAutoRejoinAsync())
+            {
+                return;
+            }
+
+            await _sceneService.TransitionAsync<SurvivorLobbyScene>();
+        }
+
+        /// <summary>
+        /// 参加済みロビーがあれば Hub 再接続してロビールームへ直接遷移する
+        /// </summary>
+        private async UniTask<bool> TryAutoRejoinAsync()
+        {
+            try
+            {
+                var lobby = await _lobbyClient.GetMyLobbyAsync();
+                if (lobby == null) return false;
+
+                Debug.Log($"[SurvivorTitleScene] Rejoining lobby: {lobby.LobbyId}");
+                var playerName = _authSessionService.UserName ?? "Player";
+                await _lobbyClient.ConnectToLobbyAsync(lobby.LobbyId, playerName);
+                await _sceneService.TransitionAsync<SurvivorLobbyRoomScene>();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[SurvivorTitleScene] Auto-rejoin failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void OnPlayModeBack()
+        {
+            SceneComponent.ClearError();
+            SceneComponent.ShowMainMenu();
         }
 
         /// <summary>

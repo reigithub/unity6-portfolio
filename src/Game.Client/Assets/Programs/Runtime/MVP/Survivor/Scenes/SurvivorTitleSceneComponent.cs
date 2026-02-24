@@ -18,12 +18,18 @@ namespace Game.MVP.Survivor.Scenes
         [SerializeField] private Animator _animator;
 
         private readonly Subject<Unit> _onStartGameClicked = new();
+        private readonly Subject<Unit> _onSinglePlayerClicked = new();
+        private readonly Subject<Unit> _onMultiplayerClicked = new();
+        private readonly Subject<Unit> _onPlayModeBackClicked = new();
         private readonly Subject<Unit> _onReturnClicked = new();
         private readonly Subject<Unit> _onQuitClicked = new();
         private readonly Subject<Unit> _onOptionsClicked = new();
         private readonly Subject<Unit> _onDataLinkClicked = new();
 
         public Observable<Unit> OnStartGameClicked => _onStartGameClicked;
+        public Observable<Unit> OnSinglePlayerClicked => _onSinglePlayerClicked;
+        public Observable<Unit> OnMultiplayerClicked => _onMultiplayerClicked;
+        public Observable<Unit> OnPlayModeBackClicked => _onPlayModeBackClicked;
         public Observable<Unit> OnReturnClicked => _onReturnClicked;
         public Observable<Unit> OnQuitClicked => _onQuitClicked;
         public Observable<Unit> OnOptionsClicked => _onOptionsClicked;
@@ -31,7 +37,12 @@ namespace Game.MVP.Survivor.Scenes
 
         // UI Element References
         private VisualElement _root;
+        private VisualElement _mainMenu;
+        private VisualElement _playModeMenu;
         private Button _startButton;
+        private Button _singlePlayerButton;
+        private Button _multiplayerButton;
+        private Button _playModeBackButton;
         private Button _returnButton;
         private Button _quitButton;
         private Button _optionsButton;
@@ -43,6 +54,9 @@ namespace Game.MVP.Survivor.Scenes
         protected override void OnDestroy()
         {
             _onStartGameClicked.Dispose();
+            _onSinglePlayerClicked.Dispose();
+            _onMultiplayerClicked.Dispose();
+            _onPlayModeBackClicked.Dispose();
             _onReturnClicked.Dispose();
             _onQuitClicked.Dispose();
             _onOptionsClicked.Dispose();
@@ -63,7 +77,12 @@ namespace Game.MVP.Survivor.Scenes
         {
             _root = _uiDocument.rootVisualElement;
 
+            _mainMenu = _root.Q<VisualElement>("main-menu");
+            _playModeMenu = _root.Q<VisualElement>("play-mode-menu");
             _startButton = _root.Q<Button>("start-button");
+            _singlePlayerButton = _root.Q<Button>("single-player-button");
+            _multiplayerButton = _root.Q<Button>("multiplayer-button");
+            _playModeBackButton = _root.Q<Button>("play-mode-back-button");
             _returnButton = _root.Q<Button>("return-button");
             _quitButton = _root.Q<Button>("quit-button");
             _optionsButton = _root.Q<Button>("options-button");
@@ -80,6 +99,15 @@ namespace Game.MVP.Survivor.Scenes
         {
             _startButton?.RegisterCallback<ClickEvent>(_ =>
                 _onStartGameClicked.OnNext(Unit.Default));
+
+            _singlePlayerButton?.RegisterCallback<ClickEvent>(_ =>
+                _onSinglePlayerClicked.OnNext(Unit.Default));
+
+            _multiplayerButton?.RegisterCallback<ClickEvent>(_ =>
+                _onMultiplayerClicked.OnNext(Unit.Default));
+
+            _playModeBackButton?.RegisterCallback<ClickEvent>(_ =>
+                _onPlayModeBackClicked.OnNext(Unit.Default));
 
             _returnButton?.RegisterCallback<ClickEvent>(_ =>
                 _onReturnClicked.OnNext(Unit.Default));
@@ -105,6 +133,24 @@ namespace Game.MVP.Survivor.Scenes
         public override void SetInteractables(bool interactable)
         {
             _root?.SetEnabled(interactable);
+        }
+
+        /// <summary>
+        /// プレイモード選択メニューを表示
+        /// </summary>
+        public void ShowPlayModeMenu()
+        {
+            _mainMenu?.AddToClassList("menu--hidden");
+            _playModeMenu?.RemoveFromClassList("menu--hidden");
+        }
+
+        /// <summary>
+        /// メインメニューに戻る
+        /// </summary>
+        public void ShowMainMenu()
+        {
+            _playModeMenu?.AddToClassList("menu--hidden");
+            _mainMenu?.RemoveFromClassList("menu--hidden");
         }
 
         /// <summary>

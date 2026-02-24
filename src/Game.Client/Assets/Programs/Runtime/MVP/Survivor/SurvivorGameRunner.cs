@@ -205,6 +205,7 @@ namespace Game.MVP.Survivor
             }
         }
 
+
         public async UniTask ShutdownAsync()
         {
             // キュー処理サブスクリプションを解除

@@ -62,6 +62,7 @@ namespace Game.Shared
     public static class GameEnvironmentHelper
     {
         private static GameEnvironment? _overrideEnvironment;
+        private static string _instanceSubPath;
 
         /// <summary>
         /// 現在の環境を取得（優先順位: Define > Override > Settings）
@@ -131,6 +132,12 @@ namespace Game.Shared
                 var envFolder = Current.ToString();
                 var path = Path.Combine(basePath, envFolder);
 
+                // MPPMクローン等でインスタンスサブパスが設定されている場合は挿入
+                if (!string.IsNullOrEmpty(_instanceSubPath))
+                {
+                    path = Path.Combine(path, _instanceSubPath);
+                }
+
                 // ディレクトリが存在しない場合は作成
                 if (!Directory.Exists(path))
                 {
@@ -140,6 +147,16 @@ namespace Game.Shared
                 return path;
 #endif
             }
+        }
+
+        /// <summary>
+        /// インスタンス固有のサブパスを設定（MPPMクローン分離用）
+        /// PersistentDataPath が {base}/{env}/{subPath}/ となる
+        /// </summary>
+        public static void SetInstanceSubPath(string subPath)
+        {
+            _instanceSubPath = subPath;
+            Debug.Log($"[GameEnvironmentHelper] Instance sub-path set: {subPath}");
         }
 
         public static bool Validate()

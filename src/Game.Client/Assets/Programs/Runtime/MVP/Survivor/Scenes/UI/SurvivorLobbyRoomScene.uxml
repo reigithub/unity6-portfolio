@@ -1,0 +1,39 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorLobbyRoomScene.uss" />
+
+    <ui:VisualElement name="root" class="root">
+        <!-- Header -->
+        <ui:VisualElement name="header" class="header">
+            <ui:Button text="&lt; LEAVE" name="leave-button" class="header-button" />
+            <ui:Label text="LOBBY ROOM" name="lobby-name-label" class="header-title" />
+            <ui:VisualElement class="header__spacer" />
+            <ui:Label text="0/4" name="player-count-label" class="player-count-label" />
+        </ui:VisualElement>
+
+        <!-- Content Area -->
+        <ui:VisualElement name="content" class="content">
+            <!-- Left: Player List -->
+            <ui:VisualElement name="player-list-panel" class="player-list-panel">
+                <ui:Label text="PLAYERS" class="panel-title" />
+                <ui:ScrollView name="player-list" class="player-list" />
+            </ui:VisualElement>
+
+            <!-- Right: Chat -->
+            <ui:VisualElement name="chat-panel" class="chat-panel">
+                <ui:Label text="CHAT" class="panel-title" />
+                <ui:ScrollView name="chat-messages" class="chat-messages" />
+                <ui:VisualElement class="chat-input-area">
+                    <ui:TextField name="chat-input" class="chat-input" />
+                    <ui:Button text="SEND" name="send-button" class="send-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Footer -->
+        <ui:VisualElement name="footer" class="footer">
+            <ui:Button text="READY" name="ready-button" class="ready-button" />
+            <!-- Notification -->
+            <ui:Label text="" name="notification-label" class="notification-label" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -24,6 +24,7 @@ namespace Game.Shared.Realtime.Client
         private bool _disposed;
 
         public bool IsConnected => _hub != null && !_disposed;
+        public string CurrentLobbyId => _currentLobbyId;
 
         public event Action<string, string> OnPlayerJoined;
         public event Action<string, string> OnPlayerLeft;
@@ -172,6 +173,19 @@ namespace Game.Shared.Realtime.Client
             {
                 Debug.LogError($"[LobbyClient] RPC error in GetLobbyPlayers: {ex.StatusCode}");
                 return Array.Empty<LobbyPlayerInfo>();
+            }
+        }
+
+        public async Task<LobbyInfo> GetMyLobbyAsync()
+        {
+            try
+            {
+                return await CreateService().GetMyLobbyAsync();
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogError($"[LobbyClient] RPC error in GetMyLobby: {ex.StatusCode}");
+                return null;
             }
         }
 

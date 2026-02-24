@@ -15,6 +15,11 @@ namespace Game.Shared.Realtime.Client
         bool IsConnected { get; }
 
         /// <summary>
+        /// 現在接続中のロビーID（未接続時は null）
+        /// </summary>
+        string CurrentLobbyId { get; }
+
+        /// <summary>
         /// ロビー作成（Unary のみ）
         /// </summary>
         Task<CreateLobbyResponse> CreateLobbyAsync(CreateLobbyRequest request);
@@ -63,6 +68,11 @@ namespace Game.Shared.Realtime.Client
         /// レディ状態設定（Hub）
         /// </summary>
         Task SetReadyAsync(bool isReady);
+
+        /// <summary>
+        /// 自分が参加中のロビーを取得（未参加時は null）
+        /// </summary>
+        Task<LobbyInfo> GetMyLobbyAsync();
 
         /// <summary>
         /// プレイヤー参加イベント

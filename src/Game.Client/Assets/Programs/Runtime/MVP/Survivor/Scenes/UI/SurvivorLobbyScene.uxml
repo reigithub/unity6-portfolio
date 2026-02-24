@@ -1,0 +1,51 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorLobbyScene.uss" />
+
+    <ui:VisualElement name="root" class="root">
+        <!-- Header -->
+        <ui:VisualElement name="header" class="header">
+            <ui:Button text="&lt; BACK" name="back-button" class="header-button" />
+            <ui:Label text="LOBBY" name="header-title" class="header-title" />
+            <ui:VisualElement class="header__spacer" />
+        </ui:VisualElement>
+
+        <!-- Content Area -->
+        <ui:VisualElement name="content" class="content">
+            <!-- Left: Lobby List -->
+            <ui:VisualElement name="lobby-list-panel" class="lobby-list-panel">
+                <ui:VisualElement class="panel-header">
+                    <ui:Label text="AVAILABLE LOBBIES" class="panel-title" />
+                    <ui:Button text="REFRESH" name="refresh-button" class="action-button" />
+                </ui:VisualElement>
+                <ui:ScrollView name="lobby-list" class="lobby-list" />
+                <ui:Label text="" name="lobby-list-empty" class="empty-label" />
+            </ui:VisualElement>
+
+            <!-- Right: Actions -->
+            <ui:VisualElement name="action-panel" class="action-panel">
+                <!-- Create Lobby -->
+                <ui:VisualElement class="action-section">
+                    <ui:Label text="CREATE LOBBY" class="section-title" />
+                    <ui:TextField name="lobby-name-input" label="Lobby Name" value="My Lobby" class="text-field" />
+                    <ui:SliderInt name="max-players-slider" label="Max Players" low-value="2" high-value="8" value="4" show-input-field="true" class="slider-field" />
+                    <ui:Button text="CREATE" name="create-button" class="menu-button menu-button--primary" />
+                </ui:VisualElement>
+
+                <!-- Quick Match -->
+                <ui:VisualElement class="action-section">
+                    <ui:Label text="QUICK MATCH" class="section-title" />
+                    <ui:Button text="FIND MATCH" name="quick-match-button" class="menu-button menu-button--secondary" />
+                    <!-- Matchmaking Status (hidden by default) -->
+                    <ui:VisualElement name="matchmaking-status" class="matchmaking-status matchmaking-status--hidden">
+                        <ui:Label text="Searching for match..." name="matchmaking-label" class="matchmaking-label" />
+                        <ui:Label text="Players in queue: 0" name="queue-count-label" class="queue-count-label" />
+                        <ui:Button text="CANCEL" name="cancel-matchmaking-button" class="menu-button menu-button--danger" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Error Label -->
+        <ui:Label text="" name="error-label" class="error-label" />
+    </ui:VisualElement>
+</ui:UXML>
