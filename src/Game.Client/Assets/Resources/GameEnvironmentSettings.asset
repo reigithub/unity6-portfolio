@@ -17,7 +17,7 @@ MonoBehaviour:
   - _environment: 0
     _dependencyResolverMode: 1
     _apiBaseUrl: http://localhost:5000
-    _grpcBaseUrl: 
+    _grpcBaseUrl: http://localhost:5001
     _webSocketUrl: 
     _enableDebugLog: 0
     _enableAnalytics: 0
