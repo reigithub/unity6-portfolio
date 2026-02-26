@@ -6,6 +6,7 @@ using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
@@ -195,6 +196,12 @@ namespace Game.MVP.Survivor.Item
                 item.gameObject.SetActive(true);
 
                 _activeItems[itemId].Add(item);
+
+                // サーバー: クライアントにアイテムスポーンを通知
+                if (NetworkModeHelper.IsNetworkServer)
+                {
+                    NetworkSurvivorItemSync.Instance?.SpawnItemClientRpc(itemId, position.x, position.z);
+                }
             }
         }
 
@@ -339,6 +346,13 @@ namespace Game.MVP.Survivor.Item
         private void OnItemCollectedHandler(SurvivorItem item)
         {
             _onItemCollected.OnNext(item);
+
+            // サーバー: クライアントにアイテム回収を通知
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                NetworkSurvivorItemSync.Instance?.DespawnItemClientRpc(item.ItemId);
+            }
+
             ReturnToPool(item);
         }
 

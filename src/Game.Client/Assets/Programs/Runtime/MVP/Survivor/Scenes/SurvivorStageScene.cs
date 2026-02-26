@@ -6,9 +6,11 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
 using R3.Triggers;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -220,8 +222,65 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
+            // サーバー: ゲームイベントを NetworkSurvivorGameManager にブリッジ
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                SubscribeNetworkEventBridge();
+            }
+
             // 自動保存のセットアップ
             SetupAutoSave();
+        }
+
+        private void SubscribeNetworkEventBridge()
+        {
+            var gm = NetworkSurvivorGameManager.Instance;
+            if (gm == null) return;
+
+            // プレイヤーダメージ
+            if (SceneComponent.PlayerController != null)
+            {
+                SceneComponent.PlayerController.OnDamaged
+                    .Subscribe(damage =>
+                    {
+                        var userId = new FixedString64Bytes("local");
+                        gm.NotifyPlayerDamagedClientRpc(userId, damage, _stageModel.CurrentHp.Value);
+                    })
+                    .AddTo(Disposables);
+
+                SceneComponent.PlayerController.OnDeath
+                    .Subscribe(_ =>
+                    {
+                        var userId = new FixedString64Bytes("local");
+                        gm.NotifyPlayerDiedClientRpc(userId);
+                    })
+                    .AddTo(Disposables);
+            }
+
+            // ウェーブ開始
+            _waveManager.CurrentWave
+                .Where(w => w > 0)
+                .Subscribe(w =>
+                {
+                    var info = _waveManager.GetSpawnInfo();
+                    gm.NotifyWaveStartedClientRpc(w, info.TargetKillCount, info.EnemyCount);
+                })
+                .AddTo(Disposables);
+
+            // ウェーブクリア
+            _waveManager.OnWaveCleared
+                .Subscribe(clearedWave =>
+                {
+                    var spawnInfo = _waveManager.GetSpawnInfo();
+                    gm.NotifyWaveClearedClientRpc(clearedWave, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
+                })
+                .AddTo(Disposables);
+
+            // 全ウェーブクリア
+            _waveManager.IsAllWavesCleared
+                .Where(cleared => cleared)
+                .Subscribe(_ => gm.NotifyAllWavesClearedClientRpc())
+                .AddTo(Disposables);
         }
 
         private void SetupAutoSave()

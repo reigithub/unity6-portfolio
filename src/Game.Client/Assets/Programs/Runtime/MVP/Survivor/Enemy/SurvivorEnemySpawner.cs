@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
+using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
@@ -64,6 +66,10 @@ namespace Game.MVP.Survivor.Enemy
         private int _currentSpawnIndex;
         private float _spawnTimer;
         private int _remainingSpawnCount;
+
+        // ネットワーク敵同期
+        private const float EnemySyncInterval = 1.0f; // 1Hz
+        private float _enemySyncTimer;
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onEnemyKilled = new();
@@ -160,6 +166,17 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
+            // サーバー: 定期的に敵状態をバッチ送信
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                _enemySyncTimer -= Time.deltaTime;
+                if (_enemySyncTimer <= 0f)
+                {
+                    _enemySyncTimer = EnemySyncInterval;
+                    SyncEnemyStatesToNetwork();
+                }
+            }
+
             if (!_isSpawning)
             {
                 return;
@@ -183,6 +200,28 @@ namespace Game.MVP.Survivor.Enemy
             {
                 SpawnNextEnemy();
             }
+        }
+
+        private void SyncEnemyStatesToNetwork()
+        {
+            if (NetworkSurvivorEnemyState.Instance == null || _activeEnemies.Count == 0)
+                return;
+
+            var snapshots = new NetworkSurvivorEnemyStateSnapshot[_activeEnemies.Count];
+            for (int i = 0; i < _activeEnemies.Count; i++)
+            {
+                var enemy = _activeEnemies[i];
+                snapshots[i] = new NetworkSurvivorEnemyStateSnapshot
+                {
+                    NetworkId = i,
+                    EnemyMasterId = enemy.EnemyId,
+                    PositionX = enemy.transform.position.x,
+                    PositionZ = enemy.transform.position.z,
+                    CurrentHp = enemy.CurrentHp,
+                    SyncType = EnemySyncType.PositionUpdate
+                };
+            }
+            NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()

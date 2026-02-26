@@ -1,5 +1,6 @@
 using Game.Library.Shared;
 using Game.Shared;
+using Game.Shared.Netcode.Survivor;
 using R3;
 using UnityEngine;
 
@@ -177,7 +178,7 @@ namespace Game.MVP.Survivor.Player
                 var ctx = Context;
                 ctx._onDeath.OnNext(Unit.Default);
 
-                if (ctx._animator != null)
+                if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                 {
                     ctx._animator.SetTrigger(AnimatorHashDeath);
                 }

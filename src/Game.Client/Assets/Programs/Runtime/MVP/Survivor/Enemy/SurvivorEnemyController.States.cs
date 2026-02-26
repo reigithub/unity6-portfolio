@@ -3,6 +3,7 @@ using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Events;
+using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -90,15 +91,18 @@ namespace Game.MVP.Survivor.Enemy
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
 
-            if (_animator != null)
+            if (NetworkModeHelper.ShouldRunVisuals)
             {
-                _animator.SetTrigger(HitHash);
-            }
+                if (_animator != null)
+                {
+                    _animator.SetTrigger(HitHash);
+                }
 
-            // ヒットフラッシュ再生
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.PlayHitFlash();
+                // ヒットフラッシュ再生
+                if (_visualEffectController != null)
+                {
+                    _visualEffectController.PlayHitFlash();
+                }
             }
 
             shouldDie = _currentHp <= 0;
@@ -146,7 +150,7 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
+                if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                 {
                     ctx._animator.SetFloat(SpeedHash, 0f);
                 }
@@ -201,7 +205,7 @@ namespace Game.MVP.Survivor.Enemy
                 {
                     ctx._navAgent.SetDestination(ctx._target.position);
 
-                    if (ctx._animator != null)
+                    if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                     {
                         float speed = ctx._navAgent.velocity.magnitude / Mathf.Max(ctx._navAgent.speed, 0.01f);
                         ctx._animator.SetFloat(SpeedHash, speed);
@@ -223,7 +227,7 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
+                if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                 {
                     ctx._animator.SetFloat(SpeedHash, 0f);
                 }
@@ -276,8 +280,8 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private void PerformAttack()
         {
-            // 攻撃アニメーション
-            if (_animator != null)
+            // 攻撃アニメーション（サーバーではスキップ）
+            if (NetworkModeHelper.ShouldRunVisuals && _animator != null)
             {
                 _animator.SetTrigger(AttackHash);
             }
@@ -314,7 +318,7 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
+                if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                 {
                     ctx._animator.SetFloat(SpeedHash, 0f);
                 }
@@ -365,26 +369,29 @@ namespace Game.MVP.Survivor.Enemy
                 _collider.enabled = false;
             }
 
-            if (_animator != null)
+            // ビジュアル系はサーバーではスキップ
+            if (NetworkModeHelper.ShouldRunVisuals)
             {
-                _animator.SetTrigger(DeathHash);
+                if (_animator != null)
+                {
+                    _animator.SetTrigger(DeathHash);
+                }
+
+                // ディゾルブエフェクト再生
+                if (_visualEffectController != null)
+                {
+                    _visualEffectController.PlayDeathDissolveAsync(destroyCancellationToken).Forget();
+                }
             }
 
-            // 既存イベント（後方互換性）
+            // ゲームロジック（イベント）は常に実行
             _onDeath.OnNext(this);
 
-            // IDeathNotifier経由のイベント（抽象化されたデータ）
             _onDeathEvent.OnNext(new DeathEventData(
                 transform.position,
                 _itemDropGroupId,
                 _expDropGroupId
             ));
-
-            // ディゾルブエフェクト再生
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.PlayDeathDissolveAsync(destroyCancellationToken).Forget();
-            }
         }
 
         /// <summary>

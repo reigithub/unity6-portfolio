@@ -104,6 +104,8 @@ namespace Game.Shared.DedicatedServer.Netcode
                 {
                     var instance = Instantiate(prefab.Prefab);
                     instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+                    // バインドは NetworkSurvivorPlayerState.OnNetworkSpawn() 内で
+                    // NetworkPlayerStateBindableRegistry 経由で実行される
                     Debug.Log($"[ServerNetworkManager] NetworkSurvivorPlayerState spawned for client {clientId}");
                     return;
                 }

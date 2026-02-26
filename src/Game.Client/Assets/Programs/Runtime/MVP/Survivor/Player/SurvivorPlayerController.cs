@@ -6,6 +6,7 @@ using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
 using R3;
@@ -22,7 +23,7 @@ namespace Game.MVP.Survivor.Player
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, INetworkPlayerStateBindable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
@@ -109,6 +110,9 @@ namespace Game.MVP.Survivor.Player
         private const float ItemCheckInterval = 0.1f;
         private float _itemCheckTimer;
 
+        // ネットワーク同期用
+        private NetworkSurvivorPlayerState _networkPlayerState;
+
         // アニメータハッシュ
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
         private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
@@ -121,6 +125,8 @@ namespace Game.MVP.Survivor.Player
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
+
+            NetworkPlayerStateBindableRegistry.Register(this);
         }
 
         private void Update()
@@ -133,16 +139,52 @@ namespace Game.MVP.Survivor.Player
         private void FixedUpdate()
         {
             _stateMachine?.FixedUpdate();
+
+            // サーバー: プレイヤー状態を NetworkSurvivorPlayerState に反映
+            if (NetworkModeHelper.IsNetworkServer && _networkPlayerState != null)
+            {
+                PushStateToNetwork();
+            }
+        }
+
+        private void PushStateToNetwork()
+        {
+            var snapshot = new NetworkSurvivorPlayerStateSnapshot
+            {
+                PositionX = transform.position.x,
+                PositionY = transform.position.y,
+                PositionZ = transform.position.z,
+                RotationY = transform.eulerAngles.y,
+                Speed = _speed.Value,
+                CurrentHp = _currentHp.Value,
+                CurrentStamina = _currentStamina.Value,
+                IsInvincible = _isInvincible.Value
+            };
+            _networkPlayerState.UpdateState(snapshot);
         }
 
         private void OnDestroy()
         {
+            NetworkPlayerStateBindableRegistry.Unregister(this);
+
             _speed.Dispose();
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
             _onDamaged.Dispose();
             _onDeath.Dispose();
+        }
+
+        #endregion
+
+        #region Network
+
+        /// <summary>
+        /// サーバー側: クライアントの NetworkSurvivorPlayerState をバインド
+        /// </summary>
+        public void BindNetworkPlayerState(NetworkSurvivorPlayerState playerState)
+        {
+            _networkPlayerState = playerState;
         }
 
         #endregion
@@ -177,11 +219,14 @@ namespace Game.MVP.Survivor.Player
                 _mainCamera = _gameRootController.MainCamera.transform;
             }
 
-            // スピードが変わった時だけアニメーターを更新
-            _speed
-                .DistinctUntilChanged()
-                .Subscribe(speed => _animator.SetFloat(AnimatorHashSpeed, speed))
-                .AddTo(this);
+            // スピードが変わった時だけアニメーターを更新（サーバーではスキップ）
+            if (NetworkModeHelper.ShouldRunVisuals)
+            {
+                _speed
+                    .DistinctUntilChanged()
+                    .Subscribe(speed => _animator.SetFloat(AnimatorHashSpeed, speed))
+                    .AddTo(this);
+            }
 
             // ステートマシン初期化
             InitializeStateMachine();
@@ -241,6 +286,25 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_updateInputMarker.Auto())
             {
+                if (_inputService == null && _networkPlayerState == null)
+                    return;
+
+                // サーバーモード: ServerRpc 受信バッファから入力読み取り
+                if (NetworkModeHelper.IsNetworkServer && _networkPlayerState != null)
+                {
+                    if (_networkPlayerState.TryConsumeInput(out var moveX, out var moveY, out var isSprinting))
+                    {
+                        _moveValue = new Vector2(moveX, moveY);
+                        _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
+                        var isRunning = isSprinting && _currentStamina.Value > 0;
+                        _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
+                        UpdateStamina(isRunning);
+                        if (IsMoveInput()) _lookRotation = Quaternion.LookRotation(_moveVector);
+                    }
+                    return;
+                }
+
+                // SP / クライアント: ローカル入力（既存ロジック）
                 if (_inputService == null)
                     return;
 
@@ -253,11 +317,11 @@ namespace Game.MVP.Survivor.Player
                 var canRun = _currentStamina.Value > 0;
 
                 // 移動速度更新（スタミナがある場合のみダッシュ可能）
-                var isRunning = wantToRun && canRun;
-                _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
+                var isRunning2 = wantToRun && canRun;
+                _speed.Value = _moveVector.magnitude * (isRunning2 ? _runSpeed : _jogSpeed);
 
                 // スタミナ消費・回復（deltaTimeベース）
-                UpdateStamina(isRunning);
+                UpdateStamina(isRunning2);
 
                 // 回転入力受付
                 if (IsMoveInput())

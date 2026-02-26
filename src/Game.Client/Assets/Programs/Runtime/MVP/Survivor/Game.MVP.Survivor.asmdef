@@ -20,7 +20,9 @@
         "MessagePipe",
         "MessagePipe.VContainer",
         "VContainer",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

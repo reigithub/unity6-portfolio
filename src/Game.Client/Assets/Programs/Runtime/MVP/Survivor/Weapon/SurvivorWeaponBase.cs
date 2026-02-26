@@ -4,6 +4,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -176,8 +177,8 @@ namespace Game.MVP.Survivor.Weapon
             _damageMultiplier = damageMultiplier;
             _attackTimer = 0f;
 
-            // ヒットエフェクト設定
-            _vfxSpawner = vfxSpawner;
+            // ヒットエフェクト設定（サーバーではVFXスキップ）
+            _vfxSpawner = NetworkModeHelper.ShouldRunVisuals ? vfxSpawner : null;
             _hitEffectAssetName = _weaponMaster.HitEffectAssetName;
             _hitEffectScale = _weaponMaster.HitEffectScale > 0
                 ? _weaponMaster.HitEffectScale / 10000f

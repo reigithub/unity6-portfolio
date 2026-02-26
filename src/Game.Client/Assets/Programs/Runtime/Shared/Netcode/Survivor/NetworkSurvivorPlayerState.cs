@@ -23,13 +23,40 @@ namespace Game.Shared.Netcode.Survivor
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
-        // --- クライアント → サーバー入力（ServerRpc） ---
+        // --- サーバー側入力バッファ ---
+        private float _pendingMoveX;
+        private float _pendingMoveY;
+        private bool _pendingIsSprinting;
+        private bool _hasInput;
 
+        /// <summary>
+        /// サーバー側: バッファされた入力を消費する。
+        /// SurvivorPlayerController.UpdateInput() から呼ばれる。
+        /// </summary>
+        public bool TryConsumeInput(out float moveX, out float moveY, out bool isSprinting)
+        {
+            if (!_hasInput)
+            {
+                moveX = 0;
+                moveY = 0;
+                isSprinting = false;
+                return false;
+            }
+            moveX = _pendingMoveX;
+            moveY = _pendingMoveY;
+            isSprinting = _pendingIsSprinting;
+            _hasInput = false;
+            return true;
+        }
+
+        // --- クライアント → サーバー入力（ServerRpc） ---
         [ServerRpc]
         public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting)
         {
-            // Phase 4+: SurvivorPlayerController に入力を転送
-            Debug.Log($"[NetworkSurvivorPlayerState] MoveInput from {OwnerClientId}: ({moveX}, {moveY}) sprint={isSprinting}");
+            _pendingMoveX = moveX;
+            _pendingMoveY = moveY;
+            _pendingIsSprinting = isSprinting;
+            _hasInput = true;
         }
 
         [ServerRpc]
@@ -64,6 +91,18 @@ namespace Game.Shared.Netcode.Survivor
             {
                 State.OnValueChanged += OnStateChanged;
             }
+
+            // サーバー: レジストリから INetworkPlayerStateBindable を検索してバインド
+            if (IsServer)
+            {
+                foreach (var bindable in NetworkPlayerStateBindableRegistry.Bindables)
+                {
+                    bindable.BindNetworkPlayerState(this);
+                    Debug.Log($"[NetworkSurvivorPlayerState] Bound to {bindable.GetType().Name} for client {OwnerClientId}");
+                    break; // Phase 4: 1プレイヤー前提。Phase 5 で複数プレイヤーマッピングに置換
+                }
+            }
+
             Debug.Log($"[NetworkSurvivorPlayerState] Spawned for client {OwnerClientId} (IsServer={IsServer})");
         }
 

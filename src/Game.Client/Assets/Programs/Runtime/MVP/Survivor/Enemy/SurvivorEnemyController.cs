@@ -3,6 +3,7 @@ using Game.Client.MasterData;
 using Game.Shared.Combat;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode.Survivor;
 using R3;
 using Unity.Profiling;
 using UnityEngine;
@@ -65,6 +66,9 @@ namespace Game.MVP.Survivor.Enemy
         public int AttackDamage => _attackDamage;
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
+
+        /// <summary>現在HP（ネットワーク同期用）</summary>
+        public int CurrentHp => _currentHp;
 
         /// <summary>死亡アニメーション時間（秒）</summary>
         public float DeathAnimDuration => _deathAnimDuration;
