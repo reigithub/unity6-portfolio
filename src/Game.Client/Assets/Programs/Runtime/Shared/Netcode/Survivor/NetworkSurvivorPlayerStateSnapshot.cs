@@ -2,9 +2,9 @@ using Unity.Collections;
 using Unity.Netcode;
 using Game.Library.Shared.Dto;
 
-namespace Game.Shared.Netcode
+namespace Game.Shared.Netcode.Survivor
 {
-    public struct NetworkPlayerStateSnapshot : INetworkSerializable
+    public struct NetworkSurvivorPlayerStateSnapshot : INetworkSerializable
     {
         public FixedString64Bytes UserId;
         public float PositionX;
@@ -29,9 +29,9 @@ namespace Game.Shared.Netcode
             serializer.SerializeValue(ref IsInvincible);
         }
 
-        public static NetworkPlayerStateSnapshot FromDto(PlayerStateSnapshot dto)
+        public static NetworkSurvivorPlayerStateSnapshot FromDto(PlayerStateSnapshot dto)
         {
-            return new NetworkPlayerStateSnapshot
+            return new NetworkSurvivorPlayerStateSnapshot
             {
                 UserId = new FixedString64Bytes(dto.UserId),
                 PositionX = dto.PositionX,

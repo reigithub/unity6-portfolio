@@ -2,9 +2,9 @@ using Unity.Collections;
 using Unity.Netcode;
 using Game.Library.Shared.Dto;
 
-namespace Game.Shared.Netcode
+namespace Game.Shared.Netcode.Survivor
 {
-    public struct NetworkPlayerResult : INetworkSerializable
+    public struct NetworkSurvivorPlayerResult : INetworkSerializable
     {
         public FixedString64Bytes UserId;
         public int Score;
@@ -19,9 +19,9 @@ namespace Game.Shared.Netcode
             serializer.SerializeValue(ref Level);
         }
 
-        public static NetworkPlayerResult FromDto(PlayerResultSnapshot dto)
+        public static NetworkSurvivorPlayerResult FromDto(PlayerResultSnapshot dto)
         {
-            return new NetworkPlayerResult
+            return new NetworkSurvivorPlayerResult
             {
                 UserId = new FixedString64Bytes(dto.UserId),
                 Score = dto.Score,
@@ -42,7 +42,7 @@ namespace Game.Shared.Netcode
         }
     }
 
-    public struct NetworkGameResult : INetworkSerializable
+    public struct NetworkSurvivorGameResult : INetworkSerializable
     {
         public bool IsVictory;
         public float ClearTime;
@@ -53,9 +53,9 @@ namespace Game.Shared.Netcode
             serializer.SerializeValue(ref ClearTime);
         }
 
-        public static NetworkGameResult FromDto(GameResultSnapshot dto)
+        public static NetworkSurvivorGameResult FromDto(GameResultSnapshot dto)
         {
-            return new NetworkGameResult
+            return new NetworkSurvivorGameResult
             {
                 IsVictory = dto.IsVictory,
                 ClearTime = dto.ClearTime,

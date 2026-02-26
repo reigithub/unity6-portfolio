@@ -1,5 +1,6 @@
 #if UNITY_SERVER
 using System;
+using Game.Shared.Netcode.Survivor;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -15,6 +16,11 @@ namespace Game.Shared.DedicatedServer.Netcode
         public static ServerNetworkManager Instance { get; private set; }
 
         private ushort _port = 7777;
+
+        // セッション管理
+        private GameObject _gameManagerInstance;
+        private GameObject _enemyStateInstance;
+        private GameObject _itemSyncInstance;
 
         private void Awake()
         {
@@ -55,9 +61,54 @@ namespace Game.Shared.DedicatedServer.Netcode
             Debug.Log($"[ServerNetworkManager] NGO Server started on port {_port}");
         }
 
+        /// <summary>
+        /// NGO セッション開始 — シングルトン NetworkBehaviour 群をスポーン。
+        /// Phase 3 ではサーバー起動直後に暫定呼び出し。Phase 4 以降でマッチ開始トリガーから呼ばれるように変更。
+        /// </summary>
+        public void StartSession()
+        {
+            _gameManagerInstance = SpawnSingleton<NetworkSurvivorGameManager>();
+            _enemyStateInstance = SpawnSingleton<NetworkSurvivorEnemyState>();
+            _itemSyncInstance = SpawnSingleton<NetworkSurvivorItemSync>();
+            Debug.Log("[ServerNetworkManager] Session started — singletons spawned");
+        }
+
+        private GameObject SpawnSingleton<T>() where T : NetworkBehaviour
+        {
+            var nm = NetworkManager.Singleton;
+            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
+            {
+                if (prefab.Prefab.GetComponent<T>() != null)
+                {
+                    var instance = Instantiate(prefab.Prefab);
+                    instance.GetComponent<NetworkObject>().Spawn();
+                    return instance;
+                }
+            }
+            Debug.LogError($"[ServerNetworkManager] Prefab with {typeof(T).Name} not found");
+            return null;
+        }
+
         private void OnClientConnected(ulong clientId)
         {
             Debug.Log($"[ServerNetworkManager] Client connected: {clientId}");
+            SpawnPlayerState(clientId);
+        }
+
+        private void SpawnPlayerState(ulong clientId)
+        {
+            var nm = NetworkManager.Singleton;
+            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
+            {
+                if (prefab.Prefab.GetComponent<NetworkSurvivorPlayerState>() != null)
+                {
+                    var instance = Instantiate(prefab.Prefab);
+                    instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+                    Debug.Log($"[ServerNetworkManager] NetworkSurvivorPlayerState spawned for client {clientId}");
+                    return;
+                }
+            }
+            Debug.LogError("[ServerNetworkManager] NetworkSurvivorPlayerState prefab not found");
         }
 
         private void OnClientDisconnected(ulong clientId)
@@ -72,10 +123,22 @@ namespace Game.Shared.DedicatedServer.Netcode
                 NetworkManager.Singleton.Shutdown();
             }
 
+            CleanupSessionInstances();
+
             if (Instance == this)
             {
                 Instance = null;
             }
+        }
+
+        private void CleanupSessionInstances()
+        {
+            if (_gameManagerInstance != null) Destroy(_gameManagerInstance);
+            if (_enemyStateInstance != null) Destroy(_enemyStateInstance);
+            if (_itemSyncInstance != null) Destroy(_itemSyncInstance);
+            _gameManagerInstance = null;
+            _enemyStateInstance = null;
+            _itemSyncInstance = null;
         }
 
         /// <summary>

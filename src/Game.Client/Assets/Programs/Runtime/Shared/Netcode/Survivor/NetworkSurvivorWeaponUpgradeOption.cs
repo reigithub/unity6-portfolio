@@ -2,9 +2,9 @@ using Unity.Collections;
 using Unity.Netcode;
 using Game.Library.Shared.Dto;
 
-namespace Game.Shared.Netcode
+namespace Game.Shared.Netcode.Survivor
 {
-    public struct NetworkWeaponUpgradeOption : INetworkSerializable
+    public struct NetworkSurvivorWeaponUpgradeOption : INetworkSerializable
     {
         public int WeaponId;
         public FixedString128Bytes WeaponName;
@@ -25,9 +25,9 @@ namespace Game.Shared.Netcode
             serializer.SerializeValue(ref IconAssetName);
         }
 
-        public static NetworkWeaponUpgradeOption FromDto(WeaponUpgradeOptionSnapshot dto)
+        public static NetworkSurvivorWeaponUpgradeOption FromDto(WeaponUpgradeOptionSnapshot dto)
         {
-            return new NetworkWeaponUpgradeOption
+            return new NetworkSurvivorWeaponUpgradeOption
             {
                 WeaponId = dto.WeaponId,
                 WeaponName = new FixedString128Bytes(dto.WeaponName),
