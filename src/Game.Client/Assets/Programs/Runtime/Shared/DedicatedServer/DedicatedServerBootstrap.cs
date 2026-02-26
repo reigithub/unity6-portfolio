@@ -1,11 +1,12 @@
 #if UNITY_SERVER
+using Game.Shared.DedicatedServer.Netcode;
 using UnityEngine;
 
 namespace Game.Shared.DedicatedServer
 {
     /// <summary>
-    /// Dedicated Server 起動時の初期化処理
-    /// Phase 3 で IPC ブリッジ初期化を追加予定
+    /// Dedicated Server 起動時の初期化処理。
+    /// NGO サーバーを自動起動し、クライアント接続を受け入れる。
     /// </summary>
     public static class DedicatedServerBootstrap
     {
@@ -25,6 +26,15 @@ namespace Game.Shared.DedicatedServer
 
             // スクリーンスリープ無効化
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
+            // --- NGO Server 起動 ---
+            ushort port = ServerNetworkManager.ParsePort();
+            Debug.Log($"[ServerBootstrap] Starting NGO Server on port {port}...");
+
+            var serverGo = new GameObject("[ServerNetworkManager]");
+            Object.DontDestroyOnLoad(serverGo);
+            var serverNm = serverGo.AddComponent<ServerNetworkManager>();
+            serverNm.Initialize(port);
         }
     }
 }

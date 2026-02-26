@@ -15,7 +15,8 @@
         "Cysharp.Net.Http.YetAnotherHttpHandler",
         "MagicOnion.Unity",
         "Unity.Netcode.Runtime",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.Networking.Transport"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
