@@ -240,6 +240,35 @@ namespace Game.Editor.Build
         }
 
         /// <summary>
+        /// Windows Dedicated Server ビルドを実行
+        /// </summary>
+        [MenuItem("Build/Server/Windows Dedicated Server")]
+        public static void BuildDedicatedServerWindows()
+        {
+            var scenes = GetBuildScenes();
+            var buildPath = GetBuildPath("Server-Windows",
+                $"{Application.productName}_Server.exe");
+
+            BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64,
+                BuildOptions.None, (int)StandaloneBuildSubtarget.Server);
+        }
+
+        /// <summary>
+        /// Windows Dedicated Server 開発ビルドを実行
+        /// </summary>
+        [MenuItem("Build/Server/Windows Dedicated Server Development")]
+        public static void BuildDedicatedServerWindowsDevelopment()
+        {
+            var scenes = GetBuildScenes();
+            var buildPath = GetBuildPath("Server-Windows-Dev",
+                $"{Application.productName}_Server.exe");
+
+            BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64,
+                BuildOptions.Development | BuildOptions.AllowDebugging,
+                (int)StandaloneBuildSubtarget.Server);
+        }
+
+        /// <summary>
         /// 全プラットフォームのビルドを実行
         /// </summary>
         [MenuItem("Build/Build All Platforms")]
@@ -281,7 +310,8 @@ namespace Game.Editor.Build
         /// <summary>
         /// ビルドを実行
         /// </summary>
-        private static void BuildPlayer(string[] scenes, string locationPathName, BuildTarget target, BuildOptions options)
+        private static void BuildPlayer(string[] scenes, string locationPathName, BuildTarget target, BuildOptions options,
+            int subtarget = (int)StandaloneBuildSubtarget.Player)
         {
             Debug.Log("========================================");
             Debug.Log($"[BuildScript] Starting build for {target}");
@@ -362,7 +392,8 @@ namespace Game.Editor.Build
                 scenes = scenes,
                 locationPathName = locationPathName,
                 target = target,
-                options = options
+                options = options,
+                subtarget = subtarget
             };
 
             var startTime = DateTime.Now;
