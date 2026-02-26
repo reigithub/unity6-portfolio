@@ -13,7 +13,9 @@
         "Unity.ResourceManager",
         "DOTween.Modules",
         "Cysharp.Net.Http.YetAnotherHttpHandler",
-        "MagicOnion.Unity"
+        "MagicOnion.Unity",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
