@@ -9,8 +9,8 @@ namespace Game.Shared.DedicatedServer
     /// </summary>
     public static class DedicatedServerBootstrap
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Initialize()
+        // [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        public static void Initialize()
         {
             Debug.Log("[ServerBootstrap] ========================================");
             Debug.Log("[ServerBootstrap] Dedicated Server starting...");
