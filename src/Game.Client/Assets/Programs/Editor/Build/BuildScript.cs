@@ -345,10 +345,11 @@ namespace Game.Editor.Build
             }
 
             // Build Profile を確認（コマンドライン引数優先）
+            var isServer = subtarget == (int)StandaloneBuildSubtarget.Server;
             var profilePath = BuildProfileHelper.GetBuildProfileFromArgs();
             if (string.IsNullOrEmpty(profilePath))
             {
-                profilePath = BuildProfileHelper.FindBuildProfilePath(target);
+                profilePath = BuildProfileHelper.FindBuildProfilePath(target, isServer);
             }
 
             if (!string.IsNullOrEmpty(profilePath))
