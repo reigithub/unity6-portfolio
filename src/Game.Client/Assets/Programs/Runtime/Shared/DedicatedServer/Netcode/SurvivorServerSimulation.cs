@@ -1,5 +1,6 @@
 #if UNITY_SERVER
 using Cysharp.Threading.Tasks;
+using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
 namespace Game.Shared.DedicatedServer.Netcode
@@ -37,6 +38,27 @@ namespace Game.Shared.DedicatedServer.Netcode
             _sessionStarted = true;
             ServerNetworkManager.Instance.StartSession();
             Debug.Log("[SurvivorServerSimulation] Session started");
+
+            // シングルトン OnNetworkSpawn 完了を待機してから通知
+            NotifyPlayersReadyAsync().Forget();
+        }
+
+        private async UniTaskVoid NotifyPlayersReadyAsync()
+        {
+            // NetworkBehaviour の OnNetworkSpawn が完了するまで待機
+            await UniTask.NextFrame();
+
+            var gm = NetworkSurvivorGameManager.Instance;
+            if (gm != null)
+            {
+                gm.NotifyAllPlayersReadyClientRpc();
+                gm.NotifyGameStartedClientRpc(Time.time);
+                Debug.Log("[SurvivorServerSimulation] AllPlayersReady + GameStarted sent");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorServerSimulation] NetworkSurvivorGameManager not found");
+            }
         }
 
         public void EndSession()

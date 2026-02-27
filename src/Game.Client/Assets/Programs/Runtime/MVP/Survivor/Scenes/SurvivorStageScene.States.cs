@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Library.Shared.Enums;
@@ -12,6 +13,8 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
+using MessagePipe;
+using Unity.Netcode;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -116,6 +119,10 @@ namespace Game.MVP.Survivor.Scenes
                 if (NetworkSurvivorMatchConnector.HasMatchResult)
                 {
                     await ConnectToServerAsync();
+
+                    // サーバーからの AllPlayersReady を待機
+                    await WaitForAllPlayersReadyAsync();
+
                     InitializeClientViews();
                 }
 
@@ -168,6 +175,27 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._networkClient.ConnectAsync(address, port);
             }
 
+            private async UniTask WaitForAllPlayersReadyAsync()
+            {
+                var tcs = new UniTaskCompletionSource();
+                var subscription = Context._allPlayersReadySub.Subscribe(_ =>
+                {
+                    tcs.TrySetResult();
+                });
+                try
+                {
+                    // 10秒タイムアウト（サーバー応答なしの場合はフォールスルー）
+                    await UniTask.WhenAny(
+                        tcs.Task,
+                        UniTask.Delay(TimeSpan.FromSeconds(10))
+                    );
+                }
+                finally
+                {
+                    subscription.Dispose();
+                }
+            }
+
             private void InitializeClientViews()
             {
                 // InjectGameObject: VContainer が [Inject] フィールドを自動解決
@@ -177,6 +205,14 @@ namespace Game.MVP.Survivor.Scenes
                     Context.Resolver.InjectGameObject(NetworkSurvivorEnemyState.Instance.gameObject);
                 if (NetworkSurvivorItemSync.Instance != null)
                     Context.Resolver.InjectGameObject(NetworkSurvivorItemSync.Instance.gameObject);
+
+                // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
+                var playerObj = NetworkManager.Singleton?.LocalClient?.PlayerObject;
+                if (playerObj != null)
+                {
+                    Context._localPlayerState = playerObj.GetComponent<NetworkSurvivorPlayerState>();
+                    Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
+                }
 
                 // View に ISubscriber を注入（AddComponent なので Initialize 経由）
                 var enemyViewGo = new GameObject("[SurvivorEnemyView]");
@@ -379,6 +415,8 @@ namespace Game.MVP.Survivor.Scenes
                             await View.WeaponManager.ReplaceWeaponAsync(
                                 removeWeaponId.Value,
                                 result.WeaponId);
+                            Context._localPlayerState?.SendWeaponReplaceServerRpc(
+                                removeWeaponId.Value, result.WeaponId);
                             break; // 成功したらループを抜ける
                         }
 
@@ -389,6 +427,8 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         // 通常の武器追加/アップグレード
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
+                        Context._localPlayerState?.SendWeaponChoiceServerRpc(
+                            result.WeaponId, result.IsNewWeapon);
                         break; // 成功したらループを抜ける
                     }
                 }
@@ -453,6 +493,17 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
                 Context._isResultSaved = true;
 
+                // NGO 接続中ならサーバーに結果を通知
+                if (Context._localPlayerState != null)
+                {
+                    var result = new NetworkSurvivorGameResult
+                    {
+                        IsVictory = true,
+                        ClearTime = clearTime
+                    };
+                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                }
+
                 Debug.Log("[VictoryState] Result saved successfully");
 
                 // Victory表示の待機（保存処理と並行して最低2秒は表示）
@@ -506,6 +557,17 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 Context._isResultSaved = true;
+
+                // NGO 接続中ならサーバーに結果を通知
+                if (Context._localPlayerState != null)
+                {
+                    var result = new NetworkSurvivorGameResult
+                    {
+                        IsVictory = false,
+                        ClearTime = clearTime
+                    };
+                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                }
 
                 Debug.Log("[GameOverState] Result saved successfully");
 

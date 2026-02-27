@@ -83,6 +83,13 @@ namespace Game.Shared.Netcode.Survivor
             Debug.Log($"[NetworkSurvivorPlayerState] ResumeRequest from {OwnerClientId}");
         }
 
+        [ServerRpc]
+        public void ReportGameEndServerRpc(NetworkSurvivorGameResult result)
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] GameEnd from {OwnerClientId}: victory={result.IsVictory}");
+            NetworkSurvivorGameManager.Instance?.NotifyGameEndedClientRpc(result);
+        }
+
         // --- ライフサイクル ---
 
         public override void OnNetworkSpawn()
