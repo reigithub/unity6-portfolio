@@ -14,7 +14,7 @@ namespace Game.Shared.Netcode.Survivor
     {
         public static NetworkSurvivorEnemyState Instance { get; private set; }
 
-        [Inject] private IPublisher<SurvivorNetworkSignals.EnemyBatchUpdated> _enemyBatchPub;
+        [Inject] private IPublisher<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchPub;
 
         public override void OnNetworkSpawn()
         {
@@ -35,7 +35,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _enemyBatchPub?.Publish(new SurvivorNetworkSignals.EnemyBatchUpdated(enemies));
+                _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(enemies));
             }
         }
 

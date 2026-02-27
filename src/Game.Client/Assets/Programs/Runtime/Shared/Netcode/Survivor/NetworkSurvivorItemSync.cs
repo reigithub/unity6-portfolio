@@ -13,8 +13,8 @@ namespace Game.Shared.Netcode.Survivor
     {
         public static NetworkSurvivorItemSync Instance { get; private set; }
 
-        [Inject] private IPublisher<SurvivorNetworkSignals.ItemSpawned> _itemSpawnedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.ItemDespawned> _itemDespawnedPub;
+        [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
+        [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;
 
         // --- アイテムスポーン ---
 
@@ -23,7 +23,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _itemSpawnedPub?.Publish(new SurvivorNetworkSignals.ItemSpawned(itemId, posX, posZ));
+                _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(itemId, posX, posZ));
             }
         }
 
@@ -34,7 +34,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _itemDespawnedPub?.Publish(new SurvivorNetworkSignals.ItemDespawned(itemId));
+                _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(itemId));
             }
         }
 

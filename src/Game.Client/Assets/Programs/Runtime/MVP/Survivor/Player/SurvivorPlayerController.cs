@@ -1,6 +1,6 @@
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
-using Game.MVP.Survivor.Signals;
+
 using Game.Shared.Item;
 using Game.Shared;
 using Game.Shared.Combat;
@@ -32,6 +32,8 @@ namespace Game.MVP.Survivor.Player
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
+        [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _damageReceivedPublisher;
+        [Inject] private IPublisher<SurvivorSignals.Player.Died> _diedPublisher;
 
         [Header("ジョギング速度")]
         [SerializeField]
@@ -94,13 +96,6 @@ namespace Game.MVP.Survivor.Player
 
         // IDamageable
         public bool IsDead => _currentHp.Value <= 0;
-
-        // Events
-        private readonly Subject<int> _onDamaged = new();
-        private readonly Subject<Unit> _onDeath = new();
-
-        public Observable<int> OnDamaged => _onDamaged;
-        public Observable<Unit> OnDeath => _onDeath;
 
         // State
         private float _invincibilityTimer;
@@ -174,8 +169,6 @@ namespace Game.MVP.Survivor.Player
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
-            _onDamaged.Dispose();
-            _onDeath.Dispose();
         }
 
         #endregion

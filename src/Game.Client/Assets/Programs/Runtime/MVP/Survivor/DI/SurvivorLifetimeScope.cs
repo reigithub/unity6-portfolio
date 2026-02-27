@@ -2,7 +2,7 @@ using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
-using Game.MVP.Survivor.Signals;
+
 using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
@@ -37,8 +37,7 @@ namespace Game.MVP.Survivor
         {
             // MessagePipe（VContainer統合）
             var messagePipeOptions = builder.RegisterMessagePipe();
-            RegisterMessageBrokers(builder, messagePipeOptions);
-            RegisterNetworkSignalBrokers(builder, messagePipeOptions);
+            RegisterSignalBrokers(builder, messagePipeOptions);
 
             // Core Services
             builder.Register<AddressableAssetService>(Lifetime.Singleton).As<IAddressableAssetService>();
@@ -130,65 +129,42 @@ namespace Game.MVP.Survivor
             // Note: SurvivorStageModel, SurvivorStageWaveManager は SurvivorStageScene が直接所有
         }
 
-        private static void RegisterNetworkSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
+        private static void RegisterSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
         {
-            // Session
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.AllPlayersReady>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameStarted>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameEnded>(options);
-
-            // Connection
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerConnected>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDisconnected>(options);
-
             // Player
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDamaged>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDied>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemCollected>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerLeveledUp>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.WeaponChanged>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.Spawned>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.DamageReceived>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.Died>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.ItemCollected>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.LeveledUp>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.WeaponChanged>(options);
 
             // Enemy
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.EnemyKilled>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Enemy.Killed>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Enemy.BatchUpdated>(options);
 
             // Wave
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.WaveStarted>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.WaveCleared>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.AllWavesCleared>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.TimeUp>(options);
-
-            // Pause
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.GamePaused>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameResumed>(options);
-
-            // Batch sync
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.EnemyBatchUpdated>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemSpawned>(options);
-            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemDespawned>(options);
-        }
-
-        private static void RegisterMessageBrokers(IContainerBuilder builder, MessagePipeOptions options)
-        {
-            // Player signals
-            builder.RegisterMessageBroker<SurvivorSignals.Player.Spawned>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Player.Died>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Player.DamageReceived>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Player.LevelUp>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Player.ExperienceGained>(options);
-
-            // Enemy signals
-            builder.RegisterMessageBroker<SurvivorSignals.Enemy.Spawned>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Enemy.Killed>(options);
-
-            // Wave signals
             builder.RegisterMessageBroker<SurvivorSignals.Wave.Started>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Wave.Completed>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Wave.AllCleared>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Wave.TimeUp>(options);
 
-            // Game signals
+            // Game
+            builder.RegisterMessageBroker<SurvivorSignals.Game.Ended>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Paused>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Resumed>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Game.Victory>(options);
-            builder.RegisterMessageBroker<SurvivorSignals.Game.GameOver>(options);
+
+            // Session
+            builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersReady>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.GameStarted>(options);
+
+            // Connection
+            builder.RegisterMessageBroker<SurvivorSignals.Connection.PlayerConnected>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Connection.PlayerDisconnected>(options);
+
+            // Item
+            builder.RegisterMessageBroker<SurvivorSignals.Item.Spawned>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Item.Despawned>(options);
         }
     }
 }

@@ -1,7 +1,7 @@
 using Game.Library.Shared;
+
 using Game.Shared;
 using Game.Shared.Netcode.Survivor;
-using R3;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Player
@@ -79,7 +79,8 @@ namespace Game.MVP.Survivor.Player
 
             _hasPendingDamage = false;
             _currentHp.Value = Mathf.Max(0, _currentHp.Value - _pendingDamageAmount);
-            _onDamaged.OnNext(_pendingDamageAmount);
+            _damageReceivedPublisher?.Publish(
+                new SurvivorSignals.Player.DamageReceived(_pendingDamageAmount, _currentHp.Value));
 
             shouldDie = _currentHp.Value <= 0;
             if (!shouldDie)
@@ -176,7 +177,7 @@ namespace Game.MVP.Survivor.Player
             public override void Enter()
             {
                 var ctx = Context;
-                ctx._onDeath.OnNext(Unit.Default);
+                ctx._diedPublisher?.Publish(new SurvivorSignals.Player.Died());
 
                 if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
                 {

@@ -4,6 +4,7 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
+
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Netcode.Client;
@@ -33,15 +34,15 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly NetworkSurvivorStageClient _networkClient;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.PlayerDamaged> _playerDamagedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.PlayerDied> _playerDiedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.WaveStarted> _waveStartedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.WaveCleared> _waveClearedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.GameEnded> _gameEndedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.EnemyKilled> _enemyKilledSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.EnemyBatchUpdated> _enemyBatchSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.ItemSpawned> _itemSpawnedSub;
-        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.ItemDespawned> _itemDespawnedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Completed> _waveCompletedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.Ended> _gameEndedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Enemy.Killed> _enemyKilledSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Item.Spawned> _itemSpawnedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Item.Despawned> _itemDespawnedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -89,6 +90,11 @@ namespace Game.MVP.Survivor.Scenes
 
             BuildStateMachine();
             SubscribeEvents();
+            SubscribeSignals();
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                SubscribeNetworkEventBridge();
+            }
             BindModelToView();
 
             SceneComponent.Initialize(_stageModel, _waveManager.TotalWaves);
@@ -165,14 +171,6 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => _pauseRequested = true)
                 .AddTo(Disposables);
 
-            // プレイヤーダメージをモデルに反映
-            if (SceneComponent.PlayerController != null)
-            {
-                SceneComponent.PlayerController.OnDamaged
-                    .Subscribe(damage => _stageModel.TakeDamage(damage))
-                    .AddTo(Disposables);
-            }
-
             // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
             _waveManager.OnKillCounted
                 .Subscribe(_ => _stageModel.AddKill())
@@ -188,22 +186,6 @@ namespace Game.MVP.Survivor.Scenes
             _stageModel.Level
                 .Skip(1)
                 .Subscribe(_ => _levelUpRequested = true)
-                .AddTo(Disposables);
-
-            // Waveクリア時のスコア加算
-            _waveManager.OnWaveCleared
-                .Subscribe(clearedWave =>
-                {
-                    // 残り時間 = 制限時間 - 経過時間
-                    var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
-                    var spawnInfo = _waveManager.GetSpawnInfo();
-                    _stageModel.AddWaveClearScore(
-                        clearedWave,
-                        remainingTime,
-                        spawnInfo.ScoreMultiplier,
-                        _stageModel.CurrentHp.Value,
-                        _stageModel.MaxHp.Value);
-                })
                 .AddTo(Disposables);
 
             SceneComponent.UpdateAsObservable()
@@ -234,30 +216,51 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
-            // ネットワークシグナル購読（SP 時は誰も Publish しないため無害）
-            SubscribeNetworkSignals();
-
-            // サーバー: ゲームイベントを NetworkSurvivorGameManager にブリッジ
-            if (NetworkModeHelper.IsNetworkServer)
-            {
-                SubscribeNetworkEventBridge();
-            }
-
             // 自動保存のセットアップ
             SetupAutoSave();
         }
 
-        private void SubscribeNetworkSignals()
+        /// <summary>
+        /// SurvivorSignals 購読（統一）。
+        /// SP/Server: ゲームロジックが直接 Publish。
+        /// MP Client: ClientRpc → NetworkSurvivorGameManager が Publish。
+        /// </summary>
+        private void SubscribeSignals()
         {
-            _playerDamagedSub.Subscribe(s => _stageModel.TakeDamage(s.Damage)).AddTo(Disposables);
+            _damageReceivedSub.Subscribe(s => _stageModel.TakeDamage(s.Damage)).AddTo(Disposables);
+
             _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
+
             _waveStartedSub.Subscribe(s =>
             {
+                _stageModel.CurrentWave.Value = s.WaveNumber;
                 SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
-                SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKills);
+                if (s.WaveNumber > 0)
+                {
+                    SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
+                }
             }).AddTo(Disposables);
-            _waveClearedSub.Subscribe(s => _stageModel.AddScore(s.WaveClearScore)).AddTo(Disposables);
+
+            _waveCompletedSub.Subscribe(s =>
+            {
+                if (NetworkModeHelper.IsNetworkClientOnly)
+                {
+                    // MP Client: サーバーが計算済みスコアをそのまま加算
+                    _stageModel.AddScore(s.WaveClearScore);
+                }
+                else
+                {
+                    // SP/Server: ローカルで計算
+                    var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
+                    var spawnInfo = _waveManager.GetSpawnInfo();
+                    _stageModel.AddWaveClearScore(
+                        s.WaveNumber, remainingTime, spawnInfo.ScoreMultiplier,
+                        _stageModel.CurrentHp.Value, _stageModel.MaxHp.Value);
+                }
+            }).AddTo(Disposables);
+
             _gameEndedSub.Subscribe(s => _stageModel.SetNetworkResult(s.Result)).AddTo(Disposables);
+
             _enemyKilledSub.Subscribe(s =>
             {
                 _stageModel.AddScore(s.ScoreGained);
@@ -266,51 +269,37 @@ namespace Game.MVP.Survivor.Scenes
             }).AddTo(Disposables);
         }
 
+        /// <summary>
+        /// シグナル → ClientRpc 転送（Server only）
+        /// </summary>
         private void SubscribeNetworkEventBridge()
         {
             var gm = NetworkSurvivorGameManager.Instance;
             if (gm == null) return;
 
-            // プレイヤーダメージ
-            if (SceneComponent.PlayerController != null)
+            _damageReceivedSub.Subscribe(s =>
             {
-                SceneComponent.PlayerController.OnDamaged
-                    .Subscribe(damage =>
-                    {
-                        var userId = new FixedString64Bytes("local");
-                        gm.NotifyPlayerDamagedClientRpc(userId, damage, _stageModel.CurrentHp.Value);
-                    })
-                    .AddTo(Disposables);
+                var userId = new FixedString64Bytes("local");
+                gm.NotifyPlayerDamagedClientRpc(userId, s.Damage, s.RemainingHp);
+            }).AddTo(Disposables);
 
-                SceneComponent.PlayerController.OnDeath
-                    .Subscribe(_ =>
-                    {
-                        var userId = new FixedString64Bytes("local");
-                        gm.NotifyPlayerDiedClientRpc(userId);
-                    })
-                    .AddTo(Disposables);
-            }
+            _playerDiedSub.Subscribe(_ =>
+            {
+                var userId = new FixedString64Bytes("local");
+                gm.NotifyPlayerDiedClientRpc(userId);
+            }).AddTo(Disposables);
 
-            // ウェーブ開始
-            _waveManager.CurrentWave
-                .Where(w => w > 0)
-                .Subscribe(w =>
-                {
-                    var info = _waveManager.GetSpawnInfo();
-                    gm.NotifyWaveStartedClientRpc(w, info.TargetKillCount, info.EnemyCount);
-                })
-                .AddTo(Disposables);
+            _waveStartedSub.Subscribe(s =>
+            {
+                gm.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+            }).AddTo(Disposables);
 
-            // ウェーブクリア
-            _waveManager.OnWaveCleared
-                .Subscribe(clearedWave =>
-                {
-                    var spawnInfo = _waveManager.GetSpawnInfo();
-                    gm.NotifyWaveClearedClientRpc(clearedWave, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
-                })
-                .AddTo(Disposables);
+            _waveCompletedSub.Subscribe(s =>
+            {
+                var spawnInfo = _waveManager.GetSpawnInfo();
+                gm.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
+            }).AddTo(Disposables);
 
-            // 全ウェーブクリア
             _waveManager.IsAllWavesCleared
                 .Where(cleared => cleared)
                 .Subscribe(_ => gm.NotifyAllWavesClearedClientRpc())
@@ -409,22 +398,6 @@ namespace Game.MVP.Survivor.Scenes
             // キル数
             _stageModel.TotalKills
                 .Subscribe(kills => SceneComponent.UpdateKills(kills))
-                .AddTo(Disposables);
-
-            // ウェーブ
-            _waveManager.CurrentWave
-                .Subscribe(wave =>
-                {
-                    _stageModel.CurrentWave.Value = wave;
-                    SceneComponent.UpdateWave(wave, _waveManager.TotalWaves);
-
-                    // Wave開始時にバナー表示（目標数を表示）
-                    if (wave > 0)
-                    {
-                        var spawnInfo = _waveManager.GetSpawnInfo();
-                        SceneComponent.ShowWaveBanner(wave, _waveManager.TotalWaves, spawnInfo.TargetKillCount);
-                    }
-                })
                 .AddTo(Disposables);
 
             // 敵の撃破数（目標数に対する進捗を表示）

@@ -17,23 +17,23 @@ namespace Game.Shared.Netcode.Survivor
 
         // --- IPublisher フィールド（VContainer InjectGameObject で解決） ---
 
-        [Inject] private IPublisher<SurvivorNetworkSignals.AllPlayersReady> _allPlayersReadyPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.GameStarted> _gameStartedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.GameEnded> _gameEndedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerConnected> _playerConnectedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDisconnected> _playerDisconnectedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDamaged> _playerDamagedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDied> _playerDiedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.ItemCollected> _itemCollectedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerLeveledUp> _playerLeveledUpPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.WeaponChanged> _weaponChangedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.EnemyKilled> _enemyKilledPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.WaveStarted> _waveStartedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.WaveCleared> _waveClearedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.AllWavesCleared> _allWavesClearedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.TimeUp> _timeUpPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.GamePaused> _gamePausedPub;
-        [Inject] private IPublisher<SurvivorNetworkSignals.GameResumed> _gameResumedPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
+        [Inject] private IPublisher<SurvivorSignals.Connection.PlayerConnected> _playerConnectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Connection.PlayerDisconnected> _playerDisconnectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _playerDamagedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.Died> _playerDiedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.ItemCollected> _itemCollectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.LeveledUp> _playerLeveledUpPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.WeaponChanged> _weaponChangedPub;
+        [Inject] private IPublisher<SurvivorSignals.Enemy.Killed> _enemyKilledPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Started> _waveStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveClearedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.AllCleared> _allWavesClearedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
 
         // --- セッション ---
 
@@ -43,7 +43,7 @@ namespace Game.Shared.Netcode.Survivor
             Debug.Log("[NetworkSurvivorGameManager] AllPlayersReady");
             if (!IsServer)
             {
-                _allPlayersReadyPub?.Publish(new SurvivorNetworkSignals.AllPlayersReady());
+                _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
             }
         }
 
@@ -53,7 +53,7 @@ namespace Game.Shared.Netcode.Survivor
             Debug.Log($"[NetworkSurvivorGameManager] GameStarted at serverTime={serverTime}");
             if (!IsServer)
             {
-                _gameStartedPub?.Publish(new SurvivorNetworkSignals.GameStarted(serverTime));
+                _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(serverTime));
             }
         }
 
@@ -65,7 +65,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _playerDamagedPub?.Publish(
-                    new SurvivorNetworkSignals.PlayerDamaged(userId.ToString(), damage, currentHp));
+                    new SurvivorSignals.Player.DamageReceived(damage, currentHp));
             }
         }
 
@@ -74,7 +74,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _playerDiedPub?.Publish(new SurvivorNetworkSignals.PlayerDied(userId.ToString()));
+                _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
             }
         }
 
@@ -84,7 +84,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _itemCollectedPub?.Publish(
-                    new SurvivorNetworkSignals.ItemCollected(userId.ToString(), itemId, effectValue));
+                    new SurvivorSignals.Player.ItemCollected(userId.ToString(), itemId, effectValue));
             }
         }
 
@@ -94,7 +94,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _playerLeveledUpPub?.Publish(
-                    new SurvivorNetworkSignals.PlayerLeveledUp(userId.ToString(), newLevel, options));
+                    new SurvivorSignals.Player.LeveledUp(userId.ToString(), newLevel, options));
             }
         }
 
@@ -104,7 +104,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _weaponChangedPub?.Publish(
-                    new SurvivorNetworkSignals.WeaponChanged(userId.ToString(), weaponId, level, isNew));
+                    new SurvivorSignals.Player.WeaponChanged(userId.ToString(), weaponId, level, isNew));
             }
         }
 
@@ -116,7 +116,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _enemyKilledPub?.Publish(
-                    new SurvivorNetworkSignals.EnemyKilled(killerUserId.ToString(), enemyId, scoreGained, totalKills));
+                    new SurvivorSignals.Enemy.Killed(killerUserId.ToString(), enemyId, scoreGained, totalKills));
             }
         }
 
@@ -128,7 +128,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _waveClearedPub?.Publish(
-                    new SurvivorNetworkSignals.WaveCleared(waveNumber, nextWaveNumber, waveClearScore));
+                    new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
             }
         }
 
@@ -138,7 +138,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _waveStartedPub?.Publish(
-                    new SurvivorNetworkSignals.WaveStarted(waveNumber, targetKills, totalEnemies));
+                    new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
             }
         }
 
@@ -147,7 +147,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _allWavesClearedPub?.Publish(new SurvivorNetworkSignals.AllWavesCleared());
+                _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
             }
         }
 
@@ -156,7 +156,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _timeUpPub?.Publish(new SurvivorNetworkSignals.TimeUp());
+                _timeUpPub?.Publish(new SurvivorSignals.Wave.TimeUp());
             }
         }
 
@@ -167,7 +167,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _gameEndedPub?.Publish(new SurvivorNetworkSignals.GameEnded(result));
+                _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
             }
         }
 
@@ -179,7 +179,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _gamePausedPub?.Publish(
-                    new SurvivorNetworkSignals.GamePaused(requestedByUserId.ToString()));
+                    new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
             }
         }
 
@@ -188,7 +188,7 @@ namespace Game.Shared.Netcode.Survivor
         {
             if (!IsServer)
             {
-                _gameResumedPub?.Publish(new SurvivorNetworkSignals.GameResumed());
+                _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
             }
         }
 
@@ -200,7 +200,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _playerConnectedPub?.Publish(
-                    new SurvivorNetworkSignals.PlayerConnected(userId.ToString(), playerName.ToString()));
+                    new SurvivorSignals.Connection.PlayerConnected(userId.ToString(), playerName.ToString()));
             }
         }
 
@@ -210,7 +210,7 @@ namespace Game.Shared.Netcode.Survivor
             if (!IsServer)
             {
                 _playerDisconnectedPub?.Publish(
-                    new SurvivorNetworkSignals.PlayerDisconnected(userId.ToString(), playerName.ToString()));
+                    new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
             }
         }
 

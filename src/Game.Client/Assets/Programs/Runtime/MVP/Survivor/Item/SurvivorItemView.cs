@@ -17,8 +17,8 @@ namespace Game.MVP.Survivor.Item
         private IDisposable _despawnSub;
 
         public void Initialize(
-            ISubscriber<SurvivorNetworkSignals.ItemSpawned> spawnSub,
-            ISubscriber<SurvivorNetworkSignals.ItemDespawned> despawnSub)
+            ISubscriber<SurvivorSignals.Item.Spawned> spawnSub,
+            ISubscriber<SurvivorSignals.Item.Despawned> despawnSub)
         {
             _spawnSub = spawnSub.Subscribe(s => OnSpawned(s.ItemId, s.PosX, s.PosZ));
             _despawnSub = despawnSub.Subscribe(s => OnDespawned(s.ItemId));

@@ -16,7 +16,7 @@ namespace Game.MVP.Survivor.Enemy
         private readonly Dictionary<int, GameObject> _proxies = new();
         private IDisposable _subscription;
 
-        public void Initialize(ISubscriber<SurvivorNetworkSignals.EnemyBatchUpdated> subscriber)
+        public void Initialize(ISubscriber<SurvivorSignals.Enemy.BatchUpdated> subscriber)
         {
             _subscription = subscriber.Subscribe(signal => OnReceived(signal.Enemies));
         }
