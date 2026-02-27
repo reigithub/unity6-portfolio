@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using MessagePipe;
 using UnityEngine;
 

@@ -1,3 +1,4 @@
+using Game.Shared.Survivor;
 using MessagePipe;
 using Unity.Collections;
 using Unity.Netcode;

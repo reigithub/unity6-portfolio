@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Game.MVP.Survivor.Services;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using MessagePipe;
 using NUnit.Framework;
 using R3;

@@ -9,6 +9,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
 using R3;

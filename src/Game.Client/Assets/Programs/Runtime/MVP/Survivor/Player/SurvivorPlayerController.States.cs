@@ -2,6 +2,7 @@ using Game.Library.Shared;
 
 using Game.Shared;
 using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Player

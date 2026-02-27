@@ -9,6 +9,7 @@ using Game.Shared.Services;
 using MessagePipe;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Client.MasterData;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
 using R3;

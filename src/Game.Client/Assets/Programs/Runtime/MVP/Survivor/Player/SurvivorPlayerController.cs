@@ -7,6 +7,7 @@ using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Netcode.Survivor;
+using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
 using R3;

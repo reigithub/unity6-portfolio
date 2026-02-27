@@ -1,6 +1,7 @@
+using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Survivor
 {
     /// <summary>
     /// Survivor ゲームイベントシグナル定義（統一版）。
