@@ -1,5 +1,6 @@
 #if UNITY_SERVER
 using System;
+using Cysharp.Threading.Tasks;
 using Game.Shared.Netcode.Survivor;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -59,11 +60,16 @@ namespace Game.Shared.DedicatedServer.Netcode
             nm.StartServer();
 
             Debug.Log($"[ServerNetworkManager] NGO Server started on port {_port}");
+
+            // --- SurvivorServerSimulation 起動 ---
+            var simulation = gameObject.AddComponent<SurvivorServerSimulation>();
+            int stageId = SurvivorServerSimulation.ParseStageId();
+            simulation.InitializeAsync(stageId).Forget();
         }
 
         /// <summary>
         /// NGO セッション開始 — シングルトン NetworkBehaviour 群をスポーン。
-        /// Phase 3 ではサーバー起動直後に暫定呼び出し。Phase 4 以降でマッチ開始トリガーから呼ばれるように変更。
+        /// SurvivorServerSimulation.OnFirstClientConnected() から呼ばれる。
         /// </summary>
         public void StartSession()
         {
@@ -92,6 +98,7 @@ namespace Game.Shared.DedicatedServer.Netcode
         private void OnClientConnected(ulong clientId)
         {
             Debug.Log($"[ServerNetworkManager] Client connected: {clientId}");
+            SurvivorServerSimulation.Instance?.OnFirstClientConnected();
             SpawnPlayerState(clientId);
         }
 

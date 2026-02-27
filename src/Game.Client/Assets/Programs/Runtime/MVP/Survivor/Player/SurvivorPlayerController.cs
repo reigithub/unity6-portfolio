@@ -138,6 +138,9 @@ namespace Game.MVP.Survivor.Player
 
         private void FixedUpdate()
         {
+            // クライアントモード: 位置は SurvivorPlayerView が更新するためスキップ
+            if (NetworkModeHelper.IsNetworkClientOnly) return;
+
             _stateMachine?.FixedUpdate();
 
             // サーバー: プレイヤー状態を NetworkSurvivorPlayerState に反映
@@ -180,11 +183,18 @@ namespace Game.MVP.Survivor.Player
         #region Network
 
         /// <summary>
-        /// サーバー側: クライアントの NetworkSurvivorPlayerState をバインド
+        /// サーバー / クライアント: NetworkSurvivorPlayerState をバインド
         /// </summary>
         public void BindNetworkPlayerState(NetworkSurvivorPlayerState playerState)
         {
             _networkPlayerState = playerState;
+
+            // クライアント: SurvivorPlayerView を追加して NetworkVariable 変更を描画に反映
+            if (NetworkModeHelper.IsNetworkClientOnly)
+            {
+                var view = gameObject.AddComponent<SurvivorPlayerView>();
+                view.Initialize(this, playerState);
+            }
         }
 
         #endregion
@@ -288,6 +298,16 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_inputService == null && _networkPlayerState == null)
                     return;
+
+                // ネットワーククライアント: 入力送信 -> 位置は SurvivorPlayerView が受信
+                if (NetworkModeHelper.IsNetworkClientOnly && _networkPlayerState != null)
+                {
+                    if (_inputService == null) return;
+                    _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
+                    var isSprinting = _inputService.Player.LeftShift.IsPressed();
+                    _networkPlayerState.SendMoveInputServerRpc(_moveValue.x, _moveValue.y, isSprinting);
+                    return;
+                }
 
                 // サーバーモード: ServerRpc 受信バッファから入力読み取り
                 if (NetworkModeHelper.IsNetworkServer && _networkPlayerState != null)

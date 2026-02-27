@@ -1,5 +1,7 @@
+using MessagePipe;
 using Unity.Netcode;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Shared.Netcode.Survivor
 {
@@ -11,12 +13,18 @@ namespace Game.Shared.Netcode.Survivor
     {
         public static NetworkSurvivorItemSync Instance { get; private set; }
 
+        [Inject] private IPublisher<SurvivorNetworkSignals.ItemSpawned> _itemSpawnedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.ItemDespawned> _itemDespawnedPub;
+
         // --- アイテムスポーン ---
 
         [ClientRpc]
         public void SpawnItemClientRpc(int itemId, float posX, float posZ)
         {
-            // Phase 5+: クライアント側でアイテムビジュアル生成
+            if (!IsServer)
+            {
+                _itemSpawnedPub?.Publish(new SurvivorNetworkSignals.ItemSpawned(itemId, posX, posZ));
+            }
         }
 
         // --- アイテム回収（NetworkSurvivorGameManager.NotifyItemCollectedClientRpc で通知） ---
@@ -24,14 +32,17 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void DespawnItemClientRpc(int itemId)
         {
-            // Phase 5+: クライアント側でアイテムビジュアル削除
+            if (!IsServer)
+            {
+                _itemDespawnedPub?.Publish(new SurvivorNetworkSignals.ItemDespawned(itemId));
+            }
         }
 
         // --- ライフサイクル ---
 
         public override void OnNetworkSpawn()
         {
-            if (IsServer) Instance = this;
+            Instance = this; // サーバー・クライアント両方で設定（InjectGameObject でアクセスするため）
             Debug.Log($"[NetworkSurvivorItemSync] Spawned (IsServer={IsServer})");
         }
 

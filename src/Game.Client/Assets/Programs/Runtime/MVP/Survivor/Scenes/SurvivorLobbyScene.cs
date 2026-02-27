@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.MVP.Core.Scenes;
+using Game.Shared.Netcode.Client;
 using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using R3;
@@ -205,6 +206,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
+            NetworkSurvivorMatchConnector.StoreMatchResult(result);
             SceneComponent.SetInteractables(false);
 
             try

@@ -6,8 +6,10 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
+using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
+using MessagePipe;
 using R3;
 using R3.Triggers;
 using Unity.Collections;
@@ -30,6 +32,16 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
+        [Inject] private readonly NetworkSurvivorStageClient _networkClient;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.PlayerDamaged> _playerDamagedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.PlayerDied> _playerDiedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.WaveStarted> _waveStartedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.WaveCleared> _waveClearedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.GameEnded> _gameEndedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.EnemyKilled> _enemyKilledSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.EnemyBatchUpdated> _enemyBatchSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.ItemSpawned> _itemSpawnedSub;
+        [Inject] private readonly ISubscriber<SurvivorNetworkSignals.ItemDespawned> _itemDespawnedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -222,6 +234,9 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
+            // ネットワークシグナル購読（SP 時は誰も Publish しないため無害）
+            SubscribeNetworkSignals();
+
             // サーバー: ゲームイベントを NetworkSurvivorGameManager にブリッジ
             if (NetworkModeHelper.IsNetworkServer)
             {
@@ -230,6 +245,25 @@ namespace Game.MVP.Survivor.Scenes
 
             // 自動保存のセットアップ
             SetupAutoSave();
+        }
+
+        private void SubscribeNetworkSignals()
+        {
+            _playerDamagedSub.Subscribe(s => _stageModel.TakeDamage(s.Damage)).AddTo(Disposables);
+            _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
+            _waveStartedSub.Subscribe(s =>
+            {
+                SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
+                SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKills);
+            }).AddTo(Disposables);
+            _waveClearedSub.Subscribe(s => _stageModel.AddScore(s.WaveClearScore)).AddTo(Disposables);
+            _gameEndedSub.Subscribe(s => _stageModel.SetNetworkResult(s.Result)).AddTo(Disposables);
+            _enemyKilledSub.Subscribe(s =>
+            {
+                _stageModel.AddScore(s.ScoreGained);
+                _stageModel.AddKill();
+                SceneComponent.UpdateKills(s.TotalKills);
+            }).AddTo(Disposables);
         }
 
         private void SubscribeNetworkEventBridge()
@@ -413,6 +447,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Terminate()
         {
+            _networkClient?.Disconnect();
             ApplicationEvents.ResumeTime();
 
             Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");

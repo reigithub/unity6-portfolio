@@ -7,6 +7,8 @@ using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
+using Game.Shared.Netcode.Client;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;
@@ -36,6 +38,7 @@ namespace Game.MVP.Survivor
             // MessagePipe（VContainer統合）
             var messagePipeOptions = builder.RegisterMessagePipe();
             RegisterMessageBrokers(builder, messagePipeOptions);
+            RegisterNetworkSignalBrokers(builder, messagePipeOptions);
 
             // Core Services
             builder.Register<AddressableAssetService>(Lifetime.Singleton).As<IAddressableAssetService>();
@@ -103,6 +106,11 @@ namespace Game.MVP.Survivor
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
 
             // ========================================
+            // NGO Client Services
+            // ========================================
+            builder.Register<NetworkSurvivorStageClient>(Lifetime.Singleton);
+
+            // ========================================
             // MagicOnion Services（gRPC Unary + StreamingHub）
             // ========================================
             builder.Register<GrpcChannelProvider>(Lifetime.Singleton).As<IGrpcChannelProvider>();
@@ -120,6 +128,43 @@ namespace Game.MVP.Survivor
 
             // Note: シーン（Presenter）はGameSceneServiceがnew() + Inject()で生成するため登録不要
             // Note: SurvivorStageModel, SurvivorStageWaveManager は SurvivorStageScene が直接所有
+        }
+
+        private static void RegisterNetworkSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
+        {
+            // Session
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.AllPlayersReady>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameStarted>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameEnded>(options);
+
+            // Connection
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerConnected>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDisconnected>(options);
+
+            // Player
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDamaged>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerDied>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemCollected>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.PlayerLeveledUp>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.WeaponChanged>(options);
+
+            // Enemy
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.EnemyKilled>(options);
+
+            // Wave
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.WaveStarted>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.WaveCleared>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.AllWavesCleared>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.TimeUp>(options);
+
+            // Pause
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.GamePaused>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.GameResumed>(options);
+
+            // Batch sync
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.EnemyBatchUpdated>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemSpawned>(options);
+            builder.RegisterMessageBroker<SurvivorNetworkSignals.ItemDespawned>(options);
         }
 
         private static void RegisterMessageBrokers(IContainerBuilder builder, MessagePipeOptions options)

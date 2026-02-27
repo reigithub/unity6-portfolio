@@ -1,5 +1,7 @@
+using MessagePipe;
 using Unity.Netcode;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Shared.Netcode.Survivor
 {
@@ -12,12 +14,11 @@ namespace Game.Shared.Netcode.Survivor
     {
         public static NetworkSurvivorEnemyState Instance { get; private set; }
 
+        [Inject] private IPublisher<SurvivorNetworkSignals.EnemyBatchUpdated> _enemyBatchPub;
+
         public override void OnNetworkSpawn()
         {
-            if (IsServer)
-            {
-                Instance = this;
-            }
+            Instance = this; // サーバー・クライアント両方で設定（InjectGameObject でアクセスするため）
             Debug.Log($"[NetworkSurvivorEnemyState] Spawned (IsServer={IsServer})");
         }
 
@@ -32,8 +33,10 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void SyncEnemiesStateClientRpc(NetworkSurvivorEnemyStateSnapshot[] enemies)
         {
-            // Phase 5+: クライアント側で EnemyView 更新
-            // SyncType に応じて Spawn/PositionUpdate/Death を処理
+            if (!IsServer)
+            {
+                _enemyBatchPub?.Publish(new SurvivorNetworkSignals.EnemyBatchUpdated(enemies));
+            }
         }
 
         // --- サーバー側ヘルパー ---

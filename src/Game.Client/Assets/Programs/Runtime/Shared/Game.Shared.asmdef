@@ -16,7 +16,8 @@
         "MagicOnion.Unity",
         "Unity.Netcode.Runtime",
         "Unity.Collections",
-        "Unity.Networking.Transport"
+        "Unity.Networking.Transport",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -90,6 +90,17 @@ namespace Game.Shared.Netcode.Survivor
             if (IsClient)
             {
                 State.OnValueChanged += OnStateChanged;
+
+                // クライアント & Owner: レジストリからバインド（入力送信用）
+                if (IsOwner)
+                {
+                    foreach (var bindable in NetworkPlayerStateBindableRegistry.Bindables)
+                    {
+                        bindable.BindNetworkPlayerState(this);
+                        Debug.Log($"[NetworkSurvivorPlayerState] Client bound to {bindable.GetType().Name}");
+                        break;
+                    }
+                }
             }
 
             // サーバー: レジストリから INetworkPlayerStateBindable を検索してバインド
@@ -99,7 +110,7 @@ namespace Game.Shared.Netcode.Survivor
                 {
                     bindable.BindNetworkPlayerState(this);
                     Debug.Log($"[NetworkSurvivorPlayerState] Bound to {bindable.GetType().Name} for client {OwnerClientId}");
-                    break; // Phase 4: 1プレイヤー前提。Phase 5 で複数プレイヤーマッピングに置換
+                    break;
                 }
             }
 
@@ -121,7 +132,7 @@ namespace Game.Shared.Netcode.Survivor
 
         // --- サーバー側ヘルパー ---
 
-        /// <summary>サーバーから State を更新（Phase 4: ServerGameSimulation から呼ばれる）</summary>
+        /// <summary>サーバーから State を更新（Phase 4: SurvivorServerSimulation から呼ばれる）</summary>
         public void UpdateState(NetworkSurvivorPlayerStateSnapshot snapshot)
         {
             if (!IsServer) return;

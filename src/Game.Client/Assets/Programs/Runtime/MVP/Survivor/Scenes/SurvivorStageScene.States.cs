@@ -3,12 +3,18 @@ using DG.Tweening;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Enemy;
+using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Netcode.Client;
+using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -106,6 +112,13 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
 
+                // ネットワーク接続（MP: MatchResult あり or SP テスト）
+                if (NetworkSurvivorMatchConnector.HasMatchResult)
+                {
+                    await ConnectToServerAsync();
+                    InitializeClientViews();
+                }
+
                 Debug.Log("[ReadyState] Initialization complete, waiting for camera follow");
 
                 await UniTask.Yield();
@@ -146,6 +159,35 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             public override void Exit() => Debug.Log("[ReadyState] Exit");
+
+            private async UniTask ConnectToServerAsync()
+            {
+                var address = NetworkSurvivorMatchConnector.ServerAddress;
+                var port = NetworkSurvivorMatchConnector.ServerPort;
+                Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port}");
+                await Context._networkClient.ConnectAsync(address, port);
+            }
+
+            private void InitializeClientViews()
+            {
+                // InjectGameObject: VContainer が [Inject] フィールドを自動解決
+                if (NetworkSurvivorGameManager.Instance != null)
+                    Context.Resolver.InjectGameObject(NetworkSurvivorGameManager.Instance.gameObject);
+                if (NetworkSurvivorEnemyState.Instance != null)
+                    Context.Resolver.InjectGameObject(NetworkSurvivorEnemyState.Instance.gameObject);
+                if (NetworkSurvivorItemSync.Instance != null)
+                    Context.Resolver.InjectGameObject(NetworkSurvivorItemSync.Instance.gameObject);
+
+                // View に ISubscriber を注入（AddComponent なので Initialize 経由）
+                var enemyViewGo = new GameObject("[SurvivorEnemyView]");
+                enemyViewGo.transform.SetParent(View.transform);
+                enemyViewGo.AddComponent<SurvivorEnemyView>().Initialize(Context._enemyBatchSub);
+
+                var itemViewGo = new GameObject("[SurvivorItemView]");
+                itemViewGo.transform.SetParent(View.transform);
+                itemViewGo.AddComponent<SurvivorItemView>().Initialize(
+                    Context._itemSpawnedSub, Context._itemDespawnedSub);
+            }
         }
 
         #endregion
@@ -180,6 +222,25 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                // クライアントモード: サーバー駆動でゲーム進行
+                if (NetworkModeHelper.IsNetworkClientOnly)
+                {
+                    // サーバーからの結果を確認
+                    if (StageModel.HasNetworkResult)
+                    {
+                        Transition(StageModel.NetworkResult.IsVictory
+                            ? StageEvent.Victory : StageEvent.GameOver);
+                        return;
+                    }
+                    if (StageModel.IsDead)
+                    {
+                        Transition(StageEvent.GameOver);
+                        return;
+                    }
+                    return; // ゲームロジックはサーバー任せ
+                }
+
+                // SP / サーバー: 既存ロジック
                 StageModel.GameTime.Value += Time.deltaTime;
                 View.UpdateTime(StageModel.GameTime.Value);
 

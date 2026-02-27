@@ -1,17 +1,39 @@
+using MessagePipe;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Shared.Netcode.Survivor
 {
     /// <summary>
     /// ゲーム全体のイベント配信 NetworkBehaviour（シングルトン）。
     /// IGameStageHubReceiver の 19 コールバックに対応する ClientRpc を定義。
-    /// Phase 3 では全 ClientRpc 本体はスタブ。Phase 5 でクライアント側イベントハンドリング実装。
+    /// ClientRpc は MessagePipe の IPublisher 経由でシグナルを配信する。
     /// </summary>
     public class NetworkSurvivorGameManager : NetworkBehaviour
     {
         public static NetworkSurvivorGameManager Instance { get; private set; }
+
+        // --- IPublisher フィールド（VContainer InjectGameObject で解決） ---
+
+        [Inject] private IPublisher<SurvivorNetworkSignals.AllPlayersReady> _allPlayersReadyPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.GameStarted> _gameStartedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.GameEnded> _gameEndedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerConnected> _playerConnectedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDisconnected> _playerDisconnectedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDamaged> _playerDamagedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerDied> _playerDiedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.ItemCollected> _itemCollectedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.PlayerLeveledUp> _playerLeveledUpPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.WeaponChanged> _weaponChangedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.EnemyKilled> _enemyKilledPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.WaveStarted> _waveStartedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.WaveCleared> _waveClearedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.AllWavesCleared> _allWavesClearedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.TimeUp> _timeUpPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.GamePaused> _gamePausedPub;
+        [Inject] private IPublisher<SurvivorNetworkSignals.GameResumed> _gameResumedPub;
 
         // --- セッション ---
 
@@ -19,12 +41,20 @@ namespace Game.Shared.Netcode.Survivor
         public void NotifyAllPlayersReadyClientRpc()
         {
             Debug.Log("[NetworkSurvivorGameManager] AllPlayersReady");
+            if (!IsServer)
+            {
+                _allPlayersReadyPub?.Publish(new SurvivorNetworkSignals.AllPlayersReady());
+            }
         }
 
         [ClientRpc]
         public void NotifyGameStartedClientRpc(float serverTime)
         {
             Debug.Log($"[NetworkSurvivorGameManager] GameStarted at serverTime={serverTime}");
+            if (!IsServer)
+            {
+                _gameStartedPub?.Publish(new SurvivorNetworkSignals.GameStarted(serverTime));
+            }
         }
 
         // --- プレイヤーイベント ---
@@ -32,31 +62,50 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
         {
-            // Phase 5+: ダメージ演出
+            if (!IsServer)
+            {
+                _playerDamagedPub?.Publish(
+                    new SurvivorNetworkSignals.PlayerDamaged(userId.ToString(), damage, currentHp));
+            }
         }
 
         [ClientRpc]
         public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
         {
-            // Phase 5+: 死亡演出
+            if (!IsServer)
+            {
+                _playerDiedPub?.Publish(new SurvivorNetworkSignals.PlayerDied(userId.ToString()));
+            }
         }
 
         [ClientRpc]
         public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
         {
-            // Phase 5+: アイテム取得演出
+            if (!IsServer)
+            {
+                _itemCollectedPub?.Publish(
+                    new SurvivorNetworkSignals.ItemCollected(userId.ToString(), itemId, effectValue));
+            }
         }
 
         [ClientRpc]
         public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, NetworkSurvivorWeaponUpgradeOption[] options)
         {
-            // Phase 5+: レベルアップ UI 表示
+            if (!IsServer)
+            {
+                _playerLeveledUpPub?.Publish(
+                    new SurvivorNetworkSignals.PlayerLeveledUp(userId.ToString(), newLevel, options));
+            }
         }
 
         [ClientRpc]
         public void NotifyWeaponChangedClientRpc(FixedString64Bytes userId, int weaponId, int level, bool isNew)
         {
-            // Phase 5+: 武器変更演出
+            if (!IsServer)
+            {
+                _weaponChangedPub?.Publish(
+                    new SurvivorNetworkSignals.WeaponChanged(userId.ToString(), weaponId, level, isNew));
+            }
         }
 
         // --- 敵・スコア ---
@@ -64,7 +113,11 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyEnemyKilledClientRpc(FixedString64Bytes killerUserId, int enemyId, int scoreGained, int totalKills)
         {
-            // Phase 5+: キル演出・スコア更新
+            if (!IsServer)
+            {
+                _enemyKilledPub?.Publish(
+                    new SurvivorNetworkSignals.EnemyKilled(killerUserId.ToString(), enemyId, scoreGained, totalKills));
+            }
         }
 
         // --- ウェーブ ---
@@ -72,25 +125,39 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
-            // Phase 5+: ウェーブクリア演出
+            if (!IsServer)
+            {
+                _waveClearedPub?.Publish(
+                    new SurvivorNetworkSignals.WaveCleared(waveNumber, nextWaveNumber, waveClearScore));
+            }
         }
 
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
-            // Phase 5+: ウェーブ開始 UI
+            if (!IsServer)
+            {
+                _waveStartedPub?.Publish(
+                    new SurvivorNetworkSignals.WaveStarted(waveNumber, targetKills, totalEnemies));
+            }
         }
 
         [ClientRpc]
         public void NotifyAllWavesClearedClientRpc()
         {
-            // Phase 5+: 全ウェーブクリア演出
+            if (!IsServer)
+            {
+                _allWavesClearedPub?.Publish(new SurvivorNetworkSignals.AllWavesCleared());
+            }
         }
 
         [ClientRpc]
         public void NotifyTimeUpClientRpc()
         {
-            // Phase 5+: タイムアップ演出
+            if (!IsServer)
+            {
+                _timeUpPub?.Publish(new SurvivorNetworkSignals.TimeUp());
+            }
         }
 
         // --- ゲーム終了 ---
@@ -98,7 +165,10 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyGameEndedClientRpc(NetworkSurvivorGameResult result)
         {
-            // Phase 5+: リザルト画面表示
+            if (!IsServer)
+            {
+                _gameEndedPub?.Publish(new SurvivorNetworkSignals.GameEnded(result));
+            }
         }
 
         // --- ポーズ ---
@@ -106,13 +176,20 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyGamePausedClientRpc(FixedString64Bytes requestedByUserId)
         {
-            // Phase 5+: ポーズ UI 表示
+            if (!IsServer)
+            {
+                _gamePausedPub?.Publish(
+                    new SurvivorNetworkSignals.GamePaused(requestedByUserId.ToString()));
+            }
         }
 
         [ClientRpc]
         public void NotifyGameResumedClientRpc()
         {
-            // Phase 5+: ポーズ解除
+            if (!IsServer)
+            {
+                _gameResumedPub?.Publish(new SurvivorNetworkSignals.GameResumed());
+            }
         }
 
         // --- 接続 ---
@@ -120,13 +197,21 @@ namespace Game.Shared.Netcode.Survivor
         [ClientRpc]
         public void NotifyPlayerConnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            // Phase 5+: 接続通知 UI
+            if (!IsServer)
+            {
+                _playerConnectedPub?.Publish(
+                    new SurvivorNetworkSignals.PlayerConnected(userId.ToString(), playerName.ToString()));
+            }
         }
 
         [ClientRpc]
         public void NotifyPlayerDisconnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            // Phase 5+: 切断通知 UI
+            if (!IsServer)
+            {
+                _playerDisconnectedPub?.Publish(
+                    new SurvivorNetworkSignals.PlayerDisconnected(userId.ToString(), playerName.ToString()));
+            }
         }
 
         // --- ライフサイクル ---
