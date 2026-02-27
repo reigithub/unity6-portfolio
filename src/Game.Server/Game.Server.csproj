@@ -70,6 +70,10 @@
   -->
 
   <ItemGroup>
+    <Content Include="MasterData\masterdata.bytes" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Game.Shared\Game.Shared.csproj" />
     <ProjectReference Include="..\Game.Server.Shared\Game.Server.Shared.csproj" />
   </ItemGroup>
