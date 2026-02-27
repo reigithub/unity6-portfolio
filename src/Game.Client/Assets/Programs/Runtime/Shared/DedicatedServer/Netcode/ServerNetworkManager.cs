@@ -36,16 +36,22 @@ namespace Game.Shared.DedicatedServer.Netcode
         /// <summary>
         /// NetworkManager を構成してサーバーを起動する。
         /// DedicatedServerBootstrap.Initialize() から呼ばれる。
+        /// コンポーネント追加後、次フレームまで待機して内部初期化を完了させてから StartServer する。
         /// </summary>
         public void Initialize(ushort port)
         {
             _port = port;
+            InitializeAsync().Forget();
+        }
 
+        private async UniTaskVoid InitializeAsync()
+        {
             // --- NetworkManager + UnityTransport セットアップ ---
             var transport = gameObject.AddComponent<UnityTransport>();
             transport.SetConnectionData("0.0.0.0", _port);
 
             var nm = gameObject.AddComponent<NetworkManager>();
+            nm.NetworkConfig = new NetworkConfig();
             nm.NetworkConfig.NetworkTransport = transport;
 
             // --- Connection Approval 有効化 ---
@@ -55,6 +61,9 @@ namespace Game.Shared.DedicatedServer.Netcode
             // --- イベントハンドラ ---
             nm.OnClientConnectedCallback += OnClientConnected;
             nm.OnClientDisconnectCallback += OnClientDisconnected;
+
+            // NetworkManager の内部初期化を待機
+            await UniTask.NextFrame();
 
             // --- サーバー起動 ---
             nm.StartServer();

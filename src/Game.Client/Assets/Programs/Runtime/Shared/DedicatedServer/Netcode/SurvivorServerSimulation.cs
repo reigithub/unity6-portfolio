@@ -1,7 +1,6 @@
 #if UNITY_SERVER
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Game.Shared.DedicatedServer.Netcode
 {
@@ -22,12 +21,13 @@ namespace Game.Shared.DedicatedServer.Netcode
         public async UniTask InitializeAsync(int stageId)
         {
             _stageId = stageId;
-            var sceneName = $"SurvivorStage_{stageId}";
 
-            Debug.Log($"[SurvivorServerSimulation] Loading stage: {sceneName}");
-            await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            // Dedicated Server はビジュアルシーンをロードしない。
+            // ステージ固有のロジック（Wave 定義等）はネットワーク経由でクライアントが処理する。
+            Debug.Log($"[SurvivorServerSimulation] Initialized for stage {stageId} (no scene load)");
+
             _stageLoaded = true;
-            Debug.Log($"[SurvivorServerSimulation] Stage loaded: {sceneName}");
+            await UniTask.CompletedTask;
         }
 
         /// <summary>初回クライアント接続でセッション開始</summary>
