@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using Cysharp.Threading.Tasks;
 using Game.Shared.Netcode.Survivor;
 using Unity.Netcode;
@@ -179,4 +178,3 @@ namespace Game.Shared.Netcode.Server
         }
     }
 }
-#endif

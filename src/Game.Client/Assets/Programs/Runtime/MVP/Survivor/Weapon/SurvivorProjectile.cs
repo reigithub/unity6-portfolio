@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode;
-using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -106,12 +104,6 @@ namespace Game.MVP.Survivor.Weapon
             if (_trailRenderer != null)
             {
                 _trailRenderer.Clear();
-
-                // サーバーではTrailRendererを無効化
-                if (!NetworkModeHelper.ShouldRunVisuals)
-                {
-                    _trailRenderer.enabled = false;
-                }
             }
         }
 

@@ -1,7 +1,5 @@
 using System;
 using Game.Shared.Item;
-using Game.Shared.Netcode;
-using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Item
@@ -112,9 +110,9 @@ namespace Game.MVP.Survivor.Item
                 Vector3 direction = (_attractTarget.position - transform.position).normalized;
                 transform.position += direction * _attractSpeed * Time.deltaTime;
             }
-            else if (NetworkModeHelper.ShouldRunVisuals)
+            else
             {
-                // 浮遊アニメーション（サーバーではスキップ）
+                // 浮遊アニメーション
                 UpdateFloatAnimation();
             }
         }

@@ -1,9 +1,7 @@
-using System;
 using Game.Client.MasterData;
 using Game.Shared.Combat;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode.Survivor;
 using R3;
 using Unity.Profiling;
 using UnityEngine;
@@ -23,9 +21,7 @@ namespace Game.MVP.Survivor.Enemy
 
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
-        [SerializeField] private Animator _animator;
         [SerializeField] private Collider _collider;
-        [SerializeField] private EnemyVisualEffectController _visualEffectController;
 
         // マスターデータから設定される値
         private int _enemyId;
@@ -86,10 +82,17 @@ namespace Game.MVP.Survivor.Enemy
             ? _collider.bounds.center
             : transform.position;
 
-        // Animator hashes
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int DeathHash = Animator.StringToHash("Death");
-        private static readonly int HitHash = Animator.StringToHash("Hit");
+        // R3 Observables — Presenter が購読
+        private readonly Subject<Unit> _onHitReceived = new();
+        public Observable<Unit> OnHitReceived => _onHitReceived;
+
+        private readonly Subject<EnemyAnimationState> _onAnimationStateChanged = new();
+        public Observable<EnemyAnimationState> OnAnimationStateChanged => _onAnimationStateChanged;
+
+        // Presenter / Snapshot が読み取るプロパティ
+        public EnemyAnimationState CurrentAnimationState { get; internal set; }
+        public float NormalizedSpeed => _navAgent != null && _navAgent.speed > 0.01f
+            ? _navAgent.velocity.magnitude / _navAgent.speed : 0f;
 
         private void Awake()
         {
@@ -98,20 +101,11 @@ namespace Game.MVP.Survivor.Enemy
                 TryGetComponent(out _navAgent);
             }
 
-            if (_animator == null)
-            {
-                _animator = GetComponentInChildren<Animator>();
-            }
-
             if (_collider == null)
             {
                 _collider = GetComponentInChildren<Collider>();
             }
 
-            if (_visualEffectController == null)
-            {
-                TryGetComponent(out _visualEffectController);
-            }
         }
 
         /// <summary>
@@ -209,12 +203,6 @@ namespace Game.MVP.Survivor.Enemy
                 _collider.enabled = true;
             }
 
-            // ビジュアルエフェクトをリセット
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.ResetEffects();
-            }
-
             gameObject.SetActive(false);
         }
 
@@ -222,6 +210,8 @@ namespace Game.MVP.Survivor.Enemy
         {
             _onDeath.Dispose();
             _onDeathEvent.Dispose();
+            _onHitReceived.Dispose();
+            _onAnimationStateChanged.Dispose();
         }
     }
 }

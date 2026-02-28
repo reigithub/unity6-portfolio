@@ -1,0 +1,26 @@
+{
+    "name": "Game.DedicatedServer",
+    "rootNamespace": "Game.Shared.Netcode.Server",
+    "references": [
+        "Game.Shared",
+        "Game.Library.Shared",
+        "UniTask",
+        "Unity.Netcode.Runtime",
+        "Unity.Networking.Transport"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64Server",
+        "macOSStandaloneServer",
+        "WindowsStandalone32Server",
+        "WindowsStandalone64Server"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using System;
 using Cysharp.Threading.Tasks;
 using Unity.Netcode;
@@ -91,4 +90,3 @@ namespace Game.Shared.Netcode.Server
         }
     }
 }
-#endif

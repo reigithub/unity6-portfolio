@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
@@ -9,7 +8,7 @@ namespace Game.Shared.Netcode.Server
     /// </summary>
     public static class DedicatedServerBootstrap
     {
-        // [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
             Debug.Log("[ServerBootstrap] ========================================");
@@ -43,4 +42,3 @@ namespace Game.Shared.Netcode.Server
         }
     }
 }
-#endif

@@ -1,8 +1,4 @@
 using Game.Library.Shared;
-
-using Game.Shared;
-using Game.Shared.Netcode;
-using Game.Shared.Netcode.Survivor;
 using Game.Shared.Survivor;
 using UnityEngine;
 
@@ -180,11 +176,6 @@ namespace Game.MVP.Survivor.Player
             {
                 var ctx = Context;
                 ctx._diedPublisher?.Publish(new SurvivorSignals.Player.Died());
-
-                if (NetworkModeHelper.ShouldRunVisuals && ctx._animator != null)
-                {
-                    ctx._animator.SetTrigger(AnimatorHashDeath);
-                }
             }
         }
 

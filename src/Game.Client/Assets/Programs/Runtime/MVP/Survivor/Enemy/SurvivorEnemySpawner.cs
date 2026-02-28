@@ -152,6 +152,8 @@ namespace Game.MVP.Survivor.Enemy
                 .Subscribe(OnEnemyDeath)
                 .AddTo(this);
 
+            instance.AddComponent<SurvivorEnemyPresenter>();
+
             return controller;
         }
 
@@ -297,6 +299,8 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ExpDropGroupId
                 );
 
+                enemy.GetComponent<SurvivorEnemyPresenter>()?.Initialize(enemy);
+
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
                 _activeEnemies.Add(enemy);
@@ -314,7 +318,7 @@ namespace Game.MVP.Survivor.Enemy
                         PositionX = spawnPosition.x,
                         PositionZ = spawnPosition.z,
                         CurrentHp = enemy.CurrentHp,
-                        SyncType = Library.Shared.Dto.EnemySyncType.Spawn
+                        SyncType = EnemySyncType.Spawn
                     };
                     NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(
                         new[] { spawnSnapshot });
@@ -444,6 +448,7 @@ namespace Game.MVP.Survivor.Enemy
             using (s_returnToPoolMarker.Auto())
             {
                 var enemyId = enemy.EnemyId;
+                enemy.GetComponent<SurvivorEnemyPresenter>()?.ResetForPool();
                 enemy.ResetForPool();
 
                 if (_pools.TryGetValue(enemyId, out var pool))
@@ -467,7 +472,7 @@ namespace Game.MVP.Survivor.Enemy
                         PositionX = enemy.transform.position.x,
                         PositionZ = enemy.transform.position.z,
                         CurrentHp = 0,
-                        SyncType = Library.Shared.Dto.EnemySyncType.Death
+                        SyncType = EnemySyncType.Death
                     };
                     NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(
                         new[] { deathSnapshot });

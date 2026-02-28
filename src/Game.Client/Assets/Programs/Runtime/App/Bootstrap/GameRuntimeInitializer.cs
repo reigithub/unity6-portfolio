@@ -1,9 +1,6 @@
 using Game.Shared.Bootstrap;
 using Game.Shared.Realtime;
 using UnityEngine;
-#if UNITY_SERVER
-using Game.Shared.Netcode.Server;
-#endif
 
 namespace Game.App.Bootstrap
 {
@@ -13,9 +10,8 @@ namespace Game.App.Bootstrap
         private static void Initialize()
         {
 #if UNITY_SERVER
-            // Dedicated Server では ServerBootstrap が初期化を担当
+            // Dedicated Server では DedicatedServerBootstrap が初期化を担当
             // クライアント専用の UI/シーンロード/gRPC クライアント初期化をスキップ
-            DedicatedServerBootstrap.Initialize();
             return;
 #endif
 

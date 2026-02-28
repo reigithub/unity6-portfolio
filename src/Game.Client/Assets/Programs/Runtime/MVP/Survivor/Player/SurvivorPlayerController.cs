@@ -22,7 +22,6 @@ namespace Game.MVP.Survivor.Player
     /// Survivorプレイヤーコントローラー
     /// SDUnityChanPlayerControllerをベースにしたRigidbody + RaycastCheckerベースの移動制御
     /// </summary>
-    [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
     public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, INetworkSurvivorPlayerStateBindable
@@ -53,7 +52,6 @@ namespace Game.MVP.Survivor.Player
         [Inject] private readonly IInputService _inputService;
 
         // Components
-        private Animator _animator;
         private Rigidbody _rigidbody;
         private RaycastChecker _groundedRaycastChecker;
         private CapsuleCollider _capsuleCollider;
@@ -95,6 +93,7 @@ namespace Game.MVP.Survivor.Player
         public float ItemAttractDistance => _itemAttractDistance;
         public float ItemAttractSpeed => _itemAttractSpeed;
         public float ItemCollectDistance => _itemCollectDistance;
+        public ReadOnlyReactiveProperty<float> Speed => _speed;
 
         // IDamageable
         public bool IsDead => _currentHp.Value <= 0;
@@ -110,15 +109,10 @@ namespace Game.MVP.Survivor.Player
         // ネットワーク同期用
         private NetworkSurvivorPlayerState _networkPlayerState;
 
-        // アニメータハッシュ
-        private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
-        private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
-
         #region MonoBehaviour Methods
 
         private void Awake()
         {
-            TryGetComponent(out _animator);
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
@@ -145,22 +139,6 @@ namespace Game.MVP.Survivor.Player
             {
                 PushStateToNetwork();
             }
-        }
-
-        private void PushStateToNetwork()
-        {
-            var snapshot = new NetworkSurvivorPlayerStateSnapshot
-            {
-                PositionX = transform.position.x,
-                PositionY = transform.position.y,
-                PositionZ = transform.position.z,
-                RotationY = transform.eulerAngles.y,
-                Speed = _speed.Value,
-                CurrentHp = _currentHp.Value,
-                CurrentStamina = _currentStamina.Value,
-                IsInvincible = _isInvincible.Value
-            };
-            _networkPlayerState.UpdateState(snapshot);
         }
 
         private void OnDestroy()
@@ -222,15 +200,6 @@ namespace Game.MVP.Survivor.Player
             if (_mainCamera == null)
             {
                 _mainCamera = _gameRootController.MainCamera.transform;
-            }
-
-            // スピードが変わった時だけアニメーターを更新（サーバーではスキップ）
-            if (NetworkModeHelper.ShouldRunVisuals)
-            {
-                _speed
-                    .DistinctUntilChanged()
-                    .Subscribe(speed => _animator.SetFloat(AnimatorHashSpeed, speed))
-                    .AddTo(this);
             }
 
             // ステートマシン初期化
@@ -319,7 +288,7 @@ namespace Game.MVP.Survivor.Player
                     return;
                 }
 
-                // SP / クライアント: ローカル入力（既存ロジック）
+                // SP / クライアント: ローカル入力
                 if (_inputService == null)
                     return;
 
@@ -507,6 +476,25 @@ namespace Game.MVP.Survivor.Player
         }
 
         #endregion
+
+        /// <summary>
+        /// サーバー: プレイヤー状態を NetworkSurvivorPlayerState に反映
+        /// </summary>
+        private void PushStateToNetwork()
+        {
+            var snapshot = new NetworkSurvivorPlayerStateSnapshot
+            {
+                PositionX = transform.position.x,
+                PositionY = transform.position.y,
+                PositionZ = transform.position.z,
+                RotationY = transform.eulerAngles.y,
+                Speed = _speed.Value,
+                CurrentHp = _currentHp.Value,
+                CurrentStamina = _currentStamina.Value,
+                IsInvincible = _isInvincible.Value
+            };
+            _networkPlayerState.UpdateState(snapshot);
+        }
 
         #region Damage / Heal
 
