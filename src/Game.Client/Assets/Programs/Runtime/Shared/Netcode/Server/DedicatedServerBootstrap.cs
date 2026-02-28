@@ -33,6 +33,7 @@ namespace Game.Shared.Netcode.Server
             var serverGo = new GameObject("[ServerNetworkManager]");
             Object.DontDestroyOnLoad(serverGo);
             var serverNm = serverGo.AddComponent<ServerNetworkManager>();
+            serverNm.SetGameMode(serverGo.AddComponent<SurvivorServerGameMode>());
             serverNm.Initialize(port);
         }
     }

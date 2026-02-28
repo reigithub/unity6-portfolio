@@ -1,7 +1,6 @@
 #if UNITY_SERVER
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Netcode.Survivor;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -11,17 +10,14 @@ namespace Game.Shared.Netcode.Server
     /// <summary>
     /// Dedicated Server の NGO ライフサイクル管理。
     /// NetworkManager + UnityTransport を生成し、サーバーモードで起動する。
+    /// ゲームモード固有ロジックは IServerGameMode に委譲する。
     /// </summary>
     public class ServerNetworkManager : MonoBehaviour
     {
         public static ServerNetworkManager Instance { get; private set; }
 
         private ushort _port = 7777;
-
-        // セッション管理
-        private GameObject _gameManagerInstance;
-        private GameObject _enemyStateInstance;
-        private GameObject _itemSyncInstance;
+        private IServerGameMode _gameMode;
 
         private void Awake()
         {
@@ -44,6 +40,26 @@ namespace Game.Shared.Netcode.Server
             InitializeAsync().Forget();
         }
 
+        /// <summary>
+        /// ゲームモードを設定・切り替えする。
+        /// サーバー起動前でも起動後でも呼び出し可能。
+        /// 既存のゲームモードがある場合は Cleanup → コンポーネント破棄してから切り替える。
+        /// </summary>
+        public void SetGameMode(IServerGameMode gameMode)
+        {
+            if (_gameMode != null)
+            {
+                _gameMode.Cleanup();
+                if (_gameMode is Component oldComponent)
+                {
+                    Destroy(oldComponent);
+                }
+            }
+            _gameMode = gameMode;
+            _gameMode.Initialize();
+            Debug.Log($"[ServerNetworkManager] GameMode set: {gameMode.GetType().Name}");
+        }
+
         private async UniTaskVoid InitializeAsync()
         {
             // --- NetworkManager + UnityTransport セットアップ ---
@@ -56,7 +72,7 @@ namespace Game.Shared.Netcode.Server
 
             // --- Connection Approval 有効化 ---
             nm.NetworkConfig.ConnectionApproval = true;
-            nm.ConnectionApprovalCallback += ServerConnectionApproval.ApproveConnection;
+            nm.ConnectionApprovalCallback += (req, res) => _gameMode.OnConnectionApproval(req, res);
 
             // --- イベントハンドラ ---
             nm.OnClientConnectedCallback += OnClientConnected;
@@ -69,93 +85,33 @@ namespace Game.Shared.Netcode.Server
             nm.StartServer();
 
             Debug.Log($"[ServerNetworkManager] NGO Server started on port {_port}");
-
-            // --- SurvivorServerSimulation 起動 ---
-            var simulation = gameObject.AddComponent<SurvivorServerSimulation>();
-            simulation.Initialize();
-        }
-
-        /// <summary>
-        /// NGO セッション開始 — シングルトン NetworkBehaviour 群をスポーン。
-        /// SurvivorServerSimulation.OnFirstClientConnected() から呼ばれる。
-        /// </summary>
-        public void StartSession()
-        {
-            _gameManagerInstance = SpawnSingleton<NetworkSurvivorGameManager>();
-            _enemyStateInstance = SpawnSingleton<NetworkSurvivorEnemyState>();
-            _itemSyncInstance = SpawnSingleton<NetworkSurvivorItemSync>();
-            Debug.Log("[ServerNetworkManager] Session started — singletons spawned");
-        }
-
-        private GameObject SpawnSingleton<T>() where T : NetworkBehaviour
-        {
-            var nm = NetworkManager.Singleton;
-            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
-            {
-                if (prefab.Prefab.GetComponent<T>() != null)
-                {
-                    var instance = Instantiate(prefab.Prefab);
-                    instance.GetComponent<NetworkObject>().Spawn();
-                    return instance;
-                }
-            }
-            Debug.LogError($"[ServerNetworkManager] Prefab with {typeof(T).Name} not found");
-            return null;
         }
 
         private void OnClientConnected(ulong clientId)
         {
             Debug.Log($"[ServerNetworkManager] Client connected: {clientId}");
-            SurvivorServerSimulation.Instance?.OnFirstClientConnected();
-            SpawnPlayerState(clientId);
-        }
-
-        private void SpawnPlayerState(ulong clientId)
-        {
-            var nm = NetworkManager.Singleton;
-            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
-            {
-                if (prefab.Prefab.GetComponent<NetworkSurvivorPlayerState>() != null)
-                {
-                    var instance = Instantiate(prefab.Prefab);
-                    instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-                    // バインドは NetworkSurvivorPlayerState.OnNetworkSpawn() 内で
-                    // NetworkPlayerStateBindableRegistry 経由で実行される
-                    Debug.Log($"[ServerNetworkManager] NetworkSurvivorPlayerState spawned for client {clientId}");
-                    return;
-                }
-            }
-            Debug.LogError("[ServerNetworkManager] NetworkSurvivorPlayerState prefab not found");
+            _gameMode.OnClientConnected(clientId);
         }
 
         private void OnClientDisconnected(ulong clientId)
         {
             Debug.Log($"[ServerNetworkManager] Client disconnected: {clientId}");
+            _gameMode.OnClientDisconnected(clientId);
         }
 
         private void OnDestroy()
         {
+            _gameMode?.Cleanup();
+
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
             {
                 NetworkManager.Singleton.Shutdown();
             }
 
-            CleanupSessionInstances();
-
             if (Instance == this)
             {
                 Instance = null;
             }
-        }
-
-        private void CleanupSessionInstances()
-        {
-            if (_gameManagerInstance != null) Destroy(_gameManagerInstance);
-            if (_enemyStateInstance != null) Destroy(_enemyStateInstance);
-            if (_itemSyncInstance != null) Destroy(_itemSyncInstance);
-            _gameManagerInstance = null;
-            _enemyStateInstance = null;
-            _itemSyncInstance = null;
         }
 
         /// <summary>

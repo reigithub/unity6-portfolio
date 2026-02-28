@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Netcode.Survivor;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -37,7 +38,7 @@ namespace Game.Shared.Netcode.Client
                 transport.SetConnectionData(address, port);
 
                 _networkManager.NetworkConfig.ConnectionData =
-                    NetworkConnectionPayload.Encode(stageId, sessionToken);
+                    NetworkSurvivorConnectionPayload.Encode(stageId, sessionToken);
 
                 _networkManager.StartClient();
 
