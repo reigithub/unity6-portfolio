@@ -7,12 +7,13 @@ using UnityEngine;
 namespace Game.Shared.Netcode.Server
 {
     /// <summary>
-    /// Survivor モード固有のサーバーロジック。
-    /// ペイロードデコード・ステージ管理・セッション管理・シングルトンスポーンを担当する。
+    /// Survivor モード固有のサーバーセッション。
+    /// インゲーム開始直前に StartSession() で NGO コールバックを登録し、
+    /// セッション終了時に StopSession() で解除 + クリーンアップする。
     /// </summary>
-    public class SurvivorServerGameMode : MonoBehaviour, IServerGameMode
+    public class SurvivorServerSession : MonoBehaviour
     {
-        public static SurvivorServerGameMode Instance { get; private set; }
+        public static SurvivorServerSession Instance { get; private set; }
 
         private int _stageId;
         private bool _stageLoaded;
@@ -24,20 +25,53 @@ namespace Game.Shared.Netcode.Server
 
         private void Awake() => Instance = this;
 
-        public void Initialize()
+        /// <summary>
+        /// セッション開始。NM のコールバックを登録する。
+        /// インゲーム開始直前に呼ばれる。
+        /// </summary>
+        public void StartSession()
         {
-            _stageLoaded = false;
-            Debug.Log("[SurvivorServerGameMode] Initialized (waiting for client)");
+            var nm = NetworkManager.Singleton;
+            nm.ConnectionApprovalCallback = OnConnectionApproval;
+            nm.OnClientConnectedCallback += OnClientConnected;
+            nm.OnClientDisconnectCallback += OnClientDisconnected;
+            Debug.Log("[SurvivorServerSession] Session started");
         }
 
-        public void OnConnectionApproval(
+        /// <summary>
+        /// セッション終了。コールバック解除 + スポーン済みオブジェクトの破棄。
+        /// </summary>
+        public void StopSession()
+        {
+            var nm = NetworkManager.Singleton;
+            if (nm != null)
+            {
+                nm.ConnectionApprovalCallback = null;
+                nm.OnClientConnectedCallback -= OnClientConnected;
+                nm.OnClientDisconnectCallback -= OnClientDisconnected;
+            }
+
+            if (_gameManagerInstance != null) Destroy(_gameManagerInstance);
+            if (_enemyStateInstance != null) Destroy(_enemyStateInstance);
+            if (_itemSyncInstance != null) Destroy(_itemSyncInstance);
+            _gameManagerInstance = null;
+            _enemyStateInstance = null;
+            _itemSyncInstance = null;
+
+            _stageLoaded = false;
+            _sessionStarted = false;
+
+            Debug.Log("[SurvivorServerSession] Session stopped");
+        }
+
+        private void OnConnectionApproval(
             NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
             // Survivor 固有ペイロードをデコード
             var (stageId, token) = NetworkSurvivorConnectionPayload.Decode(request.Payload);
 
-            Debug.Log($"[SurvivorServerGameMode] Approval: client={request.ClientNetworkId} " +
+            Debug.Log($"[SurvivorServerSession] Approval: client={request.ClientNetworkId} " +
                       $"stageId={stageId}, payload={request.Payload?.Length ?? 0} bytes");
 
             // stageId 設定（初回で確定）
@@ -45,11 +79,11 @@ namespace Game.Shared.Netcode.Server
             {
                 _stageId = stageId;
                 _stageLoaded = true;
-                Debug.Log($"[SurvivorServerGameMode] Stage set to {stageId}");
+                Debug.Log($"[SurvivorServerSession] Stage set to {stageId}");
             }
             else if (_stageId != stageId)
             {
-                Debug.LogWarning($"[SurvivorServerGameMode] StageId mismatch: " +
+                Debug.LogWarning($"[SurvivorServerSession] StageId mismatch: " +
                                  $"expected={_stageId}, received={stageId}");
             }
 
@@ -58,38 +92,28 @@ namespace Game.Shared.Netcode.Server
             response.CreatePlayerObject = false;
             response.Pending = false;
 
-            Debug.Log($"[SurvivorServerGameMode] Client {request.ClientNetworkId} approved");
+            Debug.Log($"[SurvivorServerSession] Client {request.ClientNetworkId} approved");
         }
 
-        public void OnClientConnected(ulong clientId)
+        private void OnClientConnected(ulong clientId)
         {
-            Debug.Log($"[SurvivorServerGameMode] Client connected: {clientId}");
+            Debug.Log($"[SurvivorServerSession] Client connected: {clientId}");
 
             // セッション開始（初回のみ）
             if (!_sessionStarted && _stageLoaded)
             {
                 _sessionStarted = true;
                 SpawnSessionSingletons();
-                Debug.Log("[SurvivorServerGameMode] Session started — singletons spawned");
+                Debug.Log("[SurvivorServerSession] Singletons spawned");
             }
 
             SpawnPlayerState(clientId);
             NotifyPlayersReadyAsync().Forget();
         }
 
-        public void OnClientDisconnected(ulong clientId)
+        private void OnClientDisconnected(ulong clientId)
         {
-            Debug.Log($"[SurvivorServerGameMode] Client disconnected: {clientId}");
-        }
-
-        public void Cleanup()
-        {
-            if (_gameManagerInstance != null) Destroy(_gameManagerInstance);
-            if (_enemyStateInstance != null) Destroy(_enemyStateInstance);
-            if (_itemSyncInstance != null) Destroy(_itemSyncInstance);
-            _gameManagerInstance = null;
-            _enemyStateInstance = null;
-            _itemSyncInstance = null;
+            Debug.Log($"[SurvivorServerSession] Client disconnected: {clientId}");
         }
 
         private void SpawnSessionSingletons()
@@ -108,11 +132,11 @@ namespace Game.Shared.Netcode.Server
                 {
                     var instance = Instantiate(prefab.Prefab);
                     instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-                    Debug.Log($"[SurvivorServerGameMode] PlayerState spawned for client {clientId}");
+                    Debug.Log($"[SurvivorServerSession] PlayerState spawned for client {clientId}");
                     return;
                 }
             }
-            Debug.LogError("[SurvivorServerGameMode] NetworkSurvivorPlayerState prefab not found");
+            Debug.LogError("[SurvivorServerSession] NetworkSurvivorPlayerState prefab not found");
         }
 
         private GameObject SpawnSingleton<T>() where T : NetworkBehaviour
@@ -127,7 +151,7 @@ namespace Game.Shared.Netcode.Server
                     return instance;
                 }
             }
-            Debug.LogError($"[SurvivorServerGameMode] Prefab with {typeof(T).Name} not found");
+            Debug.LogError($"[SurvivorServerSession] Prefab with {typeof(T).Name} not found");
             return null;
         }
 
@@ -141,11 +165,11 @@ namespace Game.Shared.Netcode.Server
             {
                 gm.NotifyAllPlayersReadyClientRpc();
                 gm.NotifyGameStartedClientRpc(Time.time);
-                Debug.Log("[SurvivorServerGameMode] AllPlayersReady + GameStarted sent");
+                Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
             }
             else
             {
-                Debug.LogWarning("[SurvivorServerGameMode] NetworkSurvivorGameManager not found");
+                Debug.LogWarning("[SurvivorServerSession] NetworkSurvivorGameManager not found");
             }
         }
 

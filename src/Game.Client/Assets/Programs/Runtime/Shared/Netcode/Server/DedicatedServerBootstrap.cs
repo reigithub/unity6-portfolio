@@ -32,9 +32,14 @@ namespace Game.Shared.Netcode.Server
 
             var serverGo = new GameObject("[ServerNetworkManager]");
             Object.DontDestroyOnLoad(serverGo);
+
+            // インフラ起動（NM + Transport 作成 → 次フレームで StartServer）
             var serverNm = serverGo.AddComponent<ServerNetworkManager>();
-            serverNm.SetGameMode(serverGo.AddComponent<SurvivorServerGameMode>());
             serverNm.Initialize(port);
+
+            // Survivor セッション開始（クライアント接続受け入れ準備）
+            var session = serverGo.AddComponent<SurvivorServerSession>();
+            session.StartSession();
         }
     }
 }
