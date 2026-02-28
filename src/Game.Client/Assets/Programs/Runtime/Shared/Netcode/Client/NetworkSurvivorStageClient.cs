@@ -19,7 +19,7 @@ namespace Game.Shared.Netcode.Client
             _networkManager != null && _networkManager.IsConnectedClient;
 
         /// <summary>NGO サーバーに接続する。</summary>
-        public async UniTask ConnectAsync(string address, ushort port, string sessionToken = "")
+        public async UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "")
         {
             if (_isConnecting || IsConnected) return;
             _isConnecting = true;
@@ -36,11 +36,8 @@ namespace Game.Shared.Netcode.Client
                 }
                 transport.SetConnectionData(address, port);
 
-                if (!string.IsNullOrEmpty(sessionToken))
-                {
-                    _networkManager.NetworkConfig.ConnectionData =
-                        System.Text.Encoding.UTF8.GetBytes(sessionToken);
-                }
+                _networkManager.NetworkConfig.ConnectionData =
+                    NetworkConnectionPayload.Encode(stageId, sessionToken);
 
                 _networkManager.StartClient();
 

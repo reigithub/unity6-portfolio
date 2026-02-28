@@ -1,6 +1,6 @@
 using Unity.Netcode;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Netcode
 {
     /// <summary>
     /// ネットワークモード判定ヘルパー。

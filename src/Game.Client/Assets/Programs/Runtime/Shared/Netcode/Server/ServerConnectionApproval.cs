@@ -1,9 +1,8 @@
 #if UNITY_SERVER
-using System.Text;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace Game.Shared.DedicatedServer.Netcode
+namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// NGO Connection Approval コールバック。
@@ -19,15 +18,14 @@ namespace Game.Shared.DedicatedServer.Netcode
             NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
-            // Connection Payload からトークンを取得
-            string token = string.Empty;
-            if (request.Payload != null && request.Payload.Length > 0)
-            {
-                token = Encoding.UTF8.GetString(request.Payload);
-            }
+            // Connection Payload からステージIDとトークンをデコード
+            var (stageId, token) = NetworkConnectionPayload.Decode(request.Payload);
 
             Debug.Log($"[ConnectionApproval] Client {request.ClientNetworkId} " +
-                      $"requesting approval (payload={request.Payload?.Length ?? 0} bytes)");
+                      $"requesting approval (stageId={stageId}, payload={request.Payload?.Length ?? 0} bytes)");
+
+            // サーバーシミュレーションにステージIDを通知
+            SurvivorServerSimulation.Instance?.SetStageIdFromClient(stageId);
 
             // --- Phase 2: 常に承認 ---
             // Phase 3 でセッショントークン検証を追加予定:
@@ -38,7 +36,7 @@ namespace Game.Shared.DedicatedServer.Netcode
             response.CreatePlayerObject = false;  // Phase 3+ で NetworkObject 生成を制御
             response.Pending = false;
 
-            Debug.Log($"[ConnectionApproval] Client {request.ClientNetworkId} approved");
+            Debug.Log($"[ConnectionApproval] Client {request.ClientNetworkId} approved (stageId={stageId})");
         }
     }
 }

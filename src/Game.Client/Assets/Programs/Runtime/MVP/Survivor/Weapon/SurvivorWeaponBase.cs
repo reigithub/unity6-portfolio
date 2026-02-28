@@ -4,6 +4,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;

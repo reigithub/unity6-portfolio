@@ -3,6 +3,7 @@ using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Events;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 

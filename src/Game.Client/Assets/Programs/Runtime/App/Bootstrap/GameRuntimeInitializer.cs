@@ -2,7 +2,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Realtime;
 using UnityEngine;
 #if UNITY_SERVER
-using Game.Shared.DedicatedServer;
+using Game.Shared.Netcode.Server;
 #endif
 
 namespace Game.App.Bootstrap

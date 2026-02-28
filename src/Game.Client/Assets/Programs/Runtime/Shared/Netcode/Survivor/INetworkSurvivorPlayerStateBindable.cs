@@ -6,7 +6,7 @@ namespace Game.Shared.Netcode.Survivor
     /// NetworkSurvivorPlayerState とバインド可能なコンポーネントのインターフェース。
     /// Game.Shared → Game.MVP.Survivor のアセンブリ境界を超えるために使用。
     /// </summary>
-    public interface INetworkPlayerStateBindable
+    public interface INetworkSurvivorPlayerStateBindable
     {
         void BindNetworkPlayerState(NetworkSurvivorPlayerState playerState);
     }
@@ -19,11 +19,11 @@ namespace Game.Shared.Netcode.Survivor
     /// </summary>
     public static class NetworkPlayerStateBindableRegistry
     {
-        private static readonly List<INetworkPlayerStateBindable> _bindables = new();
+        private static readonly List<INetworkSurvivorPlayerStateBindable> _bindables = new();
 
-        public static IReadOnlyList<INetworkPlayerStateBindable> Bindables => _bindables;
+        public static IReadOnlyList<INetworkSurvivorPlayerStateBindable> Bindables => _bindables;
 
-        public static void Register(INetworkPlayerStateBindable bindable)
+        public static void Register(INetworkSurvivorPlayerStateBindable bindable)
         {
             if (!_bindables.Contains(bindable))
             {
@@ -31,7 +31,7 @@ namespace Game.Shared.Netcode.Survivor
             }
         }
 
-        public static void Unregister(INetworkPlayerStateBindable bindable)
+        public static void Unregister(INetworkSurvivorPlayerStateBindable bindable)
         {
             _bindables.Remove(bindable);
         }

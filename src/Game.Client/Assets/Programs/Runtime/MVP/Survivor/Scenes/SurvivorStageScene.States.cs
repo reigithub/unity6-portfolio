@@ -10,6 +10,7 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
@@ -171,8 +172,9 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var address = NetworkSurvivorMatchConnector.ServerAddress;
                 var port = NetworkSurvivorMatchConnector.ServerPort;
-                Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port}");
-                await Context._networkClient.ConnectAsync(address, port);
+                var stageId = Context._saveService.CurrentSession.StageId;
+                Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port} (stageId={stageId})");
+                await Context._networkClient.ConnectAsync(address, port, stageId);
             }
 
             private async UniTask WaitForAllPlayersReadyAsync()

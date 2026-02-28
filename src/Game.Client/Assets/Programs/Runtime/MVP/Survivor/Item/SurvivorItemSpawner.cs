@@ -6,6 +6,7 @@ using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;

@@ -1,8 +1,7 @@
 #if UNITY_SERVER
-using Game.Shared.DedicatedServer.Netcode;
 using UnityEngine;
 
-namespace Game.Shared.DedicatedServer
+namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// Dedicated Server 起動時の初期化処理。

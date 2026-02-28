@@ -6,7 +6,7 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
-namespace Game.Shared.DedicatedServer.Netcode
+namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// Dedicated Server の NGO ライフサイクル管理。
@@ -72,8 +72,7 @@ namespace Game.Shared.DedicatedServer.Netcode
 
             // --- SurvivorServerSimulation 起動 ---
             var simulation = gameObject.AddComponent<SurvivorServerSimulation>();
-            int stageId = SurvivorServerSimulation.ParseStageId();
-            simulation.InitializeAsync(stageId).Forget();
+            simulation.Initialize();
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 

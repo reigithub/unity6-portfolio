@@ -6,6 +6,7 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;

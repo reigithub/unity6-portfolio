@@ -6,6 +6,7 @@ using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Survivor;
 using Game.Shared.Services;
@@ -24,7 +25,7 @@ namespace Game.MVP.Survivor.Player
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, INetworkPlayerStateBindable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, INetworkSurvivorPlayerStateBindable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");

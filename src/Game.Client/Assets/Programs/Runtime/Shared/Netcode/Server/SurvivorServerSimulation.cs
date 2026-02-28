@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Netcode.Survivor;
 using UnityEngine;
 
-namespace Game.Shared.DedicatedServer.Netcode
+namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// サーバー側セッションライフサイクル管理。
@@ -19,16 +19,32 @@ namespace Game.Shared.DedicatedServer.Netcode
 
         private void Awake() => Instance = this;
 
-        public async UniTask InitializeAsync(int stageId)
+        /// <summary>
+        /// サーバー起動時の初期化。stageId はクライアント接続時に受信する。
+        /// </summary>
+        public void Initialize()
         {
+            _stageLoaded = false;
+            Debug.Log("[SurvivorServerSimulation] Initialized (waiting for client stageId)");
+        }
+
+        /// <summary>
+        /// クライアントの ConnectionData から受信した stageId を設定する。
+        /// 初回クライアントの値で確定し、2人目以降は一致チェックのみ。
+        /// </summary>
+        public void SetStageIdFromClient(int stageId)
+        {
+            if (_stageLoaded)
+            {
+                if (_stageId != stageId)
+                {
+                    Debug.LogWarning($"[SurvivorServerSimulation] StageId mismatch: expected={_stageId}, received={stageId}");
+                }
+                return;
+            }
             _stageId = stageId;
-
-            // Dedicated Server はビジュアルシーンをロードしない。
-            // ステージ固有のロジック（Wave 定義等）はネットワーク経由でクライアントが処理する。
-            Debug.Log($"[SurvivorServerSimulation] Initialized for stage {stageId} (no scene load)");
-
             _stageLoaded = true;
-            await UniTask.CompletedTask;
+            Debug.Log($"[SurvivorServerSimulation] Stage set to {stageId} from client");
         }
 
         /// <summary>初回クライアント接続でセッション開始</summary>
@@ -64,20 +80,6 @@ namespace Game.Shared.DedicatedServer.Netcode
         public void EndSession()
         {
             _sessionStarted = false;
-        }
-
-        /// <summary>コマンドライン引数から --stage を解析。デフォルト 1。</summary>
-        public static int ParseStageId()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--stage" && int.TryParse(args[i + 1], out int id))
-                {
-                    return id;
-                }
-            }
-            return 1;
         }
 
         private void OnDestroy()

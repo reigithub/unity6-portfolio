@@ -7,6 +7,7 @@ using Game.MVP.Survivor.Services;
 
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
+using Game.Shared.Netcode;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Survivor;
