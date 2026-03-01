@@ -108,6 +108,9 @@ namespace Game.MVP.Survivor.Player
 
         // ネットワーク同期用
         private NetworkSurvivorPlayerState _networkPlayerState;
+        private IPlayerInputProvider _inputProvider;
+        private IPlayerStateSynchronizer _stateSynchronizer;
+        private bool _skipPhysics;
 
         #region MonoBehaviour Methods
 
@@ -129,15 +132,24 @@ namespace Game.MVP.Survivor.Player
 
         private void FixedUpdate()
         {
-            // クライアントモード: 位置は SurvivorPlayerView が更新するためスキップ
-            if (NetworkModeHelper.IsNetworkClientOnly) return;
+            if (_skipPhysics) return;
 
             _stateMachine?.FixedUpdate();
 
-            // サーバー: プレイヤー状態を NetworkSurvivorPlayerState に反映
-            if (NetworkModeHelper.IsNetworkServer && _networkPlayerState != null)
+            if (_stateSynchronizer != null)
             {
-                PushStateToNetwork();
+                var snapshot = new NetworkSurvivorPlayerStateSnapshot
+                {
+                    PositionX = transform.position.x,
+                    PositionY = transform.position.y,
+                    PositionZ = transform.position.z,
+                    RotationY = transform.eulerAngles.y,
+                    Speed = _speed.Value,
+                    CurrentHp = _currentHp.Value,
+                    CurrentStamina = _currentStamina.Value,
+                    IsInvincible = _isInvincible.Value
+                };
+                _stateSynchronizer.PushState(snapshot);
             }
         }
 
@@ -162,11 +174,25 @@ namespace Game.MVP.Survivor.Player
         {
             _networkPlayerState = playerState;
 
-            // クライアント: SurvivorPlayerView を追加して NetworkVariable 変更を描画に反映
             if (NetworkModeHelper.IsNetworkClientOnly)
             {
+                // Client: 入力送信のみ、物理処理スキップ
+                _inputProvider = new ClientInputProvider(_inputService, playerState);
+                _skipPhysics = true;
                 var view = gameObject.AddComponent<SurvivorPlayerView>();
                 view.Initialize(this, playerState);
+            }
+            else if (NetworkModeHelper.IsNetworkServer)
+            {
+                // Server/Host: 状態同期を有効化
+                _stateSynchronizer = new ServerPlayerStateSynchronizer(playerState);
+
+                // Host のローカルプレイヤーは LocalInputProvider を維持（Initialize で設定済み）
+                // Dedicated Server / リモートプレイヤーは ServerInputProvider
+                if (!playerState.IsOwner)
+                {
+                    _inputProvider = new ServerInputProvider(playerState);
+                }
             }
         }
 
@@ -201,6 +227,9 @@ namespace Game.MVP.Survivor.Player
             {
                 _mainCamera = _gameRootController.MainCamera.transform;
             }
+
+            // デフォルト入力プロバイダー（SP/Host ローカルプレイヤー用）
+            _inputProvider = new LocalInputProvider(_inputService);
 
             // ステートマシン初期化
             InitializeStateMachine();
@@ -260,54 +289,21 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_updateInputMarker.Auto())
             {
-                if (_inputService == null && _networkPlayerState == null)
-                    return;
+                if (_inputProvider == null) return;
 
-                // ネットワーククライアント: 入力送信 -> 位置は SurvivorPlayerView が受信
-                if (NetworkModeHelper.IsNetworkClientOnly && _networkPlayerState != null)
-                {
-                    if (_inputService == null) return;
-                    _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
-                    var isSprinting = _inputService.Player.LeftShift.IsPressed();
-                    _networkPlayerState.SendMoveInputServerRpc(_moveValue.x, _moveValue.y, isSprinting);
-                    return;
-                }
+                if (!_inputProvider.TryGetInput(out var moveValue, out var isSprinting))
+                    return; // Client: ServerRpc 送信済み、ローカル処理不要
 
-                // サーバーモード: ServerRpc 受信バッファから入力読み取り
-                if (NetworkModeHelper.IsNetworkServer && _networkPlayerState != null)
-                {
-                    if (_networkPlayerState.TryConsumeInput(out var moveX, out var moveY, out var isSprinting))
-                    {
-                        _moveValue = new Vector2(moveX, moveY);
-                        _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
-                        var isRunning = isSprinting && _currentStamina.Value > 0;
-                        _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
-                        UpdateStamina(isRunning);
-                        if (IsMoveInput()) _lookRotation = Quaternion.LookRotation(_moveVector);
-                    }
-                    return;
-                }
+                // SP/Server/Host 共通の入力処理
+                _moveValue = moveValue;
+                _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
 
-                // SP / クライアント: ローカル入力
-                if (_inputService == null)
-                    return;
+                var wantToRun = isSprinting && IsMoveInput();
+                var isRunning = wantToRun && _currentStamina.Value > 0;
+                _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
 
-                // 移動入力受付
-                _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
-                _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
+                UpdateStamina(isRunning);
 
-                // ダッシュ入力チェック
-                var wantToRun = _inputService.Player.LeftShift.IsPressed() && IsMoveInput();
-                var canRun = _currentStamina.Value > 0;
-
-                // 移動速度更新（スタミナがある場合のみダッシュ可能）
-                var isRunning2 = wantToRun && canRun;
-                _speed.Value = _moveVector.magnitude * (isRunning2 ? _runSpeed : _jogSpeed);
-
-                // スタミナ消費・回復（deltaTimeベース）
-                UpdateStamina(isRunning2);
-
-                // 回転入力受付
                 if (IsMoveInput())
                 {
                     _lookRotation = Quaternion.LookRotation(_moveVector);
@@ -476,25 +472,6 @@ namespace Game.MVP.Survivor.Player
         }
 
         #endregion
-
-        /// <summary>
-        /// サーバー: プレイヤー状態を NetworkSurvivorPlayerState に反映
-        /// </summary>
-        private void PushStateToNetwork()
-        {
-            var snapshot = new NetworkSurvivorPlayerStateSnapshot
-            {
-                PositionX = transform.position.x,
-                PositionY = transform.position.y,
-                PositionZ = transform.position.z,
-                RotationY = transform.eulerAngles.y,
-                Speed = _speed.Value,
-                CurrentHp = _currentHp.Value,
-                CurrentStamina = _currentStamina.Value,
-                IsInvincible = _isInvincible.Value
-            };
-            _networkPlayerState.UpdateState(snapshot);
-        }
 
         #region Damage / Heal
 

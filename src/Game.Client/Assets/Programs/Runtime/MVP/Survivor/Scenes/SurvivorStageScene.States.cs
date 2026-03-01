@@ -10,7 +10,6 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
-using Game.Shared.Netcode;
 using Game.Shared.Netcode.Client;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
@@ -261,7 +260,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Update()
             {
                 // クライアントモード: サーバー駆動でゲーム進行
-                if (NetworkModeHelper.IsNetworkClientOnly)
+                if (Context._isClientOnly)
                 {
                     // サーバーからの結果を確認
                     if (StageModel.HasNetworkResult)

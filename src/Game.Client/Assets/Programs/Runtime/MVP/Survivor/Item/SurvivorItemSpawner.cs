@@ -6,7 +6,6 @@ using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
@@ -43,9 +42,17 @@ namespace Game.MVP.Survivor.Item
         // ドロップグループキャッシュ (GroupId -> List<SurvivorItemDropMaster>)
         private readonly Dictionary<int, List<SurvivorItemDropMaster>> _dropGroupCache = new();
 
+        // ネットワーク
+        private ISurvivorNetworkBridge _networkBridge;
+
         // Events
         private readonly Subject<SurvivorItem> _onItemCollected = new();
         public Observable<SurvivorItem> OnItemCollected => _onItemCollected;
+
+        public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
+        {
+            _networkBridge = bridge;
+        }
 
         public UniTask InitializeAsync()
         {
@@ -199,10 +206,7 @@ namespace Game.MVP.Survivor.Item
                 _activeItems[itemId].Add(item);
 
                 // サーバー: クライアントにアイテムスポーンを通知
-                if (NetworkModeHelper.IsNetworkServer)
-                {
-                    NetworkSurvivorItemSync.Instance?.SpawnItemClientRpc(itemId, position.x, position.z);
-                }
+                _networkBridge?.NotifyItemSpawned(itemId, position.x, position.z);
             }
         }
 
@@ -349,10 +353,7 @@ namespace Game.MVP.Survivor.Item
             _onItemCollected.OnNext(item);
 
             // サーバー: クライアントにアイテム回収を通知
-            if (NetworkModeHelper.IsNetworkServer)
-            {
-                NetworkSurvivorItemSync.Instance?.DespawnItemClientRpc(item.ItemId);
-            }
+            _networkBridge?.NotifyItemDespawned(item.ItemId);
 
             ReturnToPool(item);
         }

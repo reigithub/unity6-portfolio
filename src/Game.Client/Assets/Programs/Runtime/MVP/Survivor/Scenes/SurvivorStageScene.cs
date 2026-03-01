@@ -15,7 +15,6 @@ using Game.Shared.Services;
 using MessagePipe;
 using R3;
 using R3.Triggers;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -51,6 +50,8 @@ namespace Game.MVP.Survivor.Scenes
         private NetworkSurvivorPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
+        private bool _isClientOnly;
+        private bool _isServer;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
 
@@ -70,6 +71,10 @@ namespace Game.MVP.Survivor.Scenes
         public override async UniTask Startup()
         {
             await base.Startup();
+
+            // ネットワークモードを起動時に1回だけキャッシュ
+            _isClientOnly = NetworkModeHelper.IsNetworkClientOnly;
+            _isServer = NetworkModeHelper.IsNetworkServer;
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -95,9 +100,10 @@ namespace Game.MVP.Survivor.Scenes
             BuildStateMachine();
             SubscribeEvents();
             SubscribeSignals();
-            if (NetworkModeHelper.IsNetworkServer)
+            if (_isServer)
             {
-                SubscribeNetworkEventBridge();
+                var eventBridge = new SurvivorNetworkEventBridge(_damageReceivedSub, _playerDiedSub, _waveStartedSub, _waveCompletedSub, _waveManager);
+                Disposables.Add(eventBridge);
             }
             BindModelToView();
 
@@ -247,7 +253,7 @@ namespace Game.MVP.Survivor.Scenes
 
             _waveCompletedSub.Subscribe(s =>
             {
-                if (NetworkModeHelper.IsNetworkClientOnly)
+                if (_isClientOnly)
                 {
                     // MP Client: サーバーが計算済みスコアをそのまま加算
                     _stageModel.AddScore(s.WaveClearScore);
@@ -273,42 +279,6 @@ namespace Game.MVP.Survivor.Scenes
             }).AddTo(Disposables);
         }
 
-        /// <summary>
-        /// シグナル → ClientRpc 転送（Server only）
-        /// </summary>
-        private void SubscribeNetworkEventBridge()
-        {
-            var gm = NetworkSurvivorGameManager.Instance;
-            if (gm == null) return;
-
-            _damageReceivedSub.Subscribe(s =>
-            {
-                var userId = new FixedString64Bytes("local");
-                gm.NotifyPlayerDamagedClientRpc(userId, s.Damage, s.RemainingHp);
-            }).AddTo(Disposables);
-
-            _playerDiedSub.Subscribe(_ =>
-            {
-                var userId = new FixedString64Bytes("local");
-                gm.NotifyPlayerDiedClientRpc(userId);
-            }).AddTo(Disposables);
-
-            _waveStartedSub.Subscribe(s =>
-            {
-                gm.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
-            }).AddTo(Disposables);
-
-            _waveCompletedSub.Subscribe(s =>
-            {
-                var spawnInfo = _waveManager.GetSpawnInfo();
-                gm.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
-            }).AddTo(Disposables);
-
-            _waveManager.IsAllWavesCleared
-                .Where(cleared => cleared)
-                .Subscribe(_ => gm.NotifyAllWavesClearedClientRpc())
-                .AddTo(Disposables);
-        }
 
         private void SetupAutoSave()
         {

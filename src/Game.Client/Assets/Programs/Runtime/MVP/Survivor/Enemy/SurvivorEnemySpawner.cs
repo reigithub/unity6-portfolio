@@ -6,7 +6,6 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode;
 using Game.Shared.Netcode.Survivor;
 using Game.Shared.Services;
 using R3;
@@ -69,6 +68,7 @@ namespace Game.MVP.Survivor.Enemy
         private int _remainingSpawnCount;
 
         // ネットワーク敵同期
+        private ISurvivorNetworkBridge _networkBridge;
         private const float EnemySyncInterval = 1.0f; // 1Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
@@ -81,6 +81,11 @@ namespace Game.MVP.Survivor.Enemy
         public void SetPlayer(Transform player)
         {
             _playerTransform = player;
+        }
+
+        public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
+        {
+            _networkBridge = bridge;
         }
 
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
@@ -172,7 +177,7 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // サーバー: 定期的に敵状態をバッチ送信
-            if (NetworkModeHelper.IsNetworkServer)
+            if (_networkBridge != null)
             {
                 _enemySyncTimer -= Time.deltaTime;
                 if (_enemySyncTimer <= 0f)
@@ -209,7 +214,7 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SyncEnemyStatesToNetwork()
         {
-            if (NetworkSurvivorEnemyState.Instance == null || _activeEnemies.Count == 0)
+            if (_activeEnemies.Count == 0)
                 return;
 
             var snapshots = new NetworkSurvivorEnemyStateSnapshot[_activeEnemies.Count];
@@ -227,7 +232,7 @@ namespace Game.MVP.Survivor.Enemy
                     SyncType = EnemySyncType.PositionUpdate
                 };
             }
-            NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(snapshots);
+            _networkBridge.BroadcastEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()
@@ -309,7 +314,7 @@ namespace Game.MVP.Survivor.Enemy
                 _currentSpawnIndex++;
 
                 // サーバー: スポーンイベントを送信
-                if (NetworkModeHelper.IsNetworkServer && NetworkSurvivorEnemyState.Instance != null)
+                if (_networkBridge != null)
                 {
                     var spawnSnapshot = new NetworkSurvivorEnemyStateSnapshot
                     {
@@ -320,8 +325,7 @@ namespace Game.MVP.Survivor.Enemy
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     };
-                    NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(
-                        new[] { spawnSnapshot });
+                    _networkBridge.BroadcastEnemyStates(new[] { spawnSnapshot });
                 }
 
                 if (_remainingSpawnCount <= 0)
@@ -461,22 +465,18 @@ namespace Game.MVP.Survivor.Enemy
         private void OnEnemyDeath(SurvivorEnemyController enemy)
         {
             // サーバー: 死亡イベントを送信
-            if (NetworkModeHelper.IsNetworkServer && NetworkSurvivorEnemyState.Instance != null)
+            if (_networkBridge != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
-                if (_enemyNetworkIds.TryGetValue(enemy, out var networkId))
+                var deathSnapshot = new NetworkSurvivorEnemyStateSnapshot
                 {
-                    var deathSnapshot = new NetworkSurvivorEnemyStateSnapshot
-                    {
-                        NetworkId = networkId,
-                        EnemyMasterId = enemy.EnemyId,
-                        PositionX = enemy.transform.position.x,
-                        PositionZ = enemy.transform.position.z,
-                        CurrentHp = 0,
-                        SyncType = EnemySyncType.Death
-                    };
-                    NetworkSurvivorEnemyState.Instance.BroadcastEnemyStates(
-                        new[] { deathSnapshot });
-                }
+                    NetworkId = networkId,
+                    EnemyMasterId = enemy.EnemyId,
+                    PositionX = enemy.transform.position.x,
+                    PositionZ = enemy.transform.position.z,
+                    CurrentHp = 0,
+                    SyncType = EnemySyncType.Death
+                };
+                _networkBridge.BroadcastEnemyStates(new[] { deathSnapshot });
             }
 
             _enemyNetworkIds.Remove(enemy);
