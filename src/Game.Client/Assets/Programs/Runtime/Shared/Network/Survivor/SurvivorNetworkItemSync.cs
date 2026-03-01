@@ -4,15 +4,15 @@ using Unity.Netcode;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// アイテム生成・取得のバッチ同期マネージャー（シングルトン）。
     /// アイテムのスポーン・デスポーンを ClientRpc で通知。
     /// </summary>
-    public class NetworkSurvivorItemSync : NetworkBehaviour
+    public class SurvivorNetworkItemSync : NetworkBehaviour
     {
-        public static NetworkSurvivorItemSync Instance { get; private set; }
+        public static SurvivorNetworkItemSync Instance { get; private set; }
 
         [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;

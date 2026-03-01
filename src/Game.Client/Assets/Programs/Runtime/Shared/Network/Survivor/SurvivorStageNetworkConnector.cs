@@ -1,17 +1,17 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Client
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// クライアント側 NGO 接続管理。
     /// SurvivorStageScene.ReadyState から呼ばれ、サーバーへ接続する。
     /// </summary>
-    public class NetworkSurvivorStageConnector : INetworkSurvivorStageConnector
+    public class SurvivorStageNetworkConnector : ISurvivorStageNetworkConnector
     {
         private NetworkManager _networkManager;
         private bool _isConnecting;
@@ -38,7 +38,7 @@ namespace Game.Shared.Netcode.Client
                 transport.SetConnectionData(address, port);
 
                 _networkManager.NetworkConfig.ConnectionData =
-                    NetworkSurvivorConnectionPayload.Encode(stageId, sessionToken);
+                    SurvivorNetworkConnectionPayload.Encode(stageId, sessionToken);
 
                 _networkManager.StartClient();
 

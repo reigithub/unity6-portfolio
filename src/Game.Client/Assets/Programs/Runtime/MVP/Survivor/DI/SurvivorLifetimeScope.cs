@@ -8,7 +8,6 @@ using Game.Shared.Netcode;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
-using Game.Shared.Netcode.Client;
 using Game.Shared.Survivor;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
@@ -24,6 +23,7 @@ using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
 
 namespace Game.MVP.Survivor
@@ -83,7 +83,7 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
             // NGO Client（サーバーでは接続不要）
-            builder.Register<NullNetworkSurvivorStageConnector>(Lifetime.Singleton).As<INetworkSurvivorStageConnector>();
+            builder.Register<NullSurvivorStageNetworkConnector>(Lifetime.Singleton).As<ISurvivorStageNetworkConnector>();
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace Game.MVP.Survivor
             // ========================================
             // NGO Client（クライアント接続用）
             // ========================================
-            builder.Register<NetworkSurvivorStageConnector>(Lifetime.Singleton).As<INetworkSurvivorStageConnector>();
+            builder.Register<SurvivorStageNetworkConnector>(Lifetime.Singleton).As<ISurvivorStageNetworkConnector>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

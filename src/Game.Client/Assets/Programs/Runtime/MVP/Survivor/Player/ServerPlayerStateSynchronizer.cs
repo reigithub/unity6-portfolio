@@ -1,4 +1,4 @@
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 
 namespace Game.MVP.Survivor.Player
@@ -8,14 +8,14 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     public class ServerPlayerStateSynchronizer : IPlayerStateSynchronizer
     {
-        private readonly NetworkSurvivorPlayerState _networkPlayerState;
+        private readonly SurvivorNetworkPlayerState _networkPlayerState;
 
-        public ServerPlayerStateSynchronizer(NetworkSurvivorPlayerState networkPlayerState)
+        public ServerPlayerStateSynchronizer(SurvivorNetworkPlayerState networkPlayerState)
         {
             _networkPlayerState = networkPlayerState;
         }
 
-        public void PushState(NetworkSurvivorPlayerStateSnapshot snapshot)
+        public void PushState(SurvivorNetworkPlayerStateSnapshot snapshot)
         {
             _networkPlayerState.UpdateState(snapshot);
         }

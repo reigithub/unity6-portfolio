@@ -10,8 +10,7 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
-using Game.Shared.Netcode.Client;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
 using Unity.Netcode;
@@ -117,7 +116,7 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeItemSpawnerAsync();
 
                 // ネットワーク接続（MP: MatchResult あり or SP テスト）
-                if (NetworkSurvivorMatchConnector.HasMatchResult)
+                if (SurvivorMatchNetworkConnector.HasMatchResult)
                 {
                     await ConnectToServerAsync();
 
@@ -170,8 +169,8 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTask ConnectToServerAsync()
             {
-                var address = NetworkSurvivorMatchConnector.ServerAddress;
-                var port = NetworkSurvivorMatchConnector.ServerPort;
+                var address = SurvivorMatchNetworkConnector.ServerAddress;
+                var port = SurvivorMatchNetworkConnector.ServerPort;
                 var stageId = Context._saveService.CurrentSession.StageId;
                 Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port} (stageId={stageId})");
                 await Context._networkConnector.ConnectAsync(address, port, stageId);
@@ -201,18 +200,18 @@ namespace Game.MVP.Survivor.Scenes
             private void InitializeClientViews()
             {
                 // InjectGameObject: VContainer が [Inject] フィールドを自動解決
-                if (NetworkSurvivorGameManager.Instance != null)
-                    Context.Resolver.InjectGameObject(NetworkSurvivorGameManager.Instance.gameObject);
-                if (NetworkSurvivorEnemyState.Instance != null)
-                    Context.Resolver.InjectGameObject(NetworkSurvivorEnemyState.Instance.gameObject);
-                if (NetworkSurvivorItemSync.Instance != null)
-                    Context.Resolver.InjectGameObject(NetworkSurvivorItemSync.Instance.gameObject);
+                if (SurvivorNetworkGameManager.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkGameManager.Instance.gameObject);
+                if (SurvivorNetworkEnemyState.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkEnemyState.Instance.gameObject);
+                if (SurvivorNetworkItemSync.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkItemSync.Instance.gameObject);
 
                 // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
                 var playerObj = NetworkManager.Singleton?.LocalClient?.PlayerObject;
                 if (playerObj != null)
                 {
-                    Context._localPlayerState = playerObj.GetComponent<NetworkSurvivorPlayerState>();
+                    Context._localPlayerState = playerObj.GetComponent<SurvivorNetworkPlayerState>();
                     Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
                 }
 
@@ -498,7 +497,7 @@ namespace Game.MVP.Survivor.Scenes
                 // NGO 接続中ならサーバーに結果を通知
                 if (Context._localPlayerState != null)
                 {
-                    var result = new NetworkSurvivorGameResult
+                    var result = new SurvivorNetworkGameResult
                     {
                         IsVictory = true,
                         ClearTime = clearTime
@@ -563,7 +562,7 @@ namespace Game.MVP.Survivor.Scenes
                 // NGO 接続中ならサーバーに結果を通知
                 if (Context._localPlayerState != null)
                 {
-                    var result = new NetworkSurvivorGameResult
+                    var result = new SurvivorNetworkGameResult
                     {
                         IsVictory = false,
                         ClearTime = clearTime

@@ -1,9 +1,9 @@
 using Unity.Netcode;
 using Game.Library.Shared.Dto;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
-    public struct NetworkSurvivorEnemyStateSnapshot : INetworkSerializable
+    public struct SurvivorNetworkEnemyStateSnapshot : INetworkSerializable
     {
         public int NetworkId;
         public int EnemyMasterId;
@@ -28,9 +28,9 @@ namespace Game.Shared.Netcode.Survivor
             serializer.SerializeValue(ref SyncTypeByte);
         }
 
-        public static NetworkSurvivorEnemyStateSnapshot FromDto(EnemyStateSnapshot dto)
+        public static SurvivorNetworkEnemyStateSnapshot FromDto(EnemyStateSnapshot dto)
         {
-            return new NetworkSurvivorEnemyStateSnapshot
+            return new SurvivorNetworkEnemyStateSnapshot
             {
                 NetworkId = dto.NetworkId,
                 EnemyMasterId = dto.EnemyMasterId,

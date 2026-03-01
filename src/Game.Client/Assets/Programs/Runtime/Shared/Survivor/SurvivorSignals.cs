@@ -1,4 +1,4 @@
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.Shared.Survivor
@@ -104,9 +104,9 @@ namespace Game.Shared.Survivor
             {
                 public readonly string UserId;
                 public readonly int Level;
-                public readonly NetworkSurvivorWeaponUpgradeOption[] Options;
+                public readonly SurvivorNetworkWeaponUpgradeOption[] Options;
 
-                public LeveledUp(string userId, int level, NetworkSurvivorWeaponUpgradeOption[] options)
+                public LeveledUp(string userId, int level, SurvivorNetworkWeaponUpgradeOption[] options)
                 {
                     UserId = userId;
                     Level = level;
@@ -153,9 +153,9 @@ namespace Game.Shared.Survivor
 
             public readonly struct BatchUpdated
             {
-                public readonly NetworkSurvivorEnemyStateSnapshot[] Enemies;
+                public readonly SurvivorNetworkEnemyStateSnapshot[] Enemies;
 
-                public BatchUpdated(NetworkSurvivorEnemyStateSnapshot[] enemies)
+                public BatchUpdated(SurvivorNetworkEnemyStateSnapshot[] enemies)
                 {
                     Enemies = enemies;
                 }
@@ -213,9 +213,9 @@ namespace Game.Shared.Survivor
         {
             public readonly struct Ended
             {
-                public readonly NetworkSurvivorGameResult Result;
+                public readonly SurvivorNetworkGameResult Result;
 
-                public Ended(NetworkSurvivorGameResult result)
+                public Ended(SurvivorNetworkGameResult result)
                 {
                     Result = result;
                 }

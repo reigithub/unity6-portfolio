@@ -6,7 +6,7 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
@@ -217,12 +217,12 @@ namespace Game.MVP.Survivor.Enemy
             if (_activeEnemies.Count == 0)
                 return;
 
-            var snapshots = new NetworkSurvivorEnemyStateSnapshot[_activeEnemies.Count];
+            var snapshots = new SurvivorNetworkEnemyStateSnapshot[_activeEnemies.Count];
             for (int i = 0; i < _activeEnemies.Count; i++)
             {
                 var enemy = _activeEnemies[i];
                 var networkId = _enemyNetworkIds.TryGetValue(enemy, out var id) ? id : -1;
-                snapshots[i] = new NetworkSurvivorEnemyStateSnapshot
+                snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
@@ -316,7 +316,7 @@ namespace Game.MVP.Survivor.Enemy
                 // サーバー: スポーンイベントを送信
                 if (_networkBridge != null)
                 {
-                    var spawnSnapshot = new NetworkSurvivorEnemyStateSnapshot
+                    var spawnSnapshot = new SurvivorNetworkEnemyStateSnapshot
                     {
                         NetworkId = networkId,
                         EnemyMasterId = enemy.EnemyId,
@@ -467,7 +467,7 @@ namespace Game.MVP.Survivor.Enemy
             // サーバー: 死亡イベントを送信
             if (_networkBridge != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
-                var deathSnapshot = new NetworkSurvivorEnemyStateSnapshot
+                var deathSnapshot = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,

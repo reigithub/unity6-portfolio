@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// NetworkSurvivorPlayerState とバインド可能なコンポーネントのインターフェース。
     /// Game.Shared → Game.MVP.Survivor のアセンブリ境界を超えるために使用。
     /// </summary>
-    public interface INetworkSurvivorPlayerStateBindable
+    public interface ISurvivorNetworkPlayerStateBindable
     {
-        void BindNetworkPlayerState(NetworkSurvivorPlayerState playerState);
+        void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState);
     }
 
     /// <summary>
@@ -17,13 +17,13 @@ namespace Game.Shared.Netcode.Survivor
     /// NetworkSurvivorPlayerState.OnNetworkSpawn でレジストリからバインド対象を取得。
     /// FindObjectsByType を回避し、タイミング問題も解決。
     /// </summary>
-    public static class NetworkPlayerStateBindableRegistry
+    public static class SurvivorNetworkPlayerStateBindableRegistry
     {
-        private static readonly List<INetworkSurvivorPlayerStateBindable> _bindables = new();
+        private static readonly List<ISurvivorNetworkPlayerStateBindable> _bindables = new();
 
-        public static IReadOnlyList<INetworkSurvivorPlayerStateBindable> Bindables => _bindables;
+        public static IReadOnlyList<ISurvivorNetworkPlayerStateBindable> Bindables => _bindables;
 
-        public static void Register(INetworkSurvivorPlayerStateBindable bindable)
+        public static void Register(ISurvivorNetworkPlayerStateBindable bindable)
         {
             if (!_bindables.Contains(bindable))
             {
@@ -31,7 +31,7 @@ namespace Game.Shared.Netcode.Survivor
             }
         }
 
-        public static void Unregister(INetworkSurvivorPlayerStateBindable bindable)
+        public static void Unregister(ISurvivorNetworkPlayerStateBindable bindable)
         {
             _bindables.Remove(bindable);
         }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Library.Shared.Dto;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using MessagePipe;
 using UnityEngine;
@@ -22,7 +22,7 @@ namespace Game.MVP.Survivor.Enemy
             _subscription = subscriber.Subscribe(signal => OnReceived(signal.Enemies));
         }
 
-        private void OnReceived(NetworkSurvivorEnemyStateSnapshot[] enemies)
+        private void OnReceived(SurvivorNetworkEnemyStateSnapshot[] enemies)
         {
             foreach (var e in enemies)
             {
@@ -41,7 +41,7 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
-        private void SpawnProxy(NetworkSurvivorEnemyStateSnapshot e)
+        private void SpawnProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
             if (_proxies.ContainsKey(e.NetworkId)) return;
             var proxy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -53,7 +53,7 @@ namespace Game.MVP.Survivor.Enemy
             _proxies[e.NetworkId] = proxy;
         }
 
-        private void UpdateProxy(NetworkSurvivorEnemyStateSnapshot e)
+        private void UpdateProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
             if (_proxies.TryGetValue(e.NetworkId, out var p))
                 p.transform.position = new Vector3(e.PositionX, 0, e.PositionZ);

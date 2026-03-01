@@ -1,4 +1,4 @@
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Player
@@ -10,7 +10,7 @@ namespace Game.MVP.Survivor.Player
     public class SurvivorPlayerView : MonoBehaviour
     {
         private SurvivorPlayerController _controller;
-        private NetworkSurvivorPlayerState _networkState;
+        private SurvivorNetworkPlayerState _networkState;
         private Animator _animator;
 
         private Vector3 _targetPosition;
@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.Player
 
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
 
-        public void Initialize(SurvivorPlayerController controller, NetworkSurvivorPlayerState networkState)
+        public void Initialize(SurvivorPlayerController controller, SurvivorNetworkPlayerState networkState)
         {
             _controller = controller;
             _networkState = networkState;
@@ -32,8 +32,8 @@ namespace Game.MVP.Survivor.Player
         }
 
         private void OnStateChanged(
-            NetworkSurvivorPlayerStateSnapshot prev,
-            NetworkSurvivorPlayerStateSnapshot current)
+            SurvivorNetworkPlayerStateSnapshot prev,
+            SurvivorNetworkPlayerStateSnapshot current)
         {
             _targetPosition = new Vector3(current.PositionX, current.PositionY, current.PositionZ);
             _targetRotationY = current.RotationY;

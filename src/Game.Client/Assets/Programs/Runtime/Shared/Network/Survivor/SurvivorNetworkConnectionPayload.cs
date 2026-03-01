@@ -2,14 +2,14 @@ using System;
 using System.Text;
 using MemoryPack;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Survivor モード用 NGO 接続ペイロード。
     /// クライアント → サーバーへ stageId とセッショントークンを送信する。
     /// </summary>
     [MemoryPackable]
-    public partial class NetworkSurvivorConnectionPayload
+    public partial class SurvivorNetworkConnectionPayload
     {
         public int StageId { get; set; }
         public string SessionToken { get; set; }
@@ -17,7 +17,7 @@ namespace Game.Shared.Netcode.Survivor
         /// <summary>stageId とセッショントークンを ConnectionData 用バイト列にエンコードする。</summary>
         public static byte[] Encode(int stageId, string sessionToken = "")
         {
-            var payload = new NetworkSurvivorConnectionPayload
+            var payload = new SurvivorNetworkConnectionPayload
             {
                 StageId = stageId,
                 SessionToken = sessionToken ?? string.Empty
@@ -35,7 +35,7 @@ namespace Game.Shared.Netcode.Survivor
 
             try
             {
-                var payload = MemoryPackSerializer.Deserialize<NetworkSurvivorConnectionPayload>(data);
+                var payload = MemoryPackSerializer.Deserialize<SurvivorNetworkConnectionPayload>(data);
                 return (payload.StageId, payload.SessionToken ?? string.Empty);
             }
             catch

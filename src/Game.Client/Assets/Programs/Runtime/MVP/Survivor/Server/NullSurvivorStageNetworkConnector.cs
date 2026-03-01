@@ -1,12 +1,12 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Netcode.Client;
+using Game.Shared.Network.Survivor;
 
 namespace Game.MVP.Survivor.Server
 {
     /// <summary>
     /// サーバー用Null実装。全メソッドno-op。
     /// </summary>
-    public class NullNetworkSurvivorStageConnector : INetworkSurvivorStageConnector
+    public class NullSurvivorStageNetworkConnector : ISurvivorStageNetworkConnector
     {
         public bool IsConnected => false;
 

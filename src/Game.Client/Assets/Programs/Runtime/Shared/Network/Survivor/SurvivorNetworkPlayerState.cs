@@ -2,18 +2,18 @@ using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// プレイヤーごとの状態同期 NetworkBehaviour。
     /// サーバーが NetworkVariable を更新 → NGO が自動的にクライアントへ同期。
     /// クライアントは ServerRpc で入力をサーバーへ送信。
     /// </summary>
-    public class NetworkSurvivorPlayerState : NetworkBehaviour
+    public class SurvivorNetworkPlayerState : NetworkBehaviour
     {
         // --- 高頻度同期（サーバー → クライアント） ---
 
-        public NetworkVariable<NetworkSurvivorPlayerStateSnapshot> State = new(
+        public NetworkVariable<SurvivorNetworkPlayerStateSnapshot> State = new(
             default,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
@@ -84,10 +84,10 @@ namespace Game.Shared.Netcode.Survivor
         }
 
         [ServerRpc]
-        public void ReportGameEndServerRpc(NetworkSurvivorGameResult result)
+        public void ReportGameEndServerRpc(SurvivorNetworkGameResult result)
         {
             Debug.Log($"[NetworkSurvivorPlayerState] GameEnd from {OwnerClientId}: victory={result.IsVictory}");
-            NetworkSurvivorGameManager.Instance?.NotifyGameEndedClientRpc(result);
+            SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(result);
         }
 
         // --- ライフサイクル ---
@@ -101,7 +101,7 @@ namespace Game.Shared.Netcode.Survivor
                 // クライアント & Owner: レジストリからバインド（入力送信用）
                 if (IsOwner)
                 {
-                    foreach (var bindable in NetworkPlayerStateBindableRegistry.Bindables)
+                    foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
                     {
                         bindable.BindNetworkPlayerState(this);
                         Debug.Log($"[NetworkSurvivorPlayerState] Client bound to {bindable.GetType().Name}");
@@ -113,7 +113,7 @@ namespace Game.Shared.Netcode.Survivor
             // サーバー: レジストリから INetworkPlayerStateBindable を検索してバインド
             if (IsServer)
             {
-                foreach (var bindable in NetworkPlayerStateBindableRegistry.Bindables)
+                foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
                 {
                     bindable.BindNetworkPlayerState(this);
                     Debug.Log($"[NetworkSurvivorPlayerState] Bound to {bindable.GetType().Name} for client {OwnerClientId}");
@@ -132,7 +132,7 @@ namespace Game.Shared.Netcode.Survivor
             }
         }
 
-        private void OnStateChanged(NetworkSurvivorPlayerStateSnapshot prev, NetworkSurvivorPlayerStateSnapshot current)
+        private void OnStateChanged(SurvivorNetworkPlayerStateSnapshot prev, SurvivorNetworkPlayerStateSnapshot current)
         {
             // Phase 5+: クライアント側 View 更新（PlayerView.UpdatePosition 等）
         }
@@ -140,7 +140,7 @@ namespace Game.Shared.Netcode.Survivor
         // --- サーバー側ヘルパー ---
 
         /// <summary>サーバーから State を更新（Phase 4: SurvivorServerSimulation から呼ばれる）</summary>
-        public void UpdateState(NetworkSurvivorPlayerStateSnapshot snapshot)
+        public void UpdateState(SurvivorNetworkPlayerStateSnapshot snapshot)
         {
             if (!IsServer) return;
             State.Value = snapshot;

@@ -4,12 +4,10 @@ using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
-
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Netcode;
-using Game.Shared.Netcode.Client;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
@@ -35,7 +33,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
-        [Inject] private readonly INetworkSurvivorStageConnector _networkConnector;
+        [Inject] private readonly ISurvivorStageNetworkConnector _networkConnector;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -48,7 +46,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
 
         private SurvivorStageModel _stageModel;
-        private NetworkSurvivorPlayerState _localPlayerState;
+        private SurvivorNetworkPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
         private ISurvivorStageSceneView _stageSceneView;
@@ -295,7 +293,7 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeNetworkSignals()
         {
-            var gm = NetworkSurvivorGameManager.Instance;
+            var gm = SurvivorNetworkGameManager.Instance;
             if (gm == null) return;
 
             _damageReceivedSub.Subscribe(s =>

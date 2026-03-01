@@ -1,4 +1,4 @@
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using UnityEngine;
 
@@ -9,9 +9,9 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     public class ServerInputProvider : IPlayerInputProvider
     {
-        private readonly NetworkSurvivorPlayerState _networkPlayerState;
+        private readonly SurvivorNetworkPlayerState _networkPlayerState;
 
-        public ServerInputProvider(NetworkSurvivorPlayerState networkPlayerState)
+        public ServerInputProvider(SurvivorNetworkPlayerState networkPlayerState)
         {
             _networkPlayerState = networkPlayerState;
         }

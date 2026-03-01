@@ -1,4 +1,4 @@
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Spawner からネットワーク層への通知の抽象化。
@@ -7,7 +7,7 @@ namespace Game.Shared.Netcode.Survivor
     /// </summary>
     public interface ISurvivorNetworkBridge
     {
-        void BroadcastEnemyStates(NetworkSurvivorEnemyStateSnapshot[] snapshots);
+        void BroadcastEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots);
         void NotifyItemSpawned(int itemId, float posX, float posZ);
         void NotifyItemDespawned(int itemId);
     }

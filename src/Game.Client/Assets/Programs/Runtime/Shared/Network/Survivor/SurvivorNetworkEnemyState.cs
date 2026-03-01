@@ -4,16 +4,16 @@ using Unity.Netcode;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// 敵状態のバッチ同期マネージャー（シングルトン NetworkBehaviour）。
     /// 個別敵を NetworkObject にせず、ClientRpc で配列一括送信する。
     /// Vampire Survivors 規模（数百体）に対応するためのバッチ管理型設計。
     /// </summary>
-    public class NetworkSurvivorEnemyState : NetworkBehaviour
+    public class SurvivorNetworkEnemyState : NetworkBehaviour
     {
-        public static NetworkSurvivorEnemyState Instance { get; private set; }
+        public static SurvivorNetworkEnemyState Instance { get; private set; }
 
         [Inject] private IPublisher<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchPub;
 
@@ -32,7 +32,7 @@ namespace Game.Shared.Netcode.Survivor
 
         /// <summary>敵状態を一括同期（スポーン/位置更新/死亡）</summary>
         [ClientRpc]
-        public void SyncEnemiesStateClientRpc(NetworkSurvivorEnemyStateSnapshot[] enemies)
+        public void SyncEnemiesStateClientRpc(SurvivorNetworkEnemyStateSnapshot[] enemies)
         {
             if (!IsServer)
             {
@@ -43,7 +43,7 @@ namespace Game.Shared.Netcode.Survivor
         // --- サーバー側ヘルパー ---
 
         /// <summary>サーバーから敵状態バッチを送信（Phase 4: SurvivorEnemySpawner 等から呼ばれる）</summary>
-        public void BroadcastEnemyStates(NetworkSurvivorEnemyStateSnapshot[] snapshots)
+        public void BroadcastEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots)
         {
             if (!IsServer) return;
             SyncEnemiesStateClientRpc(snapshots);

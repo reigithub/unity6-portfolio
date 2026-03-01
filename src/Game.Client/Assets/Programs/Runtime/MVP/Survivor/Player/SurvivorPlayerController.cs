@@ -7,7 +7,7 @@ using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Netcode;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
@@ -24,7 +24,7 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, INetworkSurvivorPlayerStateBindable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorNetworkPlayerStateBindable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
@@ -107,7 +107,7 @@ namespace Game.MVP.Survivor.Player
         private float _itemCheckTimer;
 
         // ネットワーク同期用
-        private NetworkSurvivorPlayerState _networkPlayerState;
+        private SurvivorNetworkPlayerState _networkPlayerState;
         private IPlayerInputProvider _inputProvider;
         private IPlayerStateSynchronizer _stateSynchronizer;
         private bool _skipPhysics;
@@ -120,7 +120,7 @@ namespace Game.MVP.Survivor.Player
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
 
-            NetworkPlayerStateBindableRegistry.Register(this);
+            SurvivorNetworkPlayerStateBindableRegistry.Register(this);
         }
 
         private void Update()
@@ -138,7 +138,7 @@ namespace Game.MVP.Survivor.Player
 
             if (_stateSynchronizer != null)
             {
-                var snapshot = new NetworkSurvivorPlayerStateSnapshot
+                var snapshot = new SurvivorNetworkPlayerStateSnapshot
                 {
                     PositionX = transform.position.x,
                     PositionY = transform.position.y,
@@ -155,7 +155,7 @@ namespace Game.MVP.Survivor.Player
 
         private void OnDestroy()
         {
-            NetworkPlayerStateBindableRegistry.Unregister(this);
+            SurvivorNetworkPlayerStateBindableRegistry.Unregister(this);
 
             _speed.Dispose();
             _currentHp.Dispose();
@@ -170,7 +170,7 @@ namespace Game.MVP.Survivor.Player
         /// <summary>
         /// サーバー / クライアント: NetworkSurvivorPlayerState をバインド
         /// </summary>
-        public void BindNetworkPlayerState(NetworkSurvivorPlayerState playerState)
+        public void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState)
         {
             _networkPlayerState = playerState;
 

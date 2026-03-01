@@ -2,7 +2,7 @@ using System;
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Item;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -52,9 +52,9 @@ namespace Game.MVP.Survivor.Scenes.Models
         public ReactiveProperty<int> CurrentWave { get; } = new(1);
 
         // ネットワーク結果（サーバーから受信）
-        private NetworkSurvivorGameResult? _networkResult;
+        private SurvivorNetworkGameResult? _networkResult;
         public bool HasNetworkResult => _networkResult.HasValue;
-        public NetworkSurvivorGameResult NetworkResult => _networkResult.Value;
+        public SurvivorNetworkGameResult NetworkResult => _networkResult.Value;
 
         public SurvivorPlayerMaster PlayerMaster => _playerMaster;
         public SurvivorStageMaster StageMaster => _stageMaster;
@@ -168,7 +168,7 @@ namespace Game.MVP.Survivor.Scenes.Models
         }
 
         /// <summary>サーバーからゲーム結果を設定（クライアントモード用）</summary>
-        public void SetNetworkResult(NetworkSurvivorGameResult result) => _networkResult = result;
+        public void SetNetworkResult(SurvivorNetworkGameResult result) => _networkResult = result;
 
         /// <summary>サーバーから直接 HP を設定（クライアントモード用）</summary>
         public void ForceSetHp(int hp) => CurrentHp.Value = hp;

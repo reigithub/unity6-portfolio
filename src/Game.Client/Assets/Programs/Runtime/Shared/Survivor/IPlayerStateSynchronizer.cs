@@ -1,4 +1,4 @@
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 
 namespace Game.Shared.Survivor
 {
@@ -13,6 +13,6 @@ namespace Game.Shared.Survivor
         /// プレイヤー状態をネットワークに反映する。
         /// Controller が構築したスナップショットを受け取り、ネットワーク層へ転送。
         /// </summary>
-        void PushState(NetworkSurvivorPlayerStateSnapshot snapshot);
+        void PushState(SurvivorNetworkPlayerStateSnapshot snapshot);
     }
 }

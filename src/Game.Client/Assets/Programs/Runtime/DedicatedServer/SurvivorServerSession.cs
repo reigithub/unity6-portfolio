@@ -1,5 +1,5 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Netcode.Survivor;
+using Game.Shared.Network.Survivor;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -68,7 +68,7 @@ namespace Game.Shared.Netcode.Server
             NetworkManager.ConnectionApprovalResponse response)
         {
             // Survivor 固有ペイロードをデコード
-            var (stageId, token) = NetworkSurvivorConnectionPayload.Decode(request.Payload);
+            var (stageId, token) = SurvivorNetworkConnectionPayload.Decode(request.Payload);
 
             Debug.Log($"[SurvivorServerSession] Approval: client={request.ClientNetworkId} " +
                       $"stageId={stageId}, payload={request.Payload?.Length ?? 0} bytes");
@@ -117,9 +117,9 @@ namespace Game.Shared.Netcode.Server
 
         private void SpawnSessionSingletons()
         {
-            _gameManagerInstance = SpawnSingleton<NetworkSurvivorGameManager>();
-            _enemyStateInstance = SpawnSingleton<NetworkSurvivorEnemyState>();
-            _itemSyncInstance = SpawnSingleton<NetworkSurvivorItemSync>();
+            _gameManagerInstance = SpawnSingleton<SurvivorNetworkGameManager>();
+            _enemyStateInstance = SpawnSingleton<SurvivorNetworkEnemyState>();
+            _itemSyncInstance = SpawnSingleton<SurvivorNetworkItemSync>();
         }
 
         private void SpawnPlayerState(ulong clientId)
@@ -127,7 +127,7 @@ namespace Game.Shared.Netcode.Server
             var nm = NetworkManager.Singleton;
             foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
             {
-                if (prefab.Prefab.GetComponent<NetworkSurvivorPlayerState>() != null)
+                if (prefab.Prefab.GetComponent<SurvivorNetworkPlayerState>() != null)
                 {
                     var instance = Instantiate(prefab.Prefab);
                     instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
@@ -159,7 +159,7 @@ namespace Game.Shared.Netcode.Server
             // NetworkBehaviour の OnNetworkSpawn が完了するまで待機
             await UniTask.NextFrame();
 
-            var gm = NetworkSurvivorGameManager.Instance;
+            var gm = SurvivorNetworkGameManager.Instance;
             if (gm != null)
             {
                 gm.NotifyAllPlayersReadyClientRpc();

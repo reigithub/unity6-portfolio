@@ -5,16 +5,16 @@ using Unity.Netcode;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Netcode.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// ゲーム全体のイベント配信 NetworkBehaviour（シングルトン）。
     /// IGameStageHubReceiver の 19 コールバックに対応する ClientRpc を定義。
     /// ClientRpc は MessagePipe の IPublisher 経由でシグナルを配信する。
     /// </summary>
-    public class NetworkSurvivorGameManager : NetworkBehaviour
+    public class SurvivorNetworkGameManager : NetworkBehaviour
     {
-        public static NetworkSurvivorGameManager Instance { get; private set; }
+        public static SurvivorNetworkGameManager Instance { get; private set; }
 
         // --- IPublisher フィールド（VContainer InjectGameObject で解決） ---
 
@@ -90,7 +90,7 @@ namespace Game.Shared.Netcode.Survivor
         }
 
         [ClientRpc]
-        public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, NetworkSurvivorWeaponUpgradeOption[] options)
+        public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
         {
             if (!IsServer)
             {
@@ -164,7 +164,7 @@ namespace Game.Shared.Netcode.Survivor
         // --- ゲーム終了 ---
 
         [ClientRpc]
-        public void NotifyGameEndedClientRpc(NetworkSurvivorGameResult result)
+        public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
             if (!IsServer)
             {
