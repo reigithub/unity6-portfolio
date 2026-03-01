@@ -11,7 +11,7 @@ namespace Game.Shared.Netcode.Client
     /// クライアント側 NGO 接続管理。
     /// SurvivorStageScene.ReadyState から呼ばれ、サーバーへ接続する。
     /// </summary>
-    public class NetworkSurvivorStageClient : IDisposable
+    public class NetworkSurvivorStageConnector : INetworkSurvivorStageConnector
     {
         private NetworkManager _networkManager;
         private bool _isConnecting;
@@ -29,7 +29,7 @@ namespace Game.Shared.Netcode.Client
             {
                 EnsureNetworkManager();
 
-                var transport = _networkManager.GetComponent<UnityTransport>();
+                _networkManager.TryGetComponent<UnityTransport>(out var transport);
                 if (transport == null)
                 {
                     transport = _networkManager.gameObject.AddComponent<UnityTransport>();

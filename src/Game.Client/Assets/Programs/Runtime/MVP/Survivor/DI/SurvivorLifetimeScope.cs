@@ -2,13 +2,13 @@ using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
-
+using Game.MVP.Survivor.Server;
 using Game.Shared;
+using Game.Shared.Netcode;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
 using Game.Shared.Netcode.Client;
-using Game.Shared.Netcode.Survivor;
 using Game.Shared.Survivor;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
@@ -31,6 +31,7 @@ namespace Game.MVP.Survivor
     /// <summary>
     /// Survivor用のVContainer LifetimeScope
     /// MVP.Coreのシーンサービスと、Survivor固有のサービス/モデルを登録
+    /// NetworkModeHelper.IsNetworkServerでサーバー/クライアントのDI登録を分岐
     /// </summary>
     public class SurvivorLifetimeScope : LifetimeScope
     {
@@ -40,10 +41,57 @@ namespace Game.MVP.Survivor
             var messagePipeOptions = builder.RegisterMessagePipe();
             RegisterSignalBrokers(builder, messagePipeOptions);
 
-            // Core Services
+            // ========================================
+            // 共通サービス（サーバー・クライアント両方で必要）
+            // ========================================
             builder.Register<AddressableAssetService>(Lifetime.Singleton).As<IAddressableAssetService>();
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
+
+            // NGO Client は RegisterServerServices / RegisterClientServices 内で登録
+
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                RegisterServerServices(builder);
+            }
+            else
+            {
+                RegisterClientServices(builder);
+            }
+
+            // Note: シーン（Presenter）はGameSceneServiceがnew() + Inject()で生成するため登録不要
+            // Note: SurvivorStageModel, SurvivorStageWaveManager は SurvivorStageScene が直接所有
+        }
+
+        /// <summary>
+        /// サーバー用サービス登録（Null/Server実装）
+        /// </summary>
+        private static void RegisterServerServices(IContainerBuilder builder)
+        {
+            // Null実装: サーバーでは不要だがDI注入先が要求するサービス
+            builder.Register<NullAudioService>(Lifetime.Singleton).As<IAudioService>();
+            builder.Register<NullInputService>(Lifetime.Singleton).As<IInputService>();
+            builder.Register<NullLockOnService>(Lifetime.Singleton).As<ILockOnService>();
+            builder.Register<NullPersistentObjectProvider>(Lifetime.Singleton).As<IPersistentObjectProvider>();
+
+            // GameRootController: NullPersistentObjectProviderからnullを返す（全呼び出し元でnullチェック済み）
+            builder.Register<IGameRootController>(
+                resolver => resolver.Resolve<IPersistentObjectProvider>().Get<IGameRootController>(),
+                Lifetime.Transient);
+
+            // Server実装: セッション情報を供給可能なサーバー用セーブサービス
+            builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
+
+            // NGO Client（サーバーでは接続不要）
+            builder.Register<NullNetworkSurvivorStageConnector>(Lifetime.Singleton).As<INetworkSurvivorStageConnector>();
+        }
+
+        /// <summary>
+        /// クライアント用サービス登録（既存の実装）
+        /// </summary>
+        private static void RegisterClientServices(IContainerBuilder builder)
+        {
+            // Core Services
             builder.Register<AudioService>(Lifetime.Singleton).As<IAudioService>();
             builder.Register<InputService>(Lifetime.Singleton).As<IInputService>();
             // memo: 必要な時に入れる
@@ -106,11 +154,6 @@ namespace Game.MVP.Survivor
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
 
             // ========================================
-            // NGO Client Services
-            // ========================================
-            builder.Register<NetworkSurvivorStageClient>(Lifetime.Singleton);
-
-            // ========================================
             // MagicOnion Services（gRPC Unary + StreamingHub）
             // ========================================
             builder.Register<GrpcChannelProvider>(Lifetime.Singleton).As<IGrpcChannelProvider>();
@@ -123,11 +166,13 @@ namespace Game.MVP.Survivor
             // ========================================
             builder.Register<ChatClient>(Lifetime.Singleton).As<IChatClient>();
 
+            // ========================================
+            // NGO Client（クライアント接続用）
+            // ========================================
+            builder.Register<NetworkSurvivorStageConnector>(Lifetime.Singleton).As<INetworkSurvivorStageConnector>();
+
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
-
-            // Note: シーン（Presenter）はGameSceneServiceがnew() + Inject()で生成するため登録不要
-            // Note: SurvivorStageModel, SurvivorStageWaveManager は SurvivorStageScene が直接所有
         }
 
         private static void RegisterSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)

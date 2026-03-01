@@ -24,7 +24,7 @@ namespace Game.MVP.Survivor.Scenes
     /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
     /// HUD表示とゲームプレイUIを管理
     /// </summary>
-    public class SurvivorStageSceneComponent : GameSceneComponent
+    public class SurvivorStageSceneComponent : GameSceneComponent, ISurvivorStageSceneView
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;

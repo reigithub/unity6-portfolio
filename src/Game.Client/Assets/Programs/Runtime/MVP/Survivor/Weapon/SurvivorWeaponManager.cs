@@ -19,9 +19,6 @@ namespace Game.MVP.Survivor.Weapon
         [Header("Weapon Slots")]
         [SerializeField] private int _maxWeaponSlots = 6;
 
-        [Header("VFX")]
-        [SerializeField] private SurvivorVfxSpawner _vfxSpawner;
-
         // DI
         [Inject] private IObjectResolver _resolver;
         [Inject] private IMasterDataService _masterDataService;
@@ -35,6 +32,7 @@ namespace Game.MVP.Survivor.Weapon
         // State
         private Transform _owner;
         private float _damageMultiplier = 1f;
+        private SurvivorWeaponVfxSpawner _vfxSpawner;
 
         // Events
         private readonly Subject<SurvivorWeaponBase> _onWeaponAdded = new();
@@ -56,6 +54,10 @@ namespace Game.MVP.Survivor.Weapon
         {
             _owner = owner;
             _damageMultiplier = damageMultiplier;
+
+#if !UNITY_SERVER
+            _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
+#endif
 
             // 初期武器を追加
             if (startingWeaponId > 0)
@@ -272,6 +274,8 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             _weapons.Clear();
+
+            _vfxSpawner?.Dispose();
 
             _onWeaponAdded.Dispose();
             _onWeaponUpgraded.Dispose();

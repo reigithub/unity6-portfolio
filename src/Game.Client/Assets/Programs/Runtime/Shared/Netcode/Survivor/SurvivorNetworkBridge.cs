@@ -4,7 +4,7 @@ namespace Game.Shared.Netcode.Survivor
     /// Server/Host 用ネットワークブリッジ。
     /// NGO の NetworkBehaviour singleton 経由でクライアントに状態を送信。
     /// </summary>
-    public class ServerNetworkBridge : ISurvivorNetworkBridge
+    public class SurvivorNetworkBridge : ISurvivorNetworkBridge
     {
         public void BroadcastEnemyStates(NetworkSurvivorEnemyStateSnapshot[] snapshots)
         {

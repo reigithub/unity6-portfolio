@@ -73,6 +73,7 @@ namespace Game.MVP.Survivor.Scenes
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
+            protected ISurvivorStageSceneView StageSceneView => Context._stageSceneView;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
         }
@@ -111,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
                 );
-                View.InitializeWeaponDisplay();
+                StageSceneView.InitializeWeaponDisplay();
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
 
@@ -173,7 +174,7 @@ namespace Game.MVP.Survivor.Scenes
                 var port = NetworkSurvivorMatchConnector.ServerPort;
                 var stageId = Context._saveService.CurrentSession.StageId;
                 Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port} (stageId={stageId})");
-                await Context._networkClient.ConnectAsync(address, port, stageId);
+                await Context._networkConnector.ConnectAsync(address, port, stageId);
             }
 
             private async UniTask WaitForAllPlayersReadyAsync()
@@ -249,7 +250,7 @@ namespace Game.MVP.Survivor.Scenes
                     WaveManager.StartWave();
 
                     // HUDをフェードイン表示（カウントダウン後、初めてPlayingStateに入った時）
-                    View.SetHudVisible(true);
+                    StageSceneView.SetHudVisible(true);
                 }
 
                 Context._inputService.EnablePlayer();
@@ -279,7 +280,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 // SP / サーバー: 既存ロジック
                 StageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(StageModel.GameTime.Value);
+                StageSceneView.UpdateTime(StageModel.GameTime.Value);
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
                 if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
@@ -470,10 +471,10 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
 
                 // HUDを非表示
-                View.SetHudVisible(false);
+                StageSceneView.SetHudVisible(false);
 
                 ApplicationEvents.ShowCursor();
-                View.ShowVictory();
+                StageSceneView.ShowVictory();
 
                 // 保存完了を待機してからリザルト画面へ遷移
                 SaveAndTransitionToResultAsync().Forget();
@@ -535,10 +536,10 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
 
                 // HUDを非表示
-                View.SetHudVisible(false);
+                StageSceneView.SetHudVisible(false);
 
                 ApplicationEvents.ShowCursor();
-                View.ShowGameOver();
+                StageSceneView.ShowGameOver();
 
                 // 保存完了を待機してからリザルト画面へ遷移
                 SaveAndTransitionToResultAsync().Forget();

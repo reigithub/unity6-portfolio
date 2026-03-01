@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
-
 using Game.Shared.Services;
 using Unity.Profiling;
 using UnityEngine;
-using VContainer;
 
 namespace Game.MVP.Survivor.Weapon
 {
@@ -13,22 +12,31 @@ namespace Game.MVP.Survivor.Weapon
     /// SurvivorVFXスポーナー
     /// ヒットエフェクトなどのVFXをプール管理してスポーン
     /// </summary>
-    public class SurvivorVfxSpawner : MonoBehaviour
+    public class SurvivorWeaponVfxSpawner : IDisposable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_spawnEffectMarker = new("ProfilerMarker.Vfx.SpawnEffect");
         private static readonly ProfilerMarker s_getFromPoolMarker = new("ProfilerMarker.Vfx.GetFromPool");
 
-        [Header("Settings")]
-        [SerializeField] private int _poolSizePerEffect = 20;
-
-        // DI
-        [Inject] private IAddressableAssetService _assetService;
+        private readonly int _poolSizePerEffect;
+        private readonly IAddressableAssetService _assetService;
+        private readonly Transform _parent;
+        private readonly CancellationTokenSource _cts = new();
 
         // Pools (AssetName -> Pool)
         private readonly Dictionary<string, Queue<ParticleSystem>> _pools = new();
         private readonly Dictionary<string, GameObject> _prefabCache = new();
         private readonly HashSet<string> _loadingAssets = new();
+
+        public SurvivorWeaponVfxSpawner(
+            Transform parent,
+            IAddressableAssetService assetService,
+            int poolSizePerEffect = 20)
+        {
+            _parent = parent;
+            _assetService = assetService;
+            _poolSizePerEffect = poolSizePerEffect;
+        }
 
         public UniTask InitializeAsync()
         {
@@ -90,11 +98,11 @@ namespace Game.MVP.Survivor.Weapon
 
         private ParticleSystem CreateParticleSystem(string assetName, GameObject prefab)
         {
-            var instance = Instantiate(prefab, transform);
+            var instance = UnityEngine.Object.Instantiate(prefab, _parent);
             if (!instance.TryGetComponent<ParticleSystem>(out var ps))
             {
                 Debug.LogWarning($"[SurvivorVfxSpawner] ParticleSystem not found: {assetName}");
-                Destroy(instance);
+                UnityEngine.Object.Destroy(instance);
                 return null;
             }
 
@@ -174,8 +182,7 @@ namespace Game.MVP.Survivor.Weapon
                 var main = ps.main;
                 var waitTime = main.duration + main.startLifetime.constantMax;
 
-                // destroyCancellationTokenでMonoBehaviour破棄時に自動キャンセル
-                await UniTask.Delay(TimeSpan.FromSeconds(waitTime), cancellationToken: destroyCancellationToken);
+                await UniTask.Delay(TimeSpan.FromSeconds(waitTime), cancellationToken: _cts.Token);
 
                 // シーン遷移などでオブジェクトが破棄されている可能性をチェック
                 if (ps == null) return;
@@ -192,7 +199,7 @@ namespace Game.MVP.Survivor.Weapon
             }
             catch (OperationCanceledException)
             {
-                // 正常なキャンセル（オブジェクト破棄時など）
+                // 正常なキャンセル（Dispose時など）
             }
             catch (Exception ex)
             {
@@ -205,8 +212,6 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public void ClearAll()
         {
-            // UniTaskはdestroyCancellationTokenで自動キャンセルされる
-
             foreach (var kvp in _pools)
             {
                 foreach (var ps in kvp.Value)
@@ -214,7 +219,7 @@ namespace Game.MVP.Survivor.Weapon
                     if (ps != null)
                     {
                         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                        Destroy(ps.gameObject);
+                        UnityEngine.Object.Destroy(ps.gameObject);
                     }
                 }
             }
@@ -228,8 +233,10 @@ namespace Game.MVP.Survivor.Weapon
             _prefabCache.Clear();
         }
 
-        private void OnDestroy()
+        public void Dispose()
         {
+            _cts.Cancel();
+            _cts.Dispose();
             ClearAll();
         }
     }

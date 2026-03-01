@@ -15,6 +15,7 @@ using Game.Shared.Services;
 using MessagePipe;
 using R3;
 using R3.Triggers;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -34,7 +35,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
-        [Inject] private readonly NetworkSurvivorStageClient _networkClient;
+        [Inject] private readonly INetworkSurvivorStageConnector _networkConnector;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -50,6 +51,7 @@ namespace Game.MVP.Survivor.Scenes
         private NetworkSurvivorPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
+        private ISurvivorStageSceneView _stageSceneView;
         private bool _isClientOnly;
         private bool _isServer;
 
@@ -75,6 +77,13 @@ namespace Game.MVP.Survivor.Scenes
             // ネットワークモードを起動時に1回だけキャッシュ
             _isClientOnly = NetworkModeHelper.IsNetworkClientOnly;
             _isServer = NetworkModeHelper.IsNetworkServer;
+
+            // サーバーではNullStageViewでHUD呼び出しをno-op化
+#if UNITY_SERVER
+            _stageSceneView = new NullSurvivorStageSceneView();
+#else
+            _stageSceneView = SceneComponent;
+#endif
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -102,12 +111,14 @@ namespace Game.MVP.Survivor.Scenes
             SubscribeSignals();
             if (_isServer)
             {
-                var eventBridge = new SurvivorNetworkEventBridge(_damageReceivedSub, _playerDiedSub, _waveStartedSub, _waveCompletedSub, _waveManager);
-                Disposables.Add(eventBridge);
+                SubscribeNetworkSignals();
+                var networkBridge = new SurvivorNetworkBridge();
+                SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
+                SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
             }
             BindModelToView();
 
-            SceneComponent.Initialize(_stageModel, _waveManager.TotalWaves);
+            _stageSceneView.Initialize(_stageModel, _waveManager.TotalWaves);
 
             // ReadyState開始前に暗転状態にしておく（ステージ裏側が見えないように）
             GameRootController?.SetFadeImmediate(1f);
@@ -244,10 +255,10 @@ namespace Game.MVP.Survivor.Scenes
             _waveStartedSub.Subscribe(s =>
             {
                 _stageModel.CurrentWave.Value = s.WaveNumber;
-                SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
+                _stageSceneView.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
                 if (s.WaveNumber > 0)
                 {
-                    SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
+                    _stageSceneView.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
                 }
             }).AddTo(Disposables);
 
@@ -275,10 +286,46 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _stageModel.AddScore(s.ScoreGained);
                 _stageModel.AddKill();
-                SceneComponent.UpdateKills(s.TotalKills);
+                _stageSceneView.UpdateKills(s.TotalKills);
             }).AddTo(Disposables);
         }
 
+        /// <summary>
+        /// Server 用: MessagePipe Signal → ClientRpc 転送。
+        /// </summary>
+        private void SubscribeNetworkSignals()
+        {
+            var gm = NetworkSurvivorGameManager.Instance;
+            if (gm == null) return;
+
+            _damageReceivedSub.Subscribe(s =>
+            {
+                var userId = new FixedString64Bytes("local");
+                gm.NotifyPlayerDamagedClientRpc(userId, s.Damage, s.RemainingHp);
+            }).AddTo(Disposables);
+
+            _playerDiedSub.Subscribe(_ =>
+            {
+                var userId = new FixedString64Bytes("local");
+                gm.NotifyPlayerDiedClientRpc(userId);
+            }).AddTo(Disposables);
+
+            _waveStartedSub.Subscribe(s =>
+            {
+                gm.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+            }).AddTo(Disposables);
+
+            _waveCompletedSub.Subscribe(s =>
+            {
+                var spawnInfo = _waveManager.GetSpawnInfo();
+                gm.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
+            }).AddTo(Disposables);
+
+            _waveManager.IsAllWavesCleared
+                .Where(cleared => cleared)
+                .Subscribe(_ => gm.NotifyAllWavesClearedClientRpc())
+                .AddTo(Disposables);
+        }
 
         private void SetupAutoSave()
         {
@@ -333,7 +380,7 @@ namespace Game.MVP.Survivor.Scenes
             // HP（View更新）
             _stageModel.CurrentHp
                 .CombineLatest(_stageModel.MaxHp, (current, max) => (current, max))
-                .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
+                .Subscribe(hp => _stageSceneView.UpdateHp(hp.current, hp.max))
                 .AddTo(Disposables);
 
             if (SceneComponent.PlayerController != null)
@@ -345,7 +392,7 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.PlayerController.CurrentStamina
                     .Subscribe(stamina =>
                     {
-                        SceneComponent.UpdateStamina(stamina, SceneComponent.PlayerController.MaxStamina);
+                        _stageSceneView.UpdateStamina(stamina, SceneComponent.PlayerController.MaxStamina);
 
                         if (_inputService.Player.enabled)
                         {
@@ -361,23 +408,23 @@ namespace Game.MVP.Survivor.Scenes
             // 経験値
             _stageModel.Experience
                 .CombineLatest(_stageModel.ExperienceToNextLevel, (current, max) => (current, max))
-                .Subscribe(exp => SceneComponent.UpdateExperience(exp.current, exp.max))
+                .Subscribe(exp => _stageSceneView.UpdateExperience(exp.current, exp.max))
                 .AddTo(Disposables);
 
             // レベル
             _stageModel.Level
-                .Subscribe(level => SceneComponent.UpdateLevel(level))
+                .Subscribe(level => _stageSceneView.UpdateLevel(level))
                 .AddTo(Disposables);
 
             // キル数
             _stageModel.TotalKills
-                .Subscribe(kills => SceneComponent.UpdateKills(kills))
+                .Subscribe(kills => _stageSceneView.UpdateKills(kills))
                 .AddTo(Disposables);
 
             // 敵の撃破数（目標数に対する進捗を表示）
             _waveManager.EnemiesKilled
                 .CombineLatest(_waveManager.TargetKillsThisWave, (killed, target) => (killed, target))
-                .Subscribe(enemies => SceneComponent.UpdateEnemies(enemies.killed, enemies.target))
+                .Subscribe(enemies => _stageSceneView.UpdateEnemies(enemies.killed, enemies.target))
                 .AddTo(Disposables);
         }
 
@@ -394,7 +441,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Terminate()
         {
-            _networkClient?.Disconnect();
+            _networkConnector?.Disconnect();
             ApplicationEvents.ResumeTime();
 
             Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");

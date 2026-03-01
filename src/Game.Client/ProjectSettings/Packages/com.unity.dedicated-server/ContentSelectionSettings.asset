@@ -18,5 +18,9 @@ MonoBehaviour:
     m_StripUIComponents: 1
     m_StripAudioComponents: 1
     m_CustomComponentsList:
-      m_Keys: []
-      m_Values: 
+      m_Keys:
+      - m_TypeName: UnityEngine.MeshFilter, UnityEngine.CoreModule, Version=0.0.0.0,
+          Culture=neutral, PublicKeyToken=null
+      - m_TypeName: UnityEngine.ParticleSystem, UnityEngine.ParticleSystemModule,
+          Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      m_Values: 0100000001000000
