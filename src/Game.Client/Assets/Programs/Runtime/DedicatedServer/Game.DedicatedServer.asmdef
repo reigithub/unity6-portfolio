@@ -8,19 +8,15 @@
         "Unity.Netcode.Runtime",
         "Unity.Networking.Transport"
     ],
-    "includePlatforms": [
-        "Editor",
-        "LinuxStandalone64Server",
-        "macOSStandaloneServer",
-        "WindowsStandalone32Server",
-        "WindowsStandalone64Server"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "UNITY_SERVER"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }
