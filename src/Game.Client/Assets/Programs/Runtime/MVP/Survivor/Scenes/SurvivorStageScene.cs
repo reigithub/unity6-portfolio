@@ -8,6 +8,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Netcode;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Server;
 using Game.Shared.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
@@ -34,6 +35,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
+        [Inject] private readonly ILocalServerOrchestrator _localServerOrchestrator;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;

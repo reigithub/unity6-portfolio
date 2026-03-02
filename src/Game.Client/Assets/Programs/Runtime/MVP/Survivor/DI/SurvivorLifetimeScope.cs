@@ -26,6 +26,7 @@ using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
+using Game.Shared.Server;
 
 namespace Game.MVP.Survivor
 {
@@ -83,6 +84,9 @@ namespace Game.MVP.Survivor
 
             // NGO Client（サーバーでは接続不要）
             builder.Register<NullSurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+
+            // Local Server Orchestrator（サーバーでは不要）
+            builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
         }
 #else
         /// <summary>
@@ -169,6 +173,11 @@ namespace Game.MVP.Survivor
             // NGO Client（クライアント接続用）
             // ========================================
             builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+
+            // ========================================
+            // Local Server Orchestrator（SP モード用）
+            // ========================================
+            builder.Register<LocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

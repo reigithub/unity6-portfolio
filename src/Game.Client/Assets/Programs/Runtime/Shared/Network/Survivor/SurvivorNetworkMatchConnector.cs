@@ -1,10 +1,11 @@
+using System;
 using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// MagicOnion MatchResult -> NGO 接続パラメータの変換と保持。
-    /// SP 時は localhost:7777、MP 時は MatchResult から取得。
+    /// SP 時は SetLocalServer() で MatchResult を生成、MP 時は StoreMatchResult() から取得。
     /// </summary>
     public static class SurvivorNetworkMatchConnector
     {
@@ -22,5 +23,19 @@ namespace Game.Shared.Network.Survivor
             _lastMatchResult != null ? (ushort)_lastMatchResult.ServerPort : (ushort)7777;
 
         public static string MatchId => _lastMatchResult?.MatchId ?? "sp-local";
+
+        /// <summary>
+        /// SP モード: ローカルサーバー用の MatchResult を生成して HasMatchResult = true にする
+        /// </summary>
+        public static void SetLocalServer(ushort port)
+        {
+            _lastMatchResult = new MatchResult
+            {
+                MatchId = "sp-local",
+                PlayerIds = new[] { "sp-player" },
+                ServerAddress = "127.0.0.1",
+                ServerPort = port,
+            };
+        }
     }
 }

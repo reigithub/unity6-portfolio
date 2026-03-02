@@ -115,7 +115,16 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
 
-                // ネットワーク接続（MP: MatchResult あり or SP テスト）
+                // SP モード: ローカルサーバーを自動起動
+#if !UNITY_SERVER
+                if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                {
+                    await Context._localServerOrchestrator.StartAsync(View.destroyCancellationToken);
+                    SurvivorNetworkMatchConnector.SetLocalServer(Context._localServerOrchestrator.HeadlessServerPort);
+                }
+#endif
+
+                // ネットワーク接続（MP: MatchResult あり or SP: SetLocalServer 済み）
                 if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     await ConnectToServerAsync();
