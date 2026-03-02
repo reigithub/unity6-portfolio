@@ -6,7 +6,6 @@ using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Netcode;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using Game.Shared.Services;
@@ -174,26 +173,22 @@ namespace Game.MVP.Survivor.Player
         {
             _networkPlayerState = playerState;
 
-            if (NetworkModeHelper.IsNetworkClientOnly)
-            {
-                // Client: 入力送信のみ、物理処理スキップ
-                _inputProvider = new ClientInputProvider(_inputService, playerState);
-                _skipPhysics = true;
-                var view = gameObject.AddComponent<SurvivorPlayerView>();
-                view.Initialize(this, playerState);
-            }
-            else if (NetworkModeHelper.IsNetworkServer)
-            {
-                // Server/Host: 状態同期を有効化
-                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
+#if UNITY_SERVER
+            // Server: 状態同期を有効化
+            _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
 
-                // Host のローカルプレイヤーは LocalInputProvider を維持（Initialize で設定済み）
-                // Dedicated Server / リモートプレイヤーは ServerInputProvider
-                if (!playerState.IsOwner)
-                {
-                    _inputProvider = new ServerInputProvider(playerState);
-                }
+            // リモートプレイヤーは ServerInputProvider（ローカルプレイヤーは Initialize で設定済みの LocalInputProvider を維持）
+            if (!playerState.IsOwner)
+            {
+                _inputProvider = new ServerInputProvider(playerState);
             }
+#else
+            // Client: 入力送信のみ、物理処理スキップ
+            _inputProvider = new ClientInputProvider(_inputService, playerState);
+            _skipPhysics = true;
+            var view = gameObject.AddComponent<SurvivorPlayerView>();
+            view.Initialize(this, playerState);
+#endif
         }
 
         #endregion

@@ -1,3 +1,4 @@
+#if UNITY_SERVER
 using Game.MVP.Survivor.Scenes.Models;
 
 namespace Game.MVP.Survivor.Scenes
@@ -24,3 +25,4 @@ namespace Game.MVP.Survivor.Scenes
         public void SetHudVisible(bool visible, bool immediate = false) { }
     }
 }
+#endif

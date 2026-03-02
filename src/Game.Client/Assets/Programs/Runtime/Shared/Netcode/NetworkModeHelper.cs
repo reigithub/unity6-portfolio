@@ -11,7 +11,10 @@ namespace Game.Shared.Netcode
     {
         private static NetworkManager Nm => NetworkManager.Singleton;
 
-        /// <summary>ネットワークサーバーとして動作中か（Host / DedicatedServer）</summary>
+        /// <summary>
+        /// ネットワークサーバーとして動作中か（Host / DedicatedServer）
+        /// #if UNITY_SERVERディレクティブと適切に使い分けること
+        /// </summary>
         public static bool IsNetworkServer =>
             Nm != null && Nm.IsServer && Nm.IsListening;
 

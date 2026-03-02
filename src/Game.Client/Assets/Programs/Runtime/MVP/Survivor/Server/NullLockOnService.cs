@@ -1,3 +1,4 @@
+#if UNITY_SERVER
 using Cysharp.Threading.Tasks;
 using Game.Shared.Services;
 using UnityEngine;
@@ -26,3 +27,4 @@ namespace Game.MVP.Survivor.Server
         public UniTask PreloadAsync() => UniTask.CompletedTask;
     }
 }
+#endif

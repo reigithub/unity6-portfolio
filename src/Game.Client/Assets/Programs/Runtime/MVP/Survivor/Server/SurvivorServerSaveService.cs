@@ -1,3 +1,4 @@
+#if UNITY_SERVER
 using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Survivor.SaveData;
@@ -62,3 +63,4 @@ namespace Game.MVP.Survivor.Server
         public void AddPlayTime(float seconds) { }
     }
 }
+#endif

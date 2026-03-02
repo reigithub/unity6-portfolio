@@ -51,7 +51,6 @@ namespace Game.MVP.Survivor.Scenes
         private SceneInstance? _stageSceneInstance;
         private ISurvivorStageSceneView _stageSceneView;
         private bool _isClientOnly;
-        private bool _isServer;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
 
@@ -72,9 +71,8 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            // ネットワークモードを起動時に1回だけキャッシュ
+            // ネットワーククライアントモードを起動時に1回だけキャッシュ（SP: false, MP Client: true）
             _isClientOnly = NetworkModeHelper.IsNetworkClientOnly;
-            _isServer = NetworkModeHelper.IsNetworkServer;
 
             // サーバーではNullStageViewでHUD呼び出しをno-op化
 #if UNITY_SERVER
@@ -107,13 +105,12 @@ namespace Game.MVP.Survivor.Scenes
             BuildStateMachine();
             SubscribeEvents();
             SubscribeSignals();
-            if (_isServer)
-            {
-                SubscribeNetworkSignals();
-                var networkBridge = new SurvivorNetworkBridge();
-                SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
-                SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
-            }
+#if UNITY_SERVER
+            SubscribeNetworkSignals();
+            var networkBridge = new SurvivorNetworkBridge();
+            SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
+            SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
+#endif
             BindModelToView();
 
             _stageSceneView.Initialize(_stageModel, _waveManager.TotalWaves);

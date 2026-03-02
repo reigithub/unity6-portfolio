@@ -1,3 +1,4 @@
+#if UNITY_SERVER
 using Game.Shared.Input;
 using Game.Shared.Services;
 
@@ -34,3 +35,4 @@ namespace Game.MVP.Survivor.Server
         public void DisableUI() { }
     }
 }
+#endif

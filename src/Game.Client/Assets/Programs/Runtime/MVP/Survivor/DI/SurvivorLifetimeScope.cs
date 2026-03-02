@@ -2,9 +2,10 @@ using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
+#if UNITY_SERVER
 using Game.MVP.Survivor.Server;
+#endif
 using Game.Shared;
-using Game.Shared.Netcode;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
@@ -31,7 +32,7 @@ namespace Game.MVP.Survivor
     /// <summary>
     /// Survivor用のVContainer LifetimeScope
     /// MVP.Coreのシーンサービスと、Survivor固有のサービス/モデルを登録
-    /// NetworkModeHelper.IsNetworkServerでサーバー/クライアントのDI登録を分岐
+    /// #if UNITY_SERVER でサーバー/クライアントのDI登録をコンパイル時分岐
     /// </summary>
     public class SurvivorLifetimeScope : LifetimeScope
     {
@@ -50,19 +51,17 @@ namespace Game.MVP.Survivor
 
             // NGO Client は RegisterServerServices / RegisterClientServices 内で登録
 
-            if (NetworkModeHelper.IsNetworkServer)
-            {
-                RegisterServerServices(builder);
-            }
-            else
-            {
-                RegisterClientServices(builder);
-            }
+#if UNITY_SERVER
+            RegisterServerServices(builder);
+#else
+            RegisterClientServices(builder);
+#endif
 
             // Note: シーン（Presenter）はGameSceneServiceがnew() + Inject()で生成するため登録不要
             // Note: SurvivorStageModel, SurvivorStageWaveManager は SurvivorStageScene が直接所有
         }
 
+#if UNITY_SERVER
         /// <summary>
         /// サーバー用サービス登録（Null/Server実装）
         /// </summary>
@@ -85,7 +84,7 @@ namespace Game.MVP.Survivor
             // NGO Client（サーバーでは接続不要）
             builder.Register<NullSurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
         }
-
+#else
         /// <summary>
         /// クライアント用サービス登録（既存の実装）
         /// </summary>
@@ -174,6 +173,7 @@ namespace Game.MVP.Survivor
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
         }
+#endif
 
         private static void RegisterSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
         {

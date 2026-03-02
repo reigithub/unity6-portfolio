@@ -1,3 +1,4 @@
+#if UNITY_SERVER
 using Game.Shared.Services;
 
 namespace Game.MVP.Survivor.Server
@@ -21,3 +22,4 @@ namespace Game.MVP.Survivor.Server
         public void Clear() { }
     }
 }
+#endif
