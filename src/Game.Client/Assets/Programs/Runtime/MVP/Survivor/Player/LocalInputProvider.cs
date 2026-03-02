@@ -7,7 +7,7 @@ namespace Game.MVP.Survivor.Player
     /// <summary>
     /// SP / Host 用入力プロバイダー。IInputService から直接読み取り。
     /// </summary>
-    public class LocalInputProvider : IPlayerInputProvider
+    public class LocalInputProvider : ISurvivorPlayerInputProvider
     {
         private readonly IInputService _inputService;
 
@@ -16,7 +16,7 @@ namespace Game.MVP.Survivor.Player
             _inputService = inputService;
         }
 
-        public bool TryGetInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
         {
             moveValue = _inputService.Player.Move.ReadValue<Vector2>();
             isSprinting = _inputService.Player.LeftShift.IsPressed();

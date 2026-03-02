@@ -7,7 +7,7 @@ namespace Game.Shared.Survivor
     /// - Server/Host: ServerPlayerStateSynchronizer（NetworkSurvivorPlayerState へ状態を送信）
     /// - SP/Client: null（同期不要）
     /// </summary>
-    public interface IPlayerStateSynchronizer
+    public interface ISurvivorNetworkPlayerStateSynchronizer
     {
         /// <summary>
         /// プレイヤー状態をネットワークに反映する。

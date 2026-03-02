@@ -7,7 +7,7 @@ namespace Game.MVP.Survivor.Player
     /// <summary>
     /// Server 用入力プロバイダー。NetworkSurvivorPlayerState の ServerRpc バッファから入力を消費。
     /// </summary>
-    public class ServerInputProvider : IPlayerInputProvider
+    public class ServerInputProvider : ISurvivorPlayerInputProvider
     {
         private readonly SurvivorNetworkPlayerState _networkPlayerState;
 
@@ -16,7 +16,7 @@ namespace Game.MVP.Survivor.Player
             _networkPlayerState = networkPlayerState;
         }
 
-        public bool TryGetInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
         {
             if (_networkPlayerState.TryConsumeInput(out var moveX, out var moveY, out var sprint))
             {

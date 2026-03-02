@@ -108,8 +108,8 @@ namespace Game.MVP.Survivor.Player
 
         // ネットワーク同期用
         private SurvivorNetworkPlayerState _networkPlayerState;
-        private IPlayerInputProvider _inputProvider;
-        private IPlayerStateSynchronizer _stateSynchronizer;
+        private ISurvivorPlayerInputProvider _inputProvider;
+        private ISurvivorNetworkPlayerStateSynchronizer _stateSynchronizer;
         private bool _skipPhysics;
 
         #region MonoBehaviour Methods
@@ -185,7 +185,7 @@ namespace Game.MVP.Survivor.Player
             else if (NetworkModeHelper.IsNetworkServer)
             {
                 // Server/Host: 状態同期を有効化
-                _stateSynchronizer = new ServerPlayerStateSynchronizer(playerState);
+                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
 
                 // Host のローカルプレイヤーは LocalInputProvider を維持（Initialize で設定済み）
                 // Dedicated Server / リモートプレイヤーは ServerInputProvider
@@ -291,7 +291,7 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_inputProvider == null) return;
 
-                if (!_inputProvider.TryGetInput(out var moveValue, out var isSprinting))
+                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting))
                     return; // Client: ServerRpc 送信済み、ローカル処理不要
 
                 // SP/Server/Host 共通の入力処理

@@ -9,7 +9,7 @@ namespace Game.MVP.Survivor.Player
     /// Client 用入力プロバイダー。入力を読み取り ServerRpc で送信。
     /// ローカルでの入力処理は行わない（サーバーが権威的に処理）。
     /// </summary>
-    public class ClientInputProvider : IPlayerInputProvider
+    public class ClientInputProvider : ISurvivorPlayerInputProvider
     {
         private readonly IInputService _inputService;
         private readonly SurvivorNetworkPlayerState _networkPlayerState;
@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.Player
             _networkPlayerState = networkPlayerState;
         }
 
-        public bool TryGetInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
         {
             moveValue = _inputService.Player.Move.ReadValue<Vector2>();
             isSprinting = _inputService.Player.LeftShift.IsPressed();

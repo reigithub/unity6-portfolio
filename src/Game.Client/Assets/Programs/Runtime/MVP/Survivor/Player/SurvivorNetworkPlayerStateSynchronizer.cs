@@ -6,11 +6,11 @@ namespace Game.MVP.Survivor.Player
     /// <summary>
     /// Server/Host 用状態同期。NetworkSurvivorPlayerState に状態を反映。
     /// </summary>
-    public class ServerPlayerStateSynchronizer : IPlayerStateSynchronizer
+    public class SurvivorNetworkPlayerStateSynchronizer : ISurvivorNetworkPlayerStateSynchronizer
     {
         private readonly SurvivorNetworkPlayerState _networkPlayerState;
 
-        public ServerPlayerStateSynchronizer(SurvivorNetworkPlayerState networkPlayerState)
+        public SurvivorNetworkPlayerStateSynchronizer(SurvivorNetworkPlayerState networkPlayerState)
         {
             _networkPlayerState = networkPlayerState;
         }
