@@ -65,7 +65,9 @@ namespace Game.Shared.Server
             psi.Environment["ConnectionStrings__Default"] =
                 $"Host=localhost;Port={_config.PgPort};Database=gameserver;Username=gameuser;Password=localdev";
             psi.Environment["ConnectionStrings__Valkey"] =
-                $"localhost:{_config.ValkeyPort},abortConnect=false";
+                "localhost:16379,abortConnect=false,connectTimeout=1000";
+            psi.Environment["RequestSigning__Enabled"] = "false";
+            psi.Environment["HealthChecks__Valkey__Enabled"] = "false";
             psi.Environment["Jwt__Secret"] =
                 "local-sp-development-secret-key-minimum-32-characters-required";
 

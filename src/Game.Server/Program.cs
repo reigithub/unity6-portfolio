@@ -71,7 +71,7 @@ public partial class Program
         builder.Services.AddChatServices(builder.Configuration);
 
         // Health Checks
-        builder.Services.AddAppHealthChecks();
+        builder.Services.AddAppHealthChecks(builder.Configuration);
 
         // CORS（SignalR は AllowCredentials が必要）
         builder.Services.AddCors(options =>

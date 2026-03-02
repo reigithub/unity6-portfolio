@@ -14,9 +14,6 @@ namespace Game.Shared.Server
         public string PgBinDir { get; private set; }
         public string PgDataDir { get; private set; }
 
-        // Valkey
-        public string ValkeyBinaryPath { get; private set; }
-
         // Game.Server
         public string GameServerProjectPath { get; private set; }
         public string GameServerExePath { get; private set; }
@@ -27,7 +24,6 @@ namespace Game.Shared.Server
 
         // Ports
         public int PgPort { get; private set; } = 15432;
-        public int ValkeyPort { get; private set; } = 16379;
         public int GameServerPort { get; private set; } = 15000;
         public ushort HeadlessServerPort { get; private set; } = 7777;
 
@@ -49,7 +45,6 @@ namespace Game.Shared.Server
             config.IsEditorMode = true;
             config.PgBinDir = Path.Combine(repoRoot, "tools", "pgsql", "bin");
             config.PgDataDir = Path.Combine(repoRoot, "tools", "pgdata");
-            config.ValkeyBinaryPath = Path.Combine(repoRoot, "tools", "valkey", "valkey-server.exe");
             config.GameServerProjectPath = Path.Combine(repoRoot, "src", "Game.Server");
             config.GameServerExePath = null; // Editor では dotnet run を使用
             config.HeadlessServerExePath = FindHeadlessServerExe(
@@ -62,7 +57,6 @@ namespace Game.Shared.Server
             config.IsEditorMode = false;
             config.PgBinDir = Path.Combine(appDir, "pgsql", "bin");
             config.PgDataDir = Path.Combine(appDir, "pgdata");
-            config.ValkeyBinaryPath = Path.Combine(appDir, "valkey", "valkey-server.exe");
             config.GameServerProjectPath = null;
             config.GameServerExePath = Path.Combine(appDir, "Server", "Game.Server.exe");
             config.HeadlessServerExePath = FindHeadlessServerExe(

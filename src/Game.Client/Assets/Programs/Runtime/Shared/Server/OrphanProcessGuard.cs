@@ -44,9 +44,9 @@ namespace Game.Shared.Server
         }
 
         /// <summary>
-        /// 4つの PID をファイルに保存
+        /// 3つの PID をファイルに保存
         /// </summary>
-        public static void SavePids(string pidFilePath, int pgPid, int valkeyPid, int gameServerPid, int headlessPid)
+        public static void SavePids(string pidFilePath, int pgPid, int gameServerPid, int headlessPid)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace Game.Shared.Server
                     Directory.CreateDirectory(dir);
                 }
 
-                File.WriteAllText(pidFilePath, $"{pgPid}\n{valkeyPid}\n{gameServerPid}\n{headlessPid}\n");
+                File.WriteAllText(pidFilePath, $"{pgPid}\n{gameServerPid}\n{headlessPid}\n");
             }
             catch (Exception ex)
             {
