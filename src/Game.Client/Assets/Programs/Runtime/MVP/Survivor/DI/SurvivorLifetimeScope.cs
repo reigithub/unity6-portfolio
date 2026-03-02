@@ -83,7 +83,7 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
             // NGO Client（サーバーでは接続不要）
-            builder.Register<NullSurvivorStageNetworkConnector>(Lifetime.Singleton).As<ISurvivorStageNetworkConnector>();
+            builder.Register<NullSurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace Game.MVP.Survivor
             // ========================================
             // NGO Client（クライアント接続用）
             // ========================================
-            builder.Register<SurvivorStageNetworkConnector>(Lifetime.Singleton).As<ISurvivorStageNetworkConnector>();
+            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

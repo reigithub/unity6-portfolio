@@ -33,7 +33,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
-        [Inject] private readonly ISurvivorStageNetworkConnector _networkConnector;
+        [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;

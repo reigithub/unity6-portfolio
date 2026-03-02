@@ -206,7 +206,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
-            SurvivorMatchNetworkConnector.StoreMatchResult(result);
+            SurvivorNetworkMatchConnector.StoreMatchResult(result);
             SceneComponent.SetInteractables(false);
 
             try

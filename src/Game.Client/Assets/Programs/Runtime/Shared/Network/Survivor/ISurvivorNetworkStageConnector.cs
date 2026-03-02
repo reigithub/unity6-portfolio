@@ -7,7 +7,7 @@ namespace Game.Shared.Network.Survivor
     /// NGOステージクライアントのインターフェース。
     /// サーバーではNullNetworkSurvivorStageClientが登録される。
     /// </summary>
-    public interface ISurvivorStageNetworkConnector : IDisposable
+    public interface ISurvivorNetworkStageConnector : IDisposable
     {
         bool IsConnected { get; }
         UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "");

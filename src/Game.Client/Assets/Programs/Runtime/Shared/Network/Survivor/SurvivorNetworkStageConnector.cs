@@ -11,7 +11,7 @@ namespace Game.Shared.Network.Survivor
     /// クライアント側 NGO 接続管理。
     /// SurvivorStageScene.ReadyState から呼ばれ、サーバーへ接続する。
     /// </summary>
-    public class SurvivorStageNetworkConnector : ISurvivorStageNetworkConnector
+    public class SurvivorNetworkStageConnector : ISurvivorNetworkStageConnector
     {
         private NetworkManager _networkManager;
         private bool _isConnecting;

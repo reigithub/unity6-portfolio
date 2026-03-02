@@ -6,7 +6,7 @@ namespace Game.MVP.Survivor.Server
     /// <summary>
     /// サーバー用Null実装。全メソッドno-op。
     /// </summary>
-    public class NullSurvivorStageNetworkConnector : ISurvivorStageNetworkConnector
+    public class NullSurvivorNetworkStageConnector : ISurvivorNetworkStageConnector
     {
         public bool IsConnected => false;
 

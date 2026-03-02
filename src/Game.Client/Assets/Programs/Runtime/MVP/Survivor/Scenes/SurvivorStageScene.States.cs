@@ -116,7 +116,7 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeItemSpawnerAsync();
 
                 // ネットワーク接続（MP: MatchResult あり or SP テスト）
-                if (SurvivorMatchNetworkConnector.HasMatchResult)
+                if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     await ConnectToServerAsync();
 
@@ -169,8 +169,8 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTask ConnectToServerAsync()
             {
-                var address = SurvivorMatchNetworkConnector.ServerAddress;
-                var port = SurvivorMatchNetworkConnector.ServerPort;
+                var address = SurvivorNetworkMatchConnector.ServerAddress;
+                var port = SurvivorNetworkMatchConnector.ServerPort;
                 var stageId = Context._saveService.CurrentSession.StageId;
                 Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port} (stageId={stageId})");
                 await Context._networkConnector.ConnectAsync(address, port, stageId);
