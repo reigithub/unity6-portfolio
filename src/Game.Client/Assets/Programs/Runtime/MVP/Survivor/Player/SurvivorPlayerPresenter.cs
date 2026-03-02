@@ -1,3 +1,4 @@
+#if !UNITY_SERVER
 using Game.Shared.Survivor;
 using MessagePipe;
 using R3;
@@ -65,3 +66,4 @@ namespace Game.MVP.Survivor.Player
         }
     }
 }
+#endif

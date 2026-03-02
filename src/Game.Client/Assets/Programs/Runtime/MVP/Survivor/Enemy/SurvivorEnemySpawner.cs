@@ -157,7 +157,9 @@ namespace Game.MVP.Survivor.Enemy
                 .Subscribe(OnEnemyDeath)
                 .AddTo(this);
 
+#if !UNITY_SERVER
             instance.AddComponent<SurvivorEnemyPresenter>();
+#endif
 
             return controller;
         }
@@ -304,7 +306,9 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ExpDropGroupId
                 );
 
+#if !UNITY_SERVER
                 enemy.GetComponent<SurvivorEnemyPresenter>()?.Initialize(enemy);
+#endif
 
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
@@ -452,7 +456,9 @@ namespace Game.MVP.Survivor.Enemy
             using (s_returnToPoolMarker.Auto())
             {
                 var enemyId = enemy.EnemyId;
+#if !UNITY_SERVER
                 enemy.GetComponent<SurvivorEnemyPresenter>()?.ResetForPool();
+#endif
                 enemy.ResetForPool();
 
                 if (_pools.TryGetValue(enemyId, out var pool))

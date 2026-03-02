@@ -101,10 +101,12 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             // トレイルをリセット
+#if !UNITY_SERVER
             if (_trailRenderer != null)
             {
                 _trailRenderer.Clear();
             }
+#endif
         }
 
         private void Update()
@@ -233,10 +235,12 @@ namespace Game.MVP.Survivor.Weapon
             _homingTarget = null;
             _hitCountPerEnemy.Clear();
 
+#if !UNITY_SERVER
             if (_trailRenderer != null)
             {
                 _trailRenderer.Clear();
             }
+#endif
         }
 
         /// <summary>

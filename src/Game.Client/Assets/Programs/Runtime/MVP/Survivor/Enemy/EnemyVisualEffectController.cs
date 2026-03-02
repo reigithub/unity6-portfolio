@@ -1,7 +1,9 @@
+#if !UNITY_SERVER
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Shaders;
+#endif
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -9,6 +11,7 @@ namespace Game.MVP.Survivor.Enemy
     /// <summary>
     /// 敵のビジュアルエフェクト制御
     /// ヒットフラッシュ、ディゾルブなどのマテリアルエフェクトを管理
+    /// Prefab にアタッチ済みのため、クラス定義と SerializeField は常にコンパイル
     /// </summary>
     public class EnemyVisualEffectController : MonoBehaviour
     {
@@ -27,6 +30,7 @@ namespace Game.MVP.Survivor.Enemy
         [SerializeField] private Gradient _dissolveEdgeGradient;
         [SerializeField] private Vector3 _dissolveDirection = Vector3.up;
 
+#if !UNITY_SERVER
         // Property Block for efficient material updates (no material instance creation)
         private MaterialPropertyBlock _propertyBlock;
 
@@ -281,14 +285,6 @@ namespace Game.MVP.Survivor.Enemy
         #endregion
 
 #if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (_targetRenderers == null || _targetRenderers.Length == 0)
-            {
-                _targetRenderers = GetComponentsInChildren<Renderer>();
-            }
-        }
-
         [ContextMenu("Test Hit Flash")]
         private void TestHitFlash()
         {
@@ -304,6 +300,18 @@ namespace Game.MVP.Survivor.Enemy
             if (Application.isPlaying)
             {
                 PlayDeathDissolveAsync(destroyCancellationToken).Forget();
+            }
+        }
+#endif
+
+#endif // !UNITY_SERVER
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (_targetRenderers == null || _targetRenderers.Length == 0)
+            {
+                _targetRenderers = GetComponentsInChildren<Renderer>();
             }
         }
 #endif

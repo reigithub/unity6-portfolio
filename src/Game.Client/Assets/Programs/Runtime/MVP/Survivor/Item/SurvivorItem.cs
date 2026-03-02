@@ -94,11 +94,13 @@ namespace Game.MVP.Survivor.Item
             transform.localScale = Vector3.one * _scale;
         }
 
+#if !UNITY_SERVER
         private void Start()
         {
             _initialPosition = transform.position;
             _baseFloatAmplitude = _floatAmplitude * _scale;
         }
+#endif
 
         private void Update()
         {
@@ -106,23 +108,27 @@ namespace Game.MVP.Survivor.Item
 
             if (_isBeingAttracted && _attractTarget != null)
             {
-                // 吸引中：ターゲットに向かって移動
+                // 吸引中：ターゲットに向かって移動（ゲームロジック）
                 Vector3 direction = (_attractTarget.position - transform.position).normalized;
                 transform.position += direction * _attractSpeed * Time.deltaTime;
             }
+#if !UNITY_SERVER
             else
             {
-                // 浮遊アニメーション
+                // 浮遊アニメーション（ビジュアル）
                 UpdateFloatAnimation();
             }
+#endif
         }
 
+#if !UNITY_SERVER
         private void UpdateFloatAnimation()
         {
             _floatTimer += Time.deltaTime * _floatSpeed;
             float yOffset = Mathf.Sin(_floatTimer) * _baseFloatAmplitude;
             transform.position = _initialPosition + Vector3.up * yOffset;
         }
+#endif
 
         /// <summary>
         /// プレイヤーから呼ばれる：吸引開始
