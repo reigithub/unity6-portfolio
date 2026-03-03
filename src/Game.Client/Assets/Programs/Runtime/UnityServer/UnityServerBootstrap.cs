@@ -4,13 +4,13 @@ using Game.Shared.Network.Survivor;
 using Game.Shared.Environment;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Server
+namespace Game.Unity.Server
 {
     /// <summary>
     /// Dedicated Server 起動時の初期化処理。
     /// Mirror サーバーを自動起動し、クライアント接続を受け入れる。
     /// </summary>
-    public static class DedicatedServerBootstrap
+    public static class UnityServerBootstrap
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
@@ -30,7 +30,7 @@ namespace Game.Shared.Netcode.Server
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
             // --- コマンドライン引数解析 ---
-            ushort port = ServerNetworkManager.ParsePort();
+            ushort port = UnityServerNetworkManager.ParsePort();
             string secret = ParseSecret();
             int playerCount = ParsePlayerCount();
 
@@ -48,11 +48,11 @@ namespace Game.Shared.Netcode.Server
             UnityEngine.Object.DontDestroyOnLoad(serverGo);
 
             // インフラ起動（NM + Transport 作成 → 次フレームで StartServer）
-            var serverNm = serverGo.AddComponent<ServerNetworkManager>();
+            var serverNm = serverGo.AddComponent<UnityServerNetworkManager>();
             serverNm.Initialize(port);
 
             // Survivor セッション開始（クライアント接続受け入れ準備）
-            var session = serverGo.AddComponent<SurvivorServerSession>();
+            var session = serverGo.AddComponent<SurvivorUnityServerSession>();
             session.StartSession(playerCount);
         }
 

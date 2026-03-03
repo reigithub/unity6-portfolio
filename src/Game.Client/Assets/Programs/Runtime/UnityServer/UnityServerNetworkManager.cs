@@ -5,16 +5,16 @@ using kcp2k;
 using Mirror;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Server
+namespace Game.Unity.Server
 {
     /// <summary>
     /// Dedicated Server の Mirror インフラ管理。
     /// NetworkManager + KcpTransport を生成し、サーバーモードで起動する。
     /// ゲームタイプ固有ロジックは各セッションコンポーネントが独立して担当する。
     /// </summary>
-    public class ServerNetworkManager : MonoBehaviour
+    public class UnityServerNetworkManager : MonoBehaviour
     {
-        public static ServerNetworkManager Instance { get; private set; }
+        public static UnityServerNetworkManager Instance { get; private set; }
 
         private ushort _port = 7777;
 

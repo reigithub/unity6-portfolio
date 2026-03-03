@@ -1,6 +1,6 @@
 {
-    "name": "Game.DedicatedServer",
-    "rootNamespace": "Game.Shared.Netcode.Server",
+    "name": "Game.Unity.Server",
+    "rootNamespace": "Game.Unity.Server",
     "references": [
         "Game.Shared",
         "Game.Library.Shared",
