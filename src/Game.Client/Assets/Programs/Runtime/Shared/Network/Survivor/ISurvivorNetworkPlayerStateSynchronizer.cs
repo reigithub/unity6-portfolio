@@ -1,6 +1,4 @@
-using Game.Shared.Network.Survivor;
-
-namespace Game.Shared.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// プレイヤー状態のネットワーク同期の抽象化。

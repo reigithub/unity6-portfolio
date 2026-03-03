@@ -9,7 +9,6 @@ using Game.Shared;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
-using Game.Shared.Survivor;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Connectivity;
@@ -27,6 +26,7 @@ using Game.Shared.Chat.Client;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
 using Game.Shared.Server;
+using Game.Shared.Signals.Survivor;
 
 namespace Game.MVP.Survivor
 {

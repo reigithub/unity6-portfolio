@@ -1,5 +1,4 @@
 using Game.Shared.Network.Survivor;
-using Game.Shared.Survivor;
 
 namespace Game.MVP.Survivor.Player
 {

@@ -6,8 +6,8 @@ using UnityEngine.UI;
 using VContainer;
 using Game.MVP.Core.DI;
 using Game.MVP.Survivor.Player;
-using Game.Shared.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
 
 namespace Game.MVP.Survivor.Root
 {

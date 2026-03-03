@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Library.Shared.Dto;
 using Game.Shared.Network.Survivor;
-using Game.Shared.Survivor;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 

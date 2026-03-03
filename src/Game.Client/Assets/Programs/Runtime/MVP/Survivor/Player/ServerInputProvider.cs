@@ -1,5 +1,4 @@
 using Game.Shared.Network.Survivor;
-using Game.Shared.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Player

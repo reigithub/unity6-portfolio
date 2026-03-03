@@ -1,4 +1,4 @@
-using Game.Shared.Survivor;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using Mirror;
 using UnityEngine;

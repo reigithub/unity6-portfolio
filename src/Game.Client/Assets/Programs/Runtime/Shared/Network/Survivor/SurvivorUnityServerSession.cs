@@ -5,16 +5,16 @@ using Mirror;
 using Unity.Collections;
 using UnityEngine;
 
-namespace Game.Shared.Netcode.Server
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Survivor モード固有のサーバーセッション。
     /// インゲーム開始直前に StartSession() で Mirror コールバックを登録し、
     /// セッション終了時に StopSession() で解除 + クリーンアップする。
     /// </summary>
-    public class SurvivorServerSession : MonoBehaviour
+    public class SurvivorUnityServerSession : MonoBehaviour
     {
-        public static SurvivorServerSession Instance { get; private set; }
+        public static SurvivorUnityServerSession Instance { get; private set; }
 
         private int _stageId;
         private bool _stageLoaded;

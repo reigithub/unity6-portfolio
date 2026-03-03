@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
-using Game.Shared.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;

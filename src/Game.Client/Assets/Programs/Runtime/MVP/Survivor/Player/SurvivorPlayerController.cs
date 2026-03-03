@@ -1,14 +1,13 @@
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
-
 using Game.Shared.Item;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Survivor;
-using Game.Shared.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using R3;
 using Unity.Profiling;

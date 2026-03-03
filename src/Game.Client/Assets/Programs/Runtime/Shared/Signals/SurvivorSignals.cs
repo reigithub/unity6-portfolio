@@ -1,7 +1,7 @@
 using Game.Shared.Network.Survivor;
 using UnityEngine;
 
-namespace Game.Shared.Survivor
+namespace Game.Shared.Signals.Survivor
 {
     /// <summary>
     /// Survivor ゲームイベントシグナル定義（統一版）。

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Game.Shared.Survivor
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// プレイヤー入力の抽象化。モードごとに実装を切り替え。
