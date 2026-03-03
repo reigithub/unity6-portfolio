@@ -31,7 +31,7 @@ public class MatchSessionTokenServiceTests
         // ルーティングされるため、SetReturnsDefault で全オーバーロードをカバー
         _dbMock.SetReturnsDefault(Task.FromResult(true));
 
-        var settings = Options.Create(new SessionTokenSettings { SecretKey = TestSecretKey });
+        var settings = Options.Create(new UnityServerAuthSettings { SecretKey = TestSecretKey });
         _service = new MatchSessionTokenService(_redisMock.Object, settings, _loggerMock.Object);
     }
 

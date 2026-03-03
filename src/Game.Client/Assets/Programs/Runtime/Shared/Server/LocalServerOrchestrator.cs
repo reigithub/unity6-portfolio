@@ -1,7 +1,9 @@
 #if !UNITY_SERVER
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Environment;
 using UnityEngine;
 
 namespace Game.Shared.Server
@@ -27,9 +29,17 @@ namespace Game.Shared.Server
         public LocalServerOrchestrator()
         {
             _config = LocalServerConfig.Detect();
+
+            // .env からセッショントークンシークレットを取得
+            var envVars = EnvVarParser.Parse(_config.DotEnvFilePath);
+            envVars.TryGetValue(EnvVarKeys.UnityServerAuthSecretKey, out var sessionTokenSecret);
+
             _postgres = new EmbeddedPostgresManager(_config.PgBinDir, _config.PgDataDir, _config.PgPort);
             _gameServer = new LocalGameServerManager(_config);
-            _headless = new LocalHeadlessServerManager(_config.HeadlessServerExePath, _config.HeadlessServerPort);
+            _headless = new LocalHeadlessServerManager(
+                _config.HeadlessServerExePath,
+                _config.HeadlessServerPort,
+                sessionTokenSecret);
 
             Application.quitting += OnApplicationQuitting;
         }

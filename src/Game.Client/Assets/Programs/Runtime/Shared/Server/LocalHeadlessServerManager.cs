@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Environment;
 using Debug = UnityEngine.Debug;
 
 namespace Game.Shared.Server
@@ -16,16 +17,18 @@ namespace Game.Shared.Server
     {
         private readonly string _exePath;
         private readonly ushort _port;
+        private readonly string _sessionTokenSecret;
 
         private Process _process;
         private bool _isRunning;
 
         public int ProcessId => _process?.Id ?? 0;
 
-        public LocalHeadlessServerManager(string exePath, ushort port)
+        public LocalHeadlessServerManager(string exePath, ushort port, string sessionTokenSecret = null)
         {
             _exePath = exePath;
             _port = port;
+            _sessionTokenSecret = sessionTokenSecret;
         }
 
         public async UniTask StartAsync(CancellationToken ct)
@@ -45,6 +48,12 @@ namespace Game.Shared.Server
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+
+            // 認証シークレットがあれば環境変数で渡す
+            if (!string.IsNullOrEmpty(_sessionTokenSecret))
+            {
+                psi.Environment[EnvVarKeys.UnityServerAuthSecretKey] = _sessionTokenSecret;
+            }
 
             _process = Process.Start(psi);
             if (_process == null)

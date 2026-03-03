@@ -102,7 +102,7 @@ namespace Game.Shared.Netcode.Server
         /// </summary>
         public static ushort ParsePort()
         {
-            var args = Environment.GetCommandLineArgs();
+            var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "--port" && ushort.TryParse(args[i + 1], out ushort port))

@@ -21,7 +21,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
 
     public MatchSessionTokenService(
         IConnectionMultiplexer redis,
-        IOptions<SessionTokenSettings> settings,
+        IOptions<UnityServerAuthSettings> settings,
         ILogger<MatchSessionTokenService> logger)
     {
         _redis = redis;

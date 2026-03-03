@@ -1,5 +1,6 @@
 using Game.Realtime.Extensions;
 using Game.Realtime.Filters;
+using Game.Server.Shared.Configuration;
 using Game.Server.Shared.Extensions;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -14,6 +15,9 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // .env → 環境変数（Docker 環境では no-op）
+        EnvVarLoader.Load();
+
         // Bootstrap logger（ホスト構築前のエラーもキャプチャ）
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()

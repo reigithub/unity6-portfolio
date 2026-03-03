@@ -1,10 +1,12 @@
 #if !UNITY_SERVER
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Environment;
 using Debug = UnityEngine.Debug;
 
 namespace Game.Shared.Server
@@ -16,6 +18,15 @@ namespace Game.Shared.Server
     public class LocalGameServerManager
     {
         private readonly LocalServerConfig _config;
+
+        /// <summary>
+        /// .env の Shell-style キー → ASP.NET Core 設定キーのマッピング。
+        /// </summary>
+        private static readonly (string EnvKey, string ConfigKey)[] _keyMappings =
+        {
+            ("JWT_SECRET", "Jwt__Secret"),
+            (EnvVarKeys.UnityServerAuthSecretKey, "UnityServerAuth__SecretKey"),
+        };
 
         private Process _process;
         private bool _isRunning;
@@ -59,17 +70,34 @@ namespace Game.Shared.Server
                 };
             }
 
+            // .env から読み取り（パスが null or ファイル不在なら空 Dictionary）
+            var envVars = EnvVarParser.Parse(_config.DotEnvFilePath);
+
             // 環境変数設定
             psi.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
             psi.Environment["ASPNETCORE_URLS"] = $"http://localhost:{_config.GameServerPort}";
+
+            // DB接続文字列（.env の POSTGRES_* を使用、SP は PgPort が異なる）
+            var pgDb = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_DB", "gameserver");
+            var pgUser = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_USER", "gameuser");
+            var pgPass = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_PASSWORD", "localdev");
             psi.Environment["ConnectionStrings__Default"] =
-                $"Host=localhost;Port={_config.PgPort};Database=gameserver;Username=gameuser;Password=localdev";
+                $"Host=localhost;Port={_config.PgPort};Database={pgDb};Username={pgUser};Password={pgPass}";
+
+            // Valkey（SP は EmbeddedValkey 不使用 → HealthCheck 無効化）
             psi.Environment["ConnectionStrings__Valkey"] =
                 "localhost:16379,abortConnect=false,connectTimeout=1000";
             psi.Environment["RequestSigning__Enabled"] = "false";
             psi.Environment["HealthChecks__Valkey__Enabled"] = "false";
-            psi.Environment["Jwt__Secret"] =
-                "local-sp-development-secret-key-minimum-32-characters-required";
+
+            // .env → ASP.NET Core キーマッピング（JWT_SECRET → Jwt__Secret 等）
+            foreach (var (envKey, configKey) in _keyMappings)
+            {
+                if (envVars.TryGetValue(envKey, out var val))
+                {
+                    psi.Environment[configKey] = val;
+                }
+            }
 
             _process = Process.Start(psi);
             if (_process == null)

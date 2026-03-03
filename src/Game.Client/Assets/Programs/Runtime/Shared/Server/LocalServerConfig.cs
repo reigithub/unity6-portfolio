@@ -10,6 +10,9 @@ namespace Game.Shared.Server
     /// </summary>
     public class LocalServerConfig
     {
+        // .env ファイルパス
+        public string DotEnvFilePath { get; private set; }
+
         // PostgreSQL
         public string PgBinDir { get; private set; }
         public string PgDataDir { get; private set; }
@@ -43,6 +46,7 @@ namespace Game.Shared.Server
             var repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
             config.IsEditorMode = true;
+            config.DotEnvFilePath = Path.Combine(repoRoot, "docker", "game-server", ".env");
             config.PgBinDir = Path.Combine(repoRoot, "tools", "pgsql", "bin");
             config.PgDataDir = Path.Combine(repoRoot, "tools", "pgdata");
             config.GameServerProjectPath = Path.Combine(repoRoot, "src", "Game.Server");

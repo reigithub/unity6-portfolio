@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Environment;
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
@@ -60,13 +61,14 @@ namespace Game.Shared.Netcode.Server
         /// </summary>
         private static string ParseSecret()
         {
-            var args = Environment.GetCommandLineArgs();
+            var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "--secret")
                     return args[i + 1];
             }
-            return null;
+            // 環境変数フォールバック（GCP / SP Local からの注入）
+            return System.Environment.GetEnvironmentVariable(EnvVarKeys.UnityServerAuthSecretKey);
         }
 
         /// <summary>
@@ -74,7 +76,7 @@ namespace Game.Shared.Netcode.Server
         /// </summary>
         private static int ParsePlayerCount()
         {
-            var args = Environment.GetCommandLineArgs();
+            var args = System.Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "--players" && int.TryParse(args[i + 1], out int count))

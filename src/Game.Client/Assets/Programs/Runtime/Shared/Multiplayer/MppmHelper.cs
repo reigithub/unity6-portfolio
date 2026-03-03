@@ -27,7 +27,7 @@ namespace Game.Shared.Multiplayer
             {
                 if (!_isClone.HasValue)
                 {
-                    var args = Environment.GetCommandLineArgs();
+                    var args = System.Environment.GetCommandLineArgs();
                     _isClone = args.Contains(CloneFlag);
                 }
                 return _isClone.Value;
@@ -54,7 +54,7 @@ namespace Game.Shared.Multiplayer
 
         private static string ReadVpIdFromCommandLine()
         {
-            var args = Environment.GetCommandLineArgs();
+            var args = System.Environment.GetCommandLineArgs();
             foreach (var arg in args)
             {
                 if (arg.StartsWith(VpIdPrefix, StringComparison.Ordinal))
