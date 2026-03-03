@@ -8,7 +8,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
-using Game.Shared.Server;
+using Game.Shared.Unity.Server;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;

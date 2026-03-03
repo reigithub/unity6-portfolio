@@ -1,5 +1,5 @@
 #if !UNITY_SERVER
-using Game.Shared.Survivor;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using R3;
 using UnityEngine;

@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using Debug = UnityEngine.Debug;
 
-namespace Game.Shared.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// 孤児プロセス管理。

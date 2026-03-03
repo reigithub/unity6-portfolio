@@ -8,7 +8,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Debug = UnityEngine.Debug;
 
-namespace Game.Shared.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// 組み込み Valkey のライフサイクル管理。

@@ -2,7 +2,7 @@
 using System.IO;
 using UnityEngine;
 
-namespace Game.Shared.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// SP モードのローカルサーバー構成情報。

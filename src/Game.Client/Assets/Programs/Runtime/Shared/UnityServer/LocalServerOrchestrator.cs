@@ -6,7 +6,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Environment;
 using UnityEngine;
 
-namespace Game.Shared.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// SP モード用ローカルサーバーオーケストレーター。

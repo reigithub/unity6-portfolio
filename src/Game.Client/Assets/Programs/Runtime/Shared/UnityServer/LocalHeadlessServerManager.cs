@@ -7,7 +7,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Environment;
 using Debug = UnityEngine.Debug;
 
-namespace Game.Shared.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// Unity Headless Server プロセスのライフサイクル管理。

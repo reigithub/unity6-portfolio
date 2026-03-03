@@ -25,7 +25,7 @@ using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
-using Game.Shared.Server;
+using Game.Shared.Unity.Server;
 using Game.Shared.Signals.Survivor;
 
 namespace Game.MVP.Survivor
