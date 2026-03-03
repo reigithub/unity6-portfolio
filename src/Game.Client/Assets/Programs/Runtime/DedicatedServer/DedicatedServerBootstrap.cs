@@ -4,7 +4,7 @@ namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// Dedicated Server 起動時の初期化処理。
-    /// NGO サーバーを自動起動し、クライアント接続を受け入れる。
+    /// Mirror サーバーを自動起動し、クライアント接続を受け入れる。
     /// </summary>
     public static class DedicatedServerBootstrap
     {
@@ -25,9 +25,9 @@ namespace Game.Shared.Netcode.Server
             // スクリーンスリープ無効化
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
-            // --- NGO Server 起動 ---
+            // --- Mirror Server 起動 ---
             ushort port = ServerNetworkManager.ParsePort();
-            Debug.Log($"[ServerBootstrap] Starting NGO Server on port {port}...");
+            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}...");
 
             var serverGo = new GameObject("[ServerNetworkManager]");
             Object.DontDestroyOnLoad(serverGo);

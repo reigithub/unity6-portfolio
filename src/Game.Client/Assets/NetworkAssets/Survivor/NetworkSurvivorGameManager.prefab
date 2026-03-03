@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4898875289287703899}
-  - component: {fileID: 3479051234122714373}
+  - component: {fileID: 6325486778017559687}
   - component: {fileID: 356312199381680558}
   m_Layer: 0
   m_Name: NetworkSurvivorGameManager
@@ -33,7 +33,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3479051234122714373
+--- !u!114 &6325486778017559687
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -42,22 +42,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 3069845829433876726}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1718500225
-  InScenePlacedSourceGlobalObjectIdHash: 0
-  DeferredDespawnTick: 0
-  Ownership: 1
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
-  AutoObjectParentSync: 1
-  SyncOwnerTransformWhenParented: 1
-  AllowOwnerToParent: 0
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 332483855
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!114 &356312199381680558
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,4 +62,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca55965408e2aa348bcd46ade31d5eff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Netcode.Survivor.NetworkSurvivorGameManager
-  ShowTopMostFoldoutHeaderGroup: 1
+  syncMethod: 0
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0

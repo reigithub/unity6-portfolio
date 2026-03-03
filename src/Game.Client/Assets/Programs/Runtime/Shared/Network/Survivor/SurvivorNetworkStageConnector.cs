@@ -1,14 +1,13 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Network.Survivor;
-using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
+using kcp2k;
+using Mirror;
 using UnityEngine;
 
 namespace Game.Shared.Network.Survivor
 {
     /// <summary>
-    /// クライアント側 NGO 接続管理。
+    /// クライアント側 Mirror 接続管理。
     /// SurvivorStageScene.ReadyState から呼ばれ、サーバーへ接続する。
     /// </summary>
     public class SurvivorNetworkStageConnector : ISurvivorNetworkStageConnector
@@ -16,10 +15,9 @@ namespace Game.Shared.Network.Survivor
         private NetworkManager _networkManager;
         private bool _isConnecting;
 
-        public bool IsConnected =>
-            _networkManager != null && _networkManager.IsConnectedClient;
+        public bool IsConnected => NetworkClient.isConnected;
 
-        /// <summary>NGO サーバーに接続する。</summary>
+        /// <summary>Mirror サーバーに接続する。</summary>
         public async UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "")
         {
             if (_isConnecting || IsConnected) return;
@@ -27,29 +25,32 @@ namespace Game.Shared.Network.Survivor
 
             try
             {
-                EnsureNetworkManager();
+                await EnsureNetworkManagerAsync();
 
-                _networkManager.TryGetComponent<UnityTransport>(out var transport);
+                // KCP Transport 設定
+                _networkManager.TryGetComponent<KcpTransport>(out var transport);
                 if (transport == null)
                 {
-                    transport = _networkManager.gameObject.AddComponent<UnityTransport>();
-                    _networkManager.NetworkConfig.NetworkTransport = transport;
+                    transport = _networkManager.gameObject.AddComponent<KcpTransport>();
                 }
-                transport.SetConnectionData(address, port);
+                Transport.active = transport;
+                transport.port = port;
+                _networkManager.networkAddress = address;
 
-                _networkManager.NetworkConfig.ConnectionData =
+                // 認証ペイロード設定（Authenticator が OnClientAuthenticate で送信）
+                SurvivorNetworkAuthenticator.PendingPayload =
                     SurvivorNetworkConnectionPayload.Encode(stageId, sessionToken);
 
                 _networkManager.StartClient();
 
                 // 接続完了待機（タイムアウト 10 秒）
                 var timeout = Time.realtimeSinceStartup + 10f;
-                while (!_networkManager.IsConnectedClient)
+                while (!NetworkClient.isConnected)
                 {
                     if (Time.realtimeSinceStartup > timeout)
-                        throw new TimeoutException("NGO connection timed out");
-                    if (!_networkManager.IsClient)
-                        throw new InvalidOperationException("NGO client stopped");
+                        throw new TimeoutException("Mirror connection timed out");
+                    if (!NetworkClient.active)
+                        throw new InvalidOperationException("Mirror client stopped");
                     await UniTask.Yield();
                 }
 
@@ -63,24 +64,39 @@ namespace Game.Shared.Network.Survivor
 
         public void Disconnect()
         {
-            if (_networkManager != null && _networkManager.IsClient)
+            if (NetworkClient.isConnected || NetworkClient.active)
             {
-                _networkManager.Shutdown();
+                _networkManager?.StopClient();
                 Debug.Log("[NetworkSurvivorStageClient] Disconnected");
             }
         }
 
-        private void EnsureNetworkManager()
+        private async UniTask EnsureNetworkManagerAsync()
         {
-            _networkManager = NetworkManager.Singleton;
+            _networkManager = NetworkManager.singleton;
             if (_networkManager == null)
             {
                 var go = new GameObject("[NetworkManager]");
                 UnityEngine.Object.DontDestroyOnLoad(go);
                 _networkManager = go.AddComponent<NetworkManager>();
-                go.AddComponent<UnityTransport>();
-                _networkManager.NetworkConfig.NetworkTransport =
-                    go.GetComponent<UnityTransport>();
+                var transport = go.AddComponent<KcpTransport>();
+                _networkManager.transport = transport;
+                Transport.active = transport;
+                var auth = go.AddComponent<SurvivorNetworkAuthenticator>();
+                _networkManager.authenticator = auth;
+                await RegisterSpawnPrefabsAsync(_networkManager);
+            }
+        }
+
+        private static async UniTask RegisterSpawnPrefabsAsync(NetworkManager nm)
+        {
+            var registry = await SurvivorNetworkPrefabs.LoadAsync();
+            if (registry == null || registry.Prefabs == null) return;
+
+            foreach (var prefab in registry.Prefabs)
+            {
+                if (prefab != null)
+                    nm.spawnPrefabs.Add(prefab);
             }
         }
 

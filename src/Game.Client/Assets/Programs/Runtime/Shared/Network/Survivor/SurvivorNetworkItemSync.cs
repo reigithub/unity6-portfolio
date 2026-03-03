@@ -1,6 +1,6 @@
 using Game.Shared.Survivor;
 using MessagePipe;
-using Unity.Netcode;
+using Mirror;
 using UnityEngine;
 using VContainer;
 
@@ -17,12 +17,12 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;
 
-        // --- アイテムスポーン ---
+        // --- アイテมスポーン ---
 
         [ClientRpc]
         public void SpawnItemClientRpc(int itemId, float posX, float posZ)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(itemId, posX, posZ));
             }
@@ -33,7 +33,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void DespawnItemClientRpc(int itemId)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(itemId));
             }
@@ -41,13 +41,24 @@ namespace Game.Shared.Network.Survivor
 
         // --- ライフサイクル ---
 
-        public override void OnNetworkSpawn()
+        public override void OnStartServer()
         {
-            Instance = this; // サーバー・クライアント両方で設定（InjectGameObject でアクセスするため）
-            Debug.Log($"[NetworkSurvivorItemSync] Spawned (IsServer={IsServer})");
+            Instance = this;
+            Debug.Log("[NetworkSurvivorItemSync] Spawned on server");
         }
 
-        public override void OnNetworkDespawn()
+        public override void OnStartClient()
+        {
+            Instance = this;
+            Debug.Log("[NetworkSurvivorItemSync] Spawned on client");
+        }
+
+        public override void OnStopServer()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public override void OnStopClient()
         {
             if (Instance == this) Instance = null;
         }

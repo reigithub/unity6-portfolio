@@ -1,7 +1,7 @@
 using Game.Shared.Survivor;
 using MessagePipe;
+using Mirror;
 using Unity.Collections;
-using Unity.Netcode;
 using UnityEngine;
 using VContainer;
 
@@ -42,7 +42,7 @@ namespace Game.Shared.Network.Survivor
         public void NotifyAllPlayersReadyClientRpc()
         {
             Debug.Log("[NetworkSurvivorGameManager] AllPlayersReady");
-            if (!IsServer)
+            if (!isServer)
             {
                 _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
             }
@@ -52,7 +52,7 @@ namespace Game.Shared.Network.Survivor
         public void NotifyGameStartedClientRpc(float serverTime)
         {
             Debug.Log($"[NetworkSurvivorGameManager] GameStarted at serverTime={serverTime}");
-            if (!IsServer)
+            if (!isServer)
             {
                 _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(serverTime));
             }
@@ -63,7 +63,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _playerDamagedPub?.Publish(
                     new SurvivorSignals.Player.DamageReceived(damage, currentHp));
@@ -73,7 +73,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
             }
@@ -82,7 +82,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _itemCollectedPub?.Publish(
                     new SurvivorSignals.Player.ItemCollected(userId.ToString(), itemId, effectValue));
@@ -92,7 +92,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _playerLeveledUpPub?.Publish(
                     new SurvivorSignals.Player.LeveledUp(userId.ToString(), newLevel, options));
@@ -102,7 +102,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWeaponChangedClientRpc(FixedString64Bytes userId, int weaponId, int level, bool isNew)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _weaponChangedPub?.Publish(
                     new SurvivorSignals.Player.WeaponChanged(userId.ToString(), weaponId, level, isNew));
@@ -114,7 +114,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyEnemyKilledClientRpc(FixedString64Bytes killerUserId, int enemyId, int scoreGained, int totalKills)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _enemyKilledPub?.Publish(
                     new SurvivorSignals.Enemy.Killed(killerUserId.ToString(), enemyId, scoreGained, totalKills));
@@ -126,7 +126,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _waveClearedPub?.Publish(
                     new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
@@ -136,7 +136,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _waveStartedPub?.Publish(
                     new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
@@ -146,7 +146,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyAllWavesClearedClientRpc()
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
             }
@@ -155,7 +155,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyTimeUpClientRpc()
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _timeUpPub?.Publish(new SurvivorSignals.Wave.TimeUp());
             }
@@ -166,7 +166,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
             }
@@ -177,7 +177,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGamePausedClientRpc(FixedString64Bytes requestedByUserId)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _gamePausedPub?.Publish(
                     new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
@@ -187,7 +187,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameResumedClientRpc()
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
             }
@@ -198,7 +198,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerConnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _playerConnectedPub?.Publish(
                     new SurvivorSignals.Connection.PlayerConnected(userId.ToString(), playerName.ToString()));
@@ -208,7 +208,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDisconnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _playerDisconnectedPub?.Publish(
                     new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
@@ -217,13 +217,24 @@ namespace Game.Shared.Network.Survivor
 
         // --- ライフサイクル ---
 
-        public override void OnNetworkSpawn()
+        public override void OnStartServer()
         {
             Instance = this;
-            Debug.Log($"[NetworkSurvivorGameManager] Spawned (IsServer={IsServer})");
+            Debug.Log("[NetworkSurvivorGameManager] Spawned on server");
         }
 
-        public override void OnNetworkDespawn()
+        public override void OnStartClient()
+        {
+            Instance = this;
+            Debug.Log("[NetworkSurvivorGameManager] Spawned on client");
+        }
+
+        public override void OnStopServer()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public override void OnStopClient()
         {
             if (Instance == this) Instance = null;
         }

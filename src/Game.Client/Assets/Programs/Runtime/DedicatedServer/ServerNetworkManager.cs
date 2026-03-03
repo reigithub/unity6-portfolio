@@ -1,14 +1,14 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
+using Game.Shared.Network.Survivor;
+using Mirror;
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
 {
     /// <summary>
-    /// Dedicated Server の NGO インフラ管理。
-    /// NetworkManager + UnityTransport を生成し、サーバーモードで起動する。
+    /// Dedicated Server の Mirror インフラ管理。
+    /// NetworkManager + KcpTransport を生成し、サーバーモードで起動する。
     /// ゲームタイプ固有ロジックは各セッションコンポーネントが独立して担当する。
     /// </summary>
     public class ServerNetworkManager : MonoBehaviour
@@ -40,16 +40,21 @@ namespace Game.Shared.Netcode.Server
 
         private async UniTaskVoid InitializeAsync()
         {
-            // --- NetworkManager + UnityTransport セットアップ ---
-            var transport = gameObject.AddComponent<UnityTransport>();
-            transport.SetConnectionData("0.0.0.0", _port);
+            // --- KcpTransport セットアップ ---
+            var transport = gameObject.AddComponent<KcpTransport>();
+            transport.port = _port;
+            Transport.active = transport;
 
+            // --- NetworkManager セットアップ ---
             var nm = gameObject.AddComponent<NetworkManager>();
-            nm.NetworkConfig = new NetworkConfig();
-            nm.NetworkConfig.NetworkTransport = transport;
+            nm.transport = transport;
 
-            // --- Connection Approval 有効化 ---
-            nm.NetworkConfig.ConnectionApproval = true;
+            // --- Authenticator セットアップ ---
+            var auth = gameObject.AddComponent<SurvivorNetworkAuthenticator>();
+            nm.authenticator = auth;
+
+            // --- スポーンプレハブ登録 ---
+            await RegisterSpawnPrefabsAsync(nm);
 
             // NetworkManager の内部初期化を待機
             await UniTask.NextFrame();
@@ -57,14 +62,32 @@ namespace Game.Shared.Netcode.Server
             // --- サーバー起動 ---
             nm.StartServer();
 
-            Debug.Log($"[ServerNetworkManager] NGO Server started on port {_port}");
+            Debug.Log($"[ServerNetworkManager] Mirror Server started on port {_port}");
+        }
+
+        private static async UniTask RegisterSpawnPrefabsAsync(NetworkManager nm)
+        {
+            var registry = await SurvivorNetworkPrefabs.LoadAsync();
+            if (registry == null || registry.Prefabs == null)
+            {
+                Debug.LogWarning("[ServerNetworkManager] SurvivorNetworkPrefabs not found");
+                return;
+            }
+
+            foreach (var prefab in registry.Prefabs)
+            {
+                if (prefab != null)
+                    nm.spawnPrefabs.Add(prefab);
+            }
+
+            Debug.Log($"[ServerNetworkManager] Registered {nm.spawnPrefabs.Count} spawn prefabs");
         }
 
         private void OnDestroy()
         {
-            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+            if (NetworkServer.active)
             {
-                NetworkManager.Singleton.Shutdown();
+                NetworkManager.singleton?.StopServer();
             }
 
             if (Instance == this)

@@ -6,7 +6,7 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
-using Game.Shared.Netcode;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Server;
 using Game.Shared.Survivor;

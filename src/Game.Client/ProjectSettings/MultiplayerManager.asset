@@ -29,6 +29,7 @@ MultiplayerManager:
     - UnityEngine.AudioModule:UnityEngine:AudioHighPassFilter
     - UnityEngine.UI:UnityEngine.UI:HorizontalLayoutGroup
     - UnityEngine.UI:UnityEngine.UI:ToggleGroup
+    - UnityEngine.CoreModule:UnityEngine:MeshFilter
     - UnityEngine.UI:UnityEngine.UI:GraphicRaycaster
     - UnityEngine.UI:UnityEngine.UI:Dropdown
     - UnityEngine.UI:UnityEngine.UI:BaseMeshEffect
@@ -63,12 +64,13 @@ MultiplayerManager:
     - UnityEngine.AudioModule:UnityEngine:AudioBehaviour
     - UnityEngine.UI:UnityEngine.UI:Scrollbar
     - UnityEngine.UI:UnityEngine.UI:Text
-    - UnityEngine.UI:UnityEngine.UI:VerticalLayoutGroup
     - UnityEngine.UI:UnityEngine.UI:GridLayoutGroup
+    - UnityEngine.UI:UnityEngine.UI:VerticalLayoutGroup
     - UnityEngine.UI:UnityEngine.UI:Mask
     - UnityEngine.AudioModule:UnityEngine:AudioListener
     - UnityEngine.CoreModule:UnityEngine:BillboardRenderer
     - UnityEngine.UI:UnityEngine.UI:Button
+    - UnityEngine.ParticleSystemModule:UnityEngine:ParticleSystem
     - UnityEngine.UI:UnityEngine.UI:LayoutElement
     - UnityEngine.UI:UnityEngine.EventSystems:Physics2DRaycaster
     - UnityEngine.AudioModule:UnityEngine:AudioDistortionFilter

@@ -13,7 +13,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using MessagePipe;
-using Unity.Netcode;
+using Mirror;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -217,10 +217,10 @@ namespace Game.MVP.Survivor.Scenes
                     Context.Resolver.InjectGameObject(SurvivorNetworkItemSync.Instance.gameObject);
 
                 // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
-                var playerObj = NetworkManager.Singleton?.LocalClient?.PlayerObject;
-                if (playerObj != null)
+                var localPlayer = NetworkClient.localPlayer;
+                if (localPlayer != null)
                 {
-                    Context._localPlayerState = playerObj.GetComponent<SurvivorNetworkPlayerState>();
+                    Context._localPlayerState = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
                     Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
                 }
 

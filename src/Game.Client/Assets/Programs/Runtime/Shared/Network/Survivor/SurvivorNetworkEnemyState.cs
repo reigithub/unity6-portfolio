@@ -1,6 +1,6 @@
 using Game.Shared.Survivor;
 using MessagePipe;
-using Unity.Netcode;
+using Mirror;
 using UnityEngine;
 using VContainer;
 
@@ -17,13 +17,24 @@ namespace Game.Shared.Network.Survivor
 
         [Inject] private IPublisher<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchPub;
 
-        public override void OnNetworkSpawn()
+        public override void OnStartServer()
         {
-            Instance = this; // サーバー・クライアント両方で設定（InjectGameObject でアクセスするため）
-            Debug.Log($"[NetworkSurvivorEnemyState] Spawned (IsServer={IsServer})");
+            Instance = this;
+            Debug.Log("[NetworkSurvivorEnemyState] Spawned on server");
         }
 
-        public override void OnNetworkDespawn()
+        public override void OnStartClient()
+        {
+            Instance = this;
+            Debug.Log("[NetworkSurvivorEnemyState] Spawned on client");
+        }
+
+        public override void OnStopServer()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public override void OnStopClient()
         {
             if (Instance == this) Instance = null;
         }
@@ -34,7 +45,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void SyncEnemiesStateClientRpc(SurvivorNetworkEnemyStateSnapshot[] enemies)
         {
-            if (!IsServer)
+            if (!isServer)
             {
                 _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(enemies));
             }
@@ -45,7 +56,7 @@ namespace Game.Shared.Network.Survivor
         /// <summary>サーバーから敵状態バッチを送信（Phase 4: SurvivorEnemySpawner 等から呼ばれる）</summary>
         public void BroadcastEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots)
         {
-            if (!IsServer) return;
+            if (!isServer) return;
             SyncEnemiesStateClientRpc(snapshots);
         }
     }

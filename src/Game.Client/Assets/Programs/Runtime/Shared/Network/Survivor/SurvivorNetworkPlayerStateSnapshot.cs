@@ -1,10 +1,9 @@
 using Unity.Collections;
-using Unity.Netcode;
 using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Network.Survivor
 {
-    public struct SurvivorNetworkPlayerStateSnapshot : INetworkSerializable
+    public struct SurvivorNetworkPlayerStateSnapshot
     {
         public FixedString64Bytes UserId;
         public float PositionX;
@@ -15,19 +14,6 @@ namespace Game.Shared.Network.Survivor
         public int CurrentHp;
         public int CurrentStamina;
         public bool IsInvincible;
-
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref UserId);
-            serializer.SerializeValue(ref PositionX);
-            serializer.SerializeValue(ref PositionY);
-            serializer.SerializeValue(ref PositionZ);
-            serializer.SerializeValue(ref RotationY);
-            serializer.SerializeValue(ref Speed);
-            serializer.SerializeValue(ref CurrentHp);
-            serializer.SerializeValue(ref CurrentStamina);
-            serializer.SerializeValue(ref IsInvincible);
-        }
 
         public static SurvivorNetworkPlayerStateSnapshot FromDto(PlayerStateSnapshot dto)
         {

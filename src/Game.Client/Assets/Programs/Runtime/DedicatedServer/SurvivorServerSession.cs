@@ -1,13 +1,13 @@
 using Cysharp.Threading.Tasks;
 using Game.Shared.Network.Survivor;
-using Unity.Netcode;
+using Mirror;
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
 {
     /// <summary>
     /// Survivor モード固有のサーバーセッション。
-    /// インゲーム開始直前に StartSession() で NGO コールバックを登録し、
+    /// インゲーム開始直前に StartSession() で Mirror コールバックを登録し、
     /// セッション終了時に StopSession() で解除 + クリーンアップする。
     /// </summary>
     public class SurvivorServerSession : MonoBehaviour
@@ -25,15 +25,13 @@ namespace Game.Shared.Netcode.Server
         private void Awake() => Instance = this;
 
         /// <summary>
-        /// セッション開始。NM のコールバックを登録する。
+        /// セッション開始。Mirror のコールバックを登録する。
         /// インゲーム開始直前に呼ばれる。
         /// </summary>
         public void StartSession()
         {
-            var nm = NetworkManager.Singleton;
-            nm.ConnectionApprovalCallback = OnConnectionApproval;
-            nm.OnClientConnectedCallback += OnClientConnected;
-            nm.OnClientDisconnectCallback += OnClientDisconnected;
+            SurvivorNetworkAuthenticator.OnPlayerAuthenticated += OnClientAuthenticated;
+            NetworkServer.OnDisconnectedEvent += OnClientDisconnected;
             Debug.Log("[SurvivorServerSession] Session started");
         }
 
@@ -42,13 +40,8 @@ namespace Game.Shared.Netcode.Server
         /// </summary>
         public void StopSession()
         {
-            var nm = NetworkManager.Singleton;
-            if (nm != null)
-            {
-                nm.ConnectionApprovalCallback = null;
-                nm.OnClientConnectedCallback -= OnClientConnected;
-                nm.OnClientDisconnectCallback -= OnClientDisconnected;
-            }
+            SurvivorNetworkAuthenticator.OnPlayerAuthenticated -= OnClientAuthenticated;
+            NetworkServer.OnDisconnectedEvent -= OnClientDisconnected;
 
             if (_gameManagerInstance != null) Destroy(_gameManagerInstance);
             if (_enemyStateInstance != null) Destroy(_enemyStateInstance);
@@ -63,15 +56,9 @@ namespace Game.Shared.Netcode.Server
             Debug.Log("[SurvivorServerSession] Session stopped");
         }
 
-        private void OnConnectionApproval(
-            NetworkManager.ConnectionApprovalRequest request,
-            NetworkManager.ConnectionApprovalResponse response)
+        private void OnClientAuthenticated(NetworkConnectionToClient conn, int stageId, string token)
         {
-            // Survivor 固有ペイロードをデコード
-            var (stageId, token) = SurvivorNetworkConnectionPayload.Decode(request.Payload);
-
-            Debug.Log($"[SurvivorServerSession] Approval: client={request.ClientNetworkId} " +
-                      $"stageId={stageId}, payload={request.Payload?.Length ?? 0} bytes");
+            Debug.Log($"[SurvivorServerSession] Client authenticated: conn={conn.connectionId}, stageId={stageId}");
 
             // stageId 設定（初回で確定）
             if (!_stageLoaded)
@@ -86,18 +73,6 @@ namespace Game.Shared.Netcode.Server
                                  $"expected={_stageId}, received={stageId}");
             }
 
-            // Phase 2: 常に承認（Phase 3 で token 検証追加予定）
-            response.Approved = true;
-            response.CreatePlayerObject = false;
-            response.Pending = false;
-
-            Debug.Log($"[SurvivorServerSession] Client {request.ClientNetworkId} approved");
-        }
-
-        private void OnClientConnected(ulong clientId)
-        {
-            Debug.Log($"[SurvivorServerSession] Client connected: {clientId}");
-
             // セッション開始（初回のみ）
             if (!_sessionStarted && _stageLoaded)
             {
@@ -106,13 +81,13 @@ namespace Game.Shared.Netcode.Server
                 Debug.Log("[SurvivorServerSession] Singletons spawned");
             }
 
-            SpawnPlayerState(clientId);
+            SpawnPlayerState(conn);
             NotifyPlayersReadyAsync().Forget();
         }
 
-        private void OnClientDisconnected(ulong clientId)
+        private void OnClientDisconnected(NetworkConnectionToClient conn)
         {
-            Debug.Log($"[SurvivorServerSession] Client disconnected: {clientId}");
+            Debug.Log($"[SurvivorServerSession] Client disconnected: {conn.connectionId}");
         }
 
         private void SpawnSessionSingletons()
@@ -122,16 +97,16 @@ namespace Game.Shared.Netcode.Server
             _itemSyncInstance = SpawnSingleton<SurvivorNetworkItemSync>();
         }
 
-        private void SpawnPlayerState(ulong clientId)
+        private void SpawnPlayerState(NetworkConnectionToClient conn)
         {
-            var nm = NetworkManager.Singleton;
-            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
+            var nm = NetworkManager.singleton;
+            foreach (var prefab in nm.spawnPrefabs)
             {
-                if (prefab.Prefab.GetComponent<SurvivorNetworkPlayerState>() != null)
+                if (prefab.GetComponent<SurvivorNetworkPlayerState>() != null)
                 {
-                    var instance = Instantiate(prefab.Prefab);
-                    instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-                    Debug.Log($"[SurvivorServerSession] PlayerState spawned for client {clientId}");
+                    var instance = Instantiate(prefab);
+                    NetworkServer.AddPlayerForConnection(conn, instance);
+                    Debug.Log($"[SurvivorServerSession] PlayerState spawned for conn {conn.connectionId}");
                     return;
                 }
             }
@@ -140,13 +115,13 @@ namespace Game.Shared.Netcode.Server
 
         private GameObject SpawnSingleton<T>() where T : NetworkBehaviour
         {
-            var nm = NetworkManager.Singleton;
-            foreach (var prefab in nm.NetworkConfig.Prefabs.Prefabs)
+            var nm = NetworkManager.singleton;
+            foreach (var prefab in nm.spawnPrefabs)
             {
-                if (prefab.Prefab.GetComponent<T>() != null)
+                if (prefab.GetComponent<T>() != null)
                 {
-                    var instance = Instantiate(prefab.Prefab);
-                    instance.GetComponent<NetworkObject>().Spawn();
+                    var instance = Instantiate(prefab);
+                    NetworkServer.Spawn(instance);
                     return instance;
                 }
             }
@@ -156,7 +131,7 @@ namespace Game.Shared.Netcode.Server
 
         private async UniTaskVoid NotifyPlayersReadyAsync()
         {
-            // NetworkBehaviour の OnNetworkSpawn が完了するまで待機
+            // NetworkBehaviour の OnStartServer/OnStartClient が完了するまで待機
             await UniTask.NextFrame();
 
             var gm = SurvivorNetworkGameManager.Instance;

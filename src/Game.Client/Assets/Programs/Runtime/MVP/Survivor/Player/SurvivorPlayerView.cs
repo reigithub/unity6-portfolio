@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.MVP.Survivor.Player
 {
     /// <summary>
-    /// クライアントモード時、NetworkVariable の変更を監視し、
+    /// クライアントモード時、SyncVar の変更を監視し、
     /// プレイヤーの Transform + Animator を補間更新する。
     /// </summary>
     public class SurvivorPlayerView : MonoBehaviour
@@ -27,7 +27,7 @@ namespace Game.MVP.Survivor.Player
             _animator = controller.GetComponentInChildren<Animator>();
             _targetPosition = transform.position;
             _targetRotationY = transform.eulerAngles.y;
-            _networkState.State.OnValueChanged += OnStateChanged;
+            _networkState.OnStateUpdated += OnStateChanged;
             _isActive = true;
         }
 
@@ -60,7 +60,7 @@ namespace Game.MVP.Survivor.Player
         private void OnDestroy()
         {
             if (_networkState != null)
-                _networkState.State.OnValueChanged -= OnStateChanged;
+                _networkState.OnStateUpdated -= OnStateChanged;
         }
     }
 }

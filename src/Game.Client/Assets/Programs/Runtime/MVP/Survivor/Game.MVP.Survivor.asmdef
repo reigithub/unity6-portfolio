@@ -21,7 +21,7 @@
         "MessagePipe.VContainer",
         "VContainer",
         "DOTween.Modules",
-        "Unity.Netcode.Runtime",
+        "Mirror",
         "Unity.Collections"
     ],
     "includePlatforms": [],

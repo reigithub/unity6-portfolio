@@ -1,4 +1,5 @@
-using Unity.Netcode;
+using System;
+using Mirror;
 using Unity.Collections;
 using UnityEngine;
 
@@ -6,22 +7,21 @@ namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// プレイヤーごとの状態同期 NetworkBehaviour。
-    /// サーバーが NetworkVariable を更新 → NGO が自動的にクライアントへ同期。
-    /// クライアントは ServerRpc で入力をサーバーへ送信。
+    /// サーバーが SyncVar を更新 → Mirror が自動的にクライアントへ同期。
+    /// クライアントは Command でサーバーへ入力を送信。
     /// </summary>
     public class SurvivorNetworkPlayerState : NetworkBehaviour
     {
         // --- 高頻度同期（サーバー → クライアント） ---
 
-        public NetworkVariable<SurvivorNetworkPlayerStateSnapshot> State = new(
-            default,
-            NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server);
+        [SyncVar(hook = nameof(OnStateChanged))]
+        public SurvivorNetworkPlayerStateSnapshot State;
 
-        public NetworkVariable<FixedString64Bytes> PlayerUserId = new(
-            default,
-            NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server);
+        [SyncVar]
+        public FixedString64Bytes PlayerUserId;
+
+        /// <summary>外部リスナー用イベント（SyncVar hook から発火）</summary>
+        public event Action<SurvivorNetworkPlayerStateSnapshot, SurvivorNetworkPlayerStateSnapshot> OnStateUpdated;
 
         // --- サーバー側入力バッファ ---
         private float _pendingMoveX;
@@ -49,8 +49,9 @@ namespace Game.Shared.Network.Survivor
             return true;
         }
 
-        // --- クライアント → サーバー入力（ServerRpc） ---
-        [ServerRpc]
+        // --- クライアント → サーバー入力（Command） ---
+
+        [Command]
         public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting)
         {
             _pendingMoveX = moveX;
@@ -59,82 +60,67 @@ namespace Game.Shared.Network.Survivor
             _hasInput = true;
         }
 
-        [ServerRpc]
+        [Command]
         public void SendWeaponChoiceServerRpc(int weaponId, bool isNewWeapon)
         {
-            Debug.Log($"[NetworkSurvivorPlayerState] WeaponChoice from {OwnerClientId}: weapon={weaponId} new={isNewWeapon}");
+            Debug.Log($"[NetworkSurvivorPlayerState] WeaponChoice from {connectionToClient?.connectionId}: weapon={weaponId} new={isNewWeapon}");
         }
 
-        [ServerRpc]
+        [Command]
         public void SendWeaponReplaceServerRpc(int removeWeaponId, int newWeaponId)
         {
-            Debug.Log($"[NetworkSurvivorPlayerState] WeaponReplace from {OwnerClientId}: remove={removeWeaponId} new={newWeaponId}");
+            Debug.Log($"[NetworkSurvivorPlayerState] WeaponReplace from {connectionToClient?.connectionId}: remove={removeWeaponId} new={newWeaponId}");
         }
 
-        [ServerRpc]
+        [Command]
         public void RequestPauseServerRpc()
         {
-            Debug.Log($"[NetworkSurvivorPlayerState] PauseRequest from {OwnerClientId}");
+            Debug.Log($"[NetworkSurvivorPlayerState] PauseRequest from {connectionToClient?.connectionId}");
         }
 
-        [ServerRpc]
+        [Command]
         public void RequestResumeServerRpc()
         {
-            Debug.Log($"[NetworkSurvivorPlayerState] ResumeRequest from {OwnerClientId}");
+            Debug.Log($"[NetworkSurvivorPlayerState] ResumeRequest from {connectionToClient?.connectionId}");
         }
 
-        [ServerRpc]
+        [Command]
         public void ReportGameEndServerRpc(SurvivorNetworkGameResult result)
         {
-            Debug.Log($"[NetworkSurvivorPlayerState] GameEnd from {OwnerClientId}: victory={result.IsVictory}");
+            Debug.Log($"[NetworkSurvivorPlayerState] GameEnd from {connectionToClient?.connectionId}: victory={result.IsVictory}");
             SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(result);
         }
 
         // --- ライフサイクル ---
 
-        public override void OnNetworkSpawn()
+        public override void OnStartClient()
         {
-            if (IsClient)
-            {
-                State.OnValueChanged += OnStateChanged;
-
-                // クライアント & Owner: レジストリからバインド（入力送信用）
-                if (IsOwner)
-                {
-                    foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
-                    {
-                        bindable.BindNetworkPlayerState(this);
-                        Debug.Log($"[NetworkSurvivorPlayerState] Client bound to {bindable.GetType().Name}");
-                        break;
-                    }
-                }
-            }
-
-            // サーバー: レジストリから INetworkPlayerStateBindable を検索してバインド
-            if (IsServer)
+            if (isOwned)
             {
                 foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
                 {
                     bindable.BindNetworkPlayerState(this);
-                    Debug.Log($"[NetworkSurvivorPlayerState] Bound to {bindable.GetType().Name} for client {OwnerClientId}");
+                    Debug.Log($"[NetworkSurvivorPlayerState] Client bound to {bindable.GetType().Name}");
                     break;
                 }
             }
-
-            Debug.Log($"[NetworkSurvivorPlayerState] Spawned for client {OwnerClientId} (IsServer={IsServer})");
+            Debug.Log($"[NetworkSurvivorPlayerState] Spawned on client (isOwned={isOwned})");
         }
 
-        public override void OnNetworkDespawn()
+        public override void OnStartServer()
         {
-            if (IsClient)
+            foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
             {
-                State.OnValueChanged -= OnStateChanged;
+                bindable.BindNetworkPlayerState(this);
+                Debug.Log($"[NetworkSurvivorPlayerState] Bound to {bindable.GetType().Name} for client {connectionToClient?.connectionId}");
+                break;
             }
+            Debug.Log("[NetworkSurvivorPlayerState] Spawned on server");
         }
 
-        private void OnStateChanged(SurvivorNetworkPlayerStateSnapshot prev, SurvivorNetworkPlayerStateSnapshot current)
+        private void OnStateChanged(SurvivorNetworkPlayerStateSnapshot oldValue, SurvivorNetworkPlayerStateSnapshot newValue)
         {
-            // Phase 5+: クライアント側 View 更新（PlayerView.UpdatePosition 等）
+            OnStateUpdated?.Invoke(oldValue, newValue);
         }
 
         // --- サーバー側ヘルパー ---
@@ -142,8 +128,8 @@ namespace Game.Shared.Network.Survivor
         /// <summary>サーバーから State を更新（Phase 4: SurvivorServerSimulation から呼ばれる）</summary>
         public void UpdateState(SurvivorNetworkPlayerStateSnapshot snapshot)
         {
-            if (!IsServer) return;
-            State.Value = snapshot;
+            if (!isServer) return;
+            State = snapshot;
         }
     }
 }

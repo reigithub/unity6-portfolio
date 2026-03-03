@@ -1,6 +1,6 @@
-using Unity.Netcode;
+using Mirror;
 
-namespace Game.Shared.Netcode
+namespace Game.Shared.Network
 {
     /// <summary>
     /// ネットワークモード判定ヘルパー。
@@ -9,17 +9,14 @@ namespace Game.Shared.Netcode
     /// </summary>
     public static class NetworkModeHelper
     {
-        private static NetworkManager Nm => NetworkManager.Singleton;
-
         /// <summary>
         /// ネットワークサーバーとして動作中か（Host / DedicatedServer）
         /// #if UNITY_SERVERディレクティブと適切に使い分けること
         /// </summary>
-        public static bool IsNetworkServer =>
-            Nm != null && Nm.IsServer && Nm.IsListening;
+        public static bool IsNetworkServer => NetworkServer.active;
 
         /// <summary>ネットワーククライアントとして動作中か（Host含まず）</summary>
         public static bool IsNetworkClientOnly =>
-            Nm != null && Nm.IsClient && !Nm.IsServer && Nm.IsListening;
+            NetworkClient.active && !NetworkServer.active;
     }
 }

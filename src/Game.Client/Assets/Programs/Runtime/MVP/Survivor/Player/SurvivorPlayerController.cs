@@ -178,7 +178,7 @@ namespace Game.MVP.Survivor.Player
             _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
 
             // リモートプレイヤーは ServerInputProvider（ローカルプレイヤーは Initialize で設定済みの LocalInputProvider を維持）
-            if (!playerState.IsOwner)
+            if (!playerState.isOwned)
             {
                 _inputProvider = new ServerInputProvider(playerState);
             }

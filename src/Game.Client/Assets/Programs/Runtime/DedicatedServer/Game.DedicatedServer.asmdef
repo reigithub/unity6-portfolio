@@ -5,8 +5,8 @@
         "Game.Shared",
         "Game.Library.Shared",
         "UniTask",
-        "Unity.Netcode.Runtime",
-        "Unity.Networking.Transport"
+        "Mirror",
+        "Mirror.Transports"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
