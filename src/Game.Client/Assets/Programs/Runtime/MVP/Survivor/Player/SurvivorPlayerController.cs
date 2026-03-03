@@ -183,9 +183,17 @@ namespace Game.MVP.Survivor.Player
                 _inputProvider = new ServerInputProvider(playerState);
             }
 #else
-            // Client: 入力送信のみ、物理処理スキップ
-            _inputProvider = new ClientInputProvider(_inputService, playerState);
+            // Client: 物理処理スキップ（サーバー権威）
             _skipPhysics = true;
+
+            if (playerState.isOwned)
+            {
+                // ローカルプレイヤー: 入力を ServerRpc で送信
+                _inputProvider = new ClientInputProvider(_inputService, playerState);
+            }
+            // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
+
+            // 全プレイヤーに View を追加（SyncVar からの Transform/Animator 補間）
             var view = gameObject.AddComponent<SurvivorPlayerView>();
             view.Initialize(this, playerState);
 #endif

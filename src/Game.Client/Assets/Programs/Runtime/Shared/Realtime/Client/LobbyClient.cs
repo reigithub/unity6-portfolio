@@ -30,7 +30,7 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, string> OnPlayerLeft;
         public event Action<string, string, string> OnMessageReceived;
         public event Action<string, bool> OnPlayerReadyChanged;
-        public event Action<string, string, int> OnGameStarting;
+        public event Action<string, string, int, string> OnGameStarting;
         public event Action<string> OnLobbyClosed;
         public event Action<string> OnDisconnected;
 
@@ -249,10 +249,10 @@ namespace Game.Shared.Realtime.Client
             OnPlayerReadyChanged?.Invoke(userId, isReady);
         }
 
-        void ILobbyHubReceiver.OnGameStarting(string matchId, string serverAddress, int serverPort)
+        void ILobbyHubReceiver.OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken)
         {
             Debug.Log($"[LobbyClient] Game starting: {matchId} @ {serverAddress}:{serverPort}");
-            OnGameStarting?.Invoke(matchId, serverAddress, serverPort);
+            OnGameStarting?.Invoke(matchId, serverAddress, serverPort, sessionToken);
         }
 
         private async Task MonitorDisconnectionAsync(CancellationToken cancellationToken)

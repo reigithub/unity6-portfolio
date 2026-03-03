@@ -24,6 +24,8 @@ namespace Game.Shared.Network.Survivor
 
         public static string MatchId => _lastMatchResult?.MatchId ?? "sp-local";
 
+        public static string SessionToken => _lastMatchResult?.SessionToken ?? string.Empty;
+
         /// <summary>
         /// SP モード: ローカルサーバー用の MatchResult を生成して HasMatchResult = true にする
         /// </summary>

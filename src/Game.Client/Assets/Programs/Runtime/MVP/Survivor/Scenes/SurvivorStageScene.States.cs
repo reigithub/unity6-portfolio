@@ -181,8 +181,9 @@ namespace Game.MVP.Survivor.Scenes
                 var address = SurvivorNetworkMatchConnector.ServerAddress;
                 var port = SurvivorNetworkMatchConnector.ServerPort;
                 var stageId = Context._saveService.CurrentSession.StageId;
-                Debug.Log($"[ReadyState] Connecting to NGO server: {address}:{port} (stageId={stageId})");
-                await Context._networkConnector.ConnectAsync(address, port, stageId);
+                var sessionToken = SurvivorNetworkMatchConnector.SessionToken;
+                Debug.Log($"[ReadyState] Connecting to Mirror server: {address}:{port} (stageId={stageId})");
+                await Context._networkConnector.ConnectAsync(address, port, stageId, sessionToken);
             }
 
             private async UniTask WaitForAllPlayersReadyAsync()
@@ -243,12 +244,21 @@ namespace Game.MVP.Survivor.Scenes
         private class PlayingState : StageStateBase
         {
             private bool _isFirstEntry = true;
+            private bool _disconnected;
 
             public override void Enter()
             {
                 Debug.Log("[PlayingState] Enter");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
+
+                _disconnected = false;
+
+                // Mirror 切断検知（MP モード）
+                if (Context._isClientOnly)
+                {
+                    NetworkClient.OnDisconnectedEvent += OnDisconnected;
+                }
 
                 // 初回（ReadyStateからの遷移）のみWaveを開始
                 // LevelUpStateやPausedStateからの復帰時はWaveを開始しない
@@ -268,6 +278,14 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                // 切断検知 → タイトルに戻る
+                if (_disconnected)
+                {
+                    _disconnected = false;
+                    Transition(StageEvent.QuitToTitle);
+                    return;
+                }
+
                 // クライアントモード: サーバー駆動でゲーム進行
                 if (Context._isClientOnly)
                 {
@@ -319,7 +337,17 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            public override void Exit() => Debug.Log("[PlayingState] Exit");
+            public override void Exit()
+            {
+                Debug.Log("[PlayingState] Exit");
+                NetworkClient.OnDisconnectedEvent -= OnDisconnected;
+            }
+
+            private void OnDisconnected()
+            {
+                Debug.LogWarning("[PlayingState] Mirror server disconnected");
+                _disconnected = true;
+            }
         }
 
         #endregion

@@ -103,27 +103,25 @@ public class MatchmakingProcessor : BackgroundService
     private async Task CreateMatchAsync(string gameMode, string[] playerIds)
     {
         var matchId = Guid.NewGuid().ToString("N");
-
-        // 各プレイヤーにセッショントークン発行
-        await Task.WhenAll(playerIds.Select(playerId =>
-            _tokenService.IssueTokenAsync(playerId, matchId)));
-
-        var matchResult = new MatchResult
-        {
-            MatchId = matchId,
-            PlayerIds = playerIds,
-            ServerAddress = _gameServerConfig.ServerAddress,
-            ServerPort = _gameServerConfig.ServerPort,
-        };
-
-        var json = JsonHelper.Serialize(matchResult);
         var subscriber = _redis.GetSubscriber();
 
-        // Per-user チャネルで通知（マッチしたプレイヤーのみ）
-        await Task.WhenAll(playerIds.Select(playerId =>
+        // プレイヤーごとに個別トークンを発行し、トークン入り MatchResult を配信
+        await Task.WhenAll(playerIds.Select(async playerId =>
         {
+            var token = await _tokenService.IssueTokenAsync(playerId, matchId);
+
+            var matchResult = new MatchResult
+            {
+                MatchId = matchId,
+                PlayerIds = playerIds,
+                ServerAddress = _gameServerConfig.ServerAddress,
+                ServerPort = _gameServerConfig.ServerPort,
+                SessionToken = token,
+            };
+
+            var json = JsonHelper.Serialize(matchResult);
             var channel = RedisChannel.Literal($"matchmaking:notify:{playerId}");
-            return subscriber.PublishAsync(channel, json);
+            await subscriber.PublishAsync(channel, json);
         }));
 
         _logger.LogInformation(

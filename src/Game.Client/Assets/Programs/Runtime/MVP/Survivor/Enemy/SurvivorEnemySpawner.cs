@@ -46,6 +46,9 @@ namespace Game.MVP.Survivor.Enemy
         [Header("References")]
         [SerializeField] private Transform _playerTransform;
 
+        // マルチプレイ: 複数プレイヤーの Transform リスト
+        private readonly List<Transform> _playerTransforms = new();
+
         // DI
         [Inject] private IAddressableAssetService _assetService;
         [Inject] private IMasterDataService _masterDataService;
@@ -81,6 +84,43 @@ namespace Game.MVP.Survivor.Enemy
         public void SetPlayer(Transform player)
         {
             _playerTransform = player;
+            if (!_playerTransforms.Contains(player))
+                _playerTransforms.Add(player);
+        }
+
+        public void AddPlayer(Transform player)
+        {
+            if (player != null && !_playerTransforms.Contains(player))
+            {
+                _playerTransforms.Add(player);
+                // SP 後方互換: _playerTransform が未設定なら設定
+                if (_playerTransform == null)
+                    _playerTransform = player;
+            }
+        }
+
+        public void RemovePlayer(Transform player)
+        {
+            _playerTransforms.Remove(player);
+            if (_playerTransform == player)
+                _playerTransform = _playerTransforms.Count > 0 ? _playerTransforms[0] : null;
+        }
+
+        /// <summary>
+        /// ランダムにプレイヤーの Transform を選択する。
+        /// </summary>
+        private Transform GetRandomPlayerTransform()
+        {
+            // null エントリを除外
+            for (int i = _playerTransforms.Count - 1; i >= 0; i--)
+            {
+                if (_playerTransforms[i] == null)
+                    _playerTransforms.RemoveAt(i);
+            }
+
+            if (_playerTransforms.Count > 0)
+                return _playerTransforms[Random.Range(0, _playerTransforms.Count)];
+            return _playerTransform;
         }
 
         public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
@@ -194,9 +234,9 @@ namespace Game.MVP.Survivor.Enemy
                 return;
             }
 
-            if (_playerTransform == null)
+            if (GetRandomPlayerTransform() == null)
             {
-                Debug.LogWarning("[SurvivorEnemySpawner] Update: _playerTransform is null");
+                Debug.LogWarning("[SurvivorEnemySpawner] Update: No player transform available");
                 return;
             }
 
@@ -294,10 +334,11 @@ namespace Game.MVP.Survivor.Enemy
                 enemy.gameObject.SetActive(true);
                 Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
 
-                // マスターデータから初期化
+                // マスターデータから初期化（MP: ランダムプレイヤーをターゲット）
+                var targetPlayer = GetRandomPlayerTransform();
                 enemy.Initialize(
                     enemyMaster,
-                    _playerTransform,
+                    targetPlayer,
                     _currentSpawnInfo.EnemySpeedMultiplier,
                     _currentSpawnInfo.EnemyHealthMultiplier,
                     _currentSpawnInfo.EnemyDamageMultiplier,
@@ -412,7 +453,9 @@ namespace Game.MVP.Survivor.Enemy
                 Mathf.Sin(angle) * distance
             );
 
-            return _playerTransform.position + offset;
+            // MP: ランダムなプレイヤーの周囲にスポーン
+            var target = GetRandomPlayerTransform();
+            return (target != null ? target.position : Vector3.zero) + offset;
         }
 
         /// <summary>

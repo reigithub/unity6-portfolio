@@ -1,7 +1,9 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
+using Game.Library.Shared.Realtime.Hubs;
 using Game.MVP.Core.Scenes;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
 using R3;
 using UnityEngine;
@@ -116,9 +118,9 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.UpdatePlayerReady(userId, isReady);
         }
 
-        private void HandleGameStarting(string matchId, string serverAddress, int port)
+        private void HandleGameStarting(string matchId, string serverAddress, int port, string sessionToken)
         {
-            OnGameStarting(matchId, serverAddress, port).Forget();
+            OnGameStarting(matchId, serverAddress, port, sessionToken).Forget();
         }
 
         private void HandleLobbyClosed(string reason)
@@ -175,11 +177,21 @@ namespace Game.MVP.Survivor.Scenes
             await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
 
-        private async UniTaskVoid OnGameStarting(string matchId, string serverAddress, int port)
+        private async UniTaskVoid OnGameStarting(string matchId, string serverAddress, int port, string sessionToken)
         {
             Debug.Log($"[SurvivorLobbyRoomScene] Game starting! MatchId: {matchId}, Server: {serverAddress}:{port}");
             SceneComponent.SetInteractables(false);
             SceneComponent.ShowNotification("Game starting...");
+
+            // MatchResult にトークンを含めて保存
+            SurvivorNetworkMatchConnector.StoreMatchResult(new MatchResult
+            {
+                MatchId = matchId,
+                PlayerIds = System.Array.Empty<string>(),
+                ServerAddress = serverAddress,
+                ServerPort = port,
+                SessionToken = sessionToken,
+            });
 
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }

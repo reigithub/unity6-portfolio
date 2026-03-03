@@ -295,17 +295,9 @@ namespace Game.MVP.Survivor.Scenes
             var gm = SurvivorNetworkGameManager.Instance;
             if (gm == null) return;
 
-            _damageReceivedSub.Subscribe(s =>
-            {
-                var userId = new FixedString64Bytes("local");
-                gm.NotifyPlayerDamagedClientRpc(userId, s.Damage, s.RemainingHp);
-            }).AddTo(Disposables);
-
-            _playerDiedSub.Subscribe(_ =>
-            {
-                var userId = new FixedString64Bytes("local");
-                gm.NotifyPlayerDiedClientRpc(userId);
-            }).AddTo(Disposables);
+            // ダメージ・死亡はサーバーの SurvivorPlayerController.States が
+            // 直接 GameManager.NotifyPlayerDamagedClientRpc / NotifyPlayerDiedClientRpc を呼ぶ。
+            // userId 付きで送信するため、ブリッジ不要。
 
             _waveStartedSub.Subscribe(s =>
             {

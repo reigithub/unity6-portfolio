@@ -1,3 +1,6 @@
+using System;
+using System.Text;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
@@ -25,12 +28,23 @@ namespace Game.Shared.Netcode.Server
             // スクリーンスリープ無効化
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
-            // --- Mirror Server 起動 ---
+            // --- コマンドライン引数解析 ---
             ushort port = ServerNetworkManager.ParsePort();
-            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}...");
+            string secret = ParseSecret();
+            int playerCount = ParsePlayerCount();
 
+            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}, players={playerCount}...");
+
+            // HMAC 共有シークレット設定（MP モード）
+            if (!string.IsNullOrEmpty(secret))
+            {
+                SurvivorNetworkAuthenticator.SharedSecret = Encoding.UTF8.GetBytes(secret);
+                Debug.Log("[ServerBootstrap] SharedSecret configured for HMAC token verification");
+            }
+
+            // --- Mirror Server 起動 ---
             var serverGo = new GameObject("[ServerNetworkManager]");
-            Object.DontDestroyOnLoad(serverGo);
+            UnityEngine.Object.DontDestroyOnLoad(serverGo);
 
             // インフラ起動（NM + Transport 作成 → 次フレームで StartServer）
             var serverNm = serverGo.AddComponent<ServerNetworkManager>();
@@ -38,7 +52,35 @@ namespace Game.Shared.Netcode.Server
 
             // Survivor セッション開始（クライアント接続受け入れ準備）
             var session = serverGo.AddComponent<SurvivorServerSession>();
-            session.StartSession();
+            session.StartSession(playerCount);
+        }
+
+        /// <summary>
+        /// コマンドライン引数から --secret を解析。
+        /// </summary>
+        private static string ParseSecret()
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] == "--secret")
+                    return args[i + 1];
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// コマンドライン引数から --players を解析。デフォルト 1。
+        /// </summary>
+        private static int ParsePlayerCount()
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] == "--players" && int.TryParse(args[i + 1], out int count))
+                    return count;
+            }
+            return 1;
         }
     }
 }

@@ -104,6 +104,13 @@ namespace Game.Shared.Network.Survivor
                     break;
                 }
             }
+            else
+            {
+                // リモートプレイヤー: 簡易ビジュアル + 補間表示
+                var view = gameObject.AddComponent<SurvivorRemotePlayerView>();
+                view.Initialize(this);
+                Debug.Log($"[NetworkSurvivorPlayerState] Remote player view created for {PlayerUserId}");
+            }
             Debug.Log($"[NetworkSurvivorPlayerState] Spawned on client (isOwned={isOwned})");
         }
 

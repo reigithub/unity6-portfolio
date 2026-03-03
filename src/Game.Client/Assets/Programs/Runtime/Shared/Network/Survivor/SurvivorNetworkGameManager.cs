@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Shared.Survivor;
 using MessagePipe;
 using Mirror;
@@ -63,7 +64,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
         {
-            if (!isServer)
+            if (!isServer && IsLocalPlayer(userId))
             {
                 _playerDamagedPub?.Publish(
                     new SurvivorSignals.Player.DamageReceived(damage, currentHp));
@@ -73,7 +74,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
         {
-            if (!isServer)
+            if (!isServer && IsLocalPlayer(userId))
             {
                 _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
             }
@@ -212,6 +213,63 @@ namespace Game.Shared.Network.Survivor
             {
                 _playerDisconnectedPub?.Publish(
                     new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
+            }
+        }
+
+        // --- ローカルプレイヤー判定（クライアント側フィルタリング用） ---
+
+        /// <summary>
+        /// ClientRpc 受信時に、対象 userId がローカルプレイヤーかどうかを判定する。
+        /// SP モード (userId 空) はフォールバックで常に true。
+        /// </summary>
+        private bool IsLocalPlayer(FixedString64Bytes userId)
+        {
+            // SP モード: userId が空 → 常にローカル
+            var userIdStr = userId.ToString();
+            if (string.IsNullOrEmpty(userIdStr)) return true;
+
+            var localPlayer = NetworkClient.localPlayer;
+            if (localPlayer == null) return true;
+
+            var state = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
+            if (state == null) return true;
+
+            return state.PlayerUserId == userId;
+        }
+
+        // --- サーバー側: マルチプレイ全滅判定 ---
+
+        private readonly HashSet<string> _deadPlayerIds = new();
+        private int _totalPlayerCount;
+
+        /// <summary>
+        /// サーバー側: 期待プレイヤー数を設定する。SurvivorServerSession から呼ばれる。
+        /// </summary>
+        [Server]
+        public void SetTotalPlayerCount(int count)
+        {
+            _totalPlayerCount = count;
+            _deadPlayerIds.Clear();
+        }
+
+        /// <summary>
+        /// サーバー側: プレイヤー死亡を記録し、全滅なら GameOver を通知。
+        /// </summary>
+        [Server]
+        public void OnPlayerDied(string userId)
+        {
+            _deadPlayerIds.Add(userId);
+            Debug.Log($"[NetworkSurvivorGameManager] Player died: {userId} ({_deadPlayerIds.Count}/{_totalPlayerCount})");
+
+            if (_totalPlayerCount > 0 && _deadPlayerIds.Count >= _totalPlayerCount)
+            {
+                Debug.Log("[NetworkSurvivorGameManager] All players dead, sending GameOver");
+                var result = new SurvivorNetworkGameResult
+                {
+                    IsVictory = false,
+                    ClearTime = Time.time
+                };
+                NotifyGameEndedClientRpc(result);
             }
         }
 

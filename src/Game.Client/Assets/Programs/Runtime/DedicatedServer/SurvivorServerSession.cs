@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Network.Survivor;
 using Mirror;
@@ -18,6 +19,11 @@ namespace Game.Shared.Netcode.Server
         private bool _stageLoaded;
         private bool _sessionStarted;
 
+        private int _expectedPlayerCount = 1;
+        private int _connectedPlayerCount;
+        private readonly HashSet<NetworkConnectionToClient> _authenticatedConnections = new();
+        private readonly Dictionary<NetworkConnectionToClient, string> _connectionUserIds = new();
+
         private GameObject _gameManagerInstance;
         private GameObject _enemyStateInstance;
         private GameObject _itemSyncInstance;
@@ -26,13 +32,17 @@ namespace Game.Shared.Netcode.Server
 
         /// <summary>
         /// セッション開始。Mirror のコールバックを登録する。
-        /// インゲーム開始直前に呼ばれる。
         /// </summary>
-        public void StartSession()
+        public void StartSession(int expectedPlayerCount = 1)
         {
+            _expectedPlayerCount = expectedPlayerCount;
+            _connectedPlayerCount = 0;
+            _authenticatedConnections.Clear();
+            _connectionUserIds.Clear();
+
             SurvivorNetworkAuthenticator.OnPlayerAuthenticated += OnClientAuthenticated;
             NetworkServer.OnDisconnectedEvent += OnClientDisconnected;
-            Debug.Log("[SurvivorServerSession] Session started");
+            Debug.Log($"[SurvivorServerSession] Session started, expecting {_expectedPlayerCount} player(s)");
         }
 
         /// <summary>
@@ -52,13 +62,20 @@ namespace Game.Shared.Netcode.Server
 
             _stageLoaded = false;
             _sessionStarted = false;
+            _connectedPlayerCount = 0;
+            _authenticatedConnections.Clear();
+            _connectionUserIds.Clear();
 
             Debug.Log("[SurvivorServerSession] Session stopped");
         }
 
-        private void OnClientAuthenticated(NetworkConnectionToClient conn, int stageId, string token)
+        private void OnClientAuthenticated(NetworkConnectionToClient conn, int stageId, string userId)
         {
-            Debug.Log($"[SurvivorServerSession] Client authenticated: conn={conn.connectionId}, stageId={stageId}");
+            Debug.Log($"[SurvivorServerSession] Client authenticated: conn={conn.connectionId}, stageId={stageId}, userId={userId}");
+
+            _authenticatedConnections.Add(conn);
+            _connectionUserIds[conn] = userId;
+            _connectedPlayerCount++;
 
             // stageId 設定（初回で確定）
             if (!_stageLoaded)
@@ -73,7 +90,7 @@ namespace Game.Shared.Netcode.Server
                                  $"expected={_stageId}, received={stageId}");
             }
 
-            // セッション開始（初回のみ）
+            // セッション開始（初回のみ）: シングルトンスポーン
             if (!_sessionStarted && _stageLoaded)
             {
                 _sessionStarted = true;
@@ -81,13 +98,47 @@ namespace Game.Shared.Netcode.Server
                 Debug.Log("[SurvivorServerSession] Singletons spawned");
             }
 
+            // プレイヤーステートスポーン（毎接続）
             SpawnPlayerState(conn);
-            NotifyPlayersReadyAsync().Forget();
+
+            // 全員揃ったらゲーム開始
+            if (_connectedPlayerCount >= _expectedPlayerCount)
+            {
+                NotifyPlayersReadyAsync().Forget();
+            }
+            else
+            {
+                Debug.Log($"[SurvivorServerSession] Waiting for players: {_connectedPlayerCount}/{_expectedPlayerCount}");
+            }
         }
 
         private void OnClientDisconnected(NetworkConnectionToClient conn)
         {
-            Debug.Log($"[SurvivorServerSession] Client disconnected: {conn.connectionId}");
+            if (!_authenticatedConnections.Remove(conn))
+            {
+                Debug.Log($"[SurvivorServerSession] Unauthenticated client disconnected: {conn.connectionId}");
+                return;
+            }
+
+            _connectionUserIds.TryGetValue(conn, out var userId);
+            _connectionUserIds.Remove(conn);
+            _connectedPlayerCount--;
+
+            Debug.Log($"[SurvivorServerSession] Client disconnected: conn={conn.connectionId}, userId={userId}, remaining={_connectedPlayerCount}");
+
+            // 残りプレイヤーに切断を通知
+            var gm = SurvivorNetworkGameManager.Instance;
+            if (gm != null && !string.IsNullOrEmpty(userId))
+            {
+                gm.NotifyPlayerDisconnectedClientRpc(userId, "");
+            }
+
+            // 全員切断 → セッション終了
+            if (_connectedPlayerCount <= 0 && _sessionStarted)
+            {
+                Debug.Log("[SurvivorServerSession] All players disconnected, stopping session");
+                StopSession();
+            }
         }
 
         private void SpawnSessionSingletons()
@@ -105,8 +156,16 @@ namespace Game.Shared.Netcode.Server
                 if (prefab.GetComponent<SurvivorNetworkPlayerState>() != null)
                 {
                     var instance = Instantiate(prefab);
+
+                    // PlayerUserId を設定（SyncVar でクライアントに同期）
+                    var playerState = instance.GetComponent<SurvivorNetworkPlayerState>();
+                    if (_connectionUserIds.TryGetValue(conn, out var userId))
+                    {
+                        playerState.PlayerUserId = userId;
+                    }
+
                     NetworkServer.AddPlayerForConnection(conn, instance);
-                    Debug.Log($"[SurvivorServerSession] PlayerState spawned for conn {conn.connectionId}");
+                    Debug.Log($"[SurvivorServerSession] PlayerState spawned for conn {conn.connectionId}, userId={userId}");
                     return;
                 }
             }
@@ -137,6 +196,7 @@ namespace Game.Shared.Netcode.Server
             var gm = SurvivorNetworkGameManager.Instance;
             if (gm != null)
             {
+                gm.SetTotalPlayerCount(_expectedPlayerCount);
                 gm.NotifyAllPlayersReadyClientRpc();
                 gm.NotifyGameStartedClientRpc(Time.time);
                 Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");

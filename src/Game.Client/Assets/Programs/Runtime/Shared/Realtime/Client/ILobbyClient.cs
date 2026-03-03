@@ -95,9 +95,9 @@ namespace Game.Shared.Realtime.Client
         event Action<string, bool> OnPlayerReadyChanged;
 
         /// <summary>
-        /// ゲーム開始イベント
+        /// ゲーム開始イベント (matchId, serverAddress, serverPort, sessionToken)
         /// </summary>
-        event Action<string, string, int> OnGameStarting;
+        event Action<string, string, int, string> OnGameStarting;
 
         /// <summary>
         /// ロビー閉鎖イベント (reason)

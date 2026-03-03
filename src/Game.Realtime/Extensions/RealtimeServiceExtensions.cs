@@ -38,6 +38,10 @@ public static class RealtimeServiceExtensions
         services.Configure<GameServerConfiguration>(
             configuration.GetSection("GameServer"));
 
+        // Session Token Settings (HMAC 署名用シークレット)
+        services.Configure<SessionTokenSettings>(
+            configuration.GetSection("SessionToken"));
+
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();
 

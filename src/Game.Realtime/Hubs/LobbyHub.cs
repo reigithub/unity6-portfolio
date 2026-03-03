@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Threading;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
@@ -20,6 +21,9 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private readonly IMatchSessionTokenService _tokenService;
     private readonly GameServerConfiguration _gameServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
+
+    // lobby ごとの userId → ConnectionId マッピング（Hub はリクエストごとにインスタンス生成のため static）
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Guid>> LobbyConnections = new();
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -55,6 +59,10 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         _currentGroup = await Group.AddAsync(lobbyId);
 
+        // userId → ConnectionId マッピングを記録
+        var lobbyMap = LobbyConnections.GetOrAdd(lobbyId, _ => new ConcurrentDictionary<string, Guid>());
+        lobbyMap[_userId] = ConnectionId;
+
         _logger.LogInformation(
             "Player {PlayerName} ({UserId}) connected to lobby {LobbyId}",
             playerName, _userId, lobbyId);
@@ -87,6 +95,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
             if (!string.IsNullOrEmpty(_lobbyId))
             {
+                if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
+                    lobbyMap.TryRemove(_userId, out _);
                 await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
             }
         }
@@ -139,12 +149,18 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         var matchId = Guid.NewGuid().ToString("N");
 
+        // プレイヤーごとに個別トークンを発行して送信
+        LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
         foreach (var player in players)
         {
-            await _tokenService.IssueTokenAsync(player.UserId, matchId);
-        }
+            var token = await _tokenService.IssueTokenAsync(player.UserId, matchId);
 
-        _currentGroup.All.OnGameStarting(matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort);
+            if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
+            {
+                _currentGroup.Only(new[] { connId }).OnGameStarting(
+                    matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort, token);
+            }
+        }
 
         _logger.LogInformation(
             "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
@@ -178,6 +194,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         if (!string.IsNullOrEmpty(_lobbyId))
         {
+            if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
+                lobbyMap.TryRemove(_userId, out _);
             await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
         }
 

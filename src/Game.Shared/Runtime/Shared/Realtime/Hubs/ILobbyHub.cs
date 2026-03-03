@@ -36,7 +36,7 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// <summary>
         /// ゲーム開始通知
         /// </summary>
-        void OnGameStarting(string matchId, string serverAddress, int serverPort);
+        void OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken);
     }
 
     /// <summary>

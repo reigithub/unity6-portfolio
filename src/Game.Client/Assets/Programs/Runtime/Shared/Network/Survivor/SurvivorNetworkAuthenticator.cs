@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using Game.Library.Shared.RequestSigning;
 using Mirror;
 using UnityEngine;
 
@@ -16,7 +18,9 @@ namespace Game.Shared.Network.Survivor
 
     /// <summary>
     /// Mirror 接続認証。クライアントから MemoryPack ペイロードを送信し、
-    /// サーバーで検証する。ConnectionApprovalCallback の Mirror 版。
+    /// サーバーで HMAC トークン検証を行う。
+    /// SP モード: SharedSecret 未設定 + token 空 → 無条件承認。
+    /// MP モード: HMAC 署名検証 → 承認/拒否。
     /// </summary>
     public class SurvivorNetworkAuthenticator : NetworkAuthenticator
     {
@@ -25,6 +29,9 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>サーバー側: 認証成功時に発火。SurvivorServerSession が購読する。</summary>
         public static event Action<NetworkConnectionToClient, int, string> OnPlayerAuthenticated;
+
+        /// <summary>Dedicated Server 起動時に Bootstrap が設定する共有シークレット。</summary>
+        public static byte[] SharedSecret { get; set; }
 
         public override void OnStartServer()
         {
@@ -67,10 +74,39 @@ namespace Game.Shared.Network.Survivor
             Debug.Log($"[SurvivorAuthenticator] Auth request: conn={conn.connectionId}, " +
                       $"stageId={stageId}, payload={msg.Payload?.Length ?? 0} bytes");
 
-            // Phase 2: 常に承認（Phase 3 で token 検証追加予定）
+            // SP モード: token が空 & SharedSecret 未設定 → 無条件承認
+            if (string.IsNullOrEmpty(token) && SharedSecret == null)
+            {
+                Debug.Log($"[SurvivorAuthenticator] SP mode: auto-approve conn={conn.connectionId}");
+                conn.Send(new AuthResponseMessage { Approved = true });
+                ServerAccept(conn);
+                OnPlayerAuthenticated?.Invoke(conn, stageId, token);
+                return;
+            }
+
+            // MP モード: SharedSecret が未設定だがトークンが送られてきた
+            if (SharedSecret == null)
+            {
+                Debug.LogError($"[SurvivorAuthenticator] SharedSecret not set but token provided. Rejecting conn={conn.connectionId}");
+                conn.Send(new AuthResponseMessage { Approved = false });
+                ServerReject(conn);
+                return;
+            }
+
+            // HMAC トークン検証
+            var parsed = SessionTokenHelper.ParseAndVerify(token, SharedSecret);
+            if (parsed == null)
+            {
+                Debug.LogWarning($"[SurvivorAuthenticator] Token verification failed for conn={conn.connectionId}");
+                conn.Send(new AuthResponseMessage { Approved = false });
+                ServerReject(conn);
+                return;
+            }
+
+            Debug.Log($"[SurvivorAuthenticator] Verified: user={parsed.UserId}, match={parsed.MatchId}");
             conn.Send(new AuthResponseMessage { Approved = true });
             ServerAccept(conn);
-            OnPlayerAuthenticated?.Invoke(conn, stageId, token);
+            OnPlayerAuthenticated?.Invoke(conn, stageId, parsed.UserId);
         }
 
         private void OnAuthResponse(AuthResponseMessage msg)
