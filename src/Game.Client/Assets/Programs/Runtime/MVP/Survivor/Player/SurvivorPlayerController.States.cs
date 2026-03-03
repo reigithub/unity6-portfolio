@@ -1,4 +1,5 @@
 using Game.Library.Shared;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Survivor;
 using UnityEngine;
 

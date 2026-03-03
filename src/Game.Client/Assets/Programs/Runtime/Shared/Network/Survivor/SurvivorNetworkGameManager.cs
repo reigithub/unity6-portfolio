@@ -10,8 +10,14 @@ namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// ゲーム全体のイベント配信 NetworkBehaviour（シングルトン）。
-    /// IGameStageHubReceiver の 19 コールバックに対応する ClientRpc を定義。
-    /// ClientRpc は MessagePipe の IPublisher 経由でシグナルを配信する。
+    /// サーバー側で発生したゲームイベントを ClientRpc 経由で全クライアントへブロードキャストし、
+    /// クライアント側では MessagePipe の IPublisher 経由で対応するシグナルを配信する。
+    /// <para>
+    /// <b>呼び出し元:</b><br/>
+    /// - <see cref="Game.Shared.Netcode.Server.SurvivorServerSession"/> (セッション管理)<br/>
+    /// - SurvivorPlayerController.States (ダメージ・死亡)<br/>
+    /// - SurvivorStageScene (ウェーブ進行)
+    /// </para>
     /// </summary>
     public class SurvivorNetworkGameManager : NetworkBehaviour
     {
@@ -37,8 +43,14 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
 
-        // --- セッション ---
+        // =====================================================================
+        //  セッション
+        // =====================================================================
 
+        /// <summary>
+        /// 全プレイヤーの接続が完了したことを通知する。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyAllPlayersReadyClientRpc()
         {
@@ -49,6 +61,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// ゲーム開始をクライアントに通知する。サーバー時刻を基準に同期を取る。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyGameStartedClientRpc(float serverTime)
         {
@@ -59,8 +75,15 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- プレイヤーイベント ---
+        // =====================================================================
+        //  プレイヤーイベント
+        // =====================================================================
 
+        /// <summary>
+        /// プレイヤーがダメージを受けたことを通知する。
+        /// クライアント側では <see cref="IsLocalPlayer"/> でフィルタし、自分のダメージのみ StageModel へ反映する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.TryProcessDamage (サーバー側 #if UNITY_SERVER)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
         {
@@ -71,6 +94,11 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// プレイヤーが死亡したことを通知する。
+        /// クライアント側では <see cref="IsLocalPlayer"/> でフィルタし、自分の死亡のみ GameOver 遷移に反映する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.DeadState.Enter (サーバー側 #if UNITY_SERVER)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
         {
@@ -80,6 +108,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// プレイヤーがアイテムを取得したことを通知する。
+        /// <para><b>未使用:</b> アイテムシステムの MP 対応時に、サーバー側のアイテム取得ロジックから呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
         {
@@ -90,6 +122,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// プレイヤーがレベルアップし、武器アップグレード選択肢を提示することを通知する。
+        /// <para><b>未使用:</b> レベルアップシステムの MP 対応時に、サーバー側の経験値計算から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
         {
@@ -100,6 +136,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// プレイヤーの武器が変更（新規取得またはレベルアップ）されたことを通知する。
+        /// <para><b>未使用:</b> 武器システムの MP 対応時に、サーバー側の武器変更処理から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyWeaponChangedClientRpc(FixedString64Bytes userId, int weaponId, int level, bool isNew)
         {
@@ -110,8 +150,14 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- 敵・スコア ---
+        // =====================================================================
+        //  敵・スコア
+        // =====================================================================
 
+        /// <summary>
+        /// 敵が撃破されたことを通知する。キル数・スコアの同期に使用。
+        /// <para><b>未使用:</b> スコアシステムの MP 対応時に、サーバー側の敵死亡処理から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyEnemyKilledClientRpc(FixedString64Bytes killerUserId, int enemyId, int scoreGained, int totalKills)
         {
@@ -122,8 +168,14 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- ウェーブ ---
+        // =====================================================================
+        //  ウェーブ
+        // =====================================================================
 
+        /// <summary>
+        /// ウェーブクリアを通知する。次ウェーブ番号とクリアスコアを含む。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.Completed シグナルブリッジ)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
@@ -134,6 +186,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// 新ウェーブの開始を通知する。目標キル数と敵総数を含む。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.Started シグナルブリッジ)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
@@ -144,6 +200,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// 全ウェーブクリアを通知する。ゲームクリア判定に使用。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.AllCleared シグナルブリッジ)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyAllWavesClearedClientRpc()
         {
@@ -153,6 +213,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// 制限時間超過を通知する。
+        /// <para><b>未使用:</b> タイムアップ処理の MP 対応時に、サーバー側のタイマーから呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyTimeUpClientRpc()
         {
@@ -162,8 +226,16 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- ゲーム終了 ---
+        // =====================================================================
+        //  ゲーム終了
+        // =====================================================================
 
+        /// <summary>
+        /// ゲーム終了を通知する。勝敗結果とクリアタイムを含む。
+        /// <para><b>呼び出し元:</b>
+        /// <see cref="OnPlayerDied"/> (全滅時) /
+        /// SurvivorNetworkPlayerState (勝利時)</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
@@ -173,8 +245,14 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- ポーズ ---
+        // =====================================================================
+        //  ポーズ
+        // =====================================================================
 
+        /// <summary>
+        /// ゲームポーズを通知する。リクエストしたプレイヤーの userId を含む。
+        /// <para><b>未使用:</b> ポーズシステムの MP 対応時に、サーバー側の RequestPauseServerRpc から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyGamePausedClientRpc(FixedString64Bytes requestedByUserId)
         {
@@ -185,6 +263,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// ゲーム再開を通知する。
+        /// <para><b>未使用:</b> ポーズシステムの MP 対応時に、サーバー側の RequestResumeServerRpc から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyGameResumedClientRpc()
         {
@@ -194,8 +276,14 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- 接続 ---
+        // =====================================================================
+        //  接続
+        // =====================================================================
 
+        /// <summary>
+        /// 新しいプレイヤーが接続したことを他クライアントに通知する。
+        /// <para><b>未使用:</b> 接続通知 UI の実装時に、SurvivorServerSession.OnClientAuthenticated から呼び出す予定。</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyPlayerConnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
@@ -206,6 +294,10 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        /// <summary>
+        /// プレイヤーが切断したことを残りクライアントに通知する。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.OnClientDisconnected</para>
+        /// </summary>
         [ClientRpc]
         public void NotifyPlayerDisconnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
@@ -216,15 +308,17 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- ローカルプレイヤー判定（クライアント側フィルタリング用） ---
+        // =====================================================================
+        //  ローカルプレイヤー判定（クライアント側フィルタリング用）
+        // =====================================================================
 
         /// <summary>
         /// ClientRpc 受信時に、対象 userId がローカルプレイヤーかどうかを判定する。
-        /// SP モード (userId 空) はフォールバックで常に true。
+        /// MP ではダメージ・死亡イベントを自プレイヤー分のみ StageModel に反映するために使用。
+        /// SP モード (userId 空) はフォールバックで常に true を返す。
         /// </summary>
         private bool IsLocalPlayer(FixedString64Bytes userId)
         {
-            // SP モード: userId が空 → 常にローカル
             var userIdStr = userId.ToString();
             if (string.IsNullOrEmpty(userIdStr)) return true;
 
@@ -237,13 +331,16 @@ namespace Game.Shared.Network.Survivor
             return state.PlayerUserId == userId;
         }
 
-        // --- サーバー側: マルチプレイ全滅判定 ---
+        // =====================================================================
+        //  サーバー側: マルチプレイ全滅判定
+        // =====================================================================
 
         private readonly HashSet<string> _deadPlayerIds = new();
         private int _totalPlayerCount;
 
         /// <summary>
-        /// サーバー側: 期待プレイヤー数を設定する。SurvivorServerSession から呼ばれる。
+        /// 期待プレイヤー数を設定する。全滅判定の分母として使用。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
         /// </summary>
         [Server]
         public void SetTotalPlayerCount(int count)
@@ -253,7 +350,9 @@ namespace Game.Shared.Network.Survivor
         }
 
         /// <summary>
-        /// サーバー側: プレイヤー死亡を記録し、全滅なら GameOver を通知。
+        /// プレイヤー死亡を記録する。全プレイヤーが死亡した場合、
+        /// <see cref="NotifyGameEndedClientRpc"/> で GameOver を全クライアントに通知する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.DeadState.Enter (サーバー側 #if UNITY_SERVER)</para>
         /// </summary>
         [Server]
         public void OnPlayerDied(string userId)
@@ -273,7 +372,9 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        // --- ライフサイクル ---
+        // =====================================================================
+        //  ライフサイクル
+        // =====================================================================
 
         public override void OnStartServer()
         {

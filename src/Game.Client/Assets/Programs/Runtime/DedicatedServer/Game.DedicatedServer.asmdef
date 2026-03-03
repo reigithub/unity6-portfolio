@@ -6,7 +6,8 @@
         "Game.Library.Shared",
         "UniTask",
         "Mirror",
-        "Mirror.Transports"
+        "Mirror.Transports",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -60,10 +60,12 @@ namespace Game.MVP.Survivor.Player
             // プレイヤー初期化（VContainerからのInjectは親スコープから行われる）
             playerController.Initialize(levelMaster);
 
-            // Presenter初期化（ビジュアル駆動）
+#if !UNITY_SERVER
+            // Presenter初期化（ビジュアル駆動）— サーバーでは不要
             var playerPresenter = playerObj.AddComponent<SurvivorPlayerPresenter>();
             var diedSub = resolver.Resolve<ISubscriber<SurvivorSignals.Player.Died>>();
             playerPresenter.Initialize(playerController, diedSub);
+#endif
 
             Debug.Log($"[SurvivorPlayerStart] Player spawned: {playerMaster.Name} at {transform.position}");
 

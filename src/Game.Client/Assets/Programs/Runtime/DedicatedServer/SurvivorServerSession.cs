@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Network.Survivor;
 using Mirror;
+using Unity.Collections;
 using UnityEngine;
 
 namespace Game.Shared.Netcode.Server
@@ -130,7 +131,7 @@ namespace Game.Shared.Netcode.Server
             var gm = SurvivorNetworkGameManager.Instance;
             if (gm != null && !string.IsNullOrEmpty(userId))
             {
-                gm.NotifyPlayerDisconnectedClientRpc(userId, "");
+                gm.NotifyPlayerDisconnectedClientRpc(new FixedString64Bytes(userId), new FixedString64Bytes(""));
             }
 
             // 全員切断 → セッション終了
@@ -161,7 +162,7 @@ namespace Game.Shared.Netcode.Server
                     var playerState = instance.GetComponent<SurvivorNetworkPlayerState>();
                     if (_connectionUserIds.TryGetValue(conn, out var userId))
                     {
-                        playerState.PlayerUserId = userId;
+                        playerState.PlayerUserId = new FixedString64Bytes(userId);
                     }
 
                     NetworkServer.AddPlayerForConnection(conn, instance);
