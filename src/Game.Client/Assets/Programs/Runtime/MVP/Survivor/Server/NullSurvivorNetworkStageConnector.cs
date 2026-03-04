@@ -16,6 +16,16 @@ namespace Game.MVP.Survivor.Server
             return UniTask.CompletedTask;
         }
 
+        public UniTask StartHostAsync(int stageId)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask StartServerAsync(int stageId)
+        {
+            return UniTask.CompletedTask;
+        }
+
         public void Disconnect() { }
 
         public void Dispose() { }

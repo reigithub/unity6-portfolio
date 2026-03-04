@@ -107,12 +107,7 @@ namespace Game.MVP.Survivor.Scenes
             BuildStateMachine();
             SubscribeEvents();
             SubscribeSignals();
-#if UNITY_SERVER
-            SubscribeNetworkSignals();
-            var networkBridge = new SurvivorNetworkBridge();
-            SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
-            SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
-#endif
+            SetupServerNetworkingIfActive();
             BindModelToView();
 
             _stageSceneView.Initialize(_stageModel, _waveManager.TotalWaves);
@@ -285,6 +280,21 @@ namespace Game.MVP.Survivor.Scenes
                 _stageModel.AddKill();
                 _stageSceneView.UpdateKills(s.TotalKills);
             }).AddTo(Disposables);
+        }
+
+        /// <summary>
+        /// サーバーネットワーキングのセットアップ（ランタイム判定）。
+        /// Dedicated Server: Startup 時に NetworkServer.active == true → 実行。
+        /// Host mode: Startup 時は false → スキップ。ReadyState の StartHostAsync 後に再呼び出し。
+        /// </summary>
+        internal void SetupServerNetworkingIfActive()
+        {
+            if (!NetworkModeHelper.IsNetworkServer) return;
+
+            SubscribeNetworkSignals();
+            var networkBridge = new SurvivorNetworkBridge();
+            SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
+            SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
         }
 
         /// <summary>

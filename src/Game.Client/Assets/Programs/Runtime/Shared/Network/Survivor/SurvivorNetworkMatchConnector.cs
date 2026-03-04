@@ -11,8 +11,23 @@ namespace Game.Shared.Network.Survivor
     {
         private static MatchResult _lastMatchResult;
 
+        /// <summary>
+        /// 期待プレイヤー数。SP=1、MP=ロビー設定値。
+        /// タイトル画面のモード選択時またはロビー開始時にセットされる。
+        /// </summary>
+        public static int ExpectedPlayerCount { get; private set; } = 1;
+
+        public static void SetExpectedPlayerCount(int count)
+        {
+            ExpectedPlayerCount = count;
+        }
+
         public static void StoreMatchResult(MatchResult result) => _lastMatchResult = result;
-        public static void Clear() => _lastMatchResult = null;
+        public static void Clear()
+        {
+            _lastMatchResult = null;
+            ExpectedPlayerCount = 1;
+        }
 
         public static bool HasMatchResult => _lastMatchResult != null;
 

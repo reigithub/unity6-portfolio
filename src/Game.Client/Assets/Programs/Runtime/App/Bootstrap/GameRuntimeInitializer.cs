@@ -10,7 +10,7 @@ namespace Game.App.Bootstrap
         private static void Initialize()
         {
 #if UNITY_SERVER
-            // Dedicated Server では DedicatedServerBootstrap が初期化を担当
+            // Dedicated Server では UnityServerBootstrap が初期化を担当
             // クライアント専用の UI/シーンロード/gRPC クライアント初期化をスキップ
             return;
 #endif

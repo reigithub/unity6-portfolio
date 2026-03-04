@@ -11,6 +11,8 @@ namespace Game.Shared.Network.Survivor
     {
         bool IsConnected { get; }
         UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "");
+        UniTask StartHostAsync(int stageId);
+        UniTask StartServerAsync(int stageId);
         void Disconnect();
     }
 }

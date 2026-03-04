@@ -206,6 +206,8 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(
+                result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1);
             SurvivorNetworkMatchConnector.StoreMatchResult(result);
             SceneComponent.SetInteractables(false);
 

@@ -5,6 +5,7 @@ using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -172,30 +173,39 @@ namespace Game.MVP.Survivor.Player
         {
             _networkPlayerState = playerState;
 
-#if UNITY_SERVER
-            // Server: 状態同期を有効化
-            _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
-
-            // リモートプレイヤーは ServerInputProvider（ローカルプレイヤーは Initialize で設定済みの LocalInputProvider を維持）
-            if (!playerState.isOwned)
+            if (NetworkModeHelper.IsNetworkServer)
             {
-                _inputProvider = new ServerInputProvider(playerState);
-            }
-#else
-            // Client: 物理処理スキップ（サーバー権威）
-            _skipPhysics = true;
+                // Server / Host: 状態同期を有効化
+                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
 
-            if (playerState.isOwned)
+                // リモートプレイヤーは ServerInputProvider
+                // Host + isOwned: Initialize で設定済みの LocalInputProvider を維持
+                if (!playerState.isOwned)
+                {
+                    _inputProvider = new ServerInputProvider(playerState);
+                }
+            }
+
+            if (!NetworkModeHelper.IsNetworkServer)
             {
-                // ローカルプレイヤー: 入力を ServerRpc で送信
-                _inputProvider = new ClientInputProvider(_inputService, playerState);
-            }
-            // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
+                // Client-only: 物理処理スキップ（サーバー権威）
+                _skipPhysics = true;
 
-            // 全プレイヤーに View を追加（SyncVar からの Transform/Animator 補間）
-            var view = gameObject.AddComponent<SurvivorPlayerView>();
-            view.Initialize(this, playerState);
-#endif
+                if (playerState.isOwned)
+                {
+                    // ローカルプレイヤー: 入力を ServerRpc で送信
+                    _inputProvider = new ClientInputProvider(_inputService, playerState);
+                }
+                // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
+            }
+
+            // View: Client-only の全プレイヤー + Host の自プレイヤー
+            // Dedicated Server: isOwned=false（全プレイヤー remote） → View 不作成
+            if (!NetworkModeHelper.IsNetworkServer || playerState.isOwned)
+            {
+                var view = gameObject.AddComponent<SurvivorPlayerView>();
+                view.Initialize(this, playerState);
+            }
         }
 
         #endregion

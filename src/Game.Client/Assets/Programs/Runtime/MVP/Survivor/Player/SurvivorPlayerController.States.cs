@@ -1,4 +1,5 @@
 using Game.Library.Shared;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Signals.Survivor;
 using UnityEngine;
@@ -81,15 +82,16 @@ namespace Game.MVP.Survivor.Player
             _damageReceivedPublisher?.Publish(
                 new SurvivorSignals.Player.DamageReceived(_pendingDamageAmount, _currentHp.Value));
 
-#if UNITY_SERVER
-            // MP: サーバーから直接 ClientRpc でダメージ通知（ブリッジ不要）
-            var gm = SurvivorNetworkGameManager.Instance;
-            if (gm != null && _networkPlayerState != null)
+            // Server / Host: ClientRpc でダメージ通知
+            if (NetworkModeHelper.IsNetworkServer)
             {
-                gm.NotifyPlayerDamagedClientRpc(
-                    _networkPlayerState.PlayerUserId, _pendingDamageAmount, _currentHp.Value);
+                var gm = SurvivorNetworkGameManager.Instance;
+                if (gm != null && _networkPlayerState != null)
+                {
+                    gm.NotifyPlayerDamagedClientRpc(
+                        _networkPlayerState.PlayerUserId, _pendingDamageAmount, _currentHp.Value);
+                }
             }
-#endif
 
             shouldDie = _currentHp.Value <= 0;
             if (!shouldDie)
@@ -188,16 +190,17 @@ namespace Game.MVP.Survivor.Player
                 var ctx = Context;
                 ctx._diedPublisher?.Publish(new SurvivorSignals.Player.Died());
 
-#if UNITY_SERVER
-                // MP: サーバーから直接 ClientRpc で死亡通知 + 全滅判定
-                var gm = SurvivorNetworkGameManager.Instance;
-                if (gm != null && ctx._networkPlayerState != null)
+                // Server / Host: ClientRpc で死亡通知 + 全滅判定
+                if (NetworkModeHelper.IsNetworkServer)
                 {
-                    var userId = ctx._networkPlayerState.PlayerUserId;
-                    gm.NotifyPlayerDiedClientRpc(userId);
-                    gm.OnPlayerDied(userId.ToString());
+                    var gm = SurvivorNetworkGameManager.Instance;
+                    if (gm != null && ctx._networkPlayerState != null)
+                    {
+                        var userId = ctx._networkPlayerState.PlayerUserId;
+                        gm.NotifyPlayerDiedClientRpc(userId);
+                        gm.OnPlayerDied(userId.ToString());
+                    }
                 }
-#endif
             }
         }
 

@@ -5,6 +5,7 @@ using Game.MVP.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services.Network;
 using R3;
 using UnityEngine;
@@ -97,6 +98,7 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(1);
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 

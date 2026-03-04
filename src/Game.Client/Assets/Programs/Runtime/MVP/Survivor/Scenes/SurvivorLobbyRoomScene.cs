@@ -20,6 +20,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private bool _isReady;
         private string _currentLobbyId;
+        private int _maxPlayers = 4;
 
         public override async UniTask Startup()
         {
@@ -86,6 +87,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 var lobbyInfo = await _lobbyClient.GetLobbyInfoAsync(_currentLobbyId);
+                _maxPlayers = lobbyInfo.MaxPlayers;
                 SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
 
                 var playerList = await _lobbyClient.GetLobbyPlayersAsync(_currentLobbyId);
@@ -182,6 +184,9 @@ namespace Game.MVP.Survivor.Scenes
             Debug.Log($"[SurvivorLobbyRoomScene] Game starting! MatchId: {matchId}, Server: {serverAddress}:{port}");
             SceneComponent.SetInteractables(false);
             SceneComponent.ShowNotification("Game starting...");
+
+            // プレイヤー数をキャッシュ
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(_maxPlayers);
 
             // MatchResult にトークンを含めて保存
             SurvivorNetworkMatchConnector.StoreMatchResult(new MatchResult
