@@ -28,12 +28,15 @@
                     <ui:Label text="CREATE LOBBY" class="section-title" />
                     <ui:TextField name="lobby-name-input" label="Lobby Name" value="My Lobby" class="text-field" />
                     <ui:SliderInt name="max-players-slider" label="Max Players" low-value="2" high-value="8" value="4" show-input-field="true" class="slider-field" />
+                    <ui:SliderInt name="stage-id-slider" label="Stage" low-value="1" high-value="10" value="1" show-input-field="true" class="slider-field" />
                     <ui:Button text="CREATE" name="create-button" class="menu-button menu-button--primary" />
                 </ui:VisualElement>
 
                 <!-- Quick Match -->
                 <ui:VisualElement class="action-section">
                     <ui:Label text="QUICK MATCH" class="section-title" />
+                    <ui:SliderInt name="quick-match-stage-slider" label="Stage (0=Any)" low-value="0" high-value="10" value="0" show-input-field="true" class="slider-field" />
+                    <ui:SliderInt name="match-size-slider" label="Players" low-value="2" high-value="4" value="2" show-input-field="true" class="slider-field" />
                     <ui:Button text="FIND MATCH" name="quick-match-button" class="menu-button menu-button--secondary" />
                     <!-- Matchmaking Status (hidden by default) -->
                     <ui:VisualElement name="matchmaking-status" class="matchmaking-status matchmaking-status--hidden">

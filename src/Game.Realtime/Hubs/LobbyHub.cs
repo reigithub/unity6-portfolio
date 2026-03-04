@@ -5,6 +5,7 @@ using Game.Realtime.Services;
 using Game.Realtime.Validation;
 using Game.Server.Shared.Extensions;
 using Grpc.Core;
+using MagicOnion;
 using MagicOnion.Server.Hubs;
 using Microsoft.Extensions.Options;
 
@@ -113,6 +114,26 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         }
 
         return default;
+    }
+
+    public async ValueTask SetStageAsync(int stageId)
+    {
+        if (string.IsNullOrEmpty(_lobbyId)) return;
+
+        // ホストのみ変更可能
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        if (lobby == null || lobby.HostUserId != _userId)
+        {
+            throw new ReturnStatusException(StatusCode.PermissionDenied, "Only the host can change the stage");
+        }
+
+        await _lobbyDataService.SetStageAsync(_lobbyId, stageId);
+
+        _currentGroup?.All.OnStageChanged(stageId, _userId);
+
+        _logger.LogInformation(
+            "Host {UserId} changed stage to {StageId} in lobby {LobbyId}",
+            _userId, stageId, _lobbyId);
     }
 
     public async ValueTask SetReadyAsync(bool isReady)

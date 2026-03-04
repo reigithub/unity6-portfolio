@@ -188,10 +188,10 @@ namespace Game.Shared.Network.Survivor
             {
                 var go = new GameObject("[NetworkManager]");
                 UnityEngine.Object.DontDestroyOnLoad(go);
-                _networkManager = go.AddComponent<NetworkManager>();
                 var transport = go.AddComponent<KcpTransport>();
-                _networkManager.transport = transport;
                 Transport.active = transport;
+                _networkManager = go.AddComponent<NetworkManager>();
+                _networkManager.transport = transport;
                 var auth = go.AddComponent<SurvivorNetworkAuthenticator>();
                 _networkManager.authenticator = auth;
                 await RegisterSpawnPrefabsAsync(_networkManager);

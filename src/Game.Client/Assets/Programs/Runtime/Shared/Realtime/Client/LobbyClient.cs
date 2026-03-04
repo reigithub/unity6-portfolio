@@ -32,6 +32,7 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, bool> OnPlayerReadyChanged;
         public event Action<string, string, int, string> OnGameStarting;
         public event Action<string> OnLobbyClosed;
+        public event Action<int, string> OnStageChanged;
         public event Action<string> OnDisconnected;
 
         public LobbyClient(
@@ -219,6 +220,21 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task SetStageAsync(int stageId)
+        {
+            try
+            {
+                if (_hub != null)
+                {
+                    await _hub.SetStageAsync(stageId);
+                }
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogWarning($"[LobbyClient] RPC error in SetStage: {ex.StatusCode}");
+            }
+        }
+
         // ILobbyHubReceiver implementations
         void ILobbyHubReceiver.OnPlayerJoined(string userId, string playerName)
         {
@@ -253,6 +269,12 @@ namespace Game.Shared.Realtime.Client
         {
             Debug.Log($"[LobbyClient] Game starting: {matchId} @ {serverAddress}:{serverPort}");
             OnGameStarting?.Invoke(matchId, serverAddress, serverPort, sessionToken);
+        }
+
+        void ILobbyHubReceiver.OnStageChanged(int stageId, string changedByUserId)
+        {
+            Debug.Log($"[LobbyClient] Stage changed to {stageId} by {changedByUserId}");
+            OnStageChanged?.Invoke(stageId, changedByUserId);
         }
 
         private async Task MonitorDisconnectionAsync(CancellationToken cancellationToken)

@@ -27,33 +27,33 @@ public class MatchmakingServiceTests
     public async Task QueueService_EnqueueAndDequeue_WorksCorrectly()
     {
         // Arrange
-        _queueServiceMock.Setup(x => x.EnqueuePlayerAsync("user1", "survival"))
+        _queueServiceMock.Setup(x => x.EnqueuePlayerAsync("user1", "survival", 1, 2))
             .Returns(Task.CompletedTask);
-        _queueServiceMock.Setup(x => x.DequeuePlayerAsync("user1", "survival"))
+        _queueServiceMock.Setup(x => x.DequeuePlayerAsync("user1", "survival", 1))
             .Returns(Task.CompletedTask);
-        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival"))
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 1))
             .ReturnsAsync(5);
 
         // Act: Enqueue
-        await _queueServiceMock.Object.EnqueuePlayerAsync("user1", "survival");
+        await _queueServiceMock.Object.EnqueuePlayerAsync("user1", "survival", 1, 2);
 
         // Assert: Enqueue was called
         _queueServiceMock.Verify(
-            x => x.EnqueuePlayerAsync("user1", "survival"),
+            x => x.EnqueuePlayerAsync("user1", "survival", 1, 2),
             Times.Once);
 
         // Act: GetQueueCount
-        var count = await _queueServiceMock.Object.GetQueueCountAsync("survival");
+        var count = await _queueServiceMock.Object.GetQueueCountAsync("survival", 1);
 
         // Assert
         Assert.Equal(5, count);
 
         // Act: Dequeue
-        await _queueServiceMock.Object.DequeuePlayerAsync("user1", "survival");
+        await _queueServiceMock.Object.DequeuePlayerAsync("user1", "survival", 1);
 
         // Assert: Dequeue was called
         _queueServiceMock.Verify(
-            x => x.DequeuePlayerAsync("user1", "survival"),
+            x => x.DequeuePlayerAsync("user1", "survival", 1),
             Times.Once);
     }
 
@@ -89,5 +89,7 @@ public class MatchmakingServiceTests
 
         // Assert
         Assert.Equal(string.Empty, request.GameMode);
+        Assert.Equal(0, request.StageId);
+        Assert.Equal(2, request.MatchSize);
     }
 }

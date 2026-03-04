@@ -18,7 +18,7 @@ namespace Game.Shared.Realtime.Client
         /// <summary>
         /// マッチメイキング開始（Unary で登録 → Hub で通知購読）
         /// </summary>
-        Task<MatchmakingResponse> StartMatchmakingAsync(string gameMode);
+        Task<MatchmakingResponse> StartMatchmakingAsync(string gameMode, int stageId = 0, int matchSize = 2);
 
         /// <summary>
         /// マッチメイキングキャンセル（Unary で解除 → Hub 購読解除）

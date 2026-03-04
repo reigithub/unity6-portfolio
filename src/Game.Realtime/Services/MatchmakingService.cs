@@ -42,8 +42,9 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
         try
         {
-            await _queueService.EnqueuePlayerAsync(userId, request.GameMode);
-            var queueCount = await _queueService.GetQueueCountAsync(request.GameMode);
+            var matchSize = Math.Clamp(request.MatchSize, 2, 16);
+            await _queueService.EnqueuePlayerAsync(userId, request.GameMode, request.StageId, matchSize);
+            var queueCount = await _queueService.GetQueueCountAsync(request.GameMode, request.StageId);
             var estimatedWait = Math.Max(10, 60 / Math.Max(1, queueCount));
 
             _logger.LogInformation(
@@ -85,8 +86,8 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
 
         try
         {
-            await _queueService.DequeuePlayerAsync(userId, request.GameMode);
-            var queueCount = await _queueService.GetQueueCountAsync(request.GameMode);
+            await _queueService.DequeuePlayerAsync(userId, request.GameMode, request.StageId);
+            var queueCount = await _queueService.GetQueueCountAsync(request.GameMode, request.StageId);
 
             _logger.LogInformation(
                 "Player {UserId} dequeued from mode {GameMode}",
@@ -113,6 +114,6 @@ public class MatchmakingService : ServiceBase<IMatchmakingService>, IMatchmaking
     {
         _matchmakingValidator.ValidateGameMode(gameMode);
 
-        return await _queueService.GetQueueCountAsync(gameMode);
+        return await _queueService.GetQueueCountAsync(gameMode, 0);
     }
 }
