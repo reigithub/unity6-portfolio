@@ -117,7 +117,7 @@ MonoBehaviour:
     - line: '|   submitAnalytics: 1'
     - line: '|   usePlayerLog: 1'
     - line: '|   dedicatedServerOptimizations: 1'
-    - line: '|   bakeCollisionMeshes: 0'
+    - line: '|   bakeCollisionMeshes: 1'
     - line: '|   forceSingleInstance: 0'
     - line: '|   useFlipModelSwapchain: 1'
     - line: '|   resizableWindow: 1'
@@ -907,6 +907,7 @@ MonoBehaviour:
     - line: '|     Server: 1'
     - line: '|   il2cppStacktraceInformation:'
     - line: '|     Android: 1'
+    - line: '|     Server: 1'
     - line: '|     Standalone: 1'
     - line: '|     iPhone: 1'
     - line: '|   managedStrippingLevel:'
@@ -1045,7 +1046,7 @@ MonoBehaviour:
         m_ConnectProfiler: 1
         m_BuildWithDeepProfilingSupport: 1
         m_AllowDebugging: 1
-        m_WaitForManagedDebugger: 1
+        m_WaitForManagedDebugger: 0
         m_ManagedDebuggerFixedPort: 0
         m_ExplicitNullChecks: 0
         m_ExplicitDivideByZeroChecks: 0

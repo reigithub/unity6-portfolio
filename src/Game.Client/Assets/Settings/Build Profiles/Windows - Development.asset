@@ -117,7 +117,7 @@ MonoBehaviour:
     - line: '|   submitAnalytics: 1'
     - line: '|   usePlayerLog: 1'
     - line: '|   dedicatedServerOptimizations: 1'
-    - line: '|   bakeCollisionMeshes: 0'
+    - line: '|   bakeCollisionMeshes: 1'
     - line: '|   forceSingleInstance: 0'
     - line: '|   useFlipModelSwapchain: 1'
     - line: '|   resizableWindow: 1'
@@ -218,9 +218,9 @@ MonoBehaviour:
     - line: '|   ForceSDCardPermission: 0'
     - line: '|   CreateWallpaper: 0'
     - line: '|   androidSplitApplicationBinary: 0'
-    - line: '|   keepLoadedShadersAlive: 0'
+    - line: '|   keepLoadedShadersAlive: 1'
     - line: '|   StripUnusedMeshComponents: 0'
-    - line: '|   strictShaderVariantMatching: 0'
+    - line: '|   strictShaderVariantMatching: 1'
     - line: '|   VertexChannelCompressionMask: 4054'
     - line: '|   iPhoneSdkVersion: 988'
     - line: '|   iOSSimulatorArchitecture: 0'
@@ -896,7 +896,7 @@ MonoBehaviour:
     - line: '|   platformArchitecture: {}'
     - line: '|   scriptingBackend:'
     - line: '|     Android: 1'
-    - line: '|     Standalone: 0'
+    - line: '|     Standalone: 1'
     - line: '|   il2cppCompilerConfiguration:'
     - line: '|     Android: 0'
     - line: '|     Standalone: 0'
@@ -915,7 +915,7 @@ MonoBehaviour:
     - line: '|     PS5: 1'
     - line: '|     QNX: 1'
     - line: '|     ReservedCFE: 1'
-    - line: '|     Standalone: 0'
+    - line: '|     Standalone: 4'
     - line: '|     VisionOS: 1'
     - line: '|     WebGL: 1'
     - line: '|     Windows Store Apps: 1'
@@ -1041,12 +1041,12 @@ MonoBehaviour:
         m_ConnectProfiler: 1
         m_BuildWithDeepProfilingSupport: 1
         m_AllowDebugging: 1
-        m_WaitForManagedDebugger: 1
+        m_WaitForManagedDebugger: 0
         m_ManagedDebuggerFixedPort: 0
         m_ExplicitNullChecks: 0
         m_ExplicitDivideByZeroChecks: 0
         m_ExplicitArrayBoundsChecks: 0
-        m_CompressionType: 0
+        m_CompressionType: 2
         m_InstallInBuildFolder: 0
         m_InsightsSettingsContainer:
           m_BuildProfileEngineDiagnosticsState: 2
