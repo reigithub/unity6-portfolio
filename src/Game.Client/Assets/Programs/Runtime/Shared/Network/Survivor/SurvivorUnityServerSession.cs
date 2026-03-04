@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Shared.Network.Survivor;
 using Mirror;
 using Unity.Collections;
 using UnityEngine;
@@ -157,6 +156,7 @@ namespace Game.Shared.Network.Survivor
                 if (prefab.GetComponent<SurvivorNetworkPlayerState>() != null)
                 {
                     var instance = Instantiate(prefab);
+                    DontDestroyOnLoad(instance);
 
                     // PlayerUserId を設定（SyncVar でクライアントに同期）
                     var playerState = instance.GetComponent<SurvivorNetworkPlayerState>();
@@ -181,6 +181,7 @@ namespace Game.Shared.Network.Survivor
                 if (prefab.GetComponent<T>() != null)
                 {
                     var instance = Instantiate(prefab);
+                    DontDestroyOnLoad(instance);
                     NetworkServer.Spawn(instance);
                     return instance;
                 }

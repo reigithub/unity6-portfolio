@@ -158,6 +158,14 @@ namespace Game.Shared.Network.Survivor
                 _networkManager?.StopClient();
                 Debug.Log("[SurvivorNetworkStageConnector] Disconnected");
             }
+
+            // ServerSession の明示的クリーンアップ（DontDestroyOnLoad のため自動破棄されない）
+            var session = SurvivorUnityServerSession.Instance;
+            if (session != null)
+            {
+                session.StopSession();
+                UnityEngine.Object.Destroy(session.gameObject);
+            }
         }
 
         /// <summary>KCP Transport の共通設定。</summary>

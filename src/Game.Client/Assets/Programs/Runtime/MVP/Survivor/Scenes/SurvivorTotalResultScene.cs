@@ -157,7 +157,7 @@ namespace Game.MVP.Survivor.Scenes
             _saveService.StartSession(stageId, playerId);
             await _saveService.SaveIfDirtyAsync();
 
-            await _sceneService.TransitionAsync<SurvivorStageScene>();
+            await _sceneService.TransitionAsync<SurvivorStageConnectScene>();
         }
 
         private async UniTaskVoid OnStageSelect()

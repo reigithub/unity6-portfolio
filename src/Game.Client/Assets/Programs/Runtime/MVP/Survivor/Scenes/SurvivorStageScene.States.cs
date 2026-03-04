@@ -12,7 +12,6 @@ using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
-using MessagePipe;
 using Mirror;
 using UnityEngine;
 using VContainer;
@@ -115,37 +114,11 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
 
-                // SP モード: ネットワーク初期化
-#if !UNITY_SERVER
-                if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                // ネットワーク Client View 初期化
+                // SurvivorStageConnectScene で接続確立済みのため、NetworkClient.localPlayer は利用可能
+                if (NetworkClient.isConnected)
                 {
-#if UNITY_EDITOR
-                    await StartEditorNetworkAsync();
-#else
-                    // 配布ビルド SP: Orchestrator で全サービス起動
-                    await Context._localServerOrchestrator.StartAsync(View.destroyCancellationToken);
-                    SurvivorNetworkMatchConnector.SetLocalServer(Context._localServerOrchestrator.HeadlessServerPort);
-#endif
-                }
-#endif
-
-                // ネットワーク接続（MP or 配布ビルド SP: MatchResult あり）
-                if (SurvivorNetworkMatchConnector.HasMatchResult)
-                {
-                    await ConnectToServerAsync();
-                    await WaitForAllPlayersReadyAsync();
                     InitializeClientViews();
-                }
-                else if (NetworkServer.active && NetworkClient.isConnected)
-                {
-                    // Editor Host mode: Server + ローカルClient
-                    await WaitForAllPlayersReadyAsync();
-                    InitializeClientViews();
-                }
-                else if (NetworkServer.active)
-                {
-                    // Editor Server-only mode: Client View なし、全Clientの接続を待つ
-                    await WaitForAllPlayersReadyAsync();
                 }
 
                 Debug.Log("[ReadyState] Initialization complete, waiting for camera follow");
@@ -188,70 +161,6 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             public override void Exit() => Debug.Log("[ReadyState] Exit");
-
-#if UNITY_EDITOR
-            /// <summary>
-            /// Editor ネットワーク初期化。MPPM タグでロール判定し分岐する。
-            /// 非MPPM 時はタグ空 → Host (SP デフォルト)。
-            /// </summary>
-            private async UniTask StartEditorNetworkAsync()
-            {
-                var stageId = Context._saveService.CurrentSession.StageId;
-                var role = Game.Shared.Network.EditorNetworkRole.Resolve();
-
-                switch (role)
-                {
-                    case Game.Shared.Network.EditorNetworkRole.Mode.Host:
-                        Debug.Log("[ReadyState] Editor Host mode: starting host...");
-                        await Context._networkConnector.StartHostAsync(stageId);
-                        Context.SetupServerNetworkingIfActive();
-                        break;
-
-                    case Game.Shared.Network.EditorNetworkRole.Mode.Client:
-                        Debug.Log("[ReadyState] Editor Client mode: will connect to localhost:7777...");
-                        SurvivorNetworkMatchConnector.SetLocalServer(7777);
-                        break;
-
-                    case Game.Shared.Network.EditorNetworkRole.Mode.Server:
-                        // MPPM Server-only: ローカルClient接続なし、外部Clientの接続を待つ
-                        Debug.Log("[ReadyState] Editor Server-only mode: starting server...");
-                        await Context._networkConnector.StartServerAsync(stageId);
-                        Context.SetupServerNetworkingIfActive();
-                        break;
-                }
-            }
-#endif
-
-            private async UniTask ConnectToServerAsync()
-            {
-                var address = SurvivorNetworkMatchConnector.ServerAddress;
-                var port = SurvivorNetworkMatchConnector.ServerPort;
-                var stageId = Context._saveService.CurrentSession.StageId;
-                var sessionToken = SurvivorNetworkMatchConnector.SessionToken;
-                Debug.Log($"[ReadyState] Connecting to Mirror server: {address}:{port} (stageId={stageId})");
-                await Context._networkConnector.ConnectAsync(address, port, stageId, sessionToken);
-            }
-
-            private async UniTask WaitForAllPlayersReadyAsync()
-            {
-                var tcs = new UniTaskCompletionSource();
-                var subscription = Context._allPlayersReadySub.Subscribe(_ =>
-                {
-                    tcs.TrySetResult();
-                });
-                try
-                {
-                    // 10秒タイムアウト（サーバー応答なしの場合はフォールスルー）
-                    await UniTask.WhenAny(
-                        tcs.Task,
-                        UniTask.Delay(TimeSpan.FromSeconds(10))
-                    );
-                }
-                finally
-                {
-                    subscription.Dispose();
-                }
-            }
 
             private void InitializeClientViews()
             {
@@ -701,8 +610,8 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid RetryStageAsync()
             {
-                // 同じステージシーンに再遷移（Terminate→Startupで完全リセット）
-                await SceneService.TransitionAsync<SurvivorStageScene>();
+                // ConnectingScene 経由で再接続 → StageScene
+                await SceneService.TransitionAsync<SurvivorStageConnectScene>();
             }
 
             public override void Exit() => Debug.Log("[RetryState] Exit");
