@@ -113,7 +113,9 @@ namespace Game.Editor
 
             EditorGUILayout.LabelField("環境設定 (読み取り専用)", EditorStyles.boldLabel);
             EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.EnumPopup("DI Mode", config.DependencyResolverMode);
             EditorGUILayout.TextField("API URL", config.ApiBaseUrl);
+            EditorGUILayout.TextField("gRPC URL", config.GrpcBaseUrl);
             EditorGUILayout.TextField("WebSocket URL", config.WebSocketUrl);
             EditorGUILayout.Toggle("Debug Log", config.EnableDebugLog);
             EditorGUILayout.Toggle("Analytics", config.EnableAnalytics);
