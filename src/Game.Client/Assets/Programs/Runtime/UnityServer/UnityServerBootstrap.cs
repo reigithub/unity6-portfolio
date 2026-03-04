@@ -12,6 +12,8 @@ namespace Game.Unity.Server
     /// </summary>
     public static class UnityServerBootstrap
     {
+        private static TcpHealthProbe _healthProbe;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
@@ -33,8 +35,18 @@ namespace Game.Unity.Server
             ushort port = UnityServerNetworkManager.ParsePort();
             string secret = ParseSecret();
             int playerCount = ParsePlayerCount();
+            int healthPort = ParseHealthPort();
 
-            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}, players={playerCount}...");
+            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}, health={healthPort}, players={playerCount}...");
+
+            // --- TCP ヘルスプローブ開始 ---
+            _healthProbe = new TcpHealthProbe(healthPort);
+            _healthProbe.Start();
+            Application.quitting += () =>
+            {
+                _healthProbe?.Dispose();
+                _healthProbe = null;
+            };
 
             // HMAC 共有シークレット設定（MP モード）
             if (!string.IsNullOrEmpty(secret))
@@ -83,6 +95,20 @@ namespace Game.Unity.Server
                     return count;
             }
             return 1;
+        }
+
+        /// <summary>
+        /// コマンドライン引数から --health-port を解析。デフォルト 7778。
+        /// </summary>
+        private static int ParseHealthPort()
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] == "--health-port" && int.TryParse(args[i + 1], out int port))
+                    return port;
+            }
+            return 7778;
         }
     }
 }

@@ -1,0 +1,277 @@
+name: Unity Server Build
+
+# ============================================
+# Dedicated Server ビルド専用ワークフロー（手動実行）
+# Windows / Linux サーバービルドを実行
+#
+# 使用例:
+#   gh workflow run "Unity Server Build" --field build_target=DedicatedServerLinux
+# ============================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Server build target'
+        required: true
+        default: 'DedicatedServerLinux'
+        type: choice
+        options:
+          - DedicatedServerWindows
+          - DedicatedServerLinux
+          - All
+      skip_tests:
+        description: 'Skip tests before build'
+        required: false
+        default: false
+        type: boolean
+      game_environment:
+        description: 'Game environment (affects scripting define symbols)'
+        required: true
+        default: 'Develop'
+        type: choice
+        options:
+          - Local
+          - Develop
+          - Staging
+          - Review
+          - Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================
+  # 設定読み込み
+  # ============================================
+  load-config:
+    name: Load Configuration
+    runs-on: [self-hosted, linux, unity, docker]
+    outputs:
+      unity_project_path: ${{ steps.config.outputs.UNITY_PROJECT_PATH }}
+      cache_key_prefix: ${{ steps.config.outputs.CACHE_KEY_PREFIX }}
+      build_retention_days: ${{ steps.config.outputs.BUILD_RETENTION_DAYS }}
+      build_timestamp: ${{ steps.timestamp.outputs.value }}
+      build_profile_type: ${{ steps.profile.outputs.type }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .github
+
+      - name: Generate build timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Determine Build Profile type
+        id: profile
+        run: |
+          case "${{ inputs.game_environment }}" in
+            Local|Develop|Staging)
+              echo "type=Development" >> $GITHUB_OUTPUT
+              ;;
+            Review|Release)
+              echo "type=Release" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "type=Development" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Load configuration
+        id: config
+        run: |
+          chmod +x .github/scripts/load-config.sh
+          .github/scripts/load-config.sh
+
+  # ============================================
+  # テスト（スキップ可能）
+  # ============================================
+  test:
+    name: Run Tests
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: load-config
+    if: ${{ !inputs.skip_tests }}
+    timeout-minutes: 180
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          lfs: false
+          clean: false
+
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+          mkdir -p "${{ github.workspace }}/TestResults"
+
+      - name: Run EditMode tests
+        run: |
+          source .github/scripts/setup-accelerator.sh
+
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -runTests \
+              -batchmode \
+              -nographics \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
+              -testResults "${{ github.workspace }}/TestResults/editmode-results.xml" \
+              -testPlatform EditMode \
+              -logFile "${{ github.workspace }}/Logs/editmode-test.log"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: Server-Test-Results-${{ needs.load-config.outputs.build_timestamp }}
+          path: TestResults/
+
+      - name: Upload test log
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: Server-Test-Log-${{ needs.load-config.outputs.build_timestamp }}
+          path: Logs/editmode-test.log
+
+  # ============================================
+  # Windows Dedicated Server ビルド
+  # ============================================
+  build-windows-server:
+    name: Build Windows Dedicated Server
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: [load-config, test]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (inputs.build_target == 'DedicatedServerWindows' || inputs.build_target == 'All')
+    timeout-minutes: 180
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
+      BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
+      BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      BUILD_PROFILE_TYPE: ${{ needs.load-config.outputs.build_profile_type }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          lfs: false
+          clean: false
+
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Win64"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+
+      - name: Build Windows Dedicated Server
+        run: |
+          source .github/scripts/setup-accelerator.sh
+
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
+              -activeBuildProfile "Assets/Settings/Build Profiles/Windows Server - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
+              -executeMethod Game.Editor.Build.BuildScript.BuildDedicatedServerWindows \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-windows-server.log"
+
+      - name: Upload Windows Server build
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: DedicatedServer-Windows-Build-${{ env.BUILD_TIMESTAMP }}
+          path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Server-Windows/${{ env.BUILD_TIMESTAMP }}
+          retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
+
+      - name: Upload build log
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: DedicatedServer-Windows-Build-Log-${{ env.BUILD_TIMESTAMP }}
+          path: Logs/build-windows-server.log
+
+  # ============================================
+  # Linux Dedicated Server ビルド
+  # ============================================
+  build-linux-server:
+    name: Build Linux Dedicated Server
+    runs-on: [self-hosted, linux, unity, docker]
+    needs: [load-config, test]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (inputs.build_target == 'DedicatedServerLinux' || inputs.build_target == 'All')
+    timeout-minutes: 180
+    env:
+      UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
+      CACHE_KEY_PREFIX: ${{ needs.load-config.outputs.cache_key_prefix }}
+      BUILD_RETENTION_DAYS: ${{ needs.load-config.outputs.build_retention_days }}
+      BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
+      BUILD_PROFILE_TYPE: ${{ needs.load-config.outputs.build_profile_type }}
+      GAME_ENVIRONMENT: ${{ inputs.game_environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          lfs: false
+          clean: false
+
+      - name: Setup Library cache (persistent volume)
+        run: |
+          chmod +x .github/scripts/setup-library-cache.sh
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "Linux64"
+
+      - name: Setup directories
+        run: |
+          mkdir -p "${{ github.workspace }}/Logs"
+
+      - name: Build Linux Dedicated Server
+        run: |
+          source .github/scripts/setup-accelerator.sh
+
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            unity-editor \
+              -batchmode \
+              -nographics \
+              -quit \
+              -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
+              $ACCELERATOR_ARGS \
+              -activeBuildProfile "Assets/Settings/Build Profiles/Linux Server - ${{ env.BUILD_PROFILE_TYPE }}.asset" \
+              -executeMethod Game.Editor.Build.BuildScript.BuildDedicatedServerLinux \
+              -buildTimestamp "${{ env.BUILD_TIMESTAMP }}" \
+              -logFile "${{ github.workspace }}/Logs/build-linux-server.log"
+
+      - name: Upload Linux Server build
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: DedicatedServer-Linux-Build-${{ env.BUILD_TIMESTAMP }}
+          path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Server/Linux/${{ env.BUILD_TIMESTAMP }}
+          retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
+
+      - name: Upload build log
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: DedicatedServer-Linux-Build-Log-${{ env.BUILD_TIMESTAMP }}
+          path: Logs/build-linux-server.log

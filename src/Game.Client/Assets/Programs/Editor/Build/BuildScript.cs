@@ -246,8 +246,8 @@ namespace Game.Editor.Build
         public static void BuildDedicatedServerWindows()
         {
             var scenes = GetBuildScenes();
-            var buildPath = GetBuildPath("Server-Windows",
-                $"{Application.productName}_Server.exe");
+            var buildPath = GetBuildPath("Server/Windows",
+                $"{Application.productName}.exe");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64,
                 BuildOptions.None, (int)StandaloneBuildSubtarget.Server);
@@ -260,10 +260,40 @@ namespace Game.Editor.Build
         public static void BuildDedicatedServerWindowsDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = GetBuildPath("Server-Windows-Dev",
-                $"{Application.productName}_Server.exe");
+            var buildPath = GetBuildPath("Server/Windows-Dev",
+                $"{Application.productName}.exe");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneWindows64,
+                BuildOptions.Development | BuildOptions.AllowDebugging,
+                (int)StandaloneBuildSubtarget.Server);
+        }
+
+        /// <summary>
+        /// Linux Dedicated Server ビルドを実行
+        /// Docker コンテナでのデプロイ用
+        /// </summary>
+        [MenuItem("Build/Server/Linux Dedicated Server")]
+        public static void BuildDedicatedServerLinux()
+        {
+            var scenes = GetBuildScenes();
+            var buildPath = GetBuildPath("Server/Linux",
+                Application.productName);
+
+            BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
+                BuildOptions.None, (int)StandaloneBuildSubtarget.Server);
+        }
+
+        /// <summary>
+        /// Linux Dedicated Server 開発ビルドを実行
+        /// </summary>
+        [MenuItem("Build/Server/Linux Dedicated Server Development")]
+        public static void BuildDedicatedServerLinuxDevelopment()
+        {
+            var scenes = GetBuildScenes();
+            var buildPath = GetBuildPath("Server/Linux-Dev",
+                Application.productName);
+
+            BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
                 BuildOptions.Development | BuildOptions.AllowDebugging,
                 (int)StandaloneBuildSubtarget.Server);
         }

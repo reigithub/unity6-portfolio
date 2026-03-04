@@ -1,0 +1,133 @@
+# docker/unity-server/prod/cloudbuild.yml
+# Unity Dedicated Server: Cloud Build -> Artifact Registry -> GCE MIG デプロイ
+#
+# 使用方法:
+#   cd Unity6Portfolio
+#   gcloud builds submit --config=docker/unity-server/prod/cloudbuild.yml \
+#     --substitutions=_ZONE=asia-northeast1-b
+#
+# 前提条件:
+#   - Artifact Registry リポジトリが作成済み
+#   - GCE ファイアウォールルール (UDP 7777, TCP 7778) が作成済み
+#   - GCE TCP ヘルスチェックが作成済み
+#   - Secret Manager にシークレットが登録済み
+#   - Cloud Build サービスアカウントに Compute Admin 権限が付与済み
+#
+# 注意: Cloud Run ではなく GCE (Container-Optimized OS) にデプロイ
+# Unity Server は UDP を使用するため Cloud Run は使用不可
+
+steps:
+  # ===== Docker イメージをビルド =====
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:latest'
+      - '-f'
+      - 'docker/unity-server/Dockerfile'
+      - '${_BUILD_CONTEXT}'
+
+  # ===== Artifact Registry にプッシュ (SHORT_SHA タグ) =====
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-sha'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:${SHORT_SHA}'
+
+  # ===== Artifact Registry にプッシュ (latest タグ) =====
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-latest'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:latest'
+
+  # ===== GCE インスタンステンプレートを作成 =====
+  # Container-Optimized OS + Docker コンテナ指定
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'create-instance-template'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:${SHORT_SHA}"
+        TEMPLATE_NAME="${_INSTANCE_TEMPLATE_NAME}-${SHORT_SHA}"
+
+        gcloud compute instance-templates create-with-container "$${TEMPLATE_NAME}" \
+          --machine-type=${_MACHINE_TYPE} \
+          --tags=${_NETWORK_TAG} \
+          --container-image="$${IMAGE}" \
+          --container-arg="--port" \
+          --container-arg="${_GAME_PORT}" \
+          --container-arg="--health-port" \
+          --container-arg="${_HEALTH_PORT}" \
+          --container-arg="--players" \
+          --container-arg="${_MAX_PLAYERS}" \
+          --metadata=google-logging-enabled=true \
+          --scopes=https://www.googleapis.com/auth/cloud-platform \
+          --region=${_REGION}
+
+        echo "$${TEMPLATE_NAME}" > /workspace/template_name.txt
+
+  # ===== Managed Instance Group を更新 =====
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'update-mig'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        TEMPLATE_NAME=$(cat /workspace/template_name.txt)
+
+        # MIG が存在するか確認
+        if gcloud compute instance-groups managed describe ${_INSTANCE_GROUP_NAME} \
+            --zone=${_ZONE} 2>/dev/null; then
+          echo "Updating existing MIG..."
+          gcloud compute instance-groups managed set-instance-template \
+            ${_INSTANCE_GROUP_NAME} \
+            --zone=${_ZONE} \
+            --template="$${TEMPLATE_NAME}"
+
+          # ローリングアップデートを開始
+          gcloud compute instance-groups managed rolling-action start-update \
+            ${_INSTANCE_GROUP_NAME} \
+            --zone=${_ZONE} \
+            --version="template=$${TEMPLATE_NAME}" \
+            --max-surge=1 \
+            --max-unavailable=0
+        else
+          echo "Creating new MIG..."
+          gcloud compute instance-groups managed create ${_INSTANCE_GROUP_NAME} \
+            --zone=${_ZONE} \
+            --template="$${TEMPLATE_NAME}" \
+            --size=1 \
+            --health-check=${_HEALTH_CHECK_NAME} \
+            --initial-delay=60
+        fi
+
+# ===== 変数（デフォルト値） =====
+substitutions:
+  _REGION: asia-northeast1
+  _ZONE: asia-northeast1-b
+  _REPO_NAME: game-unity-server
+  _INSTANCE_TEMPLATE_NAME: unity-server-template
+  _INSTANCE_GROUP_NAME: unity-server-mig
+  _MACHINE_TYPE: e2-medium
+  _NETWORK_TAG: unity-server
+  _GAME_PORT: '7777'
+  _HEALTH_PORT: '7778'
+  _MAX_PLAYERS: '4'
+  _HEALTH_CHECK_NAME: unity-server-health-check
+  # Unity Server ビルド成果物のパス（Cloud Build ワークスペース内）
+  _BUILD_CONTEXT: 'server-build/'
+
+# ===== ビルドオプション =====
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# ===== ビルド結果のイメージ =====
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:latest'

@@ -47,8 +47,8 @@ services:
 
   # Game Server（Production 構成でローカル実行）
   server:
-    image: game-server-prod
-    container_name: game-server-app-prod
+    image: game-server-aspnet-prod
+    container_name: game-server-aspnet-prod
     build:
       context: ../../..
       dockerfile: docker/game-server/prod/Dockerfile
