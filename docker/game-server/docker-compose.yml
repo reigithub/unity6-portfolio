@@ -31,8 +31,8 @@ services:
       retries: 5
 
   server:
-    image: game-server-app
-    container_name: game-server-app
+    image: game-server-aspnet
+    container_name: game-server-aspnet
     build:
       context: ../..
       dockerfile: docker/game-server/Dockerfile
@@ -71,6 +71,7 @@ services:
       - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
       - Jwt__Issuer=Game.Server
       - Jwt__Audience=Game.Client
+      - UnityServerAuth__SecretKey=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
     depends_on:
       valkey:
         condition: service_healthy
@@ -80,6 +81,25 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+#  unity-server:
+#    image: unity-server-linux
+#    container_name: game-server-unity-server
+#    build:
+#      context: ../../src/Game.Client/Builds/Server/Linux
+#      dockerfile: ../../docker/unity-server/Dockerfile
+#    ports:
+#      - "7777:7777/udp"
+#      - "7778:7778/tcp"
+#    environment:
+#      - UNITY_SERVER_AUTH_SESSION_SECRET=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
+#    command: ["--port", "7777", "--health-port", "7778", "--players", "4", "--secret", "${UNITY_SERVER_AUTH_SESSION_SECRET}"]
+#    healthcheck:
+#      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7778' || exit 1"]
+#      interval: 10s
+#      timeout: 3s
+#      retries: 3
+#      start_period: 15s
 
 volumes:
   pgdata:

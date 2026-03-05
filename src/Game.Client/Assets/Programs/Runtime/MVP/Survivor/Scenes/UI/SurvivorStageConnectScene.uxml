@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="SurvivorStageConnectScene.uss" />
+
+    <!-- Root -->
+    <ui:VisualElement name="root" class="connect-root">
+        <!-- Status Area -->
+        <ui:VisualElement name="status-container" class="status-container">
+            <ui:Label text="Connecting..." name="status-label" class="status-label" />
+        </ui:VisualElement>
+
+        <!-- Error Area (hidden by default) -->
+        <ui:VisualElement name="error-container" class="error-container" style="display: none;">
+            <ui:Label text="" name="error-label" class="error-label" />
+            <ui:VisualElement class="error-buttons">
+                <ui:Button text="Retry" name="retry-button" class="connect-button connect-button--primary" />
+                <ui:Button text="Cancel" name="cancel-button" class="connect-button connect-button--secondary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

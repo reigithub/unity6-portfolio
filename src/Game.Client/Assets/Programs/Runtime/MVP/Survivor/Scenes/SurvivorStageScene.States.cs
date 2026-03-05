@@ -1,14 +1,21 @@
+using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Enemy;
+using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
+using Mirror;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -64,6 +71,7 @@ namespace Game.MVP.Survivor.Scenes
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
+            protected ISurvivorStageSceneView StageSceneView => Context._stageSceneView;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
         }
@@ -102,9 +110,16 @@ namespace Game.MVP.Survivor.Scenes
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
                 );
-                View.InitializeWeaponDisplay();
+                StageSceneView.InitializeWeaponDisplay();
                 await View.InitializeEnemySpawnerAsync(WaveManager);
                 await View.InitializeItemSpawnerAsync();
+
+                // ネットワーク Client View 初期化
+                // SurvivorStageConnectScene で接続確立済みのため、NetworkClient.localPlayer は利用可能
+                if (NetworkClient.isConnected)
+                {
+                    InitializeClientViews();
+                }
 
                 Debug.Log("[ReadyState] Initialization complete, waiting for camera follow");
 
@@ -146,6 +161,35 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             public override void Exit() => Debug.Log("[ReadyState] Exit");
+
+            private void InitializeClientViews()
+            {
+                // InjectGameObject: VContainer が [Inject] フィールドを自動解決
+                if (SurvivorNetworkGameManager.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkGameManager.Instance.gameObject);
+                if (SurvivorNetworkEnemyState.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkEnemyState.Instance.gameObject);
+                if (SurvivorNetworkItemSync.Instance != null)
+                    Context.Resolver.InjectGameObject(SurvivorNetworkItemSync.Instance.gameObject);
+
+                // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
+                var localPlayer = NetworkClient.localPlayer;
+                if (localPlayer != null)
+                {
+                    Context._localPlayerState = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
+                    Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
+                }
+
+                // View に ISubscriber を注入（AddComponent なので Initialize 経由）
+                var enemyViewGo = new GameObject("[SurvivorEnemyView]");
+                enemyViewGo.transform.SetParent(View.transform);
+                enemyViewGo.AddComponent<SurvivorEnemyView>().Initialize(Context._enemyBatchSub);
+
+                var itemViewGo = new GameObject("[SurvivorItemView]");
+                itemViewGo.transform.SetParent(View.transform);
+                itemViewGo.AddComponent<SurvivorItemView>().Initialize(
+                    Context._itemSpawnedSub, Context._itemDespawnedSub);
+            }
         }
 
         #endregion
@@ -155,12 +199,21 @@ namespace Game.MVP.Survivor.Scenes
         private class PlayingState : StageStateBase
         {
             private bool _isFirstEntry = true;
+            private bool _disconnected;
 
             public override void Enter()
             {
                 Debug.Log("[PlayingState] Enter");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
+
+                _disconnected = false;
+
+                // Mirror 切断検知（MP モード）
+                if (Context._isClientOnly)
+                {
+                    NetworkClient.OnDisconnectedEvent += OnDisconnected;
+                }
 
                 // 初回（ReadyStateからの遷移）のみWaveを開始
                 // LevelUpStateやPausedStateからの復帰時はWaveを開始しない
@@ -170,7 +223,7 @@ namespace Game.MVP.Survivor.Scenes
                     WaveManager.StartWave();
 
                     // HUDをフェードイン表示（カウントダウン後、初めてPlayingStateに入った時）
-                    View.SetHudVisible(true);
+                    StageSceneView.SetHudVisible(true);
                 }
 
                 Context._inputService.EnablePlayer();
@@ -180,8 +233,35 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                // 切断検知 → タイトルに戻る
+                if (_disconnected)
+                {
+                    _disconnected = false;
+                    Transition(StageEvent.QuitToTitle);
+                    return;
+                }
+
+                // クライアントモード: サーバー駆動でゲーム進行
+                if (Context._isClientOnly)
+                {
+                    // サーバーからの結果を確認
+                    if (StageModel.HasNetworkResult)
+                    {
+                        Transition(StageModel.NetworkResult.IsVictory
+                            ? StageEvent.Victory : StageEvent.GameOver);
+                        return;
+                    }
+                    if (StageModel.IsDead)
+                    {
+                        Transition(StageEvent.GameOver);
+                        return;
+                    }
+                    return; // ゲームロジックはサーバー任せ
+                }
+
+                // SP / サーバー: 既存ロジック
                 StageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(StageModel.GameTime.Value);
+                StageSceneView.UpdateTime(StageModel.GameTime.Value);
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
                 if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
@@ -212,7 +292,17 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            public override void Exit() => Debug.Log("[PlayingState] Exit");
+            public override void Exit()
+            {
+                Debug.Log("[PlayingState] Exit");
+                NetworkClient.OnDisconnectedEvent -= OnDisconnected;
+            }
+
+            private void OnDisconnected()
+            {
+                Debug.LogWarning("[PlayingState] Mirror server disconnected");
+                _disconnected = true;
+            }
         }
 
         #endregion
@@ -318,6 +408,8 @@ namespace Game.MVP.Survivor.Scenes
                             await View.WeaponManager.ReplaceWeaponAsync(
                                 removeWeaponId.Value,
                                 result.WeaponId);
+                            Context._localPlayerState?.SendWeaponReplaceServerRpc(
+                                removeWeaponId.Value, result.WeaponId);
                             break; // 成功したらループを抜ける
                         }
 
@@ -328,6 +420,8 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         // 通常の武器追加/アップグレード
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
+                        Context._localPlayerState?.SendWeaponChoiceServerRpc(
+                            result.WeaponId, result.IsNewWeapon);
                         break; // 成功したらループを抜ける
                     }
                 }
@@ -368,10 +462,10 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
 
                 // HUDを非表示
-                View.SetHudVisible(false);
+                StageSceneView.SetHudVisible(false);
 
                 ApplicationEvents.ShowCursor();
-                View.ShowVictory();
+                StageSceneView.ShowVictory();
 
                 // 保存完了を待機してからリザルト画面へ遷移
                 SaveAndTransitionToResultAsync().Forget();
@@ -391,6 +485,17 @@ namespace Game.MVP.Survivor.Scenes
                 Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
                 await Context._saveService.SaveAsync();
                 Context._isResultSaved = true;
+
+                // NGO 接続中ならサーバーに結果を通知
+                if (Context._localPlayerState != null)
+                {
+                    var result = new SurvivorNetworkGameResult
+                    {
+                        IsVictory = true,
+                        ClearTime = clearTime
+                    };
+                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                }
 
                 Debug.Log("[VictoryState] Result saved successfully");
 
@@ -422,10 +527,10 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
 
                 // HUDを非表示
-                View.SetHudVisible(false);
+                StageSceneView.SetHudVisible(false);
 
                 ApplicationEvents.ShowCursor();
-                View.ShowGameOver();
+                StageSceneView.ShowGameOver();
 
                 // 保存完了を待機してからリザルト画面へ遷移
                 SaveAndTransitionToResultAsync().Forget();
@@ -445,6 +550,17 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 Context._isResultSaved = true;
+
+                // NGO 接続中ならサーバーに結果を通知
+                if (Context._localPlayerState != null)
+                {
+                    var result = new SurvivorNetworkGameResult
+                    {
+                        IsVictory = false,
+                        ClearTime = clearTime
+                    };
+                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                }
 
                 Debug.Log("[GameOverState] Result saved successfully");
 
@@ -494,8 +610,8 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid RetryStageAsync()
             {
-                // 同じステージシーンに再遷移（Terminate→Startupで完全リセット）
-                await SceneService.TransitionAsync<SurvivorStageScene>();
+                // ConnectingScene 経由で再接続 → StageScene
+                await SceneService.TransitionAsync<SurvivorStageConnectScene>();
             }
 
             public override void Exit() => Debug.Log("[RetryState] Exit");

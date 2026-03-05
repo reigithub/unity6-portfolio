@@ -1,15 +1,18 @@
 using Game.Realtime.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Tests.Services;
 
 /// <summary>
-/// MatchSessionTokenService のテスト
+/// MatchSessionTokenService のテスト（HMAC + Valkey ハイブリッド版）
 /// </summary>
 public class MatchSessionTokenServiceTests
 {
+    private const string TestSecretKey = "test-secret-key-for-hmac-signing";
+
     private readonly Mock<IConnectionMultiplexer> _redisMock;
     private readonly Mock<IDatabase> _dbMock;
     private readonly Mock<ILogger<MatchSessionTokenService>> _loggerMock;
@@ -24,79 +27,92 @@ public class MatchSessionTokenServiceTests
         _redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_dbMock.Object);
 
-        _service = new MatchSessionTokenService(_redisMock.Object, _loggerMock.Object);
+        // SE.Redis 2.11: StringSetAsync は Expiration 型の非インターフェースオーバーロードに
+        // ルーティングされるため、SetReturnsDefault で全オーバーロードをカバー
+        _dbMock.SetReturnsDefault(Task.FromResult(true));
+
+        var settings = Options.Create(new UnityServerAuthSettings { SecretKey = TestSecretKey });
+        _service = new MatchSessionTokenService(_redisMock.Object, settings, _loggerMock.Object);
     }
 
     [Fact]
     public async Task IssueTokenAsync_ReturnsNonEmptyToken()
     {
-        // Arrange
-        _dbMock.Setup(x => x.StringSetAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<Expiration>(),
-                It.IsAny<ValueCondition>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
         // Act
         var token = await _service.IssueTokenAsync("user123", "match456");
 
         // Assert
         Assert.NotNull(token);
         Assert.NotEmpty(token);
+        Assert.Contains(".", token); // HMAC 形式: payload.signature
     }
 
     [Fact]
-    public async Task IssueTokenAsync_StoresTokenInRedis()
+    public async Task IssueTokenAsync_StoresTokenInValkey()
     {
-        // Arrange
-        _dbMock.Setup(x => x.StringSetAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<Expiration>(),
-                It.IsAny<ValueCondition>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
         // Act
         await _service.IssueTokenAsync("user123", "match456");
 
+        // Assert — session:token: プレフィックスで Valkey に保存されたことを検証
+        var setInvocations = _dbMock.Invocations
+            .Where(i => i.Method.Name == "StringSetAsync")
+            .ToList();
+        Assert.Single(setInvocations);
+        Assert.StartsWith("session:token:", setInvocations[0].Arguments[0].ToString()!);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_ReturnsNull_WhenHmacInvalid()
+    {
+        // Act — 不正なトークン（HMAC 検証失敗）
+        var result = await _service.ValidateTokenAsync("invalid-token-without-signature");
+
         // Assert
+        Assert.Null(result);
+
+        // Valkey への問い合わせが行われないことを検証（HMAC で早期リジェクト）
         _dbMock.Verify(
-            x => x.StringSetAsync(
+            x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_ReturnsNull_WhenRevokedInValkey()
+    {
+        // Arrange — 正しいトークンを発行
+        var token = await _service.IssueTokenAsync("user123", "match456");
+
+        // Valkey から削除済み（revoke 済み）
+        _dbMock.Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisValue.Null);
+
+        // Act
+        var result = await _service.ValidateTokenAsync(token);
+
+        // Assert
+        Assert.Null(result);
+
+        // Valkey への問い合わせが行われたことを検証（HMAC 通過後の失効チェック）
+        _dbMock.Verify(
+            x => x.StringGetAsync(
                 It.Is<RedisKey>(k => k.ToString().StartsWith("session:token:")),
-                It.IsAny<RedisValue>(),
-                It.IsAny<Expiration>(),
-                It.IsAny<ValueCondition>(),
                 It.IsAny<CommandFlags>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task ValidateTokenAsync_ReturnsNull_WhenTokenNotFound()
+    public async Task ValidateTokenAsync_ReturnsTokenInfo_WhenValid()
     {
-        // Arrange
-        _dbMock.Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(RedisValue.Null);
+        // Arrange — トークン発行
+        var token = await _service.IssueTokenAsync("user123", "match456");
 
-        // Act
-        var result = await _service.ValidateTokenAsync("nonexistent-token");
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task ValidateTokenAsync_ReturnsTokenInfo_WhenTokenExists()
-    {
-        // Arrange
-        var json = """{"UserId":"user123","MatchId":"match456","ExpiresAt":"2026-01-01T00:00:00+00:00"}""";
+        // Valkey にトークンが存在（revoke されていない）
+        var json = """{"UserId":"user123","MatchId":"match456","ExpiresAt":"2099-01-01T00:00:00+00:00"}""";
         _dbMock.Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(new RedisValue(json));
 
         // Act
-        var result = await _service.ValidateTokenAsync("some-token");
+        var result = await _service.ValidateTokenAsync(token);
 
         // Assert
         Assert.NotNull(result);
@@ -105,14 +121,14 @@ public class MatchSessionTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeTokenAsync_DeletesTokenFromRedis()
+    public async Task RevokeTokenAsync_DeletesTokenFromValkey()
     {
         // Arrange
         _dbMock.Setup(x => x.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
         // Act
-        await _service.RevokeTokenAsync("some-token");
+        await _service.RevokeTokenAsync("some-token.abc123");
 
         // Assert
         _dbMock.Verify(
@@ -125,15 +141,6 @@ public class MatchSessionTokenServiceTests
     [Fact]
     public async Task IssueTokenAsync_GeneratesUniqueTokens()
     {
-        // Arrange
-        _dbMock.Setup(x => x.StringSetAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<Expiration>(),
-                It.IsAny<ValueCondition>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
         // Act
         var token1 = await _service.IssueTokenAsync("user1", "match1");
         var token2 = await _service.IssueTokenAsync("user2", "match2");

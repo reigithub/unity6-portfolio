@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
-using Game.MVP.Survivor.Signals;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
@@ -59,6 +59,13 @@ namespace Game.MVP.Survivor.Player
 
             // プレイヤー初期化（VContainerからのInjectは親スコープから行われる）
             playerController.Initialize(levelMaster);
+
+#if !UNITY_SERVER
+            // Presenter初期化（ビジュアル駆動）— サーバーでは不要
+            var playerPresenter = playerObj.AddComponent<SurvivorPlayerPresenter>();
+            var diedSub = resolver.Resolve<ISubscriber<SurvivorSignals.Player.Died>>();
+            playerPresenter.Initialize(playerController, diedSub);
+#endif
 
             Debug.Log($"[SurvivorPlayerStart] Player spawned: {playerMaster.Name} at {transform.position}");
 

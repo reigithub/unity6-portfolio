@@ -1,12 +1,14 @@
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
-using Game.MVP.Survivor.Signals;
 using Game.Shared.Item;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using R3;
 using Unity.Profiling;
@@ -19,10 +21,9 @@ namespace Game.MVP.Survivor.Player
     /// Survivorプレイヤーコントローラー
     /// SDUnityChanPlayerControllerをベースにしたRigidbody + RaycastCheckerベースの移動制御
     /// </summary>
-    [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorNetworkPlayerStateBindable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
@@ -31,6 +32,8 @@ namespace Game.MVP.Survivor.Player
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
+        [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _damageReceivedPublisher;
+        [Inject] private IPublisher<SurvivorSignals.Player.Died> _diedPublisher;
 
         [Header("ジョギング速度")]
         [SerializeField]
@@ -48,7 +51,6 @@ namespace Game.MVP.Survivor.Player
         [Inject] private readonly IInputService _inputService;
 
         // Components
-        private Animator _animator;
         private Rigidbody _rigidbody;
         private RaycastChecker _groundedRaycastChecker;
         private CapsuleCollider _capsuleCollider;
@@ -90,16 +92,10 @@ namespace Game.MVP.Survivor.Player
         public float ItemAttractDistance => _itemAttractDistance;
         public float ItemAttractSpeed => _itemAttractSpeed;
         public float ItemCollectDistance => _itemCollectDistance;
+        public ReadOnlyReactiveProperty<float> Speed => _speed;
 
         // IDamageable
         public bool IsDead => _currentHp.Value <= 0;
-
-        // Events
-        private readonly Subject<int> _onDamaged = new();
-        private readonly Subject<Unit> _onDeath = new();
-
-        public Observable<int> OnDamaged => _onDamaged;
-        public Observable<Unit> OnDeath => _onDeath;
 
         // State
         private float _invincibilityTimer;
@@ -109,18 +105,21 @@ namespace Game.MVP.Survivor.Player
         private const float ItemCheckInterval = 0.1f;
         private float _itemCheckTimer;
 
-        // アニメータハッシュ
-        private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
-        private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
+        // ネットワーク同期用
+        private SurvivorNetworkPlayerState _networkPlayerState;
+        private ISurvivorPlayerInputProvider _inputProvider;
+        private ISurvivorNetworkPlayerStateSynchronizer _stateSynchronizer;
+        private bool _skipPhysics;
 
         #region MonoBehaviour Methods
 
         private void Awake()
         {
-            TryGetComponent(out _animator);
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
+
+            SurvivorNetworkPlayerStateBindableRegistry.Register(this);
         }
 
         private void Update()
@@ -132,17 +131,81 @@ namespace Game.MVP.Survivor.Player
 
         private void FixedUpdate()
         {
+            if (_skipPhysics) return;
+
             _stateMachine?.FixedUpdate();
+
+            if (_stateSynchronizer != null)
+            {
+                var snapshot = new SurvivorNetworkPlayerStateSnapshot
+                {
+                    PositionX = transform.position.x,
+                    PositionY = transform.position.y,
+                    PositionZ = transform.position.z,
+                    RotationY = transform.eulerAngles.y,
+                    Speed = _speed.Value,
+                    CurrentHp = _currentHp.Value,
+                    CurrentStamina = _currentStamina.Value,
+                    IsInvincible = _isInvincible.Value
+                };
+                _stateSynchronizer.PushState(snapshot);
+            }
         }
 
         private void OnDestroy()
         {
+            SurvivorNetworkPlayerStateBindableRegistry.Unregister(this);
+
             _speed.Dispose();
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
-            _onDamaged.Dispose();
-            _onDeath.Dispose();
+        }
+
+        #endregion
+
+        #region Network
+
+        /// <summary>
+        /// サーバー / クライアント: NetworkSurvivorPlayerState をバインド
+        /// </summary>
+        public void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState)
+        {
+            _networkPlayerState = playerState;
+
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                // Server / Host: 状態同期を有効化
+                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
+
+                // リモートプレイヤーは ServerInputProvider
+                // Host + isOwned: Initialize で設定済みの LocalInputProvider を維持
+                if (!playerState.isOwned)
+                {
+                    _inputProvider = new ServerInputProvider(playerState);
+                }
+            }
+
+            if (!NetworkModeHelper.IsNetworkServer)
+            {
+                // Client-only: 物理処理スキップ（サーバー権威）
+                _skipPhysics = true;
+
+                if (playerState.isOwned)
+                {
+                    // ローカルプレイヤー: 入力を ServerRpc で送信
+                    _inputProvider = new ClientInputProvider(_inputService, playerState);
+                }
+                // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
+            }
+
+            // View: Client-only の全プレイヤー + Host の自プレイヤー
+            // Dedicated Server: isOwned=false（全プレイヤー remote） → View 不作成
+            if (!NetworkModeHelper.IsNetworkServer || playerState.isOwned)
+            {
+                var view = gameObject.AddComponent<SurvivorPlayerView>();
+                view.Initialize(this, playerState);
+            }
         }
 
         #endregion
@@ -177,11 +240,8 @@ namespace Game.MVP.Survivor.Player
                 _mainCamera = _gameRootController.MainCamera.transform;
             }
 
-            // スピードが変わった時だけアニメーターを更新
-            _speed
-                .DistinctUntilChanged()
-                .Subscribe(speed => _animator.SetFloat(AnimatorHashSpeed, speed))
-                .AddTo(this);
+            // デフォルト入力プロバイダー（SP/Host ローカルプレイヤー用）
+            _inputProvider = new LocalInputProvider(_inputService);
 
             // ステートマシン初期化
             InitializeStateMachine();
@@ -241,25 +301,21 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_updateInputMarker.Auto())
             {
-                if (_inputService == null)
-                    return;
+                if (_inputProvider == null) return;
 
-                // 移動入力受付
-                _moveValue = _inputService.Player.Move.ReadValue<Vector2>();
-                _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
+                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting))
+                    return; // Client: ServerRpc 送信済み、ローカル処理不要
 
-                // ダッシュ入力チェック
-                var wantToRun = _inputService.Player.LeftShift.IsPressed() && IsMoveInput();
-                var canRun = _currentStamina.Value > 0;
+                // SP/Server/Host 共通の入力処理
+                _moveValue = moveValue;
+                _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
 
-                // 移動速度更新（スタミナがある場合のみダッシュ可能）
-                var isRunning = wantToRun && canRun;
+                var wantToRun = isSprinting && IsMoveInput();
+                var isRunning = wantToRun && _currentStamina.Value > 0;
                 _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
 
-                // スタミナ消費・回復（deltaTimeベース）
                 UpdateStamina(isRunning);
 
-                // 回転入力受付
                 if (IsMoveInput())
                 {
                     _lookRotation = Quaternion.LookRotation(_moveVector);

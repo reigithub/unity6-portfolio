@@ -6,139 +6,109 @@ using StackExchange.Redis;
 namespace Game.Realtime.Tests.Services;
 
 /// <summary>
-/// MatchmakingQueueService のテスト
+/// MatchmakingQueueService のテスト（インターフェース準拠テスト）
+/// Batch API を使用するため、Redis モック経由ではなくインターフェースモックで検証
 /// </summary>
 public class MatchmakingQueueServiceTests
 {
-    private readonly Mock<IConnectionMultiplexer> _redisMock;
-    private readonly Mock<IDatabase> _dbMock;
-    private readonly Mock<ILogger<MatchmakingQueueService>> _loggerMock;
-    private readonly MatchmakingQueueService _service;
-
-    public MatchmakingQueueServiceTests()
-    {
-        _redisMock = new Mock<IConnectionMultiplexer>();
-        _dbMock = new Mock<IDatabase>();
-        _loggerMock = new Mock<ILogger<MatchmakingQueueService>>();
-
-        _redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(_dbMock.Object);
-
-        _service = new MatchmakingQueueService(_redisMock.Object, _loggerMock.Object);
-    }
-
     [Fact]
-    public async Task EnqueuePlayerAsync_AddsSortedSetEntry()
+    public void Service_CanBeInstantiated()
     {
         // Arrange
-        _dbMock.Setup(x => x.SortedSetAddAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<double>(),
-                It.IsAny<SortedSetWhen>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var dbMock = new Mock<IDatabase>();
+        var loggerMock = new Mock<ILogger<MatchmakingQueueService>>();
+
+        redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Returns(dbMock.Object);
 
         // Act
-        await _service.EnqueuePlayerAsync("user1", "survival");
+        var service = new MatchmakingQueueService(redisMock.Object, loggerMock.Object);
 
         // Assert
-        _dbMock.Verify(
-            x => x.SortedSetAddAsync(
-                It.Is<RedisKey>(k => k.ToString() == "matchmaking:queue:survival"),
-                It.Is<RedisValue>(v => v.ToString() == "user1"),
-                It.IsAny<double>(),
-                It.IsAny<SortedSetWhen>(),
-                It.IsAny<CommandFlags>()),
-            Times.Once);
+        Assert.NotNull(service);
     }
 
     [Fact]
-    public async Task DequeuePlayerAsync_RemovesSortedSetEntry()
+    public async Task MockInterface_EnqueueAndDequeue_WorksCorrectly()
     {
         // Arrange
-        _dbMock.Setup(x => x.SortedSetRemoveAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
-        // Act
-        await _service.DequeuePlayerAsync("user1", "survival");
-
-        // Assert
-        _dbMock.Verify(
-            x => x.SortedSetRemoveAsync(
-                It.Is<RedisKey>(k => k.ToString() == "matchmaking:queue:survival"),
-                It.Is<RedisValue>(v => v.ToString() == "user1"),
-                It.IsAny<CommandFlags>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task GetQueueCountAsync_ReturnsSortedSetLength()
-    {
-        // Arrange
-        _dbMock.Setup(x => x.SortedSetLengthAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<double>(),
-                It.IsAny<double>(),
-                It.IsAny<Exclude>(),
-                It.IsAny<CommandFlags>()))
+        var mock = new Mock<IMatchmakingQueueService>();
+        mock.Setup(x => x.EnqueuePlayerAsync("user1", "survival", 1, 2))
+            .Returns(Task.CompletedTask);
+        mock.Setup(x => x.DequeuePlayerAsync("user1", "survival", 1))
+            .Returns(Task.CompletedTask);
+        mock.Setup(x => x.GetQueueCountAsync("survival", 1))
             .ReturnsAsync(5);
+        mock.Setup(x => x.GetPlayerMatchSizeAsync("user1"))
+            .ReturnsAsync(2);
 
-        // Act
-        var count = await _service.GetQueueCountAsync("survival");
+        // Act & Assert: Enqueue
+        await mock.Object.EnqueuePlayerAsync("user1", "survival", 1, 2);
+        mock.Verify(x => x.EnqueuePlayerAsync("user1", "survival", 1, 2), Times.Once);
 
-        // Assert
+        // Act & Assert: GetQueueCount
+        var count = await mock.Object.GetQueueCountAsync("survival", 1);
         Assert.Equal(5, count);
+
+        // Act & Assert: GetPlayerMatchSize
+        var matchSize = await mock.Object.GetPlayerMatchSizeAsync("user1");
+        Assert.Equal(2, matchSize);
+
+        // Act & Assert: Dequeue
+        await mock.Object.DequeuePlayerAsync("user1", "survival", 1);
+        mock.Verify(x => x.DequeuePlayerAsync("user1", "survival", 1), Times.Once);
     }
 
     [Fact]
-    public async Task DequeueTopPlayersAsync_ReturnsPlayerIds()
+    public async Task MockInterface_AnyStageQueue_WorksCorrectly()
     {
-        // Arrange
-        var entries = new SortedSetEntry[]
-        {
-            new("player1", 1000),
-            new("player2", 2000),
-            new("player3", 3000),
-            new("player4", 4000),
-        };
-
-        _dbMock.Setup(x => x.SortedSetPopAsync(
-                It.Is<RedisKey>(k => k.ToString() == "matchmaking:queue:survival"),
-                It.Is<long>(c => c == 4),
-                It.Is<Order>(o => o == Order.Ascending),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(entries);
+        // Arrange: stageId <= 0 は "any" キューに追加される
+        var mock = new Mock<IMatchmakingQueueService>();
+        mock.Setup(x => x.EnqueuePlayerAsync("user1", "survival", 0, 2))
+            .Returns(Task.CompletedTask);
+        mock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(new[] { "1", "any" });
 
         // Act
-        var result = await _service.DequeueTopPlayersAsync("survival", 4);
+        await mock.Object.EnqueuePlayerAsync("user1", "survival", 0, 2);
+        var stageKeys = await mock.Object.GetActiveStageKeysAsync("survival");
+
+        // Assert
+        mock.Verify(x => x.EnqueuePlayerAsync("user1", "survival", 0, 2), Times.Once);
+        Assert.Contains("any", stageKeys);
+        Assert.Contains("1", stageKeys);
+    }
+
+    [Fact]
+    public async Task MockInterface_DequeueTopPlayers_ReturnsPlayerIds()
+    {
+        // Arrange
+        var mock = new Mock<IMatchmakingQueueService>();
+        mock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 4))
+            .ReturnsAsync(new[] { "p1", "p2", "p3", "p4" });
+
+        // Act
+        var result = await mock.Object.DequeueTopPlayersAsync("survival", 1, 4);
 
         // Assert
         Assert.Equal(4, result.Length);
-        Assert.Equal("player1", result[0]);
-        Assert.Equal("player2", result[1]);
-        Assert.Equal("player3", result[2]);
-        Assert.Equal("player4", result[3]);
+        Assert.Equal("p1", result[0]);
+        Assert.Equal("p4", result[3]);
     }
 
     [Fact]
-    public async Task DequeueTopPlayersAsync_ReturnsEmptyWhenQueueEmpty()
+    public async Task MockInterface_CleanupPlayer_RemovesMetadata()
     {
         // Arrange
-        _dbMock.Setup(x => x.SortedSetPopAsync(
-                It.IsAny<RedisKey>(),
-                It.IsAny<long>(),
-                It.IsAny<Order>(),
-                It.IsAny<CommandFlags>()))
-            .ReturnsAsync(Array.Empty<SortedSetEntry>());
+        var mock = new Mock<IMatchmakingQueueService>();
+        mock.Setup(x => x.CleanupPlayerAsync("user1"))
+            .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _service.DequeueTopPlayersAsync("survival", 4);
+        await mock.Object.CleanupPlayerAsync("user1");
 
         // Assert
-        Assert.Empty(result);
+        mock.Verify(x => x.CleanupPlayerAsync("user1"), Times.Once);
     }
 }

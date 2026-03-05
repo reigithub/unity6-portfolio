@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a689d91966dfb46499fb63f130d9b905, type: 3}
+  m_Script: {fileID: 15024, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: MultiPlayer
   m_EditorClassIdentifier: Unity.Multiplayer.PlayMode.Scenarios.Editor::Unity.Multiplayer.PlayMode.Scenarios.Editor.ScenarioConfig
   m_Description: 
@@ -18,21 +18,30 @@ MonoBehaviour:
     Name: Main Editor
     <CorrespondingNodeId>k__BackingField: 
     m_Nodes: []
-    m_PlayerTag: 
+    m_Role: 1
+    m_PlayerTag: Client
     m_InitialScene: {fileID: 0}
   m_EditorInstances:
   - Name: Player 2
     <CorrespondingNodeId>k__BackingField: 
     m_Nodes: []
-    m_PlayerTag: 
+    m_Role: 1
+    m_PlayerTag: Client
     m_InitialScene: {fileID: 0}
     m_AdvancedConfiguration:
       StreamLogsToMainEditor: 1
       LogsColor: {r: 0.3643, g: 0.581, b: 0.8679, a: 1}
+  - Name: Player 3
+    <CorrespondingNodeId>k__BackingField: 
+    m_Nodes: []
+    m_Role: 2
+    m_PlayerTag: Server
+    m_InitialScene: {fileID: 0}
+    m_AdvancedConfiguration:
+      StreamLogsToMainEditor: 1
+      LogsColor: {r: 0, g: 0.9803922, b: 0.6039216, a: 1}
   m_LocalInstances: []
   m_RemoteInstances: []
-  m_OverridePort: 0
-  m_Port: 0
   m_MainEditorInstanceObsolete:
     rid: -2
   references:

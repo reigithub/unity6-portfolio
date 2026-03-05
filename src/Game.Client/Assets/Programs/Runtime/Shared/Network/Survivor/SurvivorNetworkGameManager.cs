@@ -1,0 +1,401 @@
+using System.Collections.Generic;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
+using Mirror;
+using Unity.Collections;
+using UnityEngine;
+using VContainer;
+
+namespace Game.Shared.Network.Survivor
+{
+    /// <summary>
+    /// ゲーム全体のイベント配信 NetworkBehaviour（シングルトン）。
+    /// サーバー側で発生したゲームイベントを ClientRpc 経由で全クライアントへブロードキャストし、
+    /// クライアント側では MessagePipe の IPublisher 経由で対応するシグナルを配信する。
+    /// <para>
+    /// <b>呼び出し元:</b><br/>
+    /// - <see cref="Game.Shared.Netcode.Server.SurvivorServerSession"/> (セッション管理)<br/>
+    /// - SurvivorPlayerController.States (ダメージ・死亡)<br/>
+    /// - SurvivorStageScene (ウェーブ進行)
+    /// </para>
+    /// </summary>
+    public class SurvivorNetworkGameManager : NetworkBehaviour
+    {
+        public static SurvivorNetworkGameManager Instance { get; private set; }
+
+        // --- IPublisher フィールド（VContainer InjectGameObject で解決） ---
+
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
+        [Inject] private IPublisher<SurvivorSignals.Connection.PlayerConnected> _playerConnectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Connection.PlayerDisconnected> _playerDisconnectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _playerDamagedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.Died> _playerDiedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.ItemCollected> _itemCollectedPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.LeveledUp> _playerLeveledUpPub;
+        [Inject] private IPublisher<SurvivorSignals.Player.WeaponChanged> _weaponChangedPub;
+        [Inject] private IPublisher<SurvivorSignals.Enemy.Killed> _enemyKilledPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Started> _waveStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveClearedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.AllCleared> _allWavesClearedPub;
+        [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+
+        // =====================================================================
+        //  セッション
+        // =====================================================================
+
+        /// <summary>
+        /// 全プレイヤーの接続が完了したことを通知する。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyAllPlayersReadyClientRpc()
+        {
+            Debug.Log("[NetworkSurvivorGameManager] AllPlayersReady");
+            if (!isServer)
+            {
+                _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+            }
+        }
+
+        /// <summary>
+        /// ゲーム開始をクライアントに通知する。サーバー時刻を基準に同期を取る。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyGameStartedClientRpc(float serverTime)
+        {
+            Debug.Log($"[NetworkSurvivorGameManager] GameStarted at serverTime={serverTime}");
+            if (!isServer)
+            {
+                _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(serverTime));
+            }
+        }
+
+        // =====================================================================
+        //  プレイヤーイベント
+        // =====================================================================
+
+        /// <summary>
+        /// プレイヤーがダメージを受けたことを通知する。
+        /// クライアント側では <see cref="IsLocalPlayer"/> でフィルタし、自分のダメージのみ StageModel へ反映する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.TryProcessDamage (サーバー側 #if UNITY_SERVER)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
+        {
+            if (!isServer && IsLocalPlayer(userId))
+            {
+                _playerDamagedPub?.Publish(
+                    new SurvivorSignals.Player.DamageReceived(damage, currentHp));
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーが死亡したことを通知する。
+        /// クライアント側では <see cref="IsLocalPlayer"/> でフィルタし、自分の死亡のみ GameOver 遷移に反映する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.DeadState.Enter (サーバー側 #if UNITY_SERVER)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
+        {
+            if (!isServer && IsLocalPlayer(userId))
+            {
+                _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーがアイテムを取得したことを通知する。
+        /// <para><b>未使用:</b> アイテムシステムの MP 対応時に、サーバー側のアイテム取得ロジックから呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
+        {
+            if (!isServer)
+            {
+                _itemCollectedPub?.Publish(
+                    new SurvivorSignals.Player.ItemCollected(userId.ToString(), itemId, effectValue));
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーがレベルアップし、武器アップグレード選択肢を提示することを通知する。
+        /// <para><b>未使用:</b> レベルアップシステムの MP 対応時に、サーバー側の経験値計算から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
+        {
+            if (!isServer)
+            {
+                _playerLeveledUpPub?.Publish(
+                    new SurvivorSignals.Player.LeveledUp(userId.ToString(), newLevel, options));
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーの武器が変更（新規取得またはレベルアップ）されたことを通知する。
+        /// <para><b>未使用:</b> 武器システムの MP 対応時に、サーバー側の武器変更処理から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyWeaponChangedClientRpc(FixedString64Bytes userId, int weaponId, int level, bool isNew)
+        {
+            if (!isServer)
+            {
+                _weaponChangedPub?.Publish(
+                    new SurvivorSignals.Player.WeaponChanged(userId.ToString(), weaponId, level, isNew));
+            }
+        }
+
+        // =====================================================================
+        //  敵・スコア
+        // =====================================================================
+
+        /// <summary>
+        /// 敵が撃破されたことを通知する。キル数・スコアの同期に使用。
+        /// <para><b>未使用:</b> スコアシステムの MP 対応時に、サーバー側の敵死亡処理から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyEnemyKilledClientRpc(FixedString64Bytes killerUserId, int enemyId, int scoreGained, int totalKills)
+        {
+            if (!isServer)
+            {
+                _enemyKilledPub?.Publish(
+                    new SurvivorSignals.Enemy.Killed(killerUserId.ToString(), enemyId, scoreGained, totalKills));
+            }
+        }
+
+        // =====================================================================
+        //  ウェーブ
+        // =====================================================================
+
+        /// <summary>
+        /// ウェーブクリアを通知する。次ウェーブ番号とクリアスコアを含む。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.Completed シグナルブリッジ)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
+        {
+            if (!isServer)
+            {
+                _waveClearedPub?.Publish(
+                    new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
+            }
+        }
+
+        /// <summary>
+        /// 新ウェーブの開始を通知する。目標キル数と敵総数を含む。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.Started シグナルブリッジ)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
+        {
+            if (!isServer)
+            {
+                _waveStartedPub?.Publish(
+                    new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
+            }
+        }
+
+        /// <summary>
+        /// 全ウェーブクリアを通知する。ゲームクリア判定に使用。
+        /// <para><b>呼び出し元:</b> SurvivorStageScene.SubscribeNetworkSignals (Wave.AllCleared シグナルブリッジ)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyAllWavesClearedClientRpc()
+        {
+            if (!isServer)
+            {
+                _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
+            }
+        }
+
+        /// <summary>
+        /// 制限時間超過を通知する。
+        /// <para><b>未使用:</b> タイムアップ処理の MP 対応時に、サーバー側のタイマーから呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyTimeUpClientRpc()
+        {
+            if (!isServer)
+            {
+                _timeUpPub?.Publish(new SurvivorSignals.Wave.TimeUp());
+            }
+        }
+
+        // =====================================================================
+        //  ゲーム終了
+        // =====================================================================
+
+        /// <summary>
+        /// ゲーム終了を通知する。勝敗結果とクリアタイムを含む。
+        /// <para><b>呼び出し元:</b>
+        /// <see cref="OnPlayerDied"/> (全滅時) /
+        /// SurvivorNetworkPlayerState (勝利時)</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
+        {
+            if (!isServer)
+            {
+                _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
+            }
+        }
+
+        // =====================================================================
+        //  ポーズ
+        // =====================================================================
+
+        /// <summary>
+        /// ゲームポーズを通知する。リクエストしたプレイヤーの userId を含む。
+        /// <para><b>未使用:</b> ポーズシステムの MP 対応時に、サーバー側の RequestPauseServerRpc から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyGamePausedClientRpc(FixedString64Bytes requestedByUserId)
+        {
+            if (!isServer)
+            {
+                _gamePausedPub?.Publish(
+                    new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
+            }
+        }
+
+        /// <summary>
+        /// ゲーム再開を通知する。
+        /// <para><b>未使用:</b> ポーズシステムの MP 対応時に、サーバー側の RequestResumeServerRpc から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyGameResumedClientRpc()
+        {
+            if (!isServer)
+            {
+                _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
+            }
+        }
+
+        // =====================================================================
+        //  接続
+        // =====================================================================
+
+        /// <summary>
+        /// 新しいプレイヤーが接続したことを他クライアントに通知する。
+        /// <para><b>未使用:</b> 接続通知 UI の実装時に、SurvivorServerSession.OnClientAuthenticated から呼び出す予定。</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyPlayerConnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
+        {
+            if (!isServer)
+            {
+                _playerConnectedPub?.Publish(
+                    new SurvivorSignals.Connection.PlayerConnected(userId.ToString(), playerName.ToString()));
+            }
+        }
+
+        /// <summary>
+        /// プレイヤーが切断したことを残りクライアントに通知する。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.OnClientDisconnected</para>
+        /// </summary>
+        [ClientRpc]
+        public void NotifyPlayerDisconnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
+        {
+            if (!isServer)
+            {
+                _playerDisconnectedPub?.Publish(
+                    new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
+            }
+        }
+
+        // =====================================================================
+        //  ローカルプレイヤー判定（クライアント側フィルタリング用）
+        // =====================================================================
+
+        /// <summary>
+        /// ClientRpc 受信時に、対象 userId がローカルプレイヤーかどうかを判定する。
+        /// MP ではダメージ・死亡イベントを自プレイヤー分のみ StageModel に反映するために使用。
+        /// SP モード (userId 空) はフォールバックで常に true を返す。
+        /// </summary>
+        private bool IsLocalPlayer(FixedString64Bytes userId)
+        {
+            var userIdStr = userId.ToString();
+            if (string.IsNullOrEmpty(userIdStr)) return true;
+
+            var localPlayer = NetworkClient.localPlayer;
+            if (localPlayer == null) return true;
+
+            var state = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
+            if (state == null) return true;
+
+            return state.PlayerUserId == userId;
+        }
+
+        // =====================================================================
+        //  サーバー側: マルチプレイ全滅判定
+        // =====================================================================
+
+        private readonly HashSet<string> _deadPlayerIds = new();
+        private int _totalPlayerCount;
+
+        /// <summary>
+        /// 期待プレイヤー数を設定する。全滅判定の分母として使用。
+        /// <para><b>呼び出し元:</b> SurvivorServerSession.NotifyPlayersReadyAsync</para>
+        /// </summary>
+        [Server]
+        public void SetTotalPlayerCount(int count)
+        {
+            _totalPlayerCount = count;
+            _deadPlayerIds.Clear();
+        }
+
+        /// <summary>
+        /// プレイヤー死亡を記録する。全プレイヤーが死亡した場合、
+        /// <see cref="NotifyGameEndedClientRpc"/> で GameOver を全クライアントに通知する。
+        /// <para><b>呼び出し元:</b> SurvivorPlayerController.States.DeadState.Enter (サーバー側 #if UNITY_SERVER)</para>
+        /// </summary>
+        [Server]
+        public void OnPlayerDied(string userId)
+        {
+            _deadPlayerIds.Add(userId);
+            Debug.Log($"[NetworkSurvivorGameManager] Player died: {userId} ({_deadPlayerIds.Count}/{_totalPlayerCount})");
+
+            if (_totalPlayerCount > 0 && _deadPlayerIds.Count >= _totalPlayerCount)
+            {
+                Debug.Log("[NetworkSurvivorGameManager] All players dead, sending GameOver");
+                var result = new SurvivorNetworkGameResult
+                {
+                    IsVictory = false,
+                    ClearTime = Time.time
+                };
+                NotifyGameEndedClientRpc(result);
+            }
+        }
+
+        // =====================================================================
+        //  ライフサイクル
+        // =====================================================================
+
+        public override void OnStartServer()
+        {
+            Instance = this;
+            Debug.Log("[NetworkSurvivorGameManager] Spawned on server");
+        }
+
+        public override void OnStartClient()
+        {
+            Instance = this;
+            Debug.Log("[NetworkSurvivorGameManager] Spawned on client");
+        }
+
+        public override void OnStopServer()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        public override void OnStopClient()
+        {
+            if (Instance == this) Instance = null;
+        }
+    }
+}

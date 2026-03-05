@@ -2,6 +2,7 @@ using System;
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Item;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -49,6 +50,11 @@ namespace Game.MVP.Survivor.Scenes.Models
         // ゲーム進行
         public ReactiveProperty<float> GameTime { get; } = new(0f);
         public ReactiveProperty<int> CurrentWave { get; } = new(1);
+
+        // ネットワーク結果（サーバーから受信）
+        private SurvivorNetworkGameResult? _networkResult;
+        public bool HasNetworkResult => _networkResult.HasValue;
+        public SurvivorNetworkGameResult NetworkResult => _networkResult.Value;
 
         public SurvivorPlayerMaster PlayerMaster => _playerMaster;
         public SurvivorStageMaster StageMaster => _stageMaster;
@@ -160,6 +166,15 @@ namespace Game.MVP.Survivor.Scenes.Models
             TotalKills.Value++;
             // スコアはWaveクリア時の残り時間で計算するため、ここでは加算しない
         }
+
+        /// <summary>サーバーからゲーム結果を設定（クライアントモード用）</summary>
+        public void SetNetworkResult(SurvivorNetworkGameResult result) => _networkResult = result;
+
+        /// <summary>サーバーから直接 HP を設定（クライアントモード用）</summary>
+        public void ForceSetHp(int hp) => CurrentHp.Value = hp;
+
+        /// <summary>サーバーからスコアを加算（クライアントモード用）</summary>
+        public void AddScore(int score) => Score.Value += score;
 
         /// <summary>
         /// Waveクリア時のスコアを加算

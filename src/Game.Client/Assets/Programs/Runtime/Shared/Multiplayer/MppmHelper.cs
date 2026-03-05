@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -17,6 +18,32 @@ namespace Game.Shared.Multiplayer
         private static bool? _isClone;
         private static string _cloneId;
 
+        public enum MppmTag { None, Host, Client, Server }
+
+        public static IReadOnlyList<string> GetCurrentPlayerTags()
+            => global::Unity.Multiplayer.PlayMode.CurrentPlayer.Tags;
+
+        public static MppmTag ResolveTag()
+        {
+            var tags = GetCurrentPlayerTags();
+            if (tags.Contains("Server"))
+                return MppmTag.Server;
+            if (tags.Contains("Client"))
+                return MppmTag.Client;
+            if (tags.Contains("Host"))
+                return MppmTag.Host;
+
+            return MppmTag.None;
+        }
+
+        public static bool IsActive() => GetCurrentPlayerTags().Count > 0;
+
+        public static bool IsHost() => ResolveTag() == MppmTag.Host;
+
+        public static bool IsClient() => ResolveTag() == MppmTag.Client;
+
+        public static bool IsServer() => ResolveTag() == MppmTag.Server;
+
         /// <summary>
         /// 現在のプロセスがMPPMクローンかどうか
         /// コマンドライン引数 --virtual-project-clone の有無で判定
@@ -27,7 +54,7 @@ namespace Game.Shared.Multiplayer
             {
                 if (!_isClone.HasValue)
                 {
-                    var args = Environment.GetCommandLineArgs();
+                    var args = System.Environment.GetCommandLineArgs();
                     _isClone = args.Contains(CloneFlag);
                 }
                 return _isClone.Value;
@@ -54,7 +81,7 @@ namespace Game.Shared.Multiplayer
 
         private static string ReadVpIdFromCommandLine()
         {
-            var args = Environment.GetCommandLineArgs();
+            var args = System.Environment.GetCommandLineArgs();
             foreach (var arg in args)
             {
                 if (arg.StartsWith(VpIdPrefix, StringComparison.Ordinal))

@@ -87,7 +87,7 @@ namespace Game.MVP.Survivor.Weapon
 
         #region ヒットエフェクト
 
-        protected SurvivorVfxSpawner _vfxSpawner;
+        protected SurvivorWeaponVfxSpawner _vfxSpawner;
         protected string _hitEffectAssetName;
         protected float _hitEffectScale = 1f;
 
@@ -164,7 +164,7 @@ namespace Game.MVP.Survivor.Weapon
             Transform poolParent,
             Transform owner,
             float damageMultiplier,
-            SurvivorVfxSpawner vfxSpawner)
+            SurvivorWeaponVfxSpawner vfxSpawner)
         {
             _poolParent = poolParent;
             _weaponId = _weaponMaster.Id;
@@ -176,7 +176,6 @@ namespace Game.MVP.Survivor.Weapon
             _damageMultiplier = damageMultiplier;
             _attackTimer = 0f;
 
-            // ヒットエフェクト設定
             _vfxSpawner = vfxSpawner;
             _hitEffectAssetName = _weaponMaster.HitEffectAssetName;
             _hitEffectScale = _weaponMaster.HitEffectScale > 0
@@ -463,7 +462,7 @@ namespace Game.MVP.Survivor.Weapon
             Transform poolParent,
             Transform owner,
             float damageMultiplier,
-            SurvivorVfxSpawner vfxSpawner)
+            SurvivorWeaponVfxSpawner vfxSpawner)
         {
             await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner);
 

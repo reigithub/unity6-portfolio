@@ -21,6 +21,12 @@ namespace Game.Library.Shared.Realtime.Hubs
 
         [Key(3)]
         public int ServerPort { get; set; }
+
+        [Key(4)]
+        public string SessionToken { get; set; } = string.Empty;
+
+        [Key(5)]
+        public int StageId { get; set; }
     }
 
     /// <summary>

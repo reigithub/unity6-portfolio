@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Client.MasterData;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using R3;
 using UnityEngine;
 using VContainer;
@@ -18,6 +20,8 @@ namespace Game.MVP.Survivor.Services
     public class SurvivorStageWaveManager : IDisposable
     {
         [Inject] private readonly IMasterDataService _masterDataService;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Started> _waveStartedPublisher;
+        [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveCompletedPublisher;
 
         private readonly ReactiveProperty<int> _currentWave = new(0);
         private readonly ReactiveProperty<int> _enemiesThisWave = new(0);
@@ -26,10 +30,6 @@ namespace Game.MVP.Survivor.Services
         private readonly ReactiveProperty<int> _requiredBossKills = new(0);
         private readonly ReactiveProperty<int> _bossKills = new(0);
         private readonly ReactiveProperty<bool> _isAllWavesCleared = new(false);
-
-        // Waveクリアイベント（クリアしたWave番号を通知）
-        private readonly Subject<int> _onWaveCleared = new();
-        public Observable<int> OnWaveCleared => _onWaveCleared;
 
         // キルカウントイベント（目標数に達していない場合のみ発火）
         private readonly Subject<Unit> _onKillCounted = new();
@@ -153,8 +153,12 @@ namespace Game.MVP.Survivor.Services
 
             Debug.Log($"[SurvivorStageWaveManager] Wave {wave.WaveNumber} started. Spawn: {totalSpawnCount}, Target: {targetKillCount}, RequiredBoss: {requiredBossKills}");
 
-            // 最後にCurrentWaveを更新（サブスクライバーに通知）
+            // 最後にCurrentWaveを更新
             _currentWave.Value = wave.WaveNumber;
+
+            // ローカルシグナル発行（CurrentWave 更新後）
+            _waveStartedPublisher?.Publish(
+                new SurvivorSignals.Wave.Started(wave.WaveNumber, targetKillCount, totalSpawnCount));
         }
 
         public void OnEnemyKilled(bool isBoss = false)
@@ -179,9 +183,8 @@ namespace Game.MVP.Survivor.Services
 
             if (targetKillsReached && bossKillsReached)
             {
-                // Waveクリアイベントを発火（現在のWave番号を通知）
                 var clearedWave = _currentWave.Value;
-                _onWaveCleared.OnNext(clearedWave);
+                _waveCompletedPublisher?.Publish(new SurvivorSignals.Wave.Completed(clearedWave));
 
                 StartWave();
             }
@@ -218,7 +221,6 @@ namespace Game.MVP.Survivor.Services
             _requiredBossKills.Dispose();
             _bossKills.Dispose();
             _isAllWavesCleared.Dispose();
-            _onWaveCleared.Dispose();
             _onKillCounted.Dispose();
         }
     }

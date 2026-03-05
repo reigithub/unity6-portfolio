@@ -1,0 +1,23 @@
+{
+    "name": "Game.Unity.Server",
+    "rootNamespace": "Game.Unity.Server",
+    "references": [
+        "Game.Shared",
+        "Game.Library.Shared",
+        "UniTask",
+        "Mirror",
+        "Mirror.Transports",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_SERVER || UNITY_EDITOR"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

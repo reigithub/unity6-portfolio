@@ -38,6 +38,10 @@ public static class RealtimeServiceExtensions
         services.Configure<GameServerConfiguration>(
             configuration.GetSection("GameServer"));
 
+        // Unity Server Auth Settings (HMAC 署名用シークレット)
+        services.Configure<UnityServerAuthSettings>(
+            configuration.GetSection("UnityServerAuth"));
+
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();
 

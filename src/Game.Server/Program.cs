@@ -1,6 +1,7 @@
 using Game.Server.Database;
 using Game.Server.Extensions;
 using Game.Server.Filters;
+using Game.Server.Shared.Configuration;
 using Game.Server.Shared.Health;
 using Game.Server.Infrastructure;
 using Game.Server.Middleware;
@@ -18,6 +19,9 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
+        // .env → 環境変数（Docker 環境では no-op）
+        EnvVarLoader.Load();
+
         // Bootstrap logger（ホスト構築前のエラーもキャプチャ）
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
@@ -71,7 +75,7 @@ public partial class Program
         builder.Services.AddChatServices(builder.Configuration);
 
         // Health Checks
-        builder.Services.AddAppHealthChecks();
+        builder.Services.AddAppHealthChecks(builder.Configuration);
 
         // CORS（SignalR は AllowCredentials が必要）
         builder.Services.AddCors(options =>

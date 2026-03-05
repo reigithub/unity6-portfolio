@@ -13,11 +13,15 @@
         "Unity.ResourceManager",
         "DOTween.Modules",
         "Cysharp.Net.Http.YetAnotherHttpHandler",
-        "MagicOnion.Unity"
+        "MagicOnion.Unity",
+        "Mirror",
+        "Mirror.Transports",
+        "Unity.Collections",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

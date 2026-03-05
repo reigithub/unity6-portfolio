@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 15023, guid: 0000000000000000e000000000000000, type: 0}
+  m_Script: {fileID: 11500000, guid: d10b65e3c306d4012b52f19dca31ac8d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEditor.MultiplayerModule.dll::UnityEditor.Multiplayer.Internal.MultiplayerRolesSettings
+  m_EditorClassIdentifier: Unity.DedicatedServer.MultiplayerRoles.Editor::Unity.Multiplayer.Editor.MultiplayerRolesSettings
   m_MultiplayerRoleForClassicProfile:
     m_Keys: []
     m_Values: 

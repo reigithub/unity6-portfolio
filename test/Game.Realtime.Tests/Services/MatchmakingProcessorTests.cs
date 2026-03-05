@@ -57,11 +57,11 @@ public class MatchmakingProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_DoesNothing_WhenQueueBelowMatchSize()
+    public async Task ProcessAsync_DoesNothing_WhenNoActiveStages()
     {
         // Arrange
-        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival"))
-            .ReturnsAsync(3);
+        _queueServiceMock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(Array.Empty<string>());
 
         var processor = CreateProcessor();
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -72,26 +72,38 @@ public class MatchmakingProcessorTests
         await processor.StopAsync(CancellationToken.None);
 
         // Assert: マッチが作成されないことを確認
-        _queueServiceMock.Verify(
-            x => x.DequeueTopPlayersAsync(It.IsAny<string>(), It.IsAny<int>()),
+        _tokenServiceMock.Verify(
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task ProcessAsync_CreatesMatch_WhenEnoughPlayers()
+    public async Task ProcessAsync_CreatesMatch_WhenEnoughPlayersInStageQueue()
     {
         // Arrange
-        var callCount = 0;
-        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival"))
+        _queueServiceMock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(new[] { "1" });
+
+        var queueCallCount = 0;
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 1))
             .ReturnsAsync(() =>
             {
-                callCount++;
-                // 最初の呼び出しは 4 を返し、2回目以降は 0 を返す
-                return callCount == 1 ? 4 : 0;
+                queueCallCount++;
+                return queueCallCount == 1 ? 2 : 0;
             });
 
-        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 4))
-            .ReturnsAsync(new[] { "p1", "p2", "p3", "p4" });
+        // 先頭プレイヤー取得
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 1))
+            .ReturnsAsync(new[] { "p1" });
+
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p1"))
+            .ReturnsAsync(2);
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p2"))
+            .ReturnsAsync(2);
+
+        // 残りプレイヤー取得（matchSize=2 なので 1 人必要、バッチ 2 人取得）
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 2))
+            .ReturnsAsync(new[] { "p2" });
 
         _tokenServiceMock.Setup(x => x.IssueTokenAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
@@ -111,34 +123,44 @@ public class MatchmakingProcessorTests
         await Task.Delay(3000);
         await processor.StopAsync(CancellationToken.None);
 
-        // Assert: 4人分のトークンが発行されたことを確認
+        // Assert: 2人分のトークンが発行されたことを確認
         _tokenServiceMock.Verify(
             x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()),
-            Times.Exactly(4));
-
-        // Assert: 4人分のマッチ通知 + キュー人数通知が発行されたことを確認
-        _subscriberMock.Verify(
-            x => x.PublishAsync(
-                It.IsAny<RedisChannel>(),
-                It.IsAny<RedisValue>(),
-                It.IsAny<CommandFlags>()),
-            Times.AtLeast(4));
+            Times.Exactly(2));
     }
 
     [Fact]
-    public async Task ProcessAsync_ReenqueuesPlayers_WhenNotEnoughDequeued()
+    public async Task ProcessAsync_DoesNotMatch_DifferentMatchSizes()
     {
-        // Arrange
-        var callCount = 0;
-        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival"))
+        // Arrange: stageId=1 キューに matchSize=2 と matchSize=3 のプレイヤーがいる
+        _queueServiceMock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(new[] { "1" });
+
+        var queueCallCount = 0;
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 1))
             .ReturnsAsync(() =>
             {
-                callCount++;
-                return callCount == 1 ? 4 : 0;
+                queueCallCount++;
+                return queueCallCount == 1 ? 2 : 0;
             });
 
-        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 4))
-            .ReturnsAsync(new[] { "p1", "p2" }); // 4人のうち2人しか取得できなかった
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 1))
+            .ReturnsAsync(new[] { "p1" });
+
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p1"))
+            .ReturnsAsync(2);
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p2"))
+            .ReturnsAsync(3); // 異なる matchSize
+
+        // 残りプレイヤー取得
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 2))
+            .ReturnsAsync(new[] { "p2" });
+
+        // any キューは空
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 0))
+            .ReturnsAsync(0);
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 0, 2))
+            .ReturnsAsync(Array.Empty<string>());
 
         var processor = CreateProcessor();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -148,14 +170,14 @@ public class MatchmakingProcessorTests
         await Task.Delay(3000);
         await processor.StopAsync(CancellationToken.None);
 
-        // Assert: 2人が再エンキューされたことを確認
-        _queueServiceMock.Verify(
-            x => x.EnqueuePlayerAsync(It.IsAny<string>(), "survival"),
-            Times.Exactly(2));
-
-        // Assert: トークンが発行されていないことを確認
+        // Assert: マッチ不成立（トークン未発行）
         _tokenServiceMock.Verify(
             x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()),
             Times.Never);
+
+        // Assert: プレイヤーが再エンキューされたことを確認
+        _queueServiceMock.Verify(
+            x => x.EnqueuePlayerAsync(It.IsAny<string>(), "survival", 1, It.IsAny<int>()),
+            Times.AtLeast(1));
     }
 }

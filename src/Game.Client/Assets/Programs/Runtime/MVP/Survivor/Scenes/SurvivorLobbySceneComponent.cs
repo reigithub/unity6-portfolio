@@ -12,17 +12,17 @@ namespace Game.MVP.Survivor.Scenes
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;
 
-        private readonly Subject<(string lobbyName, int maxPlayers)> _onCreateClicked = new();
+        private readonly Subject<(string lobbyName, int maxPlayers, int stageId)> _onCreateClicked = new();
         private readonly Subject<string> _onJoinClicked = new();
         private readonly Subject<Unit> _onRefreshClicked = new();
-        private readonly Subject<Unit> _onQuickMatchClicked = new();
+        private readonly Subject<(int stageId, int matchSize)> _onQuickMatchClicked = new();
         private readonly Subject<Unit> _onCancelMatchmakingClicked = new();
         private readonly Subject<Unit> _onBackClicked = new();
 
-        public Observable<(string lobbyName, int maxPlayers)> OnCreateClicked => _onCreateClicked;
+        public Observable<(string lobbyName, int maxPlayers, int stageId)> OnCreateClicked => _onCreateClicked;
         public Observable<string> OnJoinClicked => _onJoinClicked;
         public Observable<Unit> OnRefreshClicked => _onRefreshClicked;
-        public Observable<Unit> OnQuickMatchClicked => _onQuickMatchClicked;
+        public Observable<(int stageId, int matchSize)> OnQuickMatchClicked => _onQuickMatchClicked;
         public Observable<Unit> OnCancelMatchmakingClicked => _onCancelMatchmakingClicked;
         public Observable<Unit> OnBackClicked => _onBackClicked;
 
@@ -35,6 +35,9 @@ namespace Game.MVP.Survivor.Scenes
         private Button _cancelMatchmakingButton;
         private TextField _lobbyNameInput;
         private SliderInt _maxPlayersSlider;
+        private SliderInt _stageIdSlider;
+        private SliderInt _quickMatchStageSlider;
+        private SliderInt _matchSizeSlider;
         private ScrollView _lobbyList;
         private Label _lobbyListEmpty;
         private VisualElement _matchmakingStatus;
@@ -70,6 +73,9 @@ namespace Game.MVP.Survivor.Scenes
             _cancelMatchmakingButton = _root.Q<Button>("cancel-matchmaking-button");
             _lobbyNameInput = _root.Q<TextField>("lobby-name-input");
             _maxPlayersSlider = _root.Q<SliderInt>("max-players-slider");
+            _stageIdSlider = _root.Q<SliderInt>("stage-id-slider");
+            _quickMatchStageSlider = _root.Q<SliderInt>("quick-match-stage-slider");
+            _matchSizeSlider = _root.Q<SliderInt>("match-size-slider");
             _lobbyList = _root.Q<ScrollView>("lobby-list");
             _lobbyListEmpty = _root.Q<Label>("lobby-list-empty");
             _matchmakingStatus = _root.Q<VisualElement>("matchmaking-status");
@@ -90,11 +96,16 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var lobbyName = _lobbyNameInput?.value ?? "My Lobby";
                 var maxPlayers = _maxPlayersSlider?.value ?? 4;
-                _onCreateClicked.OnNext((lobbyName, maxPlayers));
+                var stageId = _stageIdSlider?.value ?? 1;
+                _onCreateClicked.OnNext((lobbyName, maxPlayers, stageId));
             });
 
             _quickMatchButton?.RegisterCallback<ClickEvent>(_ =>
-                _onQuickMatchClicked.OnNext(Unit.Default));
+            {
+                var stageId = _quickMatchStageSlider?.value ?? 0;
+                var matchSize = _matchSizeSlider?.value ?? 2;
+                _onQuickMatchClicked.OnNext((stageId, matchSize));
+            });
 
             _cancelMatchmakingButton?.RegisterCallback<ClickEvent>(_ =>
                 _onCancelMatchmakingClicked.OnNext(Unit.Default));

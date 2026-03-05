@@ -36,7 +36,12 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// <summary>
         /// ゲーム開始通知
         /// </summary>
-        void OnGameStarting(string matchId, string serverAddress, int serverPort);
+        void OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken);
+
+        /// <summary>
+        /// ステージ変更通知
+        /// </summary>
+        void OnStageChanged(int stageId, string changedByUserId);
     }
 
     /// <summary>
@@ -64,5 +69,10 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// レディ状態を設定
         /// </summary>
         ValueTask SetReadyAsync(bool isReady);
+
+        /// <summary>
+        /// ステージを変更（ホストのみ）
+        /// </summary>
+        ValueTask SetStageAsync(int stageId);
     }
 }

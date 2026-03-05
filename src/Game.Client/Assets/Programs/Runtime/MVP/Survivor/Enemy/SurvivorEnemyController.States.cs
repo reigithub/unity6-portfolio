@@ -1,8 +1,8 @@
-using Cysharp.Threading.Tasks;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Events;
+using R3;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -28,9 +28,6 @@ namespace Game.MVP.Survivor.Enemy
 
         // StateMachine
         private StateMachine<SurvivorEnemyController, EnemyEvent> _stateMachine;
-
-        // Animator hash for Attack
-        private static readonly int AttackHash = Animator.StringToHash("Attack");
 
         private void InitializeStateMachine()
         {
@@ -90,16 +87,7 @@ namespace Game.MVP.Survivor.Enemy
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
 
-            if (_animator != null)
-            {
-                _animator.SetTrigger(HitHash);
-            }
-
-            // ヒットフラッシュ再生
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.PlayHitFlash();
-            }
+            _onHitReceived.OnNext(Unit.Default);
 
             shouldDie = _currentHp <= 0;
             return true;
@@ -146,10 +134,8 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
-                {
-                    ctx._animator.SetFloat(SpeedHash, 0f);
-                }
+                ctx.CurrentAnimationState = EnemyAnimationState.Idle;
+                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Idle);
             }
 
             public override void Update()
@@ -176,6 +162,9 @@ namespace Game.MVP.Survivor.Enemy
                 {
                     ctx._navAgent.isStopped = false;
                 }
+
+                ctx.CurrentAnimationState = EnemyAnimationState.Chase;
+                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Chase);
             }
 
             public override void Update()
@@ -200,12 +189,6 @@ namespace Game.MVP.Survivor.Enemy
                 if (ctx._navAgent != null && ctx._navAgent.isOnNavMesh)
                 {
                     ctx._navAgent.SetDestination(ctx._target.position);
-
-                    if (ctx._animator != null)
-                    {
-                        float speed = ctx._navAgent.velocity.magnitude / Mathf.Max(ctx._navAgent.speed, 0.01f);
-                        ctx._animator.SetFloat(SpeedHash, speed);
-                    }
                 }
             }
         }
@@ -223,10 +206,8 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
-                {
-                    ctx._animator.SetFloat(SpeedHash, 0f);
-                }
+                ctx.CurrentAnimationState = EnemyAnimationState.Attack;
+                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Attack);
             }
 
             public override void Update()
@@ -276,12 +257,6 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private void PerformAttack()
         {
-            // 攻撃アニメーション
-            if (_animator != null)
-            {
-                _animator.SetTrigger(AttackHash);
-            }
-
             // ターゲットへのダメージ
             if (_target == null) return;
 
@@ -314,10 +289,8 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
-                if (ctx._animator != null)
-                {
-                    ctx._animator.SetFloat(SpeedHash, 0f);
-                }
+                ctx.CurrentAnimationState = EnemyAnimationState.HitStun;
+                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.HitStun);
             }
 
             public override void Update()
@@ -365,26 +338,17 @@ namespace Game.MVP.Survivor.Enemy
                 _collider.enabled = false;
             }
 
-            if (_animator != null)
-            {
-                _animator.SetTrigger(DeathHash);
-            }
+            CurrentAnimationState = EnemyAnimationState.Death;
+            _onAnimationStateChanged.OnNext(EnemyAnimationState.Death);
 
-            // 既存イベント（後方互換性）
+            // ゲームロジック（イベント）は常に実行
             _onDeath.OnNext(this);
 
-            // IDeathNotifier経由のイベント（抽象化されたデータ）
             _onDeathEvent.OnNext(new DeathEventData(
                 transform.position,
                 _itemDropGroupId,
                 _expDropGroupId
             ));
-
-            // ディゾルブエフェクト再生
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.PlayDeathDissolveAsync(destroyCancellationToken).Forget();
-            }
         }
 
         /// <summary>

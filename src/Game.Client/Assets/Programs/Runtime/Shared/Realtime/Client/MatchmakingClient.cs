@@ -21,6 +21,7 @@ namespace Game.Shared.Realtime.Client
         private IMatchmakingHub _hub;
         private CancellationTokenSource _monitorCts;
         private string _currentGameMode;
+        private int _currentStageId;
         private bool _disposed;
 
         public bool IsSearching { get; private set; }
@@ -45,13 +46,13 @@ namespace Game.Shared.Realtime.Client
             return MagicOnionClient.Create<IMatchmakingService>(channel, _filters);
         }
 
-        public async Task<MatchmakingResponse> StartMatchmakingAsync(string gameMode)
+        public async Task<MatchmakingResponse> StartMatchmakingAsync(string gameMode, int stageId = 0, int matchSize = 2)
         {
             try
             {
                 // Unary: キューに登録
                 var response = await CreateService().EnqueueAsync(
-                    new MatchmakingRequest { GameMode = gameMode });
+                    new MatchmakingRequest { GameMode = gameMode, StageId = stageId, MatchSize = matchSize });
 
                 if (!response.Success)
                 {
@@ -72,6 +73,7 @@ namespace Game.Shared.Realtime.Client
                 await _hub.SubscribeAsync(gameMode);
 
                 _currentGameMode = gameMode;
+                _currentStageId = stageId;
                 IsSearching = true;
 
                 // 切断監視
@@ -98,7 +100,7 @@ namespace Game.Shared.Realtime.Client
             try
             {
                 await CreateService().DequeueAsync(
-                    new MatchmakingRequest { GameMode = _currentGameMode });
+                    new MatchmakingRequest { GameMode = _currentGameMode, StageId = _currentStageId });
 
                 _monitorCts?.Cancel();
                 _monitorCts?.Dispose();

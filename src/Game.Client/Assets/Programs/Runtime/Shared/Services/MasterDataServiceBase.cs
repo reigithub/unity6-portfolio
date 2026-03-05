@@ -38,7 +38,7 @@ namespace Game.Shared.Services
                         "Master data binary is empty or corrupted");
                 }
 
-                MemoryDatabase = new MemoryDatabase(asset.bytes, maxDegreeOfParallelism: Environment.ProcessorCount);
+                MemoryDatabase = new MemoryDatabase(asset.bytes, maxDegreeOfParallelism: System.Environment.ProcessorCount);
                 Debug.Log($"[{GetType().Name}] Master data loaded successfully.");
             }
             catch (MasterDataLoadException)

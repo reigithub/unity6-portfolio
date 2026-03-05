@@ -117,11 +117,18 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddAppHealthChecks(this IServiceCollection services)
+    public static IServiceCollection AddAppHealthChecks(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddHealthChecks()
-            .AddCheck<ValkeyHealthCheck>("valkey", tags: new[] { "ready" })
+        var builder = services.AddHealthChecks()
             .AddCheck<PostgresHealthCheck>("postgres", tags: new[] { "ready" });
+
+        if (configuration.GetValue("HealthChecks:Valkey:Enabled", true))
+        {
+            builder.AddCheck<ValkeyHealthCheck>("valkey", tags: new[] { "ready" });
+        }
+
         return services;
     }
 

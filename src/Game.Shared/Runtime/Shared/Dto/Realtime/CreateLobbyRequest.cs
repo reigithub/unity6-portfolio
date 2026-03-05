@@ -28,5 +28,8 @@ namespace Game.Library.Shared.Dto
         [Required]
         [StringLength(50, MinimumLength = 1)]
         public string PlayerName { get; set; } = string.Empty;
+
+        [Key(5)]
+        public int StageId { get; set; } = 1;
     }
 }

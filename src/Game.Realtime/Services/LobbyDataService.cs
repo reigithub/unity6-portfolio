@@ -26,7 +26,7 @@ public class LobbyDataService : ILobbyDataService
     }
 
     public async Task<string?> CreateAsync(
-        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic)
+        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic, int stageId = 1)
     {
         var db = _redis.GetDatabase();
         var lobbyId = Guid.NewGuid().ToString("N");
@@ -47,6 +47,7 @@ public class LobbyDataService : ILobbyDataService
             new("gameMode", gameMode),
             new("maxPlayers", maxPlayers),
             new("isPublic", isPublic ? "1" : "0"),
+            new("stageId", stageId),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
         };
         await db.HashSetAsync(lobbyKey, entries);
@@ -150,6 +151,7 @@ public class LobbyDataService : ILobbyDataService
             CurrentPlayers = checked((int)playerCount),
             MaxPlayers = dict.GetInt("maxPlayers", 4),
             IsPublic = dict.GetBool("isPublic"),
+            StageId = dict.GetInt("stageId", 1),
         };
     }
 
@@ -221,6 +223,7 @@ public class LobbyDataService : ILobbyDataService
                     CurrentPlayers = playerCount,
                     MaxPlayers = mp,
                     IsPublic = dict.GetBool("isPublic"),
+                    StageId = dict.GetInt("stageId", 1),
                 });
             }
         }
@@ -290,6 +293,12 @@ public class LobbyDataService : ILobbyDataService
         }
 
         return hash.Length > 0;
+    }
+
+    public async Task SetStageAsync(string lobbyId, int stageId)
+    {
+        var db = _redis.GetDatabase();
+        await db.HashSetAsync($"lobby:{lobbyId}", "stageId", stageId);
     }
 
     public async Task DeleteAsync(string lobbyId)

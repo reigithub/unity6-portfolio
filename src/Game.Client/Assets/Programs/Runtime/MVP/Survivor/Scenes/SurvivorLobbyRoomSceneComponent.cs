@@ -15,10 +15,12 @@ namespace Game.MVP.Survivor.Scenes
         private readonly Subject<Unit> _onReadyClicked = new();
         private readonly Subject<string> _onSendMessageClicked = new();
         private readonly Subject<Unit> _onLeaveClicked = new();
+        private readonly Subject<int> _onStageChangeClicked = new();
 
         public Observable<Unit> OnReadyClicked => _onReadyClicked;
         public Observable<string> OnSendMessageClicked => _onSendMessageClicked;
         public Observable<Unit> OnLeaveClicked => _onLeaveClicked;
+        public Observable<int> OnStageChangeClicked => _onStageChangeClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -31,6 +33,10 @@ namespace Game.MVP.Survivor.Scenes
         private ScrollView _chatMessages;
         private TextField _chatInput;
         private Label _notificationLabel;
+        private Label _stageLabel;
+        private SliderInt _stageSlider;
+        private Button _stageChangeButton;
+        private VisualElement _stageChangeContainer;
 
         // Player tracking
         private readonly Dictionary<string, VisualElement> _playerElements = new();
@@ -42,6 +48,7 @@ namespace Game.MVP.Survivor.Scenes
             _onReadyClicked.Dispose();
             _onSendMessageClicked.Dispose();
             _onLeaveClicked.Dispose();
+            _onStageChangeClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -64,6 +71,10 @@ namespace Game.MVP.Survivor.Scenes
             _chatMessages = _root.Q<ScrollView>("chat-messages");
             _chatInput = _root.Q<TextField>("chat-input");
             _notificationLabel = _root.Q<Label>("notification-label");
+            _stageLabel = _root.Q<Label>("stage-label");
+            _stageSlider = _root.Q<SliderInt>("stage-slider");
+            _stageChangeButton = _root.Q<Button>("stage-change-button");
+            _stageChangeContainer = _root.Q<VisualElement>("stage-change-container");
         }
 
         private void SetupEventHandlers()
@@ -85,6 +96,12 @@ namespace Game.MVP.Survivor.Scenes
                         _chatInput.value = string.Empty;
                     }
                 }
+            });
+
+            _stageChangeButton?.RegisterCallback<ClickEvent>(_ =>
+            {
+                var stageId = _stageSlider?.value ?? 1;
+                _onStageChangeClicked.OnNext(stageId);
             });
 
             // Enter キーでも送信
@@ -215,6 +232,26 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _notificationLabel.text = message;
                 _notificationLabel.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        public void SetStageInfo(int stageId)
+        {
+            if (_stageLabel != null)
+            {
+                _stageLabel.text = $"Stage: {stageId}";
+            }
+            if (_stageSlider != null)
+            {
+                _stageSlider.SetValueWithoutNotify(stageId);
+            }
+        }
+
+        public void SetStageChangeVisible(bool visible)
+        {
+            if (_stageChangeContainer != null)
+            {
+                _stageChangeContainer.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             }
         }
 

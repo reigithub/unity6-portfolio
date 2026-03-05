@@ -16,6 +16,12 @@
             <ui:VisualElement name="player-list-panel" class="player-list-panel">
                 <ui:Label text="PLAYERS" class="panel-title" />
                 <ui:ScrollView name="player-list" class="player-list" />
+                <!-- Stage Info -->
+                <ui:Label text="Stage: 1" name="stage-label" class="stage-label" />
+                <ui:VisualElement name="stage-change-container" class="stage-change-container" style="display: none;">
+                    <ui:SliderInt name="stage-slider" label="Stage" low-value="1" high-value="10" value="1" show-input-field="true" class="slider-field" />
+                    <ui:Button text="CHANGE STAGE" name="stage-change-button" class="action-button" />
+                </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- Right: Chat -->

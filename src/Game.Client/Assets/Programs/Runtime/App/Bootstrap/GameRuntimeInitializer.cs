@@ -9,6 +9,18 @@ namespace Game.App.Bootstrap
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {
+#if UNITY_SERVER
+            // Dedicated Server では UnityServerBootstrap が初期化を担当
+            // クライアント専用の UI/シーンロード/gRPC クライアント初期化をスキップ
+            return;
+#endif
+
+#if UNITY_EDITOR
+            // MPPM Server タグの場合は UnityServerBootstrap が初期化を担当
+            if (Game.Shared.Multiplayer.MppmHelper.IsServer())
+                return;
+#endif
+
             // 1. モジュール初期化（SubsystemRegistration で登録されたコールバック）
             RuntimeInitializerRegistry.ExecuteAll();
 

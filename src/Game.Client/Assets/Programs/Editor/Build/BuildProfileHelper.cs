@@ -53,6 +53,32 @@ namespace Game.Editor.Build
         }
 
         /// <summary>
+        /// Build Profile を検索（サーバー対応オーバーロード）
+        /// </summary>
+        public static string FindBuildProfilePath(BuildTarget target, bool isServer,
+            string variant = null)
+        {
+            var platformName = isServer
+                ? GetServerPlatformName(target)
+                : GetPlatformName(target);
+
+            var searchPattern = string.IsNullOrEmpty(variant)
+                ? $"{platformName} - Release"
+                : $"{platformName} - {variant}";
+
+            var guids = AssetDatabase.FindAssets($"t:BuildProfile {searchPattern}",
+                new[] { BuildProfilesFolder });
+
+            if (guids.Length > 0)
+            {
+                return AssetDatabase.GUIDToAssetPath(guids[0]);
+            }
+
+            Debug.LogWarning($"[BuildProfile] Profile not found: {searchPattern}");
+            return null;
+        }
+
+        /// <summary>
         /// Build Profile を読み込み
         /// </summary>
         public static BuildProfile LoadBuildProfile(string profilePath)
@@ -127,6 +153,20 @@ namespace Game.Editor.Build
                 BuildTarget.Android => "Android",
                 BuildTarget.iOS => "iOS",
                 _ => target.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Dedicated Server 用のプラットフォーム名を取得
+        /// </summary>
+        public static string GetServerPlatformName(BuildTarget target)
+        {
+            return target switch
+            {
+                BuildTarget.StandaloneWindows64 => "Windows Server",
+                BuildTarget.StandaloneLinux64 => "Linux Server",
+                BuildTarget.StandaloneOSX => "macOS Server",
+                _ => $"{target} Server"
             };
         }
     }

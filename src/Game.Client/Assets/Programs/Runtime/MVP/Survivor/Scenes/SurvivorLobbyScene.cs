@@ -3,6 +3,8 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.SaveData;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using R3;
@@ -17,6 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly IMatchmakingClient _matchmakingClient;
         [Inject] private readonly IAuthSessionService _authSessionService;
+        [Inject] private readonly ISurvivorSaveService _saveService;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyScene";
 
@@ -30,7 +33,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // View イベント購読
             SceneComponent.OnCreateClicked
-                .Subscribe(args => OnCreate(args.lobbyName, args.maxPlayers).Forget())
+                .Subscribe(args => OnCreate(args.lobbyName, args.maxPlayers, args.stageId).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnJoinClicked
@@ -42,7 +45,7 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             SceneComponent.OnQuickMatchClicked
-                .Subscribe(_ => OnQuickMatch().Forget())
+                .Subscribe(args => OnQuickMatch(args.stageId, args.matchSize).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnCancelMatchmakingClicked
@@ -113,7 +116,7 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnCreate(string lobbyName, int maxPlayers)
+        private async UniTaskVoid OnCreate(string lobbyName, int maxPlayers, int stageId)
         {
             SceneComponent.SetInteractables(false);
             SceneComponent.ClearError();
@@ -127,7 +130,8 @@ namespace Game.MVP.Survivor.Scenes
                     GameMode = "survival",
                     MaxPlayers = maxPlayers,
                     IsPublic = true,
-                    PlayerName = playerName
+                    PlayerName = playerName,
+                    StageId = stageId
                 };
 
                 var response = await _lobbyClient.CreateLobbyAsync(request);
@@ -174,7 +178,7 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnQuickMatch()
+        private async UniTaskVoid OnQuickMatch(int stageId, int matchSize)
         {
             SceneComponent.SetInteractables(false);
             SceneComponent.ClearError();
@@ -184,7 +188,7 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.ShowMatchmaking(true);
                 SceneComponent.SetInteractables(true);
 
-                var response = await _matchmakingClient.StartMatchmakingAsync("survival");
+                var response = await _matchmakingClient.StartMatchmakingAsync("survival", stageId, matchSize);
                 if (!response.Success)
                 {
                     SceneComponent.ShowMatchmaking(false);
@@ -205,12 +209,20 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(
+                result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1);
+            SurvivorNetworkMatchConnector.StoreMatchResult(result);
             SceneComponent.SetInteractables(false);
 
             try
             {
+                // セッション開始（stageId は MatchResult から取得）
+                var playerId = _saveService.Data.SelectedPlayerId;
+                _saveService.StartSession(result.StageId, playerId);
+                await _saveService.SaveIfDirtyAsync();
+
                 await _matchmakingClient.DisconnectAsync();
-                await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
+                await _sceneService.TransitionAsync<SurvivorStageConnectScene>();
             }
             catch (Exception ex)
             {

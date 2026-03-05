@@ -1,32 +1,43 @@
-using System.Security.Cryptography;
+using System.Text;
+using Game.Library.Shared.RequestSigning;
 using Game.Server.Shared.Extensions;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace Game.Realtime.Services;
 
 /// <summary>
-/// Valkey ベースのマッチセッショントークンサービス実装
+/// HMAC + Valkey ハイブリッドのマッチセッショントークンサービス。
+/// トークン自体に HMAC 署名を埋め込み、Dedicated Server は HMAC のみで検証可能。
+/// Valkey には引き続き保存し、失効管理やトークン追跡に使用する。
 /// </summary>
 public class MatchSessionTokenService : IMatchSessionTokenService
 {
     private const string KeyPrefix = "session:token:";
-    private static readonly TimeSpan DefaultExpiry = TimeSpan.FromMinutes(5);
 
     private readonly IConnectionMultiplexer _redis;
+    private readonly byte[] _secretKey;
     private readonly ILogger<MatchSessionTokenService> _logger;
 
-    public MatchSessionTokenService(IConnectionMultiplexer redis, ILogger<MatchSessionTokenService> logger)
+    public MatchSessionTokenService(
+        IConnectionMultiplexer redis,
+        IOptions<UnityServerAuthSettings> settings,
+        ILogger<MatchSessionTokenService> logger)
     {
         _redis = redis;
+        _secretKey = Encoding.UTF8.GetBytes(settings.Value.SecretKey);
         _logger = logger;
     }
 
     public async Task<string> IssueTokenAsync(string userId, string matchId, TimeSpan? expiry = null)
     {
-        var token = GenerateSecureToken();
-        var tokenExpiry = expiry ?? DefaultExpiry;
+        var tokenExpiry = expiry ?? SessionTokenHelper.DefaultExpiry;
         var expiresAt = DateTimeOffset.UtcNow.Add(tokenExpiry);
 
+        // HMAC 署名付きトークン生成
+        var token = SessionTokenHelper.CreateToken(_secretKey, userId, matchId);
+
+        // Valkey にも保存（失効管理・追跡用）
         var info = new SessionTokenInfo
         {
             UserId = userId,
@@ -39,26 +50,37 @@ public class MatchSessionTokenService : IMatchSessionTokenService
         await db.StringSetAsync($"{KeyPrefix}{token}", serialized, tokenExpiry);
 
         _logger.LogInformation(
-            "Issued session token for user {UserId}, match {MatchId}, expires at {ExpiresAt}",
-            userId,
-            matchId,
-            expiresAt);
+            "Issued HMAC session token for user {UserId}, match {MatchId}",
+            userId, matchId);
 
         return token;
     }
 
     public async Task<SessionTokenInfo?> ValidateTokenAsync(string token)
     {
-        var db = _redis.GetDatabase();
-        var value = await db.StringGetAsync($"{KeyPrefix}{token}");
-
-        if (value.IsNullOrEmpty)
+        // Step 1: HMAC 署名検証（Valkey 不要、ローカルで完結）
+        var parsed = SessionTokenHelper.ParseAndVerify(token, _secretKey);
+        if (parsed == null)
         {
-            _logger.LogDebug("Session token not found or expired: {Token}", token[..Math.Min(8, token.Length)]);
+            _logger.LogDebug("HMAC verification failed for token");
             return null;
         }
 
-        return JsonHelper.TryDeserialize<SessionTokenInfo>(value!, _logger, $"session token {token[..Math.Min(8, token.Length)]}");
+        // Step 2: Valkey で失効チェック（revoke 済み or 期限切れ → null）
+        var db = _redis.GetDatabase();
+        var value = await db.StringGetAsync($"{KeyPrefix}{token}");
+        if (value.IsNullOrEmpty)
+        {
+            _logger.LogDebug("Token revoked or expired in Valkey");
+            return null;
+        }
+
+        return new SessionTokenInfo
+        {
+            UserId = parsed.UserId,
+            MatchId = parsed.MatchId,
+            ExpiresAt = parsed.IssuedAt.Add(SessionTokenHelper.DefaultExpiry),
+        };
     }
 
     public async Task RevokeTokenAsync(string token)
@@ -67,14 +89,5 @@ public class MatchSessionTokenService : IMatchSessionTokenService
         await db.KeyDeleteAsync($"{KeyPrefix}{token}");
 
         _logger.LogInformation("Revoked session token: {Token}", token[..Math.Min(8, token.Length)]);
-    }
-
-    private static string GenerateSecureToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes)
-            .Replace("+", "-")
-            .Replace("/", "_")
-            .TrimEnd('=');
     }
 }

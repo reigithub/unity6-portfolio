@@ -1,0 +1,28 @@
+# docker/unity-server/prod/docker-compose.yml
+# Unity Dedicated Server ローカルプロダクションテスト用
+#
+# 使用方法:
+#   cd E:\UnityProjects\Unity6Portfolio
+#   docker compose -f docker/unity-server/prod/docker-compose.yml up --build
+#
+# GCE へのデプロイは deploy.sh / deploy.ps1 を使用
+
+services:
+  unity-server:
+    image: unity-server-linux-prod
+    container_name: unity-server-linux-prod
+    build:
+      context: ../../../src/Game.Client/Builds/Server/Linux
+      dockerfile: ../../../docker/unity-server/Dockerfile
+    ports:
+      - "7777:7777/udp"
+      - "7778:7778/tcp"
+    environment:
+      - UNITY_SERVER_AUTH_SESSION_SECRET=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
+    command: ["--port", "7777", "--health-port", "7778", "--players", "${MAX_PLAYERS:-4}", "--secret", "${UNITY_SERVER_AUTH_SESSION_SECRET}"]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7778' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s

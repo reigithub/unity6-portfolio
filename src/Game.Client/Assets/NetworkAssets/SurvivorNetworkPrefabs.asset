@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c96a4870dd919be478b1143f643f4fcc, type: 3}
+  m_Name: SurvivorNetworkPrefabs
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SurvivorNetworkPrefabs
+  Prefabs:
+  - {fileID: 3069845829433876726, guid: 291b65622ee9c964cb3901eb4f3faf18, type: 3}
+  - {fileID: 4231198498503375956, guid: f2042fd8ab8478a488a4a0bb04dadfe8, type: 3}
+  - {fileID: 4697431931951254797, guid: d109545e491eb9b409c8c8106a765452, type: 3}
+  - {fileID: 2695007832797641507, guid: fd4f458f9b2a09043a16f442844c44cd, type: 3}

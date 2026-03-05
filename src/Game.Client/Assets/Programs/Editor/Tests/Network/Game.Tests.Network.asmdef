@@ -1,0 +1,30 @@
+{
+    "name": "Game.Tests.Network",
+    "rootNamespace": "Game.Tests.Network",
+    "references": [
+        "Game.Shared",
+        "Game.Library.Shared",
+        "Mirror",
+        "Mirror.Transports",
+        "Unity.Collections",
+        "UniTask",
+        "MessagePipe",
+        "VContainer"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NSubstitute.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

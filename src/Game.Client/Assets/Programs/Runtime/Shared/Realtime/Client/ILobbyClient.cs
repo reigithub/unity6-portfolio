@@ -70,6 +70,11 @@ namespace Game.Shared.Realtime.Client
         Task SetReadyAsync(bool isReady);
 
         /// <summary>
+        /// ステージ変更（Hub、ホストのみ）
+        /// </summary>
+        Task SetStageAsync(int stageId);
+
+        /// <summary>
         /// 自分が参加中のロビーを取得（未参加時は null）
         /// </summary>
         Task<LobbyInfo> GetMyLobbyAsync();
@@ -95,14 +100,19 @@ namespace Game.Shared.Realtime.Client
         event Action<string, bool> OnPlayerReadyChanged;
 
         /// <summary>
-        /// ゲーム開始イベント
+        /// ゲーム開始イベント (matchId, serverAddress, serverPort, sessionToken)
         /// </summary>
-        event Action<string, string, int> OnGameStarting;
+        event Action<string, string, int, string> OnGameStarting;
 
         /// <summary>
         /// ロビー閉鎖イベント (reason)
         /// </summary>
         event Action<string> OnLobbyClosed;
+
+        /// <summary>
+        /// ステージ変更イベント (stageId, changedByUserId)
+        /// </summary>
+        event Action<int, string> OnStageChanged;
 
         /// <summary>
         /// 予期しない切断イベント (reason)

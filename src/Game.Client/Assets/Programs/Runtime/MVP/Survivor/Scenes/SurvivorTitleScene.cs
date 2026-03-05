@@ -5,6 +5,7 @@ using Game.MVP.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services.Network;
 using R3;
 using UnityEngine;
@@ -33,7 +34,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // Viewのイベントを購読
             SceneComponent.OnStartGameClicked
-                .Subscribe(_ => OnStartGame().Forget())
+                .Subscribe(_ => OnStartGame())
                 .AddTo(Disposables);
 
             SceneComponent.OnSinglePlayerClicked
@@ -79,9 +80,8 @@ namespace Game.MVP.Survivor.Scenes
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameReady);
         }
 
-        private async UniTaskVoid OnStartGame()
+        private void OnStartGame()
         {
-            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
             SceneComponent.ShowPlayModeMenu();
         }
 
@@ -97,6 +97,8 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(1);
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 
@@ -118,6 +120,7 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
             await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
 

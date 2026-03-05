@@ -11,6 +11,9 @@ public static class AutoPackageInstaller {
 
     [InitializeOnLoadMethod]
     static void AutoPackageInstaller_OnLoad() {
+        if (!global::Unity.Multiplayer.PlayMode.CurrentPlayer.IsMainEditor)
+            return;
+
         EditorUtility.ClearProgressBar();
         m_packageListRequest = Client.List( /*offlineMode= */true, /*includeIndirectDependencies= */ true);
 
@@ -19,7 +22,7 @@ public static class AutoPackageInstaller {
     }
 
 
-//----------------------------------------------------------------------------------------------------------------------    
+//----------------------------------------------------------------------------------------------------------------------
     static void UpdateRequestJobs() {
 
         if (StatusCode.Failure == m_packageListRequest.Status) {
@@ -48,10 +51,10 @@ public static class AutoPackageInstaller {
         }
 
         EndAutoInstall();
-        
+
     }
 
-//----------------------------------------------------------------------------------------------------------------------    
+//----------------------------------------------------------------------------------------------------------------------
 
     static void CancelAutoInstall() {
         EndAutoInstall();
@@ -60,7 +63,7 @@ public static class AutoPackageInstaller {
 
     static void EndAutoInstall() {
         EditorApplication.update -= UpdateRequestJobs;
-        EditorUtility.ClearProgressBar();     
+        EditorUtility.ClearProgressBar();
     }
 
 

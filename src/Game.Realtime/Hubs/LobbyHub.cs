@@ -1,9 +1,11 @@
+using System.Collections.Concurrent;
 using System.Threading;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
 using Game.Server.Shared.Extensions;
 using Grpc.Core;
+using MagicOnion;
 using MagicOnion.Server.Hubs;
 using Microsoft.Extensions.Options;
 
@@ -20,6 +22,9 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private readonly IMatchSessionTokenService _tokenService;
     private readonly GameServerConfiguration _gameServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
+
+    // lobby ごとの userId → ConnectionId マッピング（Hub はリクエストごとにインスタンス生成のため static）
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Guid>> LobbyConnections = new();
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -55,6 +60,10 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         _currentGroup = await Group.AddAsync(lobbyId);
 
+        // userId → ConnectionId マッピングを記録
+        var lobbyMap = LobbyConnections.GetOrAdd(lobbyId, _ => new ConcurrentDictionary<string, Guid>());
+        lobbyMap[_userId] = ConnectionId;
+
         _logger.LogInformation(
             "Player {PlayerName} ({UserId}) connected to lobby {LobbyId}",
             playerName, _userId, lobbyId);
@@ -87,6 +96,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
             if (!string.IsNullOrEmpty(_lobbyId))
             {
+                if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
+                    lobbyMap.TryRemove(_userId, out _);
                 await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
             }
         }
@@ -103,6 +114,26 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         }
 
         return default;
+    }
+
+    public async ValueTask SetStageAsync(int stageId)
+    {
+        if (string.IsNullOrEmpty(_lobbyId)) return;
+
+        // ホストのみ変更可能
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        if (lobby == null || lobby.HostUserId != _userId)
+        {
+            throw new ReturnStatusException(StatusCode.PermissionDenied, "Only the host can change the stage");
+        }
+
+        await _lobbyDataService.SetStageAsync(_lobbyId, stageId);
+
+        _currentGroup?.All.OnStageChanged(stageId, _userId);
+
+        _logger.LogInformation(
+            "Host {UserId} changed stage to {StageId} in lobby {LobbyId}",
+            _userId, stageId, _lobbyId);
     }
 
     public async ValueTask SetReadyAsync(bool isReady)
@@ -139,12 +170,18 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         var matchId = Guid.NewGuid().ToString("N");
 
+        // プレイヤーごとに個別トークンを発行して送信
+        LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
         foreach (var player in players)
         {
-            await _tokenService.IssueTokenAsync(player.UserId, matchId);
-        }
+            var token = await _tokenService.IssueTokenAsync(player.UserId, matchId);
 
-        _currentGroup.All.OnGameStarting(matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort);
+            if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
+            {
+                _currentGroup.Only(new[] { connId }).OnGameStarting(
+                    matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort, token);
+            }
+        }
 
         _logger.LogInformation(
             "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
@@ -178,6 +215,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         if (!string.IsNullOrEmpty(_lobbyId))
         {
+            if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
+                lobbyMap.TryRemove(_userId, out _);
             await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
         }
 

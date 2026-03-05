@@ -25,5 +25,8 @@ namespace Game.Library.Shared.Dto
 
         [Key(6)]
         public bool IsPublic { get; set; }
+
+        [Key(7)]
+        public int StageId { get; set; }
     }
 }
