@@ -17,6 +17,12 @@ namespace Game.Unity.Server
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
+#if !UNITY_SERVER
+            // Editor: MPPM Server タグの場合のみ起動
+            if (!Game.Shared.Multiplayer.MppmHelper.IsServer())
+                return;
+#endif
+
             Debug.Log("[ServerBootstrap] ========================================");
             Debug.Log("[ServerBootstrap] Dedicated Server starting...");
             Debug.Log($"[ServerBootstrap] BatchMode: {Application.isBatchMode}");

@@ -67,17 +67,27 @@ namespace Game.MVP.Survivor.Scenes
 
                 // Phase 1: ネットワーク初期化（モード別）
 #if !UNITY_SERVER
+#if UNITY_EDITOR
+                if (Game.Shared.Multiplayer.MppmHelper.IsActive())
+                {
+                    // MPPM: タグに従いローカルロールで起動（MatchResult は無視）
+                    await StartEditorNetworkAsync(stageId);
+                }
+                else if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                {
+                    // Non-MPPM SP: Host モードで起動
+                    await StartEditorNetworkAsync(stageId);
+                }
+                // else: Non-MPPM + MatchResult → 外部サーバー接続（Phase 2）
+#else
                 if (!SurvivorNetworkMatchConnector.HasMatchResult)
                 {
-#if UNITY_EDITOR
-                    await StartEditorNetworkAsync(stageId);
-#else
                     // 配布ビルド SP: Orchestrator で全サービス起動
                     SceneComponent.SetStatus("Starting local server...");
                     await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
                     SurvivorNetworkMatchConnector.SetLocalServer(_localServerOrchestrator.HeadlessServerPort);
-#endif
                 }
+#endif
 #endif
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
@@ -124,22 +134,22 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private async UniTask StartEditorNetworkAsync(int stageId)
         {
-            var role = Game.Shared.Network.EditorNetworkRole.Resolve();
+            var role = Game.Shared.Multiplayer.MppmHelper.ResolveTag();
 
             switch (role)
             {
-                case Game.Shared.Network.EditorNetworkRole.Mode.Host:
+                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Host:
                     Debug.Log("[SurvivorStageConnectScene] Editor Host mode: starting host...");
                     SceneComponent.SetStatus("Starting host...");
                     await _networkConnector.StartHostAsync(stageId);
                     break;
 
-                case Game.Shared.Network.EditorNetworkRole.Mode.Client:
+                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Client:
                     Debug.Log("[SurvivorStageConnectScene] Editor Client mode: will connect to localhost:7777...");
                     SurvivorNetworkMatchConnector.SetLocalServer(7777);
                     break;
 
-                case Game.Shared.Network.EditorNetworkRole.Mode.Server:
+                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Server:
                     Debug.Log("[SurvivorStageConnectScene] Editor Server-only mode: starting server...");
                     SceneComponent.SetStatus("Starting server...");
                     await _networkConnector.StartServerAsync(stageId);

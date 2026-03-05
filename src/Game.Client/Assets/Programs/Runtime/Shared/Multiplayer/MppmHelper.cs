@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -16,6 +17,32 @@ namespace Game.Shared.Multiplayer
 
         private static bool? _isClone;
         private static string _cloneId;
+
+        public enum MppmTag { None, Host, Client, Server }
+
+        public static IReadOnlyList<string> GetCurrentPlayerTags()
+            => global::Unity.Multiplayer.PlayMode.CurrentPlayer.Tags;
+
+        public static MppmTag ResolveTag()
+        {
+            var tags = GetCurrentPlayerTags();
+            if (tags.Contains("Server"))
+                return MppmTag.Server;
+            if (tags.Contains("Client"))
+                return MppmTag.Client;
+            if (tags.Contains("Host"))
+                return MppmTag.Host;
+
+            return MppmTag.None;
+        }
+
+        public static bool IsActive() => GetCurrentPlayerTags().Count > 0;
+
+        public static bool IsHost() => ResolveTag() == MppmTag.Host;
+
+        public static bool IsClient() => ResolveTag() == MppmTag.Client;
+
+        public static bool IsServer() => ResolveTag() == MppmTag.Server;
 
         /// <summary>
         /// 現在のプロセスがMPPMクローンかどうか

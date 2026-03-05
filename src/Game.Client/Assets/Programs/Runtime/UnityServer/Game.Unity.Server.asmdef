@@ -16,7 +16,7 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "UNITY_SERVER"
+        "UNITY_SERVER || UNITY_EDITOR"
     ],
     "versionDefines": [],
     "noEngineReferences": false
