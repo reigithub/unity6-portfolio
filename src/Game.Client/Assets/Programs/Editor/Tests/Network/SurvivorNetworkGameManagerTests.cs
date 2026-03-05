@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Game.Shared.Network.Survivor;
+using Mirror;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -24,6 +25,7 @@ namespace Game.Tests.Network
         public void Setup()
         {
             _go = new GameObject("TestGameManager");
+            _go.AddComponent<NetworkIdentity>();
             _manager = _go.AddComponent<SurvivorNetworkGameManager>();
 
             // リフレクションでプライベートフィールドを取得
