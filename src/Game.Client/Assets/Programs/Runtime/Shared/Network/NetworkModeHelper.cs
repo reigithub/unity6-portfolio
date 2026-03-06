@@ -18,5 +18,9 @@ namespace Game.Shared.Network
         /// <summary>ネットワーククライアントとして動作中か（Host含まず）</summary>
         public static bool IsNetworkClientOnly =>
             NetworkClient.active && !NetworkServer.active;
+
+        /// <summary>描画不要なサーバーか（DedicatedServer / MPPM Server）</summary>
+        public static bool IsHeadlessServer =>
+            NetworkServer.active && !NetworkClient.active;
     }
 }

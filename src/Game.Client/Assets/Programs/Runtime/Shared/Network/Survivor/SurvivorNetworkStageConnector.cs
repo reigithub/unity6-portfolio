@@ -192,6 +192,7 @@ namespace Game.Shared.Network.Survivor
                 Transport.active = transport;
                 _networkManager = go.AddComponent<NetworkManager>();
                 _networkManager.transport = transport;
+                _networkManager.autoCreatePlayer = false;
                 var auth = go.AddComponent<SurvivorNetworkAuthenticator>();
                 _networkManager.authenticator = auth;
                 await RegisterSpawnPrefabsAsync(_networkManager);

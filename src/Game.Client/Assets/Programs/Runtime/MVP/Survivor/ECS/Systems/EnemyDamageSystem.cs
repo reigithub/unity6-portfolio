@@ -8,6 +8,7 @@ namespace Game.MVP.Survivor.ECS
     /// DamageEventコンポーネントの値を消費してHPを減算、致死時はDead状態に遷移
     /// タグの切り替え・Entity破棄はEnemyDeathCleanupSystemが担当
     /// </summary>
+    [DisableAutoCreation]
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     [UpdateAfter(typeof(EnemyAIStateSystem))]

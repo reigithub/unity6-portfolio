@@ -22,6 +22,7 @@ namespace Game.MVP.Survivor.ECS
     /// <summary>
     /// EnemyDeadTagが付与されたエンティティを検出し、Bridge経由で通知後にエンティティを破棄するシステム
     /// </summary>
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(SimulationSystemGroup), OrderLast = true)]
     public partial class EnemyDeathCleanupSystem : SystemBase
     {
@@ -42,6 +43,7 @@ namespace Game.MVP.Survivor.ECS
                     continue;
 
                 // 死亡情報を通知
+                UnityEngine.Debug.Log($"[EnemyDeathCleanup] Entity {entity.Index} died: HP={enemyData.ValueRO.CurrentHp}/{enemyData.ValueRO.MaxHp}, type={enemyData.ValueRO.EnemyType}, pos={transform.ValueRO.Position}");
                 deathCallback?.Invoke(new EnemyDeathInfo
                 {
                     Entity = entity,

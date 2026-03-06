@@ -7,11 +7,13 @@ namespace Game.MVP.Survivor.ECS
 {
     /// <summary>
     /// 敵の移動をBurst並列で処理するシステム
-    /// Chase状態の敵のみターゲットに向かって直進移動
+    /// Chase状態の敵のみターゲットに向かって移動
+    /// EnemySteeringResultがあれば操舵結果を使用、なければ直進
     /// </summary>
+    [DisableAutoCreation]
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
-    [UpdateAfter(typeof(EnemyAIStateSystem))]
+    [UpdateAfter(typeof(EnemySteeringSystem))]
     public partial struct EnemyMovementSystem : ISystem
     {
         [BurstCompile]
@@ -29,6 +31,7 @@ namespace Game.MVP.Survivor.ECS
     /// <summary>
     /// 敵の追尾移動Job
     /// Chase状態の敵をターゲットに向かって移動させる
+    /// EnemySteeringResultの操舵方向を優先的に使用
     /// </summary>
     [BurstCompile]
     public partial struct EnemyChaseJob : IJobEntity
@@ -40,31 +43,46 @@ namespace Game.MVP.Survivor.ECS
             in EnemyData enemyData,
             in EnemyAIState aiState,
             in ChaseTarget chaseTarget,
+            in EnemySteeringResult steering,
             in EnemyAliveTag alive)
         {
             // Chase状態の場合のみ移動
             if (aiState.CurrentState != EcsEnemyAIStateType.Chase)
                 return;
 
-            float3 currentPos = transform.Position;
-            float3 targetPos = chaseTarget.Position;
+            float3 direction;
 
-            // Y軸は無視（水平面での追尾）
-            float3 direction = targetPos - currentPos;
-            direction.y = 0f;
+            if (steering.HasObstacle)
+            {
+                // 操舵結果がある場合はそちらを使用
+                direction = steering.SteeringDirection;
+            }
+            else
+            {
+                // 直進: ターゲットに向かう
+                float3 currentPos = transform.Position;
+                float3 targetPos = chaseTarget.Position;
 
-            float distanceSq = math.lengthsq(direction);
-            if (distanceSq < 0.001f)
-                return;
+                direction = targetPos - currentPos;
+                direction.y = 0f;
 
-            // 正規化して移動
-            direction = math.normalize(direction);
+                float distanceSq = math.lengthsq(direction);
+                if (distanceSq < 0.001f)
+                    return;
+
+                direction = math.normalize(direction);
+            }
+
+            // 移動
             float3 movement = direction * enemyData.MoveSpeed * DeltaTime;
             transform.Position += movement;
 
             // ターゲット方向を向く
-            quaternion targetRotation = quaternion.LookRotationSafe(direction, math.up());
-            transform.Rotation = math.slerp(transform.Rotation, targetRotation, enemyData.RotationSpeed * DeltaTime);
+            if (math.lengthsq(direction) > 0.001f)
+            {
+                quaternion targetRotation = quaternion.LookRotationSafe(direction, math.up());
+                transform.Rotation = math.slerp(transform.Rotation, targetRotation, enemyData.RotationSpeed * DeltaTime);
+            }
         }
     }
 }

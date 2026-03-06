@@ -41,13 +41,6 @@ namespace Game.MVP.Survivor.Scenes
         [Header("Items")]
         [SerializeField] private SurvivorItemSpawner _itemSpawner;
 
-        [Header("Enemy System Mode")]
-        [SerializeField] private EnemySystemMode _enemySystemMode = EnemySystemMode.MonoBehaviour;
-
-        [Header("ECS Enemy Bridge (optional)")]
-        [Tooltip("IEnemySystemBridgeを実装したMonoBehaviourをアタッチ（ECSモード時に使用）")]
-        [SerializeField] private UnityEngine.MonoBehaviour _ecsEnemyBridgeComponent;
-
         [Inject] private IInputService _inputService;
         [Inject] private IAddressableAssetService _assetService;
 
@@ -252,16 +245,8 @@ namespace Game.MVP.Survivor.Scenes
 
         public async UniTask InitializeEnemySpawnerAsync(SurvivorStageWaveManager waveManager)
         {
-            var ecsBridge = _ecsEnemyBridgeComponent as IEnemySystemBridge;
-            if (_enemySystemMode == EnemySystemMode.ECS && ecsBridge != null && _playerController != null)
+            if (_enemySpawner != null && _playerController != null)
             {
-                // ECSモード: IEnemySystemBridge経由で初期化
-                ecsBridge.SetPlayer(_playerController.transform);
-                await ecsBridge.InitializeAsync(waveManager);
-            }
-            else if (_enemySpawner != null && _playerController != null)
-            {
-                // MonoBehaviourモード: 従来のEnemySpawnerを使用
                 _enemySpawner.SetPlayer(_playerController.transform);
                 await _enemySpawner.InitializeAsync(waveManager);
             }
@@ -281,15 +266,8 @@ namespace Game.MVP.Survivor.Scenes
             {
                 await _itemSpawner.InitializeAsync();
 
-                var ecsBridge = _ecsEnemyBridgeComponent as IEnemySystemBridge;
-                if (_enemySystemMode == EnemySystemMode.ECS && ecsBridge != null)
+                if (_enemySpawner != null)
                 {
-                    // ECSモード: IDeathNotifier経由で接続
-                    _itemSpawner.ConnectToDeathNotifier(ecsBridge);
-                }
-                else if (_enemySpawner != null)
-                {
-                    // MonoBehaviourモード: 従来のEnemySpawner経由で接続
                     _itemSpawner.ConnectToEnemySpawner(_enemySpawner);
                 }
             }

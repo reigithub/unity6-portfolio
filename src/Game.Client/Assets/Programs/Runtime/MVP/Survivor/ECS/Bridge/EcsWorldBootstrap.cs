@@ -44,21 +44,23 @@ namespace Game.MVP.Survivor.ECS
             // マネージドシステム
             var playerPosSystem = _ecsWorld.GetOrCreateSystemManaged<PlayerPositionUpdateSystem>();
             var spawnSystem = _ecsWorld.GetOrCreateSystemManaged<SpawnProcessSystem>();
+            var steeringSystem = _ecsWorld.GetOrCreateSystemManaged<EnemySteeringSystem>();
             var deathCleanupSystem = _ecsWorld.GetOrCreateSystemManaged<EnemyDeathCleanupSystem>();
-            var hybridSyncSystem = _ecsWorld.GetOrCreateSystemManaged<HybridSyncSystem>();
 
             // SimulationSystemGroupに追加（順序制御）
             simGroup.AddSystemToUpdateList(playerPosSystem);
             simGroup.AddSystemToUpdateList(spawnSystem);
             simGroup.AddSystemToUpdateList(aiStateSystem);
+            simGroup.AddSystemToUpdateList(steeringSystem);  // AIState → Steering → Movement
             simGroup.AddSystemToUpdateList(movementSystem);
             simGroup.AddSystemToUpdateList(damageSystem);
             simGroup.AddSystemToUpdateList(deathCleanupSystem);
 
-            // PresentationSystemGroupに追加
-            presentationGroup.AddSystemToUpdateList(hybridSyncSystem);
-
             simGroup.SortSystems();
+
+            // PresentationSystemGroup: HybridSyncSystem登録
+            var hybridSyncSystem = _ecsWorld.GetOrCreateSystemManaged<HybridSyncSystem>();
+            presentationGroup.AddSystemToUpdateList(hybridSyncSystem);
             presentationGroup.SortSystems();
 
             UnityEngine.Debug.Log($"[EcsWorldBootstrap] World '{WorldName}' created with all systems.");

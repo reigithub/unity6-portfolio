@@ -49,6 +49,7 @@ namespace Game.Unity.Server
             // --- NetworkManager セットアップ ---
             var nm = gameObject.AddComponent<NetworkManager>();
             nm.transport = transport;
+            nm.autoCreatePlayer = false;
 
             // --- Authenticator セットアップ ---
             var auth = gameObject.AddComponent<SurvivorNetworkAuthenticator>();

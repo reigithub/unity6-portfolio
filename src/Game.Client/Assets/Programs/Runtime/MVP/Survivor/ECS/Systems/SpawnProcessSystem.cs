@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -9,6 +10,7 @@ namespace Game.MVP.Survivor.ECS
     /// EnemySpawnRequestを消費してECSエンティティを生成するシステム
     /// GameObjectプールとの連携はBridge経由で行う
     /// </summary>
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
     [UpdateAfter(typeof(PlayerPositionUpdateSystem))]
     public partial class SpawnProcessSystem : SystemBase
@@ -23,6 +25,7 @@ namespace Game.MVP.Survivor.ECS
         public SpawnCallback OnEntitySpawned;
 
         private EntityArchetype _enemyArchetype;
+        private readonly List<(Entity entity, EnemySpawnRequest request)> _pendingCallbacks = new();
 
         protected override void OnCreate()
         {
@@ -34,6 +37,7 @@ namespace Game.MVP.Survivor.ECS
                 typeof(EnemyAliveTag),
                 typeof(EnemyDeadTag),
                 typeof(LocalTransform),
+                typeof(EnemySteeringResult),
                 typeof(ManagedGameObjectReference)
             );
         }
@@ -41,7 +45,6 @@ namespace Game.MVP.Survivor.ECS
         protected override void OnUpdate()
         {
             var ecb = new EntityCommandBuffer(Allocator.Temp);
-            var spawnCallback = OnEntitySpawned;
 
             foreach (var (request, entity) in SystemAPI.Query<RefRO<EnemySpawnRequest>>().WithEntityAccess())
             {
@@ -77,7 +80,7 @@ namespace Game.MVP.Survivor.ECS
 
                 ecb.SetComponent(newEntity, new ChaseTarget
                 {
-                    Position = spawnRequest.Position
+                    Position = new float3(float.MaxValue, 0, float.MaxValue)
                 });
 
                 ecb.SetComponent(newEntity, new DamageEvent
@@ -99,35 +102,42 @@ namespace Game.MVP.Survivor.ECS
             ecb.Dispose();
 
             // コールバック通知（スポーン完了後にGameObject生成をBridgeに委譲）
+            // Query中は構造変更不可のため、先にリストに収集してからコールバックを呼ぶ
+            var spawnCallback = OnEntitySpawned;
             if (spawnCallback != null)
             {
+                _pendingCallbacks.Clear();
                 foreach (var (enemyData, transform, managedRef, entity) in
                     SystemAPI.Query<RefRO<EnemyData>, RefRO<LocalTransform>, ManagedGameObjectReference>()
                         .WithAll<EnemyAliveTag>()
                         .WithEntityAccess())
                 {
-                    if (managedRef.GameObject == null)
+                    if (managedRef?.GameObject != null)
+                        continue;
+
+                    _pendingCallbacks.Add((entity, new EnemySpawnRequest
                     {
-                        var request = new EnemySpawnRequest
-                        {
-                            EnemyId = enemyData.ValueRO.EnemyId,
-                            Position = transform.ValueRO.Position,
-                            MaxHp = enemyData.ValueRO.MaxHp,
-                            AttackDamage = enemyData.ValueRO.AttackDamage,
-                            MoveSpeed = enemyData.ValueRO.MoveSpeed,
-                            AttackRange = enemyData.ValueRO.AttackRange,
-                            AttackCooldown = enemyData.ValueRO.AttackCooldown,
-                            HitStunDuration = enemyData.ValueRO.HitStunDuration,
-                            RotationSpeed = enemyData.ValueRO.RotationSpeed,
-                            DeathAnimDuration = enemyData.ValueRO.DeathAnimDuration,
-                            AttackRangeExitMultiplier = enemyData.ValueRO.AttackRangeExitMultiplier,
-                            ExperienceValue = enemyData.ValueRO.ExperienceValue,
-                            EnemyType = enemyData.ValueRO.EnemyType,
-                            ItemDropGroupId = enemyData.ValueRO.ItemDropGroupId,
-                            ExpDropGroupId = enemyData.ValueRO.ExpDropGroupId
-                        };
-                        spawnCallback.Invoke(entity, request);
-                    }
+                        EnemyId = enemyData.ValueRO.EnemyId,
+                        Position = transform.ValueRO.Position,
+                        MaxHp = enemyData.ValueRO.MaxHp,
+                        AttackDamage = enemyData.ValueRO.AttackDamage,
+                        MoveSpeed = enemyData.ValueRO.MoveSpeed,
+                        AttackRange = enemyData.ValueRO.AttackRange,
+                        AttackCooldown = enemyData.ValueRO.AttackCooldown,
+                        HitStunDuration = enemyData.ValueRO.HitStunDuration,
+                        RotationSpeed = enemyData.ValueRO.RotationSpeed,
+                        DeathAnimDuration = enemyData.ValueRO.DeathAnimDuration,
+                        AttackRangeExitMultiplier = enemyData.ValueRO.AttackRangeExitMultiplier,
+                        ExperienceValue = enemyData.ValueRO.ExperienceValue,
+                        EnemyType = enemyData.ValueRO.EnemyType,
+                        ItemDropGroupId = enemyData.ValueRO.ItemDropGroupId,
+                        ExpDropGroupId = enemyData.ValueRO.ExpDropGroupId
+                    }));
+                }
+
+                foreach (var (entity, request) in _pendingCallbacks)
+                {
+                    spawnCallback.Invoke(entity, request);
                 }
             }
         }

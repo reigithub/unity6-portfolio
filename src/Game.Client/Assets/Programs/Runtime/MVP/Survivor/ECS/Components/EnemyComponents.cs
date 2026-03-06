@@ -161,6 +161,18 @@ namespace Game.MVP.Survivor.ECS
     public struct EnemyDeadTag : IComponentData, IEnableableComponent { }
 
     /// <summary>
+    /// 移動操舵結果（EnemySteeringSystemからEnemyMovementSystemへのデータパス）
+    /// </summary>
+    public struct EnemySteeringResult : IComponentData
+    {
+        /// <summary>操舵済み移動方向（正規化済み）</summary>
+        public float3 SteeringDirection;
+
+        /// <summary>レイキャストで障害物を検出したか</summary>
+        public bool HasObstacle;
+    }
+
+    /// <summary>
     /// GameObject参照（ハイブリッド描画用、マネージド型）
     /// </summary>
     public class ManagedGameObjectReference : IComponentData
