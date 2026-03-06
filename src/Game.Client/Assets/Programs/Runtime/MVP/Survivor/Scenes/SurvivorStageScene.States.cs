@@ -256,7 +256,8 @@ namespace Game.MVP.Survivor.Scenes
                         Transition(StageEvent.GameOver);
                         return;
                     }
-                    return; // ゲームロジックはサーバー任せ
+                    // Memo: サーバー権威モデルなってから戻すことを検討
+                    // return; // ゲームロジックはサーバー任せ
                 }
 
                 // SP / サーバー: 既存ロジック

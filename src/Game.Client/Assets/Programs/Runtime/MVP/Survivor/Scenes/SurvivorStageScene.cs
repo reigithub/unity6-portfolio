@@ -253,12 +253,13 @@ namespace Game.MVP.Survivor.Scenes
 
             _waveCompletedSub.Subscribe(s =>
             {
-                if (_isClientOnly)
-                {
-                    // MP Client: サーバーが計算済みスコアをそのまま加算
-                    _stageModel.AddScore(s.WaveClearScore);
-                }
-                else
+                // Memo: サーバー権威モデルになってから戻すことを検討
+                // if (_isClientOnly)
+                // {
+                //     // MP Client: サーバーが計算済みスコアをそのまま加算
+                //     _stageModel.AddScore(s.WaveClearScore);
+                // }
+                // else
                 {
                     // SP/Server: ローカルで計算
                     var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
