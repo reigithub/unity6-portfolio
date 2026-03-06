@@ -25,6 +25,7 @@ namespace Game.Shared.Network.Survivor
 
         public override void OnStartClient()
         {
+            DontDestroyOnLoad(gameObject);
             Instance = this;
             Debug.Log("[NetworkSurvivorEnemyState] Spawned on client");
         }

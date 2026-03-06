@@ -95,6 +95,7 @@ namespace Game.Shared.Network.Survivor
 
         public override void OnStartClient()
         {
+            DontDestroyOnLoad(gameObject);
             if (isOwned)
             {
                 foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)
