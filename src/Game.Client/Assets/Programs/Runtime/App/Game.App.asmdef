@@ -3,6 +3,7 @@
     "rootNamespace": "Game.App",
     "references": [
         "Game.Shared",
+        "VContainer",
         "Game.MVC.Core",
         "Game.MVC.ScoreTimeAttack",
         "Game.MVP.Core",

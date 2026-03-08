@@ -53,11 +53,6 @@ namespace Game.Tests.Network
             // StopSession で Mirror コールバック解除を試みるが、EditMode では
             // NetworkServer が動作していないため、手動クリーンアップ
             if (_go != null) Object.DestroyImmediate(_go);
-
-            // シングルトン参照をクリア（他テストへの影響を防止）
-            typeof(SurvivorUnityServerSession)
-                .GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)
-                ?.SetValue(null, null);
         }
 
         #region Helpers
@@ -151,21 +146,6 @@ namespace Game.Tests.Network
             _session.StartSession(2);
 
             Assert.That(GetConnectedPlayerCount(), Is.EqualTo(0));
-        }
-
-        #endregion
-
-        #region Singleton Instance
-
-        [Test]
-        public void Instance_IsSetOnAwake()
-        {
-            // EditMode では Awake が自動呼び出しされないため、リフレクションで手動起動
-            var awakeMethod = typeof(SurvivorUnityServerSession)
-                .GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance);
-            awakeMethod?.Invoke(_session, null);
-
-            Assert.That(SurvivorUnityServerSession.Instance, Is.EqualTo(_session));
         }
 
         #endregion

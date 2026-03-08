@@ -5,7 +5,7 @@ using kcp2k;
 using Mirror;
 using UnityEngine;
 
-namespace Game.Unity.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// Dedicated Server の Mirror インフラ管理。
@@ -14,19 +14,7 @@ namespace Game.Unity.Server
     /// </summary>
     public class UnityServerNetworkManager : MonoBehaviour
     {
-        public static UnityServerNetworkManager Instance { get; private set; }
-
         private ushort _port = 7777;
-
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-        }
 
         /// <summary>
         /// NetworkManager を構成してサーバーを起動する。
@@ -90,11 +78,6 @@ namespace Game.Unity.Server
             if (NetworkServer.active)
             {
                 NetworkManager.singleton?.StopServer();
-            }
-
-            if (Instance == this)
-            {
-                Instance = null;
             }
         }
 

@@ -4,25 +4,19 @@ using Game.Shared.Network.Survivor;
 using Game.Shared.Environment;
 using UnityEngine;
 
-namespace Game.Unity.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// Dedicated Server 起動時の初期化処理。
     /// Mirror サーバーを自動起動し、クライアント接続を受け入れる。
+    /// GameRuntimeInitializer からサーバーモード時に明示的に呼び出される。
     /// </summary>
     public static class UnityServerBootstrap
     {
         private static TcpHealthProbe _healthProbe;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
-#if !UNITY_SERVER
-            // Editor: MPPM Server タグの場合のみ起動
-            if (!Game.Shared.Multiplayer.MppmHelper.IsServer())
-                return;
-#endif
-
             Debug.Log("[ServerBootstrap] ========================================");
             Debug.Log("[ServerBootstrap] Dedicated Server starting...");
             Debug.Log($"[ServerBootstrap] BatchMode: {Application.isBatchMode}");
@@ -69,9 +63,8 @@ namespace Game.Unity.Server
             var serverNm = serverGo.AddComponent<UnityServerNetworkManager>();
             serverNm.Initialize(port);
 
-            // Survivor セッション開始（クライアント接続受け入れ準備）
-            var session = serverGo.AddComponent<SurvivorUnityServerSession>();
-            session.StartSession(playerCount);
+            // プレイヤー数を保存（SurvivorUnityServerSession が後で使用）
+            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(playerCount);
         }
 
         /// <summary>

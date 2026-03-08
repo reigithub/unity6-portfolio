@@ -11,16 +11,18 @@ namespace Game.Shared.Network
     {
         /// <summary>
         /// ネットワークサーバーとして動作中か（Host / DedicatedServer）
-        /// #if UNITY_SERVERディレクティブと適切に使い分けること
         /// </summary>
         public static bool IsNetworkServer => NetworkServer.active;
 
         /// <summary>ネットワーククライアントとして動作中か（Host含まず）</summary>
-        public static bool IsNetworkClientOnly =>
+        public static bool IsNetworkClient =>
             NetworkClient.active && !NetworkServer.active;
 
         /// <summary>描画不要なサーバーか（DedicatedServer / MPPM Server）</summary>
         public static bool IsHeadlessServer =>
             NetworkServer.active && !NetworkClient.active;
+
+        public static bool IsNetworkHost =>
+            NetworkServer.active && NetworkClient.active;
     }
 }
