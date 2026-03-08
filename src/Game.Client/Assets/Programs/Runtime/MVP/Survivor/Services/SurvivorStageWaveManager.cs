@@ -63,12 +63,52 @@ namespace Game.MVP.Survivor.Services
         /// <summary>現在が最終ウェーブかどうか</summary>
         public bool IsLastWave => _currentWaveIndex >= 0 && _currentWaveIndex >= _waves.Length - 1;
 
+        // サーバー権威: クライアントモードでは Wave ロジックを実行しない
+        private bool _isClientOnly;
+
         // ステージのウェーブ情報キャッシュ
         private int _stageId;
         private SurvivorStageWaveMaster[] _waves;
         private int _currentWaveIndex;
         private WaveSpawnInfo _currentSpawnInfo;
         private List<WaveEnemySpawnInfo> _currentEnemySpawnList;
+
+        /// <summary>クライアントモードを設定（Wave ロジックをスキップ）</summary>
+        public void SetClientOnly(bool isClientOnly)
+        {
+            _isClientOnly = isClientOnly;
+        }
+
+        /// <summary>サーバーから通知された Wave 情報でクライアント状態を更新</summary>
+        public void SetWaveFromServer(int waveNumber, int nextWaveNumber)
+        {
+            _currentWave.Value = nextWaveNumber;
+        }
+
+        /// <summary>
+        /// サーバーからのウェーブ開始情報でクライアント表示用プロパティを更新。
+        /// _currentWave は更新しない（EnemySpawner のローカルスポーンをトリガーしないため）。
+        /// </summary>
+        public void UpdateClientWaveDisplay(int targetKillCount, int enemyCount)
+        {
+            _targetKillsThisWave.Value = targetKillCount;
+            _enemiesThisWave.Value = enemyCount;
+            _enemiesKilled.Value = 0;
+            _bossKills.Value = 0;
+        }
+
+        /// <summary>
+        /// クライアント側のキルカウント更新（サーバーからの敵死亡通知用）。
+        /// </summary>
+        public void IncrementClientKillCount()
+        {
+            if (!_isClientOnly) return;
+            if (_enemiesKilled.Value < _targetKillsThisWave.Value)
+            {
+                _enemiesKilled.Value++;
+                _onKillCounted.OnNext(Unit.Default);
+            }
+        }
 
         public void Initialize(int stageId)
         {

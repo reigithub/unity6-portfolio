@@ -91,6 +91,13 @@ namespace Game.Shared.Network.Survivor
             SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(result);
         }
 
+        [Command]
+        public void NotifySceneReadyServerRpc()
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] SceneReady from conn={connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientSceneReady(connectionToClient);
+        }
+
         // --- ライフサイクル ---
 
         public override void OnStartClient()

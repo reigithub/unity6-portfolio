@@ -89,6 +89,8 @@ namespace Game.Shared.Network.Survivor
         {
             if (!isServer && IsLocalPlayer(userId))
             {
+                if (_playerDamagedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _playerDamagedPub is NULL");
                 _playerDamagedPub?.Publish(
                     new SurvivorSignals.Player.DamageReceived(damage, currentHp));
             }
@@ -179,8 +181,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] WaveCleared RPC received: wave={waveNumber}, next={nextWaveNumber}, isServer={isServer}");
             if (!isServer)
             {
+                if (_waveClearedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveClearedPub is NULL");
                 _waveClearedPub?.Publish(
                     new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
             }
@@ -193,8 +198,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] WaveStarted RPC received: wave={waveNumber}, target={targetKills}, enemies={totalEnemies}, isServer={isServer}");
             if (!isServer)
             {
+                if (_waveStartedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveStartedPub is NULL — VContainer injection failed");
                 _waveStartedPub?.Publish(
                     new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
             }
@@ -239,8 +247,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] GameEnded RPC received: victory={result.IsVictory}, isServer={isServer}");
             if (!isServer)
             {
+                if (_gameEndedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _gameEndedPub is NULL");
                 _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
             }
         }
@@ -373,6 +384,39 @@ namespace Game.Shared.Network.Survivor
         }
 
         // =====================================================================
+        //  シーン準備完了トラッキング
+        // =====================================================================
+
+        private readonly HashSet<int> _sceneReadyConnIds = new();
+
+        /// <summary>全クライアントのシーン準備完了時に発火</summary>
+        public event System.Action OnAllClientsSceneReady;
+
+        /// <summary>
+        /// クライアントがシーン準備完了を通知した際にサーバーが呼び出す。
+        /// 全クライアントの準備完了で OnAllClientsSceneReady を発火する。
+        /// </summary>
+        [Server]
+        public void OnClientSceneReady(NetworkConnectionToClient conn)
+        {
+            _sceneReadyConnIds.Add(conn.connectionId);
+            Debug.Log($"[NetworkSurvivorGameManager] Client scene ready: conn={conn.connectionId} ({_sceneReadyConnIds.Count}/{_totalPlayerCount})");
+
+            if (_totalPlayerCount > 0 && _sceneReadyConnIds.Count >= _totalPlayerCount)
+            {
+                Debug.Log("[NetworkSurvivorGameManager] All clients scene ready!");
+                OnAllClientsSceneReady?.Invoke();
+            }
+        }
+
+        /// <summary>セッション開始時にリセット</summary>
+        [Server]
+        public void ResetSceneReadyTracking()
+        {
+            _sceneReadyConnIds.Clear();
+        }
+
+        // =====================================================================
         //  ライフサイクル
         // =====================================================================
 
@@ -386,6 +430,26 @@ namespace Game.Shared.Network.Survivor
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
+
+            // VContainer 注入診断: IPublisher が null の場合、ClientRpc → MessagePipe パスが機能しない
+            if (!isServer)
+            {
+                var nullPubs = new System.Text.StringBuilder();
+                if (_allPlayersReadyPub == null) nullPubs.Append("AllPlayersReady,");
+                if (_gameStartedPub == null) nullPubs.Append("GameStarted,");
+                if (_gameEndedPub == null) nullPubs.Append("GameEnded,");
+                if (_playerDamagedPub == null) nullPubs.Append("PlayerDamaged,");
+                if (_playerDiedPub == null) nullPubs.Append("PlayerDied,");
+                if (_waveStartedPub == null) nullPubs.Append("WaveStarted,");
+                if (_waveClearedPub == null) nullPubs.Append("WaveCleared,");
+                if (_enemyKilledPub == null) nullPubs.Append("EnemyKilled,");
+
+                if (nullPubs.Length > 0)
+                    Debug.LogWarning($"[NetworkSurvivorGameManager] NULL IPublisher on client: {nullPubs}");
+                else
+                    Debug.Log("[NetworkSurvivorGameManager] All IPublisher fields injected OK");
+            }
+
             Debug.Log("[NetworkSurvivorGameManager] Spawned on client");
         }
 

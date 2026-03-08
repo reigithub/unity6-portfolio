@@ -27,7 +27,9 @@ namespace Game.Shared.Network.Survivor
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
-            Debug.Log("[NetworkSurvivorEnemyState] Spawned on client");
+            if (!isServer && _enemyBatchPub == null)
+                Debug.LogWarning("[NetworkSurvivorEnemyState] _enemyBatchPub is NULL on client — VContainer injection failed");
+            Debug.Log($"[NetworkSurvivorEnemyState] Spawned on client (isServer={isServer}, pubInjected={_enemyBatchPub != null})");
         }
 
         public override void OnStopServer()
@@ -48,6 +50,8 @@ namespace Game.Shared.Network.Survivor
         {
             if (!isServer)
             {
+                if (_enemyBatchPub == null)
+                    Debug.LogWarning($"[NetworkSurvivorEnemyState] _enemyBatchPub is NULL, dropping {enemies?.Length ?? 0} enemies");
                 _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(enemies));
             }
         }

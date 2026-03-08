@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using Cysharp.Threading.Tasks;
 using Game.Shared.Network.Survivor;
 
@@ -31,4 +30,3 @@ namespace Game.MVP.Survivor.Server
         public void Dispose() { }
     }
 }
-#endif

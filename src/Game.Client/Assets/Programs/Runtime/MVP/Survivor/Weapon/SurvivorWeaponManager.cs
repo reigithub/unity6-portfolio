@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -55,9 +56,11 @@ namespace Game.MVP.Survivor.Weapon
             _owner = owner;
             _damageMultiplier = damageMultiplier;
 
-#if !UNITY_SERVER
-            _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
-#endif
+            // サーバーではVFX不要（ParticleSystemRenderer がない環境でエラーになる）
+            if (!UnityPlaymodeHelper.IsServer())
+            {
+                _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
+            }
 
             // 初期武器を追加
             if (startingWeaponId > 0)

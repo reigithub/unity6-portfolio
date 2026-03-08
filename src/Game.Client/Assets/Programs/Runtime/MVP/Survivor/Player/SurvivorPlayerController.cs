@@ -188,9 +188,6 @@ namespace Game.MVP.Survivor.Player
 
             if (!NetworkModeHelper.IsNetworkServer)
             {
-                // Client-only: 物理処理スキップ（サーバー権威）
-                _skipPhysics = true;
-
                 if (playerState.isOwned)
                 {
                     // ローカルプレイヤー: 入力を ServerRpc で送信
@@ -234,10 +231,10 @@ namespace Game.MVP.Survivor.Player
             _isInvincible.Value = false;
             _invincibilityTimer = 0f;
 
-            // メインカメラを自動取得
+            // メインカメラを自動取得（サーバーでは _gameRootController が null）
             if (_mainCamera == null)
             {
-                _mainCamera = _gameRootController.MainCamera.transform;
+                _mainCamera = _gameRootController?.MainCamera?.transform;
             }
 
             // デフォルト入力プロバイダー（SP/Host ローカルプレイヤー用）
@@ -377,6 +374,7 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_attractItemsMarker.Auto())
             {
+                if (_skipPhysics) return; // Client-only: サーバーがアイテム管理
                 _itemCheckTimer -= Time.deltaTime;
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;
@@ -511,6 +509,8 @@ namespace Game.MVP.Survivor.Player
 
         private void OnTriggerEnter(Collider other)
         {
+            if (_skipPhysics) return; // Client-only: サーバーがアイテム収集を管理
+
             // アイテムとの衝突
             if (other.CompareLayer(LayerConstants.Item))
             {

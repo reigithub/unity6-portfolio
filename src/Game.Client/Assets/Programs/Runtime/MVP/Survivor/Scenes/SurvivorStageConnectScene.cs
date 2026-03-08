@@ -2,7 +2,9 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using Game.Shared.Unity.Server;
@@ -66,31 +68,33 @@ namespace Game.MVP.Survivor.Scenes
                 var stageId = session.StageId;
 
                 // Phase 1: ネットワーク初期化（モード別）
-#if !UNITY_SERVER
+                if (!UnityPlaymodeHelper.IsServer())
+                {
 #if UNITY_EDITOR
-                if (Game.Shared.Multiplayer.MppmHelper.IsActive())
-                {
-                    // MPPM: タグに従いローカルロールで起動（MatchResult は無視）
-                    await StartEditorNetworkAsync(stageId);
-                }
-                else if (!SurvivorNetworkMatchConnector.HasMatchResult)
-                {
-                    // Non-MPPM SP: Host モードで起動
-                    await StartEditorNetworkAsync(stageId);
-                }
-                // else: Non-MPPM + MatchResult → 外部サーバー接続（Phase 2）
+                    if (Game.Shared.Multiplayer.MppmHelper.IsActive())
+                    {
+                        // MPPM: タグに従いローカルロールで起動（MatchResult は無視）
+                        await StartEditorNetworkAsync(stageId);
+                    }
+                    else if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                    {
+                        // Non-MPPM SP: Host モードで起動
+                        await StartEditorNetworkAsync(stageId);
+                    }
+                    // else: Non-MPPM + MatchResult → 外部サーバー接続（Phase 2）
 #else
-                if (!SurvivorNetworkMatchConnector.HasMatchResult)
-                {
-                    // 配布ビルド SP: Orchestrator で全サービス起動
-                    SceneComponent.SetStatus("Starting local server...");
-                    await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
-                    SurvivorNetworkMatchConnector.SetLocalServer(_localServerOrchestrator.HeadlessServerPort);
+                    if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                    {
+                        // 配布ビルド SP: Orchestrator で全サービス起動
+                        SceneComponent.SetStatus("Starting local server...");
+                        await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
+                        SurvivorNetworkMatchConnector.SetLocalServer(_localServerOrchestrator.HeadlessServerPort);
+                    }
+#endif
                 }
-#endif
-#endif
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
+                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, ServerActive={NetworkServer.active}, ClientConnected={NetworkClient.isConnected}");
                 if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
@@ -169,18 +173,24 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask WaitForAllPlayersReadyAsync()
         {
+            Debug.Log("[SurvivorStageConnectScene] WaitForAllPlayersReady: subscribing...");
             var tcs = new UniTaskCompletionSource();
+
+            // MessagePipe 経由（ClientRpc → IPublisher、またはサーバーローカル直接 Publish）
             var subscription = _allPlayersReadySub.Subscribe(_ =>
             {
+                Debug.Log("[SurvivorStageConnectScene] AllPlayersReady received");
                 tcs.TrySetResult();
             });
+
             try
             {
-                // 10秒タイムアウト（サーバー応答なしの場合はフォールスルー）
-                await UniTask.WhenAny(
+                // Realtime で待機（Time.timeScale に依存しない）
+                var winIndex = await UniTask.WhenAny(
                     tcs.Task,
-                    UniTask.Delay(TimeSpan.FromSeconds(10))
+                    UniTask.Delay(TimeSpan.FromSeconds(10), DelayType.Realtime)
                 );
+                Debug.Log($"[SurvivorStageConnectScene] WaitForAllPlayersReady completed (index={winIndex})");
             }
             finally
             {

@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using Game.Shared.Input;
 using Game.Shared.Services;
 
@@ -12,15 +11,14 @@ namespace Game.MVP.Survivor.Server
     /// </summary>
     public class NullInputService : IInputService
     {
-        private ProjectDefaultInputSystem _inputSystem;
+        private ProjectDefaultInputSystem _inputSystem = new();
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
         public void Startup()
         {
-            _inputSystem = new ProjectDefaultInputSystem();
-            // Enable しない — アクションは存在するが発火しない
+            // コンストラクタで生成済み。Enable しない — アクションは存在するが発火しない
         }
 
         public void Shutdown()
@@ -35,4 +33,3 @@ namespace Game.MVP.Survivor.Server
         public void DisableUI() { }
     }
 }
-#endif

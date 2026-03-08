@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared.Dto;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
@@ -8,9 +9,11 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
+using Mirror;
 using R3;
 using R3.Triggers;
 using Unity.Collections;
@@ -18,6 +21,7 @@ using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
+using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -49,7 +53,7 @@ namespace Game.MVP.Survivor.Scenes
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
         private ISurvivorStageSceneView _stageSceneView;
-        private bool _isClientOnly;
+        private bool _isClient;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
 
@@ -71,14 +75,13 @@ namespace Game.MVP.Survivor.Scenes
             await base.Startup();
 
             // ネットワーククライアントモードを起動時に1回だけキャッシュ（SP: false, MP Client: true）
-            _isClientOnly = NetworkModeHelper.IsNetworkClientOnly;
+            _isClient = NetworkModeHelper.IsNetworkClient;
+            Debug.Log($"[SurvivorStageScene] Startup: isClient={_isClient}, IsServer={UnityPlaymodeHelper.IsServer()}, NetworkServer.active={NetworkServer.active}, NetworkClient.isConnected={NetworkClient.isConnected}");
 
             // サーバーではNullStageViewでHUD呼び出しをno-op化
-#if UNITY_SERVER
-            _stageSceneView = new NullSurvivorStageSceneView();
-#else
-            _stageSceneView = SceneComponent;
-#endif
+            _stageSceneView = UnityPlaymodeHelper.IsServer()
+                ? new NullSurvivorStageSceneView()
+                : SceneComponent;
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -98,12 +101,13 @@ namespace Game.MVP.Survivor.Scenes
             // インゲームフィールドをロード
             await LoadUnitySceneAsync();
 
-            // プレイヤーを動的生成
+            // プレイヤーを動的生成（サーバーでも生成 — 物理・武器・ダメージ処理に必要）
             await SpawnPlayerAsync();
 
             BuildStateMachine();
             SubscribeEvents();
             SubscribeSignals();
+
             SetupServerNetworkingIfActive();
             BindModelToView();
 
@@ -189,7 +193,19 @@ namespace Game.MVP.Survivor.Scenes
             if (SceneComponent.SurvivorItemSpawner != null)
             {
                 SceneComponent.SurvivorItemSpawner.OnItemCollected
-                    .Subscribe(item => _stageModel.CollectItem(item))
+                    .Subscribe(item =>
+                    {
+                        _stageModel.CollectItem(item);
+
+                        // Server / Host: アイテム収集をクライアントに通知
+                        if (NetworkModeHelper.IsNetworkServer)
+                        {
+                            var gm = SurvivorNetworkGameManager.Instance;
+                            gm?.NotifyItemCollectedClientRpc(
+                                _localPlayerState?.PlayerUserId ?? default,
+                                item.ItemId, item.EffectValue);
+                        }
+                    })
                     .AddTo(Disposables);
             }
 
@@ -221,7 +237,7 @@ namespace Game.MVP.Survivor.Scenes
                     if (_inputService.UI.ScrollWheel.WasPressedThisFrame())
                     {
                         var scrollWheel = _inputService.UI.ScrollWheel.ReadValue<Vector2>();
-                        GameRootController.SetCameraRadius(scrollWheel);
+                        GameRootController?.SetCameraRadius(scrollWheel);
                     }
                 })
                 .AddTo(Disposables);
@@ -245,21 +261,32 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _stageModel.CurrentWave.Value = s.WaveNumber;
                 _stageSceneView.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
+
+                // クライアント: サーバーからの敵数情報でHUD表示を更新
+                if (_isClient)
+                {
+                    _waveManager.UpdateClientWaveDisplay(s.TargetKillCount, s.EnemyCount);
+                }
+
+                // ウェーブバナーはゲーム開始後のみ表示（カウントダウン中は非表示）
                 if (s.WaveNumber > 0)
                 {
-                    _stageSceneView.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
+                    if (!_isClient || _stageModel.GameTime.Value > 0)
+                    {
+                        _stageSceneView.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
+                    }
                 }
             }).AddTo(Disposables);
 
             _waveCompletedSub.Subscribe(s =>
             {
-                // Memo: サーバー権威モデルになってから戻すことを検討
-                // if (_isClientOnly)
-                // {
-                //     // MP Client: サーバーが計算済みスコアをそのまま加算
-                //     _stageModel.AddScore(s.WaveClearScore);
-                // }
-                // else
+                if (_isClient)
+                {
+                    // MP Client: サーバーが計算済みスコアをそのまま加算
+                    _stageModel.AddScore(s.WaveClearScore);
+                    _waveManager.SetWaveFromServer(s.WaveNumber, s.WaveNumber + 1);
+                }
+                else
                 {
                     // SP/Server: ローカルで計算
                     var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
@@ -278,6 +305,21 @@ namespace Game.MVP.Survivor.Scenes
                 _stageModel.AddKill();
                 _stageSceneView.UpdateKills(s.TotalKills);
             }).AddTo(Disposables);
+
+            // クライアント: サーバーからの敵バッチ更新で死亡イベントをキルカウントに反映
+            if (_isClient)
+            {
+                _enemyBatchSub.Subscribe(signal =>
+                {
+                    foreach (var e in signal.Enemies)
+                    {
+                        if (e.SyncType == EnemySyncType.Death)
+                        {
+                            _waveManager.IncrementClientKillCount();
+                        }
+                    }
+                }).AddTo(Disposables);
+            }
         }
 
         /// <summary>
@@ -297,30 +339,32 @@ namespace Game.MVP.Survivor.Scenes
 
         /// <summary>
         /// Server 用: MessagePipe Signal → ClientRpc 転送。
+        /// ダメージ・死亡は SurvivorPlayerController.States が直接 ClientRpc する。
         /// </summary>
         private void SubscribeNetworkSignals()
         {
-            var gm = SurvivorNetworkGameManager.Instance;
-            if (gm == null) return;
-
-            // ダメージ・死亡はサーバーの SurvivorPlayerController.States が
-            // 直接 GameManager.NotifyPlayerDamagedClientRpc / NotifyPlayerDiedClientRpc を呼ぶ。
-            // userId 付きで送信するため、ブリッジ不要。
-
             _waveStartedSub.Subscribe(s =>
             {
-                gm.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+                var gm = SurvivorNetworkGameManager.Instance;
+                gm?.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
             }).AddTo(Disposables);
 
             _waveCompletedSub.Subscribe(s =>
             {
+                // サーバー側でスコアを計算し、計算済みスコアをクライアントに送信
+                var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
                 var spawnInfo = _waveManager.GetSpawnInfo();
-                gm.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, spawnInfo.ScoreMultiplier);
+                var hpRatio = _stageModel.MaxHp.Value > 0
+                    ? (float)_stageModel.CurrentHp.Value / _stageModel.MaxHp.Value : 1f;
+                var waveClearScore = remainingTime > 0
+                    ? (int)(remainingTime * spawnInfo.ScoreMultiplier * hpRatio) : 0;
+                var gm = SurvivorNetworkGameManager.Instance;
+                gm?.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
             }).AddTo(Disposables);
 
             _waveManager.IsAllWavesCleared
                 .Where(cleared => cleared)
-                .Subscribe(_ => gm.NotifyAllWavesClearedClientRpc())
+                .Subscribe(_ => SurvivorNetworkGameManager.Instance?.NotifyAllWavesClearedClientRpc())
                 .AddTo(Disposables);
         }
 

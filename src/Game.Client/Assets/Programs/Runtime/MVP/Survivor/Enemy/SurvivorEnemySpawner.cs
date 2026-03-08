@@ -6,7 +6,9 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
@@ -197,9 +199,10 @@ namespace Game.MVP.Survivor.Enemy
                 .Subscribe(OnEnemyDeath)
                 .AddTo(this);
 
-#if !UNITY_SERVER
-            instance.AddComponent<SurvivorEnemyPresenter>();
-#endif
+            if (UnityPlaymodeHelper.IsClient())
+            {
+                instance.AddComponent<SurvivorEnemyPresenter>();
+            }
 
             return controller;
         }
@@ -347,9 +350,13 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ExpDropGroupId
                 );
 
-#if !UNITY_SERVER
-                enemy.GetComponent<SurvivorEnemyPresenter>()?.Initialize(enemy);
-#endif
+                if (UnityPlaymodeHelper.IsClient())
+                {
+                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
+                    {
+                        component.Initialize(enemy);
+                    }
+                }
 
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
@@ -499,9 +506,13 @@ namespace Game.MVP.Survivor.Enemy
             using (s_returnToPoolMarker.Auto())
             {
                 var enemyId = enemy.EnemyId;
-#if !UNITY_SERVER
-                enemy.GetComponent<SurvivorEnemyPresenter>()?.ResetForPool();
-#endif
+                if (UnityPlaymodeHelper.IsClient())
+                {
+                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
+                    {
+                        component.ResetForPool();
+                    }
+                }
                 enemy.ResetForPool();
 
                 if (_pools.TryGetValue(enemyId, out var pool))

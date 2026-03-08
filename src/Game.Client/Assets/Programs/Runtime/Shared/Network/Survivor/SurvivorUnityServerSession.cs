@@ -1,8 +1,12 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using Mirror;
 using Unity.Collections;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -13,11 +17,18 @@ namespace Game.Shared.Network.Survivor
     /// </summary>
     public class SurvivorUnityServerSession : MonoBehaviour
     {
-        public static SurvivorUnityServerSession Instance { get; private set; }
+        [Inject] private IObjectResolver _resolver;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
 
         private int _stageId;
         private bool _stageLoaded;
         private bool _sessionStarted;
+
+        /// <summary>
+        /// 最初のクライアント認証で確定したステージID。
+        /// サーバーゲームループがSurvivorStageScene遷移時に使用。
+        /// </summary>
+        public int StageId => _stageId;
 
         private int _expectedPlayerCount = 1;
         private int _connectedPlayerCount;
@@ -27,8 +38,6 @@ namespace Game.Shared.Network.Survivor
         private GameObject _gameManagerInstance;
         private GameObject _enemyStateInstance;
         private GameObject _itemSyncInstance;
-
-        private void Awake() => Instance = this;
 
         /// <summary>
         /// セッション開始。Mirror のコールバックを登録する。
@@ -201,17 +210,14 @@ namespace Game.Shared.Network.Survivor
                 gm.SetTotalPlayerCount(_expectedPlayerCount);
                 gm.NotifyAllPlayersReadyClientRpc();
                 gm.NotifyGameStartedClientRpc(Time.time);
-                Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
             }
-            else
-            {
-                Debug.LogWarning("[SurvivorServerSession] NetworkSurvivorGameManager not found");
-            }
+
+            // Server/Host: ClientRpc はサーバーローカルでは isServer ガードで Publish されないため、
+            // MessagePipe 経由で直接シグナルを発火する
+            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+
+            Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
         }
 
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
     }
 }

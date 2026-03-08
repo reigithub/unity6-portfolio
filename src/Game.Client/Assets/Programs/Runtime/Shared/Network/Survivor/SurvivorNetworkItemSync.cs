@@ -51,7 +51,12 @@ namespace Game.Shared.Network.Survivor
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
-            Debug.Log("[NetworkSurvivorItemSync] Spawned on client");
+            if (!isServer)
+            {
+                if (_itemSpawnedPub == null || _itemDespawnedPub == null)
+                    Debug.LogWarning($"[NetworkSurvivorItemSync] NULL publishers on client: spawned={_itemSpawnedPub != null}, despawned={_itemDespawnedPub != null}");
+            }
+            Debug.Log($"[NetworkSurvivorItemSync] Spawned on client (isServer={isServer})");
         }
 
         public override void OnStopServer()

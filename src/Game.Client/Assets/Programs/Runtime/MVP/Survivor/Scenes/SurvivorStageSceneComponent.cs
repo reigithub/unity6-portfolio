@@ -11,6 +11,7 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -156,6 +157,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private void Awake()
         {
+            // サーバーでは UIDocument が無効なため UI 初期化をスキップ
+            if (UnityPlaymodeHelper.IsServer()) return;
+
             QueryUIElements();
             SetupEventHandlers();
         }
@@ -228,7 +232,12 @@ namespace Game.MVP.Survivor.Scenes
             if (_playerController != null && levelMaster != null)
             {
                 _playerController.Initialize(levelMaster);
-                _playerController.SetMainCamera(mainCamera.transform);
+
+                // サーバーでは mainCamera が null（GameRootController が null のため）
+                if (mainCamera != null)
+                {
+                    _playerController.SetMainCamera(mainCamera.transform);
+                }
 
                 // スタミナ初期表示
                 UpdateStamina(levelMaster.MaxStamina, levelMaster.MaxStamina);
@@ -245,11 +254,15 @@ namespace Game.MVP.Survivor.Scenes
 
         public async UniTask InitializeEnemySpawnerAsync(SurvivorStageWaveManager waveManager)
         {
-            if (_enemySpawner != null && _playerController != null)
+            if (_enemySpawner == null) return;
+
+            // サーバーでは PlayerController がない（NetworkPlayerState の Transform を後から追加）
+            if (_playerController != null)
             {
                 _enemySpawner.SetPlayer(_playerController.transform);
-                await _enemySpawner.InitializeAsync(waveManager);
             }
+
+            await _enemySpawner.InitializeAsync(waveManager);
         }
 
         public async UniTask InitializeWeaponManagerAsync(int startingWeaponId, float damageMultiplier = 1f)

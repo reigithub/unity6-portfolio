@@ -1,4 +1,3 @@
-#if UNITY_SERVER
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
@@ -25,4 +24,3 @@ namespace Game.MVP.Survivor.Server
         public void SetVolume(float bgm, float voice, float sfx) { }
     }
 }
-#endif
