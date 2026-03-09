@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
@@ -46,6 +47,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Item.Spawned> _itemSpawnedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Item.Despawned> _itemDespawnedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.LeveledUp> _leveledUpSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkPlayerState _localPlayerState;
@@ -202,22 +205,31 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         _stageModel.CollectItem(item);
 
-                        // Server / Host: アイテム収集をクライアントに通知
+                        // Server / Host: アイテム収集をクライアントに通知（経験値状態含む）
                         if (NetworkModeHelper.IsNetworkServer)
                         {
                             var gm = SurvivorNetworkGameManager.Instance;
                             gm?.NotifyItemCollectedClientRpc(
                                 _localPlayerState?.PlayerUserId ?? default,
-                                item.ItemId, item.EffectValue);
+                                item.ItemId,
+                                (int)item.ItemType,
+                                item.EffectValue,
+                                _stageModel.Experience.Value,
+                                _stageModel.ExperienceToNextLevel.Value);
                         }
                     })
                     .AddTo(Disposables);
             }
 
-            _stageModel.Level
-                .Skip(1)
-                .Subscribe(_ => _levelUpRequested = true)
-                .AddTo(Disposables);
+            // SP / Server: ローカルレベルアップ検知
+            // MP Client: サーバーからの LeveledUp シグナルで _pendingLevelUpCount++ する（SubscribeSignals）
+            if (!_isClient)
+            {
+                _stageModel.Level
+                    .Skip(1)
+                    .Subscribe(_ => _pendingLevelUpCount++)
+                    .AddTo(Disposables);
+            }
 
             SceneComponent.UpdateAsObservable()
                 .Subscribe(_ => _stateMachine?.Update())
@@ -258,7 +270,15 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeSignals()
         {
-            _damageReceivedSub.Subscribe(s => _stageModel.TakeDamage(s.Damage)).AddTo(Disposables);
+            if (_isClient)
+            {
+                // Client: サーバーの権威的な残HPで同期（回復アイテムによるHP差分を補正）
+                _damageReceivedSub.Subscribe(s => _stageModel.ForceSetHp(s.RemainingHp)).AddTo(Disposables);
+            }
+            else
+            {
+                _damageReceivedSub.Subscribe(s => _stageModel.TakeDamage(s.Damage)).AddTo(Disposables);
+            }
 
             _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
 
@@ -324,6 +344,27 @@ namespace Game.MVP.Survivor.Scenes
                         }
                     }
                 }).AddTo(Disposables);
+
+                // MP Client: サーバーからのレベルアップ通知
+                _leveledUpSub.Subscribe(s =>
+                {
+                    _stageModel.SetLevelFromServer(s.Level, s.Experience, s.ExperienceToNextLevel);
+                    _pendingLevelUps.Enqueue(s);
+                    _pendingLevelUpCount++;
+                    Debug.Log($"[SurvivorStageScene] Client: LevelUp received from server: Lv.{s.Level}, options={s.Options?.Length ?? 0}");
+                }).AddTo(Disposables);
+
+                // MP Client: サーバーからのアイテム収集通知（経験値 + HP同期）
+                _itemCollectedSub.Subscribe(s =>
+                {
+                    _stageModel.SetExperienceFromServer(s.CurrentExperience, s.ExperienceToNextLevel);
+
+                    // 回復アイテム: クライアント側でもHP回復を反映
+                    if (s.ItemType == (int)SurvivorItemType.Recovery)
+                    {
+                        _stageModel.Heal(s.EffectValue);
+                    }
+                }).AddTo(Disposables);
             }
         }
 
@@ -340,6 +381,36 @@ namespace Game.MVP.Survivor.Scenes
             var networkBridge = new SurvivorNetworkBridge();
             SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
             SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
+
+            // 武器適用イベント購読
+            var gm = SurvivorNetworkGameManager.Instance;
+            if (gm != null)
+            {
+                gm.OnWeaponApplyRequested += OnServerWeaponApply;
+            }
+        }
+
+        private void OnServerWeaponApply(WeaponApplyRequest request)
+        {
+            if (SceneComponent.WeaponManager == null) return;
+
+            switch (request.Type)
+            {
+                case WeaponApplyType.AddOrUpgrade:
+                    if (request.IsNewWeapon)
+                        SceneComponent.WeaponManager.AddWeaponAsync(request.WeaponId).Forget();
+                    else
+                        SceneComponent.WeaponManager.UpgradeWeapon(request.WeaponId);
+                    break;
+
+                case WeaponApplyType.Replace:
+                    SceneComponent.WeaponManager.ReplaceWeaponAsync(
+                        request.RemoveWeaponId, request.WeaponId).Forget();
+                    break;
+            }
+
+            SceneComponent.WeaponManager.UpdateDamageMultiplier(_stageModel.GetDamageMultiplier());
+            Debug.Log($"[SurvivorStageScene] Server weapon applied: type={request.Type}, weaponId={request.WeaponId}");
         }
 
         /// <summary>
@@ -487,6 +558,13 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Terminate()
         {
+            // 武器適用イベント解除
+            var gm = SurvivorNetworkGameManager.Instance;
+            if (gm != null)
+            {
+                gm.OnWeaponApplyRequested -= OnServerWeaponApply;
+            }
+
             _networkConnector?.Disconnect();
             ApplicationEvents.ResumeTime();
 

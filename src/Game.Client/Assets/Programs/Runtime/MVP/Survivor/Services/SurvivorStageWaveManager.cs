@@ -209,11 +209,19 @@ namespace Game.MVP.Survivor.Services
             // Client-only: キルトラッキングはサーバーが駆動
             if (_isClient) return;
 
+            // 全ウェーブクリア後はキル処理しない（残存敵の死亡による再トリガー防止）
+            if (_isAllWavesCleared.Value) return;
+
             // 目標数を超える加算をしない
             if (_enemiesKilled.Value < _targetKillsThisWave.Value)
             {
                 _enemiesKilled.Value++;
                 _onKillCounted.OnNext(Unit.Default);
+
+                if (_enemiesKilled.Value % 10 == 0 || _enemiesKilled.Value == _targetKillsThisWave.Value)
+                {
+                    Debug.Log($"[SurvivorStageWaveManager] Kill progress: {_enemiesKilled.Value}/{_targetKillsThisWave.Value} (wave={_currentWave.Value})");
+                }
             }
 
             // ボス撃破は別カウント（目標数とは独立）

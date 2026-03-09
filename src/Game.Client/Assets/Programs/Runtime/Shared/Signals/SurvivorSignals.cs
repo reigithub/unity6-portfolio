@@ -90,13 +90,20 @@ namespace Game.Shared.Signals.Survivor
             {
                 public readonly string UserId;
                 public readonly int ItemId;
+                public readonly int ItemType;
                 public readonly int EffectValue;
+                public readonly int CurrentExperience;
+                public readonly int ExperienceToNextLevel;
 
-                public ItemCollected(string userId, int itemId, int effectValue)
+                public ItemCollected(string userId, int itemId, int itemType, int effectValue,
+                    int currentExperience, int experienceToNextLevel)
                 {
                     UserId = userId;
                     ItemId = itemId;
+                    ItemType = itemType;
                     EffectValue = effectValue;
+                    CurrentExperience = currentExperience;
+                    ExperienceToNextLevel = experienceToNextLevel;
                 }
             }
 
@@ -104,12 +111,17 @@ namespace Game.Shared.Signals.Survivor
             {
                 public readonly string UserId;
                 public readonly int Level;
+                public readonly int Experience;
+                public readonly int ExperienceToNextLevel;
                 public readonly SurvivorNetworkWeaponUpgradeOption[] Options;
 
-                public LeveledUp(string userId, int level, SurvivorNetworkWeaponUpgradeOption[] options)
+                public LeveledUp(string userId, int level, int experience, int experienceToNextLevel,
+                    SurvivorNetworkWeaponUpgradeOption[] options)
                 {
                     UserId = userId;
                     Level = level;
+                    Experience = experience;
+                    ExperienceToNextLevel = experienceToNextLevel;
                     Options = options;
                 }
             }

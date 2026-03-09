@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Game.Shared.Bootstrap;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using Mirror;
@@ -115,12 +117,16 @@ namespace Game.Shared.Network.Survivor
         /// <para><b>未使用:</b> アイテムシステムの MP 対応時に、サーバー側のアイテム取得ロジックから呼び出す予定。</para>
         /// </summary>
         [ClientRpc]
-        public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
+        public void NotifyItemCollectedClientRpc(
+            FixedString64Bytes userId, int itemId, int itemType, int effectValue,
+            int currentExperience, int experienceToNextLevel)
         {
             if (!isServer)
             {
                 _itemCollectedPub?.Publish(
-                    new SurvivorSignals.Player.ItemCollected(userId.ToString(), itemId, effectValue));
+                    new SurvivorSignals.Player.ItemCollected(
+                        userId.ToString(), itemId, itemType, effectValue,
+                        currentExperience, experienceToNextLevel));
             }
         }
 
@@ -129,12 +135,16 @@ namespace Game.Shared.Network.Survivor
         /// <para><b>未使用:</b> レベルアップシステムの MP 対応時に、サーバー側の経験値計算から呼び出す予定。</para>
         /// </summary>
         [ClientRpc]
-        public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
+        public void NotifyPlayerLevelUpClientRpc(
+            FixedString64Bytes userId, int newLevel,
+            int experience, int experienceToNextLevel,
+            SurvivorNetworkWeaponUpgradeOption[] options)
         {
             if (!isServer)
             {
                 _playerLeveledUpPub?.Publish(
-                    new SurvivorSignals.Player.LeveledUp(userId.ToString(), newLevel, options));
+                    new SurvivorSignals.Player.LeveledUp(
+                        userId.ToString(), newLevel, experience, experienceToNextLevel, options));
             }
         }
 
@@ -284,6 +294,105 @@ namespace Game.Shared.Network.Survivor
             if (!isServer)
             {
                 _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
+            }
+        }
+
+        // =====================================================================
+        //  レベルアップポーズ管理（サーバー側）
+        // =====================================================================
+
+        private bool _isLevelUpPaused;
+        private float _levelUpPauseStartTime;
+        private const float LevelUpPauseTimeout = 45f;
+
+        /// <summary>サーバー側: 武器適用リクエストイベント（SurvivorStageScene が購読）</summary>
+        public event Action<WeaponApplyRequest> OnWeaponApplyRequested;
+
+        /// <summary>サーバー側: 最後に送信した武器選択肢（検証用）</summary>
+        private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
+
+        /// <summary>サーバー側: 送信した武器選択肢を記録（検証用）</summary>
+        public void SetPendingWeaponOptions(SurvivorNetworkWeaponUpgradeOption[] options)
+        {
+            _lastSentWeaponOptions = options;
+        }
+
+        /// <summary>サーバー側: クライアントがレベルアップポーズを要求</summary>
+        [Server]
+        public void OnClientRequestPause(NetworkConnectionToClient conn)
+        {
+            if (_isLevelUpPaused) return;
+            _isLevelUpPaused = true;
+            _levelUpPauseStartTime = Time.realtimeSinceStartup;
+            ApplicationEvents.PauseTime();
+            Debug.Log($"[NetworkSurvivorGameManager] LevelUp pause requested by conn={conn.connectionId}");
+        }
+
+        /// <summary>サーバー側: クライアントがレベルアップ再開を要求</summary>
+        [Server]
+        public void OnClientRequestResume(NetworkConnectionToClient conn)
+        {
+            if (!_isLevelUpPaused) return;
+            _isLevelUpPaused = false;
+            ApplicationEvents.ResumeTime();
+            Debug.Log($"[NetworkSurvivorGameManager] LevelUp resumed by conn={conn.connectionId}");
+        }
+
+        /// <summary>サーバー側: 武器選択結果を受信し、検証後に適用イベントを発火</summary>
+        [Server]
+        public void OnClientWeaponChoice(int weaponId, bool isNewWeapon)
+        {
+            // 検証: サーバーが送った選択肢に含まれるか
+            if (_lastSentWeaponOptions != null)
+            {
+                bool valid = false;
+                foreach (var opt in _lastSentWeaponOptions)
+                {
+                    if (opt.WeaponId == weaponId)
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+                if (!valid)
+                {
+                    Debug.LogWarning($"[NetworkSurvivorGameManager] Rejected invalid weapon choice: {weaponId}");
+                    return;
+                }
+                _lastSentWeaponOptions = null;
+            }
+
+            var request = new WeaponApplyRequest
+            {
+                WeaponId = weaponId,
+                IsNewWeapon = isNewWeapon,
+                Type = WeaponApplyType.AddOrUpgrade
+            };
+            OnWeaponApplyRequested?.Invoke(request);
+        }
+
+        /// <summary>サーバー側: 武器入れ替え結果を受信し、適用イベントを発火</summary>
+        [Server]
+        public void OnClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        {
+            var request = new WeaponApplyRequest
+            {
+                WeaponId = newWeaponId,
+                RemoveWeaponId = removeWeaponId,
+                Type = WeaponApplyType.Replace
+            };
+            OnWeaponApplyRequested?.Invoke(request);
+        }
+
+        private void Update()
+        {
+            if (!isServer || !_isLevelUpPaused) return;
+
+            if (Time.realtimeSinceStartup - _levelUpPauseStartTime > LevelUpPauseTimeout)
+            {
+                Debug.LogWarning("[NetworkSurvivorGameManager] LevelUp pause timeout, force resuming");
+                _isLevelUpPaused = false;
+                ApplicationEvents.ResumeTime();
             }
         }
 
@@ -462,5 +571,15 @@ namespace Game.Shared.Network.Survivor
         {
             if (Instance == this) Instance = null;
         }
+    }
+
+    public enum WeaponApplyType { AddOrUpgrade, Replace }
+
+    public struct WeaponApplyRequest
+    {
+        public int WeaponId;
+        public bool IsNewWeapon;
+        public WeaponApplyType Type;
+        public int RemoveWeaponId;
     }
 }

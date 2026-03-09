@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Library.Shared.Enums;
@@ -14,6 +15,8 @@ using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
+using Game.Shared.Signals.Survivor;
+using Unity.Collections;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -41,7 +44,8 @@ namespace Game.MVP.Survivor.Scenes
         private bool _isResultSaved;
         private bool _retryOrQuit;
         private bool _pauseRequested;
-        private bool _levelUpRequested;
+        private int _pendingLevelUpCount;
+        private readonly Queue<SurvivorSignals.Player.LeveledUp> _pendingLevelUps = new();
 
         private void BuildStateMachine()
         {
@@ -325,7 +329,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 Context._inputService.EnablePlayer();
                 Context._pauseRequested = false;
-                Context._levelUpRequested = false;
+                // _pendingLevelUpCount はデクリメント方式のためリセットしない
             }
 
             public override void Update()
@@ -346,9 +350,9 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                if (Context._levelUpRequested)
+                if (Context._pendingLevelUpCount > 0)
                 {
-                    Context._levelUpRequested = false;
+                    Context._pendingLevelUpCount--;
                     Transition(StageEvent.LevelUp);
                     return;
                 }
@@ -415,6 +419,13 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[PausedState] Enter");
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
+
+                // MP Client: サーバーにもポーズを要求
+                if (Context._isClient)
+                {
+                    Context._localPlayerState?.RequestPauseServerRpc();
+                }
+
                 ShowPauseDialogAsync().Forget();
             }
 
@@ -440,6 +451,13 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PausedState] Exit");
+
+                // MP Client: サーバーにレジューム通知
+                if (Context._isClient)
+                {
+                    Context._localPlayerState?.RequestResumeServerRpc();
+                }
+
                 ApplicationEvents.ResumeTime();
             }
         }
@@ -455,6 +473,14 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log($"[LevelUpState] Enter - Level {StageModel.Level.Value}");
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
+
+                // MP Client: サーバーにポーズを要求
+                if (Context._isClient)
+                {
+                    Debug.Log("[LevelUpState] Client: sending RequestPauseServerRpc");
+                    Context._localPlayerState?.RequestPauseServerRpc();
+                }
+
                 ShowLevelUpDialogAsync().Forget();
             }
 
@@ -463,9 +489,35 @@ namespace Game.MVP.Survivor.Scenes
                 // プレイヤーのステータスを更新（移動速度、ピックアップ範囲など）
                 UpdatePlayerStats();
 
-                // サーバー: ステータス更新のみ、武器選択はクライアントの ServerRpc で受信
+                // サーバー: ステータス + ダメージ倍率を更新し、武器選択肢をクライアントに送信
+                // ゲーム時間は PauseTime() のまま維持（Enter で停止済み）
+                // → クライアントの RequestResumeServerRpc でサーバー側 GameManager が ResumeTime()
                 if (UnityPlaymodeHelper.IsServer())
                 {
+                    View.WeaponManager?.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
+
+                    // 武器選択肢を生成してクライアントに送信
+                    if (View.WeaponManager != null)
+                    {
+                        var serverOptions = View.WeaponManager.GetUpgradeOptions(StageModel.WeaponChoiceCount.Value);
+                        if (serverOptions.Count > 0)
+                        {
+                            var networkOptions = ConvertToNetworkOptions(serverOptions);
+                            var gm = SurvivorNetworkGameManager.Instance;
+                            if (gm != null)
+                            {
+                                gm.SetPendingWeaponOptions(networkOptions);
+                                gm.NotifyPlayerLevelUpClientRpc(
+                                    Context._localPlayerState?.PlayerUserId ?? default,
+                                    StageModel.Level.Value,
+                                    StageModel.Experience.Value,
+                                    StageModel.ExperienceToNextLevel.Value,
+                                    networkOptions);
+                                Debug.Log($"[LevelUpState] Server: sent LevelUp RPC with {networkOptions.Length} options");
+                            }
+                        }
+                    }
+
                     Transition(StageEvent.LevelUpComplete);
                     return;
                 }
@@ -476,7 +528,20 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                var options = View.WeaponManager.GetUpgradeOptions(StageModel.WeaponChoiceCount.Value);
+                // クライアント: サーバー提供の選択肢を使用 / SP: ローカルで生成
+                List<SurvivorWeaponUpgradeOption> options;
+                if (Context._isClient && Context._pendingLevelUps.Count > 0)
+                {
+                    var levelUpData = Context._pendingLevelUps.Dequeue();
+                    options = (levelUpData.Options != null && levelUpData.Options.Length > 0)
+                        ? ConvertNetworkOptions(levelUpData.Options)
+                        : new List<SurvivorWeaponUpgradeOption>();
+                    Debug.Log($"[LevelUpState] Client: using server options ({options.Count} choices)");
+                }
+                else
+                {
+                    options = View.WeaponManager.GetUpgradeOptions(StageModel.WeaponChoiceCount.Value);
+                }
 
                 if (options.Count == 0)
                 {
@@ -533,6 +598,14 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
+
+                // MP Client: サーバーにレジューム通知
+                if (Context._isClient)
+                {
+                    Debug.Log("[LevelUpState] Client: sending RequestResumeServerRpc");
+                    Context._localPlayerState?.RequestResumeServerRpc();
+                }
+
                 Transition(StageEvent.LevelUpComplete);
             }
 
@@ -547,7 +620,53 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[LevelUpState] Exit");
-                ApplicationEvents.ResumeTime();
+
+                // サーバー: クライアントの RequestResumeServerRpc が ResumeTime する
+                if (UnityPlaymodeHelper.IsClient())
+                {
+                    ApplicationEvents.ResumeTime();
+                }
+            }
+
+            private static List<SurvivorWeaponUpgradeOption> ConvertNetworkOptions(
+                SurvivorNetworkWeaponUpgradeOption[] networkOptions)
+            {
+                var result = new List<SurvivorWeaponUpgradeOption>(networkOptions.Length);
+                foreach (var opt in networkOptions)
+                {
+                    result.Add(new SurvivorWeaponUpgradeOption
+                    {
+                        WeaponId = opt.WeaponId,
+                        WeaponName = opt.WeaponName.ToString(),
+                        IsNewWeapon = opt.IsNewWeapon,
+                        CurrentLevel = opt.CurrentLevel,
+                        Description = opt.Description.ToString(),
+                        UpgradeEffect = opt.UpgradeEffect.ToString(),
+                        IconAssetName = opt.IconAssetName.ToString()
+                    });
+                }
+                return result;
+            }
+
+            private static SurvivorNetworkWeaponUpgradeOption[] ConvertToNetworkOptions(
+                List<SurvivorWeaponUpgradeOption> options)
+            {
+                var result = new SurvivorNetworkWeaponUpgradeOption[options.Count];
+                for (int i = 0; i < options.Count; i++)
+                {
+                    var opt = options[i];
+                    result[i] = new SurvivorNetworkWeaponUpgradeOption
+                    {
+                        WeaponId = opt.WeaponId,
+                        WeaponName = new FixedString128Bytes(opt.WeaponName ?? ""),
+                        IsNewWeapon = opt.IsNewWeapon,
+                        CurrentLevel = opt.CurrentLevel,
+                        Description = new FixedString128Bytes(opt.Description ?? ""),
+                        UpgradeEffect = new FixedString128Bytes(opt.UpgradeEffect ?? ""),
+                        IconAssetName = new FixedString128Bytes(opt.IconAssetName ?? "")
+                    };
+                }
+                return result;
             }
         }
 
@@ -566,6 +685,9 @@ namespace Game.MVP.Survivor.Scenes
                 // ゲーム状態をフリーズ（スコア稼ぎ防止）
                 ApplicationEvents.PauseTime();
                 Context._inputService.DisablePlayer();
+
+                // 残存敵を全クリア＆スポーン停止
+                View.EnemySpawner?.ClearAllEnemies();
 
                 // HUDを非表示
                 StageSceneView.SetHudVisible(false);
@@ -592,15 +714,15 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
                 Context._isResultSaved = true;
 
-                // サーバー/ホスト: クライアントに勝利を通知
-                if (!Context._isClient && Context._localPlayerState != null)
+                // サーバー: クライアントに勝利を通知（直接 ClientRpc）
+                if (!Context._isClient)
                 {
-                    var result = new SurvivorNetworkGameResult
+                    var gameResult = new SurvivorNetworkGameResult
                     {
                         IsVictory = true,
                         ClearTime = clearTime
                     };
-                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                    SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(gameResult);
                 }
 
                 Debug.Log("[VictoryState] Result saved successfully");
@@ -639,6 +761,9 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 Context._inputService.DisablePlayer();
 
+                // 残存敵を全クリア＆スポーン停止
+                View.EnemySpawner?.ClearAllEnemies();
+
                 // HUDを非表示
                 StageSceneView.SetHudVisible(false);
 
@@ -664,15 +789,15 @@ namespace Game.MVP.Survivor.Scenes
 
                 Context._isResultSaved = true;
 
-                // サーバー/ホスト: クライアントに敗北を通知
-                if (!Context._isClient && Context._localPlayerState != null)
+                // サーバー: クライアントに敗北を通知（直接 ClientRpc）
+                if (!Context._isClient)
                 {
-                    var result = new SurvivorNetworkGameResult
+                    var gameResult = new SurvivorNetworkGameResult
                     {
                         IsVictory = false,
                         ClearTime = clearTime
                     };
-                    Context._localPlayerState.ReportGameEndServerRpc(result);
+                    SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(gameResult);
                 }
 
                 Debug.Log("[GameOverState] Result saved successfully");

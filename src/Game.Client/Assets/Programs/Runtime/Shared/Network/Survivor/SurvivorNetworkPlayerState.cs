@@ -68,24 +68,28 @@ namespace Game.Shared.Network.Survivor
         public void SendWeaponChoiceServerRpc(int weaponId, bool isNewWeapon)
         {
             Debug.Log($"[NetworkSurvivorPlayerState] WeaponChoice from {connectionToClient?.connectionId}: weapon={weaponId} new={isNewWeapon}");
+            SurvivorNetworkGameManager.Instance?.OnClientWeaponChoice(weaponId, isNewWeapon);
         }
 
         [Command]
         public void SendWeaponReplaceServerRpc(int removeWeaponId, int newWeaponId)
         {
             Debug.Log($"[NetworkSurvivorPlayerState] WeaponReplace from {connectionToClient?.connectionId}: remove={removeWeaponId} new={newWeaponId}");
+            SurvivorNetworkGameManager.Instance?.OnClientWeaponReplace(removeWeaponId, newWeaponId);
         }
 
         [Command]
         public void RequestPauseServerRpc()
         {
             Debug.Log($"[NetworkSurvivorPlayerState] PauseRequest from {connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientRequestPause(connectionToClient);
         }
 
         [Command]
         public void RequestResumeServerRpc()
         {
             Debug.Log($"[NetworkSurvivorPlayerState] ResumeRequest from {connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientRequestResume(connectionToClient);
         }
 
         [Command]

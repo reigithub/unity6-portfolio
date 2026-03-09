@@ -533,6 +533,8 @@ namespace Game.MVP.Survivor.Enemy
 
         private void OnEnemyDeath(SurvivorEnemyController enemy)
         {
+            Debug.Log($"[SurvivorEnemySpawner] EnemyDeath: id={enemy.EnemyId}, boss={enemy.IsBoss}, active={_activeEnemies.Count - 1}, time={Time.time:F1}s");
+
             // サーバー: 死亡イベントを送信
             if (_networkBridge != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
