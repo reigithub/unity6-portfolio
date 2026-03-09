@@ -281,6 +281,7 @@ namespace Game.MVP.Survivor.Enemy
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
                     PositionX = enemy.transform.position.x,
+                    PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
                     CurrentHp = enemy.CurrentHp,
                     SyncType = EnemySyncType.PositionUpdate
@@ -382,6 +383,7 @@ namespace Game.MVP.Survivor.Enemy
                         NetworkId = networkId,
                         EnemyMasterId = enemy.EnemyId,
                         PositionX = spawnPosition.x,
+                        PositionY = spawnPosition.y,
                         PositionZ = spawnPosition.z,
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
@@ -543,6 +545,7 @@ namespace Game.MVP.Survivor.Enemy
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
                     PositionX = enemy.transform.position.x,
+                    PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death

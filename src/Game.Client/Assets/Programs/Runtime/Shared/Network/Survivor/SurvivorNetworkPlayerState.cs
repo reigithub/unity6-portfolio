@@ -106,6 +106,13 @@ namespace Game.Shared.Network.Survivor
             SurvivorNetworkGameManager.Instance?.OnClientSceneReady(connectionToClient);
         }
 
+        [Command]
+        public void RequestQuitServerRpc()
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] QuitRequest from {connectionToClient?.connectionId}");
+            SurvivorUnityServerSession.NotifyPlayerQuit();
+        }
+
         // --- ライフサイクル ---
 
         public override void OnStartClient()

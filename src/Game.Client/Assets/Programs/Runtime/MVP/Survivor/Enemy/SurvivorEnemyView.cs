@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Game.Library.Shared.Dto;
+using Game.Shared.Combat;
+using Game.Shared.Constants;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -46,17 +48,26 @@ namespace Game.MVP.Survivor.Enemy
             if (_proxies.ContainsKey(e.NetworkId)) return;
             var proxy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             proxy.name = $"EnemyProxy_{e.NetworkId}";
-            proxy.transform.position = new Vector3(e.PositionX, 0, e.PositionZ);
+            proxy.transform.position = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
             proxy.transform.SetParent(transform);
+
+            // Enemyレイヤー設定（LockOnServiceのOverlapSphere検出用）
+            proxy.layer = LayerConstants.Enemy;
+
+            // Colliderをトリガーに変更（物理衝突なし、OverlapSphere/SphereCast検出用）
             var col = proxy.GetComponent<Collider>();
-            if (col != null) Destroy(col);
+            if (col != null) col.isTrigger = true;
+
+            // ITargetable実装を追加（LockOnServiceのCenterPosition取得用）
+            proxy.AddComponent<EnemyProxyTarget>();
+
             _proxies[e.NetworkId] = proxy;
         }
 
         private void UpdateProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
             if (_proxies.TryGetValue(e.NetworkId, out var p))
-                p.transform.position = new Vector3(e.PositionX, 0, e.PositionZ);
+                p.transform.position = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
         }
 
         private void DespawnProxy(int id)
@@ -77,5 +88,14 @@ namespace Game.MVP.Survivor.Enemy
             }
             _proxies.Clear();
         }
+    }
+
+    /// <summary>
+    /// クライアント敵プロキシ用ターゲットコンポーネント。
+    /// LockOnServiceがOverlapSphereで検出し、CenterPositionを取得する。
+    /// </summary>
+    public class EnemyProxyTarget : MonoBehaviour, ITargetable
+    {
+        public Vector3 CenterPosition => transform.position + Vector3.up;
     }
 }

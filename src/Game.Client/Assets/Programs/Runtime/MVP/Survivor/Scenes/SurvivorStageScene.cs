@@ -259,6 +259,12 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
+            // Server: 全クライアント切断時にスポーン停止
+            if (NetworkModeHelper.IsNetworkServer)
+            {
+                SurvivorUnityServerSession.OnAllPlayersDisconnected += HandleAllPlayersDisconnected;
+            }
+
             // 自動保存のセットアップ
             SetupAutoSave();
         }
@@ -388,6 +394,12 @@ namespace Game.MVP.Survivor.Scenes
             {
                 gm.OnWeaponApplyRequested += OnServerWeaponApply;
             }
+        }
+
+        private void HandleAllPlayersDisconnected()
+        {
+            Debug.Log("[SurvivorStageScene] All players disconnected, clearing enemies and stopping spawner");
+            SceneComponent.EnemySpawner?.ClearAllEnemies();
         }
 
         private void OnServerWeaponApply(WeaponApplyRequest request)
@@ -558,7 +570,8 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Terminate()
         {
-            // 武器適用イベント解除
+            // イベント解除
+            SurvivorUnityServerSession.OnAllPlayersDisconnected -= HandleAllPlayersDisconnected;
             var gm = SurvivorNetworkGameManager.Instance;
             if (gm != null)
             {

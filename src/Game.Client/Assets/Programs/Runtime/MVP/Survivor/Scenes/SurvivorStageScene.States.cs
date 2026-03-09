@@ -830,6 +830,12 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[RetryState] Enter");
 
+                // クライアント: サーバーに退出を即時通知
+                if (Context._isClient)
+                {
+                    Context._localPlayerState?.RequestQuitServerRpc();
+                }
+
                 // Retryフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;
 
@@ -871,6 +877,12 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[QuitToTitleState] Enter");
+
+                // クライアント: サーバーに退出を即時通知（DI スコープ解放で Connector が先に切断されるため、ここで送信）
+                if (Context._isClient)
+                {
+                    Context._localPlayerState?.RequestQuitServerRpc();
+                }
 
                 // Quitフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;

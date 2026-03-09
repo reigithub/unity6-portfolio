@@ -7,6 +7,7 @@ namespace Game.Shared.Network.Survivor
         public int NetworkId;
         public int EnemyMasterId;
         public float PositionX;
+        public float PositionY;
         public float PositionZ;
         public int CurrentHp;
         public byte SyncTypeByte;
@@ -24,6 +25,7 @@ namespace Game.Shared.Network.Survivor
                 NetworkId = dto.NetworkId,
                 EnemyMasterId = dto.EnemyMasterId,
                 PositionX = dto.PositionX,
+                PositionY = dto.PositionY,
                 PositionZ = dto.PositionZ,
                 CurrentHp = dto.CurrentHp,
                 SyncType = dto.SyncType,
@@ -37,6 +39,7 @@ namespace Game.Shared.Network.Survivor
                 NetworkId = NetworkId,
                 EnemyMasterId = EnemyMasterId,
                 PositionX = PositionX,
+                PositionY = PositionY,
                 PositionZ = PositionZ,
                 CurrentHp = CurrentHp,
                 SyncType = SyncType,

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Signals.Survivor;
@@ -17,6 +18,21 @@ namespace Game.Shared.Network.Survivor
     /// </summary>
     public class SurvivorUnityServerSession : MonoBehaviour
     {
+        /// <summary>
+        /// 全クライアント切断時に発火。サーバー側でスポーン停止等のクリーンアップに使用。
+        /// </summary>
+        public static event Action OnAllPlayersDisconnected;
+
+        /// <summary>
+        /// クライアントが明示的に退出を通知した際に呼ばれる。
+        /// KCPタイムアウトを待たずに即座にクリーンアップを開始する。
+        /// </summary>
+        public static void NotifyPlayerQuit()
+        {
+            Debug.Log("[SurvivorServerSession] Player quit notification received");
+            OnAllPlayersDisconnected?.Invoke();
+        }
+
         [Inject] private IObjectResolver _resolver;
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
 
@@ -142,10 +158,11 @@ namespace Game.Shared.Network.Survivor
                 gm.NotifyPlayerDisconnectedClientRpc(new FixedString64Bytes(userId), new FixedString64Bytes(""));
             }
 
-            // 全員切断 → セッション終了
+            // 全員切断 → クリーンアップ通知 + セッション終了
             if (_connectedPlayerCount <= 0 && _sessionStarted)
             {
                 Debug.Log("[SurvivorServerSession] All players disconnected, stopping session");
+                OnAllPlayersDisconnected?.Invoke();
                 StopSession();
             }
         }

@@ -28,12 +28,15 @@ namespace Game.Library.Shared.Dto
         public float PositionX { get; set; }
 
         [Key(3)]
-        public float PositionZ { get; set; }
+        public float PositionY { get; set; }
 
         [Key(4)]
-        public int CurrentHp { get; set; }
+        public float PositionZ { get; set; }
 
         [Key(5)]
+        public int CurrentHp { get; set; }
+
+        [Key(6)]
         public EnemySyncType SyncType { get; set; }
     }
 }
