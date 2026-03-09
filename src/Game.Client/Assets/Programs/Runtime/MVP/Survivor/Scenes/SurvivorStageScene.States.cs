@@ -14,7 +14,6 @@ using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
-using Mirror;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -118,11 +117,11 @@ namespace Game.MVP.Survivor.Scenes
 
                 // ネットワーク初期化
                 // SurvivorStageConnectScene で接続確立済みのため、NetworkClient.localPlayer は利用可能
-                if (NetworkClient.isConnected)
+                if (NetworkModeHelper.IsNetworkClientConnected)
                 {
                     InitializeClientViews();
                 }
-                else if (NetworkServer.active)
+                else if (NetworkModeHelper.IsNetworkServer)
                 {
                     // Server-only: VContainer Inject でネットワークオブジェクトの IPublisher を解決
                     InitializeServerViews();
@@ -227,10 +226,9 @@ namespace Game.MVP.Survivor.Scenes
                 // （NetworkMessage + RegisterHandler パターンにより VContainer/MessagePipe 依存を排除済み）
 
                 // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
-                var localPlayer = NetworkClient.localPlayer;
-                if (localPlayer != null)
+                if (NetworkModeHelper.TryGetLocalPlayerComponent<SurvivorNetworkPlayerState>(out var localPlayerState))
                 {
-                    Context._localPlayerState = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
+                    Context._localPlayerState = localPlayerState;
                     Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
 
                     // PlayerController に NetworkPlayerState をバインド
@@ -261,10 +259,8 @@ namespace Game.MVP.Survivor.Scenes
                 var playerController = View.PlayerController;
                 if (playerController != null)
                 {
-                    foreach (var conn in NetworkServer.connections.Values)
+                    foreach (var nps in NetworkModeHelper.GetNetworkPlayerComponents<SurvivorNetworkPlayerState>())
                     {
-                        if (conn?.identity == null) continue;
-                        var nps = conn.identity.GetComponent<SurvivorNetworkPlayerState>();
                         if (nps != null)
                         {
                             playerController.BindNetworkPlayerState(nps);
@@ -293,7 +289,7 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Enter()
             {
-                Debug.Log($"[PlayingState] Enter (isClient={Context._isClient}, isServer={UnityPlaymodeHelper.IsServer()}, NetworkServer.active={NetworkServer.active}, NetworkClient.isConnected={NetworkClient.isConnected})");
+                Debug.Log($"[PlayingState] Enter (isClient={Context._isClient}, isServer={UnityPlaymodeHelper.IsServer()}, {NetworkModeHelper.GetDebugStatus()})");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
 
@@ -302,7 +298,7 @@ namespace Game.MVP.Survivor.Scenes
                 // Mirror 切断検知（MP モード）
                 if (Context._isClient)
                 {
-                    NetworkClient.OnDisconnectedEvent += OnDisconnected;
+                    NetworkModeHelper.OnClientDisconnected += OnDisconnected;
                 }
 
                 // 初回（ReadyStateからの遷移）のみWaveを開始
@@ -398,7 +394,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                NetworkClient.OnDisconnectedEvent -= OnDisconnected;
+                NetworkModeHelper.OnClientDisconnected -= OnDisconnected;
             }
 
             private void OnDisconnected()

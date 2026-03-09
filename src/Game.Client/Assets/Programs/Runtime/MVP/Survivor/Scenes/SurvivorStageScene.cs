@@ -13,7 +13,6 @@ using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
-using Mirror;
 using R3;
 using R3.Triggers;
 using Unity.Collections;
@@ -76,7 +75,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // ネットワーククライアントモードを起動時に1回だけキャッシュ（SP: false, MP Client: true）
             _isClient = NetworkModeHelper.IsNetworkClient;
-            Debug.Log($"[SurvivorStageScene] Startup: isClient={_isClient}, IsServer={UnityPlaymodeHelper.IsServer()}, NetworkServer.active={NetworkServer.active}, NetworkClient.isConnected={NetworkClient.isConnected}");
+            Debug.Log($"[SurvivorStageScene] Startup: isClient={_isClient}, IsServer={UnityPlaymodeHelper.IsServer()}, {NetworkModeHelper.GetDebugStatus()}");
 
             // サーバーではNullStageViewでHUD呼び出しをno-op化
             _stageSceneView = UnityPlaymodeHelper.IsServer()

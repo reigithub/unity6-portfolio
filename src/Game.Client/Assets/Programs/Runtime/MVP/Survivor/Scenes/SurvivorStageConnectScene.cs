@@ -9,7 +9,6 @@ using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using Game.Shared.Unity.Server;
 using MessagePipe;
-using Mirror;
 using R3;
 using UnityEngine;
 using VContainer;
@@ -94,7 +93,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
-                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, ServerActive={NetworkServer.active}, ClientConnected={NetworkClient.isConnected}");
+                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, {NetworkModeHelper.GetDebugStatus()}");
                 if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
@@ -102,13 +101,13 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkServer.active && NetworkClient.isConnected)
+                else if (NetworkModeHelper.IsNetworkHost)
                 {
                     // Editor Host mode: Server + ローカルClient
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkServer.active)
+                else if (NetworkModeHelper.IsNetworkServer)
                 {
                     // Editor Server-only mode: 全 Client 接続待ち
                     SceneComponent.SetStatus("Waiting for clients...");
