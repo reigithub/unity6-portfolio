@@ -27,24 +27,27 @@ namespace Game.Shared.Network.Survivor
         private float _pendingMoveX;
         private float _pendingMoveY;
         private bool _pendingIsSprinting;
+        private float _pendingCameraRotationY;
         private bool _hasInput;
 
         /// <summary>
         /// サーバー側: バッファされた入力を消費する。
         /// SurvivorPlayerController.UpdateInput() から呼ばれる。
         /// </summary>
-        public bool TryConsumeInput(out float moveX, out float moveY, out bool isSprinting)
+        public bool TryConsumeInput(out float moveX, out float moveY, out bool isSprinting, out float cameraRotationY)
         {
             if (!_hasInput)
             {
                 moveX = 0;
                 moveY = 0;
                 isSprinting = false;
+                cameraRotationY = 0f;
                 return false;
             }
             moveX = _pendingMoveX;
             moveY = _pendingMoveY;
             isSprinting = _pendingIsSprinting;
+            cameraRotationY = _pendingCameraRotationY;
             _hasInput = false;
             return true;
         }
@@ -52,11 +55,12 @@ namespace Game.Shared.Network.Survivor
         // --- クライアント → サーバー入力（Command） ---
 
         [Command]
-        public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting)
+        public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting, float cameraRotationY)
         {
             _pendingMoveX = moveX;
             _pendingMoveY = moveY;
             _pendingIsSprinting = isSprinting;
+            _pendingCameraRotationY = cameraRotationY;
             _hasInput = true;
         }
 

@@ -110,6 +110,7 @@ namespace Game.MVP.Survivor.Player
         private ISurvivorPlayerInputProvider _inputProvider;
         private ISurvivorNetworkPlayerStateSynchronizer _stateSynchronizer;
         private bool _skipPhysics;
+        private float _cameraRotationY;
 
         #region MonoBehaviour Methods
 
@@ -190,7 +191,7 @@ namespace Game.MVP.Survivor.Player
             {
                 if (playerState.isOwned)
                 {
-                    // ローカルプレイヤー: 入力を ServerRpc で送信
+                    // ローカルプレイヤー: 入力を ServerRpc で送信 + ローカル予測移動
                     _inputProvider = new ClientInputProvider(_inputService, playerState);
                 }
                 // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
@@ -300,11 +301,12 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_inputProvider == null) return;
 
-                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting))
+                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting, out var cameraRotationY))
                     return; // Client: ServerRpc 送信済み、ローカル処理不要
 
                 // SP/Server/Host 共通の入力処理
                 _moveValue = moveValue;
+                _cameraRotationY = cameraRotationY;
                 _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
 
                 var wantToRun = isSprinting && IsMoveInput();
@@ -404,18 +406,14 @@ namespace Game.MVP.Survivor.Player
 
         private void HandleMovement()
         {
-            if (_mainCamera)
+            if (IsMoveInput())
             {
-                if (IsMoveInput())
-                {
-                    var forward = _mainCamera.forward;
-                    var right = _mainCamera.right;
-                    forward.y = 0f;
-                    right.y = 0f;
+                var cameraRot = Quaternion.Euler(0f, _cameraRotationY, 0f);
+                var forward = cameraRot * Vector3.forward;
+                var right = cameraRot * Vector3.right;
 
-                    _moveVector = forward * _moveValue.y + right * _moveValue.x;
-                    _lookRotation = Quaternion.LookRotation(_moveVector);
-                }
+                _moveVector = (forward * _moveValue.y + right * _moveValue.x).normalized;
+                _lookRotation = Quaternion.LookRotation(_moveVector);
             }
 
             // Sweep-based移動: 移動前にCapsuleCastで衝突チェック

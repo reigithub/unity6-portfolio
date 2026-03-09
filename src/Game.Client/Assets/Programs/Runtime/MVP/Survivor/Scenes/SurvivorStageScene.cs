@@ -98,6 +98,12 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
 
+            // MP Client: Wave進行をサーバー権威モードに設定
+            if (_isClient)
+            {
+                _waveManager.SetClient(true);
+            }
+
             // インゲームフィールドをロード
             await LoadUnitySceneAsync();
 

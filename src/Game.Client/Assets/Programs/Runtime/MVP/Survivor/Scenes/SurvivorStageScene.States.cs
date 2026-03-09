@@ -232,6 +232,15 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     Context._localPlayerState = localPlayer.GetComponent<SurvivorNetworkPlayerState>();
                     Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
+
+                    // PlayerController に NetworkPlayerState をバインド
+                    // → ClientInputProvider 生成 → SendMoveInputServerRpc でサーバーに入力送信
+                    var playerController = View.PlayerController;
+                    if (playerController != null)
+                    {
+                        playerController.BindNetworkPlayerState(Context._localPlayerState);
+                        Debug.Log("[ReadyState] Client: PlayerController bound to NetworkPlayerState");
+                    }
                 }
 
                 // View に ISubscriber を注入（AddComponent なので Initialize 経由）
@@ -302,8 +311,17 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     _isFirstEntry = false;
 
-                    Debug.Log("[PlayingState] Starting first wave (local simulation)");
-                    WaveManager.StartWave();
+                    // SP / Server: ローカルで Wave 開始
+                    // MP Client: サーバーが Wave 開始 → ClientRpc で通知
+                    if (!Context._isClient)
+                    {
+                        Debug.Log("[PlayingState] Starting first wave (server/SP)");
+                        WaveManager.StartWave();
+                    }
+                    else
+                    {
+                        Debug.Log("[PlayingState] MP Client: wave start driven by server");
+                    }
 
                     // HUDをフェードイン表示（カウントダウン後、初めてPlayingStateに入った時）
                     StageSceneView.SetHudVisible(true);
@@ -339,20 +357,26 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // クライアントモード: サーバーからの結果を確認
+                // クライアントモード: サーバー権威
                 if (Context._isClient)
                 {
+                    // サーバーからの勝敗結果を確認
                     if (StageModel.HasNetworkResult)
                     {
                         Transition(StageModel.NetworkResult.IsVictory
                             ? StageEvent.Victory : StageEvent.GameOver);
                         return;
                     }
-                    // Memo: サーバー権威モデルになってから戻すことを検討
-                    // return; // ゲームロジックはサーバー任せ
+
+                    // HUDタイマー表示はローカル累積（サーバーと概ね同期）
+                    StageModel.GameTime.Value += Time.deltaTime;
+                    StageSceneView.UpdateTime(StageModel.GameTime.Value);
+
+                    // 勝敗判定はサーバーが Game.Ended ClientRpc で通知
+                    return;
                 }
 
-                // SP / サーバー / クライアント: ローカルシミュレーション
+                // SP / Server: ローカルシミュレーション
                 StageModel.GameTime.Value += Time.deltaTime;
                 StageSceneView.UpdateTime(StageModel.GameTime.Value);
 
