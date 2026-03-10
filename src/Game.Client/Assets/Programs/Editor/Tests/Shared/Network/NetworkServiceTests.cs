@@ -235,23 +235,24 @@ namespace Game.Tests.Shared.Network
         [Test]
         public void RecordFailure_ReopensCircuit_WhenHalfOpen()
         {
-            // Arrange - 短いOpenDurationでサーキットを開く
+            // Arrange - OpenDurationが短すぎると、2回目のOpen→Assert間に再びHalfOpenに遷移するため
+            // Assert実行までに十分な猶予を持たせる
             var shortCircuitBreaker = new CircuitBreakerPolicy
             {
                 FailureThreshold = 1,
-                OpenDuration = TimeSpan.FromMilliseconds(1)
+                OpenDuration = TimeSpan.FromMilliseconds(100)
             };
             using var service = new NetworkService(_mockConnectivityChecker, shortCircuitBreaker);
 
             service.RecordFailure(); // Open
-            System.Threading.Thread.Sleep(10); // HalfOpenに遷移
+            System.Threading.Thread.Sleep(150); // HalfOpenに遷移
 
             Assert.That(service.CircuitState, Is.EqualTo(CircuitState.HalfOpen));
 
             // Act
             service.RecordFailure();
 
-            // Assert
+            // Assert — 新たにOpenになり、100ms以内なのでまだOpen
             Assert.That(service.CircuitState, Is.EqualTo(CircuitState.Open));
         }
 
