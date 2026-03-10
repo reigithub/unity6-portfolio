@@ -1,8 +1,13 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using Mirror;
 using Unity.Collections;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -15,9 +20,33 @@ namespace Game.Shared.Network.Survivor
     {
         public static SurvivorUnityServerSession Instance { get; private set; }
 
+        private void Awake() { Instance = this; }
+        private void OnDestroy() { if (Instance == this) Instance = null; }
+
+        /// <summary>
+        /// クライアントが明示的に退出を通知した際に呼ばれる。
+        /// KCPタイムアウトを待たずに即座にクリーンアップを開始する。
+        /// </summary>
+        public static void NotifyPlayerQuit()
+        {
+            Debug.Log("[SurvivorServerSession] Player quit notification received");
+            Instance?._allPlayersDisconnectedPub?.Publish(
+                new SurvivorSignals.Session.AllPlayersDisconnected());
+        }
+
+        [Inject] private IObjectResolver _resolver;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
+
         private int _stageId;
         private bool _stageLoaded;
         private bool _sessionStarted;
+
+        /// <summary>
+        /// 最初のクライアント認証で確定したステージID。
+        /// サーバーゲームループがSurvivorStageScene遷移時に使用。
+        /// </summary>
+        public int StageId => _stageId;
 
         private int _expectedPlayerCount = 1;
         private int _connectedPlayerCount;
@@ -27,8 +56,6 @@ namespace Game.Shared.Network.Survivor
         private GameObject _gameManagerInstance;
         private GameObject _enemyStateInstance;
         private GameObject _itemSyncInstance;
-
-        private void Awake() => Instance = this;
 
         /// <summary>
         /// セッション開始。Mirror のコールバックを登録する。
@@ -133,10 +160,11 @@ namespace Game.Shared.Network.Survivor
                 gm.NotifyPlayerDisconnectedClientRpc(new FixedString64Bytes(userId), new FixedString64Bytes(""));
             }
 
-            // 全員切断 → セッション終了
+            // 全員切断 → クリーンアップ通知 + セッション終了
             if (_connectedPlayerCount <= 0 && _sessionStarted)
             {
                 Debug.Log("[SurvivorServerSession] All players disconnected, stopping session");
+                _allPlayersDisconnectedPub?.Publish(new SurvivorSignals.Session.AllPlayersDisconnected());
                 StopSession();
             }
         }
@@ -182,6 +210,7 @@ namespace Game.Shared.Network.Survivor
                 {
                     var instance = Instantiate(prefab);
                     DontDestroyOnLoad(instance);
+                    _resolver.InjectGameObject(instance);
                     NetworkServer.Spawn(instance);
                     return instance;
                 }
@@ -201,17 +230,14 @@ namespace Game.Shared.Network.Survivor
                 gm.SetTotalPlayerCount(_expectedPlayerCount);
                 gm.NotifyAllPlayersReadyClientRpc();
                 gm.NotifyGameStartedClientRpc(Time.time);
-                Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
             }
-            else
-            {
-                Debug.LogWarning("[SurvivorServerSession] NetworkSurvivorGameManager not found");
-            }
+
+            // Server/Host: ClientRpc はサーバーローカルでは isServer ガードで Publish されないため、
+            // MessagePipe 経由で直接シグナルを発火する
+            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+
+            Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
         }
 
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
-        }
     }
 }

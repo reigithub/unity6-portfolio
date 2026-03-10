@@ -3,6 +3,7 @@
     "rootNamespace": "Game.MVP.Survivor.ECS",
     "references": [
         "Game.Shared",
+        "Game.Library.Shared",
         "Game.MVP.Core",
         "Game.MVP.Survivor",
         "Unity.Entities",

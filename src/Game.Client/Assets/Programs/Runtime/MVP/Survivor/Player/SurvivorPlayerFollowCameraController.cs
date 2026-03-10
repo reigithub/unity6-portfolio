@@ -1,3 +1,4 @@
+using Game.Shared.Playmode;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -16,17 +17,17 @@ namespace Game.MVP.Survivor.Player
         [SerializeField] private float _minRadius = 5f;
         [SerializeField] private float _maxRadius = 10f;
 
-#if !UNITY_SERVER
         private CinemachineOrbitalFollow _orbitalFollow;
         private CinemachineInputAxisController _inputAxisController;
-#endif
+        private bool _isServer;
 
         public void Initialize()
         {
-#if !UNITY_SERVER
+            _isServer = UnityPlaymodeHelper.IsServer();
+            if (_isServer) return;
+
             TryGetComponent(out _orbitalFollow);
             TryGetComponent(out _inputAxisController);
-#endif
         }
 
         /// <summary>
@@ -34,13 +35,12 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void SetFollowTarget(Transform target)
         {
-#if !UNITY_SERVER
+            if (_isServer) return;
             if (_playerFollowCamera != null && target != null)
             {
                 _playerFollowCamera.Follow = target;
                 _playerFollowCamera.LookAt = target;
             }
-#endif
         }
 
         /// <summary>
@@ -48,18 +48,18 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void ClearFollowTarget()
         {
-#if !UNITY_SERVER
+            if (_isServer) return;
             if (_playerFollowCamera != null)
             {
                 _playerFollowCamera.Follow = null;
                 _playerFollowCamera.LookAt = null;
             }
-#endif
         }
 
         public void SetCameraRadius(Vector2 scrollWheel)
         {
-#if !UNITY_SERVER
+            if (_isServer || _orbitalFollow == null) return;
+
             switch (_orbitalFollow.OrbitStyle)
             {
                 case CinemachineOrbitalFollow.OrbitStyles.ThreeRing:
@@ -79,14 +79,12 @@ namespace Game.MVP.Survivor.Player
                     break;
                 }
             }
-#endif
         }
 
         public void SetInputAxisEnable(bool enable)
         {
-#if !UNITY_SERVER
+            if (_isServer || _inputAxisController == null) return;
             _inputAxisController.enabled = enable;
-#endif
         }
     }
 }

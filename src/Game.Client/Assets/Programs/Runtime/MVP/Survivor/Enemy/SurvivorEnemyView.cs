@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
+using Game.Shared.Combat;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
@@ -10,16 +15,59 @@ namespace Game.MVP.Survivor.Enemy
 {
     /// <summary>
     /// クライアントモード時、バッチ ClientRpc からプロキシ敵オブジェクトを管理。
-    /// Phase 5 は Capsule プロキシ。Phase 7 で正式モデルに置換。
+    /// サーバーからの EnemyMasterId でAddressableプレハブをロードし、正式モデルで表示する。
     /// </summary>
     public class SurvivorEnemyView : MonoBehaviour
     {
-        private readonly Dictionary<int, GameObject> _proxies = new();
-        private IDisposable _subscription;
+        // Animator hashes（SurvivorEnemyPresenter と同一）
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int DeathHash = Animator.StringToHash("Death");
 
-        public void Initialize(ISubscriber<SurvivorSignals.Enemy.BatchUpdated> subscriber)
+        private const float InterpolationSpeed = 8f;
+        private const float CorrectionDecayRate = 10f;
+        private const float MaxCorrectionDistance = 3f;
+
+        private readonly Dictionary<int, EnemyProxyData> _proxies = new();
+        private readonly Dictionary<int, GameObject> _prefabs = new();
+        private IDisposable _subscription;
+        private IMasterDataService _masterDataService;
+        private IAddressableAssetService _assetService;
+
+        private class EnemyProxyData
         {
+            public GameObject GameObject;
+            public Animator Animator;
+            public int EnemyMasterId;
+            public bool IsDead;
+
+            // デッドレコニング状態
+            public Vector3 LastSyncPosition;
+            public Vector3 Velocity;
+            public float TimeSinceSync;
+            public Vector3 CorrectionOffset;
+        }
+
+        public async UniTask InitializeAsync(
+            ISubscriber<SurvivorSignals.Enemy.BatchUpdated> subscriber,
+            IMasterDataService masterDataService,
+            IAddressableAssetService assetService)
+        {
+            _masterDataService = masterDataService;
+            _assetService = assetService;
+
+            // 全敵プレハブをプリロード
+            var allEnemies = masterDataService.MemoryDatabase.SurvivorEnemyMasterTable.All;
+            foreach (var enemy in allEnemies)
+            {
+                if (!_prefabs.ContainsKey(enemy.Id))
+                {
+                    var prefab = await assetService.LoadAssetAsync<GameObject>(enemy.AssetName);
+                    _prefabs[enemy.Id] = prefab;
+                }
+            }
+
             _subscription = subscriber.Subscribe(signal => OnReceived(signal.Enemies));
+            Debug.Log($"[SurvivorEnemyView] Initialized: prefabs={_prefabs.Count}");
         }
 
         private void OnReceived(SurvivorNetworkEnemyStateSnapshot[] enemies)
@@ -35,7 +83,7 @@ namespace Game.MVP.Survivor.Enemy
                         UpdateProxy(e);
                         break;
                     case EnemySyncType.Death:
-                        DespawnProxy(e.NetworkId);
+                        HandleDeath(e);
                         break;
                 }
             }
@@ -43,39 +91,215 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SpawnProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
-            if (_proxies.ContainsKey(e.NetworkId)) return;
-            var proxy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            proxy.name = $"EnemyProxy_{e.NetworkId}";
-            proxy.transform.position = new Vector3(e.PositionX, 0, e.PositionZ);
-            proxy.transform.SetParent(transform);
-            var col = proxy.GetComponent<Collider>();
-            if (col != null) Destroy(col);
-            _proxies[e.NetworkId] = proxy;
+            // 既存プロキシがある場合は破棄（ネットワークID再利用時の安全策）
+            if (_proxies.TryGetValue(e.NetworkId, out var existing))
+            {
+                if (existing.GameObject != null) Destroy(existing.GameObject);
+                _proxies.Remove(e.NetworkId);
+            }
+
+            GameObject instance;
+            if (_prefabs.TryGetValue(e.EnemyMasterId, out var prefab) && prefab != null)
+            {
+                instance = Instantiate(prefab, transform);
+
+                // サーバー専用コンポーネントを除去（クライアントではAI/物理不要）
+                var controller = instance.GetComponent<SurvivorEnemyController>();
+                if (controller != null) Destroy(controller);
+
+                var presenter = instance.GetComponent<SurvivorEnemyPresenter>();
+                if (presenter != null) Destroy(presenter);
+
+                var navAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (navAgent != null) navAgent.enabled = false;
+            }
+            else
+            {
+                // フォールバック: プレハブ未ロード時
+                instance = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                Debug.LogWarning($"[SurvivorEnemyView] Prefab not found for enemy {e.EnemyMasterId}, using fallback");
+            }
+
+            instance.name = $"EnemyProxy_{e.NetworkId}";
+            var pos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
+            instance.transform.position = pos;
+
+            // Enemyレイヤー設定（子オブジェクト含む — LockOn/SphereCast検出用）
+            SetLayerRecursively(instance, LayerConstants.Enemy);
+
+            // 全Colliderをトリガーに変更（物理衝突なし、検出のみ）
+            foreach (var col in instance.GetComponentsInChildren<Collider>())
+            {
+                col.isTrigger = true;
+            }
+
+            // ICombatTarget実装を追加（ヒット報告用NetworkId + LockOn用CenterPosition）
+            var proxyTarget = instance.AddComponent<EnemyProxyTarget>();
+            proxyTarget.NetworkId = e.NetworkId;
+
+            _proxies[e.NetworkId] = new EnemyProxyData
+            {
+                GameObject = instance,
+                Animator = instance.GetComponentInChildren<Animator>(),
+                EnemyMasterId = e.EnemyMasterId,
+                IsDead = false,
+                LastSyncPosition = pos,
+                Velocity = Vector3.zero,
+                TimeSinceSync = 0f,
+                CorrectionOffset = Vector3.zero
+            };
         }
 
         private void UpdateProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
-            if (_proxies.TryGetValue(e.NetworkId, out var p))
-                p.transform.position = new Vector3(e.PositionX, 0, e.PositionZ);
+            if (!_proxies.TryGetValue(e.NetworkId, out var data) || data.IsDead) return;
+
+            var newServerPos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
+            var newVelocity = new Vector3(e.VelocityX, e.VelocityY, e.VelocityZ);
+
+            // 現在の予測位置と新しいサーバー権威位置の差分を計算
+            var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync + data.CorrectionOffset;
+            data.CorrectionOffset = predictedPos - newServerPos;
+
+            // 大きすぎる誤差はスナップ（ノックバック・テレポート等）
+            if (data.CorrectionOffset.sqrMagnitude > MaxCorrectionDistance * MaxCorrectionDistance)
+            {
+                data.CorrectionOffset = Vector3.zero;
+            }
+
+            data.LastSyncPosition = newServerPos;
+            data.Velocity = newVelocity;
+            data.TimeSinceSync = 0f;
+        }
+
+        private void HandleDeath(SurvivorNetworkEnemyStateSnapshot e)
+        {
+            if (!_proxies.TryGetValue(e.NetworkId, out var data)) return;
+            if (data.IsDead) return;
+
+            data.IsDead = true;
+
+            // 死亡アニメーション
+            if (data.Animator != null)
+            {
+                data.Animator.SetFloat(SpeedHash, 0f);
+                data.Animator.SetTrigger(DeathHash);
+            }
+
+            // コライダー無効化（死亡後の命中防止）
+            foreach (var col in data.GameObject.GetComponentsInChildren<Collider>())
+            {
+                col.enabled = false;
+            }
+
+            // 死亡アニメーション後に破棄
+            float deathDuration = GetDeathAnimDuration(data.EnemyMasterId);
+            DestroyProxyDelayed(e.NetworkId, deathDuration).Forget();
+        }
+
+        private float GetDeathAnimDuration(int enemyMasterId)
+        {
+            var table = _masterDataService?.MemoryDatabase?.SurvivorEnemyMasterTable;
+            if (table != null && table.TryFindById(enemyMasterId, out var master))
+            {
+                return master.DeathAnimDuration.ToSeconds();
+            }
+            return 2f;
+        }
+
+        private async UniTaskVoid DestroyProxyDelayed(int networkId, float delay)
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: true);
+            DespawnProxy(networkId);
         }
 
         private void DespawnProxy(int id)
         {
-            if (_proxies.TryGetValue(id, out var p))
+            if (_proxies.TryGetValue(id, out var data))
             {
-                Destroy(p);
+                if (data.GameObject != null) Destroy(data.GameObject);
                 _proxies.Remove(id);
+            }
+        }
+
+        private void Update()
+        {
+            float dt = Time.deltaTime;
+
+            foreach (var kvp in _proxies)
+            {
+                var data = kvp.Value;
+                if (data.GameObject == null || data.IsDead) continue;
+
+                data.TimeSinceSync += dt;
+
+                // 1. デッドレコニング: 最終同期位置 + 速度 × 経過時間
+                var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync;
+
+                // 2. 補正オフセットを指数減衰で解消
+                data.CorrectionOffset = Vector3.Lerp(
+                    data.CorrectionOffset, Vector3.zero, CorrectionDecayRate * dt);
+
+                // 3. 表示位置 = 予測位置 + 残余補正
+                data.GameObject.transform.position = predictedPos + data.CorrectionOffset;
+
+                // 4. 回転: 速度方向を向く
+                Vector3 moveDir = data.Velocity;
+                moveDir.y = 0f;
+                if (moveDir.sqrMagnitude > 0.01f)
+                {
+                    data.GameObject.transform.rotation = Quaternion.Slerp(
+                        data.GameObject.transform.rotation,
+                        Quaternion.LookRotation(moveDir),
+                        dt * InterpolationSpeed);
+                }
+
+                // 5. アニメーション: 速度ベースで歩行/待機
+                if (data.Animator != null)
+                {
+                    data.Animator.SetFloat(SpeedHash, data.Velocity.magnitude > 0.1f ? 1f : 0f);
+                }
+            }
+        }
+
+        private static void SetLayerRecursively(GameObject go, int layer)
+        {
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
             }
         }
 
         private void OnDestroy()
         {
             _subscription?.Dispose();
-            foreach (var p in _proxies.Values)
+            foreach (var data in _proxies.Values)
             {
-                if (p != null) Destroy(p);
+                if (data.GameObject != null) Destroy(data.GameObject);
             }
             _proxies.Clear();
+
+            // プレハブリリース
+            foreach (var prefab in _prefabs.Values)
+            {
+                _assetService?.ReleaseAsset(prefab);
+            }
+            _prefabs.Clear();
         }
+    }
+
+    /// <summary>
+    /// クライアント敵プロキシ用ターゲットコンポーネント。
+    /// LockOnServiceがOverlapSphereで検出し、CenterPositionを取得する。
+    /// ICombatTarget実装: TakeDamage/ApplyKnockbackはno-op（ダメージはRPC経由でサーバーが処理）。
+    /// </summary>
+    public class EnemyProxyTarget : MonoBehaviour, ICombatTarget
+    {
+        public int NetworkId { get; set; }
+        public Vector3 CenterPosition => transform.position + Vector3.up;
+        public bool IsDead => false;
+        public void TakeDamage(int damage) { }
+        public void ApplyKnockback(Vector3 knockback) { }
     }
 }

@@ -11,6 +11,7 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -40,13 +41,6 @@ namespace Game.MVP.Survivor.Scenes
 
         [Header("Items")]
         [SerializeField] private SurvivorItemSpawner _itemSpawner;
-
-        [Header("Enemy System Mode")]
-        [SerializeField] private EnemySystemMode _enemySystemMode = EnemySystemMode.MonoBehaviour;
-
-        [Header("ECS Enemy Bridge (optional)")]
-        [Tooltip("IEnemySystemBridgeを実装したMonoBehaviourをアタッチ（ECSモード時に使用）")]
-        [SerializeField] private UnityEngine.MonoBehaviour _ecsEnemyBridgeComponent;
 
         [Inject] private IInputService _inputService;
         [Inject] private IAddressableAssetService _assetService;
@@ -163,6 +157,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private void Awake()
         {
+            // サーバーでは UIDocument が無効なため UI 初期化をスキップ
+            if (UnityPlaymodeHelper.IsServer()) return;
+
             QueryUIElements();
             SetupEventHandlers();
         }
@@ -235,7 +232,12 @@ namespace Game.MVP.Survivor.Scenes
             if (_playerController != null && levelMaster != null)
             {
                 _playerController.Initialize(levelMaster);
-                _playerController.SetMainCamera(mainCamera.transform);
+
+                // サーバーでは mainCamera が null（GameRootController が null のため）
+                if (mainCamera != null)
+                {
+                    _playerController.SetMainCamera(mainCamera.transform);
+                }
 
                 // スタミナ初期表示
                 UpdateStamina(levelMaster.MaxStamina, levelMaster.MaxStamina);
@@ -252,19 +254,15 @@ namespace Game.MVP.Survivor.Scenes
 
         public async UniTask InitializeEnemySpawnerAsync(SurvivorStageWaveManager waveManager)
         {
-            var ecsBridge = _ecsEnemyBridgeComponent as IEnemySystemBridge;
-            if (_enemySystemMode == EnemySystemMode.ECS && ecsBridge != null && _playerController != null)
+            if (_enemySpawner == null) return;
+
+            // サーバーでは PlayerController がない（NetworkPlayerState の Transform を後から追加）
+            if (_playerController != null)
             {
-                // ECSモード: IEnemySystemBridge経由で初期化
-                ecsBridge.SetPlayer(_playerController.transform);
-                await ecsBridge.InitializeAsync(waveManager);
-            }
-            else if (_enemySpawner != null && _playerController != null)
-            {
-                // MonoBehaviourモード: 従来のEnemySpawnerを使用
                 _enemySpawner.SetPlayer(_playerController.transform);
-                await _enemySpawner.InitializeAsync(waveManager);
             }
+
+            await _enemySpawner.InitializeAsync(waveManager);
         }
 
         public async UniTask InitializeWeaponManagerAsync(int startingWeaponId, float damageMultiplier = 1f)
@@ -281,15 +279,8 @@ namespace Game.MVP.Survivor.Scenes
             {
                 await _itemSpawner.InitializeAsync();
 
-                var ecsBridge = _ecsEnemyBridgeComponent as IEnemySystemBridge;
-                if (_enemySystemMode == EnemySystemMode.ECS && ecsBridge != null)
+                if (_enemySpawner != null)
                 {
-                    // ECSモード: IDeathNotifier経由で接続
-                    _itemSpawner.ConnectToDeathNotifier(ecsBridge);
-                }
-                else if (_enemySpawner != null)
-                {
-                    // MonoBehaviourモード: 従来のEnemySpawner経由で接続
                     _itemSpawner.ConnectToEnemySpawner(_enemySpawner);
                 }
             }

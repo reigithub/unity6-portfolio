@@ -16,10 +16,12 @@ namespace Game.MVP.Survivor.Player
             _inputService = inputService;
         }
 
-        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting, out float cameraRotationY)
         {
             moveValue = _inputService.Player.Move.ReadValue<Vector2>();
             isSprinting = _inputService.Player.LeftShift.IsPressed();
+            var cam = Camera.main;
+            cameraRotationY = cam != null ? cam.transform.eulerAngles.y : 0f;
             return true;
         }
     }

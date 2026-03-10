@@ -9,6 +9,7 @@ namespace Game.MVP.Survivor.ECS
     /// 敵AI状態遷移をBurst並列で処理するシステム
     /// 距離判定に基づいてChase/Attack/HitStun/Dead間の遷移を管理
     /// </summary>
+    [DisableAutoCreation]
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct EnemyAIStateSystem : ISystem

@@ -40,5 +40,11 @@ namespace Game.Shared.Services
         /// <param name="stageId">ステージID</param>
         /// <returns>自分のランキングエントリ（未登録の場合はnull）</returns>
         UniTask<ApiResponse<RankingEntryDto>> GetMyRankAsync(int stageId);
+
+        /// <summary>
+        /// 指定ステージのランキングキャッシュを無効化
+        /// </summary>
+        /// <param name="stageId">ステージID</param>
+        UniTask InvalidateRankingCacheAsync(int stageId);
     }
 }

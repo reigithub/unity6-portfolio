@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
+using Game.Shared.Combat;
+using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
@@ -141,6 +143,12 @@ namespace Game.MVP.Survivor.Weapon
         public float CooldownProgress => _cooldown > 0 ? 1f - (_cooldownTimer / Cooldown) : 1f;
 
         #endregion
+
+        /// <summary>
+        /// クライアントモード時のヒット報告コールバック (enemyNetworkId, weaponId)。
+        /// null の場合はSP/Hostモード（ローカルTakeDamage）。
+        /// </summary>
+        public Action<int, int> OnEnemyHitForServer;
 
         // Events
         protected readonly Subject<int> _onAttack = new();
@@ -423,6 +431,127 @@ namespace Game.MVP.Survivor.Weapon
             if (_procRate >= 10000) return true;
             return _procRate.RollChance();
         }
+
+        #region 戦闘ロジック（SP/Server共通）
+
+        /// <summary>
+        /// 貫通検出SphereCast半径（SP/Server共通）
+        /// </summary>
+        protected const float PierceDetectionRadius = 0.5f;
+
+        /// <summary>
+        /// サーバー権威ヒット処理（RPC受信時のエントリポイント）
+        /// ProcRate判定 → ダメージ計算 → プライマリダメージ適用 → 貫通処理
+        /// </summary>
+        /// <param name="target">ヒットした敵</param>
+        /// <param name="playerPos">プレイヤー位置（貫通方向・ノックバック方向の算出用）</param>
+        public void ProcessHitAuthority(ICombatTarget target, Vector3 playerPos)
+        {
+            if (!CalculateHit(out var damage, out _)) return;
+
+            // プライマリターゲット
+            ApplyDamageWithKnockback(target, damage, playerPos);
+
+            // 貫通処理
+            if (_pierce > 0)
+            {
+                var targetPos = target.CenterPosition;
+                var direction = (targetPos - playerPos).normalized;
+                var origin = targetPos + direction * 0.1f;
+                ProcessPierce(origin, direction, target, playerPos, damage);
+            }
+        }
+
+        /// <summary>
+        /// ローカルヒット処理（SP/Host用エントリポイント）
+        /// プロジェクタイルの弾道方向で貫通処理を行う
+        /// </summary>
+        /// <param name="target">ヒットした敵</param>
+        /// <param name="playerPos">プレイヤー位置</param>
+        /// <param name="projectilePos">プロジェクタイル位置</param>
+        /// <param name="projectileForward">プロジェクタイル方向</param>
+        public void ProcessHitLocal(ICombatTarget target, Vector3 playerPos, Vector3 projectilePos, Vector3 projectileForward)
+        {
+            if (!CalculateHit(out var damage, out _)) return;
+
+            // プライマリターゲット
+            ApplyDamageWithKnockback(target, damage, playerPos);
+
+            // 貫通処理（弾道方向ベース）
+            if (_pierce > 0)
+            {
+                var origin = projectilePos + projectileForward * 0.1f;
+                ProcessPierce(origin, projectileForward, target, playerPos, damage);
+            }
+        }
+
+        private bool CalculateHit(out int damage, out bool isCritical)
+        {
+            damage = 0;
+            isCritical = false;
+
+            if (!RollProcRate()) return false;
+
+            damage = Damage;
+            isCritical = RollCritical();
+            if (isCritical)
+                damage = CalculateCriticalDamage(damage);
+
+            return true;
+        }
+
+        private void ApplyDamageWithKnockback(ICombatTarget target, int damage, Vector3 playerPos)
+        {
+            target.TakeDamage(damage);
+
+            if (_knockback > 0)
+            {
+                var dir = (target.CenterPosition - playerPos).normalized;
+                target.ApplyKnockback(dir * _knockback);
+            }
+        }
+
+        private void ProcessPierce(
+            Vector3 origin,
+            Vector3 direction,
+            ICombatTarget primaryTarget,
+            Vector3 playerPos,
+            int damage)
+        {
+            var hits = Physics.SphereCastAll(
+                origin, PierceDetectionRadius, direction, _range,
+                LayerMaskConstants.Enemy, QueryTriggerInteraction.Collide);
+
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            int pierceRemaining = _pierce;
+            for (int i = 0; i < hits.Length && pierceRemaining > 0; i++)
+            {
+                var target = hits[i].collider.GetComponentInParent<ICombatTarget>();
+                if (target == null || target == primaryTarget || target.IsDead) continue;
+
+                target.TakeDamage(damage);
+                pierceRemaining--;
+
+                // ヒットエフェクト
+                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
+                {
+                    var hitPosition = hits[i].point != Vector3.zero
+                        ? hits[i].point
+                        : hits[i].collider.ClosestPoint(origin);
+                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
+                }
+
+                // ノックバック
+                if (_knockback > 0)
+                {
+                    var dir = (hits[i].collider.transform.position - playerPos).normalized;
+                    target.ApplyKnockback(dir * _knockback);
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 武器リソースを解放する

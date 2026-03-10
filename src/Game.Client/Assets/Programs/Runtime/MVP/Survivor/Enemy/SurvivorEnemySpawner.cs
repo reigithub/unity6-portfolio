@@ -6,7 +6,9 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
@@ -70,12 +72,15 @@ namespace Game.MVP.Survivor.Enemy
         private float _spawnTimer;
         private int _remainingSpawnCount;
 
+        private bool _isClient;
+
         // ネットワーク敵同期
         private ISurvivorNetworkBridge _networkBridge;
-        private const float EnemySyncInterval = 1.0f; // 1Hz
+        private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
+        private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onEnemyKilled = new();
@@ -131,6 +136,7 @@ namespace Game.MVP.Survivor.Enemy
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
         {
             _waveManager = waveManager;
+            _isClient = NetworkModeHelper.IsNetworkClient;
 
             // レイヤーマスクが未設定の場合、Structureレイヤーを使用
             if (_obstacleLayerMask == 0)
@@ -168,11 +174,14 @@ namespace Game.MVP.Survivor.Enemy
                 }
             }
 
-            // ウェーブ変更を購読（初期値0は無視）
-            _waveManager.CurrentWave
-                .Where(wave => wave > 0)
-                .Subscribe(_ => OnWaveChanged())
-                .AddTo(this);
+            // MP Client: 敵はサーバーバッチ同期で表示、ローカルスポーン不要
+            if (!_isClient)
+            {
+                _waveManager.CurrentWave
+                    .Where(wave => wave > 0)
+                    .Subscribe(_ => OnWaveChanged())
+                    .AddTo(this);
+            }
 
             Debug.Log($"[SurvivorEnemySpawner] Initialized with {_enemyPrefabs.Count} enemy types");
         }
@@ -197,9 +206,10 @@ namespace Game.MVP.Survivor.Enemy
                 .Subscribe(OnEnemyDeath)
                 .AddTo(this);
 
-#if !UNITY_SERVER
-            instance.AddComponent<SurvivorEnemyPresenter>();
-#endif
+            if (UnityPlaymodeHelper.IsClient())
+            {
+                instance.AddComponent<SurvivorEnemyPresenter>();
+            }
 
             return controller;
         }
@@ -228,6 +238,9 @@ namespace Game.MVP.Survivor.Enemy
                     SyncEnemyStatesToNetwork();
                 }
             }
+
+            // MP Client: ローカルスポーン無効
+            if (_isClient) return;
 
             if (!_isSpawning)
             {
@@ -269,7 +282,11 @@ namespace Game.MVP.Survivor.Enemy
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
                     PositionX = enemy.transform.position.x,
+                    PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
+                    VelocityX = enemy.Velocity.x,
+                    VelocityY = enemy.Velocity.y,
+                    VelocityZ = enemy.Velocity.z,
                     CurrentHp = enemy.CurrentHp,
                     SyncType = EnemySyncType.PositionUpdate
                 };
@@ -347,12 +364,17 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ExpDropGroupId
                 );
 
-#if !UNITY_SERVER
-                enemy.GetComponent<SurvivorEnemyPresenter>()?.Initialize(enemy);
-#endif
+                if (UnityPlaymodeHelper.IsClient())
+                {
+                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
+                    {
+                        component.Initialize(enemy);
+                    }
+                }
 
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
+                _enemyByNetworkId[networkId] = enemy;
                 _activeEnemies.Add(enemy);
                 _remainingSpawnCount--;
                 _spawnTimer = spawnInfo.SpawnInterval;
@@ -366,7 +388,11 @@ namespace Game.MVP.Survivor.Enemy
                         NetworkId = networkId,
                         EnemyMasterId = enemy.EnemyId,
                         PositionX = spawnPosition.x,
+                        PositionY = spawnPosition.y,
                         PositionZ = spawnPosition.z,
+                        VelocityX = 0f,
+                        VelocityY = 0f,
+                        VelocityZ = 0f,
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     };
@@ -499,9 +525,13 @@ namespace Game.MVP.Survivor.Enemy
             using (s_returnToPoolMarker.Auto())
             {
                 var enemyId = enemy.EnemyId;
-#if !UNITY_SERVER
-                enemy.GetComponent<SurvivorEnemyPresenter>()?.ResetForPool();
-#endif
+                if (UnityPlaymodeHelper.IsClient())
+                {
+                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
+                    {
+                        component.ResetForPool();
+                    }
+                }
                 enemy.ResetForPool();
 
                 if (_pools.TryGetValue(enemyId, out var pool))
@@ -513,6 +543,8 @@ namespace Game.MVP.Survivor.Enemy
 
         private void OnEnemyDeath(SurvivorEnemyController enemy)
         {
+            Debug.Log($"[SurvivorEnemySpawner] EnemyDeath: id={enemy.EnemyId}, boss={enemy.IsBoss}, active={_activeEnemies.Count - 1}, time={Time.time:F1}s");
+
             // サーバー: 死亡イベントを送信
             if (_networkBridge != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
@@ -521,13 +553,21 @@ namespace Game.MVP.Survivor.Enemy
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
                     PositionX = enemy.transform.position.x,
+                    PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
+                    VelocityX = 0f,
+                    VelocityY = 0f,
+                    VelocityZ = 0f,
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death
                 };
                 _networkBridge.BroadcastEnemyStates(new[] { deathSnapshot });
             }
 
+            if (_enemyNetworkIds.TryGetValue(enemy, out var removedNetworkId))
+            {
+                _enemyByNetworkId.Remove(removedNetworkId);
+            }
             _enemyNetworkIds.Remove(enemy);
             _activeEnemies.Remove(enemy);
             _onEnemyKilled.OnNext(enemy);
@@ -539,7 +579,15 @@ namespace Game.MVP.Survivor.Enemy
                 .AddTo(this);
 
             // ウェーブサービスに通知（ボスかどうかも伝える）
-            _waveManager.OnEnemyKilled(enemy.IsBoss);
+            if (!_isClient)
+            {
+                _waveManager.OnEnemyKilled(enemy.IsBoss);
+            }
+        }
+
+        public bool TryGetEnemyByNetworkId(int networkId, out SurvivorEnemyController enemy)
+        {
+            return _enemyByNetworkId.TryGetValue(networkId, out enemy);
         }
 
         /// <summary>
@@ -554,6 +602,7 @@ namespace Game.MVP.Survivor.Enemy
 
             _activeEnemies.Clear();
             _enemyNetworkIds.Clear();
+            _enemyByNetworkId.Clear();
             _isSpawning = false;
         }
 

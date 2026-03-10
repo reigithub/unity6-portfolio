@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using UnityEngine;
 
-namespace Game.Unity.Server
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// TCP ヘルスプローブ。バックグラウンドスレッドで TCP 接続を受け入れ、

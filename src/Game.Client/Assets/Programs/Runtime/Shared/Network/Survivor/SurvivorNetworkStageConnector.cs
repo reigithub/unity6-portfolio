@@ -3,6 +3,8 @@ using Cysharp.Threading.Tasks;
 using kcp2k;
 using Mirror;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -13,7 +15,10 @@ namespace Game.Shared.Network.Survivor
     /// </summary>
     public class SurvivorNetworkStageConnector : ISurvivorNetworkStageConnector
     {
+        [Inject] private readonly IObjectResolver _resolver;
+
         private NetworkManager _networkManager;
+        private SurvivorUnityServerSession _session;
         private bool _isConnecting;
 
         public bool IsConnected => NetworkClient.isConnected;
@@ -76,6 +81,8 @@ namespace Game.Shared.Network.Survivor
                 var sessionGo = new GameObject("[ServerSession]");
                 UnityEngine.Object.DontDestroyOnLoad(sessionGo);
                 var session = sessionGo.AddComponent<SurvivorUnityServerSession>();
+                _resolver.InjectGameObject(sessionGo);
+                _session = session;
                 session.StartSession(SurvivorNetworkMatchConnector.ExpectedPlayerCount);
 
                 // Host 起動 → Server 起動 + 自身を Client として接続
@@ -105,7 +112,16 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         public async UniTask StartServerAsync(int stageId)
         {
-            if (_isConnecting || NetworkServer.active) return;
+            if (_isConnecting) return;
+
+            // Bootstrap (UnityServerBootstrap) が既にサーバーを起動済みの場合、
+            // SurvivorLifetimeScope.Awake() で resolver 注入済みなのでそのまま return
+            if (NetworkServer.active)
+            {
+                Debug.Log("[SurvivorNetworkStageConnector] Server already active (started by Bootstrap)");
+                return;
+            }
+
             _isConnecting = true;
 
             try
@@ -117,6 +133,8 @@ namespace Game.Shared.Network.Survivor
                 var sessionGo = new GameObject("[ServerSession]");
                 UnityEngine.Object.DontDestroyOnLoad(sessionGo);
                 var session = sessionGo.AddComponent<SurvivorUnityServerSession>();
+                _resolver.InjectGameObject(sessionGo);
+                _session = session;
                 session.StartSession(SurvivorNetworkMatchConnector.ExpectedPlayerCount);
 
                 // Server のみ起動（ローカル Client 接続なし）
@@ -160,11 +178,11 @@ namespace Game.Shared.Network.Survivor
             }
 
             // ServerSession の明示的クリーンアップ（DontDestroyOnLoad のため自動破棄されない）
-            var session = SurvivorUnityServerSession.Instance;
-            if (session != null)
+            if (_session != null)
             {
-                session.StopSession();
-                UnityEngine.Object.Destroy(session.gameObject);
+                _session.StopSession();
+                UnityEngine.Object.Destroy(_session.gameObject);
+                _session = null;
             }
         }
 
@@ -192,13 +210,14 @@ namespace Game.Shared.Network.Survivor
                 Transport.active = transport;
                 _networkManager = go.AddComponent<NetworkManager>();
                 _networkManager.transport = transport;
+                _networkManager.autoCreatePlayer = false;
                 var auth = go.AddComponent<SurvivorNetworkAuthenticator>();
                 _networkManager.authenticator = auth;
                 await RegisterSpawnPrefabsAsync(_networkManager);
             }
         }
 
-        private static async UniTask RegisterSpawnPrefabsAsync(NetworkManager nm)
+        private async UniTask RegisterSpawnPrefabsAsync(NetworkManager nm)
         {
             var registry = await SurvivorNetworkPrefabs.LoadAsync();
             if (registry == null || registry.Prefabs == null) return;
@@ -206,7 +225,21 @@ namespace Game.Shared.Network.Survivor
             foreach (var prefab in registry.Prefabs)
             {
                 if (prefab != null)
-                    nm.spawnPrefabs.Add(prefab);
+                {
+                    var p = prefab;
+                    Debug.Log($"[SurvivorNetworkStageConnector] RegisterPrefab with DI spawn handler: {prefab.name}");
+                    NetworkClient.RegisterPrefab(
+                        prefab,
+                        (SpawnMessage msg) =>
+                        {
+                            var go = UnityEngine.Object.Instantiate(p, msg.position, msg.rotation);
+                            _resolver.InjectGameObject(go);
+                            Debug.Log($"[SurvivorNetworkStageConnector] Spawned + InjectGameObject: {p.name} (netId={msg.netId})");
+                            return go;
+                        },
+                        go => UnityEngine.Object.Destroy(go)
+                    );
+                }
             }
         }
 

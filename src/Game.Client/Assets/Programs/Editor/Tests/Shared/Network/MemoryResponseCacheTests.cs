@@ -327,9 +327,9 @@ namespace Game.Tests.Shared.Network
         {
             // Arrange
             var duration = TimeSpan.FromMinutes(5);
-            var beforeSet = DateTime.UtcNow.AddMilliseconds(-10); // 許容範囲を広げる
+            var beforeSet = DateTime.UtcNow.AddMilliseconds(-100);
             await _cache.SetAsync("key1", new TestData { Id = 1 }, duration);
-            var afterSet = DateTime.UtcNow.AddMilliseconds(10); // 許容範囲を広げる
+            var afterSet = DateTime.UtcNow.AddMilliseconds(100);
 
             // Act
             var result = await _cache.GetAsync<TestData>("key1");

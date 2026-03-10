@@ -1,37 +1,43 @@
+using Game.App.Bootstrap;
+using Game.MVP.Core.DI;
 using Game.Shared.Bootstrap;
+using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Realtime;
+using Game.Shared.Unity.Server;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
-namespace Game.App.Bootstrap
+namespace Game.App
 {
-    public static class GameRuntimeInitializer
+    public class GameRuntimeInitializer : IInitializable
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Initialize()
+        public void Initialize()
         {
-#if UNITY_SERVER
-            // Dedicated Server では UnityServerBootstrap が初期化を担当
-            // クライアント専用の UI/シーンロード/gRPC クライアント初期化をスキップ
-            return;
-#endif
+            if (UnityPlaymodeHelper.IsServer())
+            {
+                // 1. モジュール初期化（SurvivorLifetimeScope 型登録）
+                RuntimeInitializerRegistry.ExecuteAll();
 
-#if UNITY_EDITOR
-            // MPPM Server タグの場合は UnityServerBootstrap が初期化を担当
-            if (Game.Shared.Multiplayer.MppmHelper.IsServer())
-                return;
-#endif
+                // 2. SurvivorLifetimeScope 生成（MessagePipe + サーバー DI + セッション）
+                //    VContainer により Root の子スコープとして自動接続される
+                var scope = SurvivorGameLauncher.CreateScope();
 
-            // 1. モジュール初期化（SubsystemRegistration で登録されたコールバック）
-            RuntimeInitializerRegistry.ExecuteAll();
+                // 3. Mirror インフラ作成
+                UnityServerBootstrap.Initialize();
 
-            // 2. シリアライゼーション基盤（MessagePack Resolver 統合）
-            MessagePackInitializer.Initialize();
-
-            // 3. gRPC 通信基盤（GrpcChannelProviderHost）
-            MagicOnionInitializer.Initialize();
-
-            // 4. アプリケーションブートストラップ
-            GameBootstrap.Startup();
+                // 4. セッション開始
+                scope.Container.Resolve<SurvivorUnityServerSession>()
+                    .StartSession(SurvivorNetworkMatchConnector.ExpectedPlayerCount);
+            }
+            else
+            {
+                RuntimeInitializerRegistry.ExecuteAll();
+                MessagePackInitializer.Initialize();
+                MagicOnionInitializer.Initialize();
+                GameBootstrap.Startup();
+            }
         }
     }
 }

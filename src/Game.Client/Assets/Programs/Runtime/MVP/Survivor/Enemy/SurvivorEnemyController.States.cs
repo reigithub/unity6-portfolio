@@ -68,6 +68,7 @@ namespace Game.MVP.Survivor.Enemy
 
         /// <summary>
         /// ダメージリクエストを設定（外部から呼び出し、State内で処理）
+        /// 同フレーム内の複数ヒットは最大値を採用（EmitCount>1の重複防止）
         /// </summary>
         private void RequestDamage(int damage)
         {
@@ -84,8 +85,10 @@ namespace Game.MVP.Survivor.Enemy
             if (!_hasPendingDamage) return false;
 
             _hasPendingDamage = false;
+            int appliedDamage = _pendingDamageAmount;
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
+            Debug.Log($"[EnemyDmg] id={EnemyId} applied={appliedDamage} hp={_currentHp + appliedDamage}→{_currentHp}");
 
             _onHitReceived.OnNext(Unit.Default);
 

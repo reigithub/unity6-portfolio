@@ -117,12 +117,22 @@ namespace Game.MVP.Survivor.Scenes
                         var response = await _scoreApiService.SubmitScoreAsync(request);
                         if (response.IsSuccess)
                         {
+                            // 送信成功 → ランキングキャッシュを無効化（次回表示時に最新を取得）
+                            await _scoreApiService.InvalidateRankingCacheAsync(result.StageId);
+
                             if (response.Data?.IsNewBest == true)
                             {
                                 SceneComponent.ShowNewBestEffect(result.StageId, response.Data.CurrentRank);
                             }
                             continue;
                         }
+
+                        UnityEngine.Debug.LogWarning(
+                            $"[SurvivorTotalResultScene] Score submit failed: HTTP {response.StatusCode}, error={response.Error?.Error}, message={response.Error?.Message}");
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning("[SurvivorTotalResultScene] Score submit skipped: network offline");
                     }
 
                     // オフラインまたは失敗時はキューに追加

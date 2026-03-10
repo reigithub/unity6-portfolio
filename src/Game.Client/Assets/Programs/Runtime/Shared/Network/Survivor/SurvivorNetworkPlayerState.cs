@@ -27,24 +27,27 @@ namespace Game.Shared.Network.Survivor
         private float _pendingMoveX;
         private float _pendingMoveY;
         private bool _pendingIsSprinting;
+        private float _pendingCameraRotationY;
         private bool _hasInput;
 
         /// <summary>
         /// サーバー側: バッファされた入力を消費する。
         /// SurvivorPlayerController.UpdateInput() から呼ばれる。
         /// </summary>
-        public bool TryConsumeInput(out float moveX, out float moveY, out bool isSprinting)
+        public bool TryConsumeInput(out float moveX, out float moveY, out bool isSprinting, out float cameraRotationY)
         {
             if (!_hasInput)
             {
                 moveX = 0;
                 moveY = 0;
                 isSprinting = false;
+                cameraRotationY = 0f;
                 return false;
             }
             moveX = _pendingMoveX;
             moveY = _pendingMoveY;
             isSprinting = _pendingIsSprinting;
+            cameraRotationY = _pendingCameraRotationY;
             _hasInput = false;
             return true;
         }
@@ -52,11 +55,12 @@ namespace Game.Shared.Network.Survivor
         // --- クライアント → サーバー入力（Command） ---
 
         [Command]
-        public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting)
+        public void SendMoveInputServerRpc(float moveX, float moveY, bool isSprinting, float cameraRotationY)
         {
             _pendingMoveX = moveX;
             _pendingMoveY = moveY;
             _pendingIsSprinting = isSprinting;
+            _pendingCameraRotationY = cameraRotationY;
             _hasInput = true;
         }
 
@@ -64,24 +68,28 @@ namespace Game.Shared.Network.Survivor
         public void SendWeaponChoiceServerRpc(int weaponId, bool isNewWeapon)
         {
             Debug.Log($"[NetworkSurvivorPlayerState] WeaponChoice from {connectionToClient?.connectionId}: weapon={weaponId} new={isNewWeapon}");
+            SurvivorNetworkGameManager.Instance?.OnClientWeaponChoice(weaponId, isNewWeapon);
         }
 
         [Command]
         public void SendWeaponReplaceServerRpc(int removeWeaponId, int newWeaponId)
         {
             Debug.Log($"[NetworkSurvivorPlayerState] WeaponReplace from {connectionToClient?.connectionId}: remove={removeWeaponId} new={newWeaponId}");
+            SurvivorNetworkGameManager.Instance?.OnClientWeaponReplace(removeWeaponId, newWeaponId);
         }
 
         [Command]
         public void RequestPauseServerRpc()
         {
             Debug.Log($"[NetworkSurvivorPlayerState] PauseRequest from {connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientRequestPause(connectionToClient);
         }
 
         [Command]
         public void RequestResumeServerRpc()
         {
             Debug.Log($"[NetworkSurvivorPlayerState] ResumeRequest from {connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientRequestResume(connectionToClient);
         }
 
         [Command]
@@ -91,10 +99,32 @@ namespace Game.Shared.Network.Survivor
             SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(result);
         }
 
+        [Command]
+        public void NotifySceneReadyServerRpc()
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] SceneReady from conn={connectionToClient?.connectionId}");
+            SurvivorNetworkGameManager.Instance?.OnClientSceneReady(connectionToClient);
+        }
+
+        [Command]
+        public void ReportHitServerRpc(int enemyNetworkId, int weaponId)
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] HitReport from {connectionToClient?.connectionId}: enemy={enemyNetworkId}, weapon={weaponId}");
+            SurvivorNetworkGameManager.Instance?.OnClientHitReported(enemyNetworkId, weaponId);
+        }
+
+        [Command]
+        public void RequestQuitServerRpc()
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] QuitRequest from {connectionToClient?.connectionId}");
+            SurvivorUnityServerSession.NotifyPlayerQuit();
+        }
+
         // --- ライフサイクル ---
 
         public override void OnStartClient()
         {
+            DontDestroyOnLoad(gameObject);
             if (isOwned)
             {
                 foreach (var bindable in SurvivorNetworkPlayerStateBindableRegistry.Bindables)

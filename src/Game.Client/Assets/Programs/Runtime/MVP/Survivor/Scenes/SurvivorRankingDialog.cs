@@ -79,11 +79,17 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
         }
 
-        private async UniTask LoadRankingAsync(int stageId)
+        private async UniTask LoadRankingAsync(int stageId, bool forceRefresh = false)
         {
             SceneComponent.ShowLoading(true);
             SceneComponent.ClearError();
             SceneComponent.HideCacheNotice();
+
+            // フォースリフレッシュ時はキャッシュを無効化してからサーバーに問い合わせ
+            if (forceRefresh)
+            {
+                await _scoreApiService.InvalidateRankingCacheAsync(stageId);
+            }
 
             // ランキング取得（キャッシュ対応はSurvivorScoreApiService経由）
             var response = await _scoreApiService.GetRankingAsync(stageId);
@@ -142,7 +148,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnRefreshClicked()
         {
-            await LoadRankingAsync(_selectedStageId);
+            await LoadRankingAsync(_selectedStageId, forceRefresh: true);
         }
     }
 }

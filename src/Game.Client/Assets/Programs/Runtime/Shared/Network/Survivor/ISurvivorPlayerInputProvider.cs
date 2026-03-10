@@ -15,6 +15,9 @@ namespace Game.Shared.Network.Survivor
         /// ローカル処理すべき入力がある場合 true を返す。
         /// Client モードでは ServerRpc 送信後 false を返す（ローカル処理不要）。
         /// </summary>
-        bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting);
+        /// <param name="moveValue">移動量</param>
+        /// <param name="isSprinting">スプリント</param>
+        /// <param name="cameraRotationY">カメラのY回転角（カメラ準拠移動に使用）</param>
+        bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting, out float cameraRotationY);
     }
 }

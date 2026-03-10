@@ -1,3 +1,4 @@
+using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using UnityEngine;
@@ -19,12 +20,19 @@ namespace Game.MVP.Survivor.Player
             _networkPlayerState = networkPlayerState;
         }
 
-        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting, out float cameraRotationY)
         {
             moveValue = _inputService.Player.Move.ReadValue<Vector2>();
             isSprinting = _inputService.Player.LeftShift.IsPressed();
-            _networkPlayerState.SendMoveInputServerRpc(moveValue.x, moveValue.y, isSprinting);
-            return false; // ローカル処理不要 — サーバーが権威的に処理
+            var cam = Camera.main;
+            cameraRotationY = cam != null ? cam.transform.eulerAngles.y : 0f;
+
+            if (NetworkModeHelper.IsNetworkClientConnected)
+            {
+                _networkPlayerState.SendMoveInputServerRpc(moveValue.x, moveValue.y, isSprinting, cameraRotationY);
+            }
+
+            return true; // ローカル予測: 即座に移動し、サーバー補正は SurvivorPlayerView で適用
         }
     }
 }

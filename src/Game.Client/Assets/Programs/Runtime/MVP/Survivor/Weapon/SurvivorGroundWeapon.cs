@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
+using Game.MVP.Survivor.Enemy;
 using Game.Shared.Combat;
 using UnityEngine;
 
@@ -126,7 +127,24 @@ namespace Game.MVP.Survivor.Weapon
 
         private void OnAreaHit(SurvivorGroundDamageArea area, Collider other)
         {
-            // メッシュコライダーが子オブジェクトにある場合に対応
+            // クライアントモード: プロキシへの命中をサーバーに報告
+            if (OnEnemyHitForServer != null)
+            {
+                var proxy = other.GetComponentInParent<EnemyProxyTarget>();
+                if (proxy == null) return;
+
+                OnEnemyHitForServer.Invoke(proxy.NetworkId, WeaponId);
+
+                // ヒットVFX（楽観的表示）
+                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
+                {
+                    var hitPos = other.ClosestPoint(area.transform.position);
+                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPos, _hitEffectScale);
+                }
+                return;
+            }
+
+            // SP/Host: 既存のICombatTargetパス
             var target = other.GetComponentInParent<ICombatTarget>();
             if (target == null || target.IsDead) return;
 

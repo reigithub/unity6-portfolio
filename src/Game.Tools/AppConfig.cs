@@ -69,8 +69,9 @@ public static class AppConfig
         var environment = ResolveEnvironment(env);
         var configuration = GetConfiguration(environment);
 
-        return configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException(
-                $"Connection string not provided and ConnectionStrings:Default is not configured in appsettings.{environment}.json.");
+        var cs = configuration.GetConnectionString("Default");
+        return !string.IsNullOrWhiteSpace(cs)
+            ? cs
+            : throw new InvalidOperationException("ConnectionStrings is not configured. ");
     }
 }

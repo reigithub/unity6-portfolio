@@ -7,6 +7,7 @@ namespace Game.MVP.Survivor.ECS
     /// ECS LocalTransform → GameObject.transform に位置・回転を同期するシステム
     /// マネージドシステム（GameObject参照が必要なため）
     /// </summary>
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(PresentationSystemGroup))]
     public partial class HybridSyncSystem : SystemBase
     {
@@ -17,7 +18,7 @@ namespace Game.MVP.Survivor.ECS
                 .WithoutBurst()
                 .ForEach((in LocalTransform localTransform, in ManagedGameObjectReference managedRef) =>
                 {
-                    if (managedRef.GameObject == null)
+                    if (managedRef?.GameObject == null)
                         return;
 
                     var goTransform = managedRef.GameObject.transform;

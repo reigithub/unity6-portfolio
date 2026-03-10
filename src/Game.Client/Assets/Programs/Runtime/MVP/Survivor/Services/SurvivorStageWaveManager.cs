@@ -63,12 +63,52 @@ namespace Game.MVP.Survivor.Services
         /// <summary>現在が最終ウェーブかどうか</summary>
         public bool IsLastWave => _currentWaveIndex >= 0 && _currentWaveIndex >= _waves.Length - 1;
 
+        // サーバー権威: クライアントモードでは Wave ロジックを実行しない
+        private bool _isClient;
+
         // ステージのウェーブ情報キャッシュ
         private int _stageId;
         private SurvivorStageWaveMaster[] _waves;
         private int _currentWaveIndex;
         private WaveSpawnInfo _currentSpawnInfo;
         private List<WaveEnemySpawnInfo> _currentEnemySpawnList;
+
+        /// <summary>クライアントモードを設定（Wave ロジックをスキップ）</summary>
+        public void SetClient(bool isClient)
+        {
+            _isClient = isClient;
+        }
+
+        /// <summary>サーバーから通知された Wave 情報でクライアント状態を更新</summary>
+        public void SetWaveFromServer(int waveNumber, int nextWaveNumber)
+        {
+            _currentWave.Value = nextWaveNumber;
+        }
+
+        /// <summary>
+        /// サーバーからのウェーブ開始情報でクライアント表示用プロパティを更新。
+        /// _currentWave は更新しない（EnemySpawner のローカルスポーンをトリガーしないため）。
+        /// </summary>
+        public void UpdateClientWaveDisplay(int targetKillCount, int enemyCount)
+        {
+            _targetKillsThisWave.Value = targetKillCount;
+            _enemiesThisWave.Value = enemyCount;
+            _enemiesKilled.Value = 0;
+            _bossKills.Value = 0;
+        }
+
+        /// <summary>
+        /// クライアント側のキルカウント更新（サーバーからの敵死亡通知用）。
+        /// </summary>
+        public void IncrementClientKillCount()
+        {
+            if (!_isClient) return;
+            if (_enemiesKilled.Value < _targetKillsThisWave.Value)
+            {
+                _enemiesKilled.Value++;
+                _onKillCounted.OnNext(Unit.Default);
+            }
+        }
 
         public void Initialize(int stageId)
         {
@@ -89,6 +129,9 @@ namespace Game.MVP.Survivor.Services
 
         public void StartWave()
         {
+            // Client-only: Wave進行はサーバーが駆動
+            if (_isClient) return;
+
             _currentWaveIndex++;
             _enemiesKilled.Value = 0;
             _bossKills.Value = 0;
@@ -163,11 +206,22 @@ namespace Game.MVP.Survivor.Services
 
         public void OnEnemyKilled(bool isBoss = false)
         {
+            // Client-only: キルトラッキングはサーバーが駆動
+            if (_isClient) return;
+
+            // 全ウェーブクリア後はキル処理しない（残存敵の死亡による再トリガー防止）
+            if (_isAllWavesCleared.Value) return;
+
             // 目標数を超える加算をしない
             if (_enemiesKilled.Value < _targetKillsThisWave.Value)
             {
                 _enemiesKilled.Value++;
                 _onKillCounted.OnNext(Unit.Default);
+
+                if (_enemiesKilled.Value % 10 == 0 || _enemiesKilled.Value == _targetKillsThisWave.Value)
+                {
+                    Debug.Log($"[SurvivorStageWaveManager] Kill progress: {_enemiesKilled.Value}/{_targetKillsThisWave.Value} (wave={_currentWave.Value})");
+                }
             }
 
             // ボス撃破は別カウント（目標数とは独立）

@@ -30,7 +30,11 @@ namespace Game.MVP.Core.DI
             _lifetimeScopeType = typeof(T);
         }
 
-        public async UniTask StartupAsync()
+        /// <summary>
+        /// SurvivorLifetimeScope を生成して返す。
+        /// サーバーパスからスコープ生成のみを行う場合に使用。
+        /// </summary>
+        public static LifetimeScope CreateScope()
         {
             if (_lifetimeScopeType == null)
             {
@@ -38,15 +42,16 @@ namespace Game.MVP.Core.DI
                     "LifetimeScope type is not registered. Call SurvivorGameLauncher.RegisterLifetimeScopeType<T>() first.");
             }
 
-            // 1. VContainer RootLifetimeScopeを生成
-            var rootObject = new GameObject("SurvivorLifetimeScope");
-            UnityEngine.Object.DontDestroyOnLoad(rootObject);
-            _rootScope = (LifetimeScope)rootObject.AddComponent(_lifetimeScopeType);
+            var go = new GameObject("SurvivorLifetimeScope");
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            return (LifetimeScope)go.AddComponent(_lifetimeScopeType);
+        }
 
-            // 2. コンテナからゲームランナーを解決
+        public async UniTask StartupAsync()
+        {
+            _rootScope = CreateScope();
+
             _gameRunner = _rootScope.Container.Resolve<ISurvivorGameRunner>();
-
-            // 3. ゲーム開始
             await _gameRunner.StartupAsync();
 
             Debug.Log("[SurvivorGameLauncher] MVP mode initialized via VContainer");

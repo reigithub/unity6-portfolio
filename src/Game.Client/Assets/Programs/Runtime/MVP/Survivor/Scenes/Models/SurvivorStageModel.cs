@@ -167,6 +167,25 @@ namespace Game.MVP.Survivor.Scenes.Models
             // スコアはWaveクリア時の残り時間で計算するため、ここでは加算しない
         }
 
+        /// <summary>サーバーから経験値を同期（HUD表示のみ、レベルアップ判定なし）</summary>
+        public void SetExperienceFromServer(int experience, int experienceToNextLevel)
+        {
+            Experience.Value = experience;
+            ExperienceToNextLevel.Value = experienceToNextLevel;
+        }
+
+        /// <summary>サーバーからレベルを設定（Level.Subscribe が _pendingLevelUpCount++ を発火）</summary>
+        public void SetLevelFromServer(int level, int experience, int experienceToNextLevel)
+        {
+            Experience.Value = experience;
+            ExperienceToNextLevel.Value = experienceToNextLevel;
+            if (Level.Value != level)
+            {
+                Level.Value = level;
+                UpdateLevelStats();
+            }
+        }
+
         /// <summary>サーバーからゲーム結果を設定（クライアントモード用）</summary>
         public void SetNetworkResult(SurvivorNetworkGameResult result) => _networkResult = result;
 

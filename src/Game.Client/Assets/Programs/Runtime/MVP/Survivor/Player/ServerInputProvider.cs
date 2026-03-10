@@ -15,17 +15,19 @@ namespace Game.MVP.Survivor.Player
             _networkPlayerState = networkPlayerState;
         }
 
-        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting)
+        public bool TryGetMoveInput(out Vector2 moveValue, out bool isSprinting, out float cameraRotationY)
         {
-            if (_networkPlayerState.TryConsumeInput(out var moveX, out var moveY, out var sprint))
+            if (_networkPlayerState.TryConsumeInput(out var moveX, out var moveY, out var sprint, out var camRotY))
             {
                 moveValue = new Vector2(moveX, moveY);
                 isSprinting = sprint;
+                cameraRotationY = camRotY;
                 return true;
             }
 
             moveValue = Vector2.zero;
             isSprinting = false;
+            cameraRotationY = 0f;
             return false;
         }
     }

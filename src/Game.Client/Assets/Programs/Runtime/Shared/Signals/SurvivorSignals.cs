@@ -26,6 +26,10 @@ namespace Game.Shared.Signals.Survivor
                     ServerTime = serverTime;
                 }
             }
+
+            public readonly struct AllClientsSceneReady { }
+
+            public readonly struct AllPlayersDisconnected { }
         }
 
         // --- Connection ---
@@ -90,13 +94,20 @@ namespace Game.Shared.Signals.Survivor
             {
                 public readonly string UserId;
                 public readonly int ItemId;
+                public readonly int ItemType;
                 public readonly int EffectValue;
+                public readonly int CurrentExperience;
+                public readonly int ExperienceToNextLevel;
 
-                public ItemCollected(string userId, int itemId, int effectValue)
+                public ItemCollected(string userId, int itemId, int itemType, int effectValue,
+                    int currentExperience, int experienceToNextLevel)
                 {
                     UserId = userId;
                     ItemId = itemId;
+                    ItemType = itemType;
                     EffectValue = effectValue;
+                    CurrentExperience = currentExperience;
+                    ExperienceToNextLevel = experienceToNextLevel;
                 }
             }
 
@@ -104,12 +115,17 @@ namespace Game.Shared.Signals.Survivor
             {
                 public readonly string UserId;
                 public readonly int Level;
+                public readonly int Experience;
+                public readonly int ExperienceToNextLevel;
                 public readonly SurvivorNetworkWeaponUpgradeOption[] Options;
 
-                public LeveledUp(string userId, int level, SurvivorNetworkWeaponUpgradeOption[] options)
+                public LeveledUp(string userId, int level, int experience, int experienceToNextLevel,
+                    SurvivorNetworkWeaponUpgradeOption[] options)
                 {
                     UserId = userId;
                     Level = level;
+                    Experience = experience;
+                    ExperienceToNextLevel = experienceToNextLevel;
                     Options = options;
                 }
             }
@@ -259,6 +275,33 @@ namespace Game.Shared.Signals.Survivor
                 public Despawned(int itemId)
                 {
                     ItemId = itemId;
+                }
+            }
+        }
+
+        // --- Weapon ---
+
+        public static class Weapon
+        {
+            public readonly struct HitReported
+            {
+                public readonly int EnemyNetworkId;
+                public readonly int WeaponId;
+
+                public HitReported(int enemyNetworkId, int weaponId)
+                {
+                    EnemyNetworkId = enemyNetworkId;
+                    WeaponId = weaponId;
+                }
+            }
+
+            public readonly struct ApplyRequested
+            {
+                public readonly WeaponApplyRequest Request;
+
+                public ApplyRequested(WeaponApplyRequest request)
+                {
+                    Request = request;
                 }
             }
         }

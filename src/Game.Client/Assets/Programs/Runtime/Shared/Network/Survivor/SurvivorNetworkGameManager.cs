@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Game.Shared.Bootstrap;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using Mirror;
@@ -42,6 +44,9 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+        [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
+        [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
 
         // =====================================================================
         //  セッション
@@ -89,6 +94,8 @@ namespace Game.Shared.Network.Survivor
         {
             if (!isServer && IsLocalPlayer(userId))
             {
+                if (_playerDamagedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _playerDamagedPub is NULL");
                 _playerDamagedPub?.Publish(
                     new SurvivorSignals.Player.DamageReceived(damage, currentHp));
             }
@@ -113,12 +120,16 @@ namespace Game.Shared.Network.Survivor
         /// <para><b>未使用:</b> アイテムシステムの MP 対応時に、サーバー側のアイテム取得ロジックから呼び出す予定。</para>
         /// </summary>
         [ClientRpc]
-        public void NotifyItemCollectedClientRpc(FixedString64Bytes userId, int itemId, int effectValue)
+        public void NotifyItemCollectedClientRpc(
+            FixedString64Bytes userId, int itemId, int itemType, int effectValue,
+            int currentExperience, int experienceToNextLevel)
         {
             if (!isServer)
             {
                 _itemCollectedPub?.Publish(
-                    new SurvivorSignals.Player.ItemCollected(userId.ToString(), itemId, effectValue));
+                    new SurvivorSignals.Player.ItemCollected(
+                        userId.ToString(), itemId, itemType, effectValue,
+                        currentExperience, experienceToNextLevel));
             }
         }
 
@@ -127,12 +138,16 @@ namespace Game.Shared.Network.Survivor
         /// <para><b>未使用:</b> レベルアップシステムの MP 対応時に、サーバー側の経験値計算から呼び出す予定。</para>
         /// </summary>
         [ClientRpc]
-        public void NotifyPlayerLevelUpClientRpc(FixedString64Bytes userId, int newLevel, SurvivorNetworkWeaponUpgradeOption[] options)
+        public void NotifyPlayerLevelUpClientRpc(
+            FixedString64Bytes userId, int newLevel,
+            int experience, int experienceToNextLevel,
+            SurvivorNetworkWeaponUpgradeOption[] options)
         {
             if (!isServer)
             {
                 _playerLeveledUpPub?.Publish(
-                    new SurvivorSignals.Player.LeveledUp(userId.ToString(), newLevel, options));
+                    new SurvivorSignals.Player.LeveledUp(
+                        userId.ToString(), newLevel, experience, experienceToNextLevel, options));
             }
         }
 
@@ -179,8 +194,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] WaveCleared RPC received: wave={waveNumber}, next={nextWaveNumber}, isServer={isServer}");
             if (!isServer)
             {
+                if (_waveClearedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveClearedPub is NULL");
                 _waveClearedPub?.Publish(
                     new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
             }
@@ -193,8 +211,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] WaveStarted RPC received: wave={waveNumber}, target={targetKills}, enemies={totalEnemies}, isServer={isServer}");
             if (!isServer)
             {
+                if (_waveStartedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveStartedPub is NULL — VContainer injection failed");
                 _waveStartedPub?.Publish(
                     new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
             }
@@ -239,8 +260,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
+            Debug.Log($"[NetworkSurvivorGameManager] GameEnded RPC received: victory={result.IsVictory}, isServer={isServer}");
             if (!isServer)
             {
+                if (_gameEndedPub == null)
+                    Debug.LogWarning("[NetworkSurvivorGameManager] _gameEndedPub is NULL");
                 _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
             }
         }
@@ -273,6 +297,111 @@ namespace Game.Shared.Network.Survivor
             if (!isServer)
             {
                 _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
+            }
+        }
+
+        // =====================================================================
+        //  レベルアップポーズ管理（サーバー側）
+        // =====================================================================
+
+        private bool _isLevelUpPaused;
+        private float _levelUpPauseStartTime;
+        private const float LevelUpPauseTimeout = 45f;
+
+        // OnHitReported, OnWeaponApplyRequested → MessagePipe IPublisher に移行済み
+
+        /// <summary>サーバー側: 最後に送信した武器選択肢（検証用）</summary>
+        private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
+
+        /// <summary>サーバー側: クライアントからのヒット報告を受信し、イベントを発火</summary>
+        [Server]
+        public void OnClientHitReported(int enemyNetworkId, int weaponId)
+        {
+            _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(enemyNetworkId, weaponId));
+        }
+
+        /// <summary>サーバー側: 送信した武器選択肢を記録（検証用）</summary>
+        public void SetPendingWeaponOptions(SurvivorNetworkWeaponUpgradeOption[] options)
+        {
+            _lastSentWeaponOptions = options;
+        }
+
+        /// <summary>サーバー側: クライアントがレベルアップポーズを要求</summary>
+        [Server]
+        public void OnClientRequestPause(NetworkConnectionToClient conn)
+        {
+            if (_isLevelUpPaused) return;
+            _isLevelUpPaused = true;
+            _levelUpPauseStartTime = Time.realtimeSinceStartup;
+            ApplicationEvents.PauseTime();
+            Debug.Log($"[NetworkSurvivorGameManager] LevelUp pause requested by conn={conn.connectionId}");
+        }
+
+        /// <summary>サーバー側: クライアントがレベルアップ再開を要求</summary>
+        [Server]
+        public void OnClientRequestResume(NetworkConnectionToClient conn)
+        {
+            if (!_isLevelUpPaused) return;
+            _isLevelUpPaused = false;
+            ApplicationEvents.ResumeTime();
+            Debug.Log($"[NetworkSurvivorGameManager] LevelUp resumed by conn={conn.connectionId}");
+        }
+
+        /// <summary>サーバー側: 武器選択結果を受信し、検証後に適用イベントを発火</summary>
+        [Server]
+        public void OnClientWeaponChoice(int weaponId, bool isNewWeapon)
+        {
+            // 検証: サーバーが送った選択肢に含まれるか
+            if (_lastSentWeaponOptions != null)
+            {
+                bool valid = false;
+                foreach (var opt in _lastSentWeaponOptions)
+                {
+                    if (opt.WeaponId == weaponId)
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+                if (!valid)
+                {
+                    Debug.LogWarning($"[NetworkSurvivorGameManager] Rejected invalid weapon choice: {weaponId}");
+                    return;
+                }
+                _lastSentWeaponOptions = null;
+            }
+
+            var request = new WeaponApplyRequest
+            {
+                WeaponId = weaponId,
+                IsNewWeapon = isNewWeapon,
+                Type = WeaponApplyType.AddOrUpgrade
+            };
+            _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
+        }
+
+        /// <summary>サーバー側: 武器入れ替え結果を受信し、適用イベントを発火</summary>
+        [Server]
+        public void OnClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        {
+            var request = new WeaponApplyRequest
+            {
+                WeaponId = newWeaponId,
+                RemoveWeaponId = removeWeaponId,
+                Type = WeaponApplyType.Replace
+            };
+            _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
+        }
+
+        private void Update()
+        {
+            if (!isServer || !_isLevelUpPaused) return;
+
+            if (Time.realtimeSinceStartup - _levelUpPauseStartTime > LevelUpPauseTimeout)
+            {
+                Debug.LogWarning("[NetworkSurvivorGameManager] LevelUp pause timeout, force resuming");
+                _isLevelUpPaused = false;
+                ApplicationEvents.ResumeTime();
             }
         }
 
@@ -373,6 +502,38 @@ namespace Game.Shared.Network.Survivor
         }
 
         // =====================================================================
+        //  シーン準備完了トラッキング
+        // =====================================================================
+
+        private readonly HashSet<int> _sceneReadyConnIds = new();
+
+        // OnAllClientsSceneReady → MessagePipe IPublisher に移行済み
+
+        /// <summary>
+        /// クライアントがシーン準備完了を通知した際にサーバーが呼び出す。
+        /// 全クライアントの準備完了で OnAllClientsSceneReady を発火する。
+        /// </summary>
+        [Server]
+        public void OnClientSceneReady(NetworkConnectionToClient conn)
+        {
+            _sceneReadyConnIds.Add(conn.connectionId);
+            Debug.Log($"[NetworkSurvivorGameManager] Client scene ready: conn={conn.connectionId} ({_sceneReadyConnIds.Count}/{_totalPlayerCount})");
+
+            if (_totalPlayerCount > 0 && _sceneReadyConnIds.Count >= _totalPlayerCount)
+            {
+                Debug.Log("[NetworkSurvivorGameManager] All clients scene ready!");
+                _allClientsSceneReadyPub?.Publish(new SurvivorSignals.Session.AllClientsSceneReady());
+            }
+        }
+
+        /// <summary>セッション開始時にリセット</summary>
+        [Server]
+        public void ResetSceneReadyTracking()
+        {
+            _sceneReadyConnIds.Clear();
+        }
+
+        // =====================================================================
         //  ライフサイクル
         // =====================================================================
 
@@ -384,7 +545,28 @@ namespace Game.Shared.Network.Survivor
 
         public override void OnStartClient()
         {
+            DontDestroyOnLoad(gameObject);
             Instance = this;
+
+            // VContainer 注入診断: IPublisher が null の場合、ClientRpc → MessagePipe パスが機能しない
+            if (!isServer)
+            {
+                var nullPubs = new System.Text.StringBuilder();
+                if (_allPlayersReadyPub == null) nullPubs.Append("AllPlayersReady,");
+                if (_gameStartedPub == null) nullPubs.Append("GameStarted,");
+                if (_gameEndedPub == null) nullPubs.Append("GameEnded,");
+                if (_playerDamagedPub == null) nullPubs.Append("PlayerDamaged,");
+                if (_playerDiedPub == null) nullPubs.Append("PlayerDied,");
+                if (_waveStartedPub == null) nullPubs.Append("WaveStarted,");
+                if (_waveClearedPub == null) nullPubs.Append("WaveCleared,");
+                if (_enemyKilledPub == null) nullPubs.Append("EnemyKilled,");
+
+                if (nullPubs.Length > 0)
+                    Debug.LogWarning($"[NetworkSurvivorGameManager] NULL IPublisher on client: {nullPubs}");
+                else
+                    Debug.Log("[NetworkSurvivorGameManager] All IPublisher fields injected OK");
+            }
+
             Debug.Log("[NetworkSurvivorGameManager] Spawned on client");
         }
 
@@ -397,5 +579,15 @@ namespace Game.Shared.Network.Survivor
         {
             if (Instance == this) Instance = null;
         }
+    }
+
+    public enum WeaponApplyType { AddOrUpgrade, Replace }
+
+    public struct WeaponApplyRequest
+    {
+        public int WeaponId;
+        public bool IsNewWeapon;
+        public WeaponApplyType Type;
+        public int RemoveWeaponId;
     }
 }

@@ -17,10 +17,27 @@ public class SurvivorScoreRepository : ISurvivorScoreRepository
 
     public async Task<SurvivorScore> AddAsync(SurvivorScore score)
     {
+        // UPSERT: 新規INSERT、または既存行よりスコアが上回る場合のみUPDATE
         score.Id = await _dbSession.Connection.ExecuteScalarAsync<long>(
-            @"INSERT INTO ""Ranking"".""SurvivorScore"" (""UserId"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
-              VALUES (@UserId, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)
-              RETURNING ""Id""",
+            @"WITH upserted AS (
+                  INSERT INTO ""Ranking"".""SurvivorScore"" (""UserId"", ""StageId"", ""Score"", ""ClearTime"", ""WaveReached"", ""EnemiesDefeated"", ""RecordedAt"")
+                  VALUES (@UserId, @StageId, @Score, @ClearTime, @WaveReached, @EnemiesDefeated, @RecordedAt)
+                  ON CONFLICT (""UserId"", ""StageId"") DO UPDATE SET
+                      ""Score"" = EXCLUDED.""Score"",
+                      ""ClearTime"" = EXCLUDED.""ClearTime"",
+                      ""WaveReached"" = EXCLUDED.""WaveReached"",
+                      ""EnemiesDefeated"" = EXCLUDED.""EnemiesDefeated"",
+                      ""RecordedAt"" = EXCLUDED.""RecordedAt""
+                  WHERE EXCLUDED.""Score"" > ""SurvivorScore"".""Score""
+                     OR (EXCLUDED.""Score"" = ""SurvivorScore"".""Score""
+                         AND EXCLUDED.""ClearTime"" < ""SurvivorScore"".""ClearTime"")
+                  RETURNING ""Id""
+              )
+              SELECT COALESCE(
+                  (SELECT ""Id"" FROM upserted),
+                  (SELECT ""Id"" FROM ""Ranking"".""SurvivorScore""
+                   WHERE ""UserId"" = @UserId AND ""StageId"" = @StageId)
+              )",
             score,
             transaction: _dbSession.Transaction);
 

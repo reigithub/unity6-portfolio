@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
+using Game.Shared.Services.Network.Cache;
 using Game.Shared.Services.Network.Models;
 using Game.Shared.Services.Network.Queue;
 
@@ -9,14 +10,15 @@ namespace Game.Shared.Services
     /// <summary>
     /// Survivor スコア・ランキング API サービス実装
     /// IApiClient を使用してサーバーのスコア/ランキングエンドポイントを呼び出す
-    /// キャッシュはIApiClientが処理するため、このサービスではIResponseCache依存は不要
     /// </summary>
     public class SurvivorScoreApiService : ISurvivorScoreApiService
     {
         private const string ScoreSubmitEndpoint = "api/survivor/scores";
+        private const string RankingCacheKeyPrefix = "ranking_";
 
         private readonly IApiClient _apiClient;
         private readonly IRequestQueue _requestQueue;
+        private readonly IResponseCache _cache;
 
         /// <summary>
         /// ランキングキャッシュオプション
@@ -26,13 +28,14 @@ namespace Game.Shared.Services
             UseCache = true,
             CacheDuration = TimeSpan.FromMinutes(5),
             FallbackToCache = true,
-            CacheKeyPrefix = "ranking_"
+            CacheKeyPrefix = RankingCacheKeyPrefix
         };
 
-        public SurvivorScoreApiService(IApiClient apiClient, IRequestQueue requestQueue)
+        public SurvivorScoreApiService(IApiClient apiClient, IRequestQueue requestQueue, IResponseCache cache)
         {
             _apiClient = apiClient;
             _requestQueue = requestQueue;
+            _cache = cache;
         }
 
         public async UniTask<ApiResponse<SurvivorScoreSubmitResponse>> SubmitScoreAsync(
@@ -64,6 +67,12 @@ namespace Game.Shared.Services
             // 自分の順位はキャッシュしない（常に最新を取得）
             return await _apiClient.GetAsync<RankingEntryDto>(
                 $"api/survivor/rankings/{stageId}/me");
+        }
+
+        public async UniTask InvalidateRankingCacheAsync(int stageId)
+        {
+            var cacheKey = $"{RankingCacheKeyPrefix}api/survivor/rankings/{stageId}?limit=100&offset=0";
+            await _cache.RemoveAsync(cacheKey);
         }
     }
 }
