@@ -131,14 +131,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/editmode-test.log"
 
       - name: Upload test results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Server-Test-Results-${{ needs.load-config.outputs.build_timestamp }}
           path: TestResults/
 
       - name: Upload test log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Server-Test-Log-${{ needs.load-config.outputs.build_timestamp }}
@@ -197,14 +197,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-windows-server.log"
 
       - name: Upload Windows Server build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: DedicatedServer-Windows-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Server-Windows/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: DedicatedServer-Windows-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -263,14 +263,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-linux-server.log"
 
       - name: Upload Linux Server build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: DedicatedServer-Linux-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Server/Linux/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: DedicatedServer-Linux-Build-Log-${{ env.BUILD_TIMESTAMP }}

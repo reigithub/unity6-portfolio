@@ -158,7 +158,7 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/playmode-test.log"
 
       - name: Upload test results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Test-Results
@@ -219,14 +219,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-windows.log"
 
       - name: Upload Windows build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Windows-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Windows/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Windows-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -285,14 +285,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-linux.log"
 
       - name: Upload Linux build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Linux-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Linux/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Linux-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -351,14 +351,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-macos.log"
 
       - name: Upload macOS build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: macOS-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/macOS/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: macOS-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -417,14 +417,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-webgl.log"
 
       - name: Upload WebGL build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: WebGL-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/WebGL/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: WebGL-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -483,14 +483,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-android.log"
 
       - name: Upload Android build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Android-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/Android/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: Android-Build-Log-${{ env.BUILD_TIMESTAMP }}
@@ -549,14 +549,14 @@ jobs:
               -logFile "${{ github.workspace }}/Logs/build-ios.log"
 
       - name: Upload iOS build (Xcode Project)
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: iOS-Build-${{ env.BUILD_TIMESTAMP }}
           path: ${{ env.UNITY_PROJECT_PATH }}/Builds/CiBuilds/iOS/${{ env.BUILD_TIMESTAMP }}
           retention-days: ${{ fromJSON(env.BUILD_RETENTION_DAYS) }}
 
       - name: Upload build log
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: iOS-Build-Log-${{ env.BUILD_TIMESTAMP }}
