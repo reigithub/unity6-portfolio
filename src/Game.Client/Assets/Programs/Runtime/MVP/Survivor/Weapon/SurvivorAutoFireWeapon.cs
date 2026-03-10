@@ -1,7 +1,6 @@
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Combat;
-using Game.Shared.Constants;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -20,7 +19,6 @@ namespace Game.MVP.Survivor.Weapon
         private static readonly ProfilerMarker s_spawnProjectileMarker = new("ProfilerMarker.Weapon.SpawnProjectile");
 
         private const float ProjectileSpawnHeight = 1f;         // 弾の発射高さオフセット
-        private const float PierceDetectionRadius = 0.5f;      // 貫通検出SphereCast半径
         private const int NearbyEnemySearchBufferSize = 50;     // 近くの敵検索バッファサイズ
 
         // Cache
@@ -196,86 +194,23 @@ namespace Game.MVP.Survivor.Weapon
                     return;
                 }
 
-                // SP/Host: ローカルダメージ処理
+                // SP/Host: ローカルダメージ処理（WeaponBaseの統一ロジックを使用）
                 var target = other.GetComponentInParent<ICombatTarget>();
                 if (target == null || target.IsDead) return;
 
                 projectile.MarkPrimaryHitProcessed();
 
-                // ProcRate判定（失敗時はダメージも貫通もなし — サーバーと同一ロジック）
-                if (!RollProcRate())
-                {
-                    ReturnToPool(projectile);
-                    return;
-                }
-
-                // プライマリターゲットにダメージ
-                target.TakeDamage(projectile.Damage);
-
-                // ヒットエフェクト
+                // ヒットエフェクト（ダメージ計算前に表示 — ProcRate失敗でも弾は当たった）
                 if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
                 {
                     var hitPosition = other.ClosestPoint(projectile.transform.position);
                     _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
                 }
 
-                // ノックバック
-                if (_knockback > 0)
-                {
-                    Vector3 knockbackDir = (other.transform.position - _owner.position).normalized;
-                    target.ApplyKnockback(knockbackDir * _knockback);
-                }
-
-                // 貫通処理（SphereCastで即時判定 — サーバーのServerProcessPierceと同一ロジック）
-                if (_pierce > 0)
-                {
-                    ProcessLocalPierce(projectile, target);
-                }
+                // ダメージ計算 + 適用 + 貫通（全てWeaponBase内で完結）
+                ProcessHitLocal(target, _owner.position, projectile.transform.position, projectile.transform.forward);
 
                 ReturnToPool(projectile);
-            }
-        }
-
-        /// <summary>
-        /// ローカル貫通処理（SP/Host用）
-        /// プライマリターゲットの先をSphereCastで探索し追加ダメージを適用
-        /// サーバーの ServerProcessPierce と同一ロジック
-        /// </summary>
-        private void ProcessLocalPierce(SurvivorProjectile projectile, ICombatTarget primaryTarget)
-        {
-            Vector3 direction = projectile.transform.forward;
-            Vector3 origin = projectile.transform.position + direction * 0.1f;
-
-            var hits = Physics.SphereCastAll(
-                origin, PierceDetectionRadius, direction, _range,
-                LayerMaskConstants.Enemy, QueryTriggerInteraction.Collide);
-
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-            int pierceRemaining = _pierce;
-            for (int i = 0; i < hits.Length && pierceRemaining > 0; i++)
-            {
-                var target = hits[i].collider.GetComponentInParent<ICombatTarget>();
-                if (target == null || target == primaryTarget || target.IsDead) continue;
-
-                target.TakeDamage(projectile.Damage);
-                pierceRemaining--;
-
-                // ヒットエフェクト
-                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
-                {
-                    var hitPosition = hits[i].point != Vector3.zero
-                        ? hits[i].point
-                        : hits[i].collider.ClosestPoint(origin);
-                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
-                }
-
-                // ノックバック
-                if (_knockback > 0)
-                {
-                    Vector3 knockbackDir = (hits[i].collider.transform.position - _owner.position).normalized;
-                    target.ApplyKnockback(knockbackDir * _knockback);
-                }
             }
         }
     }
