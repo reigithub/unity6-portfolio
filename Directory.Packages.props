@@ -10,17 +10,17 @@
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.13" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.13" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.46" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.13.1" />
 
     <!-- Database -->
-    <PackageVersion Include="Dapper" Version="2.1.66" />
+    <PackageVersion Include="Dapper" Version="2.1.72" />
     <PackageVersion Include="Npgsql" Version="9.0.4" />
     <PackageVersion Include="FluentMigrator" Version="6.2.0" />
     <PackageVersion Include="FluentMigrator.Runner" Version="6.2.0" />
     <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
 
     <!-- Redis / Distributed Lock -->
-    <PackageVersion Include="StackExchange.Redis" Version="2.11.3" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.11.8" />
     <PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
 
     <!-- Google Cloud Authentication -->
@@ -40,8 +40,8 @@
     <!-- Serialization -->
     <PackageVersion Include="MessagePack" Version="3.1.4" />
     <PackageVersion Include="MasterMemory" Version="3.0.4" />
-    <PackageVersion Include="Google.Protobuf" Version="3.33.5" />
-    <PackageVersion Include="Google.Protobuf.Tools" Version="3.33.5" />
+    <PackageVersion Include="Google.Protobuf" Version="3.34.0" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="3.34.0" />
 
     <!-- MagicOnion (Real-time Communication) -->
     <PackageVersion Include="MagicOnion.Abstractions" Version="7.10.0" />
