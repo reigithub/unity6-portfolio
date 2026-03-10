@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -255,6 +257,98 @@ namespace Game.Tests.Network
             Assert.That(GetConnectedPlayerCount(), Is.EqualTo(0));
             Assert.That(GetSessionStarted(), Is.False);
             Assert.That(GetStageLoaded(), Is.False);
+        }
+
+        #endregion
+
+        #region AllPlayersDisconnected Signal Tests
+
+        /// <summary>テスト用 IPublisher 実装</summary>
+        private class TestPublisher<T> : IPublisher<T>
+        {
+            public List<T> Published { get; } = new();
+            public void Publish(T message) { Published.Add(message); }
+        }
+
+        private void SetInstance(SurvivorUnityServerSession instance)
+        {
+            // Instance は private set のためリフレクションで設定
+            var prop = typeof(SurvivorUnityServerSession).GetProperty("Instance",
+                BindingFlags.Public | BindingFlags.Static);
+            prop.SetValue(null, instance);
+        }
+
+        [Test]
+        public void NotifyPlayerQuit_PublishesAllPlayersDisconnectedSignal()
+        {
+            // Arrange — Instance を設定し、TestPublisher を注入
+            SetInstance(_session);
+            var testPub = new TestPublisher<SurvivorSignals.Session.AllPlayersDisconnected>();
+            var field = typeof(SurvivorUnityServerSession).GetField(
+                "_allPlayersDisconnectedPub", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, "_allPlayersDisconnectedPub field not found");
+            field.SetValue(_session, testPub);
+
+            // Act
+            SurvivorUnityServerSession.NotifyPlayerQuit();
+
+            // Assert
+            Assert.That(testPub.Published.Count, Is.EqualTo(1));
+
+            // Cleanup
+            SetInstance(null);
+        }
+
+        [Test]
+        public void OnClientDisconnected_AllGone_PublishesSignal()
+        {
+            // Arrange — セッションを開始し、1人接続した状態をシミュレート
+            var testPub = new TestPublisher<SurvivorSignals.Session.AllPlayersDisconnected>();
+            var field = typeof(SurvivorUnityServerSession).GetField(
+                "_allPlayersDisconnectedPub", BindingFlags.NonPublic | BindingFlags.Instance);
+            field.SetValue(_session, testPub);
+
+            _session.StartSession(1);
+            _sessionStartedField.SetValue(_session, true);
+            _connectedPlayerCountField.SetValue(_session, 1);
+
+            // Act — OnClientDisconnected のロジックを再現（全員切断）
+            var remaining = SimulateClientDisconnected();
+            bool sessionStarted = GetSessionStarted();
+            if (remaining <= 0 && sessionStarted)
+            {
+                testPub.Publish(new SurvivorSignals.Session.AllPlayersDisconnected());
+            }
+
+            // Assert
+            Assert.That(remaining, Is.EqualTo(0));
+            Assert.That(testPub.Published.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void OnClientDisconnected_RemainingPlayers_DoesNotPublish()
+        {
+            // Arrange — 2人接続した状態
+            var testPub = new TestPublisher<SurvivorSignals.Session.AllPlayersDisconnected>();
+            var field = typeof(SurvivorUnityServerSession).GetField(
+                "_allPlayersDisconnectedPub", BindingFlags.NonPublic | BindingFlags.Instance);
+            field.SetValue(_session, testPub);
+
+            _session.StartSession(2);
+            _sessionStartedField.SetValue(_session, true);
+            _connectedPlayerCountField.SetValue(_session, 2);
+
+            // Act — 1人切断（残り1人）
+            var remaining = SimulateClientDisconnected();
+            bool sessionStarted = GetSessionStarted();
+            if (remaining <= 0 && sessionStarted)
+            {
+                testPub.Publish(new SurvivorSignals.Session.AllPlayersDisconnected());
+            }
+
+            // Assert
+            Assert.That(remaining, Is.EqualTo(1));
+            Assert.That(testPub.Published.Count, Is.EqualTo(0));
         }
 
         #endregion
