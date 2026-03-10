@@ -305,11 +305,21 @@ namespace Game.Shared.Network.Survivor
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
 
+        /// <summary>サーバー側: クライアントからのヒット報告イベント（SurvivorStageScene が購読）</summary>
+        public event Action<int, int> OnHitReported;
+
         /// <summary>サーバー側: 武器適用リクエストイベント（SurvivorStageScene が購読）</summary>
         public event Action<WeaponApplyRequest> OnWeaponApplyRequested;
 
         /// <summary>サーバー側: 最後に送信した武器選択肢（検証用）</summary>
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
+
+        /// <summary>サーバー側: クライアントからのヒット報告を受信し、イベントを発火</summary>
+        [Server]
+        public void OnClientHitReported(int enemyNetworkId, int weaponId)
+        {
+            OnHitReported?.Invoke(enemyNetworkId, weaponId);
+        }
 
         /// <summary>サーバー側: 送信した武器選択肢を記録（検証用）</summary>
         public void SetPendingWeaponOptions(SurvivorNetworkWeaponUpgradeOption[] options)

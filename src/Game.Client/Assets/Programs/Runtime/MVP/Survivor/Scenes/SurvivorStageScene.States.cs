@@ -123,7 +123,7 @@ namespace Game.MVP.Survivor.Scenes
                 // SurvivorStageConnectScene で接続確立済みのため、NetworkClient.localPlayer は利用可能
                 if (NetworkModeHelper.IsNetworkClientConnected)
                 {
-                    InitializeClientViews();
+                    await InitializeClientViewsAsync();
                 }
                 else if (NetworkModeHelper.IsNetworkServer)
                 {
@@ -224,7 +224,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            private void InitializeClientViews()
+            private async UniTask InitializeClientViewsAsync()
             {
                 // MP Client: NetworkBehaviour への DI 注入は不要
                 // （NetworkMessage + RegisterHandler パターンにより VContainer/MessagePipe 依存を排除済み）
@@ -245,10 +245,14 @@ namespace Game.MVP.Survivor.Scenes
                     }
                 }
 
-                // View に ISubscriber を注入（AddComponent なので Initialize 経由）
+                // EnemyView: Addressableプレハブプリロード → 正式モデルで表示
                 var enemyViewGo = new GameObject("[SurvivorEnemyView]");
                 enemyViewGo.transform.SetParent(View.transform);
-                enemyViewGo.AddComponent<SurvivorEnemyView>().Initialize(Context._enemyBatchSub);
+                var enemyView = enemyViewGo.AddComponent<SurvivorEnemyView>();
+                await enemyView.InitializeAsync(
+                    Context._enemyBatchSub,
+                    Context.ScopedResolver.Resolve<IMasterDataService>(),
+                    Context._addressableService);
 
                 var itemViewGo = new GameObject("[SurvivorItemView]");
                 itemViewGo.transform.SetParent(View.transform);

@@ -107,6 +107,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Command]
+        public void ReportHitServerRpc(int enemyNetworkId, int weaponId)
+        {
+            Debug.Log($"[NetworkSurvivorPlayerState] HitReport from {connectionToClient?.connectionId}: enemy={enemyNetworkId}, weapon={weaponId}");
+            SurvivorNetworkGameManager.Instance?.OnClientHitReported(enemyNetworkId, weaponId);
+        }
+
+        [Command]
         public void RequestQuitServerRpc()
         {
             Debug.Log($"[NetworkSurvivorPlayerState] QuitRequest from {connectionToClient?.connectionId}");

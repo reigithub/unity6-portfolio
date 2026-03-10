@@ -6,8 +6,11 @@ using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
+using Game.MVP.Survivor.Enemy;
+using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
@@ -259,6 +262,17 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
+            // Client: ヒット報告コールバック設定（プロキシ命中 → ReportHitServerRpc）
+            // _localPlayerState は ReadyState.Enter() で設定されるため、ラムダキャプチャでフィールド参照
+            if (_isClient)
+            {
+                SceneComponent.WeaponManager?.SetHitCallback((enemyId, weaponId) =>
+                {
+                    if (NetworkModeHelper.IsNetworkClientConnected && _localPlayerState != null)
+                        _localPlayerState.ReportHitServerRpc(enemyId, weaponId);
+                });
+            }
+
             // Server: 全クライアント切断時にスポーン停止
             if (NetworkModeHelper.IsNetworkServer)
             {
@@ -393,13 +407,102 @@ namespace Game.MVP.Survivor.Scenes
             if (gm != null)
             {
                 gm.OnWeaponApplyRequested += OnServerWeaponApply;
+                gm.OnHitReported += OnServerHitReported;
             }
+
         }
 
         private void HandleAllPlayersDisconnected()
         {
             Debug.Log("[SurvivorStageScene] All players disconnected, clearing enemies and stopping spawner");
             SceneComponent.EnemySpawner?.ClearAllEnemies();
+        }
+
+        // サーバー側貫通判定用の定数
+        private const float PierceDetectionRadius = 0.5f;
+
+        private void OnServerHitReported(int enemyNetworkId, int weaponId)
+        {
+            if (!SceneComponent.EnemySpawner.TryGetEnemyByNetworkId(enemyNetworkId, out var enemy))
+                return;
+            if (enemy.IsDead) return;
+
+            if (!SceneComponent.WeaponManager.TryGetWeaponById(weaponId, out var weapon))
+                return;
+
+            // ProcRate判定（SPのRollProcRate()と同じロジック）
+            var procRate = weapon.ProcRate;
+            if (procRate <= 0) return;
+            if (procRate < 10000 && !procRate.RollChance()) return;
+
+            // サーバーがダメージ計算
+            int damage = weapon.Damage;
+            bool isCrit = weapon.CritChance > 0 && weapon.CritChance.RollChance();
+            if (isCrit)
+                damage = Mathf.RoundToInt(damage * weapon.CritMultiplier.ToRate());
+
+            // プライマリターゲットにダメージ
+            enemy.TakeDamage(damage);
+            Debug.Log($"[ServerHit] enemy={enemyNetworkId} weapon={weaponId} dmg={damage} crit={isCrit}");
+
+            // ノックバック
+            Vector3 playerPos = SceneComponent.PlayerController != null
+                ? SceneComponent.PlayerController.transform.position
+                : enemy.transform.position;
+
+            if (weapon.Knockback > 0 && SceneComponent.PlayerController != null)
+            {
+                var dir = (enemy.transform.position - playerPos).normalized;
+                enemy.ApplyKnockback(dir * weapon.Knockback);
+            }
+
+            // サーバー権威の貫通処理（実際の敵位置で判定）
+            if (weapon.Pierce > 0 && SceneComponent.PlayerController != null)
+            {
+                ServerProcessPierce(enemy, playerPos, weapon, damage);
+            }
+        }
+
+        /// <summary>
+        /// サーバー側貫通処理
+        /// プレイヤー→ヒット敵の方向に沿って、実際の敵位置でSphereCastを行い追加ダメージを適用
+        /// </summary>
+        private void ServerProcessPierce(
+            SurvivorEnemyController primaryEnemy,
+            Vector3 playerPos,
+            SurvivorWeaponBase weapon,
+            int damage)
+        {
+            var direction = (primaryEnemy.transform.position - playerPos).normalized;
+            // プライマリターゲットの少し先から検索開始
+            var origin = primaryEnemy.transform.position + direction * 0.1f;
+            float maxDistance = weapon.Range;
+
+            var hits = Physics.SphereCastAll(
+                origin, PierceDetectionRadius, direction, maxDistance,
+                LayerMaskConstants.Enemy, QueryTriggerInteraction.Collide);
+
+            // 距離順にソート
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            int pierceRemaining = weapon.Pierce;
+            for (int i = 0; i < hits.Length && pierceRemaining > 0; i++)
+            {
+                var target = hits[i].collider.GetComponentInParent<SurvivorEnemyController>();
+                if (target == null || target == primaryEnemy || target.IsDead) continue;
+
+                target.TakeDamage(damage);
+                pierceRemaining--;
+
+                Debug.Log($"[ServerPierce] weapon={weapon.WeaponId} dmg={damage} pierce={weapon.Pierce - pierceRemaining}/{weapon.Pierce}");
+
+                // ノックバック
+                if (weapon.Knockback > 0)
+                {
+                    var dir = (target.transform.position - playerPos).normalized;
+                    target.ApplyKnockback(dir * weapon.Knockback);
+                }
+            }
         }
 
         private void OnServerWeaponApply(WeaponApplyRequest request)
@@ -576,6 +679,7 @@ namespace Game.MVP.Survivor.Scenes
             if (gm != null)
             {
                 gm.OnWeaponApplyRequested -= OnServerWeaponApply;
+                gm.OnHitReported -= OnServerHitReported;
             }
 
             _networkConnector?.Disconnect();

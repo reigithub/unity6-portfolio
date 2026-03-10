@@ -80,6 +80,7 @@ namespace Game.MVP.Survivor.Enemy
         private float _enemySyncTimer;
         private int _nextNetworkId;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
+        private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onEnemyKilled = new();
@@ -370,6 +371,7 @@ namespace Game.MVP.Survivor.Enemy
 
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
+                _enemyByNetworkId[networkId] = enemy;
                 _activeEnemies.Add(enemy);
                 _remainingSpawnCount--;
                 _spawnTimer = spawnInfo.SpawnInterval;
@@ -553,6 +555,10 @@ namespace Game.MVP.Survivor.Enemy
                 _networkBridge.BroadcastEnemyStates(new[] { deathSnapshot });
             }
 
+            if (_enemyNetworkIds.TryGetValue(enemy, out var removedNetworkId))
+            {
+                _enemyByNetworkId.Remove(removedNetworkId);
+            }
             _enemyNetworkIds.Remove(enemy);
             _activeEnemies.Remove(enemy);
             _onEnemyKilled.OnNext(enemy);
@@ -570,6 +576,11 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        public bool TryGetEnemyByNetworkId(int networkId, out SurvivorEnemyController enemy)
+        {
+            return _enemyByNetworkId.TryGetValue(networkId, out enemy);
+        }
+
         /// <summary>
         /// 全ての敵をクリア
         /// </summary>
@@ -582,6 +593,7 @@ namespace Game.MVP.Survivor.Enemy
 
             _activeEnemies.Clear();
             _enemyNetworkIds.Clear();
+            _enemyByNetworkId.Clear();
             _isSpawning = false;
         }
 

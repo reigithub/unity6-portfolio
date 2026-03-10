@@ -42,8 +42,14 @@ namespace Game.MVP.Survivor.Weapon
         // 各敵への残りヒット回数を追跡（enemyInstanceId -> remainingHits）
         private readonly Dictionary<int, int> _hitCountPerEnemy = new();
 
+        // プライマリヒット処理済みフラグ（SP/MP共通）
+        // プライマリヒット後の貫通はSphereCastで処理するため、
+        // OnTriggerEnterによる追加ダメージ/RPCを抑止する
+        private bool _hasPrimaryHitProcessed;
+
         public int Damage => _damage;
         public bool IsCritical => _isCritical;
+        public bool HasPrimaryHitProcessed => _hasPrimaryHitProcessed;
 
         // Events
         public event Action<SurvivorProjectile, Collider> OnHit;
@@ -94,6 +100,7 @@ namespace Game.MVP.Survivor.Weapon
             _isActive = true;
             _homingTarget = null;
             _hitCountPerEnemy.Clear();
+            _hasPrimaryHitProcessed = false;
 
             // 向きを設定
             if (_direction.magnitude > 0.1f)
@@ -155,6 +162,14 @@ namespace Game.MVP.Survivor.Weapon
             {
                 OnHit?.Invoke(this, other);
             }
+        }
+
+        /// <summary>
+        /// サーバーへのヒット報告済みとしてマーク（MPクライアント用）
+        /// </summary>
+        public void MarkPrimaryHitProcessed()
+        {
+            _hasPrimaryHitProcessed = true;
         }
 
         /// <summary>
@@ -233,6 +248,7 @@ namespace Game.MVP.Survivor.Weapon
             _isCritical = false;
             _homingTarget = null;
             _hitCountPerEnemy.Clear();
+            _hasPrimaryHitProcessed = false;
 
             if (!UnityPlaymodeHelper.IsServer() && _trailRenderer != null)
             {

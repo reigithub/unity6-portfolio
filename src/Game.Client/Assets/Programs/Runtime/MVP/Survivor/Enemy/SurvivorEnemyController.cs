@@ -189,6 +189,8 @@ namespace Game.MVP.Survivor.Enemy
         {
             _isDead = false;
             _currentHp = _maxHp;
+            _hasPendingDamage = false;
+            _pendingDamageAmount = 0;
             _target = null;
             _stateMachine = null;
             _damageableTarget = null;

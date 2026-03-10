@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -34,6 +35,7 @@ namespace Game.MVP.Survivor.Weapon
         private Transform _owner;
         private float _damageMultiplier = 1f;
         private SurvivorWeaponVfxSpawner _vfxSpawner;
+        private Action<int, int> _hitCallback;
 
         // Events
         private readonly Subject<SurvivorWeaponBase> _onWeaponAdded = new();
@@ -93,6 +95,7 @@ namespace Game.MVP.Survivor.Weapon
 
             var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster);
             await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner);
+            weapon.OnEnemyHitForServer = _hitCallback;
 
             _weapons.Add(weapon);
             _onWeaponAdded.OnNext(weapon);
@@ -132,6 +135,27 @@ namespace Game.MVP.Survivor.Weapon
             {
                 weapon.SetDamageMultiplier(multiplier);
             }
+        }
+
+        /// <summary>
+        /// ヒット報告コールバックを設定（クライアントモード用）
+        /// </summary>
+        public void SetHitCallback(Action<int, int> callback)
+        {
+            _hitCallback = callback;
+            foreach (var weapon in _weapons)
+            {
+                weapon.OnEnemyHitForServer = callback;
+            }
+        }
+
+        /// <summary>
+        /// WeaponIdで武器を検索
+        /// </summary>
+        public bool TryGetWeaponById(int weaponId, out SurvivorWeaponBase weapon)
+        {
+            weapon = _weapons.Find(w => w.WeaponId == weaponId);
+            return weapon != null;
         }
 
         /// <summary>
@@ -261,6 +285,9 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private void Update()
         {
+            // サーバーでは武器の自律発射を無効化（RPCのみ受付）
+            if (UnityPlaymodeHelper.IsServer()) return;
+
             float deltaTime = Time.deltaTime;
             foreach (var weapon in _weapons)
             {

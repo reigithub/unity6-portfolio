@@ -142,6 +142,12 @@ namespace Game.MVP.Survivor.Weapon
 
         #endregion
 
+        /// <summary>
+        /// クライアントモード時のヒット報告コールバック (enemyNetworkId, weaponId)。
+        /// null の場合はSP/Hostモード（ローカルTakeDamage）。
+        /// </summary>
+        public Action<int, int> OnEnemyHitForServer;
+
         // Events
         protected readonly Subject<int> _onAttack = new();
         protected readonly Subject<float> _onCooldownChanged = new();
