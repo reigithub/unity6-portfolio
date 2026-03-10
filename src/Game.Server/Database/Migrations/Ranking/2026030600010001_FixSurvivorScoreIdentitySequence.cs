@@ -11,7 +11,8 @@ public class _2026030600010001_FixSurvivorScoreIdentitySequence : FluentMigrator
         Execute.Sql(
             @"SELECT setval(
                 pg_get_serial_sequence('""Ranking"".""SurvivorScore""', 'Id'),
-                COALESCE((SELECT MAX(""Id"") FROM ""Ranking"".""SurvivorScore""), 0)
+                COALESCE((SELECT MAX(""Id"") FROM ""Ranking"".""SurvivorScore""), 1),
+                (SELECT EXISTS(SELECT 1 FROM ""Ranking"".""SurvivorScore""))
               )");
     }
 
