@@ -72,7 +72,7 @@ namespace Game.MVP.Survivor.ECS
 
         // ネットワーク同期
         private ISurvivorNetworkBridge _networkBridge;
-        private const float EnemySyncInterval = 1.0f;
+        private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
         private readonly Dictionary<Entity, int> _entityNetworkIds = new();
@@ -284,7 +284,11 @@ namespace Game.MVP.Survivor.ECS
                         NetworkId = networkId,
                         EnemyMasterId = data.EnemyId,
                         PositionX = lt.Position.x,
+                        PositionY = lt.Position.y,
                         PositionZ = lt.Position.z,
+                        VelocityX = 0f,
+                        VelocityY = 0f,
+                        VelocityZ = 0f,
                         CurrentHp = data.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     }
@@ -310,12 +314,50 @@ namespace Game.MVP.Survivor.ECS
                 var lt = entityManager.GetComponentData<LocalTransform>(entity);
                 _entityNetworkIds.TryGetValue(entity, out var netId);
 
+                // Velocity 計算
+                float velocityX = 0f, velocityY = 0f, velocityZ = 0f;
+                if (entityManager.HasComponent<EnemyAIState>(entity))
+                {
+                    var aiState = entityManager.GetComponentData<EnemyAIState>(entity);
+                    if (aiState.CurrentState == EcsEnemyAIStateType.Chase)
+                    {
+                        float3 dir;
+                        if (entityManager.HasComponent<EnemySteeringResult>(entity))
+                        {
+                            var steering = entityManager.GetComponentData<EnemySteeringResult>(entity);
+                            if (steering.HasObstacle)
+                            {
+                                dir = steering.SteeringDirection;
+                            }
+                            else
+                            {
+                                var chase = entityManager.GetComponentData<ChaseTarget>(entity);
+                                dir = chase.Position - lt.Position;
+                                dir = math.lengthsq(dir) > 0.001f ? math.normalize(dir) : float3.zero;
+                            }
+                        }
+                        else
+                        {
+                            var chase = entityManager.GetComponentData<ChaseTarget>(entity);
+                            dir = chase.Position - lt.Position;
+                            dir = math.lengthsq(dir) > 0.001f ? math.normalize(dir) : float3.zero;
+                        }
+                        velocityX = dir.x * data.MoveSpeed;
+                        velocityY = dir.y * data.MoveSpeed;
+                        velocityZ = dir.z * data.MoveSpeed;
+                    }
+                }
+
                 snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = netId,
                     EnemyMasterId = data.EnemyId,
                     PositionX = lt.Position.x,
+                    PositionY = lt.Position.y,
                     PositionZ = lt.Position.z,
+                    VelocityX = velocityX,
+                    VelocityY = velocityY,
+                    VelocityZ = velocityZ,
                     CurrentHp = data.CurrentHp,
                     SyncType = EnemySyncType.PositionUpdate
                 };
@@ -452,7 +494,11 @@ namespace Game.MVP.Survivor.ECS
                         NetworkId = deadNetId,
                         EnemyMasterId = deathInfo.EnemyType,
                         PositionX = deathInfo.Position.x,
+                        PositionY = deathInfo.Position.y,
                         PositionZ = deathInfo.Position.z,
+                        VelocityX = 0f,
+                        VelocityY = 0f,
+                        VelocityZ = 0f,
                         SyncType = EnemySyncType.Death
                     }
                 });

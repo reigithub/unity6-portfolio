@@ -76,7 +76,7 @@ namespace Game.MVP.Survivor.Enemy
 
         // ネットワーク敵同期
         private ISurvivorNetworkBridge _networkBridge;
-        private const float EnemySyncInterval = 1.0f; // 1Hz
+        private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
@@ -284,6 +284,9 @@ namespace Game.MVP.Survivor.Enemy
                     PositionX = enemy.transform.position.x,
                     PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
+                    VelocityX = enemy.Velocity.x,
+                    VelocityY = enemy.Velocity.y,
+                    VelocityZ = enemy.Velocity.z,
                     CurrentHp = enemy.CurrentHp,
                     SyncType = EnemySyncType.PositionUpdate
                 };
@@ -387,6 +390,9 @@ namespace Game.MVP.Survivor.Enemy
                         PositionX = spawnPosition.x,
                         PositionY = spawnPosition.y,
                         PositionZ = spawnPosition.z,
+                        VelocityX = 0f,
+                        VelocityY = 0f,
+                        VelocityZ = 0f,
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     };
@@ -549,6 +555,9 @@ namespace Game.MVP.Survivor.Enemy
                     PositionX = enemy.transform.position.x,
                     PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
+                    VelocityX = 0f,
+                    VelocityY = 0f,
+                    VelocityZ = 0f,
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death
                 };

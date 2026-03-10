@@ -38,5 +38,14 @@ namespace Game.Library.Shared.Dto
 
         [Key(6)]
         public EnemySyncType SyncType { get; set; }
+
+        [Key(7)]
+        public float VelocityX { get; set; }
+
+        [Key(8)]
+        public float VelocityY { get; set; }
+
+        [Key(9)]
+        public float VelocityZ { get; set; }
     }
 }

@@ -9,6 +9,9 @@ namespace Game.Shared.Network.Survivor
         public float PositionX;
         public float PositionY;
         public float PositionZ;
+        public float VelocityX;
+        public float VelocityY;
+        public float VelocityZ;
         public int CurrentHp;
         public byte SyncTypeByte;
 
@@ -27,6 +30,9 @@ namespace Game.Shared.Network.Survivor
                 PositionX = dto.PositionX,
                 PositionY = dto.PositionY,
                 PositionZ = dto.PositionZ,
+                VelocityX = dto.VelocityX,
+                VelocityY = dto.VelocityY,
+                VelocityZ = dto.VelocityZ,
                 CurrentHp = dto.CurrentHp,
                 SyncType = dto.SyncType,
             };
@@ -41,6 +47,9 @@ namespace Game.Shared.Network.Survivor
                 PositionX = PositionX,
                 PositionY = PositionY,
                 PositionZ = PositionZ,
+                VelocityX = VelocityX,
+                VelocityY = VelocityY,
+                VelocityZ = VelocityZ,
                 CurrentHp = CurrentHp,
                 SyncType = SyncType,
             };

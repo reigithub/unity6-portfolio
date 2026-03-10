@@ -94,6 +94,9 @@ namespace Game.MVP.Survivor.Enemy
         public float NormalizedSpeed => _navAgent != null && _navAgent.speed > 0.01f
             ? _navAgent.velocity.magnitude / _navAgent.speed : 0f;
 
+        /// <summary>NavMeshAgentの現在速度ベクトル（ネットワーク同期用）</summary>
+        public Vector3 Velocity => _navAgent != null ? _navAgent.velocity : Vector3.zero;
+
         private void Awake()
         {
             if (_navAgent == null)

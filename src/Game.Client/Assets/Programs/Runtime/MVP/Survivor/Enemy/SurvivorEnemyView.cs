@@ -24,6 +24,8 @@ namespace Game.MVP.Survivor.Enemy
         private static readonly int DeathHash = Animator.StringToHash("Death");
 
         private const float InterpolationSpeed = 8f;
+        private const float CorrectionDecayRate = 10f;
+        private const float MaxCorrectionDistance = 3f;
 
         private readonly Dictionary<int, EnemyProxyData> _proxies = new();
         private readonly Dictionary<int, GameObject> _prefabs = new();
@@ -35,9 +37,14 @@ namespace Game.MVP.Survivor.Enemy
         {
             public GameObject GameObject;
             public Animator Animator;
-            public Vector3 TargetPosition;
             public int EnemyMasterId;
             public bool IsDead;
+
+            // デッドレコニング状態
+            public Vector3 LastSyncPosition;
+            public Vector3 Velocity;
+            public float TimeSinceSync;
+            public Vector3 CorrectionOffset;
         }
 
         public async UniTask InitializeAsync(
@@ -134,18 +141,35 @@ namespace Game.MVP.Survivor.Enemy
             {
                 GameObject = instance,
                 Animator = instance.GetComponentInChildren<Animator>(),
-                TargetPosition = pos,
                 EnemyMasterId = e.EnemyMasterId,
-                IsDead = false
+                IsDead = false,
+                LastSyncPosition = pos,
+                Velocity = Vector3.zero,
+                TimeSinceSync = 0f,
+                CorrectionOffset = Vector3.zero
             };
         }
 
         private void UpdateProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
-            if (_proxies.TryGetValue(e.NetworkId, out var data) && !data.IsDead)
+            if (!_proxies.TryGetValue(e.NetworkId, out var data) || data.IsDead) return;
+
+            var newServerPos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
+            var newVelocity = new Vector3(e.VelocityX, e.VelocityY, e.VelocityZ);
+
+            // 現在の予測位置と新しいサーバー権威位置の差分を計算
+            var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync + data.CorrectionOffset;
+            data.CorrectionOffset = predictedPos - newServerPos;
+
+            // 大きすぎる誤差はスナップ（ノックバック・テレポート等）
+            if (data.CorrectionOffset.sqrMagnitude > MaxCorrectionDistance * MaxCorrectionDistance)
             {
-                data.TargetPosition = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
+                data.CorrectionOffset = Vector3.zero;
             }
+
+            data.LastSyncPosition = newServerPos;
+            data.Velocity = newVelocity;
+            data.TimeSinceSync = 0f;
         }
 
         private void HandleDeath(SurvivorNetworkEnemyStateSnapshot e)
@@ -200,44 +224,40 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
+            float dt = Time.deltaTime;
+
             foreach (var kvp in _proxies)
             {
                 var data = kvp.Value;
                 if (data.GameObject == null || data.IsDead) continue;
 
-                var currentPos = data.GameObject.transform.position;
-                var targetPos = data.TargetPosition;
+                data.TimeSinceSync += dt;
 
-                // 位置補間（1Hz同期のガタつきを軽減）
-                if (Vector3.SqrMagnitude(currentPos - targetPos) > 0.001f)
+                // 1. デッドレコニング: 最終同期位置 + 速度 × 経過時間
+                var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync;
+
+                // 2. 補正オフセットを指数減衰で解消
+                data.CorrectionOffset = Vector3.Lerp(
+                    data.CorrectionOffset, Vector3.zero, CorrectionDecayRate * dt);
+
+                // 3. 表示位置 = 予測位置 + 残余補正
+                data.GameObject.transform.position = predictedPos + data.CorrectionOffset;
+
+                // 4. 回転: 速度方向を向く
+                Vector3 moveDir = data.Velocity;
+                moveDir.y = 0f;
+                if (moveDir.sqrMagnitude > 0.01f)
                 {
-                    data.GameObject.transform.position = Vector3.Lerp(
-                        currentPos, targetPos, Time.deltaTime * InterpolationSpeed);
-
-                    // 移動方向に回転
-                    Vector3 moveDir = targetPos - currentPos;
-                    moveDir.y = 0f;
-                    if (moveDir.sqrMagnitude > 0.01f)
-                    {
-                        data.GameObject.transform.rotation = Quaternion.Slerp(
-                            data.GameObject.transform.rotation,
-                            Quaternion.LookRotation(moveDir),
-                            Time.deltaTime * InterpolationSpeed);
-                    }
-
-                    // 歩行アニメーション
-                    if (data.Animator != null)
-                    {
-                        data.Animator.SetFloat(SpeedHash, 1f);
-                    }
+                    data.GameObject.transform.rotation = Quaternion.Slerp(
+                        data.GameObject.transform.rotation,
+                        Quaternion.LookRotation(moveDir),
+                        dt * InterpolationSpeed);
                 }
-                else
+
+                // 5. アニメーション: 速度ベースで歩行/待機
+                if (data.Animator != null)
                 {
-                    // 待機アニメーション
-                    if (data.Animator != null)
-                    {
-                        data.Animator.SetFloat(SpeedHash, 0f);
-                    }
+                    data.Animator.SetFloat(SpeedHash, data.Velocity.magnitude > 0.1f ? 1f : 0f);
                 }
             }
         }
