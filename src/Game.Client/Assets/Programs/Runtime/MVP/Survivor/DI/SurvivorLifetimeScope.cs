@@ -224,6 +224,12 @@ namespace Game.MVP.Survivor
             // Item
             builder.RegisterMessageBroker<SurvivorSignals.Item.Spawned>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Item.Despawned>(options);
+
+            // Server
+            builder.RegisterMessageBroker<SurvivorSignals.Weapon.HitReported>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Weapon.ApplyRequested>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsSceneReady>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersDisconnected>(options);
         }
     }
 }

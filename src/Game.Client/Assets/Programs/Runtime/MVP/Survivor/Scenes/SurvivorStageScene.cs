@@ -52,6 +52,10 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Item.Despawned> _itemDespawnedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.LeveledUp> _leveledUpSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.ApplyRequested> _weaponApplySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkPlayerState _localPlayerState;
@@ -276,7 +280,7 @@ namespace Game.MVP.Survivor.Scenes
             // Server: 全クライアント切断時にスポーン停止
             if (NetworkModeHelper.IsNetworkServer)
             {
-                SurvivorUnityServerSession.OnAllPlayersDisconnected += HandleAllPlayersDisconnected;
+                _allPlayersDisconnectedSub.Subscribe(_ => HandleAllPlayersDisconnected()).AddTo(Disposables);
             }
 
             // 自動保存のセットアップ
@@ -402,13 +406,9 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
             SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
 
-            // 武器適用イベント購読
-            var gm = SurvivorNetworkGameManager.Instance;
-            if (gm != null)
-            {
-                gm.OnWeaponApplyRequested += OnServerWeaponApply;
-                gm.OnHitReported += OnServerHitReported;
-            }
+            // 武器適用・ヒット報告シグナル購読
+            _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
+            _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
 
         }
 
@@ -602,14 +602,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public override async UniTask Terminate()
         {
-            // イベント解除
-            SurvivorUnityServerSession.OnAllPlayersDisconnected -= HandleAllPlayersDisconnected;
-            var gm = SurvivorNetworkGameManager.Instance;
-            if (gm != null)
-            {
-                gm.OnWeaponApplyRequested -= OnServerWeaponApply;
-                gm.OnHitReported -= OnServerHitReported;
-            }
+            // イベント解除は Disposables で自動処理
 
             _networkConnector?.Disconnect();
             ApplicationEvents.ResumeTime();

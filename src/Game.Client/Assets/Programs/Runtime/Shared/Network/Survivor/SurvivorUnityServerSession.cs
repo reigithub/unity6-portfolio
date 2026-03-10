@@ -18,10 +18,10 @@ namespace Game.Shared.Network.Survivor
     /// </summary>
     public class SurvivorUnityServerSession : MonoBehaviour
     {
-        /// <summary>
-        /// 全クライアント切断時に発火。サーバー側でスポーン停止等のクリーンアップに使用。
-        /// </summary>
-        public static event Action OnAllPlayersDisconnected;
+        public static SurvivorUnityServerSession Instance { get; private set; }
+
+        private void Awake() { Instance = this; }
+        private void OnDestroy() { if (Instance == this) Instance = null; }
 
         /// <summary>
         /// クライアントが明示的に退出を通知した際に呼ばれる。
@@ -30,11 +30,13 @@ namespace Game.Shared.Network.Survivor
         public static void NotifyPlayerQuit()
         {
             Debug.Log("[SurvivorServerSession] Player quit notification received");
-            OnAllPlayersDisconnected?.Invoke();
+            Instance?._allPlayersDisconnectedPub?.Publish(
+                new SurvivorSignals.Session.AllPlayersDisconnected());
         }
 
         [Inject] private IObjectResolver _resolver;
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
 
         private int _stageId;
         private bool _stageLoaded;
@@ -162,7 +164,7 @@ namespace Game.Shared.Network.Survivor
             if (_connectedPlayerCount <= 0 && _sessionStarted)
             {
                 Debug.Log("[SurvivorServerSession] All players disconnected, stopping session");
-                OnAllPlayersDisconnected?.Invoke();
+                _allPlayersDisconnectedPub?.Publish(new SurvivorSignals.Session.AllPlayersDisconnected());
                 StopSession();
             }
         }
@@ -208,6 +210,7 @@ namespace Game.Shared.Network.Survivor
                 {
                     var instance = Instantiate(prefab);
                     DontDestroyOnLoad(instance);
+                    _resolver.InjectGameObject(instance);
                     NetworkServer.Spawn(instance);
                     return instance;
                 }

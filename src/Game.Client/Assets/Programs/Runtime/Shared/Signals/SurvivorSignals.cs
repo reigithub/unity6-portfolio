@@ -26,6 +26,10 @@ namespace Game.Shared.Signals.Survivor
                     ServerTime = serverTime;
                 }
             }
+
+            public readonly struct AllClientsSceneReady { }
+
+            public readonly struct AllPlayersDisconnected { }
         }
 
         // --- Connection ---
@@ -271,6 +275,33 @@ namespace Game.Shared.Signals.Survivor
                 public Despawned(int itemId)
                 {
                     ItemId = itemId;
+                }
+            }
+        }
+
+        // --- Weapon ---
+
+        public static class Weapon
+        {
+            public readonly struct HitReported
+            {
+                public readonly int EnemyNetworkId;
+                public readonly int WeaponId;
+
+                public HitReported(int enemyNetworkId, int weaponId)
+                {
+                    EnemyNetworkId = enemyNetworkId;
+                    WeaponId = weaponId;
+                }
+            }
+
+            public readonly struct ApplyRequested
+            {
+                public readonly WeaponApplyRequest Request;
+
+                public ApplyRequested(WeaponApplyRequest request)
+                {
+                    Request = request;
                 }
             }
         }

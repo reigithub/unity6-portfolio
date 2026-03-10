@@ -16,6 +16,7 @@ using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using Unity.Collections;
 using UnityEngine;
 using VContainer;
@@ -205,7 +206,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 var tcs = new UniTaskCompletionSource();
                 void OnReady() => tcs.TrySetResult();
-                gm.OnAllClientsSceneReady += OnReady;
+                var subscription = Context._allClientsSceneReadySub.Subscribe(_ => OnReady());
 
                 try
                 {
@@ -220,7 +221,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 finally
                 {
-                    gm.OnAllClientsSceneReady -= OnReady;
+                    subscription.Dispose();
                 }
             }
 

@@ -44,6 +44,9 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+        [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
+        [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
 
         // =====================================================================
         //  セッション
@@ -305,11 +308,7 @@ namespace Game.Shared.Network.Survivor
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
 
-        /// <summary>サーバー側: クライアントからのヒット報告イベント（SurvivorStageScene が購読）</summary>
-        public event Action<int, int> OnHitReported;
-
-        /// <summary>サーバー側: 武器適用リクエストイベント（SurvivorStageScene が購読）</summary>
-        public event Action<WeaponApplyRequest> OnWeaponApplyRequested;
+        // OnHitReported, OnWeaponApplyRequested → MessagePipe IPublisher に移行済み
 
         /// <summary>サーバー側: 最後に送信した武器選択肢（検証用）</summary>
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
@@ -318,7 +317,7 @@ namespace Game.Shared.Network.Survivor
         [Server]
         public void OnClientHitReported(int enemyNetworkId, int weaponId)
         {
-            OnHitReported?.Invoke(enemyNetworkId, weaponId);
+            _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(enemyNetworkId, weaponId));
         }
 
         /// <summary>サーバー側: 送信した武器選択肢を記録（検証用）</summary>
@@ -378,7 +377,7 @@ namespace Game.Shared.Network.Survivor
                 IsNewWeapon = isNewWeapon,
                 Type = WeaponApplyType.AddOrUpgrade
             };
-            OnWeaponApplyRequested?.Invoke(request);
+            _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
         }
 
         /// <summary>サーバー側: 武器入れ替え結果を受信し、適用イベントを発火</summary>
@@ -391,7 +390,7 @@ namespace Game.Shared.Network.Survivor
                 RemoveWeaponId = removeWeaponId,
                 Type = WeaponApplyType.Replace
             };
-            OnWeaponApplyRequested?.Invoke(request);
+            _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
         }
 
         private void Update()
@@ -508,8 +507,7 @@ namespace Game.Shared.Network.Survivor
 
         private readonly HashSet<int> _sceneReadyConnIds = new();
 
-        /// <summary>全クライアントのシーン準備完了時に発火</summary>
-        public event System.Action OnAllClientsSceneReady;
+        // OnAllClientsSceneReady → MessagePipe IPublisher に移行済み
 
         /// <summary>
         /// クライアントがシーン準備完了を通知した際にサーバーが呼び出す。
@@ -524,7 +522,7 @@ namespace Game.Shared.Network.Survivor
             if (_totalPlayerCount > 0 && _sceneReadyConnIds.Count >= _totalPlayerCount)
             {
                 Debug.Log("[NetworkSurvivorGameManager] All clients scene ready!");
-                OnAllClientsSceneReady?.Invoke();
+                _allClientsSceneReadyPub?.Publish(new SurvivorSignals.Session.AllClientsSceneReady());
             }
         }
 
