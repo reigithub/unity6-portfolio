@@ -1,0 +1,311 @@
+using System.Collections.Generic;
+using System.Linq;
+using Game.Client.MasterData;
+using Game.Shared.Combat;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
+using Game.Shared.Services;
+using UnityEngine;
+using VContainer;
+
+namespace Game.MVP.Survivor.Weapon
+{
+    /// <summary>
+    /// サーバー用武器マネージャー（純粋C#クラス）。
+    /// プレハブ/プール/VFX を一切持たず、マスターデータ駆動でダメージ計算を行う。
+    /// SurvivorNetworkStageScene から DI で注入される。
+    /// </summary>
+    public class SurvivorNetworkWeaponManager
+    {
+        [Inject] private readonly IMasterDataService _masterDataService;
+        private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
+
+        private readonly List<NetworkWeaponSlot> _weapons = new();
+        private float _damageMultiplier = 1f;
+
+        private const float PierceDetectionRadius = 0.5f;
+
+        /// <summary>
+        /// 初期化。初期武器を追加する。
+        /// </summary>
+        public void Initialize(int startingWeaponId, float damageMultiplier)
+        {
+            _damageMultiplier = damageMultiplier;
+
+            if (startingWeaponId > 0)
+            {
+                AddWeapon(startingWeaponId);
+            }
+        }
+
+        /// <summary>
+        /// 武器を追加。既に持っている場合はアップグレード。
+        /// </summary>
+        public bool AddWeapon(int weaponId)
+        {
+            var existing = _weapons.Find(w => w.WeaponId == weaponId);
+            if (existing != null)
+            {
+                return UpgradeWeapon(weaponId);
+            }
+
+            if (!MemoryDatabase.SurvivorWeaponMasterTable.TryFindById(weaponId, out var weaponMaster))
+            {
+                Debug.LogError($"[SurvivorNetworkWeaponManager] Weapon master not found: {weaponId}");
+                return false;
+            }
+
+            var levelMasters = MemoryDatabase.SurvivorWeaponLevelMasterTable.FindByWeaponId(weaponId);
+            if (levelMasters.Count == 0)
+            {
+                Debug.LogError($"[SurvivorNetworkWeaponManager] No level masters for weapon: {weaponId}");
+                return false;
+            }
+
+            var slot = new NetworkWeaponSlot
+            {
+                WeaponId = weaponId,
+                Name = weaponMaster.Name,
+                IconAssetName = weaponMaster.IconAssetName,
+                MaxLevel = levelMasters.Max(l => l.Level),
+                DamageMultiplier = _damageMultiplier,
+            };
+
+            ApplyLevel(slot, levelMasters, 1);
+            _weapons.Add(slot);
+
+            Debug.Log($"[SurvivorNetworkWeaponManager] Added weapon: {weaponMaster.Name} Lv.1");
+            return true;
+        }
+
+        /// <summary>
+        /// 武器をアップグレード。
+        /// </summary>
+        public bool UpgradeWeapon(int weaponId)
+        {
+            var slot = _weapons.Find(w => w.WeaponId == weaponId);
+            if (slot == null) return false;
+
+            int nextLevel = slot.Level + 1;
+            if (nextLevel > slot.MaxLevel)
+            {
+                Debug.LogWarning($"[SurvivorNetworkWeaponManager] Already max level: weaponId={weaponId}");
+                return false;
+            }
+
+            var levelMasters = MemoryDatabase.SurvivorWeaponLevelMasterTable.FindByWeaponId(weaponId);
+            if (!ApplyLevel(slot, levelMasters, nextLevel))
+            {
+                return false;
+            }
+
+            Debug.Log($"[SurvivorNetworkWeaponManager] Upgraded weapon: {weaponId} to Lv.{slot.Level}");
+            return true;
+        }
+
+        /// <summary>
+        /// 武器を入れ替え。
+        /// </summary>
+        public bool ReplaceWeapon(int removeWeaponId, int newWeaponId)
+        {
+            var removeSlot = _weapons.Find(w => w.WeaponId == removeWeaponId);
+            if (removeSlot == null)
+            {
+                Debug.LogError($"[SurvivorNetworkWeaponManager] Weapon to remove not found: {removeWeaponId}");
+                return false;
+            }
+
+            _weapons.Remove(removeSlot);
+            Debug.Log($"[SurvivorNetworkWeaponManager] Removed weapon: {removeSlot.Name}");
+
+            return AddWeapon(newWeaponId);
+        }
+
+        /// <summary>
+        /// WeaponId で武器スロットを検索。
+        /// </summary>
+        public bool TryGetWeaponById(int weaponId, out NetworkWeaponSlot slot)
+        {
+            slot = _weapons.Find(w => w.WeaponId == weaponId);
+            return slot != null;
+        }
+
+        /// <summary>
+        /// ダメージ倍率を更新。
+        /// </summary>
+        public void UpdateDamageMultiplier(float multiplier)
+        {
+            _damageMultiplier = multiplier;
+            foreach (var slot in _weapons)
+            {
+                slot.DamageMultiplier = multiplier;
+            }
+        }
+
+        public bool HasEmptySlot => _weapons.Count < 6;
+
+        /// <summary>
+        /// サーバー権威ヒット処理。
+        /// ProcRate判定 → ダメージ計算 → プライマリダメージ適用 → 貫通処理。
+        /// </summary>
+        public void ProcessHitAuthority(ICombatTarget target, int weaponId, Vector3 playerPos)
+        {
+            if (!TryGetWeaponById(weaponId, out var slot)) return;
+            if (!CalculateHit(slot, out var damage)) return;
+
+            // プライマリターゲット
+            ApplyDamageWithKnockback(target, damage, slot.Knockback, playerPos);
+
+            // 貫通処理
+            if (slot.Pierce > 0)
+            {
+                var targetPos = target.CenterPosition;
+                var direction = (targetPos - playerPos).normalized;
+                var origin = targetPos + direction * 0.1f;
+                ProcessPierce(slot, origin, direction, target, playerPos, damage);
+            }
+        }
+
+        /// <summary>
+        /// レベルアップ時の選択肢を取得。
+        /// </summary>
+        public List<SurvivorWeaponUpgradeOption> GetUpgradeOptions(int count = 3)
+        {
+            var options = new List<SurvivorWeaponUpgradeOption>();
+
+            // 既存武器のアップグレード（最大レベル未満のみ）
+            foreach (var slot in _weapons)
+            {
+                if (slot.Level >= slot.MaxLevel) continue;
+
+                if (!MemoryDatabase.SurvivorWeaponLevelMasterTable.TryFindByWeaponIdAndLevel(
+                        (slot.WeaponId, slot.Level + 1), out var nextLevelMaster))
+                    continue;
+
+                MemoryDatabase.SurvivorWeaponMasterTable.TryFindById(slot.WeaponId, out var weaponMaster);
+
+                options.Add(new SurvivorWeaponUpgradeOption
+                {
+                    WeaponId = slot.WeaponId,
+                    WeaponName = slot.Name,
+                    IsNewWeapon = false,
+                    CurrentLevel = slot.Level,
+                    Description = weaponMaster?.Description,
+                    UpgradeEffect = nextLevelMaster.Description,
+                    IconAssetName = weaponMaster?.IconAssetName
+                });
+            }
+
+            // 新規武器
+            var allWeapons = MemoryDatabase.SurvivorWeaponMasterTable.All;
+            foreach (var weaponMaster in allWeapons)
+            {
+                if (_weapons.Any(w => w.WeaponId == weaponMaster.Id)) continue;
+
+                options.Add(new SurvivorWeaponUpgradeOption
+                {
+                    WeaponId = weaponMaster.Id,
+                    WeaponName = weaponMaster.Name,
+                    IsNewWeapon = true,
+                    CurrentLevel = 0,
+                    Description = weaponMaster.Description,
+                    UpgradeEffect = null,
+                    IconAssetName = weaponMaster.IconAssetName
+                });
+            }
+
+            // ランダムに選択
+            var result = new List<SurvivorWeaponUpgradeOption>();
+            while (result.Count < count && options.Count > 0)
+            {
+                int index = Random.Range(0, options.Count);
+                result.Add(options[index]);
+                options.RemoveAt(index);
+            }
+
+            return result;
+        }
+
+        #region Private Helpers
+
+        private static bool ApplyLevel(NetworkWeaponSlot slot, IReadOnlyList<SurvivorWeaponLevelMaster> levelMasters, int level)
+        {
+            var levelMaster = levelMasters?.FirstOrDefault(l => l.Level == level);
+            if (levelMaster == null)
+            {
+                Debug.LogWarning($"[SurvivorNetworkWeaponManager] Level master not found: weaponId={slot.WeaponId}, level={level}");
+                return false;
+            }
+
+            slot.Level = level;
+            slot.Damage = levelMaster.Damage;
+            slot.ProcRate = levelMaster.ProcRate;
+            slot.CritChance = levelMaster.CritHitRate;
+            slot.CritMultiplier = levelMaster.CritHitMultiplier;
+            slot.Pierce = levelMaster.Penetration;
+            slot.Knockback = levelMaster.Knockback.ToUnit();
+            slot.Range = levelMaster.Range.ToUnit();
+
+            return true;
+        }
+
+        private static bool CalculateHit(NetworkWeaponSlot slot, out int damage)
+        {
+            damage = 0;
+
+            if (!slot.ProcRate.RollChance()) return false;
+
+            damage = slot.FinalDamage;
+            if (slot.CritChance.RollChance())
+            {
+                damage = Mathf.RoundToInt(damage * slot.CritMultiplier.ToRate());
+            }
+
+            return true;
+        }
+
+        private static void ApplyDamageWithKnockback(ICombatTarget target, int damage, float knockback, Vector3 playerPos)
+        {
+            target.TakeDamage(damage);
+
+            if (knockback > 0)
+            {
+                var dir = (target.CenterPosition - playerPos).normalized;
+                target.ApplyKnockback(dir * knockback);
+            }
+        }
+
+        private static void ProcessPierce(
+            NetworkWeaponSlot slot,
+            Vector3 origin,
+            Vector3 direction,
+            ICombatTarget primaryTarget,
+            Vector3 playerPos,
+            int damage)
+        {
+            var hits = Physics.SphereCastAll(
+                origin, PierceDetectionRadius, direction, slot.Range,
+                LayerMaskConstants.Enemy, QueryTriggerInteraction.Collide);
+
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            int pierceRemaining = slot.Pierce;
+            for (int i = 0; i < hits.Length && pierceRemaining > 0; i++)
+            {
+                var target = hits[i].collider.GetComponentInParent<ICombatTarget>();
+                if (target == null || target == primaryTarget || target.IsDead) continue;
+
+                target.TakeDamage(damage);
+                pierceRemaining--;
+
+                if (slot.Knockback > 0)
+                {
+                    var dir = (hits[i].collider.transform.position - playerPos).normalized;
+                    target.ApplyKnockback(dir * slot.Knockback);
+                }
+            }
+        }
+
+        #endregion
+    }
+}

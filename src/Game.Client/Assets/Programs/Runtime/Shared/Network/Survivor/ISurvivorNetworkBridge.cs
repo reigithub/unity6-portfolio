@@ -8,7 +8,7 @@ namespace Game.Shared.Network.Survivor
     public interface ISurvivorNetworkBridge
     {
         void BroadcastEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots);
-        void NotifyItemSpawned(int itemId, float posX, float posZ);
+        void NotifyItemSpawned(int itemId, float posX, float posY, float posZ);
         void NotifyItemDespawned(int itemId);
     }
 }

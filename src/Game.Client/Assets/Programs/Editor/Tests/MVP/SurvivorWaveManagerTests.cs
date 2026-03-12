@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Signals.Survivor;
-using MessagePipe;
 using NUnit.Framework;
 using R3;
 
@@ -13,36 +12,28 @@ namespace Game.Tests.MVP
     public class SurvivorWaveManagerTests
     {
         private SurvivorStageWaveManager _manager;
-        private TestPublisher<SurvivorSignals.Wave.Completed> _waveCompletedPublisher;
+        private List<SurvivorSignals.Wave.Completed> _waveCompletedEvents;
         private List<Unit> _killCountedEvents;
         private IDisposable _killCountedSubscription;
-
-        /// <summary>テスト用 IPublisher 実装</summary>
-        private class TestPublisher<T> : IPublisher<T>
-        {
-            public List<T> Published { get; } = new();
-            public void Publish(T message) { Published.Add(message); }
-        }
+        private IDisposable _waveCompletedSubscription;
 
         [SetUp]
         public void Setup()
         {
             _manager = new SurvivorStageWaveManager();
             _killCountedEvents = new List<Unit>();
+            _waveCompletedEvents = new List<SurvivorSignals.Wave.Completed>();
 
-            // Wave.Completed のテスト用 Publisher を注入
-            _waveCompletedPublisher = new TestPublisher<SurvivorSignals.Wave.Completed>();
-            var pubField = typeof(SurvivorStageWaveManager).GetField("_waveCompletedPublisher", BindingFlags.NonPublic | BindingFlags.Instance);
-            pubField?.SetValue(_manager, _waveCompletedPublisher);
-
-            // イベント購読
+            // ローカル Observable を購読
             _killCountedSubscription = _manager.OnKillCounted.Subscribe(unit => _killCountedEvents.Add(unit));
+            _waveCompletedSubscription = _manager.OnWaveCompleted.Subscribe(e => _waveCompletedEvents.Add(e));
         }
 
         [TearDown]
         public void TearDown()
         {
             _killCountedSubscription?.Dispose();
+            _waveCompletedSubscription?.Dispose();
             _manager?.Dispose();
         }
 
@@ -199,7 +190,7 @@ namespace Game.Tests.MVP
             _manager.OnEnemyKilled(isBoss: true);
 
             // Assert
-            Assert.That(_waveCompletedPublisher.Published.Count, Is.EqualTo(1));
+            Assert.That(_waveCompletedEvents.Count, Is.EqualTo(1));
         }
 
         [Test]
@@ -212,7 +203,7 @@ namespace Game.Tests.MVP
             _manager.OnEnemyKilled(isBoss: false); // Regular kill reaches target
 
             // Assert - Wave not cleared because boss requirement not met
-            Assert.That(_waveCompletedPublisher.Published.Count, Is.EqualTo(0));
+            Assert.That(_waveCompletedEvents.Count, Is.EqualTo(0));
         }
 
         [Test]
@@ -225,7 +216,7 @@ namespace Game.Tests.MVP
             _manager.OnEnemyKilled(isBoss: true); // Boss kill but target not reached
 
             // Assert
-            Assert.That(_waveCompletedPublisher.Published.Count, Is.EqualTo(0));
+            Assert.That(_waveCompletedEvents.Count, Is.EqualTo(0));
         }
 
         [Test]
@@ -239,7 +230,7 @@ namespace Game.Tests.MVP
             _manager.OnEnemyKilled(isBoss: false);
 
             // Assert
-            Assert.That(_waveCompletedPublisher.Published.Count, Is.EqualTo(1));
+            Assert.That(_waveCompletedEvents.Count, Is.EqualTo(1));
         }
 
         #endregion

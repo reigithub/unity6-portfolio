@@ -79,7 +79,7 @@ namespace Game.MVP.Survivor.Player
 
             _hasPendingDamage = false;
             _currentHp.Value = Mathf.Max(0, _currentHp.Value - _pendingDamageAmount);
-            _damageReceivedPublisher?.Publish(
+            _onDamageReceived.OnNext(
                 new SurvivorSignals.Player.DamageReceived(_pendingDamageAmount, _currentHp.Value));
 
             // Server / Host: ClientRpc でダメージ通知
@@ -188,7 +188,8 @@ namespace Game.MVP.Survivor.Player
             public override void Enter()
             {
                 var ctx = Context;
-                ctx._diedPublisher?.Publish(new SurvivorSignals.Player.Died());
+                Debug.Log("[SurvivorPlayerController] Player died");
+                ctx._onDied.OnNext(new SurvivorSignals.Player.Died());
 
                 // Server / Host: ClientRpc で死亡通知 + 全滅判定
                 if (NetworkModeHelper.IsNetworkServer)

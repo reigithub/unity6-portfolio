@@ -157,58 +157,32 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
-        /// プロジェクタイル命中処理（SP/MP統一ロジック）
-        ///
-        /// SP/Host: プライマリヒット → SphereCastで貫通ターゲットを即時検出 → ダメージ適用 → 回収
-        /// MP Client: プライマリヒット → RPC送信（サーバーが同じSphereCastロジックで貫通処理） → 回収
-        ///
-        /// OnTriggerEnterによる物理的な貫通（敵を通り抜けて次の敵に当たる）は使用しない。
-        /// 代わりにSphereCastで弾道上の敵を即時検出し、SP/MPで同一の結果を保証する。
+        /// プロジェクタイル命中処理（SP/MP統一）
+        /// ヒット検出とVFX表示を行い、ダメージ処理はScene側のコールバックに委譲する。
         /// </summary>
         private void OnProjectileHit(SurvivorProjectile projectile, Collider other)
         {
             using (s_processHitMarker.Auto())
             {
                 // プライマリヒット処理済み → 後続のOnTriggerEnterを無視
-                // SphereCastで貫通処理済みのため、物理接触による二重ダメージを防止
                 if (projectile.HasPrimaryHitProcessed) return;
 
-                // クライアントモード: プロキシへの命中をサーバーに報告
-                if (OnEnemyHitForServer != null)
-                {
-                    var proxy = other.GetComponentInParent<EnemyProxyTarget>();
-                    if (proxy == null) return;
-
-                    projectile.MarkPrimaryHitProcessed();
-                    OnEnemyHitForServer.Invoke(proxy.NetworkId, WeaponId);
-
-                    // ヒットVFX（楽観的表示）
-                    if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
-                    {
-                        var hitPosition = other.ClosestPoint(projectile.transform.position);
-                        _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
-                    }
-
-                    // サーバーがダメージ・貫通を処理するため、プロジェクタイルを即時回収
-                    ReturnToPool(projectile);
+                // ヒット対象チェック（SP: ICombatTarget, MP: EnemyProxyTarget）
+                if (other.GetComponentInParent<ICombatTarget>() == null
+                    && other.GetComponentInParent<EnemyProxyTarget>() == null)
                     return;
-                }
-
-                // SP/Host: ローカルダメージ処理（WeaponBaseの統一ロジックを使用）
-                var target = other.GetComponentInParent<ICombatTarget>();
-                if (target == null || target.IsDead) return;
 
                 projectile.MarkPrimaryHitProcessed();
 
-                // ヒットエフェクト（ダメージ計算前に表示 — ProcRate失敗でも弾は当たった）
+                // ヒットVFX（ダメージ計算前に表示 — ProcRate失敗でもプロジェクタイルは当たった）
                 if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
                 {
                     var hitPosition = other.ClosestPoint(projectile.transform.position);
                     _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
                 }
 
-                // ダメージ計算 + 適用 + 貫通（全てWeaponBase内で完結）
-                ProcessHitLocal(target, _owner.position, projectile.transform.position, projectile.transform.forward);
+                // ダメージ処理をSceneに委譲（SP: ローカルダメージ, MP: RPC送信）
+                OnHitCallback?.Invoke(other, WeaponId);
 
                 ReturnToPool(projectile);
             }

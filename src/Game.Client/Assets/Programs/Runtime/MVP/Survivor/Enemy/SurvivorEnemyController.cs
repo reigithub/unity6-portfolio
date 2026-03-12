@@ -43,6 +43,7 @@ namespace Game.MVP.Survivor.Enemy
         private int _currentHp;
         private Transform _target;
         private bool _isDead;
+        private int _networkId = -1;
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onDeath = new();
@@ -62,6 +63,9 @@ namespace Game.MVP.Survivor.Enemy
         public int AttackDamage => _attackDamage;
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
+
+        /// <summary>ネットワーク同期用ID（SurvivorEnemySpawnerが設定）</summary>
+        public int NetworkId => _networkId;
 
         /// <summary>現在HP（ネットワーク同期用）</summary>
         public int CurrentHp => _currentHp;
@@ -177,6 +181,8 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        public void SetNetworkId(int id) => _networkId = id;
+
         public void ApplyKnockback(Vector3 knockback)
         {
             if (_isDead || _navAgent == null || !_navAgent.enabled) return;
@@ -192,6 +198,7 @@ namespace Game.MVP.Survivor.Enemy
         {
             _isDead = false;
             _currentHp = _maxHp;
+            _networkId = -1;
             _hasPendingDamage = false;
             _pendingDamageAmount = 0;
             _target = null;

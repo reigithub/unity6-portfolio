@@ -258,12 +258,14 @@ namespace Game.Shared.Signals.Survivor
             {
                 public readonly int ItemId;
                 public readonly float PosX;
+                public readonly float PosY;
                 public readonly float PosZ;
 
-                public Spawned(int itemId, float posX, float posZ)
+                public Spawned(int itemId, float posX, float posY, float posZ)
                 {
                     ItemId = itemId;
                     PosX = posX;
+                    PosY = posY;
                     PosZ = posZ;
                 }
             }

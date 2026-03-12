@@ -125,47 +125,26 @@ namespace Game.MVP.Survivor.Weapon
             area.Activate(finalDamage, Duration, Interval, _knockback, hitboxRadius);
         }
 
+        /// <summary>
+        /// エリアダメージ命中処理（SP/MP統一）
+        /// VFX表示を行い、ダメージ処理はScene側のコールバックに委譲する。
+        /// </summary>
         private void OnAreaHit(SurvivorGroundDamageArea area, Collider other)
         {
-            // クライアントモード: プロキシへの命中をサーバーに報告
-            if (OnEnemyHitForServer != null)
-            {
-                var proxy = other.GetComponentInParent<EnemyProxyTarget>();
-                if (proxy == null) return;
-
-                OnEnemyHitForServer.Invoke(proxy.NetworkId, WeaponId);
-
-                // ヒットVFX（楽観的表示）
-                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
-                {
-                    var hitPos = other.ClosestPoint(area.transform.position);
-                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPos, _hitEffectScale);
-                }
+            // ヒット対象チェック（SP: ICombatTarget, MP: EnemyProxyTarget）
+            if (other.GetComponentInParent<ICombatTarget>() == null
+                && other.GetComponentInParent<EnemyProxyTarget>() == null)
                 return;
-            }
 
-            // SP/Host: 既存のICombatTargetパス
-            var target = other.GetComponentInParent<ICombatTarget>();
-            if (target == null || target.IsDead) return;
-
-            if (RollProcRate())
+            // ヒットVFX
+            if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
             {
-                target.TakeDamage(area.Damage);
-
-                // ヒットエフェクト
-                if (_vfxSpawner != null && !string.IsNullOrEmpty(_hitEffectAssetName))
-                {
-                    var hitPos = other.ClosestPoint(area.transform.position);
-                    _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPos, _hitEffectScale);
-                }
-
-                // ノックバック
-                if (area.Knockback > 0)
-                {
-                    Vector3 dir = (other.transform.position - area.transform.position).normalized;
-                    target.ApplyKnockback(dir * area.Knockback);
-                }
+                var hitPos = other.ClosestPoint(area.transform.position);
+                _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPos, _hitEffectScale);
             }
+
+            // ダメージ処理をSceneに委譲（ProcRate/Crit計算はSurvivorNetworkWeaponManagerが行う）
+            OnHitCallback?.Invoke(other, WeaponId);
         }
 
         private void OnAreaExpired(SurvivorGroundDamageArea area)

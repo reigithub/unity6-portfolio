@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
-using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -35,7 +34,7 @@ namespace Game.MVP.Survivor.Weapon
         private Transform _owner;
         private float _damageMultiplier = 1f;
         private SurvivorWeaponVfxSpawner _vfxSpawner;
-        private Action<int, int> _hitCallback;
+        private Action<Collider, int> _hitCallback;
 
         // Events
         private readonly Subject<SurvivorWeaponBase> _onWeaponAdded = new();
@@ -58,11 +57,7 @@ namespace Game.MVP.Survivor.Weapon
             _owner = owner;
             _damageMultiplier = damageMultiplier;
 
-            // サーバーではVFX不要（ParticleSystemRenderer がない環境でエラーになる）
-            if (!UnityPlaymodeHelper.IsServer())
-            {
-                _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
-            }
+            _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
 
             // 初期武器を追加
             if (startingWeaponId > 0)
@@ -95,7 +90,7 @@ namespace Game.MVP.Survivor.Weapon
 
             var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster);
             await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner);
-            weapon.OnEnemyHitForServer = _hitCallback;
+            weapon.OnHitCallback = _hitCallback;
 
             _weapons.Add(weapon);
             _onWeaponAdded.OnNext(weapon);
@@ -138,14 +133,14 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
-        /// ヒット報告コールバックを設定（クライアントモード用）
+        /// ヒットコールバックを設定（SP: ローカルダメージ, MP: RPC送信）
         /// </summary>
-        public void SetHitCallback(Action<int, int> callback)
+        public void SetHitCallback(Action<Collider, int> callback)
         {
             _hitCallback = callback;
             foreach (var weapon in _weapons)
             {
-                weapon.OnEnemyHitForServer = callback;
+                weapon.OnHitCallback = callback;
             }
         }
 
@@ -285,9 +280,6 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private void Update()
         {
-            // サーバーでは武器の自律発射を無効化（RPCのみ受付）
-            if (UnityPlaymodeHelper.IsServer()) return;
-
             float deltaTime = Time.deltaTime;
             foreach (var weapon in _weapons)
             {
