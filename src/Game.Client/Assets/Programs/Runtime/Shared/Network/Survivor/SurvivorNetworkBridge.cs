@@ -11,9 +11,9 @@ namespace Game.Shared.Network.Survivor
             SurvivorNetworkEnemyState.Instance?.BroadcastEnemyStates(snapshots);
         }
 
-        public void NotifyItemSpawned(int itemId, float posX, float posZ)
+        public void NotifyItemSpawned(int itemId, float posX, float posY, float posZ)
         {
-            SurvivorNetworkItemSync.Instance?.SpawnItemClientRpc(itemId, posX, posZ);
+            SurvivorNetworkItemSync.Instance?.SpawnItemClientRpc(itemId, posX, posY, posZ);
         }
 
         public void NotifyItemDespawned(int itemId)

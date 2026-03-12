@@ -32,8 +32,11 @@ namespace Game.MVP.Survivor.Player
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
-        [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _damageReceivedPublisher;
-        [Inject] private IPublisher<SurvivorSignals.Player.Died> _diedPublisher;
+
+        private readonly Subject<SurvivorSignals.Player.DamageReceived> _onDamageReceived = new();
+        private readonly Subject<SurvivorSignals.Player.Died> _onDied = new();
+        public Observable<SurvivorSignals.Player.DamageReceived> OnDamageReceived => _onDamageReceived;
+        public Observable<SurvivorSignals.Player.Died> OnDied => _onDied;
 
         [Header("ジョギング速度")]
         [SerializeField]
@@ -161,6 +164,8 @@ namespace Game.MVP.Survivor.Player
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
+            _onDamageReceived.Dispose();
+            _onDied.Dispose();
         }
 
         #endregion

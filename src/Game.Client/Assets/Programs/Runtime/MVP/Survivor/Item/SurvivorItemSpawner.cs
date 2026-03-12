@@ -206,7 +206,7 @@ namespace Game.MVP.Survivor.Item
                 _activeItems[itemId].Add(item);
 
                 // サーバー: クライアントにアイテムスポーンを通知
-                _networkBridge?.NotifyItemSpawned(itemId, position.x, position.z);
+                _networkBridge?.NotifyItemSpawned(itemId, position.x, position.y, position.z);
             }
         }
 

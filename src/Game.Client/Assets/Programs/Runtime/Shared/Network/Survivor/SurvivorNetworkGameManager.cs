@@ -60,10 +60,7 @@ namespace Game.Shared.Network.Survivor
         public void NotifyAllPlayersReadyClientRpc()
         {
             Debug.Log("[NetworkSurvivorGameManager] AllPlayersReady");
-            if (!isServer)
-            {
-                _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
-            }
+            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
         }
 
         /// <summary>
@@ -74,10 +71,7 @@ namespace Game.Shared.Network.Survivor
         public void NotifyGameStartedClientRpc(float serverTime)
         {
             Debug.Log($"[NetworkSurvivorGameManager] GameStarted at serverTime={serverTime}");
-            if (!isServer)
-            {
-                _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(serverTime));
-            }
+            _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(serverTime));
         }
 
         // =====================================================================
@@ -92,7 +86,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDamagedClientRpc(FixedString64Bytes userId, int damage, int currentHp)
         {
-            if (!isServer && IsLocalPlayer(userId))
+            if (IsLocalPlayer(userId))
             {
                 if (_playerDamagedPub == null)
                     Debug.LogWarning("[NetworkSurvivorGameManager] _playerDamagedPub is NULL");
@@ -109,7 +103,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDiedClientRpc(FixedString64Bytes userId)
         {
-            if (!isServer && IsLocalPlayer(userId))
+            Debug.Log($"[NetworkSurvivorGameManager] PlayerDied RPC received: userId={userId}");
+            if (IsLocalPlayer(userId))
             {
                 _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
             }
@@ -124,13 +119,11 @@ namespace Game.Shared.Network.Survivor
             FixedString64Bytes userId, int itemId, int itemType, int effectValue,
             int currentExperience, int experienceToNextLevel)
         {
-            if (!isServer)
-            {
-                _itemCollectedPub?.Publish(
-                    new SurvivorSignals.Player.ItemCollected(
-                        userId.ToString(), itemId, itemType, effectValue,
-                        currentExperience, experienceToNextLevel));
-            }
+            Debug.Log($"[NetworkSurvivorGameManager] ItemCollected RPC received: itemId={itemId}, type={itemType}, exp={currentExperience}");
+            _itemCollectedPub?.Publish(
+                new SurvivorSignals.Player.ItemCollected(
+                    userId.ToString(), itemId, itemType, effectValue,
+                    currentExperience, experienceToNextLevel));
         }
 
         /// <summary>
@@ -143,12 +136,9 @@ namespace Game.Shared.Network.Survivor
             int experience, int experienceToNextLevel,
             SurvivorNetworkWeaponUpgradeOption[] options)
         {
-            if (!isServer)
-            {
-                _playerLeveledUpPub?.Publish(
-                    new SurvivorSignals.Player.LeveledUp(
-                        userId.ToString(), newLevel, experience, experienceToNextLevel, options));
-            }
+            _playerLeveledUpPub?.Publish(
+                new SurvivorSignals.Player.LeveledUp(
+                    userId.ToString(), newLevel, experience, experienceToNextLevel, options));
         }
 
         /// <summary>
@@ -158,11 +148,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWeaponChangedClientRpc(FixedString64Bytes userId, int weaponId, int level, bool isNew)
         {
-            if (!isServer)
-            {
-                _weaponChangedPub?.Publish(
-                    new SurvivorSignals.Player.WeaponChanged(userId.ToString(), weaponId, level, isNew));
-            }
+            _weaponChangedPub?.Publish(
+                new SurvivorSignals.Player.WeaponChanged(userId.ToString(), weaponId, level, isNew));
         }
 
         // =====================================================================
@@ -176,11 +163,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyEnemyKilledClientRpc(FixedString64Bytes killerUserId, int enemyId, int scoreGained, int totalKills)
         {
-            if (!isServer)
-            {
-                _enemyKilledPub?.Publish(
-                    new SurvivorSignals.Enemy.Killed(killerUserId.ToString(), enemyId, scoreGained, totalKills));
-            }
+            _enemyKilledPub?.Publish(
+                new SurvivorSignals.Enemy.Killed(killerUserId.ToString(), enemyId, scoreGained, totalKills));
         }
 
         // =====================================================================
@@ -194,14 +178,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveClearedClientRpc(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
-            Debug.Log($"[NetworkSurvivorGameManager] WaveCleared RPC received: wave={waveNumber}, next={nextWaveNumber}, isServer={isServer}");
-            if (!isServer)
-            {
-                if (_waveClearedPub == null)
-                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveClearedPub is NULL");
-                _waveClearedPub?.Publish(
-                    new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
-            }
+            Debug.Log($"[NetworkSurvivorGameManager] WaveCleared RPC received: wave={waveNumber}, next={nextWaveNumber}");
+            if (_waveClearedPub == null)
+                Debug.LogWarning("[NetworkSurvivorGameManager] _waveClearedPub is NULL");
+            _waveClearedPub?.Publish(
+                new SurvivorSignals.Wave.Completed(waveNumber, waveClearScore));
         }
 
         /// <summary>
@@ -211,14 +192,11 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyWaveStartedClientRpc(int waveNumber, int targetKills, int totalEnemies)
         {
-            Debug.Log($"[NetworkSurvivorGameManager] WaveStarted RPC received: wave={waveNumber}, target={targetKills}, enemies={totalEnemies}, isServer={isServer}");
-            if (!isServer)
-            {
-                if (_waveStartedPub == null)
-                    Debug.LogWarning("[NetworkSurvivorGameManager] _waveStartedPub is NULL — VContainer injection failed");
-                _waveStartedPub?.Publish(
-                    new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
-            }
+            Debug.Log($"[NetworkSurvivorGameManager] WaveStarted RPC received: wave={waveNumber}, target={targetKills}, enemies={totalEnemies}");
+            if (_waveStartedPub == null)
+                Debug.LogWarning("[NetworkSurvivorGameManager] _waveStartedPub is NULL — VContainer injection failed");
+            _waveStartedPub?.Publish(
+                new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
         }
 
         /// <summary>
@@ -228,10 +206,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyAllWavesClearedClientRpc()
         {
-            if (!isServer)
-            {
-                _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
-            }
+            Debug.Log("[NetworkSurvivorGameManager] AllWavesCleared RPC received");
+            _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
         }
 
         /// <summary>
@@ -241,10 +217,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyTimeUpClientRpc()
         {
-            if (!isServer)
-            {
-                _timeUpPub?.Publish(new SurvivorSignals.Wave.TimeUp());
-            }
+            _timeUpPub?.Publish(new SurvivorSignals.Wave.TimeUp());
         }
 
         // =====================================================================
@@ -260,13 +233,10 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameEndedClientRpc(SurvivorNetworkGameResult result)
         {
-            Debug.Log($"[NetworkSurvivorGameManager] GameEnded RPC received: victory={result.IsVictory}, isServer={isServer}");
-            if (!isServer)
-            {
-                if (_gameEndedPub == null)
-                    Debug.LogWarning("[NetworkSurvivorGameManager] _gameEndedPub is NULL");
-                _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
-            }
+            Debug.Log($"[NetworkSurvivorGameManager] GameEnded RPC received: victory={result.IsVictory}");
+            if (_gameEndedPub == null)
+                Debug.LogWarning("[NetworkSurvivorGameManager] _gameEndedPub is NULL");
+            _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
         }
 
         // =====================================================================
@@ -280,11 +250,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGamePausedClientRpc(FixedString64Bytes requestedByUserId)
         {
-            if (!isServer)
-            {
-                _gamePausedPub?.Publish(
-                    new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
-            }
+            _gamePausedPub?.Publish(
+                new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
         }
 
         /// <summary>
@@ -294,10 +261,7 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyGameResumedClientRpc()
         {
-            if (!isServer)
-            {
-                _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
-            }
+            _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
         }
 
         // =====================================================================
@@ -416,11 +380,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerConnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            if (!isServer)
-            {
-                _playerConnectedPub?.Publish(
-                    new SurvivorSignals.Connection.PlayerConnected(userId.ToString(), playerName.ToString()));
-            }
+            _playerConnectedPub?.Publish(
+                new SurvivorSignals.Connection.PlayerConnected(userId.ToString(), playerName.ToString()));
         }
 
         /// <summary>
@@ -430,11 +391,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void NotifyPlayerDisconnectedClientRpc(FixedString64Bytes userId, FixedString64Bytes playerName)
         {
-            if (!isServer)
-            {
-                _playerDisconnectedPub?.Publish(
-                    new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
-            }
+            _playerDisconnectedPub?.Publish(
+                new SurvivorSignals.Connection.PlayerDisconnected(userId.ToString(), playerName.ToString()));
         }
 
         // =====================================================================
@@ -549,23 +507,20 @@ namespace Game.Shared.Network.Survivor
             Instance = this;
 
             // VContainer 注入診断: IPublisher が null の場合、ClientRpc → MessagePipe パスが機能しない
-            if (!isServer)
-            {
-                var nullPubs = new System.Text.StringBuilder();
-                if (_allPlayersReadyPub == null) nullPubs.Append("AllPlayersReady,");
-                if (_gameStartedPub == null) nullPubs.Append("GameStarted,");
-                if (_gameEndedPub == null) nullPubs.Append("GameEnded,");
-                if (_playerDamagedPub == null) nullPubs.Append("PlayerDamaged,");
-                if (_playerDiedPub == null) nullPubs.Append("PlayerDied,");
-                if (_waveStartedPub == null) nullPubs.Append("WaveStarted,");
-                if (_waveClearedPub == null) nullPubs.Append("WaveCleared,");
-                if (_enemyKilledPub == null) nullPubs.Append("EnemyKilled,");
+            var nullPubs = new System.Text.StringBuilder();
+            if (_allPlayersReadyPub == null) nullPubs.Append("AllPlayersReady,");
+            if (_gameStartedPub == null) nullPubs.Append("GameStarted,");
+            if (_gameEndedPub == null) nullPubs.Append("GameEnded,");
+            if (_playerDamagedPub == null) nullPubs.Append("PlayerDamaged,");
+            if (_playerDiedPub == null) nullPubs.Append("PlayerDied,");
+            if (_waveStartedPub == null) nullPubs.Append("WaveStarted,");
+            if (_waveClearedPub == null) nullPubs.Append("WaveCleared,");
+            if (_enemyKilledPub == null) nullPubs.Append("EnemyKilled,");
 
-                if (nullPubs.Length > 0)
-                    Debug.LogWarning($"[NetworkSurvivorGameManager] NULL IPublisher on client: {nullPubs}");
-                else
-                    Debug.Log("[NetworkSurvivorGameManager] All IPublisher fields injected OK");
-            }
+            if (nullPubs.Length > 0)
+                Debug.LogWarning($"[NetworkSurvivorGameManager] NULL IPublisher on client: {nullPubs}");
+            else
+                Debug.Log("[NetworkSurvivorGameManager] All IPublisher fields injected OK");
 
             Debug.Log("[NetworkSurvivorGameManager] Spawned on client");
         }

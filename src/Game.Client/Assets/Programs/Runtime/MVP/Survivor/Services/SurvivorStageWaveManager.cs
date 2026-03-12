@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Client.MasterData;
+using Game.Shared.Network;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
-using MessagePipe;
 using R3;
 using UnityEngine;
 using VContainer;
@@ -20,8 +20,11 @@ namespace Game.MVP.Survivor.Services
     public class SurvivorStageWaveManager : IDisposable
     {
         [Inject] private readonly IMasterDataService _masterDataService;
-        [Inject] private IPublisher<SurvivorSignals.Wave.Started> _waveStartedPublisher;
-        [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveCompletedPublisher;
+
+        private readonly Subject<SurvivorSignals.Wave.Started> _onWaveStarted = new();
+        private readonly Subject<SurvivorSignals.Wave.Completed> _onWaveCompleted = new();
+        public Observable<SurvivorSignals.Wave.Started> OnWaveStarted => _onWaveStarted;
+        public Observable<SurvivorSignals.Wave.Completed> OnWaveCompleted => _onWaveCompleted;
 
         private readonly ReactiveProperty<int> _currentWave = new(0);
         private readonly ReactiveProperty<int> _enemiesThisWave = new(0);
@@ -63,21 +66,12 @@ namespace Game.MVP.Survivor.Services
         /// <summary>現在が最終ウェーブかどうか</summary>
         public bool IsLastWave => _currentWaveIndex >= 0 && _currentWaveIndex >= _waves.Length - 1;
 
-        // サーバー権威: クライアントモードでは Wave ロジックを実行しない
-        private bool _isClient;
-
         // ステージのウェーブ情報キャッシュ
         private int _stageId;
         private SurvivorStageWaveMaster[] _waves;
         private int _currentWaveIndex;
         private WaveSpawnInfo _currentSpawnInfo;
         private List<WaveEnemySpawnInfo> _currentEnemySpawnList;
-
-        /// <summary>クライアントモードを設定（Wave ロジックをスキップ）</summary>
-        public void SetClient(bool isClient)
-        {
-            _isClient = isClient;
-        }
 
         /// <summary>サーバーから通知された Wave 情報でクライアント状態を更新</summary>
         public void SetWaveFromServer(int waveNumber, int nextWaveNumber)
@@ -102,7 +96,7 @@ namespace Game.MVP.Survivor.Services
         /// </summary>
         public void IncrementClientKillCount()
         {
-            if (!_isClient) return;
+            if (!NetworkModeHelper.IsNetworkClient) return;
             if (_enemiesKilled.Value < _targetKillsThisWave.Value)
             {
                 _enemiesKilled.Value++;
@@ -130,7 +124,7 @@ namespace Game.MVP.Survivor.Services
         public void StartWave()
         {
             // Client-only: Wave進行はサーバーが駆動
-            if (_isClient) return;
+            if (NetworkModeHelper.IsNetworkClient) return;
 
             _currentWaveIndex++;
             _enemiesKilled.Value = 0;
@@ -200,14 +194,14 @@ namespace Game.MVP.Survivor.Services
             _currentWave.Value = wave.WaveNumber;
 
             // ローカルシグナル発行（CurrentWave 更新後）
-            _waveStartedPublisher?.Publish(
+            _onWaveStarted.OnNext(
                 new SurvivorSignals.Wave.Started(wave.WaveNumber, targetKillCount, totalSpawnCount));
         }
 
         public void OnEnemyKilled(bool isBoss = false)
         {
             // Client-only: キルトラッキングはサーバーが駆動
-            if (_isClient) return;
+            if (NetworkModeHelper.IsNetworkClient) return;
 
             // 全ウェーブクリア後はキル処理しない（残存敵の死亡による再トリガー防止）
             if (_isAllWavesCleared.Value) return;
@@ -238,7 +232,8 @@ namespace Game.MVP.Survivor.Services
             if (targetKillsReached && bossKillsReached)
             {
                 var clearedWave = _currentWave.Value;
-                _waveCompletedPublisher?.Publish(new SurvivorSignals.Wave.Completed(clearedWave));
+                Debug.Log($"[SurvivorStageWaveManager] Wave {clearedWave} completed (kills={_enemiesKilled.Value}/{_targetKillsThisWave.Value}, boss={_bossKills.Value}/{_requiredBossKills.Value})");
+                _onWaveCompleted.OnNext(new SurvivorSignals.Wave.Completed(clearedWave));
 
                 StartWave();
             }
@@ -276,6 +271,8 @@ namespace Game.MVP.Survivor.Services
             _bossKills.Dispose();
             _isAllWavesCleared.Dispose();
             _onKillCounted.Dispose();
+            _onWaveStarted.Dispose();
+            _onWaveCompleted.Dispose();
         }
     }
 

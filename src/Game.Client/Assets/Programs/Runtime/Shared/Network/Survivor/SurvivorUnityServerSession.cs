@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using Mirror;
+using R3;
 using Unity.Collections;
 using UnityEngine;
 using VContainer;
@@ -21,7 +22,12 @@ namespace Game.Shared.Network.Survivor
         public static SurvivorUnityServerSession Instance { get; private set; }
 
         private void Awake() { Instance = this; }
-        private void OnDestroy() { if (Instance == this) Instance = null; }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            _onAllPlayersReady.Dispose();
+        }
 
         /// <summary>
         /// クライアントが明示的に退出を通知した際に呼ばれる。
@@ -35,8 +41,10 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Inject] private IObjectResolver _resolver;
-        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
+
+        private readonly Subject<SurvivorSignals.Session.AllPlayersReady> _onAllPlayersReady = new();
+        public Observable<SurvivorSignals.Session.AllPlayersReady> OnAllPlayersReady => _onAllPlayersReady;
 
         private int _stageId;
         private bool _stageLoaded;
@@ -232,9 +240,8 @@ namespace Game.Shared.Network.Survivor
                 gm.NotifyGameStartedClientRpc(Time.time);
             }
 
-            // Server/Host: ClientRpc はサーバーローカルでは isServer ガードで Publish されないため、
-            // MessagePipe 経由で直接シグナルを発火する
-            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+            // サーバー内部通知（ServerGameLoop が購読）
+            _onAllPlayersReady.OnNext(new SurvivorSignals.Session.AllPlayersReady());
 
             Debug.Log("[SurvivorServerSession] AllPlayersReady + GameStarted sent");
         }

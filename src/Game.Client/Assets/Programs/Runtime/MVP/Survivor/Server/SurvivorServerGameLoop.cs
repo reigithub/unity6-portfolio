@@ -5,8 +5,7 @@ using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
-using Game.Shared.Signals.Survivor;
-using MessagePipe;
+using R3;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -15,7 +14,7 @@ namespace Game.MVP.Survivor.Server
 {
     /// <summary>
     /// MPPM / Dedicated Server 用エントリポイント。
-    /// AllPlayersReady シグナル受信後にマスターデータ読み込み → SurvivorStageScene へ遷移し、
+    /// AllPlayersReady シグナル受信後にマスターデータ読み込み → SurvivorNetworkStageScene へ遷移し、
     /// サーバー権威のウェーブ管理・エネミースポーンを開始する。
     /// </summary>
     public class SurvivorServerGameLoop : IAsyncStartable
@@ -24,7 +23,6 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly SurvivorUnityServerSession _session;
-        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
 
         public async UniTask StartAsync(CancellationToken cancellation)
         {
@@ -35,7 +33,7 @@ namespace Game.MVP.Survivor.Server
 
             // AllPlayersReady シグナルを待機
             var tcs = new UniTaskCompletionSource();
-            var subscription = _allPlayersReadySub.Subscribe(_ => tcs.TrySetResult());
+            var subscription = _session.OnAllPlayersReady.Subscribe(_ => tcs.TrySetResult());
             try
             {
                 await tcs.Task;
@@ -50,10 +48,10 @@ namespace Game.MVP.Survivor.Server
             // セーブサービスにセッション情報を設定（SurvivorStageScene が参照する）
             _saveService.StartSession(_session.StageId, 1);
 
-            // SurvivorStageScene へ遷移 → サーバー側ウェーブ管理開始
-            await _sceneService.TransitionAsync<SurvivorStageScene>();
+            // SurvivorNetworkStageScene へ遷移 → サーバー側ウェーブ管理開始
+            await _sceneService.TransitionAsync<SurvivorNetworkStageScene>();
 
-            Debug.Log("[SurvivorServerGameLoop] SurvivorStageScene loaded on server");
+            Debug.Log("[SurvivorServerGameLoop] SurvivorNetworkStageScene loaded on server");
         }
     }
 }

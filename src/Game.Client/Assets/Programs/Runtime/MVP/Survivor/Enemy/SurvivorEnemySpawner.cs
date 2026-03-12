@@ -72,8 +72,6 @@ namespace Game.MVP.Survivor.Enemy
         private float _spawnTimer;
         private int _remainingSpawnCount;
 
-        private bool _isClient;
-
         // ネットワーク敵同期
         private ISurvivorNetworkBridge _networkBridge;
         private const float EnemySyncInterval = 0.1f; // 10Hz
@@ -136,7 +134,6 @@ namespace Game.MVP.Survivor.Enemy
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
         {
             _waveManager = waveManager;
-            _isClient = NetworkModeHelper.IsNetworkClient;
 
             // レイヤーマスクが未設定の場合、Structureレイヤーを使用
             if (_obstacleLayerMask == 0)
@@ -175,7 +172,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             // MP Client: 敵はサーバーバッチ同期で表示、ローカルスポーン不要
-            if (!_isClient)
+            if (!NetworkModeHelper.IsNetworkClient)
             {
                 _waveManager.CurrentWave
                     .Where(wave => wave > 0)
@@ -240,7 +237,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             // MP Client: ローカルスポーン無効
-            if (_isClient) return;
+            if (NetworkModeHelper.IsNetworkClient) return;
 
             if (!_isSpawning)
             {
@@ -375,6 +372,7 @@ namespace Game.MVP.Survivor.Enemy
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
                 _enemyByNetworkId[networkId] = enemy;
+                enemy.SetNetworkId(networkId);
                 _activeEnemies.Add(enemy);
                 _remainingSpawnCount--;
                 _spawnTimer = spawnInfo.SpawnInterval;
@@ -579,7 +577,7 @@ namespace Game.MVP.Survivor.Enemy
                 .AddTo(this);
 
             // ウェーブサービスに通知（ボスかどうかも伝える）
-            if (!_isClient)
+            if (!NetworkModeHelper.IsNetworkClient)
             {
                 _waveManager.OnEnemyKilled(enemy.IsBoss);
             }

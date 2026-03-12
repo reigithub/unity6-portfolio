@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Playmode;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -108,8 +107,8 @@ namespace Game.MVP.Survivor.Weapon
                 transform.rotation = Quaternion.LookRotation(_direction);
             }
 
-            // トレイルをリセット（サーバーでは不要）
-            if (!UnityPlaymodeHelper.IsServer() && _trailRenderer != null)
+            // トレイルをリセット
+            if (_trailRenderer != null)
             {
                 _trailRenderer.Clear();
             }
@@ -250,7 +249,7 @@ namespace Game.MVP.Survivor.Weapon
             _hitCountPerEnemy.Clear();
             _hasPrimaryHitProcessed = false;
 
-            if (!UnityPlaymodeHelper.IsServer() && _trailRenderer != null)
+            if (_trailRenderer != null)
             {
                 _trailRenderer.Clear();
             }

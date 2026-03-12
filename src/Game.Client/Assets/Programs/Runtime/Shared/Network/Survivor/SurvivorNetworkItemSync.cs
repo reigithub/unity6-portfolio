@@ -20,12 +20,10 @@ namespace Game.Shared.Network.Survivor
         // --- アイテมスポーン ---
 
         [ClientRpc]
-        public void SpawnItemClientRpc(int itemId, float posX, float posZ)
+        public void SpawnItemClientRpc(int itemId, float posX, float posY, float posZ)
         {
-            if (!isServer)
-            {
-                _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(itemId, posX, posZ));
-            }
+            Debug.Log($"[NetworkSurvivorItemSync] SpawnItem RPC: itemId={itemId}, pos=({posX},{posY},{posZ})");
+            _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(itemId, posX, posY, posZ));
         }
 
         // --- アイテム回収（NetworkSurvivorGameManager.NotifyItemCollectedClientRpc で通知） ---
@@ -33,10 +31,8 @@ namespace Game.Shared.Network.Survivor
         [ClientRpc]
         public void DespawnItemClientRpc(int itemId)
         {
-            if (!isServer)
-            {
-                _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(itemId));
-            }
+            Debug.Log($"[NetworkSurvivorItemSync] DespawnItem RPC: itemId={itemId}");
+            _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(itemId));
         }
 
         // --- ライフサイクル ---
@@ -51,12 +47,9 @@ namespace Game.Shared.Network.Survivor
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
-            if (!isServer)
-            {
-                if (_itemSpawnedPub == null || _itemDespawnedPub == null)
-                    Debug.LogWarning($"[NetworkSurvivorItemSync] NULL publishers on client: spawned={_itemSpawnedPub != null}, despawned={_itemDespawnedPub != null}");
-            }
-            Debug.Log($"[NetworkSurvivorItemSync] Spawned on client (isServer={isServer})");
+            if (_itemSpawnedPub == null || _itemDespawnedPub == null)
+                Debug.LogWarning($"[NetworkSurvivorItemSync] NULL publishers: spawned={_itemSpawnedPub != null}, despawned={_itemDespawnedPub != null}");
+            Debug.Log("[NetworkSurvivorItemSync] Spawned on client");
         }
 
         public override void OnStopServer()

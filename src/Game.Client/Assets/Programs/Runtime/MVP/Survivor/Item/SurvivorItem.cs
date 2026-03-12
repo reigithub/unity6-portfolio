@@ -1,7 +1,5 @@
 using System;
 using Game.Shared.Item;
-using Game.Shared.Network;
-using Game.Shared.Playmode;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Item
@@ -98,7 +96,6 @@ namespace Game.MVP.Survivor.Item
 
         private void Start()
         {
-            if (UnityPlaymodeHelper.IsServer()) return;
             _initialPosition = transform.position;
             _baseFloatAmplitude = _floatAmplitude * _scale;
         }
@@ -122,9 +119,6 @@ namespace Game.MVP.Survivor.Item
 
         private void UpdateFloatAnimation()
         {
-            if (UnityPlaymodeHelper.IsServer())
-                return;
-
             _floatTimer += Time.deltaTime * _floatSpeed;
             float yOffset = Mathf.Sin(_floatTimer) * _baseFloatAmplitude;
             transform.position = _initialPosition + Vector3.up * yOffset;
