@@ -1,14 +1,11 @@
-using System;
-using System.Text;
 using Game.Shared.Network.Survivor;
-using Game.Shared.Environment;
 using UnityEngine;
 
 namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// Dedicated Server 起動時の初期化処理。
-    /// Mirror サーバーを自動起動し、クライアント接続を受け入れる。
+    /// Fusion Server モードで起動し、クライアント接続を受け入れる。
     /// GameRuntimeInitializer からサーバーモード時に明示的に呼び出される。
     /// </summary>
     public static class UnityServerBootstrap
@@ -27,17 +24,13 @@ namespace Game.Shared.Unity.Server
 
             // サーバー向けフレームレート設定
             Application.targetFrameRate = 60;
-
-            // スクリーンスリープ無効化
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
             // --- コマンドライン引数解析 ---
-            ushort port = UnityServerNetworkManager.ParsePort();
-            string secret = ParseSecret();
             int playerCount = ParsePlayerCount();
             int healthPort = ParseHealthPort();
 
-            Debug.Log($"[ServerBootstrap] Starting Mirror Server on port {port}, health={healthPort}, players={playerCount}...");
+            Debug.Log($"[ServerBootstrap] Starting Fusion Server, health={healthPort}, players={playerCount}...");
 
             // --- TCP ヘルスプローブ開始 ---
             _healthProbe = new TcpHealthProbe(healthPort);
@@ -48,43 +41,12 @@ namespace Game.Shared.Unity.Server
                 _healthProbe = null;
             };
 
-            // HMAC 共有シークレット設定（MP モード）
-            if (!string.IsNullOrEmpty(secret))
-            {
-                SurvivorNetworkAuthenticator.SharedSecret = Encoding.UTF8.GetBytes(secret);
-                Debug.Log("[ServerBootstrap] SharedSecret configured for HMAC token verification");
-            }
-
-            // --- Mirror Server 起動 ---
-            var serverGo = new GameObject("[ServerNetworkManager]");
-            UnityEngine.Object.DontDestroyOnLoad(serverGo);
-
-            // インフラ起動（NM + Transport 作成 → 次フレームで StartServer）
-            var serverNm = serverGo.AddComponent<UnityServerNetworkManager>();
-            serverNm.Initialize(port);
-
-            // プレイヤー数を保存（SurvivorUnityServerSession が後で使用）
+            // プレイヤー数を保存（SurvivorFusionServerSession が後で使用）
             SurvivorNetworkMatchConnector.SetExpectedPlayerCount(playerCount);
+
+            // Fusion Server セッションは SurvivorFusionStageConnector.StartServerAsync() で開始される
         }
 
-        /// <summary>
-        /// コマンドライン引数から --secret を解析。
-        /// </summary>
-        private static string ParseSecret()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--secret")
-                    return args[i + 1];
-            }
-            // 環境変数フォールバック（GCP / SP Local からの注入）
-            return System.Environment.GetEnvironmentVariable(EnvVarKeys.UnityServerAuthSecretKey);
-        }
-
-        /// <summary>
-        /// コマンドライン引数から --players を解析。デフォルト 1。
-        /// </summary>
         private static int ParsePlayerCount()
         {
             var args = System.Environment.GetCommandLineArgs();
@@ -96,9 +58,6 @@ namespace Game.Shared.Unity.Server
             return 1;
         }
 
-        /// <summary>
-        /// コマンドライン引数から --health-port を解析。デフォルト 7778。
-        /// </summary>
         private static int ParseHealthPort()
         {
             var args = System.Environment.GetCommandLineArgs();
