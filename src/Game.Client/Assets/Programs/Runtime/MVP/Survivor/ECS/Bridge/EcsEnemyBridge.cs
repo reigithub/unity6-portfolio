@@ -5,6 +5,7 @@ using Game.Client.MasterData;
 using Game.Library.Shared.Dto;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.MVP.Survivor.Enemy;
@@ -242,7 +243,7 @@ namespace Game.MVP.Survivor.ECS
                 _ecsWorld.GetExistingSystemManaged<PresentationSystemGroup>()?.Update();
 
                 // ネットワーク同期（サーバー時のみ）
-                if (_networkBridge != null)
+                if (SurvivorFusionEnemyBatchSync.Instance != null)
                 {
                     // 新規エンティティにネットワークIDを割り当て、Spawnスナップショットを送信
                     TrackNewEntitiesForNetwork();
@@ -277,7 +278,7 @@ namespace Game.MVP.Survivor.ECS
                 var data = entityManager.GetComponentData<EnemyData>(entity);
                 var lt = entityManager.GetComponentData<LocalTransform>(entity);
 
-                _networkBridge.BroadcastEnemyStates(new[]
+                SurvivorFusionEnemyBatchSync.Instance?.WriteEnemyStates(new[]
                 {
                     new SurvivorNetworkEnemyStateSnapshot
                     {
@@ -362,7 +363,7 @@ namespace Game.MVP.Survivor.ECS
                     SyncType = EnemySyncType.PositionUpdate
                 };
             }
-            _networkBridge.BroadcastEnemyStates(snapshots);
+            SurvivorFusionEnemyBatchSync.Instance?.WriteEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()
@@ -487,7 +488,7 @@ namespace Game.MVP.Survivor.ECS
             // Deathスナップショット送信
             if (_entityNetworkIds.TryGetValue(deathInfo.Entity, out var deadNetId))
             {
-                _networkBridge?.BroadcastEnemyStates(new[]
+                SurvivorFusionEnemyBatchSync.Instance?.WriteEnemyStates(new[]
                 {
                     new SurvivorNetworkEnemyStateSnapshot
                     {

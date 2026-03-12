@@ -1,6 +1,6 @@
 using Game.Library.Shared;
 using Game.Shared.Network;
-using Game.Shared.Network.Survivor;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using UnityEngine;
 
@@ -82,15 +82,10 @@ namespace Game.MVP.Survivor.Player
             _onDamageReceived.OnNext(
                 new SurvivorSignals.Player.DamageReceived(_pendingDamageAmount, _currentHp.Value));
 
-            // Server / Host: ClientRpc でダメージ通知
+            // Server / Host: ダメージ通知
             if (NetworkModeHelper.IsNetworkServer)
             {
-                var gm = SurvivorNetworkGameManager.Instance;
-                if (gm != null && _networkPlayerState != null)
-                {
-                    gm.NotifyPlayerDamagedClientRpc(
-                        _networkPlayerState.PlayerUserId, _pendingDamageAmount, _currentHp.Value);
-                }
+                SurvivorFusionGameState.Instance?.NotifyPlayerDamaged(_pendingDamageAmount, _currentHp.Value);
             }
 
             shouldDie = _currentHp.Value <= 0;
@@ -191,15 +186,14 @@ namespace Game.MVP.Survivor.Player
                 Debug.Log("[SurvivorPlayerController] Player died");
                 ctx._onDied.OnNext(new SurvivorSignals.Player.Died());
 
-                // Server / Host: ClientRpc で死亡通知 + 全滅判定
+                // Server / Host: 死亡通知 + 全滅判定
                 if (NetworkModeHelper.IsNetworkServer)
                 {
-                    var gm = SurvivorNetworkGameManager.Instance;
-                    if (gm != null && ctx._networkPlayerState != null)
+                    var fusionGs = SurvivorFusionGameState.Instance;
+                    if (fusionGs != null)
                     {
-                        var userId = ctx._networkPlayerState.PlayerUserId;
-                        gm.NotifyPlayerDiedClientRpc(userId);
-                        gm.OnPlayerDied(userId.ToString());
+                        fusionGs.NotifyPlayerDied();
+                        fusionGs.OnPlayerDied("");
                     }
                 }
             }

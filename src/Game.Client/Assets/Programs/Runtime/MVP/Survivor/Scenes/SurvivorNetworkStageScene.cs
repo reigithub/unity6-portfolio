@@ -9,6 +9,7 @@ using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -40,7 +41,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
 
         private SurvivorStageModel _stageModel;
-        private SurvivorNetworkPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SurvivorNetworkWeaponManager _weaponManager;
         private SceneInstance? _stageSceneInstance;
@@ -142,7 +142,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => _stageModel.AddKill())
                 .AddTo(Disposables);
 
-            // アイテム収集 → ClientRpc通知
+            // アイテム収集 → ClientRpc/RPC通知
             if (SceneComponent.SurvivorItemSpawner != null)
             {
                 SceneComponent.SurvivorItemSpawner.OnItemCollected
@@ -150,9 +150,8 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         _stageModel.CollectItem(item);
 
-                        var gm = SurvivorNetworkGameManager.Instance;
-                        gm?.NotifyItemCollectedClientRpc(
-                            _localPlayerState?.PlayerUserId ?? default,
+                        SurvivorFusionGameState.Instance?.NotifyItemCollected(
+                            "",
                             item.ItemId,
                             (int)item.ItemType,
                             item.EffectValue,
@@ -210,7 +209,7 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SetupServerNetworking()
         {
-            var networkBridge = new SurvivorNetworkBridge();
+            ISurvivorNetworkBridge networkBridge = new SurvivorFusionNetworkBridge();
             SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
             SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
 
@@ -229,27 +228,28 @@ namespace Game.MVP.Survivor.Scenes
         {
             _waveManager.OnWaveStarted.Subscribe(s =>
             {
-                var gm = SurvivorNetworkGameManager.Instance;
-                gm?.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+                SurvivorFusionGameState.Instance?.NotifyWaveStarted(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
             }).AddTo(Disposables);
 
             _waveManager.OnWaveCompleted.Subscribe(s =>
             {
-                // サーバー側でスコアを計算し、計算済みスコアをクライアントに送信
                 var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
                 var spawnInfo = _waveManager.GetSpawnInfo();
                 var hpRatio = _stageModel.MaxHp.Value > 0
                     ? (float)_stageModel.CurrentHp.Value / _stageModel.MaxHp.Value : 1f;
                 var waveClearScore = remainingTime > 0
                     ? (int)(remainingTime * spawnInfo.ScoreMultiplier * hpRatio) : 0;
-                var gm = SurvivorNetworkGameManager.Instance;
-                gm?.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
+
+                SurvivorFusionGameState.Instance?.NotifyWaveCompleted(
+                    s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
             }).AddTo(Disposables);
 
-            // IsAllWavesCleared は変更なし（ReactiveProperty、IPublisher ではない）
             _waveManager.IsAllWavesCleared
                 .Where(cleared => cleared)
-                .Subscribe(_ => SurvivorNetworkGameManager.Instance?.NotifyAllWavesClearedClientRpc())
+                .Subscribe(_ =>
+                {
+                    SurvivorFusionGameState.Instance?.NotifyAllWavesCleared();
+                })
                 .AddTo(Disposables);
         }
 

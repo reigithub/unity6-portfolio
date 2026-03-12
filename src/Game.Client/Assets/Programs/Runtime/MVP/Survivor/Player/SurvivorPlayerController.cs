@@ -6,6 +6,7 @@ using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -109,9 +110,7 @@ namespace Game.MVP.Survivor.Player
         private float _itemCheckTimer;
 
         // ネットワーク同期用
-        private SurvivorNetworkPlayerState _networkPlayerState;
-        private ISurvivorPlayerInputProvider _inputProvider;
-        private ISurvivorNetworkPlayerStateSynchronizer _stateSynchronizer;
+        private SurvivorFusionPlayer _fusionPlayer;
         private bool _skipPhysics;
         private float _cameraRotationY;
 
@@ -139,26 +138,28 @@ namespace Game.MVP.Survivor.Player
 
             _stateMachine?.FixedUpdate();
 
-            if (_stateSynchronizer != null)
+            // Fusion: [Networked] プロパティに状態を書き込む
+            if (_fusionPlayer != null)
             {
-                var snapshot = new SurvivorNetworkPlayerStateSnapshot
-                {
-                    PositionX = transform.position.x,
-                    PositionY = transform.position.y,
-                    PositionZ = transform.position.z,
-                    RotationY = transform.eulerAngles.y,
-                    Speed = _speed.Value,
-                    CurrentHp = _currentHp.Value,
-                    CurrentStamina = _currentStamina.Value,
-                    IsInvincible = _isInvincible.Value
-                };
-                _stateSynchronizer.PushState(snapshot);
+                _fusionPlayer.PushState(
+                    transform.position,
+                    transform.eulerAngles.y,
+                    _speed.Value,
+                    _currentHp.Value, _maxHp,
+                    _currentStamina.Value, _maxStamina,
+                    _isInvincible.Value);
             }
         }
 
         private void OnDestroy()
         {
             SurvivorNetworkPlayerStateBindableRegistry.Unregister(this);
+
+            if (_fusionPlayer != null)
+            {
+                _fusionPlayer.Unbind();
+                _fusionPlayer = null;
+            }
 
             _speed.Dispose();
             _currentHp.Dispose();
@@ -173,42 +174,24 @@ namespace Game.MVP.Survivor.Player
         #region Network
 
         /// <summary>
-        /// サーバー / クライアント: NetworkSurvivorPlayerState をバインド
+        /// Fusion 2: SurvivorFusionPlayer をバインド
         /// </summary>
-        public void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState)
+        public void BindFusionPlayer(SurvivorFusionPlayer fusionPlayer)
         {
-            _networkPlayerState = playerState;
+            _fusionPlayer = fusionPlayer;
 
-            if (NetworkModeHelper.IsNetworkServer)
+            // InputAuthority プレイヤー: Fusion OnInput 用の入力収集デリゲートを設定
+            if (fusionPlayer.HasInputAuthority)
             {
-                // Server / Host: 状態同期を有効化
-                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
-
-                // リモートプレイヤーは ServerInputProvider
-                // Host + isOwned: Initialize で設定済みの LocalInputProvider を維持
-                if (!playerState.isOwned)
+                fusionPlayer.InputGatherer = () => new PlayerNetworkInput
                 {
-                    _inputProvider = new ServerInputProvider(playerState);
-                }
+                    Move = _inputService.Player.Move.ReadValue<UnityEngine.Vector2>(),
+                    IsSprinting = _inputService.Player.LeftShift.IsPressed(),
+                    CameraRotationY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f
+                };
             }
 
-            if (!NetworkModeHelper.IsNetworkServer)
-            {
-                if (playerState.isOwned)
-                {
-                    // ローカルプレイヤー: 入力を ServerRpc で送信 + ローカル予測移動
-                    _inputProvider = new ClientInputProvider(_inputService, playerState);
-                }
-                // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
-            }
-
-            // View: Client-only の全プレイヤー + Host の自プレイヤー
-            // Dedicated Server: isOwned=false（全プレイヤー remote） → View 不作成
-            if (!NetworkModeHelper.IsNetworkServer || playerState.isOwned)
-            {
-                var view = gameObject.AddComponent<SurvivorPlayerView>();
-                view.Initialize(this, playerState);
-            }
+            Debug.Log($"[SurvivorPlayerController] Bound to SurvivorFusionPlayer (InputAuth={fusionPlayer.HasInputAuthority})");
         }
 
         #endregion
@@ -242,9 +225,6 @@ namespace Game.MVP.Survivor.Player
             {
                 _mainCamera = _gameRootController?.MainCamera?.transform;
             }
-
-            // デフォルト入力プロバイダー（SP/Host ローカルプレイヤー用）
-            _inputProvider = new LocalInputProvider(_inputService);
 
             // ステートマシン初期化
             InitializeStateMachine();
@@ -304,14 +284,12 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_updateInputMarker.Auto())
             {
-                if (_inputProvider == null) return;
+                if (_inputService == null) return;
 
-                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting, out var cameraRotationY))
-                    return; // Client: ServerRpc 送信済み、ローカル処理不要
+                _moveValue = _inputService.Player.Move.ReadValue<UnityEngine.Vector2>();
+                var isSprinting = _inputService.Player.LeftShift.IsPressed();
+                _cameraRotationY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f;
 
-                // SP/Server/Host 共通の入力処理
-                _moveValue = moveValue;
-                _cameraRotationY = cameraRotationY;
                 _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
 
                 var wantToRun = isSprinting && IsMoveInput();

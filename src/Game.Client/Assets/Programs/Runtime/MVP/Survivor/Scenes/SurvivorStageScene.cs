@@ -12,6 +12,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -54,7 +55,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
 
         private SurvivorStageModel _stageModel;
-        private SurvivorNetworkPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
@@ -221,21 +221,13 @@ namespace Game.MVP.Survivor.Scenes
             // ヒットコールバック設定（武器サブクラスから Collider + WeaponId を受け取り、サーバーに委譲）
             SceneComponent.WeaponManager.SetHitCallback((other, weaponId) =>
             {
-                if (_localPlayerState == null || !NetworkModeHelper.IsNetworkClientConnected) return;
+                var fusionGs = SurvivorFusionGameState.Instance;
+                if (fusionGs == null) return;
 
-                // Pure client: プロキシターゲット
-                var proxy = other.GetComponentInParent<EnemyProxyTarget>();
-                if (proxy != null)
-                {
-                    _localPlayerState.ReportHitServerRpc(proxy.NetworkId, weaponId);
-                    return;
-                }
-
-                // Host mode: 実体エネミー（NetworkId はスポーン時に設定済み）
                 var enemy = other.GetComponentInParent<SurvivorEnemyController>();
                 if (enemy != null && !enemy.IsDead && enemy.NetworkId >= 0)
                 {
-                    _localPlayerState.ReportHitServerRpc(enemy.NetworkId, weaponId);
+                    fusionGs.OnClientHitReported(enemy.NetworkId, weaponId);
                 }
             });
 

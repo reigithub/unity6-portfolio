@@ -5,6 +5,7 @@ using Game.Library.Shared;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using MessagePipe;
 using Unity.Collections;
@@ -112,19 +113,10 @@ namespace Game.MVP.Survivor.Scenes
                 var playerController = View.PlayerController;
                 if (playerController != null)
                 {
-                    foreach (var nps in NetworkModeHelper.GetNetworkPlayerComponents<SurvivorNetworkPlayerState>())
-                    {
-                        if (nps != null)
-                        {
-                            Context._localPlayerState = nps;
-                            playerController.BindNetworkPlayerState(nps);
-                            View.EnemySpawner?.AddPlayer(playerController.transform);
-                            break; // 現在は1プレイヤー対応
-                        }
-                    }
+                    View.EnemySpawner?.AddPlayer(playerController.transform);
                 }
 
-                Debug.Log("[SurvivorNetworkStageScene.ReadyState] Server: network objects bound");
+                Debug.Log("[SurvivorNetworkStageScene.ReadyState] Server: initialized");
             }
 
             /// <summary>
@@ -133,14 +125,14 @@ namespace Game.MVP.Survivor.Scenes
             /// </summary>
             private async UniTask WaitForAllClientsSceneReadyAsync()
             {
-                var gm = SurvivorNetworkGameManager.Instance;
-                if (gm == null)
+                var fusionGs = SurvivorFusionGameState.Instance;
+                if (fusionGs == null)
                 {
-                    Debug.LogWarning("[SurvivorNetworkStageScene.ReadyState] GameManager not found, skipping wait");
+                    Debug.LogWarning("[SurvivorNetworkStageScene.ReadyState] FusionGameState not found, skipping wait");
                     return;
                 }
 
-                gm.ResetSceneReadyTracking();
+                fusionGs.ResetSceneReadyTracking();
 
                 var tcs = new UniTaskCompletionSource();
                 var subscription = Context._allClientsSceneReadySub.Subscribe(_ => tcs.TrySetResult());
@@ -241,17 +233,16 @@ namespace Game.MVP.Survivor.Scenes
                     if (serverOptions.Count > 0)
                     {
                         var networkOptions = ConvertToNetworkOptions(serverOptions);
-                        var gm = SurvivorNetworkGameManager.Instance;
-                        if (gm != null)
+                        var fusionGs = SurvivorFusionGameState.Instance;
+                        if (fusionGs != null)
                         {
-                            gm.SetPendingWeaponOptions(networkOptions);
-                            gm.NotifyPlayerLevelUpClientRpc(
-                                Context._localPlayerState?.PlayerUserId ?? default,
+                            fusionGs.NotifyPlayerLevelUp(
+                                "",
                                 StageModel.Level.Value,
                                 StageModel.Experience.Value,
                                 StageModel.ExperienceToNextLevel.Value,
                                 networkOptions);
-                            Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Sent LevelUp RPC with {networkOptions.Length} options");
+                            Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Sent LevelUp with {networkOptions.Length} options");
                         }
                     }
                 }
@@ -321,12 +312,7 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 // クライアントに勝利を通知
-                var gameResult = new SurvivorNetworkGameResult
-                {
-                    IsVictory = true,
-                    ClearTime = clearTime
-                };
-                SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(gameResult);
+                SurvivorFusionGameState.Instance?.NotifyGameEnded(true, clearTime);
 
                 Debug.Log("[SurvivorNetworkStageScene.VictoryState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();
@@ -364,12 +350,7 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 // クライアントに敗北を通知
-                var gameResult = new SurvivorNetworkGameResult
-                {
-                    IsVictory = false,
-                    ClearTime = clearTime
-                };
-                SurvivorNetworkGameManager.Instance?.NotifyGameEndedClientRpc(gameResult);
+                SurvivorFusionGameState.Instance?.NotifyGameEnded(false, clearTime);
 
                 Debug.Log("[SurvivorNetworkStageScene.GameOverState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();

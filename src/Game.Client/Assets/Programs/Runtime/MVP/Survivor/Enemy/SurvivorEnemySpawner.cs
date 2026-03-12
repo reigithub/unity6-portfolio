@@ -7,6 +7,7 @@ using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
@@ -226,7 +227,7 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // サーバー: 定期的に敵状態をバッチ送信
-            if (_networkBridge != null)
+            if (SurvivorFusionEnemyBatchSync.Instance != null)
             {
                 _enemySyncTimer -= Time.deltaTime;
                 if (_enemySyncTimer <= 0f)
@@ -288,7 +289,7 @@ namespace Game.MVP.Survivor.Enemy
                     SyncType = EnemySyncType.PositionUpdate
                 };
             }
-            _networkBridge.BroadcastEnemyStates(snapshots);
+            SurvivorFusionEnemyBatchSync.Instance?.WriteEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()
@@ -379,7 +380,7 @@ namespace Game.MVP.Survivor.Enemy
                 _currentSpawnIndex++;
 
                 // サーバー: スポーンイベントを送信
-                if (_networkBridge != null)
+                if (SurvivorFusionEnemyBatchSync.Instance != null)
                 {
                     var spawnSnapshot = new SurvivorNetworkEnemyStateSnapshot
                     {
@@ -394,7 +395,7 @@ namespace Game.MVP.Survivor.Enemy
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     };
-                    _networkBridge.BroadcastEnemyStates(new[] { spawnSnapshot });
+                    SurvivorFusionEnemyBatchSync.Instance.WriteEnemyStates(new[] { spawnSnapshot });
                 }
 
                 if (_remainingSpawnCount <= 0)
@@ -544,7 +545,7 @@ namespace Game.MVP.Survivor.Enemy
             Debug.Log($"[SurvivorEnemySpawner] EnemyDeath: id={enemy.EnemyId}, boss={enemy.IsBoss}, active={_activeEnemies.Count - 1}, time={Time.time:F1}s");
 
             // サーバー: 死亡イベントを送信
-            if (_networkBridge != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
+            if (SurvivorFusionEnemyBatchSync.Instance != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
                 var deathSnapshot = new SurvivorNetworkEnemyStateSnapshot
                 {
@@ -559,7 +560,7 @@ namespace Game.MVP.Survivor.Enemy
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death
                 };
-                _networkBridge.BroadcastEnemyStates(new[] { deathSnapshot });
+                SurvivorFusionEnemyBatchSync.Instance.WriteEnemyStates(new[] { deathSnapshot });
             }
 
             if (_enemyNetworkIds.TryGetValue(enemy, out var removedNetworkId))

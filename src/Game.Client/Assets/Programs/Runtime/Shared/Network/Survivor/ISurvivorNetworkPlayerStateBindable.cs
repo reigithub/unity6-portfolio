@@ -1,21 +1,21 @@
 using System.Collections.Generic;
+using Game.Shared.Network.Fusion;
 
 namespace Game.Shared.Network.Survivor
 {
     /// <summary>
-    /// NetworkSurvivorPlayerState とバインド可能なコンポーネントのインターフェース。
+    /// SurvivorFusionPlayer とバインド可能なコンポーネントのインターフェース。
     /// Game.Shared → Game.MVP.Survivor のアセンブリ境界を超えるために使用。
     /// </summary>
     public interface ISurvivorNetworkPlayerStateBindable
     {
-        void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState);
+        void BindFusionPlayer(SurvivorFusionPlayer fusionPlayer);
     }
 
     /// <summary>
     /// INetworkPlayerStateBindable の静的レジストリ。
     /// SurvivorPlayerController が Awake で登録、OnDestroy で解除。
-    /// NetworkSurvivorPlayerState.OnNetworkSpawn でレジストリからバインド対象を取得。
-    /// FindObjectsByType を回避し、タイミング問題も解決。
+    /// SurvivorFusionPlayer.FixedUpdateNetwork でレジストリからバインド対象を取得。
     /// </summary>
     public static class SurvivorNetworkPlayerStateBindableRegistry
     {

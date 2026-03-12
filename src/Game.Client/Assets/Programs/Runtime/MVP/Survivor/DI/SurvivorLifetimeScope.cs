@@ -22,11 +22,12 @@ using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Realtime.Client;
-using Game.Shared.Unity.Server;
 using Game.Shared.Signals.Survivor;
+using Game.Shared.Unity.Server;
 using UnityEngine;
 
 namespace Game.MVP.Survivor
@@ -80,18 +81,11 @@ namespace Game.MVP.Survivor
             // Server実装: セッション情報を供給可能なサーバー用セーブサービス
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
-            // NGO Client（サーバーでは接続不要）
-            builder.Register<NullSurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            // Fusion Server（サーバーモードでも Fusion 経由で接続）
+            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
-
-            builder.RegisterComponentOnNewGameObject<SurvivorUnityServerSession>(
-                    Lifetime.Scoped, "[ServerSession]")
-                .DontDestroyOnLoad();
-
-            // Server Game Loop: AllPlayersReady → SurvivorStageScene 遷移
-            builder.RegisterEntryPoint<SurvivorServerGameLoop>();
         }
 
         /// <summary>
@@ -175,9 +169,9 @@ namespace Game.MVP.Survivor
             builder.Register<ChatClient>(Lifetime.Singleton).As<IChatClient>();
 
             // ========================================
-            // NGO Client（クライアント接続用）
+            // Fusion Client（クライアント接続用）
             // ========================================
-            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // ========================================
             // Local Server Orchestrator（SP モード用）

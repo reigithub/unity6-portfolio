@@ -166,7 +166,7 @@ namespace Game.MVP.Survivor.Scenes
             var address = SurvivorNetworkMatchConnector.ServerAddress;
             var port = SurvivorNetworkMatchConnector.ServerPort;
             var sessionToken = SurvivorNetworkMatchConnector.SessionToken;
-            Debug.Log($"[SurvivorStageConnectScene] Connecting to Mirror server: {address}:{port} (stageId={stageId})");
+            Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
             await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
         }
 

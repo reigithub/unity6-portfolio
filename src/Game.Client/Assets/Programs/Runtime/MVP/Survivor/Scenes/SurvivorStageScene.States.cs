@@ -12,6 +12,7 @@ using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -149,7 +150,8 @@ namespace Game.MVP.Survivor.Scenes
                 AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
 
                 // サーバーに準備完了を通知（サーバーはこれを受けてゲーム開始）
-                Context._localPlayerState?.NotifySceneReadyServerRpc();
+                var fusionGs = SurvivorFusionGameState.Instance;
+                fusionGs?.OnClientSceneReady(fusionGs.Runner.LocalPlayer);
                 Debug.Log("[ReadyState] Scene ready notification sent to server");
 
                 _countdownComplete = true;
@@ -172,22 +174,6 @@ namespace Game.MVP.Survivor.Scenes
             /// </summary>
             private async UniTask InitializeClientViewsAsync()
             {
-                // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
-                if (NetworkModeHelper.TryGetLocalPlayerComponent<SurvivorNetworkPlayerState>(out var localPlayerState))
-                {
-                    Context._localPlayerState = localPlayerState;
-                    Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
-
-                    // PlayerController に NetworkPlayerState をバインド
-                    // → ClientInputProvider 生成 → SendMoveInputServerRpc でサーバーに入力送信
-                    var playerController = View.PlayerController;
-                    if (playerController != null)
-                    {
-                        playerController.BindNetworkPlayerState(Context._localPlayerState);
-                        Debug.Log("[ReadyState] Client: PlayerController bound to NetworkPlayerState");
-                    }
-                }
-
                 // EnemyView: Addressableプレハブプリロード → 正式モデルで表示
                 var enemyViewGo = new GameObject("[SurvivorEnemyView]");
                 enemyViewGo.transform.SetParent(View.transform);
@@ -288,7 +274,7 @@ namespace Game.MVP.Survivor.Scenes
 
             private void OnDisconnected()
             {
-                Debug.LogWarning("[PlayingState] Mirror server disconnected");
+                Debug.LogWarning("[PlayingState] Server disconnected");
                 _disconnected = true;
             }
         }
@@ -305,7 +291,7 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
 
-                Context._localPlayerState?.RequestPauseServerRpc();
+                SurvivorFusionGameState.Instance?.OnClientRequestPause();
 
                 ShowPauseDialogAsync().Forget();
             }
@@ -333,7 +319,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[PausedState] Exit");
 
-                Context._localPlayerState?.RequestResumeServerRpc();
+                SurvivorFusionGameState.Instance?.OnClientRequestResume();
 
                 ApplicationEvents.ResumeTime();
             }
@@ -351,7 +337,7 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
 
-                Context._localPlayerState?.RequestPauseServerRpc();
+                SurvivorFusionGameState.Instance?.OnClientRequestPause();
 
                 ShowLevelUpDialogAsync().Forget();
             }
@@ -416,7 +402,7 @@ namespace Game.MVP.Survivor.Scenes
                             await View.WeaponManager.ReplaceWeaponAsync(
                                 removeWeaponId.Value,
                                 result.WeaponId);
-                            Context._localPlayerState?.SendWeaponReplaceServerRpc(
+                            SurvivorFusionGameState.Instance?.OnClientWeaponReplace(
                                 removeWeaponId.Value, result.WeaponId);
                             break;
                         }
@@ -427,7 +413,7 @@ namespace Game.MVP.Survivor.Scenes
                     else
                     {
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
-                        Context._localPlayerState?.SendWeaponChoiceServerRpc(
+                        SurvivorFusionGameState.Instance?.OnClientWeaponChoice(
                             result.WeaponId, result.IsNewWeapon);
                         break;
                     }
@@ -435,7 +421,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
 
-                Context._localPlayerState?.RequestResumeServerRpc();
+                SurvivorFusionGameState.Instance?.OnClientRequestResume();
 
                 Transition(StageEvent.LevelUpComplete);
             }
@@ -599,7 +585,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[RetryState] Enter");
 
-                Context._localPlayerState?.RequestQuitServerRpc();
+                // Fusion: quit は Disconnect で処理（Terminate() 内）
 
                 // Retryフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;
@@ -643,7 +629,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[QuitToTitleState] Enter");
 
-                Context._localPlayerState?.RequestQuitServerRpc();
+                // Fusion: quit は Disconnect で処理（Terminate() 内）
 
                 // Quitフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;
