@@ -218,12 +218,19 @@ namespace Game.MVP.Survivor.Enemy
             Debug.Log($"[SurvivorEnemySpawner] Wave started. Enemy types: {_enemySpawnList.Count}, Total: {_remainingSpawnCount}");
         }
 
+        private float GetNetworkDeltaTime()
+        {
+            if (_runnerService.IsActive && _runnerService.Runner != null)
+                return _runnerService.Runner.DeltaTime;
+            return Time.deltaTime;
+        }
+
         private void Update()
         {
             // サーバー: 定期的に敵状態をバッチ送信
             if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
             {
-                _enemySyncTimer -= Time.deltaTime;
+                _enemySyncTimer -= GetNetworkDeltaTime();
                 if (_enemySyncTimer <= 0f)
                 {
                     _enemySyncTimer = EnemySyncInterval;
@@ -251,7 +258,7 @@ namespace Game.MVP.Survivor.Enemy
                 return;
             }
 
-            _spawnTimer -= Time.deltaTime;
+            _spawnTimer -= GetNetworkDeltaTime();
 
             if (_spawnTimer <= 0f && _remainingSpawnCount > 0)
             {

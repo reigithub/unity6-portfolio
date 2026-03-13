@@ -183,8 +183,11 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // ゲームタイマー更新
-                StageModel.GameTime.Value += Time.deltaTime;
+                // ゲームタイマー更新（Fusion tick 同期）
+                var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
+                    ? Context._runnerService.Runner.DeltaTime
+                    : Time.deltaTime;
+                StageModel.GameTime.Value += dt;
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
                 if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)

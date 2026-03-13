@@ -34,6 +34,12 @@ namespace Game.Shared.Network.Fusion
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
         public Func<PlayerNetworkInput> InputGatherer { get; set; }
 
+        /// <summary>移動処理委譲先（Controller がバインド時に設定）</summary>
+        public IPlayerMovementHandler MovementHandler { get; set; }
+
+        /// <summary>リモートプレイヤーのビジュアル補間対象 Transform</summary>
+        public Transform InterpolationTarget { get; set; }
+
         /// <summary>クライアント側で状態変更を検知するイベント</summary>
         public event Action<SurvivorFusionPlayer> OnStateChanged;
 
@@ -65,8 +71,40 @@ namespace Game.Shared.Network.Fusion
             }
         }
 
+        public override void FixedUpdateNetwork()
+        {
+            if (!HasStateAuthority && !HasInputAuthority) return;
+
+            if (GetInput(out PlayerNetworkInput input) && MovementHandler != null)
+            {
+                var snapshot = MovementHandler.ProcessTick(input, Runner.DeltaTime);
+
+                if (HasStateAuthority)
+                {
+                    NetworkPosition = snapshot.Position;
+                    NetworkRotationY = snapshot.RotationY;
+                    Speed = snapshot.Speed;
+                    Health = snapshot.Health;
+                    MaxHealth = snapshot.MaxHealth;
+                    Stamina = snapshot.Stamina;
+                    MaxStamina = snapshot.MaxStamina;
+                    IsInvincible = snapshot.IsInvincible;
+                }
+            }
+        }
+
         public override void Render()
         {
+            // リモートプレイヤー: [Networked] プロパティから補間
+            if (InterpolationTarget != null && !HasInputAuthority)
+            {
+                InterpolationTarget.position = Vector3.Lerp(InterpolationTarget.position, NetworkPosition, Time.deltaTime * 15f);
+                InterpolationTarget.rotation = Quaternion.Slerp(
+                    InterpolationTarget.rotation,
+                    Quaternion.Euler(0f, NetworkRotationY, 0f),
+                    Time.deltaTime * 15f);
+            }
+
             if (_changeDetector == null) return;
 
             foreach (var change in _changeDetector.DetectChanges(this))
@@ -83,25 +121,6 @@ namespace Game.Shared.Network.Fusion
                         break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Controller から呼ばれる: プレイヤー状態を [Networked] プロパティに書き込む。
-        /// StateAuthority（Server/Host）側でのみ有効。
-        /// </summary>
-        public void PushState(Vector3 position, float rotationY, float speed,
-            int health, int maxHealth, int stamina, int maxStamina, bool isInvincible)
-        {
-            if (!HasStateAuthority) return;
-
-            NetworkPosition = position;
-            NetworkRotationY = rotationY;
-            Speed = speed;
-            Health = health;
-            MaxHealth = maxHealth;
-            Stamina = stamina;
-            MaxStamina = maxStamina;
-            IsInvincible = isInvincible;
         }
 
         // =====================================================================

@@ -131,13 +131,7 @@ namespace Game.MVP.Survivor.Player
         {
             public override void Update()
             {
-                // ダメージチェック
                 if (CheckDamageAndTransition()) return;
-            }
-
-            public override void FixedUpdate()
-            {
-                Context.HandleMovement();
             }
         }
 
@@ -153,20 +147,13 @@ namespace Game.MVP.Survivor.Player
 
             public override void Update()
             {
-                // 無敵中はダメージを受けないが、フラグはクリアする
                 Context.TryProcessDamage(out _);
 
-                // 無敵タイマー
-                Context._invincibilityTimer -= Time.deltaTime;
+                Context._invincibilityTimer -= Context._networkDeltaTime;
                 if (Context._invincibilityTimer <= 0f)
                 {
                     StateMachine.Transition(PlayerEvent.InvincibilityEnd);
                 }
-            }
-
-            public override void FixedUpdate()
-            {
-                Context.HandleMovement();
             }
 
             public override void Exit()
