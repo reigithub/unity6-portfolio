@@ -10,9 +10,8 @@ namespace Game.Shared.Network.Fusion
 {
     /// <summary>
     /// Fusion 2 プレイヤー NetworkBehaviour。
-    /// 旧 SurvivorNetworkPlayerState に相当する役割。
-    /// 別 NetworkObject として Spawn され、SurvivorPlayerController とレジストリ経由でバインド。
-    /// [Networked] プロパティでプレイヤー状態を自動同期。
+    /// 別 NetworkObject として Spawn され、[Networked] プロパティでプレイヤー状態を自動同期。
+    /// InputAuthority 側は IFusionRunnerService に Register し、SurvivorPlayerController がポーリングでバインド。
     /// </summary>
     public class SurvivorFusionPlayer : NetworkBehaviour
     {
@@ -30,8 +29,6 @@ namespace Game.Shared.Network.Fusion
         [Networked] public float NetworkRotationY { get; set; }
 
         private ChangeDetector _changeDetector;
-        private ISurvivorNetworkPlayerStateBindable _boundController;
-        private bool _isBound;
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
@@ -45,11 +42,14 @@ namespace Game.Shared.Network.Fusion
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             DontDestroyOnLoad(gameObject);
 
-            TryBindToController();
-
-            if (HasInputAuthority && SurvivorFusionRunner.Instance != null)
+            if (HasInputAuthority)
             {
-                SurvivorFusionRunner.Instance.InputProvider = () => InputGatherer?.Invoke() ?? default;
+                _runnerService?.Register(this);
+
+                if (Runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
+                {
+                    fusionRunner.InputProvider = () => InputGatherer?.Invoke() ?? default;
+                }
             }
 
             Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, Injected={_playerLeveledUpPub != null})");
@@ -57,20 +57,11 @@ namespace Game.Shared.Network.Fusion
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
-            if (HasInputAuthority && SurvivorFusionRunner.Instance != null)
-            {
-                SurvivorFusionRunner.Instance.InputProvider = null;
-            }
-            _boundController = null;
-            _isBound = false;
-        }
+            _runnerService?.Unregister(this);
 
-        public override void FixedUpdateNetwork()
-        {
-            // Controller はシーンロード後に生成されるため、ポーリングでバインドを試行
-            if (!_isBound)
+            if (HasInputAuthority && runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
             {
-                TryBindToController();
+                fusionRunner.InputProvider = null;
             }
         }
 
@@ -111,14 +102,6 @@ namespace Game.Shared.Network.Fusion
             Stamina = stamina;
             MaxStamina = maxStamina;
             IsInvincible = isInvincible;
-        }
-
-        /// <summary>Controller が破棄された時に呼ばれる。再バインド待ちに戻す。</summary>
-        public void Unbind()
-        {
-            _boundController = null;
-            _isBound = false;
-            InputGatherer = null;
         }
 
         // =====================================================================
@@ -235,23 +218,5 @@ namespace Game.Shared.Network.Fusion
             return false;
         }
 
-        // =====================================================================
-        //  バインド
-        // =====================================================================
-
-        private void TryBindToController()
-        {
-            if (_isBound) return;
-
-            var bindables = SurvivorNetworkPlayerStateBindableRegistry.Bindables;
-            for (int i = 0; i < bindables.Count; i++)
-            {
-                bindables[i].BindFusionPlayer(this);
-                _boundController = bindables[i];
-                _isBound = true;
-                Debug.Log($"[SurvivorFusionPlayer] Bound to {bindables[i].GetType().Name}");
-                break;
-            }
-        }
     }
 }

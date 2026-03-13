@@ -7,11 +7,19 @@ namespace Game.Shared.Network.Fusion
 {
     public class FusionRunnerService : IFusionRunnerService
     {
+        /// <summary>
+        /// static クラス（UnityPlaymodeHelper 等）からの限定的アクセス用。
+        /// DI 可能なクラスでは必ず IFusionRunnerService を inject すること。
+        /// </summary>
+        internal static FusionRunnerService Current { get; private set; }
+
         public NetworkRunner Runner { get; private set; }
         public bool IsActive => Runner != null && Runner.IsRunning;
         public bool IsServer => IsActive && Runner.IsServer;
         public bool IsClient => IsActive && Runner.IsClient;
         public GameMode GameMode => Runner != null ? Runner.GameMode : default;
+        public bool IsHostMode => IsActive && GameMode == GameMode.Host;
+        public bool IsDedicatedServer => IsActive && GameMode == GameMode.Server;
         public PlayerRef LocalPlayer => Runner != null ? Runner.LocalPlayer : PlayerRef.None;
         public IObjectResolver Resolver { get; set; }
 
@@ -23,12 +31,23 @@ namespace Game.Shared.Network.Fusion
         {
             Runner = runner;
             Resolver = resolver;
+            Current = this;
         }
 
         public void Clear()
         {
             Runner = null;
             _registry.Clear();
+            if (Current == this) Current = null;
+        }
+
+        public string GetDebugStatus()
+        {
+            if (IsActive)
+            {
+                return $"[Fusion] isServer={Runner.IsServer}, gameMode={GameMode}";
+            }
+            return "[Offline]";
         }
 
         public void RaiseClientDisconnected() => OnClientDisconnected?.Invoke();

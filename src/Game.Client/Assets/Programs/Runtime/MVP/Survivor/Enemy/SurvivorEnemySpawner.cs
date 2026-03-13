@@ -6,7 +6,6 @@ using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
@@ -55,6 +54,7 @@ namespace Game.MVP.Survivor.Enemy
         // DI
         [Inject] private IAddressableAssetService _assetService;
         [Inject] private IMasterDataService _masterDataService;
+        [Inject] private IFusionRunnerService _runnerService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         // Pool（敵IDごとにプール管理）
@@ -74,7 +74,6 @@ namespace Game.MVP.Survivor.Enemy
         private int _remainingSpawnCount;
 
         // ネットワーク敵同期
-        private ISurvivorNetworkBridge _networkBridge;
         private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
@@ -127,11 +126,6 @@ namespace Game.MVP.Survivor.Enemy
             return _playerTransform;
         }
 
-        public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
-        {
-            _networkBridge = bridge;
-        }
-
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
         {
             _waveManager = waveManager;
@@ -173,7 +167,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             // MP Client: 敵はサーバーバッチ同期で表示、ローカルスポーン不要
-            if (!NetworkModeHelper.IsNetworkClient)
+            if (_runnerService.IsServer)
             {
                 _waveManager.CurrentWave
                     .Where(wave => wave > 0)
@@ -227,18 +221,18 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // サーバー: 定期的に敵状態をバッチ送信
-            if (SurvivorFusionEnemyBatchSync.Instance != null)
+            if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
             {
                 _enemySyncTimer -= Time.deltaTime;
                 if (_enemySyncTimer <= 0f)
                 {
                     _enemySyncTimer = EnemySyncInterval;
-                    SyncEnemyStatesToNetwork();
+                    SyncEnemyStatesToNetwork(batchSync);
                 }
             }
 
             // MP Client: ローカルスポーン無効
-            if (NetworkModeHelper.IsNetworkClient) return;
+            if (!_runnerService.IsServer) return;
 
             if (!_isSpawning)
             {
@@ -265,7 +259,7 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
-        private void SyncEnemyStatesToNetwork()
+        private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             if (_activeEnemies.Count == 0)
                 return;
@@ -289,7 +283,7 @@ namespace Game.MVP.Survivor.Enemy
                     SyncType = EnemySyncType.PositionUpdate
                 };
             }
-            SurvivorFusionEnemyBatchSync.Instance?.WriteEnemyStates(snapshots);
+            batchSync.WriteEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()
@@ -380,7 +374,7 @@ namespace Game.MVP.Survivor.Enemy
                 _currentSpawnIndex++;
 
                 // サーバー: スポーンイベントを送信
-                if (SurvivorFusionEnemyBatchSync.Instance != null)
+                if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var spawnBatchSync))
                 {
                     var spawnSnapshot = new SurvivorNetworkEnemyStateSnapshot
                     {
@@ -395,7 +389,7 @@ namespace Game.MVP.Survivor.Enemy
                         CurrentHp = enemy.CurrentHp,
                         SyncType = EnemySyncType.Spawn
                     };
-                    SurvivorFusionEnemyBatchSync.Instance.WriteEnemyStates(new[] { spawnSnapshot });
+                    spawnBatchSync.WriteEnemyStates(new[] { spawnSnapshot });
                 }
 
                 if (_remainingSpawnCount <= 0)
@@ -545,7 +539,8 @@ namespace Game.MVP.Survivor.Enemy
             Debug.Log($"[SurvivorEnemySpawner] EnemyDeath: id={enemy.EnemyId}, boss={enemy.IsBoss}, active={_activeEnemies.Count - 1}, time={Time.time:F1}s");
 
             // サーバー: 死亡イベントを送信
-            if (SurvivorFusionEnemyBatchSync.Instance != null && _enemyNetworkIds.TryGetValue(enemy, out var networkId))
+            if (_enemyNetworkIds.TryGetValue(enemy, out var networkId)
+                && _runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var deathBatchSync))
             {
                 var deathSnapshot = new SurvivorNetworkEnemyStateSnapshot
                 {
@@ -560,7 +555,7 @@ namespace Game.MVP.Survivor.Enemy
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death
                 };
-                SurvivorFusionEnemyBatchSync.Instance.WriteEnemyStates(new[] { deathSnapshot });
+                deathBatchSync.WriteEnemyStates(new[] { deathSnapshot });
             }
 
             if (_enemyNetworkIds.TryGetValue(enemy, out var removedNetworkId))
@@ -578,7 +573,7 @@ namespace Game.MVP.Survivor.Enemy
                 .AddTo(this);
 
             // ウェーブサービスに通知（ボスかどうかも伝える）
-            if (!NetworkModeHelper.IsNetworkClient)
+            if (_runnerService.IsServer)
             {
                 _waveManager.OnEnemyKilled(enemy.IsBoss);
             }

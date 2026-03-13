@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Client.MasterData;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using R3;
@@ -20,6 +20,7 @@ namespace Game.MVP.Survivor.Services
     public class SurvivorStageWaveManager : IDisposable
     {
         [Inject] private readonly IMasterDataService _masterDataService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
 
         private readonly Subject<SurvivorSignals.Wave.Started> _onWaveStarted = new();
         private readonly Subject<SurvivorSignals.Wave.Completed> _onWaveCompleted = new();
@@ -96,7 +97,7 @@ namespace Game.MVP.Survivor.Services
         /// </summary>
         public void IncrementClientKillCount()
         {
-            if (!NetworkModeHelper.IsNetworkClient) return;
+            if (_runnerService.IsServer) return;
             if (_enemiesKilled.Value < _targetKillsThisWave.Value)
             {
                 _enemiesKilled.Value++;
@@ -124,7 +125,7 @@ namespace Game.MVP.Survivor.Services
         public void StartWave()
         {
             // Client-only: Wave進行はサーバーが駆動
-            if (NetworkModeHelper.IsNetworkClient) return;
+            if (!_runnerService.IsServer) return;
 
             _currentWaveIndex++;
             _enemiesKilled.Value = 0;
@@ -201,7 +202,7 @@ namespace Game.MVP.Survivor.Services
         public void OnEnemyKilled(bool isBoss = false)
         {
             // Client-only: キルトラッキングはサーバーが駆動
-            if (NetworkModeHelper.IsNetworkClient) return;
+            if (!_runnerService.IsServer) return;
 
             // 全ウェーブクリア後はキル処理しない（残存敵の死亡による再トリガー防止）
             if (_isAllWavesCleared.Value) return;

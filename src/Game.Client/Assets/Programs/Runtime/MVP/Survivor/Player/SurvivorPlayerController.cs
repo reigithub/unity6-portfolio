@@ -5,9 +5,7 @@ using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
-using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -24,7 +22,7 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorNetworkPlayerStateBindable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable
     {
         // Profiler markers
         private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
@@ -33,6 +31,7 @@ namespace Game.MVP.Survivor.Player
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
+        [Inject] private IFusionRunnerService _runnerService;
 
         private readonly Subject<SurvivorSignals.Player.DamageReceived> _onDamageReceived = new();
         private readonly Subject<SurvivorSignals.Player.Died> _onDied = new();
@@ -122,12 +121,17 @@ namespace Game.MVP.Survivor.Player
             TryGetComponent(out _rigidbody);
             TryGetComponent(out _groundedRaycastChecker);
             TryGetComponent(out _capsuleCollider);
-
-            SurvivorNetworkPlayerStateBindableRegistry.Register(this);
         }
 
         private void Update()
         {
+            // FusionPlayer がまだバインドされていなければポーリングで取得
+            if (_fusionPlayer == null && _runnerService != null)
+            {
+                if (_runnerService.TryGet<SurvivorFusionPlayer>(out var fp))
+                    BindFusionPlayer(fp);
+            }
+
             UpdateInput();
             UpdateItemAttraction();
             _stateMachine?.Update();
@@ -154,11 +158,9 @@ namespace Game.MVP.Survivor.Player
 
         private void OnDestroy()
         {
-            SurvivorNetworkPlayerStateBindableRegistry.Unregister(this);
-
             if (_fusionPlayer != null)
             {
-                _fusionPlayer.Unbind();
+                _fusionPlayer.InputGatherer = null;
                 _fusionPlayer = null;
             }
 

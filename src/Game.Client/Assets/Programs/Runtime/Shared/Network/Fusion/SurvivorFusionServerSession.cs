@@ -4,8 +4,6 @@ using Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
-using VContainer;
-using VContainer.Unity;
 
 namespace Game.Shared.Network.Fusion
 {
@@ -15,7 +13,7 @@ namespace Game.Shared.Network.Fusion
     /// </summary>
     public class SurvivorFusionServerSession
     {
-        private readonly IObjectResolver _resolver;
+        private readonly IFusionRunnerService _runnerService;
         private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
@@ -28,14 +26,14 @@ namespace Game.Shared.Network.Fusion
         public int ConnectedPlayerCount => _connectedPlayers.Count;
 
         public SurvivorFusionServerSession(
-            IObjectResolver resolver,
+            IFusionRunnerService runnerService,
             IPublisher<SurvivorSignals.Session.AllPlayersReady> allPlayersReadyPub,
             IPublisher<SurvivorSignals.Session.GameStarted> gameStartedPub,
             IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> allPlayersDisconnectedPub,
             int expectedPlayerCount,
             NetworkObject playerPrefab)
         {
-            _resolver = resolver;
+            _runnerService = runnerService;
             _allPlayersReadyPub = allPlayersReadyPub;
             _gameStartedPub = gameStartedPub;
             _allPlayersDisconnectedPub = allPlayersDisconnectedPub;
@@ -51,11 +49,7 @@ namespace Game.Shared.Network.Fusion
             // Server/Host: プレイヤー NetworkObject をスポーン
             if (runner.IsServer && _playerPrefab != null)
             {
-                var playerObj = runner.Spawn(_playerPrefab, inputAuthority: player,
-                    onBeforeSpawned: (_, obj) =>
-                    {
-                        _resolver.InjectGameObject(obj.gameObject);
-                    });
+                var playerObj = runner.Spawn(_playerPrefab, inputAuthority: player);
                 runner.SetPlayerObject(player, playerObj);
                 Debug.Log($"[SurvivorFusionSession] Spawned player object for {player}");
             }
@@ -94,8 +88,9 @@ namespace Game.Shared.Network.Fusion
         {
             await UniTask.NextFrame();
 
-            // ゲーム状態シングルトンにプレイヤー数を設定（全滅判定用）
-            SurvivorFusionGameState.Instance?.SetTotalPlayerCount(_expectedPlayerCount);
+            // ゲーム状態にプレイヤー数を設定（全滅判定用）
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                gs.SetTotalPlayerCount(_expectedPlayerCount);
 
             _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
             _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(Time.time));

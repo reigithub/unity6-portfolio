@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using MessagePipe;
@@ -124,8 +123,7 @@ namespace Game.MVP.Survivor.Scenes
             /// </summary>
             private async UniTask WaitForAllClientsSceneReadyAsync()
             {
-                var fusionGs = SurvivorFusionGameState.Instance;
-                if (fusionGs == null)
+                if (!Context._runnerService.TryGet<SurvivorFusionGameState>(out var fusionGs))
                 {
                     Debug.LogWarning("[SurvivorNetworkStageScene.ReadyState] FusionGameState not found, skipping wait");
                     return;
@@ -310,7 +308,8 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 // クライアントに勝利を通知
-                SurvivorFusionGameState.Instance?.NotifyGameEnded(true, clearTime);
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyGameEnded(true, clearTime);
 
                 Debug.Log("[SurvivorNetworkStageScene.VictoryState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();
@@ -348,7 +347,8 @@ namespace Game.MVP.Survivor.Scenes
                 await Context._saveService.SaveAsync();
 
                 // クライアントに敗北を通知
-                SurvivorFusionGameState.Instance?.NotifyGameEnded(false, clearTime);
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyGameEnded(false, clearTime);
 
                 Debug.Log("[SurvivorNetworkStageScene.GameOverState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();

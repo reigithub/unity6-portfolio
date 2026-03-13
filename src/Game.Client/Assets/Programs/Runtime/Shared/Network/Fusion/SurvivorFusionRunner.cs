@@ -13,7 +13,6 @@ namespace Game.Shared.Network.Fusion
     /// </summary>
     public class SurvivorFusionRunner : MonoBehaviour, INetworkRunnerCallbacks
     {
-        public static SurvivorFusionRunner Instance { get; private set; }
         public NetworkRunner Runner { get; private set; }
 
         /// <summary>セッション管理（Host/Server 時に設定）</summary>
@@ -28,9 +27,11 @@ namespace Game.Shared.Network.Fusion
         /// <summary>VContainer リゾルバ（クライアント側レプリカの DI 注入用）</summary>
         internal IObjectResolver Resolver { get; set; }
 
+        /// <summary>IFusionRunnerService（SurvivorFusionStageConnector が設定）</summary>
+        internal IFusionRunnerService RunnerService { get; set; }
+
         public void Initialize()
         {
-            Instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
@@ -70,7 +71,6 @@ namespace Game.Shared.Network.Fusion
 
         private void OnDestroy()
         {
-            if (Instance == this) Instance = null;
         }
 
         // =====================================================================
@@ -111,7 +111,7 @@ namespace Game.Shared.Network.Fusion
         public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
         {
             Debug.Log($"[SurvivorFusionRunner] Disconnected from server: {reason}");
-            NetworkModeHelper.RaiseClientDisconnected();
+            RunnerService?.RaiseClientDisconnected();
         }
 
         // --- 未使用コールバック（最小実装） ---

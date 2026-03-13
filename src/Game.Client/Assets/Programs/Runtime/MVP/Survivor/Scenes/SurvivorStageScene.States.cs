@@ -11,7 +11,6 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
@@ -121,7 +120,7 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeItemSpawnerAsync();
 
                 // MP Client: ネットワーク初期化
-                if (NetworkModeHelper.IsNetworkClientConnected)
+                if (Context._runnerService.IsActive)
                 {
                     await InitializeClientViewsAsync();
                 }
@@ -210,13 +209,13 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Enter()
             {
-                Debug.Log($"[PlayingState] Enter ({NetworkModeHelper.GetDebugStatus()})");
+                Debug.Log($"[PlayingState] Enter ({Context._runnerService.GetDebugStatus()})");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
 
                 _disconnected = false;
 
-                NetworkModeHelper.OnClientDisconnected += OnDisconnected;
+                Context._runnerService.OnClientDisconnected += OnDisconnected;
 
                 if (_isFirstEntry)
                 {
@@ -276,7 +275,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                NetworkModeHelper.OnClientDisconnected -= OnDisconnected;
+                Context._runnerService.OnClientDisconnected -= OnDisconnected;
             }
 
             private void OnDisconnected()

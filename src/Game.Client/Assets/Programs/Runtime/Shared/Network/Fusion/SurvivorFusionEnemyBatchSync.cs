@@ -14,8 +14,7 @@ namespace Game.Shared.Network.Fusion
     /// </summary>
     public class SurvivorFusionEnemyBatchSync : NetworkBehaviour
     {
-        public static SurvivorFusionEnemyBatchSync Instance { get; private set; }
-
+        [Inject] private IFusionRunnerService _runnerService;
         [Inject] private IPublisher<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchPub;
 
         [Networked] public int ActiveCount { get; set; }
@@ -29,20 +28,16 @@ namespace Game.Shared.Network.Fusion
 
         public override void Spawned()
         {
-            // StateAuthority インスタンスを優先（SP モードで Client レプリカに上書きされるのを防ぐ）
-            if (HasStateAuthority || Instance == null)
-            {
-                Instance = this;
-            }
             DontDestroyOnLoad(gameObject);
 
+            _runnerService?.Register(this);
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-            Debug.Log($"[SurvivorFusionEnemyBatchSync] Spawned (StateAuth={HasStateAuthority}, Injected={_enemyBatchPub != null}, IsInstance={Instance == this})");
+            Debug.Log($"[SurvivorFusionEnemyBatchSync] Spawned (StateAuth={HasStateAuthority}, Injected={_enemyBatchPub != null})");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
-            if (Instance == this) Instance = null;
+            _runnerService?.Unregister(this);
         }
 
         /// <summary>Server 側: スナップショット配列を NetworkArray に書き込む</summary>

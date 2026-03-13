@@ -62,7 +62,6 @@ namespace Game.Shared.Network.Fusion
                 SpawnGameState(_runner.Runner);
                 SpawnEnemyBatchSync(_runner.Runner);
                 _runnerService.Initialize(_runner.Runner, _resolver);
-                NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Host);
                 Debug.Log("[SurvivorFusionStageConnector] Host mode started");
             }
             finally
@@ -88,7 +87,6 @@ namespace Game.Shared.Network.Fusion
                     throw new InvalidOperationException($"Fusion Client connect failed: {result.ShutdownReason}");
 
                 _runnerService.Initialize(_runner.Runner, _resolver);
-                NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Client);
                 Debug.Log($"[SurvivorFusionStageConnector] Connected to session: {sessionName}");
             }
             finally
@@ -119,7 +117,6 @@ namespace Game.Shared.Network.Fusion
                 SpawnGameState(_runner.Runner);
                 SpawnEnemyBatchSync(_runner.Runner);
                 _runnerService.Initialize(_runner.Runner, _resolver);
-                NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Server);
                 Debug.Log("[SurvivorFusionStageConnector] Server-only mode started");
             }
             finally
@@ -143,7 +140,6 @@ namespace Game.Shared.Network.Fusion
             _session = null;
             ReleasePrefabs();
             _runnerService.Clear();
-            NetworkModeHelper.ClearFusionRunner();
             Debug.Log("[SurvivorFusionStageConnector] Disconnected");
         }
 
@@ -208,6 +204,7 @@ namespace Game.Shared.Network.Fusion
             _runner = go.AddComponent<SurvivorFusionRunner>();
             _runner.Initialize();
             _runner.Resolver = _resolver;
+            _runner.RunnerService = _runnerService;
             _runner.OnShutdownCallback = OnRunnerShutdown;
         }
 
@@ -218,7 +215,7 @@ namespace Game.Shared.Network.Fusion
                 playerPrefab = _playerPrefabAsset.GetComponent<NetworkObject>();
 
             _session = new SurvivorFusionServerSession(
-                _resolver,
+                _runnerService,
                 _allPlayersReadyPub,
                 _gameStartedPub,
                 _allPlayersDisconnectedPub,
@@ -235,10 +232,7 @@ namespace Game.Shared.Network.Fusion
             var prefab = _gameStatePrefabAsset.GetComponent<NetworkObject>();
             if (prefab == null) return;
 
-            runner.Spawn(prefab, onBeforeSpawned: (_, obj) =>
-            {
-                // _resolver.InjectGameObject(obj.gameObject);
-            });
+            runner.Spawn(prefab);
             Debug.Log("[SurvivorFusionStageConnector] GameState spawned");
         }
 
@@ -249,19 +243,14 @@ namespace Game.Shared.Network.Fusion
             var prefab = _enemyBatchSyncPrefabAsset.GetComponent<NetworkObject>();
             if (prefab == null) return;
 
-            runner.Spawn(prefab, onBeforeSpawned: (_, obj) =>
-            {
-                // _resolver.InjectGameObject(obj.gameObject);
-            });
+            runner.Spawn(prefab);
             Debug.Log("[SurvivorFusionStageConnector] EnemyBatchSync spawned");
         }
 
         private void OnRunnerShutdown(ShutdownReason reason)
         {
             _runnerService.Clear();
-            ((FusionRunnerService)_runnerService).RaiseClientDisconnected();
-            NetworkModeHelper.ClearFusionRunner();
-            NetworkModeHelper.RaiseClientDisconnected();
+            _runnerService.RaiseClientDisconnected();
             _session = null;
         }
     }

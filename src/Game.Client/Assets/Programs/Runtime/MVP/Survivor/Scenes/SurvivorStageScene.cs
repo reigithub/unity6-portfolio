@@ -11,7 +11,6 @@ using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
@@ -77,7 +76,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorStageScene] Startup: {NetworkModeHelper.GetDebugStatus()}");
+            Debug.Log($"[SurvivorStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;

@@ -2,7 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
@@ -27,6 +27,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILocalServerOrchestrator _localServerOrchestrator;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
+        [Inject] private readonly IFusionRunnerService _runnerService;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -93,7 +94,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
-                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, {NetworkModeHelper.GetDebugStatus()}");
+                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, {_runnerService.GetDebugStatus()}");
                 if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
@@ -101,13 +102,13 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkModeHelper.IsNetworkHost)
+                else if (_runnerService.IsHostMode)
                 {
                     // Editor Host mode: Server + ローカルClient
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkModeHelper.IsNetworkServer)
+                else if (_runnerService.IsServer)
                 {
                     // Editor Server-only mode: 全 Client 接続待ち
                     SceneComponent.SetStatus("Waiting for clients...");

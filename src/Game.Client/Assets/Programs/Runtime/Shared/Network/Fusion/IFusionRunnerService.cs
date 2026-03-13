@@ -12,6 +12,8 @@ namespace Game.Shared.Network.Fusion
         bool IsServer { get; }
         bool IsClient { get; }
         GameMode GameMode { get; }
+        bool IsHostMode { get; }
+        bool IsDedicatedServer { get; }
 
         PlayerRef LocalPlayer { get; }
         bool TryGetLocalPlayerComponent<T>(out T component) where T : NetworkBehaviour;
@@ -27,6 +29,9 @@ namespace Game.Shared.Network.Fusion
         void Initialize(NetworkRunner runner, IObjectResolver resolver);
         void Clear();
 
+        string GetDebugStatus();
+
         event Action OnClientDisconnected;
+        void RaiseClientDisconnected();
     }
 }

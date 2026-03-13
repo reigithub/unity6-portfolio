@@ -1,14 +1,11 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Survivor.Enemy;
-using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
@@ -33,6 +30,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAddressableAssetService _addressableService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
 
         // Server signals
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
@@ -64,7 +62,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorNetworkStageScene] Startup: {NetworkModeHelper.GetDebugStatus()}");
+            Debug.Log($"[SurvivorNetworkStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             var session = _saveService.CurrentSession;
             if (session == null)
@@ -150,13 +148,14 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         _stageModel.CollectItem(item);
 
-                        SurvivorFusionGameState.Instance?.NotifyItemCollected(
-                            "",
-                            item.ItemId,
-                            (int)item.ItemType,
-                            item.EffectValue,
-                            _stageModel.Experience.Value,
-                            _stageModel.ExperienceToNextLevel.Value);
+                        if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                            gs.NotifyItemCollected(
+                                "",
+                                item.ItemId,
+                                (int)item.ItemType,
+                                item.EffectValue,
+                                _stageModel.Experience.Value,
+                                _stageModel.ExperienceToNextLevel.Value);
                     })
                     .AddTo(Disposables);
             }
@@ -209,10 +208,6 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SetupServerNetworking()
         {
-            ISurvivorNetworkBridge networkBridge = new SurvivorFusionNetworkBridge();
-            SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
-            SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
-
             // 武器適用・ヒット報告シグナル購読
             _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
             _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
@@ -228,7 +223,8 @@ namespace Game.MVP.Survivor.Scenes
         {
             _waveManager.OnWaveStarted.Subscribe(s =>
             {
-                SurvivorFusionGameState.Instance?.NotifyWaveStarted(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyWaveStarted(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
             }).AddTo(Disposables);
 
             _waveManager.OnWaveCompleted.Subscribe(s =>
@@ -240,15 +236,16 @@ namespace Game.MVP.Survivor.Scenes
                 var waveClearScore = remainingTime > 0
                     ? (int)(remainingTime * spawnInfo.ScoreMultiplier * hpRatio) : 0;
 
-                SurvivorFusionGameState.Instance?.NotifyWaveCompleted(
-                    s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyWaveCompleted(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
             }).AddTo(Disposables);
 
             _waveManager.IsAllWavesCleared
                 .Where(cleared => cleared)
                 .Subscribe(_ =>
                 {
-                    SurvivorFusionGameState.Instance?.NotifyAllWavesCleared();
+                    if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                        gs.NotifyAllWavesCleared();
                 })
                 .AddTo(Disposables);
         }

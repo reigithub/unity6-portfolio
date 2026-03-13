@@ -17,8 +17,6 @@ namespace Game.Shared.Network.Fusion
     /// </summary>
     public class SurvivorFusionGameState : NetworkBehaviour
     {
-        public static SurvivorFusionGameState Instance { get; private set; }
-
         [Inject] private IFusionRunnerService _runnerService;
 
         // --- MessagePipe Publishers (VContainer InjectGameObject で解決) ---
@@ -71,22 +69,16 @@ namespace Game.Shared.Network.Fusion
 
         public override void Spawned()
         {
-            // StateAuthority インスタンスを優先（SP モードで Client レプリカに上書きされるのを防ぐ）
-            if (HasStateAuthority || Instance == null)
-            {
-                Instance = this;
-            }
             DontDestroyOnLoad(gameObject);
 
             _runnerService?.Register(this);
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-            Debug.Log($"[SurvivorFusionGameState] Spawned (StateAuth={HasStateAuthority}, DI={_waveStartedPub != null}, IsInstance={Instance == this})");
+            Debug.Log($"[SurvivorFusionGameState] Spawned (StateAuth={HasStateAuthority}, DI={_waveStartedPub != null})");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _runnerService?.Unregister(this);
-            if (Instance == this) Instance = null;
         }
 
         private void Update()
@@ -145,15 +137,7 @@ namespace Game.Shared.Network.Fusion
             CurrentWave = waveNumber;
             WaveTargetKills = targetKills;
             WaveTotalEnemies = totalEnemies;
-            RpcNotifyWaveStarted(waveNumber, targetKills, totalEnemies);
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyWaveStarted(int waveNumber, int targetKills, int totalEnemies)
-        {
-            Debug.Log($"[SurvivorFusionGameState] WaveStarted: wave={waveNumber}");
-            _waveStartedPub?.Publish(
-                new SurvivorSignals.Wave.Started(waveNumber, targetKills, totalEnemies));
+            // ChangeDetector (Render) が CurrentWave 変更を検知して _waveStartedPub に Publish
         }
 
         /// <summary>サーバー側: ウェーブクリアを全クライアントに通知</summary>
@@ -176,14 +160,7 @@ namespace Game.Shared.Network.Fusion
         {
             if (!HasStateAuthority) return;
             IsAllWavesCleared = true;
-            RpcNotifyAllWavesCleared();
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyAllWavesCleared()
-        {
-            Debug.Log("[SurvivorFusionGameState] AllWavesCleared");
-            _allWavesClearedPub?.Publish(new SurvivorSignals.Wave.AllCleared());
+            // ChangeDetector (Render) が IsAllWavesCleared 変更を検知して _allWavesClearedPub に Publish
         }
 
         /// <summary>サーバー側: 制限時間超過を通知</summary>
@@ -314,14 +291,7 @@ namespace Game.Shared.Network.Fusion
         {
             if (!HasStateAuthority) return;
             IsPaused = true;
-            RpcNotifyGamePaused(requestedByUserId);
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyGamePaused(NetworkString<_64> requestedByUserId)
-        {
-            _gamePausedPub?.Publish(
-                new SurvivorSignals.Game.Paused(requestedByUserId.ToString()));
+            // ChangeDetector (Render) が IsPaused=true を検知して _gamePausedPub に Publish
         }
 
         /// <summary>サーバー側: ゲーム再開を通知</summary>
@@ -329,13 +299,7 @@ namespace Game.Shared.Network.Fusion
         {
             if (!HasStateAuthority) return;
             IsPaused = false;
-            RpcNotifyGameResumed();
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyGameResumed()
-        {
-            _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
+            // ChangeDetector (Render) が IsPaused=false を検知して _gameResumedPub に Publish
         }
 
         // =====================================================================

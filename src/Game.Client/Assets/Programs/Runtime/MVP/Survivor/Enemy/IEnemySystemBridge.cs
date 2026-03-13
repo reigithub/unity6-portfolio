@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.MVP.Survivor.Services;
 using Game.Shared.Events;
-using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -27,11 +26,6 @@ namespace Game.MVP.Survivor.Enemy
         /// プレイヤーを削除（Co-op用）
         /// </summary>
         void RemovePlayer(Transform player);
-
-        /// <summary>
-        /// ネットワークブリッジを設定（サーバー時の敵状態同期用）
-        /// </summary>
-        void SetNetworkBridge(ISurvivorNetworkBridge bridge);
 
         /// <summary>
         /// ウェーブマネージャーと接続して初期化

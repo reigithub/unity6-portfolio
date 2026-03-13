@@ -1,5 +1,4 @@
 using Game.Library.Shared;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using UnityEngine;
@@ -83,9 +82,10 @@ namespace Game.MVP.Survivor.Player
                 new SurvivorSignals.Player.DamageReceived(_pendingDamageAmount, _currentHp.Value));
 
             // Server / Host: ダメージ通知
-            if (NetworkModeHelper.IsNetworkServer)
+            if (_runnerService != null && _runnerService.IsServer)
             {
-                SurvivorFusionGameState.Instance?.NotifyPlayerDamaged(_pendingDamageAmount, _currentHp.Value);
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyPlayerDamaged(_pendingDamageAmount, _currentHp.Value);
             }
 
             shouldDie = _currentHp.Value <= 0;

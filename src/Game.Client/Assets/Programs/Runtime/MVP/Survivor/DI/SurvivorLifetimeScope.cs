@@ -21,7 +21,6 @@ using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
-using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
@@ -35,7 +34,7 @@ namespace Game.MVP.Survivor
     /// <summary>
     /// Survivor用のVContainer LifetimeScope
     /// MVP.Coreのシーンサービスと、Survivor固有のサービス/モデルを登録
-    /// NetworkModeHelper.IsHeadlessServer でサーバー/クライアントのDI登録をランタイム分岐
+    /// UnityPlaymodeHelper.IsServer() でサーバー/クライアントのDI登録をランタイム分岐
     /// </summary>
     public class SurvivorLifetimeScope : LifetimeScope
     {
