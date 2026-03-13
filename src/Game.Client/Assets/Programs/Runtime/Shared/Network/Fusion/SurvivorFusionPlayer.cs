@@ -1,7 +1,10 @@
 using System;
 using Fusion;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Signals.Survivor;
+using MessagePipe;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Shared.Network.Fusion
 {
@@ -13,6 +16,9 @@ namespace Game.Shared.Network.Fusion
     /// </summary>
     public class SurvivorFusionPlayer : NetworkBehaviour
     {
+        [Inject] private IFusionRunnerService _runnerService;
+        [Inject] private IPublisher<SurvivorSignals.Player.LeveledUp> _playerLeveledUpPub;
+
         // --- Networked State (Server/Host → Client 自動同期) ---
         [Networked] public int Health { get; set; }
         [Networked] public int MaxHealth { get; set; }
@@ -26,6 +32,7 @@ namespace Game.Shared.Network.Fusion
         private ChangeDetector _changeDetector;
         private ISurvivorNetworkPlayerStateBindable _boundController;
         private bool _isBound;
+        private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
         public Func<PlayerNetworkInput> InputGatherer { get; set; }
@@ -45,7 +52,7 @@ namespace Game.Shared.Network.Fusion
                 SurvivorFusionRunner.Instance.InputProvider = () => InputGatherer?.Invoke() ?? default;
             }
 
-            Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority})");
+            Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, Injected={_playerLeveledUpPub != null})");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -113,6 +120,124 @@ namespace Game.Shared.Network.Fusion
             _isBound = false;
             InputGatherer = null;
         }
+
+        // =====================================================================
+        //  Client→Server RPC（InputAuthority のみ送信可能）
+        // =====================================================================
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientSceneReady()
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientSceneReady(Object.InputAuthority);
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientRequestPause()
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientRequestPause();
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientRequestResume()
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientRequestResume();
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientWeaponChoice(int weaponId, NetworkBool isNewWeapon)
+        {
+            if (!ValidateAndClearWeaponChoice(weaponId))
+            {
+                Debug.LogWarning($"[SurvivorFusionPlayer] Rejected invalid weapon choice: {weaponId}");
+                return;
+            }
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientWeaponChoice(weaponId, isNewWeapon);
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientWeaponReplace(removeWeaponId, newWeaponId);
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientHitReported(int enemyNetworkId, int weaponId)
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientHitReported(enemyNetworkId, weaponId);
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientPlayerDied()
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.NotifyPlayerDied();
+                gs.OnPlayerDied("");
+            }
+        }
+
+        // =====================================================================
+        //  Server→Client: レベルアップ通知
+        // =====================================================================
+
+        /// <summary>
+        /// サーバー側: 武器選択肢をキャッシュし、対象クライアントに RPC で通知する。
+        /// </summary>
+        public void NotifyPlayerLevelUp(int level, int experience,
+            int experienceToNextLevel, SurvivorNetworkWeaponUpgradeOption[] options)
+        {
+            _lastSentWeaponOptions = options;
+            RpcNotifyPlayerLevelUp(level, experience, experienceToNextLevel, options);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+        public void RpcNotifyPlayerLevelUp(int level, int experience,
+            int experienceToNextLevel, SurvivorNetworkWeaponUpgradeOption[] options)
+        {
+            _playerLeveledUpPub?.Publish(
+                new SurvivorSignals.Player.LeveledUp(
+                    "", level, experience, experienceToNextLevel, options));
+        }
+
+        /// <summary>
+        /// サーバー側: クライアントからの武器選択が送信済み選択肢に含まれるか検証する。
+        /// 検証成功時にキャッシュをクリアする。
+        /// </summary>
+        public bool ValidateAndClearWeaponChoice(int weaponId)
+        {
+            if (_lastSentWeaponOptions == null) return true;
+            foreach (var opt in _lastSentWeaponOptions)
+            {
+                if (opt.WeaponId == weaponId)
+                {
+                    _lastSentWeaponOptions = null;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // =====================================================================
+        //  バインド
+        // =====================================================================
 
         private void TryBindToController()
         {

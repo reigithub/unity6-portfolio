@@ -1,29 +1,30 @@
-using Unity.Collections;
+using Fusion;
 using Game.Library.Shared.Dto;
 
 namespace Game.Shared.Network.Survivor
 {
-    public struct SurvivorNetworkWeaponUpgradeOption
+    [System.Serializable]
+    public struct SurvivorNetworkWeaponUpgradeOption : INetworkStruct
     {
         public int WeaponId;
-        public FixedString128Bytes WeaponName;
-        public bool IsNewWeapon;
+        public NetworkString<_128> WeaponName;
+        public NetworkBool IsNewWeapon;
         public int CurrentLevel;
-        public FixedString128Bytes Description;
-        public FixedString128Bytes UpgradeEffect;
-        public FixedString128Bytes IconAssetName;
+        public NetworkString<_128> Description;
+        public NetworkString<_128> UpgradeEffect;
+        public NetworkString<_128> IconAssetName;
 
         public static SurvivorNetworkWeaponUpgradeOption FromDto(WeaponUpgradeOptionSnapshot dto)
         {
             return new SurvivorNetworkWeaponUpgradeOption
             {
                 WeaponId = dto.WeaponId,
-                WeaponName = new FixedString128Bytes(dto.WeaponName),
+                WeaponName = dto.WeaponName,
                 IsNewWeapon = dto.IsNewWeapon,
                 CurrentLevel = dto.CurrentLevel,
-                Description = new FixedString128Bytes(dto.Description),
-                UpgradeEffect = new FixedString128Bytes(dto.UpgradeEffect),
-                IconAssetName = new FixedString128Bytes(dto.IconAssetName),
+                Description = dto.Description,
+                UpgradeEffect = dto.UpgradeEffect,
+                IconAssetName = dto.IconAssetName,
             };
         }
 

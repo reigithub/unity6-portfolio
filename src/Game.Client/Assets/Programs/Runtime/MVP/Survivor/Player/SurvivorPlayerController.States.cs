@@ -186,15 +186,10 @@ namespace Game.MVP.Survivor.Player
                 Debug.Log("[SurvivorPlayerController] Player died");
                 ctx._onDied.OnNext(new SurvivorSignals.Player.Died());
 
-                // Server / Host: 死亡通知 + 全滅判定
-                if (NetworkModeHelper.IsNetworkServer)
+                // RPC 経由で死亡通知をサーバーに送信
+                if (ctx._fusionPlayer != null)
                 {
-                    var fusionGs = SurvivorFusionGameState.Instance;
-                    if (fusionGs != null)
-                    {
-                        fusionGs.NotifyPlayerDied();
-                        fusionGs.OnPlayerDied("");
-                    }
+                    ctx._fusionPlayer.RpcClientPlayerDied();
                 }
             }
         }

@@ -6,7 +6,6 @@ using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.Shared.Network.Fusion
 {
@@ -19,6 +18,8 @@ namespace Game.Shared.Network.Fusion
     public class SurvivorFusionGameState : NetworkBehaviour
     {
         public static SurvivorFusionGameState Instance { get; private set; }
+
+        [Inject] private IFusionRunnerService _runnerService;
 
         // --- MessagePipe Publishers (VContainer InjectGameObject で解決) ---
 
@@ -62,7 +63,6 @@ namespace Game.Shared.Network.Fusion
         private bool _isLevelUpPaused;
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
-        private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
         private readonly HashSet<PlayerRef> _sceneReadyPlayers = new();
 
         // =====================================================================
@@ -78,19 +78,14 @@ namespace Game.Shared.Network.Fusion
             }
             DontDestroyOnLoad(gameObject);
 
-            // クライアント側レプリカ: onBeforeSpawned が実行されないため、Runner 経由で DI 注入
-            if (_waveStartedPub == null)
-            {
-                var fusionRunner = Runner.GetComponent<SurvivorFusionRunner>();
-                fusionRunner?.Resolver?.InjectGameObject(gameObject);
-            }
-
+            _runnerService?.Register(this);
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             Debug.Log($"[SurvivorFusionGameState] Spawned (StateAuth={HasStateAuthority}, DI={_waveStartedPub != null}, IsInstance={Instance == this})");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            _runnerService?.Unregister(this);
             if (Instance == this) Instance = null;
         }
 
@@ -253,20 +248,6 @@ namespace Game.Shared.Network.Fusion
                 new SurvivorSignals.Player.ItemCollected(
                     userId.ToString(), itemId, itemType, effectValue,
                     currentExperience, experienceToNextLevel));
-        }
-
-        /// <summary>サーバー側: レベルアップを通知（武器選択肢付き）</summary>
-        public void NotifyPlayerLevelUp(string userId, int newLevel,
-            int experience, int experienceToNextLevel,
-            SurvivorNetworkWeaponUpgradeOption[] options)
-        {
-            if (!HasStateAuthority) return;
-            // 武器選択肢はサーバー側で記録（検証用）
-            _lastSentWeaponOptions = options;
-            // Host モード: 直接 Publish（RPC 経由だと配列が渡せないため）
-            _playerLeveledUpPub?.Publish(
-                new SurvivorSignals.Player.LeveledUp(
-                    userId, newLevel, experience, experienceToNextLevel, options));
         }
 
         /// <summary>サーバー側: 武器変更を通知</summary>
@@ -437,6 +418,7 @@ namespace Game.Shared.Network.Fusion
         /// </summary>
         public void OnPlayerDied(string userId)
         {
+            if (!HasStateAuthority) return;
             _deadPlayerIds.Add(userId);
             Debug.Log($"[SurvivorFusionGameState] Player died: {userId} ({_deadPlayerIds.Count}/{_totalPlayerCount})");
 
@@ -474,34 +456,9 @@ namespace Game.Shared.Network.Fusion
         //  サーバー側ロジック: 武器選択検証
         // =====================================================================
 
-        /// <summary>サーバー側: 送信した武器選択肢を記録（検証用）</summary>
-        public void SetPendingWeaponOptions(SurvivorNetworkWeaponUpgradeOption[] options)
-        {
-            _lastSentWeaponOptions = options;
-        }
-
-        /// <summary>サーバー側: クライアントからの武器選択を検証・適用</summary>
+        /// <summary>サーバー側: クライアントからの武器選択を適用（検証は SurvivorFusionPlayer で実施済み）</summary>
         public void OnClientWeaponChoice(int weaponId, bool isNewWeapon)
         {
-            if (_lastSentWeaponOptions != null)
-            {
-                bool valid = false;
-                foreach (var opt in _lastSentWeaponOptions)
-                {
-                    if (opt.WeaponId == weaponId)
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
-                if (!valid)
-                {
-                    Debug.LogWarning($"[SurvivorFusionGameState] Rejected invalid weapon choice: {weaponId}");
-                    return;
-                }
-                _lastSentWeaponOptions = null;
-            }
-
             var request = new WeaponApplyRequest
             {
                 WeaponId = weaponId,

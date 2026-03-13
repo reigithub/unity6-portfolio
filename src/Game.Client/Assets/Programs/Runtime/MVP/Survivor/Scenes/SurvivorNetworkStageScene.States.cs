@@ -8,7 +8,6 @@ using Game.Shared.Network;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using MessagePipe;
-using Unity.Collections;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Scenes
@@ -233,11 +232,10 @@ namespace Game.MVP.Survivor.Scenes
                     if (serverOptions.Count > 0)
                     {
                         var networkOptions = ConvertToNetworkOptions(serverOptions);
-                        var fusionGs = SurvivorFusionGameState.Instance;
-                        if (fusionGs != null)
+                        var fusionPlayer = View.PlayerController?.FusionPlayer;
+                        if (fusionPlayer != null)
                         {
-                            fusionGs.NotifyPlayerLevelUp(
-                                "",
+                            fusionPlayer.NotifyPlayerLevelUp(
                                 StageModel.Level.Value,
                                 StageModel.Experience.Value,
                                 StageModel.ExperienceToNextLevel.Value,
@@ -269,12 +267,12 @@ namespace Game.MVP.Survivor.Scenes
                     result[i] = new SurvivorNetworkWeaponUpgradeOption
                     {
                         WeaponId = opt.WeaponId,
-                        WeaponName = new FixedString128Bytes(opt.WeaponName ?? ""),
+                        WeaponName = opt.WeaponName ?? "",
                         IsNewWeapon = opt.IsNewWeapon,
                         CurrentLevel = opt.CurrentLevel,
-                        Description = new FixedString128Bytes(opt.Description ?? ""),
-                        UpgradeEffect = new FixedString128Bytes(opt.UpgradeEffect ?? ""),
-                        IconAssetName = new FixedString128Bytes(opt.IconAssetName ?? "")
+                        Description = opt.Description ?? "",
+                        UpgradeEffect = opt.UpgradeEffect ?? "",
+                        IconAssetName = opt.IconAssetName ?? ""
                     };
                 }
                 return result;

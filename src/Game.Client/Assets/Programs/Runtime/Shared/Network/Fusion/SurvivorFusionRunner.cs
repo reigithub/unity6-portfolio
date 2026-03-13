@@ -45,11 +45,15 @@ namespace Game.Shared.Network.Fusion
 
             var sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
 
+            var objectProvider = gameObject.AddComponent<VContainerNetworkObjectProvider>();
+            objectProvider.SetResolver(Resolver);
+
             var result = await Runner.StartGame(new StartGameArgs
             {
                 GameMode = gameMode,
                 SessionName = sessionName,
                 SceneManager = sceneManager,
+                ObjectProvider = objectProvider,
             });
 
             if (result.Ok)

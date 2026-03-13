@@ -19,6 +19,7 @@ namespace Game.Shared.Network.Fusion
     {
         [Inject] private readonly IObjectResolver _resolver;
         [Inject] private readonly IAddressableAssetService _assetService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
@@ -60,6 +61,7 @@ namespace Game.Shared.Network.Fusion
 
                 SpawnGameState(_runner.Runner);
                 SpawnEnemyBatchSync(_runner.Runner);
+                _runnerService.Initialize(_runner.Runner, _resolver);
                 NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Host);
                 Debug.Log("[SurvivorFusionStageConnector] Host mode started");
             }
@@ -85,6 +87,7 @@ namespace Game.Shared.Network.Fusion
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Client connect failed: {result.ShutdownReason}");
 
+                _runnerService.Initialize(_runner.Runner, _resolver);
                 NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Client);
                 Debug.Log($"[SurvivorFusionStageConnector] Connected to session: {sessionName}");
             }
@@ -115,6 +118,7 @@ namespace Game.Shared.Network.Fusion
 
                 SpawnGameState(_runner.Runner);
                 SpawnEnemyBatchSync(_runner.Runner);
+                _runnerService.Initialize(_runner.Runner, _resolver);
                 NetworkModeHelper.SetFusionRunner(_runner.Runner, GameMode.Server);
                 Debug.Log("[SurvivorFusionStageConnector] Server-only mode started");
             }
@@ -138,6 +142,7 @@ namespace Game.Shared.Network.Fusion
 
             _session = null;
             ReleasePrefabs();
+            _runnerService.Clear();
             NetworkModeHelper.ClearFusionRunner();
             Debug.Log("[SurvivorFusionStageConnector] Disconnected");
         }
@@ -232,7 +237,7 @@ namespace Game.Shared.Network.Fusion
 
             runner.Spawn(prefab, onBeforeSpawned: (_, obj) =>
             {
-                _resolver.InjectGameObject(obj.gameObject);
+                // _resolver.InjectGameObject(obj.gameObject);
             });
             Debug.Log("[SurvivorFusionStageConnector] GameState spawned");
         }
@@ -246,13 +251,15 @@ namespace Game.Shared.Network.Fusion
 
             runner.Spawn(prefab, onBeforeSpawned: (_, obj) =>
             {
-                _resolver.InjectGameObject(obj.gameObject);
+                // _resolver.InjectGameObject(obj.gameObject);
             });
             Debug.Log("[SurvivorFusionStageConnector] EnemyBatchSync spawned");
         }
 
         private void OnRunnerShutdown(ShutdownReason reason)
         {
+            _runnerService.Clear();
+            ((FusionRunnerService)_runnerService).RaiseClientDisconnected();
             NetworkModeHelper.ClearFusionRunner();
             NetworkModeHelper.RaiseClientDisconnected();
             _session = null;

@@ -111,6 +111,7 @@ namespace Game.MVP.Survivor.Player
 
         // ネットワーク同期用
         private SurvivorFusionPlayer _fusionPlayer;
+        public SurvivorFusionPlayer FusionPlayer => _fusionPlayer;
         private bool _skipPhysics;
         private float _cameraRotationY;
 

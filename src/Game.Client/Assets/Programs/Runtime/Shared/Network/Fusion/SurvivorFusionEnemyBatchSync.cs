@@ -4,7 +4,6 @@ using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.Shared.Network.Fusion
 {
@@ -36,13 +35,6 @@ namespace Game.Shared.Network.Fusion
                 Instance = this;
             }
             DontDestroyOnLoad(gameObject);
-
-            // クライアント側レプリカ: onBeforeSpawned が実行されないため、Runner 経由で DI 注入
-            if (_enemyBatchPub == null)
-            {
-                var fusionRunner = Runner.GetComponent<SurvivorFusionRunner>();
-                fusionRunner?.Resolver?.InjectGameObject(gameObject);
-            }
 
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             Debug.Log($"[SurvivorFusionEnemyBatchSync] Spawned (StateAuth={HasStateAuthority}, Injected={_enemyBatchPub != null}, IsInstance={Instance == this})");

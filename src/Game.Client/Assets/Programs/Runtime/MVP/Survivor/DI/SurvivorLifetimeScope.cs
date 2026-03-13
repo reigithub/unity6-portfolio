@@ -51,6 +51,7 @@ namespace Game.MVP.Survivor
             builder.Register<AddressableAssetService>(Lifetime.Singleton).As<IAddressableAssetService>();
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
+            builder.Register<FusionRunnerService>(Lifetime.Singleton).As<IFusionRunnerService>();
 
             if (UnityPlaymodeHelper.IsServer())
             {

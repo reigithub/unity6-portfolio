@@ -42,6 +42,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -221,13 +222,12 @@ namespace Game.MVP.Survivor.Scenes
             // ヒットコールバック設定（武器サブクラスから Collider + WeaponId を受け取り、サーバーに委譲）
             SceneComponent.WeaponManager.SetHitCallback((other, weaponId) =>
             {
-                var fusionGs = SurvivorFusionGameState.Instance;
-                if (fusionGs == null) return;
+                if (!_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer)) return;
 
                 var enemy = other.GetComponentInParent<SurvivorEnemyController>();
                 if (enemy != null && !enemy.IsDead && enemy.NetworkId >= 0)
                 {
-                    fusionGs.OnClientHitReported(enemy.NetworkId, weaponId);
+                    localPlayer.RpcClientHitReported(enemy.NetworkId, weaponId);
                 }
             });
 

@@ -77,6 +77,11 @@ namespace Game.MVP.Survivor.Scenes
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
+
+            protected bool TryGetLocalPlayer(out SurvivorFusionPlayer player)
+            {
+                return Context._runnerService.TryGetLocalPlayerComponent(out player);
+            }
         }
 
         #endregion
@@ -150,8 +155,10 @@ namespace Game.MVP.Survivor.Scenes
                 AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
 
                 // サーバーに準備完了を通知（サーバーはこれを受けてゲーム開始）
-                var fusionGs = SurvivorFusionGameState.Instance;
-                fusionGs?.OnClientSceneReady(fusionGs.Runner.LocalPlayer);
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientSceneReady();
+                }
                 Debug.Log("[ReadyState] Scene ready notification sent to server");
 
                 _countdownComplete = true;
@@ -291,7 +298,10 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
 
-                SurvivorFusionGameState.Instance?.OnClientRequestPause();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestPause();
+                }
 
                 ShowPauseDialogAsync().Forget();
             }
@@ -319,7 +329,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[PausedState] Exit");
 
-                SurvivorFusionGameState.Instance?.OnClientRequestResume();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestResume();
+                }
 
                 ApplicationEvents.ResumeTime();
             }
@@ -337,7 +350,10 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
 
-                SurvivorFusionGameState.Instance?.OnClientRequestPause();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestPause();
+                }
 
                 ShowLevelUpDialogAsync().Forget();
             }
@@ -402,8 +418,10 @@ namespace Game.MVP.Survivor.Scenes
                             await View.WeaponManager.ReplaceWeaponAsync(
                                 removeWeaponId.Value,
                                 result.WeaponId);
-                            SurvivorFusionGameState.Instance?.OnClientWeaponReplace(
-                                removeWeaponId.Value, result.WeaponId);
+                            if (TryGetLocalPlayer(out var rp))
+                            {
+                                rp.RpcClientWeaponReplace(removeWeaponId.Value, result.WeaponId);
+                            }
                             break;
                         }
 
@@ -413,15 +431,20 @@ namespace Game.MVP.Survivor.Scenes
                     else
                     {
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
-                        SurvivorFusionGameState.Instance?.OnClientWeaponChoice(
-                            result.WeaponId, result.IsNewWeapon);
+                        if (TryGetLocalPlayer(out var cp))
+                        {
+                            cp.RpcClientWeaponChoice(result.WeaponId, result.IsNewWeapon);
+                        }
                         break;
                     }
                 }
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
 
-                SurvivorFusionGameState.Instance?.OnClientRequestResume();
+                if (TryGetLocalPlayer(out var resumePlayer))
+                {
+                    resumePlayer.RpcClientRequestResume();
+                }
 
                 Transition(StageEvent.LevelUpComplete);
             }
