@@ -11,7 +11,6 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;

@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Fusion;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion セッション管理。プレイヤー接続追跡と AllPlayersReady 通知を担当。

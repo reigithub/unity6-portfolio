@@ -1,11 +1,11 @@
 using Fusion;
-using Game.Shared.Network.Survivor;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion 2 敵バッチ同期 NetworkBehaviour シングルトン。
@@ -19,7 +19,7 @@ namespace Game.Shared.Network.Fusion
 
         [Networked] public int ActiveCount { get; set; }
         [Networked, Capacity(512)]
-        public NetworkArray<EnemyStateData> EnemyStates => default;
+        public NetworkArray<SurvivorEnemyStateData> EnemyStates => default;
 
         private ChangeDetector _changeDetector;
 
@@ -54,7 +54,7 @@ namespace Game.Shared.Network.Fusion
             for (int i = 0; i < ActiveCount; i++)
             {
                 var s = snapshots[i];
-                EnemyStates.Set(i, new EnemyStateData
+                EnemyStates.Set(i, new SurvivorEnemyStateData
                 {
                     NetworkId = s.NetworkId,
                     EnemyMasterId = s.EnemyMasterId,

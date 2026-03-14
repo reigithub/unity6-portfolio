@@ -1,13 +1,13 @@
 using Fusion;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// 敵状態の Fusion ネットワーク同期用構造体。
     /// NetworkArray に格納して 500+ 体の敵を一括同期する。
     /// </summary>
     [System.Serializable]
-    public struct EnemyStateData : INetworkStruct
+    public struct SurvivorEnemyStateData : INetworkStruct
     {
         public int NetworkId;
         public int EnemyMasterId;

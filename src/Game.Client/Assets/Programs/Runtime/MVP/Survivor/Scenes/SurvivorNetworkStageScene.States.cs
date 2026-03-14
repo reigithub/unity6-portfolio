@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using MessagePipe;
 using UnityEngine;

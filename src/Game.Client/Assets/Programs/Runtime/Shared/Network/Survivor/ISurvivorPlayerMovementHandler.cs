@@ -1,14 +1,14 @@
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
-    public interface IPlayerMovementHandler
+    public interface ISurvivorPlayerMovementHandler
     {
         /// <summary>
         /// Fusion tick ごとに呼ばれる。入力消費 → ステート更新 → 物理移動 → スナップショット返却。
         /// </summary>
-        PlayerPhysicsSnapshot ProcessTick(PlayerNetworkInput input, float deltaTime);
+        SurvivorPlayerPhysicsSnapshot ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime);
     }
 
-    public struct PlayerPhysicsSnapshot
+    public struct SurvivorPlayerPhysicsSnapshot
     {
         public UnityEngine.Vector3 Position;
         public float RotationY;

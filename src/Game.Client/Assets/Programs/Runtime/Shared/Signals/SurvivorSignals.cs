@@ -299,9 +299,9 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct ApplyRequested
             {
-                public readonly WeaponApplyRequest Request;
+                public readonly SurvivorWeaponApplyRequest Request;
 
-                public ApplyRequested(WeaponApplyRequest request)
+                public ApplyRequested(SurvivorWeaponApplyRequest request)
                 {
                     Request = request;
                 }

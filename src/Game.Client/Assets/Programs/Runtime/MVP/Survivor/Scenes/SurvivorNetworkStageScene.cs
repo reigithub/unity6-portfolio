@@ -269,18 +269,18 @@ namespace Game.MVP.Survivor.Scenes
             _weaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
         }
 
-        private void OnServerWeaponApply(WeaponApplyRequest request)
+        private void OnServerWeaponApply(SurvivorWeaponApplyRequest request)
         {
             switch (request.Type)
             {
-                case WeaponApplyType.AddOrUpgrade:
+                case SurvivorWeaponApplyType.AddOrUpgrade:
                     if (request.IsNewWeapon)
                         _weaponManager.AddWeapon(request.WeaponId);
                     else
                         _weaponManager.UpgradeWeapon(request.WeaponId);
                     break;
 
-                case WeaponApplyType.Replace:
+                case SurvivorWeaponApplyType.Replace:
                     _weaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
                     break;
             }

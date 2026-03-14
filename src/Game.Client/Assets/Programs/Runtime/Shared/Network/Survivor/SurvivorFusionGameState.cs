@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using Fusion;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network.Survivor;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion 2 ゲーム状態シングルトン NetworkBehaviour。
@@ -423,11 +423,11 @@ namespace Game.Shared.Network.Fusion
         /// <summary>サーバー側: クライアントからの武器選択を適用（検証は SurvivorFusionPlayer で実施済み）</summary>
         public void OnClientWeaponChoice(int weaponId, bool isNewWeapon)
         {
-            var request = new WeaponApplyRequest
+            var request = new SurvivorWeaponApplyRequest
             {
                 WeaponId = weaponId,
                 IsNewWeapon = isNewWeapon,
-                Type = WeaponApplyType.AddOrUpgrade
+                Type = SurvivorWeaponApplyType.AddOrUpgrade
             };
             _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
         }
@@ -435,11 +435,11 @@ namespace Game.Shared.Network.Fusion
         /// <summary>サーバー側: クライアントからの武器入れ替えを適用</summary>
         public void OnClientWeaponReplace(int removeWeaponId, int newWeaponId)
         {
-            var request = new WeaponApplyRequest
+            var request = new SurvivorWeaponApplyRequest
             {
                 WeaponId = newWeaponId,
                 RemoveWeaponId = removeWeaponId,
-                Type = WeaponApplyType.Replace
+                Type = SurvivorWeaponApplyType.Replace
             };
             _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
         }

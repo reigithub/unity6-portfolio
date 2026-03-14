@@ -6,6 +6,7 @@ using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -22,7 +23,7 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, IPlayerMovementHandler
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorPlayerMovementHandler
     {
         // Profiler markers
         private static readonly ProfilerMarker s_attractItemsMarker = new("ProfilerMarker.Player.AttractItems");
@@ -168,7 +169,7 @@ namespace Game.MVP.Survivor.Player
             // InputAuthority プレイヤー: Fusion OnInput 用の入力収集デリゲートを設定
             if (fusionPlayer.HasInputAuthority)
             {
-                fusionPlayer.InputGatherer = () => new PlayerNetworkInput
+                fusionPlayer.InputGatherer = () => new SurvivorPlayerNetworkInput
                 {
                     Move = _inputService.Player.Move.ReadValue<UnityEngine.Vector2>(),
                     IsSprinting = _inputService.Player.LeftShift.IsPressed(),
@@ -268,7 +269,7 @@ namespace Game.MVP.Survivor.Player
         /// <summary>
         /// IPlayerMovementHandler: Fusion tick ごとに FusionPlayer から呼ばれる。
         /// </summary>
-        public PlayerPhysicsSnapshot ProcessTick(PlayerNetworkInput input, float deltaTime)
+        public SurvivorPlayerPhysicsSnapshot ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime)
         {
             _networkDeltaTime = deltaTime;
 
@@ -287,7 +288,7 @@ namespace Game.MVP.Survivor.Player
                 ExecuteMovement(input, deltaTime);
             }
 
-            return new PlayerPhysicsSnapshot
+            return new SurvivorPlayerPhysicsSnapshot
             {
                 Position = transform.position,
                 RotationY = transform.eulerAngles.y,
@@ -374,7 +375,7 @@ namespace Game.MVP.Survivor.Player
 
         #region Movement
 
-        private void ExecuteMovement(PlayerNetworkInput input, float deltaTime)
+        private void ExecuteMovement(SurvivorPlayerNetworkInput input, float deltaTime)
         {
             var moveValue = input.Move;
             var isMoveInput = moveValue.magnitude > 0.1f;

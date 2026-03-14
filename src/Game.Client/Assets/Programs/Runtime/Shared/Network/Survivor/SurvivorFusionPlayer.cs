@@ -1,12 +1,12 @@
 using System;
 using Fusion;
-using Game.Shared.Network.Survivor;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion 2 プレイヤー NetworkBehaviour。
@@ -32,10 +32,10 @@ namespace Game.Shared.Network.Fusion
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
-        public Func<PlayerNetworkInput> InputGatherer { get; set; }
+        public Func<SurvivorPlayerNetworkInput> InputGatherer { get; set; }
 
         /// <summary>移動処理委譲先（Controller がバインド時に設定）</summary>
-        public IPlayerMovementHandler MovementHandler { get; set; }
+        public ISurvivorPlayerMovementHandler MovementHandler { get; set; }
 
         /// <summary>リモートプレイヤーのビジュアル補間対象 Transform</summary>
         public Transform InterpolationTarget { get; set; }
@@ -75,7 +75,7 @@ namespace Game.Shared.Network.Fusion
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
 
-            if (GetInput(out PlayerNetworkInput input) && MovementHandler != null)
+            if (GetInput(out SurvivorPlayerNetworkInput input) && MovementHandler != null)
             {
                 var snapshot = MovementHandler.ProcessTick(input, Runner.DeltaTime);
 

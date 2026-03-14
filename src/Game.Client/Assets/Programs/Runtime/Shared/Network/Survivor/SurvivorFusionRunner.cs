@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
+using Game.Shared.Network.Fusion;
 using UnityEngine;
 using VContainer;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion 2 NetworkRunner のホスト MonoBehaviour。
@@ -22,7 +23,7 @@ namespace Game.Shared.Network.Fusion
         internal Action<ShutdownReason> OnShutdownCallback { get; set; }
 
         /// <summary>入力収集デリゲート（SurvivorFusionPlayer が設定）</summary>
-        internal Func<PlayerNetworkInput> InputProvider { get; set; }
+        internal Func<SurvivorPlayerNetworkInput> InputProvider { get; set; }
 
         /// <summary>VContainer リゾルバ（クライアント側レプリカの DI 注入用）</summary>
         internal IObjectResolver Resolver { get; set; }

@@ -1,5 +1,5 @@
 using Game.Library.Shared;
-using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Signals.Survivor;
 using UnityEngine;
 

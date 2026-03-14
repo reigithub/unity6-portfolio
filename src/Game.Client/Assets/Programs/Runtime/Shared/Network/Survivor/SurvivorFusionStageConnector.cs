@@ -1,7 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Fusion;
-using Game.Shared.Network.Survivor;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -9,7 +9,7 @@ using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// ISurvivorNetworkStageConnector の Fusion 2 実装。

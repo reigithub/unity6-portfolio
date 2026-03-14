@@ -7,6 +7,7 @@ using Game.MVP.Survivor.Enemy;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using Unity.Profiling;
