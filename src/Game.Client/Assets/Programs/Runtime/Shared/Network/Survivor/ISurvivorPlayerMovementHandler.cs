@@ -10,8 +10,6 @@ namespace Game.Shared.Network.Survivor
 
     public struct SurvivorPlayerPhysicsSnapshot
     {
-        public UnityEngine.Vector3 Position;
-        public float RotationY;
         public float Speed;
         public int Health;
         public int MaxHealth;

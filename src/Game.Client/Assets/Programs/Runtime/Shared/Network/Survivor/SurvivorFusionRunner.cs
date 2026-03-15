@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Fusion;
+using Fusion.Addons.Physics;
 using Fusion.Sockets;
 using Game.Shared.Network.Fusion;
 using UnityEngine;
@@ -45,6 +46,10 @@ namespace Game.Shared.Network.Survivor
             Runner = gameObject.AddComponent<NetworkRunner>();
             Runner.ProvideInput = gameMode != GameMode.Server;
 
+            // Physics Addon: NetworkRigidbody3D の動作に必要
+            var physicsSimulation = gameObject.AddComponent<RunnerSimulatePhysics3D>();
+            physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateAlways;
+
             var sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
 
             var objectProvider = gameObject.AddComponent<VContainerNetworkObjectProvider>();
@@ -68,6 +73,15 @@ namespace Game.Shared.Network.Survivor
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 接続中の全プレイヤーを指定位置にスポーンする。
+        /// ステージシーンロード後に呼ぶ。
+        /// </summary>
+        public void SpawnConnectedPlayers(Vector3 position, Quaternion rotation)
+        {
+            Session?.SpawnConnectedPlayers(Runner, position, rotation);
         }
 
         private void OnDestroy()

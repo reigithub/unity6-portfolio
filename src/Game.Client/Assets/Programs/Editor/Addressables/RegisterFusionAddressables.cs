@@ -19,6 +19,7 @@ namespace Game.Editor.Addressables
             ("Assets/ProjectAssets/Survivor/Prefabs/Network/SurvivorFusionGameState.prefab", "SurvivorFusionGameState"),
             ("Assets/ProjectAssets/Survivor/Prefabs/Network/SurvivorFusionPlayer.prefab", "SurvivorFusionPlayer"),
             ("Assets/ProjectAssets/Survivor/Prefabs/Network/SurvivorFusionEnemyBatchSync.prefab", "SurvivorFusionEnemyBatchSync"),
+            ("Assets/ProjectAssets/Survivor/Prefabs/Player/SDUnityChan_Model.prefab", "SDUnityChan_Model"),
         };
 
         [MenuItem("Tools/Addressables/Register Fusion Network Prefabs")]

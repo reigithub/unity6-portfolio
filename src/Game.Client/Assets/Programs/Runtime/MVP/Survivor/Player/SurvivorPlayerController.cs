@@ -123,10 +123,10 @@ namespace Game.MVP.Survivor.Player
 
         private void Update()
         {
-            // FusionPlayer がまだバインドされていなければポーリングで取得
-            if (_fusionPlayer == null && _runnerService != null)
+            // FusionPlayer がまだバインドされていなければ同一 GO から取得
+            if (_fusionPlayer == null)
             {
-                if (_runnerService.TryGet<SurvivorFusionPlayer>(out var fp))
+                if (TryGetComponent<SurvivorFusionPlayer>(out var fp))
                     BindFusionPlayer(fp);
             }
 
@@ -139,7 +139,6 @@ namespace Game.MVP.Survivor.Player
             {
                 _fusionPlayer.InputGatherer = null;
                 _fusionPlayer.MovementHandler = null;
-                _fusionPlayer.InterpolationTarget = null;
                 _fusionPlayer = null;
             }
 
@@ -162,9 +161,8 @@ namespace Game.MVP.Survivor.Player
         {
             _fusionPlayer = fusionPlayer;
 
-            // 移動ハンドラ + 補間ターゲットを設定
+            // 移動ハンドラを設定
             fusionPlayer.MovementHandler = this;
-            fusionPlayer.InterpolationTarget = transform;
 
             // InputAuthority プレイヤー: Fusion OnInput 用の入力収集デリゲートを設定
             if (fusionPlayer.HasInputAuthority)
@@ -215,8 +213,8 @@ namespace Game.MVP.Survivor.Player
             // ステートマシン初期化
             InitializeStateMachine();
 
-            // プレイヤースポーンシグナルを発行（カメラフォロー等に使用）
-            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+            // プレイヤースポーンシグナルは SurvivorPlayerStart.LoadPlayerAsync から発行
+            // （InterpolationTarget をカメラ追従先にするため）
         }
 
         /// <summary>
@@ -290,8 +288,6 @@ namespace Game.MVP.Survivor.Player
 
             return new SurvivorPlayerPhysicsSnapshot
             {
-                Position = transform.position,
-                RotationY = transform.eulerAngles.y,
                 Speed = _speed.Value,
                 Health = _currentHp.Value,
                 MaxHealth = _maxHp,
@@ -395,12 +391,14 @@ namespace Game.MVP.Survivor.Player
 
             var desiredMovement = _moveVector * _speed.Value * deltaTime;
             var safeMovement = CalculateSafeMovement(desiredMovement);
-            _rigidbody.MovePosition(_rigidbody.position + safeMovement);
+
+            // velocity 設定（NRB3D との競合を避けるため MovePosition 不使用）
+            var horizontalVelocity = deltaTime > 0f ? safeMovement / deltaTime : Vector3.zero;
+            _rigidbody.linearVelocity = new Vector3(horizontalVelocity.x, _rigidbody.linearVelocity.y, horizontalVelocity.z);
 
             if (isMoveInput)
             {
-                _rigidbody.MoveRotation(
-                    Quaternion.Slerp(_rigidbody.rotation, _lookRotation, _rotationRatio * deltaTime));
+                _rigidbody.rotation = Quaternion.Slerp(_rigidbody.rotation, _lookRotation, _rotationRatio * deltaTime);
             }
         }
 

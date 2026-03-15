@@ -86,6 +86,9 @@ namespace Game.MVP.Survivor
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+
+            // Server Game Loop: AllPlayersReady → SurvivorNetworkStageScene 遷移
+            builder.RegisterEntryPoint<SurvivorServerGameLoop>();
         }
 
         /// <summary>

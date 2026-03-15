@@ -47,18 +47,34 @@ namespace Game.Shared.Network.Survivor
             _connectedPlayers.Add(player);
             Debug.Log($"[SurvivorFusionSession] Player joined: {player} ({ConnectedPlayerCount}/{_expectedPlayerCount})");
 
-            // Server/Host: プレイヤー NetworkObject をスポーン
-            if (runner.IsServer && _playerPrefab != null)
-            {
-                var playerObj = runner.Spawn(_playerPrefab, inputAuthority: player);
-                runner.SetPlayerObject(player, playerObj);
-                Debug.Log($"[SurvivorFusionSession] Spawned player object for {player}");
-            }
+            // Spawn はステージシーンロード後に SpawnConnectedPlayers() で行う
 
             if (runner.IsServer && ConnectedPlayerCount >= _expectedPlayerCount && !_allPlayersNotified)
             {
                 _allPlayersNotified = true;
                 NotifyAllPlayersReadyAsync().Forget();
+            }
+        }
+
+        /// <summary>
+        /// 接続中の全プレイヤーを指定位置にスポーンする。
+        /// ステージシーンロード後に SurvivorNetworkStageScene から呼ばれる。
+        /// </summary>
+        public void SpawnConnectedPlayers(NetworkRunner runner, Vector3 position, Quaternion rotation)
+        {
+            if (_playerPrefab == null)
+            {
+                Debug.LogError("[SurvivorFusionSession] Player prefab is null!");
+                return;
+            }
+
+            foreach (var player in _connectedPlayers)
+            {
+                if (runner.GetPlayerObject(player) != null) continue;
+
+                var playerObj = runner.Spawn(_playerPrefab, position, rotation, inputAuthority: player);
+                runner.SetPlayerObject(player, playerObj);
+                Debug.Log($"[SurvivorFusionSession] Spawned player {player} at {position}");
             }
         }
 

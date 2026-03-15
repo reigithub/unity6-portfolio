@@ -1,5 +1,6 @@
 using System;
 using Fusion;
+using Fusion.Addons.Physics;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -25,20 +26,16 @@ namespace Game.Shared.Network.Survivor
         [Networked] public int MaxStamina { get; set; }
         [Networked] public float Speed { get; set; }
         [Networked] public NetworkBool IsInvincible { get; set; }
-        [Networked] public Vector3 NetworkPosition { get; set; }
-        [Networked] public float NetworkRotationY { get; set; }
 
         private ChangeDetector _changeDetector;
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
+        private int _renderLogCount;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
         public Func<SurvivorPlayerNetworkInput> InputGatherer { get; set; }
 
         /// <summary>移動処理委譲先（Controller がバインド時に設定）</summary>
         public ISurvivorPlayerMovementHandler MovementHandler { get; set; }
-
-        /// <summary>リモートプレイヤーのビジュアル補間対象 Transform</summary>
-        public Transform InterpolationTarget { get; set; }
 
         /// <summary>クライアント側で状態変更を検知するイベント</summary>
         public event Action<SurvivorFusionPlayer> OnStateChanged;
@@ -48,10 +45,13 @@ namespace Game.Shared.Network.Survivor
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             DontDestroyOnLoad(gameObject);
 
-            if (HasInputAuthority)
+            if (HasInputAuthority || HasStateAuthority)
             {
                 _runnerService?.Register(this);
+            }
 
+            if (HasInputAuthority)
+            {
                 if (Runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
                 {
                     fusionRunner.InputProvider = () => InputGatherer?.Invoke() ?? default;
@@ -59,6 +59,23 @@ namespace Game.Shared.Network.Survivor
             }
 
             Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, Injected={_playerLeveledUpPub != null})");
+        }
+
+        /// <summary>
+        /// NetworkRigidbody3D の InterpolationTarget を設定する。
+        /// </summary>
+        public void SetInterpolationTarget(Transform target)
+        {
+            if (TryGetComponent<NetworkRigidbody3D>(out var nrb))
+            {
+                nrb.InterpolationTarget = target;
+                _renderLogCount = 0;
+                Debug.Log($"[SurvivorFusionPlayer] InterpolationTarget set to '{target.name}' (NRB3D found)");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorFusionPlayer] SetInterpolationTarget: NRB3D not found!");
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -81,8 +98,6 @@ namespace Game.Shared.Network.Survivor
 
                 if (HasStateAuthority)
                 {
-                    NetworkPosition = snapshot.Position;
-                    NetworkRotationY = snapshot.RotationY;
                     Speed = snapshot.Speed;
                     Health = snapshot.Health;
                     MaxHealth = snapshot.MaxHealth;
@@ -95,14 +110,15 @@ namespace Game.Shared.Network.Survivor
 
         public override void Render()
         {
-            // リモートプレイヤー: [Networked] プロパティから補間
-            if (InterpolationTarget != null && !HasInputAuthority)
+            // 位置/回転の補間は NetworkRigidbody3D が自動処理
+
+            if (_renderLogCount < 5)
             {
-                InterpolationTarget.position = Vector3.Lerp(InterpolationTarget.position, NetworkPosition, Time.deltaTime * 15f);
-                InterpolationTarget.rotation = Quaternion.Slerp(
-                    InterpolationTarget.rotation,
-                    Quaternion.Euler(0f, NetworkRotationY, 0f),
-                    Time.deltaTime * 15f);
+                _renderLogCount++;
+                var nrb = GetComponent<NetworkRigidbody3D>();
+                var interpTarget = nrb != null ? nrb.InterpolationTarget : null;
+                var interpPos = interpTarget != null ? interpTarget.position.ToString() : "N/A";
+                Debug.Log($"[FP.Render#{_renderLogCount}] auth=I:{HasInputAuthority}/S:{HasStateAuthority}, root={transform.position}, interp={interpPos}, interpName={interpTarget?.name ?? "null"}, rb={GetComponent<Rigidbody>()?.position}");
             }
 
             if (_changeDetector == null) return;
@@ -115,8 +131,6 @@ namespace Game.Shared.Network.Survivor
                     case nameof(Stamina):
                     case nameof(Speed):
                     case nameof(IsInvincible):
-                    case nameof(NetworkPosition):
-                    case nameof(NetworkRotationY):
                         OnStateChanged?.Invoke(this);
                         break;
                 }

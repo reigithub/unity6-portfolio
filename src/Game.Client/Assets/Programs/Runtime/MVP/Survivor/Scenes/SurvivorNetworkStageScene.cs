@@ -83,6 +83,7 @@ namespace Game.MVP.Survivor.Scenes
                 _stageModel.GetDamageMultiplier());
 
             await LoadUnitySceneAsync();
+            await UniTask.Yield();
             await SpawnPlayerAsync();
 
             BuildStateMachine();
@@ -115,6 +116,19 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.LogWarning("[SurvivorNetworkStageScene] PlayerStart not found, player spawn skipped");
                 return;
+            }
+
+            // Fusion プレイヤーオブジェクトを PlayerStart 位置にスポーン
+            Debug.Log($"[SurvivorNetworkStageScene] SpawnPlayerAsync: PlayerStart pos={playerStart.transform.position}, Runner={_runnerService.Runner != null}");
+            if (_runnerService.Runner != null &&
+                _runnerService.Runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
+            {
+                fusionRunner.SpawnConnectedPlayers(playerStart.transform.position, Quaternion.identity);
+                Debug.Log("[SurvivorNetworkStageScene] SpawnConnectedPlayers called");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorNetworkStageScene] FusionRunner not found, spawn skipped!");
             }
 
             var playerMaster = _stageModel.PlayerMaster;

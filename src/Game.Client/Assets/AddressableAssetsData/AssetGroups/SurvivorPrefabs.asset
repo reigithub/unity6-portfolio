@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: SurvivorPrefabs
   m_GUID: 75503b5e72d6e184cbf76e980dd5e5dd
   m_SerializeEntries:
+  - m_GUID: 2e30e61ba8f86fd448d50d5c795607e6
+    m_Address: SDUnityChan_Model
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 73fee9971f6488c468b0bdd49a79f6c6
     m_Address: SurvivorFusionEnemyBatchSync
     m_ReadOnly: 0
