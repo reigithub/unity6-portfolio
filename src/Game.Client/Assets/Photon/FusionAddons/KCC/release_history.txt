@@ -1,0 +1,178 @@
+Photon Fusion Advanced KCC Addon - Release History
+
+Last tested with Fusion SDK 2.0.6 Stable 1034
+
+2.0.21
+- Fixed KCC logs enabled via inspector.
+- Fixed jitter when landing on collider edge - clearing DynamicVelocity.y when step-up is triggered in StepUpProcessor.
+
+2.0.20
+- PlatformProcessor overhaul.
+    - Fixed calculation of propagated position delta while touching multiple moving platforms at once. This can happen for a moment when moving from one platform to another.
+    - Fixed KCCData.Velocity for KCC proxies on platforms. The world space velocity keeps zero when standing still on a moving platform.
+    - Fixed calculation of KCC proxy target position based on offsets stored in interpolation buffers. The interpolation alpha was incorrectly mixed with Platform.Alpha.
+    - Improved interpolation of KCC when entering or leaving a platform.
+
+2.0.19
+- Fixed exception when the KCC has more than 64 active processors.
+- Fixed rare case when KCC was spawned and PlatformProcessor received its state in following frames.
+- Added clamp of tiny KinematicVelocity to EnvironmentProcessor. This fixes a never-ending movement (not perceivable, like 0.000001f every tick) even with zero input direction being set.
+- Fixed clamp to normalized vector in KCC.SetInputDirection().
+- Fixed incorrect step-up activation in StepUpProcessor when touching wall colliders but not pushing against.
+
+2.0.18
+- In FixedUpdateNetwork KCC now controls Ridgidbody using Rigidbody.MovePosition() instead of setting Rigidbody.position directly (still used on client prediction reset).
+- KCC.SynchronizeTransform() and KCC.SetPosition() now have 'moveRigidbody' argument which allows to choose whether to synchronize position using Rigidbody.MovePosition() or directly assign Rigidbody.position.
+- Fixed cleanup of KCCData.RealVelocity, KCCData.RealSpeed and KCCData.HasTeleported the next tick after setting KCC inactive.
+- Fixed KCCData.RealVelocity, KCCData.RealSpeed value for render extrapolated move (when delta time is too small for the movement to be fully predicted).
+
+2.0.17
+- KCC editor scripts compatibility with Fusion SDK 2.0.2.
+
+2.0.16
+- Improved teleport - the information is now reliably synchronized over the network.
+- Removed TeleportThreshold from KCC Settings.
+- Max prediction error and anti-jitter distance check is now set to 1 meter.
+- Data is not restored from network buffer for simulated objects with RenderTimeframe.Remote.
+- Fixed KCCData.HasTeleported and KCCData.HasJumped for proxy objects (reliable implementation based on counters).
+- Fixed KCCData.HasTeleported and KCCData.HasJumped in render interpolated movement - they are now set only once in first Render after FUN in which teleport/jump happened.
+- KCC.SetPosition() now accepts optional parameters 'teleport' and 'allowAntiJitter'.
+- KCC resets position and look rotation to values from FUN in render interpolated movement.
+
+2.0.15
+- Increased range of CCD radius multiplier from 25-75% to 10-90%.
+- Improved precision of collision resolver for specific cases (corridors, 3 collisions with almost perpendicular penetration vectors).
+- Refactoring of penetration correction algorithm, improved performance scalability.
+- Ground snap processor now uses a copy of main KCCData for ground detection to prevent side effects.
+- KCCPhysicsUtility.CheckGround() now returns also ground position.
+- Added PenetrationSolver utility for debugging depenetration algorithm.
+- Fixed proxy collider being destroyed on clients when KCC.IsActive is false.
+
+2.0.14
+- Fixed synchronization of processor prefabs with non-initialized network type id.
+
+2.0.13
+- Improved multi-collider penetration correction.
+- Fixes for StepUpProcessor. Now it requires horizontal movement push-back to activate.
+- Fixed KCC.IsPredictingLookRotation property return value for simulated proxies.
+- Fixed KCC inspector values (using RenderData for non-simulated proxies).
+
+2.0.12
+- KCCSettings.ForcePredictedLookRotation is now synchronized over network by default and affects input authority only.
+- Fixed teleport detection in network transform only interpolation.
+- Look rotation is now snapped when teleport is detected.
+- Removed temporary fix for incorrect interpolation data - fixed in 2.0.0 Stable 834.
+
+2.0.11
+- Added TerrainTreeProcessor which resolves collisions with terrain tree colliders by running extra capsule-cast after move step. This removes the need to bake tree colliders.
+
+2.0.10
+- KCC collider is now also controlled by KCC.IsActive. If the flag is set to false, the collider will be despawned.
+- Added KCC.SetLookRotation() and KCCData.SetLookRotation() with min/max pitch look rotation.
+- Removed KCC.GetInterpolationTimeframe(), Object.RenderTimeframe is used instead.
+- Removed RenderTimeframe override on proxy interpolation.
+- Removed KCC.Interpolate() methods, interpolation is now handled exclusively by render update.
+- Fixed PlatformProcessor to not use RenderTimeframe of the KCC.
+- PlatformProcessor is no longer force simulated - removed SetIsSimulated(true) and replaced by PlatformProcessorUpdater callbacks.
+- PlatformProcessor simulation state (Object.IsInSimulation) is now synchronized with KCC object.
+
+2.0.9
+- Compatibility with Fusion SDK 2.0.0 RC5.
+
+2.0.8
+- Added `bool trackInitialOverlaps` to KCC.SphereCast() and KCC.CapsuleCast(). This parameter controls if the shape-cast result contains initially overlapping colliders.
+- Added input accumulators - FloatAccumulator, Vector2Accumulator, Vector3Accumulator.
+    - These classes support accumulation of raw values, their smoothing and tick-aligned delta consumption.
+    - Typical use-case is accumulation of mouse delta passed through a network struct.
+    - The tick-aligned accumulation ensures that snapshot interpolated value in Render() will be smooth.
+- Fixed stuck on the edge when finishing step-up.
+- Fixed downward sphere cast check in step-up.
+- Added KCC.DrawSphere() and KCC.DrawCapsule() for debug purposes.
+
+2.0.7
+- Added KCC.ResolveRenderPosition() / KCC.ResolveRenderLookRotation() / KCC.ResolveRenderPositionAndLookRotation()
+    - Returns position of a child object and look rotation of the KCC at the time of Render() with given Runner.LocalAlpha.
+    - This is useful to get correct camera origin when making lag compensated casts.
+    - Teleport, Anti-jitter, Render prediction/interpolation is solved out of the box.
+    - The child object should have only minimal translation in horizontal axis and is best option for first person camera handles.
+- Added KCCTransformSampler.
+    - This utility can be used to record state of child object in fixed and render updated and get render position and rotation similar to KCC.ResolveRenderPositionAndLookRotation().
+    - The main difference is that the game object can have any local offset to KCC root and is best option for third-person camera handles.
+- Optimized check for networked collisions.
+- Removed keep-alive from platform processor.
+- KCC.RayCast(), KCC.SphereCast() and KCC.CapsuleCast() now return hits sorted by distance.
+
+2.0.6
+Important
+============================================================
+! KCC proxy is no longer simulated by default. If you call Runner.SetIsSimulated(Object, true) from other script, the KCC will behave as predicted.
+! Platform processor still requires to be simulated on all clients using Runner.SetIsSimulated(Object, true). It is recommended to parent under KCC with separate NetworkObject component.
+
+Changes
+============================================================
+- Added gizmos when KCC is selected.
+- Added IKCCProcessor.IsActive() - Controls whether the processor is active in current execution loop and can be used to filter out processor early.
+- Added KCCSettings.ForcePredictedLookRotation - skips look rotation interpolation in render for local character and can be used for extra look responsiveness with other properties being interpolated.
+- Added KCCSettings.ProxyInterpolation - controls interpolations of networked properties from network buffer to KCCSettings and KCCData, and propagation to Collider, Transform and Rigidbody components.
+- Added KCCSettings.CompressNetworkPosition - optional network traffic reduction for non-player characters. Full precision position is synchronized by default.
+- Added KCCInterestProxy - serves as an area of interest position proxy for a network object under KCC. This component is not synchronized to clients.
+- Added NetworkObject to PlatformProcessor prefab - it is now required for processor proxy simulation.
+- Removed interpolation of KCCSettings and networked interactions, they are now set to latest snapshot.
+- Removed Runner.SetIsSimulated(Object, true) from KCC - proxies are no longer simulated.
+- Removed EKCCProxyBehavior from settings - now the fixed simulation is driven by Runner.SetIsSimulated().
+- Removed optional proxy interpolation in fixed update.
+- Removed performance timers. The performance is now measured exclusively using Profiler.
+- Removed networked keep-alive flag.
+- Removed replication modes.
+- Overall cleanup of debug properties.
+- Performance optimizations for proxies.
+- Platform processor and other performance optimizations.
+
+2.0.5
+- Fixed projection of depenetration vector, resulting in jitter on slopes.
+
+2.0.4
+- Added [HideInCallstack] attribute to custom log methods.
+- Removed [NetworkBehaviourWeaved(-1)] attribute from KCC class - this fixes TeleportRPC().
+
+2.0.3
+- Changed root namespace from Fusion.KCC to Fusion.Addons.KCC.
+- Added new argument to processor suppress methods - it is now allowed to suppress processors in all future stages.
+- Added support for SuppressProcessorsExcept<T>() and other similar variants - skips execution of all pending processors except processors of type T.
+- Added support for suppressing processors from all future stages via method argument (default is false).
+- It is now guaranteed a processor is executed only once during a stage even if it is registered in multiple collections (Local/Modifier/Collision/...).
+- EnvironmentProcessor.SuppressOtherProcessors() is now protected virtual which allows applying custom suppression rules after the base stage is done.
+- EnvironmentProcessor now sets KCCData.KinematicSpeed from ISetKinematicSpeed stage instead of IPrepareData.
+- Fixed interpolation in PlatformProcessor.
+- Minor performance optimizations.
+
+2.0.2
+- Fixed state reset on predicted proxies.
+- Disabled proxy prediction/interpolation in fixed update.
+- Added KCC.RestoreState() to support manual reset of state from network buffer.
+- Network traffic and performance optimizations.
+- Added support for Move and Rotate handles.
+- Added KCC.Interpolate() methods for interpolation with custom source/timeframe/alpha.
+- Interpolation now respects Object.RenderSource and Object.RenderTimeframe and uses correctly FUN/Render KCCData instances.
+- KCCSettings.Processors type changed to array of UnityEngine.Object. From now any IKCCProcessor object can be linked (prefab, child object, scriptable object).
+- Step-Up processor - min push-back distance required for activation can be configured on prefab.
+- Step-Up processor - added option to require target surface to be walkable (angle <= KCCData.MaxGroundAngle) before the processor activates.
+- Step-Up processor - added option to update collision hits with new overlap query when it is active.
+- Ground-Snap processor - added option to update collision hits with new overlap query when it is active.
+- Platform processor - major performance and usability improvements for platforms. The only requirement now is that the script implementing IPlatform must execute before PlatformProcessor.
+- Platform processor - separated world => platform and platform => space transition durations.
+- Platform processor - added support for platform rotation.
+- Platform processor - execution of all scripts that implement IPlatform must happen before PlatformProcessor. This is a hard requirement to get everything smooth.
+- Added ScriptableKCCProcessor - default KCC processor implementation based on ScriptableObject.
+- Added NetworkTRSPProcessor - default KCC processor implementation based on NetworkTRSP.
+- Added more data to StatsRecorder.
+- Added comments to step-up, ground-snap and platform processors for easier implementation of custom modifications.
+- Added default provider prefabs.
+
+Version 2.0.1
+- Added Force Single Overlap Query option to KCC settings. This is a performance optimization for non-player characters at the cost of lower movement quality.
+- Profiler calls replaced by profiler markers.
+- Performance optimizations.
+
+Version 2.0.0
+- Initial release.
