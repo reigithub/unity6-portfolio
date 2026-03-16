@@ -1,5 +1,7 @@
 using Cysharp.Threading.Tasks;
+using Fusion.Addons.KCC;
 using Game.Client.MasterData;
+using Game.Shared.Constants;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
@@ -26,9 +28,6 @@ namespace Game.MVP.Survivor.Player
         /// <summary>
         /// Fusion Spawn 済みの SurvivorFusionPlayer GO にプレイヤーコントローラーと視覚モデルを追加する
         /// </summary>
-        /// <param name="resolver">VContainer リゾルバ</param>
-        /// <param name="playerMaster">プレイヤー基本情報（AssetName取得用）</param>
-        /// <param name="levelMaster">レベル依存ステータス（初期化用）</param>
         public async UniTask<SurvivorPlayerController> LoadPlayerAsync(
             IObjectResolver resolver,
             SurvivorPlayerMaster playerMaster,
@@ -52,36 +51,46 @@ namespace Game.MVP.Survivor.Player
 
             var playerGo = fusionPlayer.gameObject;
 
-            // 2. DDOL → ステージシーンに移動（物理シーン整合性のため）
-            var stageScene = gameObject.scene;
-            SceneManager.MoveGameObjectToScene(playerGo, stageScene);
-
-            // 3. Rigidbody を物理有効化（プレハブでは kinematic + gravity off）
-            if (playerGo.TryGetComponent<Rigidbody>(out var rb))
+            // 2. 物理シーンに移動
+            // Fusion のオブジェクトプロバイダは SetActiveScene に関係なく GameRootScene にインスタンス化するため、
+            // 物理シーン（PlayerStart が存在するシーン）への移動が必要
+            // サーバー側は既に物理シーンにスポーンされるため no-op
+            var physicsScene = gameObject.scene;
+            if (playerGo.scene != physicsScene)
             {
-                rb.isKinematic = false;
-                rb.useGravity = true;
+                SceneManager.MoveGameObjectToScene(playerGo, physicsScene);
+            }
+            Debug.Log($"[SurvivorPlayerStart] Player scene={playerGo.scene.name}");
+            if (playerGo.TryGetComponent<KCC>(out var kcc))
+            {
+                kcc.SetPosition(transform.position);
+                kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
+                Debug.Log($"[SurvivorPlayerStart] KCC configured in scene={playerGo.scene.name}, pos={transform.position}");
+            }
+            else
+            {
+                Debug.LogError("[SurvivorPlayerStart] KCC not found on FusionPlayer!");
             }
 
             // 4. SurvivorPlayerController を AddComponent + DI 注入
             var playerController = playerGo.AddComponent<SurvivorPlayerController>();
             resolver.Inject(playerController);
 
-            // 5. Controller 初期化
+            // 5. Controller 初期化 + FusionPlayer バインド
             playerController.Initialize(levelMaster);
+            playerController.BindFusionPlayer(fusionPlayer);
+
+            // 6. KCC 自動更新を再開（Spawned で手動モードに設定済み）
+            if (playerGo.TryGetComponent<KCC>(out var kccToResume))
+            {
+                kccToResume.SetManualUpdate(false);
+            }
 
             // 6. モデルロード + Presenter 追加（クライアントのみ — サーバーは視覚不要）
-            Transform cameraFollowTarget = playerGo.transform;
             if (UnityPlaymodeHelper.IsClient())
             {
-                // InterpolationTarget 用の空 GO を作成（コライダーを含めない）
-                var interpGo = new GameObject("[InterpolationTarget]");
-                interpGo.transform.SetParent(playerGo.transform, false);
-                fusionPlayer.SetInterpolationTarget(interpGo.transform);
-                cameraFollowTarget = interpGo.transform;
-
                 var modelAssetName = playerMaster.AssetName + "_Model";
-                var modelObj = await _addressableService.InstantiateAsync(modelAssetName, interpGo.transform);
+                var modelObj = await _addressableService.InstantiateAsync(modelAssetName, playerGo.transform);
                 if (modelObj != null)
                 {
                     modelObj.transform.localPosition = Vector3.zero;
@@ -93,12 +102,10 @@ namespace Game.MVP.Survivor.Player
                 playerPresenter.Initialize(playerController);
             }
 
-            // カメラフォロー用シグナル発行
-            // クライアント: InterpolationTarget（NRB3D が滑らかに補間する Transform）
-            // サーバー: ルート Transform（EnemySpawner 等が参照）
-            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(cameraFollowTarget));
+            // カメラフォロー用シグナル発行（KCC が RenderData で滑らかに補間するためルート transform）
+            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(playerGo.transform));
 
-            Debug.Log($"[SurvivorPlayerStart] IsClient={UnityPlaymodeHelper.IsClient()}, cameraTarget={cameraFollowTarget.name}, pos={playerGo.transform.position}");
+            Debug.Log($"[SurvivorPlayerStart] Player configured at {playerGo.transform.position}");
             return playerController;
         }
     }

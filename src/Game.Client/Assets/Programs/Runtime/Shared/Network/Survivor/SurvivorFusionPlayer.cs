@@ -1,6 +1,6 @@
 using System;
 using Fusion;
-using Fusion.Addons.Physics;
+using Fusion.Addons.KCC;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -29,7 +29,7 @@ namespace Game.Shared.Network.Survivor
 
         private ChangeDetector _changeDetector;
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
-        private int _renderLogCount;
+        private KCC _kcc;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
         public Func<SurvivorPlayerNetworkInput> InputGatherer { get; set; }
@@ -43,7 +43,13 @@ namespace Game.Shared.Network.Survivor
         public override void Spawned()
         {
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-            DontDestroyOnLoad(gameObject);
+
+            // KCC を手動更新モードに設定: LoadPlayerAsync で MovementHandler がバインドされるまで
+            // 自動処理を停止し、サーバーとクライアントの KCC 初期状態の乖離を防ぐ
+            if (TryGetComponent<KCC>(out _kcc))
+            {
+                _kcc.SetManualUpdate(true);
+            }
 
             if (HasInputAuthority || HasStateAuthority)
             {
@@ -58,24 +64,7 @@ namespace Game.Shared.Network.Survivor
                 }
             }
 
-            Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, Injected={_playerLeveledUpPub != null})");
-        }
-
-        /// <summary>
-        /// NetworkRigidbody3D の InterpolationTarget を設定する。
-        /// </summary>
-        public void SetInterpolationTarget(Transform target)
-        {
-            if (TryGetComponent<NetworkRigidbody3D>(out var nrb))
-            {
-                nrb.InterpolationTarget = target;
-                _renderLogCount = 0;
-                Debug.Log($"[SurvivorFusionPlayer] InterpolationTarget set to '{target.name}' (NRB3D found)");
-            }
-            else
-            {
-                Debug.LogWarning("[SurvivorFusionPlayer] SetInterpolationTarget: NRB3D not found!");
-            }
+            Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, scene={gameObject.scene.name})");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -88,39 +77,55 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        private int _skippedTicks;
+        private bool _bindLogged;
+
         public override void FixedUpdateNetwork()
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
 
-            if (GetInput(out SurvivorPlayerNetworkInput input) && MovementHandler != null)
+            if (GetInput(out SurvivorPlayerNetworkInput input))
             {
-                var snapshot = MovementHandler.ProcessTick(input, Runner.DeltaTime);
-
-                if (HasStateAuthority)
+                if (!_bindLogged)
                 {
-                    Speed = snapshot.Speed;
-                    Health = snapshot.Health;
-                    MaxHealth = snapshot.MaxHealth;
-                    Stamina = snapshot.Stamina;
-                    MaxStamina = snapshot.MaxStamina;
-                    IsInvincible = snapshot.IsInvincible;
+                    _bindLogged = true;
+                    Debug.Log($"[SurvivorFusionPlayer] First ProcessTick after {_skippedTicks} skipped ticks (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority})");
+                }
+
+                if (MovementHandler != null)
+                {
+                    var snapshot = MovementHandler.ProcessTick(input, Runner.DeltaTime);
+
+                    if (HasStateAuthority)
+                    {
+                        Speed = snapshot.Speed;
+                        Health = snapshot.Health;
+                        MaxHealth = snapshot.MaxHealth;
+                        Stamina = snapshot.Stamina;
+                        MaxStamina = snapshot.MaxStamina;
+                        IsInvincible = snapshot.IsInvincible;
+                    }
+                }
+            }
+            else
+            {
+                // MovementHandler バインド前: KCC にゼロ入力を明示設定
+                // サーバーとクライアントで同一の KCC 処理を保証し、初期状態の乖離を防ぐ
+                if (_kcc != null)
+                {
+                    _kcc.SetInputDirection(Vector3.zero);
+                    _kcc.SetSpeed(5f);
+                }
+
+                if (!_bindLogged)
+                {
+                    _skippedTicks++;
                 }
             }
         }
 
         public override void Render()
         {
-            // 位置/回転の補間は NetworkRigidbody3D が自動処理
-
-            if (_renderLogCount < 5)
-            {
-                _renderLogCount++;
-                var nrb = GetComponent<NetworkRigidbody3D>();
-                var interpTarget = nrb != null ? nrb.InterpolationTarget : null;
-                var interpPos = interpTarget != null ? interpTarget.position.ToString() : "N/A";
-                Debug.Log($"[FP.Render#{_renderLogCount}] auth=I:{HasInputAuthority}/S:{HasStateAuthority}, root={transform.position}, interp={interpPos}, interpName={interpTarget?.name ?? "null"}, rb={GetComponent<Rigidbody>()?.position}");
-            }
-
             if (_changeDetector == null) return;
 
             foreach (var change in _changeDetector.DetectChanges(this))

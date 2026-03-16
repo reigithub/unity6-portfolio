@@ -1,3 +1,4 @@
+using Fusion.Addons.KCC;
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
 using Game.Shared.Item;
@@ -19,15 +20,12 @@ namespace Game.MVP.Survivor.Player
 {
     /// <summary>
     /// Survivorプレイヤーコントローラー
-    /// SDUnityChanPlayerControllerをベースにしたRigidbody + RaycastCheckerベースの移動制御
+    /// KCC（Advanced Kinematic Character Controller）ベースの移動制御
     /// </summary>
-    [RequireComponent(typeof(Rigidbody))]
-    [RequireComponent(typeof(RaycastChecker))]
     public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorPlayerMovementHandler
     {
         // Profiler markers
         private static readonly ProfilerMarker s_attractItemsMarker = new("ProfilerMarker.Player.AttractItems");
-        private static readonly ProfilerMarker s_safeMovementMarker = new("ProfilerMarker.Player.SafeMovement");
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
@@ -54,13 +52,8 @@ namespace Game.MVP.Survivor.Player
         [Inject] private readonly IInputService _inputService;
 
         // Components
-        private Rigidbody _rigidbody;
-        private RaycastChecker _groundedRaycastChecker;
-        private CapsuleCollider _capsuleCollider;
-
-        // Sweep-based移動用の定数
-        private const float SkinWidth = 0.01f; // 壁との最小距離
-        private const float StepHeight = 0.3f; // この高さ以下の障害物は乗り越え可能
+        private KCC _kcc;
+        private int _moveLogCount;
 
         // マスターデータから設定される値
         private int _maxHp = 100;
@@ -116,9 +109,8 @@ namespace Game.MVP.Survivor.Player
 
         private void Awake()
         {
-            TryGetComponent(out _rigidbody);
-            TryGetComponent(out _groundedRaycastChecker);
-            TryGetComponent(out _capsuleCollider);
+            TryGetComponent(out _kcc);
+            Debug.Log($"[SurvivorPlayerController] Awake: KCC={_kcc != null}");
         }
 
         private void Update()
@@ -329,7 +321,7 @@ namespace Game.MVP.Survivor.Player
 
         public bool IsGrounded()
         {
-            return _groundedRaycastChecker.Check();
+            return _kcc != null && _kcc.FixedData.IsGrounded;
         }
 
         #endregion
@@ -389,67 +381,23 @@ namespace Game.MVP.Survivor.Player
                 _moveVector = Vector3.zero;
             }
 
-            var desiredMovement = _moveVector * _speed.Value * deltaTime;
-            var safeMovement = CalculateSafeMovement(desiredMovement);
+            // KCC に移動方向と速度を設定
+            _kcc.SetInputDirection(_moveVector);
+            _kcc.SetSpeed(_speed.Value);
 
-            // velocity 設定（NRB3D との競合を避けるため MovePosition 不使用）
-            var horizontalVelocity = deltaTime > 0f ? safeMovement / deltaTime : Vector3.zero;
-            _rigidbody.linearVelocity = new Vector3(horizontalVelocity.x, _rigidbody.linearVelocity.y, horizontalVelocity.z);
+            if (_moveLogCount < 12 && isMoveInput)
+            {
+                _moveLogCount++;
+                Debug.Log($"[SurvivorPlayerController] Move#{_moveLogCount}: dir={_moveVector}, speed={_speed.Value}, kccPos={_kcc.Data.TargetPosition}, isGrounded={_kcc.FixedData.IsGrounded}");
+            }
 
+            // 回転: KCC の LookYaw で管理（ネットワーク同期される）
             if (isMoveInput)
             {
-                _rigidbody.rotation = Quaternion.Slerp(_rigidbody.rotation, _lookRotation, _rotationRatio * deltaTime);
-            }
-        }
-
-        /// <summary>
-        /// CapsuleCastで衝突チェックを行い、安全な移動量を計算
-        /// StepHeight以下の障害物は無視して乗り越え可能
-        /// </summary>
-        private Vector3 CalculateSafeMovement(Vector3 desiredMovement)
-        {
-            using (s_safeMovementMarker.Auto())
-            {
-                if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
-                {
-                    return desiredMovement;
-                }
-
-                var moveDistance = desiredMovement.magnitude;
-                var moveDirection = desiredMovement.normalized;
-
-                // CapsuleColliderの上下端点を計算
-                // point2をStepHeight分上げることで、低い障害物を無視
-                var center = _rigidbody.position + _capsuleCollider.center;
-                var halfHeight = Mathf.Max(0f, _capsuleCollider.height * 0.5f - _capsuleCollider.radius);
-                var point1 = center + Vector3.up * halfHeight;
-                // StepHeightより上の位置から判定開始（低い障害物は無視）
-                var point2Bottom = center - Vector3.up * halfHeight;
-                var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
-
-                // point2がpoint1より上になってしまう場合は補正
-                if (point2.y > point1.y)
-                {
-                    point2 = point1;
-                }
-
-                // CapsuleCastで衝突チェック（Enemyレイヤーを除外して構造物のみ判定）
-                var obstacleLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-                if (Physics.CapsuleCast(
-                        point1, point2,
-                        _capsuleCollider.radius,
-                        moveDirection,
-                        out var hit,
-                        moveDistance + SkinWidth,
-                        obstacleLayerMask,
-                        QueryTriggerInteraction.Ignore))
-                {
-                    // 衝突した場合、衝突点の手前までの移動に制限
-                    var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
-                    return moveDirection * safeDistance;
-                }
-
-                return desiredMovement;
+                var targetYaw = _lookRotation.eulerAngles.y;
+                var currentYaw = _kcc.FixedData.LookYaw;
+                var newYaw = Mathf.LerpAngle(currentYaw, targetYaw, _rotationRatio * deltaTime);
+                _kcc.SetLookRotation(0f, newYaw);
             }
         }
 

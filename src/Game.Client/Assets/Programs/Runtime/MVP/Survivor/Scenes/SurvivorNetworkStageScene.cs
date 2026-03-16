@@ -37,6 +37,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.ApplyRequested> _weaponApplySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -82,9 +83,18 @@ namespace Game.MVP.Survivor.Scenes
                 _stageModel.GetStartingWeaponId(),
                 _stageModel.GetDamageMultiplier());
 
+            // スポーン完了後にアクティブシーンを復元するため事前に保存
+            var rootScene = SceneManager.GetActiveScene();
+
             await LoadUnitySceneAsync();
             await UniTask.Yield();
             await SpawnPlayerAsync();
+
+            // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
+            if (rootScene.IsValid())
+            {
+                SceneManager.SetActiveScene(rootScene);
+            }
 
             BuildStateMachine();
             SubscribeEvents();
@@ -117,6 +127,24 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.LogWarning("[SurvivorNetworkStageScene] PlayerStart not found, player spawn skipped");
                 return;
             }
+
+            // クライアントのフィールドシーンロード完了を待機
+            // クライアントの SetActiveScene が完了してからスポーンすることで、
+            // レプリケーション時にクライアント側でも物理シーンに配置されることを保証する
+            Debug.Log("[SurvivorNetworkStageScene] Waiting for client field scene loaded...");
+            var fieldSceneTcs = new UniTaskCompletionSource();
+            var fieldSceneSub = _clientFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
+            try
+            {
+                await UniTask.WhenAny(
+                    fieldSceneTcs.Task,
+                    UniTask.Delay(System.TimeSpan.FromSeconds(10), DelayType.Realtime));
+            }
+            finally
+            {
+                fieldSceneSub.Dispose();
+            }
+            Debug.Log("[SurvivorNetworkStageScene] Client field scene loaded (or timeout), spawning player");
 
             // Fusion プレイヤーオブジェクトを PlayerStart 位置にスポーン
             Debug.Log($"[SurvivorNetworkStageScene] SpawnPlayerAsync: PlayerStart pos={playerStart.transform.position}, Runner={_runnerService.Runner != null}");

@@ -39,6 +39,7 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
         [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;
 
@@ -455,6 +456,17 @@ namespace Game.Shared.Network.Survivor
         // =====================================================================
 
         /// <summary>クライアントがシーン準備完了を通知</summary>
+        /// <summary>
+        /// クライアント → サーバー: フィールドシーンのロード完了通知。
+        /// プレイヤースポーン前に、クライアントのアクティブシーンが物理シーンであることを保証する。
+        /// </summary>
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RpcNotifyFieldSceneLoaded()
+        {
+            Debug.Log("[SurvivorFusionGameState] Client field scene loaded (RPC received)");
+            _clientFieldSceneLoadedPub?.Publish(new SurvivorSignals.Session.ClientFieldSceneLoaded());
+        }
+
         public void OnClientSceneReady(PlayerRef player)
         {
             _sceneReadyPlayers.Add(player);

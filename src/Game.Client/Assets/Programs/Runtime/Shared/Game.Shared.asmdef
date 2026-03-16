@@ -16,6 +16,7 @@
         "MagicOnion.Unity",
         "Fusion.Unity",
         "Fusion.Addons.Physics",
+        "Fusion.Addons.KCC",
         "Unity.Collections",
         "VContainer"
     ],

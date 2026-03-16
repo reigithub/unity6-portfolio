@@ -29,6 +29,8 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct AllClientsSceneReady { }
 
+            public readonly struct ClientFieldSceneLoaded { }
+
             public readonly struct AllPlayersDisconnected { }
         }
 

@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 2467486419845175979}
   - component: {fileID: 5055728534628363837}
   - component: {fileID: 2765137264471296877}
-  - component: {fileID: 6767600520714732691}
-  - component: {fileID: 7033149590129484212}
-  - component: {fileID: 8966882151316834063}
+  - component: {fileID: 7755548024961192585}
+  - component: {fileID: 4158219806842584690}
+  - component: {fileID: 1234567890123456789}
   m_Layer: 0
   m_Name: SurvivorFusionPlayer
   m_TagString: Untagged
@@ -55,7 +55,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 5055728534628363837}
-  - {fileID: 8966882151316834063}
+  - {fileID: 7755548024961192585}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &5055728534628363837
 MonoBehaviour:
@@ -69,13 +69,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ce4428c05fc934491525c1143480ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Fusion.SurvivorFusionPlayer
-  _Health: 0
-  _MaxHealth: 0
-  _Stamina: 0
-  _MaxStamina: 0
-  _Speed: 0
-  _IsInvincible:
-    _value: 0
 --- !u!54 &2765137264471296877
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -86,7 +79,7 @@ Rigidbody:
   serializedVersion: 5
   m_Mass: 1
   m_LinearDamping: 0
-  m_AngularDamping: 0.05
+  m_AngularDamping: 0
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -101,32 +94,9 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 1
   m_Interpolate: 0
-  m_Constraints: 112
-  m_CollisionDetection: 2
---- !u!136 &6767600520714732691
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4364400493229672838}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.4
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.5, z: 0}
---- !u!114 &7033149590129484212
+  m_Constraints: 126
+  m_CollisionDetection: 0
+--- !u!114 &7755548024961192585
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -135,35 +105,71 @@ MonoBehaviour:
   m_GameObject: {fileID: 4364400493229672838}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 47a722030a4c2ed4eb327af2d8ee05c6, type: 3}
+  m_Script: {fileID: 11500000, guid: 2f7684f04e649e84fb2ee1bc9fbee42d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.Shared::Game.Shared.RaycastChecker
-  _layerMask:
-    serializedVersion: 2
-    m_Bits: 0
-  _positionOffset: {x: 0, y: 0.1, z: 0}
-  _direction: {x: 0, y: -1, z: 0}
-  _distance: 0.35
---- !u!114 &8966882151316834063
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4364400493229672838}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a591d221a634417e9827eb58e17de84, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody3D
+  m_EditorClassIdentifier: Fusion.Addons.KCC::Fusion.Addons.KCC.KCC
   _stateAuthorityChangeErrorCorrectionDelta: 0
-  SyncScale: 0
-  SyncParent: 1
-  _interpolationTarget: {fileID: 0}
-  UsePreciseRotation: 0
-  UseRenderSleepThresholds: 1
-  RenderThresholds:
-    UseEnergy: 1
-    Position: 0.01
-    Rotation: 0.01
-    Scale: 0.01
+  _settings:
+    Shape: 1
+    IsTrigger: 0
+    Radius: 0.4
+    Height: 1
+    Extent: 0.035
+    ColliderLayer: 0
+    CollisionLayerMask:
+      serializedVersion: 2
+      m_Bits: 1
+    Features: -1
+    InputAuthorityBehavior: 0
+    StateAuthorityBehavior: 0
+    ProxyInterpolationMode: 0
+    ForcePredictedLookRotation: 0
+    AllowClientTeleports: 0
+    Processors:
+    - {fileID: 4158219806842584690}
+    - {fileID: 1234567890123456789}
+    - {fileID: 561824206424634091, guid: 68c4081a63f1dfd469da9c95bea22158, type: 3}
+    - {fileID: 8306782452827789390, guid: 6d976f9777012db4aa55e7e6b1991afe, type: 3}
+    MaxPenetrationSteps: 8
+    CCDRadiusMultiplier: 0.75
+    AntiJitterDistance: {x: 0.025, y: 0.01}
+    PredictionCorrectionSpeed: 30
+    NetworkedInteractions: 8
+    CompressNetworkPosition: 0
+    ForceSingleOverlapQuery: 0
+    SuppressConvexMeshColliders: 0
+--- !u!114 &4158219806842584690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 264c0f9c9a7bf4a4a927334fa1712bf6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.KCC::Fusion.Addons.KCC.EnvironmentProcessor
+  KinematicSpeed: 20
+  JumpMultiplier: 1
+  Gravity: {x: 0, y: 0, z: 0}
+  RelativePriority: 0
+  MaxGroundAngle: 60
+  DynamicGroundFriction: 20
+  KinematicGroundAcceleration: 50
+  KinematicGroundFriction: 35
+  DynamicAirFriction: 2
+  KinematicAirAcceleration: 5
+  KinematicAirFriction: 2
+--- !u!114 &1234567890123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c24e729eadfb5c442a3718e7f2f79a49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SpeedProcessor

@@ -93,11 +93,27 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
 
-            // インゲームフィールドをロード
+            // スポーン完了後にアクティブシーンを復元するため事前に保存
+            var rootScene = SceneManager.GetActiveScene();
+
+            // インゲームフィールドをロード（SetActiveScene で物理シーンがアクティブになる）
             await LoadUnitySceneAsync();
+
+            // サーバーにフィールドシーンロード完了を通知
+            // サーバーはこの通知を受けてからプレイヤーをスポーンする（アクティブシーン = 物理シーン保証）
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.RpcNotifyFieldSceneLoaded();
+            }
 
             // プレイヤーを動的生成
             await SpawnPlayerAsync();
+
+            // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
+            if (rootScene.IsValid())
+            {
+                SceneManager.SetActiveScene(rootScene);
+            }
 
             BuildStateMachine();
             SubscribeEvents();

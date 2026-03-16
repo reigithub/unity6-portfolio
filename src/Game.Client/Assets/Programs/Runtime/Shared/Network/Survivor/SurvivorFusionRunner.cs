@@ -46,9 +46,10 @@ namespace Game.Shared.Network.Survivor
             Runner = gameObject.AddComponent<NetworkRunner>();
             Runner.ProvideInput = gameMode != GameMode.Server;
 
-            // Physics Addon: NetworkRigidbody3D の動作に必要
+            // Physics Addon: KCC サンプルと同一設定（SyncTransforms）
+            // KCC は独自の物理クエリを使用するため Physics.Simulate() は不要
             var physicsSimulation = gameObject.AddComponent<RunnerSimulatePhysics3D>();
-            physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateAlways;
+            physicsSimulation.ClientPhysicsSimulation = ClientPhysicsSimulation.SyncTransforms;
 
             var sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
 

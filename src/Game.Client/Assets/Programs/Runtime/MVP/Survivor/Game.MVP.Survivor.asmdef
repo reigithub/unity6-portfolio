@@ -22,6 +22,7 @@
         "VContainer",
         "DOTween.Modules",
         "Fusion.Unity",
+        "Fusion.Addons.KCC",
         "Unity.Collections"
     ],
     "includePlatforms": [],
