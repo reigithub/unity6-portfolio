@@ -1,0 +1,16 @@
+{
+    "name": "Fusion.Addons.KCC",
+    "rootNamespace": "Fusion.Addons.KCC",
+    "references": [
+        "Fusion.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
