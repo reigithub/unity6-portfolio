@@ -141,7 +141,7 @@ MonoBehaviour:
     MaxPenetrationSteps: 8
     CCDRadiusMultiplier: 0.75
     AntiJitterDistance: {x: 0, y: 0}
-    PredictionCorrectionSpeed: 30
+    PredictionCorrectionSpeed: 2
     NetworkedInteractions: 8
     CompressNetworkPosition: 0
     ForceSingleOverlapQuery: 0
@@ -195,4 +195,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.SurvivorPlayerController
   _jogSpeed: 5
   _runSpeed: 8
-  _rotationRatio: 10

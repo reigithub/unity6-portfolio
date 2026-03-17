@@ -44,7 +44,9 @@ namespace Game.MVP.Survivor.Player
         [SerializeField]
         private float _runSpeed = 8.0f;
 
-
+        [Header("振り向き速度 (degrees/sec)")]
+        [SerializeField]
+        private float _rotationSpeed = 600f;
 
         [Inject] private readonly IGameRootController _gameRootController;
         [Inject] private readonly IInputService _inputService;
@@ -102,6 +104,11 @@ namespace Game.MVP.Survivor.Player
         public SurvivorFusionPlayer FusionPlayer => _fusionPlayer;
         private float _networkDeltaTime;
 
+        // 入力蓄積（ExpertMovement パターン: フレームレート差による入力の不均一を補正）
+        private Vector2 _accumulatedMoveDirection;
+        private float _accumulatedMoveDirectionSize;
+        private float _lastCameraRotationY;
+
         #region MonoBehaviour Methods
 
         private void Awake()
@@ -111,6 +118,7 @@ namespace Game.MVP.Survivor.Player
 
         private void Update()
         {
+            AccumulateRenderInput();
             UpdateItemAttraction();
         }
 
@@ -146,13 +154,25 @@ namespace Game.MVP.Survivor.Player
             fusionPlayer.MovementHandler = this;
 
             // InputAuthority プレイヤー: Fusion OnInput 用の入力収集デリゲートを設定
+            // 蓄積された移動入力を時間加重平均で返す（ExpertMovement パターン）
             if (fusionPlayer.HasInputAuthority)
             {
-                fusionPlayer.InputGatherer = () => new SurvivorPlayerNetworkInput
+                fusionPlayer.InputGatherer = () =>
                 {
-                    Move = _inputService.Player.Move.ReadValue<UnityEngine.Vector2>(),
-                    IsSprinting = _inputService.Player.LeftShift.IsPressed(),
-                    CameraRotationY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f
+                    var input = new SurvivorPlayerNetworkInput
+                    {
+                        Move = _accumulatedMoveDirectionSize > 0f
+                            ? _accumulatedMoveDirection / _accumulatedMoveDirectionSize
+                            : Vector2.zero,
+                        IsSprinting = _inputService.Player.LeftShift.IsPressed(),
+                        CameraRotationY = _lastCameraRotationY
+                    };
+
+                    // 蓄積リセット
+                    _accumulatedMoveDirection = Vector2.zero;
+                    _accumulatedMoveDirectionSize = 0f;
+
+                    return input;
                 };
             }
 
@@ -349,6 +369,59 @@ namespace Game.MVP.Survivor.Player
 
         #endregion
 
+        #region Input Accumulation
+
+        /// <summary>
+        /// 毎 Update で呼び出し、移動入力を時間加重で蓄積する。
+        /// Fusion の OnInput で蓄積値の平均を返すことで、フレームレート差による入力の不均一を補正。
+        /// </summary>
+        private void AccumulateRenderInput()
+        {
+            if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+
+            var move = _inputService.Player.Move.ReadValue<Vector2>();
+            var dt = Time.unscaledDeltaTime;
+
+            _accumulatedMoveDirection += move * dt;
+            _accumulatedMoveDirectionSize += dt;
+            _lastCameraRotationY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f;
+        }
+
+        /// <summary>
+        /// Render フレームの入力予測処理。現在の入力を KCC に設定してレンダー予測を可能にする。
+        /// SurvivorFusionPlayer.Render() から ISurvivorPlayerMovementHandler 経由で呼ばれる。
+        /// </summary>
+        public void ProcessRenderInput(KCC kcc)
+        {
+            if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+
+            var move = _inputService.Player.Move.ReadValue<Vector2>();
+            var isMoveInput = move.magnitude > 0.1f;
+            var wantToRun = _inputService.Player.LeftShift.IsPressed() && isMoveInput;
+            var isRunning = wantToRun && _currentStamina.Value > 0;
+            var speed = (isMoveInput ? 1f : 0f) * (isRunning ? _runSpeed : _jogSpeed);
+
+            var cameraRotY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f;
+            var cameraRot = Quaternion.Euler(0f, cameraRotY, 0f);
+            var moveVector = isMoveInput
+                ? (cameraRot * Vector3.forward * move.y + cameraRot * Vector3.right * move.x).normalized
+                : Vector3.zero;
+
+            kcc.SetInputDirection(moveVector);
+            kcc.SetSpeed(speed);
+
+            if (isMoveInput)
+            {
+                var targetYaw = Quaternion.LookRotation(moveVector).eulerAngles.y;
+                var deltaYaw = Mathf.DeltaAngle(kcc.RenderData.LookYaw, targetYaw);
+                var maxDelta = _rotationSpeed * Time.deltaTime;
+                var clampedDelta = Mathf.Clamp(deltaYaw, -maxDelta, maxDelta);
+                kcc.AddLookRotation(0f, clampedDelta);
+            }
+        }
+
+        #endregion
+
         #region Movement
 
         private void ExecuteMovement(SurvivorPlayerNetworkInput input, float deltaTime)
@@ -373,12 +446,15 @@ namespace Game.MVP.Survivor.Player
             _kcc.SetInputDirection(_moveVector);
             _kcc.SetSpeed(_speed.Value);
 
-            // 回転: KCC の LookYaw で管理（ネットワーク同期される）
-            // FixedUpdateNetwork で目標角を直接設定し、KCC の Render 補間に任せる
+            // 回転: KCC.AddLookRotation で最大速度制限付き差分回転
+            // KCC がティック間の補間/予測を内部処理する
             if (isMoveInput)
             {
                 var targetYaw = _lookRotation.eulerAngles.y;
-                _kcc.SetLookRotation(0f, targetYaw);
+                var deltaYaw = Mathf.DeltaAngle(_kcc.FixedData.LookYaw, targetYaw);
+                var maxDelta = _rotationSpeed * deltaTime;
+                var clampedDelta = Mathf.Clamp(deltaYaw, -maxDelta, maxDelta);
+                _kcc.AddLookRotation(0f, clampedDelta);
             }
         }
 

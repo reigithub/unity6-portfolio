@@ -26,6 +26,7 @@ namespace Game.Shared.Network.Survivor
         [Networked] public int MaxStamina { get; set; }
         [Networked] public float Speed { get; set; }
         [Networked] public NetworkBool IsInvincible { get; set; }
+        [Networked] public float LookYaw { get; set; }
 
         private ChangeDetector _changeDetector;
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
@@ -44,6 +45,12 @@ namespace Game.Shared.Network.Survivor
         {
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             TryGetComponent(out _kcc);
+
+            // KCC の手動更新を有効化（入力設定→KCC更新→カメラ更新の順序を保証）
+            if (_kcc != null)
+            {
+                _kcc.SetManualUpdate(true);
+            }
 
             if (HasInputAuthority || HasStateAuthority)
             {
@@ -110,10 +117,34 @@ namespace Game.Shared.Network.Survivor
                     _kcc.SetInputDirection(Vector3.zero);
                 }
             }
+
+            // 入力設定完了後に KCC を手動更新
+            if (_kcc != null)
+            {
+                _kcc.ManualFixedUpdate();
+
+                // KCC の LookYaw をネットワーク同期（リモートクライアントの回転表示用）
+                if (HasStateAuthority)
+                {
+                    LookYaw = _kcc.FixedData.LookYaw;
+                }
+            }
         }
 
         public override void Render()
         {
+            // InputAuthority: Render 時の入力予測（ManualRenderUpdate の前に入力を設定）
+            if (HasInputAuthority && MovementHandler != null && _kcc != null)
+            {
+                MovementHandler.ProcessRenderInput(_kcc);
+            }
+
+            // KCC のレンダー更新（補間/予測シミュレーション）
+            if (_kcc != null)
+            {
+                _kcc.ManualRenderUpdate();
+            }
+
             if (_changeDetector == null) return;
 
             foreach (var change in _changeDetector.DetectChanges(this))
