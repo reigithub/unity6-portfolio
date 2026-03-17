@@ -43,13 +43,7 @@ namespace Game.Shared.Network.Survivor
         public override void Spawned()
         {
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
-
-            // KCC を手動更新モードに設定: LoadPlayerAsync で MovementHandler がバインドされるまで
-            // 自動処理を停止し、サーバーとクライアントの KCC 初期状態の乖離を防ぐ
-            if (TryGetComponent<KCC>(out _kcc))
-            {
-                _kcc.SetManualUpdate(true);
-            }
+            TryGetComponent(out _kcc);
 
             if (HasInputAuthority || HasStateAuthority)
             {
@@ -64,7 +58,10 @@ namespace Game.Shared.Network.Survivor
                 }
             }
 
-            Debug.Log($"[SurvivorFusionPlayer] Spawned (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority}, scene={gameObject.scene.name})");
+            if (TryGetComponent<ISurvivorPlayerMovementHandler>(out var handler))
+            {
+                handler.BindFusionPlayer(this);
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -77,8 +74,7 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        private int _skippedTicks;
-        private bool _bindLogged;
+        private bool _inputReceived;
 
         public override void FixedUpdateNetwork()
         {
@@ -86,11 +82,7 @@ namespace Game.Shared.Network.Survivor
 
             if (GetInput(out SurvivorPlayerNetworkInput input))
             {
-                if (!_bindLogged)
-                {
-                    _bindLogged = true;
-                    Debug.Log($"[SurvivorFusionPlayer] First ProcessTick after {_skippedTicks} skipped ticks (InputAuth={HasInputAuthority}, StateAuth={HasStateAuthority})");
-                }
+                _inputReceived = true;
 
                 if (MovementHandler != null)
                 {
@@ -109,17 +101,13 @@ namespace Game.Shared.Network.Survivor
             }
             else
             {
-                // MovementHandler バインド前: KCC にゼロ入力を明示設定
-                // サーバーとクライアントで同一の KCC 処理を保証し、初期状態の乖離を防ぐ
-                if (_kcc != null)
+                // 入力受信前のみ KCC にゼロ入力を設定。
+                // 入力受信後に GetInput() が false を返す場合（サーバーで入力未到着ティック等）は
+                // KCC の既存入力を維持し、前回の移動方向を継続させる。
+                // ゼロ入力を設定すると地面摩擦で減速し、クライアント予測と乖離する。
+                if (!_inputReceived && _kcc != null)
                 {
                     _kcc.SetInputDirection(Vector3.zero);
-                    _kcc.SetSpeed(5f);
-                }
-
-                if (!_bindLogged)
-                {
-                    _skippedTicks++;
                 }
             }
         }

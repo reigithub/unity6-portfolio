@@ -44,16 +44,13 @@ namespace Game.MVP.Survivor.Player
         [SerializeField]
         private float _runSpeed = 8.0f;
 
-        [Header("振り向き補間比率")]
-        [SerializeField]
-        private float _rotationRatio = 10.0f;
+
 
         [Inject] private readonly IGameRootController _gameRootController;
         [Inject] private readonly IInputService _inputService;
 
         // Components
         private KCC _kcc;
-        private int _moveLogCount;
 
         // マスターデータから設定される値
         private int _maxHp = 100;
@@ -110,18 +107,10 @@ namespace Game.MVP.Survivor.Player
         private void Awake()
         {
             TryGetComponent(out _kcc);
-            Debug.Log($"[SurvivorPlayerController] Awake: KCC={_kcc != null}");
         }
 
         private void Update()
         {
-            // FusionPlayer がまだバインドされていなければ同一 GO から取得
-            if (_fusionPlayer == null)
-            {
-                if (TryGetComponent<SurvivorFusionPlayer>(out var fp))
-                    BindFusionPlayer(fp);
-            }
-
             UpdateItemAttraction();
         }
 
@@ -167,7 +156,6 @@ namespace Game.MVP.Survivor.Player
                 };
             }
 
-            Debug.Log($"[SurvivorPlayerController] Bound (InputAuth={fusionPlayer.HasInputAuthority})");
         }
 
         #endregion
@@ -385,19 +373,12 @@ namespace Game.MVP.Survivor.Player
             _kcc.SetInputDirection(_moveVector);
             _kcc.SetSpeed(_speed.Value);
 
-            if (_moveLogCount < 12 && isMoveInput)
-            {
-                _moveLogCount++;
-                Debug.Log($"[SurvivorPlayerController] Move#{_moveLogCount}: dir={_moveVector}, speed={_speed.Value}, kccPos={_kcc.Data.TargetPosition}, isGrounded={_kcc.FixedData.IsGrounded}");
-            }
-
             // 回転: KCC の LookYaw で管理（ネットワーク同期される）
+            // FixedUpdateNetwork で目標角を直接設定し、KCC の Render 補間に任せる
             if (isMoveInput)
             {
                 var targetYaw = _lookRotation.eulerAngles.y;
-                var currentYaw = _kcc.FixedData.LookYaw;
-                var newYaw = Mathf.LerpAngle(currentYaw, targetYaw, _rotationRatio * deltaTime);
-                _kcc.SetLookRotation(0f, newYaw);
+                _kcc.SetLookRotation(0f, targetYaw);
             }
         }
 

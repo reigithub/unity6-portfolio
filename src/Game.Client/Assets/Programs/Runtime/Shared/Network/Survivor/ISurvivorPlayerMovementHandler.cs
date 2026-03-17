@@ -6,6 +6,11 @@ namespace Game.Shared.Network.Survivor
         /// Fusion tick ごとに呼ばれる。入力消費 → ステート更新 → 物理移動 → スナップショット返却。
         /// </summary>
         SurvivorPlayerPhysicsSnapshot ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime);
+
+        /// <summary>
+        /// SurvivorFusionPlayer.Spawned から呼ばれ、入力収集と移動ハンドラをバインドする。
+        /// </summary>
+        void BindFusionPlayer(SurvivorFusionPlayer fusionPlayer);
     }
 
     public struct SurvivorPlayerPhysicsSnapshot

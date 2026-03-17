@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7755548024961192585}
   - component: {fileID: 4158219806842584690}
   - component: {fileID: 1234567890123456789}
+  - component: {fileID: 149732650033804965}
   m_Layer: 0
   m_Name: SurvivorFusionPlayer
   m_TagString: Untagged
@@ -69,6 +70,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39ce4428c05fc934491525c1143480ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Fusion.SurvivorFusionPlayer
+  _Health: 0
+  _MaxHealth: 0
+  _Stamina: 0
+  _MaxStamina: 0
+  _Speed: 0
+  _IsInvincible:
+    _value: 0
 --- !u!54 &2765137264471296877
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -123,7 +131,7 @@ MonoBehaviour:
     InputAuthorityBehavior: 0
     StateAuthorityBehavior: 0
     ProxyInterpolationMode: 0
-    ForcePredictedLookRotation: 0
+    ForcePredictedLookRotation: 1
     AllowClientTeleports: 0
     Processors:
     - {fileID: 4158219806842584690}
@@ -132,7 +140,7 @@ MonoBehaviour:
     - {fileID: 8306782452827789390, guid: 6d976f9777012db4aa55e7e6b1991afe, type: 3}
     MaxPenetrationSteps: 8
     CCDRadiusMultiplier: 0.75
-    AntiJitterDistance: {x: 0.025, y: 0.01}
+    AntiJitterDistance: {x: 0, y: 0}
     PredictionCorrectionSpeed: 30
     NetworkedInteractions: 8
     CompressNetworkPosition: 0
@@ -173,3 +181,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c24e729eadfb5c442a3718e7f2f79a49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SpeedProcessor
+--- !u!114 &149732650033804965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adeb3d6bb3f4a414c8c3c72f430f3841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.SurvivorPlayerController
+  _jogSpeed: 5
+  _runSpeed: 8
+  _rotationRatio: 10

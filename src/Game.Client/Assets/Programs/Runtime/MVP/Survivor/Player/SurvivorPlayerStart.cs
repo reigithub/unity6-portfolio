@@ -65,6 +65,10 @@ namespace Game.MVP.Survivor.Player
             {
                 kcc.SetPosition(transform.position);
                 kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
+                kcc.Settings.AntiJitterDistance = Vector2.zero;
+                kcc.Settings.ForcePredictedLookRotation = true;
+                // kcc.Settings.PredictionCorrectionSpeed = 10f;
+                kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_PredictRender;
                 Debug.Log($"[SurvivorPlayerStart] KCC configured in scene={playerGo.scene.name}, pos={transform.position}");
             }
             else
@@ -72,21 +76,11 @@ namespace Game.MVP.Survivor.Player
                 Debug.LogError("[SurvivorPlayerStart] KCC not found on FusionPlayer!");
             }
 
-            // 4. SurvivorPlayerController を AddComponent + DI 注入
-            var playerController = playerGo.AddComponent<SurvivorPlayerController>();
-            resolver.Inject(playerController);
-
-            // 5. Controller 初期化 + FusionPlayer バインド
+            // 4. プレハブ上の SurvivorPlayerController を取得して初期化
+            var playerController = playerGo.GetComponent<SurvivorPlayerController>();
             playerController.Initialize(levelMaster);
-            playerController.BindFusionPlayer(fusionPlayer);
 
-            // 6. KCC 自動更新を再開（Spawned で手動モードに設定済み）
-            if (playerGo.TryGetComponent<KCC>(out var kccToResume))
-            {
-                kccToResume.SetManualUpdate(false);
-            }
-
-            // 6. モデルロード + Presenter 追加（クライアントのみ — サーバーは視覚不要）
+            // 5. モデルロード + Presenter 追加（クライアントのみ — サーバーは視覚不要）
             if (UnityPlaymodeHelper.IsClient())
             {
                 var modelAssetName = playerMaster.AssetName + "_Model";
