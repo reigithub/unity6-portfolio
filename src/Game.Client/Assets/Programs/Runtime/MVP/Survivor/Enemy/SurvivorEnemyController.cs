@@ -64,6 +64,9 @@ namespace Game.MVP.Survivor.Enemy
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
 
+        private bool _isPaused;
+        public void SetPaused(bool paused) => _isPaused = paused;
+
         /// <summary>ネットワーク同期用ID（SurvivorEnemySpawnerが設定）</summary>
         public int NetworkId => _networkId;
 
@@ -155,6 +158,12 @@ namespace Game.MVP.Survivor.Enemy
             {
                 _navAgent.speed = _moveSpeed;
                 _navAgent.enabled = true;
+
+                // NavMesh 上に明示的にスナップ（enabled 時の自動スナップが失敗するケースに対応）
+                if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    _navAgent.Warp(hit.position);
+                }
             }
 
             if (_collider != null)
@@ -167,6 +176,8 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
+            if (_isPaused) return;
+
             using (s_enemyUpdateMarker.Auto())
             {
                 _stateMachine?.Update();

@@ -11,9 +11,8 @@ namespace Game.MVP.Survivor.Weapon
     /// 貫通、追尾、クリティカル対応
     /// HitCount: 同一敵への最大ヒット回数（-1=無限）
     /// Penetration: 貫通できる敵の数（0=貫通なし）
+    /// ヒット検出: SphereCastNonAlloc（OnTriggerEnter 非使用 — KCC 環境で信頼性がないため）
     /// </summary>
-    [RequireComponent(typeof(SphereCollider))]
-    [RequireComponent(typeof(Rigidbody))]
     public class SurvivorProjectile : MonoBehaviour, IPoolableWeaponItem
     {
         // 追尾補間係数（Homing値と掛け合わせて最終的な追尾強度を決定）
@@ -42,9 +41,11 @@ namespace Game.MVP.Survivor.Weapon
         private readonly Dictionary<int, int> _hitCountPerEnemy = new();
 
         // プライマリヒット処理済みフラグ（SP/MP共通）
-        // プライマリヒット後の貫通はSphereCastで処理するため、
-        // OnTriggerEnterによる追加ダメージ/RPCを抑止する
         private bool _hasPrimaryHitProcessed;
+
+        // SphereCast ヒット検出バッファ
+        private readonly RaycastHit[] _sphereCastHits = new RaycastHit[10];
+        private static int _sphereCastLogCount;
 
         public int Damage => _damage;
         public bool IsCritical => _isCritical;
@@ -56,35 +57,15 @@ namespace Game.MVP.Survivor.Weapon
 
         private void Awake()
         {
-            // コライダーをTriggerとして設定
-            if (TryGetComponent<SphereCollider>(out var sc))
-            {
-                sc.isTrigger = true;
-                sc.radius = _colliderRadius;
-            }
+            // SphereCast ベースのヒット検出では自前コライダー不要
+            if (TryGetComponent<Collider>(out var col)) col.enabled = false;
 
-            // Rigidbodyを物理演算から除外（トリガー検出のみに使用）
-            if (TryGetComponent<Rigidbody>(out var rb))
-            {
-                rb.isKinematic = true;
-                rb.useGravity = false;
-            }
-
-            // タグを設定
             gameObject.tag = "Projectile";
         }
 
         /// <summary>
         /// プロジェクタイルを発射
         /// </summary>
-        /// <param name="direction">発射方向（正規化済み）</param>
-        /// <param name="speed">移動速度（units/s）</param>
-        /// <param name="damage">ダメージ量</param>
-        /// <param name="lifetime">生存時間（秒）</param>
-        /// <param name="hitCount">同一敵への最大ヒット回数（-1=無限）</param>
-        /// <param name="pierce">貫通できる敵の数（0=貫通なし）</param>
-        /// <param name="homing">追尾性能（%）、0=直進、100=完全追尾</param>
-        /// <param name="isCritical">クリティカルヒットかどうか</param>
         public void Fire(Vector3 direction, float speed, int damage, float lifetime, int hitCount, int pierce, int homing, bool isCritical)
         {
             _direction = direction.normalized;
@@ -131,8 +112,36 @@ namespace Game.MVP.Survivor.Weapon
                 }
             }
 
-            // 移動
-            transform.position += _direction * _speed * Time.deltaTime;
+            // ヒット検出: 移動パス上の SphereCastNonAlloc（貫通対応）
+            float moveDistance = _speed * Time.deltaTime;
+            if (moveDistance > 0f)
+            {
+                int hitCount = Physics.SphereCastNonAlloc(
+                    transform.position, _colliderRadius, _direction,
+                    _sphereCastHits, moveDistance, LayerMaskConstants.Enemy,
+                    QueryTriggerInteraction.Collide);
+
+                for (int i = 0; i < hitCount; i++)
+                {
+                    var hitCollider = _sphereCastHits[i].collider;
+                    if (hitCollider.CompareLayer(LayerConstants.Enemy))
+                    {
+                        if (_sphereCastLogCount < 10)
+                        {
+                            _sphereCastLogCount++;
+                            Debug.Log($"[Projectile.SphereCast#{_sphereCastLogCount}] hit={hitCollider.name}, dist={_sphereCastHits[i].distance:F3}");
+                        }
+
+                        OnHit?.Invoke(this, hitCollider);
+                        if (!_isActive) break; // プール返却された場合
+                    }
+                }
+            }
+
+            if (!_isActive) return;
+
+            // 移動（SphereCast で検出済みのため物理同期不要）
+            transform.position += _direction * moveDistance;
 
             // 寿命チェック
             _lifetime -= Time.deltaTime;
@@ -149,18 +158,6 @@ namespace Game.MVP.Survivor.Weapon
         public void SetHomingTarget(Transform target)
         {
             _homingTarget = target;
-        }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            if (!_isActive) return;
-
-            // メッシュコライダーが子オブジェクトにある場合に対応
-            // 親を辿ってEnemyタグを確認
-            if (other.CompareLayer(LayerConstants.Enemy))
-            {
-                OnHit?.Invoke(this, other);
-            }
         }
 
         /// <summary>

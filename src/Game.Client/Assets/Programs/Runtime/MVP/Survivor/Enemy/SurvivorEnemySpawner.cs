@@ -67,6 +67,7 @@ namespace Game.MVP.Survivor.Enemy
 
         // State
         private bool _isSpawning;
+        private bool _wasPaused;
         private WaveSpawnInfo _currentSpawnInfo;
         private List<WaveEnemySpawnInfo> _enemySpawnList;
         private int _currentSpawnIndex;
@@ -227,7 +228,15 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
-            // サーバー: 定期的に敵状態をバッチ送信
+            // ポーズ状態の同期
+            bool isPaused = _runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsPaused;
+            if (isPaused != _wasPaused)
+            {
+                _wasPaused = isPaused;
+                SetAllEnemiesPaused(isPaused);
+            }
+
+            // サーバー: 定期的に敵状態をバッチ送信（ポーズ中も位置同期は維持）
             if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
             {
                 _enemySyncTimer -= GetNetworkDeltaTime();
@@ -240,6 +249,9 @@ namespace Game.MVP.Survivor.Enemy
 
             // MP Client: ローカルスポーン無効
             if (!_runnerService.IsServer) return;
+
+            // ポーズ中はスポーン停止
+            if (isPaused) return;
 
             if (!_isSpawning)
             {
@@ -276,6 +288,10 @@ namespace Game.MVP.Survivor.Enemy
             {
                 var enemy = _activeEnemies[i];
                 var networkId = _enemyNetworkIds.TryGetValue(enemy, out var id) ? id : -1;
+                var syncType = enemy.CurrentAnimationState == EnemyAnimationState.Attack
+                    ? EnemySyncType.Attack
+                    : EnemySyncType.PositionUpdate;
+
                 snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = networkId,
@@ -287,7 +303,7 @@ namespace Game.MVP.Survivor.Enemy
                     VelocityY = enemy.Velocity.y,
                     VelocityZ = enemy.Velocity.z,
                     CurrentHp = enemy.CurrentHp,
-                    SyncType = EnemySyncType.PositionUpdate
+                    SyncType = syncType
                 };
             }
             batchSync.WriteEnemyStates(snapshots);
@@ -479,9 +495,17 @@ namespace Game.MVP.Survivor.Enemy
                 Mathf.Sin(angle) * distance
             );
 
-            // MP: ランダムなプレイヤーの周囲にスポーン
+            // ランダムなプレイヤーの周囲にスポーン
             var target = GetRandomPlayerTransform();
-            return (target != null ? target.position : Vector3.zero) + offset;
+            var rawPosition = (target != null ? target.position : Vector3.zero) + offset;
+
+            // NavMesh 上の最寄り点にスナップ（地形の凹凸・NavMesh 外スポーンを防止）
+            if (UnityEngine.AI.NavMesh.SamplePosition(rawPosition, out var hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+
+            return rawPosition;
         }
 
         /// <summary>
@@ -589,6 +613,14 @@ namespace Game.MVP.Survivor.Enemy
         public bool TryGetEnemyByNetworkId(int networkId, out SurvivorEnemyController enemy)
         {
             return _enemyByNetworkId.TryGetValue(networkId, out enemy);
+        }
+
+        private void SetAllEnemiesPaused(bool paused)
+        {
+            foreach (var enemy in _activeEnemies)
+            {
+                if (enemy != null) enemy.SetPaused(paused);
+            }
         }
 
         /// <summary>

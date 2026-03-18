@@ -21,6 +21,7 @@ namespace Game.MVP.Survivor.Enemy
     {
         // Animator hashes（SurvivorEnemyPresenter と同一）
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int DeathHash = Animator.StringToHash("Death");
 
         private const float InterpolationSpeed = 8f;
@@ -82,6 +83,10 @@ namespace Game.MVP.Survivor.Enemy
                     case EnemySyncType.PositionUpdate:
                         UpdateProxy(e);
                         break;
+                    case EnemySyncType.Attack:
+                        UpdateProxy(e);
+                        HandleAttack(e);
+                        break;
                     case EnemySyncType.Death:
                         HandleDeath(e);
                         break;
@@ -137,6 +142,11 @@ namespace Game.MVP.Survivor.Enemy
             var proxyTarget = instance.AddComponent<EnemyProxyTarget>();
             proxyTarget.NetworkId = e.NetworkId;
 
+            if (_proxies.Count < 3)
+            {
+                Debug.Log($"[EnemyView.Spawn] id={e.NetworkId}, scene={instance.scene.name}, layer={instance.layer}({LayerMask.LayerToName(instance.layer)}), pos={pos}");
+            }
+
             _proxies[e.NetworkId] = new EnemyProxyData
             {
                 GameObject = instance,
@@ -170,6 +180,18 @@ namespace Game.MVP.Survivor.Enemy
             data.LastSyncPosition = newServerPos;
             data.Velocity = newVelocity;
             data.TimeSinceSync = 0f;
+        }
+
+        private void HandleAttack(SurvivorNetworkEnemyStateSnapshot e)
+        {
+            if (!_proxies.TryGetValue(e.NetworkId, out var data)) return;
+            if (data.IsDead) return;
+
+            if (data.Animator != null)
+            {
+                data.Animator.SetFloat(SpeedHash, 0f);
+                data.Animator.SetTrigger(AttackHash);
+            }
         }
 
         private void HandleDeath(SurvivorNetworkEnemyStateSnapshot e)

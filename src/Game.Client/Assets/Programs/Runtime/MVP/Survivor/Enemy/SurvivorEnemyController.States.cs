@@ -209,6 +209,9 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
+                // 攻撃クールダウンを初期化（モーション再生後にダメージが発生するように）
+                ctx._attackTimer = ctx._attackCooldown;
+
                 ctx.CurrentAnimationState = EnemyAnimationState.Attack;
                 ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Attack);
             }
