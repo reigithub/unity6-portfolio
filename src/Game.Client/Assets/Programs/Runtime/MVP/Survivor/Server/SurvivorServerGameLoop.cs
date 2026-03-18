@@ -16,6 +16,7 @@ namespace Game.MVP.Survivor.Server
     /// MPPM / Dedicated Server 用エントリポイント。
     /// AllPlayersReady シグナル受信後にマスターデータ読み込み → SurvivorNetworkStageScene へ遷移し、
     /// サーバー権威のウェーブ管理・エネミースポーンを開始する。
+    /// クライアントのリトライ時は AllPlayersDisconnected → 次の AllPlayersReady で再遷移する。
     /// </summary>
     public class SurvivorServerGameLoop : IAsyncStartable
     {
@@ -23,35 +24,55 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
 
         public async UniTask StartAsync(CancellationToken cancellation)
         {
-            Debug.Log("[SurvivorServerGameLoop] Waiting for master data and AllPlayersReady...");
-
-            // マスターデータ読み込み（ウェーブ・エネミー定義に必要）
+            // マスターデータ読み込み（初回のみ）
             await _masterDataService.LoadMasterDataAsync();
 
-            // AllPlayersReady シグナルを待機
-            var tcs = new UniTaskCompletionSource();
-            var subscription = _allPlayersReadySub.Subscribe(_ => tcs.TrySetResult());
-            try
+            while (!cancellation.IsCancellationRequested)
             {
-                await tcs.Task;
+                Debug.Log("[SurvivorServerGameLoop] Waiting for AllPlayersReady...");
+
+                // AllPlayersReady シグナルを待機
+                var readyTcs = new UniTaskCompletionSource();
+                var readySub = _allPlayersReadySub.Subscribe(_ => readyTcs.TrySetResult());
+                try
+                {
+                    await readyTcs.Task;
+                }
+                finally
+                {
+                    readySub.Dispose();
+                }
+
+                Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received");
+
+                // セーブサービスにセッション情報を設定
+                _saveService.StartSession(stageId: 1, playerId: 1);
+
+                // SurvivorNetworkStageScene へ遷移
+                await _sceneService.TransitionAsync<SurvivorNetworkStageScene>();
+                Debug.Log("[SurvivorServerGameLoop] SurvivorNetworkStageScene loaded on server");
+
+                // 全プレイヤー離脱を待機（クライアントのリトライ/終了）
+                var disconnectTcs = new UniTaskCompletionSource();
+                var disconnectSub = _allPlayersDisconnectedSub.Subscribe(_ => disconnectTcs.TrySetResult());
+                try
+                {
+                    await disconnectTcs.Task;
+                }
+                finally
+                {
+                    disconnectSub.Dispose();
+                }
+
+                Debug.Log("[SurvivorServerGameLoop] All players disconnected, resetting for next session");
+
+                // ステージシーンを終了して次のセッションに備える
+                // （SurvivorNetworkStageScene.Terminate → 次のループで AllPlayersReady 待機）
             }
-            finally
-            {
-                subscription.Dispose();
-            }
-
-            Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received");
-
-            // セーブサービスにセッション情報を設定（SurvivorNetworkStageScene が参照する）
-            _saveService.StartSession(stageId: 1, playerId: 1);
-
-            // SurvivorNetworkStageScene へ遷移 → サーバー側ウェーブ管理開始
-            await _sceneService.TransitionAsync<SurvivorNetworkStageScene>();
-
-            Debug.Log("[SurvivorServerGameLoop] SurvivorNetworkStageScene loaded on server");
         }
     }
 }

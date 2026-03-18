@@ -38,10 +38,12 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Connection.PlayerDisconnected> _playerDisconnectedPub;
         [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
         [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;
+        [Inject] private IPublisher<SurvivorSignals.Item.CollectReported> _itemCollectReportedPub;
 
         // --- [Networked] 永続状態（遅延参加クライアント用） ---
 
@@ -376,6 +378,15 @@ namespace Game.Shared.Network.Survivor
         {
             _totalPlayerCount = count;
             _deadPlayerIds.Clear();
+            _sceneReadyPlayers.Clear();
+            _isLevelUpPaused = false;
+
+            // [Networked] ゲーム状態をリセット（リトライ時に ChangeDetector が正しく変化を検知するため）
+            CurrentWave = 0;
+            WaveTargetKills = 0;
+            WaveTotalEnemies = 0;
+            IsPaused = false;
+            IsAllWavesCleared = false;
         }
 
         /// <summary>
@@ -404,6 +415,7 @@ namespace Game.Shared.Network.Survivor
             if (_isLevelUpPaused) return;
             _isLevelUpPaused = true;
             _levelUpPauseStartTime = Time.realtimeSinceStartup;
+            IsPaused = true;
             ApplicationEvents.PauseTime();
             Debug.Log("[SurvivorFusionGameState] LevelUp pause requested");
         }
@@ -413,6 +425,7 @@ namespace Game.Shared.Network.Survivor
         {
             if (!_isLevelUpPaused) return;
             _isLevelUpPaused = false;
+            IsPaused = false;
             ApplicationEvents.ResumeTime();
             Debug.Log("[SurvivorFusionGameState] LevelUp resumed");
         }
@@ -451,6 +464,12 @@ namespace Game.Shared.Network.Survivor
             _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(enemyNetworkId, weaponId));
         }
 
+        /// <summary>サーバー側: クライアントからのアイテム収集報告</summary>
+        public void OnClientItemCollected(int itemId)
+        {
+            _itemCollectReportedPub?.Publish(new SurvivorSignals.Item.CollectReported(itemId));
+        }
+
         // =====================================================================
         //  サーバー側ロジック: シーン準備完了トラッキング
         // =====================================================================
@@ -460,6 +479,17 @@ namespace Game.Shared.Network.Survivor
         /// クライアント → サーバー: フィールドシーンのロード完了通知。
         /// プレイヤースポーン前に、クライアントのアクティブシーンが物理シーンであることを保証する。
         /// </summary>
+        /// <summary>
+        /// サーバー → 全クライアント: 全プレイヤー接続完了通知。
+        /// MPPM 等ではサーバーとクライアントが別 DI コンテナのため、MessagePipe だけでは届かない。
+        /// </summary>
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcNotifyAllPlayersReady()
+        {
+            Debug.Log("[SurvivorFusionGameState] AllPlayersReady (RPC received)");
+            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+        }
+
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         public void RpcNotifyFieldSceneLoaded()
         {

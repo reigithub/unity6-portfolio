@@ -176,7 +176,7 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster);
+            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster, SceneComponent.transform);
             if (playerController != null)
             {
                 // SceneComponentにプレイヤーを設定
@@ -235,14 +235,29 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             // ヒットコールバック設定（武器サブクラスから Collider + WeaponId を受け取り、サーバーに委譲）
+            // SP: SurvivorEnemyController（直接参照）、MP: EnemyProxyTarget（クライアント敵プロキシ）
             SceneComponent.WeaponManager.SetHitCallback((other, weaponId) =>
             {
                 if (!_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer)) return;
 
+                int networkId = -1;
                 var enemy = other.GetComponentInParent<SurvivorEnemyController>();
-                if (enemy != null && !enemy.IsDead && enemy.NetworkId >= 0)
+                if (enemy != null && !enemy.IsDead)
                 {
-                    localPlayer.RpcClientHitReported(enemy.NetworkId, weaponId);
+                    networkId = enemy.NetworkId;
+                }
+                else
+                {
+                    var proxy = other.GetComponentInParent<EnemyProxyTarget>();
+                    if (proxy != null)
+                    {
+                        networkId = proxy.NetworkId;
+                    }
+                }
+
+                if (networkId >= 0)
+                {
+                    localPlayer.RpcClientHitReported(networkId, weaponId);
                 }
             });
 
@@ -430,8 +445,6 @@ namespace Game.MVP.Survivor.Scenes
         public override async UniTask Terminate()
         {
             // イベント解除は Disposables で自動処理
-
-            _networkConnector?.Disconnect();
             ApplicationEvents.ResumeTime();
 
             Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
@@ -459,7 +472,7 @@ namespace Game.MVP.Survivor.Scenes
             // スカイボックスをデフォルトに戻す
             GameRootController?.ResetSkyboxMaterial();
 
-            // ステージ環境シーンをアンロード
+            // ステージ環境シーンをアンロード（Fusion 切断前に実行 — Shutdown がシーンをクリーンアップするため）
             if (_stageSceneInstance.HasValue)
             {
                 await _addressableService.UnloadSceneAsync(_stageSceneInstance.Value);
@@ -468,6 +481,10 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await base.Terminate();
+
+            // Fusion 切断（Addressables シーンアンロード後に実行）
+            _networkConnector?.Disconnect();
+            await UniTask.Yield();
         }
 
         /// <summary>

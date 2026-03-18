@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Game.Client.MasterData;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
@@ -190,10 +191,20 @@ namespace Game.MVP.Survivor.Scenes
 
                 var itemViewGo = new GameObject("[SurvivorItemView]");
                 itemViewGo.transform.SetParent(View.transform);
-                await itemViewGo.AddComponent<SurvivorItemView>().InitializeAsync(
+                var itemView = itemViewGo.AddComponent<SurvivorItemView>();
+                await itemView.InitializeAsync(
                     Context._itemSpawnedSub, Context._itemDespawnedSub,
                     Context.ScopedResolver.Resolve<IMasterDataService>(),
                     Context._addressableService);
+
+                // アイテムプロキシ収集時にサーバーへ RPC 送信
+                itemView.OnProxyItemCollected += itemId =>
+                {
+                    if (TryGetLocalPlayer(out var localPlayer))
+                    {
+                        localPlayer.RpcClientItemCollected(itemId);
+                    }
+                };
             }
         }
 
@@ -346,6 +357,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log($"[LevelUpState] Enter - Level {StageModel.Level.Value}");
                 ApplicationEvents.PauseTime();
+                Context._inputService.DisablePlayer();
                 ApplicationEvents.ShowCursor();
 
                 if (TryGetLocalPlayer(out var localPlayer))
@@ -459,23 +471,42 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[LevelUpState] Exit");
                 ApplicationEvents.ResumeTime();
+                Context._inputService.EnablePlayer();
             }
 
-            private static List<SurvivorWeaponUpgradeOption> ConvertNetworkOptions(
+            /// <summary>
+            /// サーバーから受信した最小構造体をマスターデータで補完し、UI 用オプションに変換する。
+            /// </summary>
+            private List<SurvivorWeaponUpgradeOption> ConvertNetworkOptions(
                 SurvivorNetworkWeaponUpgradeOption[] networkOptions)
             {
                 var result = new List<SurvivorWeaponUpgradeOption>(networkOptions.Length);
+                var memDb = Context.ScopedResolver.Resolve<IMasterDataService>().MemoryDatabase;
+
                 foreach (var opt in networkOptions)
                 {
+                    memDb.SurvivorWeaponMasterTable.TryFindById(opt.WeaponId, out var weaponMaster);
+
+                    string upgradeEffect = null;
+                    if (!opt.IsNewWeapon)
+                    {
+                        var nextLevel = opt.CurrentLevel + 1;
+                        if (memDb.SurvivorWeaponLevelMasterTable.TryFindByWeaponIdAndLevel(
+                            (opt.WeaponId, nextLevel), out var levelMaster))
+                        {
+                            upgradeEffect = levelMaster.Description;
+                        }
+                    }
+
                     result.Add(new SurvivorWeaponUpgradeOption
                     {
                         WeaponId = opt.WeaponId,
-                        WeaponName = opt.WeaponName.ToString(),
+                        WeaponName = weaponMaster?.Name ?? "",
                         IsNewWeapon = opt.IsNewWeapon,
                         CurrentLevel = opt.CurrentLevel,
-                        Description = opt.Description.ToString(),
-                        UpgradeEffect = opt.UpgradeEffect.ToString(),
-                        IconAssetName = opt.IconAssetName.ToString()
+                        Description = weaponMaster?.Description ?? "",
+                        UpgradeEffect = upgradeEffect,
+                        IconAssetName = weaponMaster?.IconAssetName ?? ""
                     });
                 }
                 return result;

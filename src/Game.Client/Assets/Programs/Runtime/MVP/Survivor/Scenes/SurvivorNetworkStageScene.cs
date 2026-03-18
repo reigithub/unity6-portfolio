@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
+using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Services;
@@ -35,6 +36,7 @@ namespace Game.MVP.Survivor.Scenes
         // Server signals
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.ApplyRequested> _weaponApplySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Item.CollectReported> _itemCollectReportedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
@@ -250,9 +252,10 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SetupServerNetworking()
         {
-            // 武器適用・ヒット報告シグナル購読
+            // 武器適用・ヒット報告・アイテム収集報告シグナル購読
             _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
             _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
+            _itemCollectReportedSub.Subscribe(s => OnServerItemCollectReported(s.ItemId)).AddTo(Disposables);
 
             // シグナル→ClientRpcブリッジ
             SubscribeNetworkSignals();
@@ -298,6 +301,9 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.EnemySpawner?.ClearAllEnemies();
         }
 
+        /// <summary>プレイヤーと敵の最大許容距離（武器射程 + ネットワーク遅延マージン）</summary>
+        private const float MaxHitValidationDistance = 30f;
+
         private void OnServerHitReported(int enemyNetworkId, int weaponId)
         {
             if (!SceneComponent.EnemySpawner.TryGetEnemyByNetworkId(enemyNetworkId, out var enemy))
@@ -308,7 +314,52 @@ namespace Game.MVP.Survivor.Scenes
                 ? SceneComponent.PlayerController.transform.position
                 : enemy.transform.position;
 
+            // サーバー側距離検証: プレイヤーと敵の距離が許容範囲内か
+            float distance = Vector3.Distance(playerPos, enemy.transform.position);
+            if (distance > MaxHitValidationDistance)
+            {
+                Debug.LogWarning($"[ServerHitValidation] Rejected: enemy={enemyNetworkId}, weapon={weaponId}, distance={distance:F1} > {MaxHitValidationDistance}");
+                return;
+            }
+
             _weaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
+        }
+
+        /// <summary>
+        /// サーバー: クライアントからのアイテム収集報告を処理。
+        /// マスターデータからアイテム効果を取得し、モデルに適用後、結果を全クライアントに通知。
+        /// </summary>
+        private void OnServerItemCollectReported(int itemId)
+        {
+            var itemSpawner = SceneComponent.SurvivorItemSpawner;
+            if (itemSpawner == null) return;
+
+            // マスターデータからアイテム情報を取得
+            if (!itemSpawner.TryGetItemMaster(itemId, out var master)) return;
+
+            var itemType = (SurvivorItemType)master.ItemType;
+            var effectValue = master.EffectValue;
+
+            // サーバー側モデルにアイテム効果を適用
+            switch (itemType)
+            {
+                case SurvivorItemType.Experience:
+                    _stageModel.AddExperience(effectValue);
+                    break;
+                case SurvivorItemType.Recovery:
+                    _stageModel.Heal(effectValue);
+                    break;
+            }
+
+            // 全クライアントに結果を通知
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.NotifyItemCollected(
+                    "", itemId, (int)itemType, effectValue,
+                    _stageModel.Experience.Value,
+                    _stageModel.ExperienceToNextLevel.Value);
+                gs.NotifyItemDespawned(itemId);
+            }
         }
 
         private void OnServerWeaponApply(SurvivorWeaponApplyRequest request)

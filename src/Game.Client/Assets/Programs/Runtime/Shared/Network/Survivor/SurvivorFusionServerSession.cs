@@ -92,6 +92,9 @@ namespace Game.Shared.Network.Survivor
 
             if (ConnectedPlayerCount <= 0 && _allPlayersNotified)
             {
+                // リトライ時に再接続を受け入れるためリセット
+                _allPlayersNotified = false;
+
                 Debug.Log("[SurvivorFusionSession] All players disconnected");
                 _allPlayersDisconnectedPub?.Publish(new SurvivorSignals.Session.AllPlayersDisconnected());
             }
@@ -107,12 +110,17 @@ namespace Game.Shared.Network.Survivor
 
             // ゲーム状態にプレイヤー数を設定（全滅判定用）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
                 gs.SetTotalPlayerCount(_expectedPlayerCount);
 
-            _allPlayersReadyPub?.Publish(new SurvivorSignals.Session.AllPlayersReady());
+                // RPC で全クライアントに通知（MPPM 等では別 DI コンテナのため MessagePipe だけでは届かない）
+                gs.RpcNotifyAllPlayersReady();
+            }
+
+            // サーバーローカルの GameStarted シグナル
             _gameStartedPub?.Publish(new SurvivorSignals.Session.GameStarted(Time.time));
 
-            Debug.Log("[SurvivorFusionSession] AllPlayersReady + GameStarted published");
+            Debug.Log("[SurvivorFusionSession] AllPlayersReady (RPC) + GameStarted published");
         }
     }
 }

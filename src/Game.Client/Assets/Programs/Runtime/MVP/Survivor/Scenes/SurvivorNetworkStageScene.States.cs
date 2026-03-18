@@ -182,11 +182,15 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // ゲームタイマー更新（Fusion tick 同期）
-                var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
-                    ? Context._runnerService.Runner.DeltaTime
-                    : Time.deltaTime;
-                StageModel.GameTime.Value += dt;
+                // ゲームタイマー更新（ポーズ中はスキップ）
+                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsPaused;
+                if (!isPaused)
+                {
+                    var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
+                        ? Context._runnerService.Runner.DeltaTime
+                        : Time.deltaTime;
+                    StageModel.GameTime.Value += dt;
+                }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
                 if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
@@ -267,12 +271,8 @@ namespace Game.MVP.Survivor.Scenes
                     result[i] = new SurvivorNetworkWeaponUpgradeOption
                     {
                         WeaponId = opt.WeaponId,
-                        WeaponName = opt.WeaponName ?? "",
                         IsNewWeapon = opt.IsNewWeapon,
                         CurrentLevel = opt.CurrentLevel,
-                        Description = opt.Description ?? "",
-                        UpgradeEffect = opt.UpgradeEffect ?? "",
-                        IconAssetName = opt.IconAssetName ?? ""
                     };
                 }
                 return result;

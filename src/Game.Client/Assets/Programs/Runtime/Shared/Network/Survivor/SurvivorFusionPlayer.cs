@@ -82,10 +82,30 @@ namespace Game.Shared.Network.Survivor
         }
 
         private bool _inputReceived;
+        private bool _wasPaused;
+
+        /// <summary>
+        /// [Networked] IsPaused の変化に応じて KCC.SetActive を切り替える。
+        /// KCC.SetActive(false) で物理・コリジョン・移動入力が完全停止する（KCC 推奨 API）。
+        /// </summary>
+        private void SyncPauseState()
+        {
+            if (_kcc == null || _runnerService == null) return;
+
+            bool isPaused = _runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsPaused;
+            if (isPaused != _wasPaused)
+            {
+                _wasPaused = isPaused;
+                _kcc.SetActive(!isPaused);
+            }
+        }
 
         public override void FixedUpdateNetwork()
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
+
+            // ポーズ状態の同期 → KCC.SetActive で物理・移動を完全停止/再開
+            SyncPauseState();
 
             if (GetInput(out SurvivorPlayerNetworkInput input))
             {
@@ -134,6 +154,7 @@ namespace Game.Shared.Network.Survivor
         public override void Render()
         {
             // InputAuthority: Render 時の入力予測（ManualRenderUpdate の前に入力を設定）
+            // KCC.SetActive(false) 時は ManualRenderUpdate 内で自動的にスキップされる
             if (HasInputAuthority && MovementHandler != null && _kcc != null)
             {
                 MovementHandler.ProcessRenderInput(_kcc);
@@ -221,6 +242,15 @@ namespace Game.Shared.Network.Survivor
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
                 gs.OnClientHitReported(enemyNetworkId, weaponId);
+            }
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientItemCollected(int itemId)
+        {
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnClientItemCollected(itemId);
             }
         }
 
