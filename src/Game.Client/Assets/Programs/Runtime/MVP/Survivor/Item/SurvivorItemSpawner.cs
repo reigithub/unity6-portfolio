@@ -57,6 +57,15 @@ namespace Game.MVP.Survivor.Item
         }
 
         /// <summary>
+        /// アイテムマスターを外部から参照（サーバー側アイテム収集処理用）
+        /// </summary>
+        public bool TryGetItemMaster(int itemId, out SurvivorItemMaster master)
+        {
+            master = GetOrAddItemMaster(itemId);
+            return master != null;
+        }
+
+        /// <summary>
         /// アイテムマスターを取得（遅延読み込み＆キャッシュ）
         /// </summary>
         private SurvivorItemMaster GetOrAddItemMaster(int itemId)

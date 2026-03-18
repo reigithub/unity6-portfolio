@@ -281,6 +281,17 @@ namespace Game.Shared.Signals.Survivor
                     ItemId = itemId;
                 }
             }
+
+            /// <summary>クライアント→サーバー: アイテム収集報告</summary>
+            public readonly struct CollectReported
+            {
+                public readonly int ItemId;
+
+                public CollectReported(int itemId)
+                {
+                    ItemId = itemId;
+                }
+            }
         }
 
         // --- Weapon ---

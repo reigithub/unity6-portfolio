@@ -225,6 +225,7 @@ namespace Game.MVP.Survivor
             // Server
             builder.RegisterMessageBroker<SurvivorSignals.Weapon.HitReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Weapon.ApplyRequested>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Item.CollectReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsSceneReady>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.ClientFieldSceneLoaded>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersDisconnected>(options);

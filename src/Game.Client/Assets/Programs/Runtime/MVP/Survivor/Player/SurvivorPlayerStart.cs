@@ -31,7 +31,8 @@ namespace Game.MVP.Survivor.Player
         public async UniTask<SurvivorPlayerController> LoadPlayerAsync(
             IObjectResolver resolver,
             SurvivorPlayerMaster playerMaster,
-            SurvivorPlayerLevelMaster levelMaster)
+            SurvivorPlayerLevelMaster levelMaster,
+            Transform sceneComponentRoot = null)
         {
             // 1. Fusion Spawn 済みの SurvivorFusionPlayer を取得
             //    サーバー側: 直前の SpawnConnectedPlayers で即座に利用可能
@@ -51,16 +52,15 @@ namespace Game.MVP.Survivor.Player
 
             var playerGo = fusionPlayer.gameObject;
 
-            // 2. 物理シーンに移動
-            // Fusion のオブジェクトプロバイダは SetActiveScene に関係なく GameRootScene にインスタンス化するため、
-            // 物理シーン（PlayerStart が存在するシーン）への移動が必要
-            // サーバー側は既に物理シーンにスポーンされるため no-op
-            var physicsScene = gameObject.scene;
-            if (playerGo.scene != physicsScene)
+            // 2. SceneComponent(SurvivorStageScene(Clone)) の子として配置
+            // Fusion のオブジェクトプロバイダは GameRootScene にインスタンス化するため、
+            // SceneComponent 配下に移動して他のゲームオブジェクト（アイテム、敵プロキシ等）と
+            // 同じ階層・物理シーンに配置する。
+            if (sceneComponentRoot != null)
             {
-                SceneManager.MoveGameObjectToScene(playerGo, physicsScene);
+                playerGo.transform.SetParent(sceneComponentRoot, true);
             }
-            Debug.Log($"[SurvivorPlayerStart] Player scene={playerGo.scene.name}");
+            Debug.Log($"[SurvivorPlayerStart] Player parented to {playerGo.transform.parent?.name}, scene={playerGo.scene.name}");
             if (playerGo.TryGetComponent<KCC>(out var kcc))
             {
                 kcc.SetPosition(transform.position);

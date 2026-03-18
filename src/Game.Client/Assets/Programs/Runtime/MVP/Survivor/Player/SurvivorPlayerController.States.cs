@@ -173,8 +173,8 @@ namespace Game.MVP.Survivor.Player
                 Debug.Log("[SurvivorPlayerController] Player died");
                 ctx._onDied.OnNext(new SurvivorSignals.Player.Died());
 
-                // RPC 経由で死亡通知をサーバーに送信
-                if (ctx._fusionPlayer != null)
+                // RPC 経由で死亡通知をサーバーに送信（InputAuthority のみ）
+                if (ctx._fusionPlayer != null && ctx._fusionPlayer.HasInputAuthority)
                 {
                     ctx._fusionPlayer.RpcClientPlayerDied();
                 }

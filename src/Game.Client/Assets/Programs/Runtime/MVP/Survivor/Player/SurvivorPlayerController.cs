@@ -1,6 +1,7 @@
 using Fusion.Addons.KCC;
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
+using Game.MVP.Survivor.Item;
 using Game.Shared.Item;
 using Game.Shared;
 using Game.Shared.Combat;
@@ -284,6 +285,7 @@ namespace Game.MVP.Survivor.Player
             if (!IsDead)
             {
                 ExecuteMovement(input, deltaTime);
+                CollectItemsFromKCCHits();
             }
 
             return new SurvivorPlayerPhysicsSnapshot
@@ -360,8 +362,14 @@ namespace Game.MVP.Survivor.Player
                 {
                     if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
                     {
-                        // アイテムに吸引開始を通知（ターゲットと速度を渡す）
+                        // 吸引開始（収集は KCCData.Hits または ItemProxyCollectible.Update の到達判定で行う）
                         collectible.StartAttraction(transform, _itemAttractSpeed);
+
+                        // プロキシアイテムに収集距離を伝達（毎フレームの到達判定用）
+                        if (_itemHitBuffer[i].TryGetComponent<ItemProxyCollectible>(out var proxy))
+                        {
+                            proxy.CollectDistance = _itemCollectDistance;
+                        }
                     }
                 }
             }
@@ -482,17 +490,31 @@ namespace Game.MVP.Survivor.Player
 
         #endregion
 
-        #region Collision
+        #region KCC Item Collection
 
-        private void OnTriggerEnter(Collider other)
+        private static int _kccHitCollectLogCount;
+
+        /// <summary>
+        /// KCCData.Hits からアイテム収集。ProcessTick の ExecuteMovement 後に呼ぶ。
+        /// KCC カプセル内のアイテムを直接収集する（OnTriggerEnter 非使用）。
+        /// </summary>
+        private void CollectItemsFromKCCHits()
         {
-            if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+            if (_kcc == null || _fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
 
-            // アイテムとの衝突
-            if (other.CompareLayer(LayerConstants.Item))
+            foreach (var hit in _kcc.FixedData.Hits.All)
             {
-                if (other.TryGetComponent<ICollectible>(out var collectible))
+                if (hit.Collider != null
+                    && hit.Collider.gameObject.layer == LayerConstants.Item
+                    && hit.Collider.TryGetComponent<ICollectible>(out var collectible)
+                    && !collectible.IsCollected)
                 {
+                    if (_kccHitCollectLogCount < 10)
+                    {
+                        _kccHitCollectLogCount++;
+                        Debug.Log($"[KCCHits.Collect#{_kccHitCollectLogCount}] item={hit.Collider.name}");
+                    }
+
                     collectible.Collect();
                 }
             }
