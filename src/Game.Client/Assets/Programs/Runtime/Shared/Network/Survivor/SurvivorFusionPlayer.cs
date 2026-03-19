@@ -31,6 +31,7 @@ namespace Game.Shared.Network.Survivor
         private ChangeDetector _changeDetector;
         private SurvivorNetworkWeaponUpgradeOption[] _lastSentWeaponOptions;
         private KCC _kcc;
+        private SurvivorFusionGameState _gameState;
 
         /// <summary>入力収集デリゲート（InputAuthority 側の Controller が設定）</summary>
         public Func<SurvivorPlayerNetworkInput> InputGatherer { get; set; }
@@ -45,6 +46,7 @@ namespace Game.Shared.Network.Survivor
         {
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             TryGetComponent(out _kcc);
+            _runnerService?.TryGet(out _gameState);
 
             // KCC の手動更新を有効化（入力設定→KCC更新→カメラ更新の順序を保証）
             if (_kcc != null)
@@ -90,9 +92,9 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         private void SyncPauseState()
         {
-            if (_kcc == null || _runnerService == null) return;
+            if (_gameState == null) return;
 
-            bool isPaused = _runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsPaused;
+            bool isPaused = _gameState.IsPaused;
             if (isPaused != _wasPaused)
             {
                 _wasPaused = isPaused;

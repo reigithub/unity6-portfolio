@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -43,6 +44,9 @@ namespace Game.MVP.Survivor.Weapon
         // プライマリヒット処理済みフラグ（SP/MP共通）
         private bool _hasPrimaryHitProcessed;
 
+        // ポーズ参照（生成元マネージャーが設定）
+        private SurvivorFusionGameState _gameState;
+
         // SphereCast ヒット検出バッファ
         private readonly RaycastHit[] _sphereCastHits = new RaycastHit[10];
 
@@ -61,6 +65,8 @@ namespace Game.MVP.Survivor.Weapon
 
             gameObject.tag = "Projectile";
         }
+
+        public void Initialize(SurvivorFusionGameState gameState) => _gameState = gameState;
 
         /// <summary>
         /// プロジェクタイルを発射
@@ -97,6 +103,7 @@ namespace Game.MVP.Survivor.Weapon
         private void Update()
         {
             if (!_isActive) return;
+            if (_gameState != null && _gameState.IsPaused) return;
 
             // 追尾処理
             if (_homing > 0 && _homingTarget != null && _homingTarget.gameObject.activeInHierarchy)

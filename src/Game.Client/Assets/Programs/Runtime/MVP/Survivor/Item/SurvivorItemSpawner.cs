@@ -43,6 +43,9 @@ namespace Game.MVP.Survivor.Item
         // ドロップグループキャッシュ (GroupId -> List<SurvivorItemDropMaster>)
         private readonly Dictionary<int, List<SurvivorItemDropMaster>> _dropGroupCache = new();
 
+        // ポーズ参照
+        private SurvivorFusionGameState _gameState;
+
         // ネットワーク
         [Inject] private IFusionRunnerService _runnerService;
 
@@ -52,6 +55,7 @@ namespace Game.MVP.Survivor.Item
 
         public UniTask InitializeAsync()
         {
+            _runnerService.TryGet(out _gameState);
             Debug.Log("[SurvivorItemSpawner] Initialized (lazy loading enabled)");
             return UniTask.CompletedTask;
         }
@@ -162,7 +166,8 @@ namespace Game.MVP.Survivor.Item
                 master.EffectRange,
                 master.EffectDuration,
                 master.Rarity,
-                master.Scale.ToScale()
+                master.Scale.ToScale(),
+                _gameState
             );
 
             item.OnCollected += OnItemCollectedHandler;

@@ -44,6 +44,7 @@ namespace Game.MVP.Survivor.Scenes
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
         private SurvivorNetworkWeaponManager _weaponManager;
+        private SurvivorFusionGameState _gameState;
         private SceneInstance? _stageSceneInstance;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
@@ -97,6 +98,8 @@ namespace Game.MVP.Survivor.Scenes
             {
                 SceneManager.SetActiveScene(rootScene);
             }
+
+            _runnerService.TryGet(out _gameState);
 
             BuildStateMachine();
             SubscribeEvents();

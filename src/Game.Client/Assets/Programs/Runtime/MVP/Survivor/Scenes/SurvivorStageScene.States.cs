@@ -186,16 +186,18 @@ namespace Game.MVP.Survivor.Scenes
                 var enemyView = enemyViewGo.AddComponent<SurvivorEnemyView>();
                 await enemyView.InitializeAsync(
                     Context._enemyBatchSub,
-                    Context.ScopedResolver.Resolve<IMasterDataService>(),
+                    Context._masterDataService,
                     Context._addressableService);
 
                 var itemViewGo = new GameObject("[SurvivorItemView]");
                 itemViewGo.transform.SetParent(View.transform);
                 var itemView = itemViewGo.AddComponent<SurvivorItemView>();
+                Context._runnerService.TryGet<SurvivorFusionGameState>(out var itemViewGameState);
                 await itemView.InitializeAsync(
                     Context._itemSpawnedSub, Context._itemDespawnedSub,
-                    Context.ScopedResolver.Resolve<IMasterDataService>(),
-                    Context._addressableService);
+                    Context._masterDataService,
+                    Context._addressableService,
+                    itemViewGameState);
 
                 // アイテムプロキシ収集時にサーバーへ RPC 送信
                 itemView.OnProxyItemCollected += itemId =>
@@ -481,7 +483,7 @@ namespace Game.MVP.Survivor.Scenes
                 SurvivorNetworkWeaponUpgradeOption[] networkOptions)
             {
                 var result = new List<SurvivorWeaponUpgradeOption>(networkOptions.Length);
-                var memDb = Context.ScopedResolver.Resolve<IMasterDataService>().MemoryDatabase;
+                var memDb = Context._masterDataService.MemoryDatabase;
 
                 foreach (var opt in networkOptions)
                 {

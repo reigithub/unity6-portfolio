@@ -104,6 +104,7 @@ namespace Game.MVP.Survivor.Player
         private SurvivorFusionPlayer _fusionPlayer;
         public SurvivorFusionPlayer FusionPlayer => _fusionPlayer;
         private float _networkDeltaTime;
+        private SurvivorFusionGameState _gameState;
 
         // 入力蓄積（ExpertMovement パターン: フレームレート差による入力の不均一を補正）
         private Vector2 _accumulatedMoveDirection;
@@ -188,6 +189,8 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void Initialize(SurvivorPlayerLevelMaster levelMaster)
         {
+            _runnerService.TryGet(out _gameState);
+
             _maxHp = levelMaster.MaxHp;
             _maxStamina = levelMaster.MaxStamina;
             _staminaDepleteRate = levelMaster.StaminaDepleteRate;
@@ -346,6 +349,7 @@ namespace Game.MVP.Survivor.Player
             using (s_attractItemsMarker.Auto())
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+                if (_gameState != null && _gameState.IsPaused) return;
                 _itemCheckTimer -= Time.deltaTime;
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;

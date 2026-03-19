@@ -1,5 +1,6 @@
 using System;
 using Game.Shared.Item;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Item
@@ -58,6 +59,9 @@ namespace Game.MVP.Survivor.Item
         // 収集状態
         private bool _isCollected;
 
+        // ポーズ参照（生成元スポーナーが設定）
+        private SurvivorFusionGameState _gameState;
+
         // Events
         public event Action<SurvivorItem> OnCollected;
 
@@ -74,7 +78,7 @@ namespace Game.MVP.Survivor.Item
         /// <summary>
         /// マスタデータから初期化
         /// </summary>
-        public void Initialize(int itemId, SurvivorItemType itemType, int effectValue, int effectRange, int effectDuration, int rarity, float scale = 1f)
+        public void Initialize(int itemId, SurvivorItemType itemType, int effectValue, int effectRange, int effectDuration, int rarity, float scale, SurvivorFusionGameState gameState)
         {
             _itemId = itemId;
             _itemType = itemType;
@@ -84,6 +88,7 @@ namespace Game.MVP.Survivor.Item
             _rarity = rarity;
             _scale = scale > 0f ? scale : 1f;
             _baseFloatAmplitude = _floatAmplitude * _scale;
+            _gameState = gameState;
 
             ApplyTransform();
         }
@@ -103,6 +108,7 @@ namespace Game.MVP.Survivor.Item
         private void Update()
         {
             if (_isCollected) return;
+            if (_gameState != null && _gameState.IsPaused) return;
 
             if (_isBeingAttracted && _attractTarget != null)
             {

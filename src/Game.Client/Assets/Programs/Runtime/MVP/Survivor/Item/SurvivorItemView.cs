@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Item;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -40,13 +41,17 @@ namespace Game.MVP.Survivor.Item
             public float Scale;
         }
 
+        private SurvivorFusionGameState _gameState;
+
         public async UniTask InitializeAsync(
             ISubscriber<SurvivorSignals.Item.Spawned> spawnSub,
             ISubscriber<SurvivorSignals.Item.Despawned> despawnSub,
             IMasterDataService masterDataService,
-            IAddressableAssetService assetService)
+            IAddressableAssetService assetService,
+            SurvivorFusionGameState gameState)
         {
             _assetService = assetService;
+            _gameState = gameState;
 
             // 全アイテムプレハブをプリロード
             var allItems = masterDataService.MemoryDatabase.SurvivorItemMasterTable.All;
@@ -124,7 +129,7 @@ namespace Game.MVP.Survivor.Item
 
             // ICollectible プロキシ追加（PlayerController の吸引・収集ロジックで動作）
             var collectible = instance.AddComponent<ItemProxyCollectible>();
-            collectible.Initialize(scale, itemId);
+            collectible.Initialize(scale, itemId, _gameState);
             collectible.OnCollected += OnProxyItemCollectedHandler;
 
             _proxies[itemId] = new ItemProxyData
@@ -139,6 +144,8 @@ namespace Game.MVP.Survivor.Item
 
         private void Update()
         {
+            if (_gameState != null && _gameState.IsPaused) return;
+
             float dt = Time.deltaTime;
 
             foreach (var kvp in _proxies)
@@ -215,6 +222,8 @@ namespace Game.MVP.Survivor.Item
         private float _floatAmplitude;
         private Vector3 _initialPosition;
 
+        private SurvivorFusionGameState _gameState;
+
         public int ItemId { get; private set; }
         public bool IsCollected { get; private set; }
         public bool IsAttracting => _attractTarget != null;
@@ -222,10 +231,11 @@ namespace Game.MVP.Survivor.Item
         /// <summary>収集時コールバック（SurvivorItemView が RPC 送信用に設定）</summary>
         public event System.Action<int> OnCollected;
 
-        public void Initialize(float scale, int itemId = 0)
+        public void Initialize(float scale, int itemId, SurvivorFusionGameState gameState)
         {
             _floatAmplitude = 0.2f * scale;
             ItemId = itemId;
+            _gameState = gameState;
         }
 
         public void StartAttraction(Transform target, float speed)
@@ -256,6 +266,7 @@ namespace Game.MVP.Survivor.Item
         private void Update()
         {
             if (_attractTarget == null) return;
+            if (_gameState != null && _gameState.IsPaused) return;
 
             var diff = _attractTarget.position - transform.position;
             var distance = diff.magnitude;

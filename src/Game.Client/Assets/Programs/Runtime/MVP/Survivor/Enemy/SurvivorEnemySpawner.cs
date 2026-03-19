@@ -68,6 +68,7 @@ namespace Game.MVP.Survivor.Enemy
         // State
         private bool _isSpawning;
         private bool _wasPaused;
+        private SurvivorFusionGameState _gameState;
         private WaveSpawnInfo _currentSpawnInfo;
         private List<WaveEnemySpawnInfo> _enemySpawnList;
         private int _currentSpawnIndex;
@@ -130,6 +131,7 @@ namespace Game.MVP.Survivor.Enemy
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
         {
             _waveManager = waveManager;
+            _runnerService.TryGet(out _gameState);
 
             // レイヤーマスクが未設定の場合、Structureレイヤーを使用
             if (_obstacleLayerMask == 0)
@@ -229,7 +231,7 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // ポーズ状態の同期
-            bool isPaused = _runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsPaused;
+            bool isPaused = _gameState != null && _gameState.IsPaused;
             if (isPaused != _wasPaused)
             {
                 _wasPaused = isPaused;
@@ -634,6 +636,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             _activeEnemies.Clear();
+            _nextNetworkId = 0;
             _enemyNetworkIds.Clear();
             _enemyByNetworkId.Clear();
             _isSpawning = false;

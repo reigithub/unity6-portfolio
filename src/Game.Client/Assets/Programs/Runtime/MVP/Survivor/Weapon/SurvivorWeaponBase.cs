@@ -4,6 +4,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -20,6 +21,9 @@ namespace Game.MVP.Survivor.Weapon
         [Inject] protected readonly IMasterDataService MasterDataService;
         [Inject] protected readonly IAddressableAssetService AssetService;
         [Inject] protected readonly ILockOnService LockOnService;
+
+        /// <summary>ゲーム状態参照（ポーズチェック用。SurvivorWeaponManager が設定）</summary>
+        protected SurvivorFusionGameState GameState;
 
         // マスターデータ
         protected SurvivorWeaponMaster _weaponMaster;
@@ -170,7 +174,8 @@ namespace Game.MVP.Survivor.Weapon
             Transform poolParent,
             Transform owner,
             float damageMultiplier,
-            SurvivorWeaponVfxSpawner vfxSpawner)
+            SurvivorWeaponVfxSpawner vfxSpawner,
+            SurvivorFusionGameState gameState)
         {
             _poolParent = poolParent;
             _weaponId = _weaponMaster.Id;
@@ -190,6 +195,9 @@ namespace Game.MVP.Survivor.Weapon
 
             // レベル1を適用
             ApplyLevel(1);
+
+            GameState = gameState;
+
             return UniTask.CompletedTask;
         }
 
@@ -469,9 +477,10 @@ namespace Game.MVP.Survivor.Weapon
             Transform poolParent,
             Transform owner,
             float damageMultiplier,
-            SurvivorWeaponVfxSpawner vfxSpawner)
+            SurvivorWeaponVfxSpawner vfxSpawner,
+            SurvivorFusionGameState gameState)
         {
-            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner);
+            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner, gameState);
 
             if (!string.IsNullOrEmpty(_currentAssetName))
             {

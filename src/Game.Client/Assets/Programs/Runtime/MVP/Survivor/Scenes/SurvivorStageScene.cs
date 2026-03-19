@@ -35,6 +35,7 @@ namespace Game.MVP.Survivor.Scenes
     public partial class SurvivorStageScene : GamePrefabScene<SurvivorStageScene, SurvivorStageSceneComponent>, IGameSceneScope
     {
         [Inject] private readonly IGameSceneService _sceneService;
+        [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAddressableAssetService _addressableService;
         [Inject] private readonly IAudioService _audioService;
