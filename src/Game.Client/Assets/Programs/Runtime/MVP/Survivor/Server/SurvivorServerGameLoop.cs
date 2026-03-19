@@ -3,6 +3,8 @@ using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes;
+using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -23,6 +25,7 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IMasterDataService _masterDataService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
 
@@ -47,10 +50,29 @@ namespace Game.MVP.Survivor.Server
                     readySub.Dispose();
                 }
 
-                Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received");
+                Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received, waiting for StageId...");
 
-                // セーブサービスにセッション情報を設定
-                _saveService.StartSession(stageId: 1, playerId: 1);
+                // クライアントからのセッション情報を待機（タイムアウト付き）
+                var stageId = 1;
+                var playerId = 1;
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gameState))
+                {
+                    var timeout = System.TimeSpan.FromSeconds(5);
+                    await UniTask.WhenAny(
+                        UniTask.WaitUntil(() => gameState.StageId > 0, cancellationToken: cancellation),
+                        UniTask.Delay(timeout, DelayType.Realtime, cancellationToken: cancellation));
+
+                    if (gameState.StageId > 0) stageId = gameState.StageId;
+                    if (gameState.PlayerId > 0) playerId = gameState.PlayerId;
+
+                    if (gameState.StageId <= 0)
+                    {
+                        Debug.LogWarning("[SurvivorServerGameLoop] Session info not received from client, using defaults");
+                    }
+                }
+                Debug.Log($"[SurvivorServerGameLoop] Starting stage {stageId}, player {playerId}");
+
+                _saveService.StartSession(stageId: stageId, playerId: playerId);
 
                 // SurvivorNetworkStageScene へ遷移
                 await _sceneService.TransitionAsync<SurvivorNetworkStageScene>();

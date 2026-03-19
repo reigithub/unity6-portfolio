@@ -142,11 +142,6 @@ namespace Game.MVP.Survivor.Enemy
             var proxyTarget = instance.AddComponent<EnemyProxyTarget>();
             proxyTarget.NetworkId = e.NetworkId;
 
-            if (_proxies.Count < 3)
-            {
-                Debug.Log($"[EnemyView.Spawn] id={e.NetworkId}, scene={instance.scene.name}, layer={instance.layer}({LayerMask.LayerToName(instance.layer)}), pos={pos}");
-            }
-
             _proxies[e.NetworkId] = new EnemyProxyData
             {
                 GameObject = instance,

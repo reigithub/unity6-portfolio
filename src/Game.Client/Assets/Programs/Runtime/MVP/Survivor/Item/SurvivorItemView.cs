@@ -236,18 +236,10 @@ namespace Game.MVP.Survivor.Item
             _initialPosition = transform.position;
         }
 
-        private static int _collectLogCount;
-
         public void Collect()
         {
             if (IsCollected) return;
             IsCollected = true;
-            if (_collectLogCount < 10)
-            {
-                _collectLogCount++;
-                Debug.Log($"[ProxyCollect#{_collectLogCount}] itemId={ItemId}, hasCallback={OnCollected != null}");
-            }
-
             OnCollected?.Invoke(ItemId);
         }
 

@@ -45,7 +45,6 @@ namespace Game.MVP.Survivor.Weapon
 
         // SphereCast ヒット検出バッファ
         private readonly RaycastHit[] _sphereCastHits = new RaycastHit[10];
-        private static int _sphereCastLogCount;
 
         public int Damage => _damage;
         public bool IsCritical => _isCritical;
@@ -126,12 +125,6 @@ namespace Game.MVP.Survivor.Weapon
                     var hitCollider = _sphereCastHits[i].collider;
                     if (hitCollider.CompareLayer(LayerConstants.Enemy))
                     {
-                        if (_sphereCastLogCount < 10)
-                        {
-                            _sphereCastLogCount++;
-                            Debug.Log($"[Projectile.SphereCast#{_sphereCastLogCount}] hit={hitCollider.name}, dist={_sphereCastHits[i].distance:F3}");
-                        }
-
                         OnHit?.Invoke(this, hitCollider);
                         if (!_isActive) break; // プール返却された場合
                     }

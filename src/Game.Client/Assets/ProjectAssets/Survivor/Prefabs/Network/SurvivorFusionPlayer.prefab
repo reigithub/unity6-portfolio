@@ -77,6 +77,7 @@ MonoBehaviour:
   _Speed: 0
   _IsInvincible:
     _value: 0
+  _LookYaw: 0
 --- !u!54 &2765137264471296877
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -160,7 +161,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Fusion.Addons.KCC::Fusion.Addons.KCC.EnvironmentProcessor
   KinematicSpeed: 20
   JumpMultiplier: 1
-  Gravity: {x: 0, y: 0, z: 0}
+  Gravity: {x: 0, y: -15, z: 0}
   RelativePriority: 0
   MaxGroundAngle: 60
   DynamicGroundFriction: 20
@@ -195,3 +196,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.SurvivorPlayerController
   _jogSpeed: 5
   _runSpeed: 8
+  _rotationSpeed: 600

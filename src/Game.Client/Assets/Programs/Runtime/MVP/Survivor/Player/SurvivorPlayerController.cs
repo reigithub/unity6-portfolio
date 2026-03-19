@@ -492,7 +492,6 @@ namespace Game.MVP.Survivor.Player
 
         #region KCC Item Collection
 
-        private static int _kccHitCollectLogCount;
 
         /// <summary>
         /// KCCData.Hits からアイテム収集。ProcessTick の ExecuteMovement 後に呼ぶ。
@@ -509,12 +508,6 @@ namespace Game.MVP.Survivor.Player
                     && hit.Collider.TryGetComponent<ICollectible>(out var collectible)
                     && !collectible.IsCollected)
                 {
-                    if (_kccHitCollectLogCount < 10)
-                    {
-                        _kccHitCollectLogCount++;
-                        Debug.Log($"[KCCHits.Collect#{_kccHitCollectLogCount}] item={hit.Collider.name}");
-                    }
-
                     collectible.Collect();
                 }
             }

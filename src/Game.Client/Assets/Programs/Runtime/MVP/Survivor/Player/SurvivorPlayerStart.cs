@@ -69,6 +69,7 @@ namespace Game.MVP.Survivor.Player
                 // kcc.Settings.ForcePredictedLookRotation = true;
                 kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_PredictRender;
                 kcc.Settings.PredictionCorrectionSpeed = 2f;
+
                 Debug.Log($"[SurvivorPlayerStart] KCC configured in scene={playerGo.scene.name}, pos={transform.position}");
             }
             else

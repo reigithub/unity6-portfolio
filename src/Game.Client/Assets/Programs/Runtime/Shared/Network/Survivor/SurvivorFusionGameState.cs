@@ -52,6 +52,8 @@ namespace Game.Shared.Network.Survivor
         [Networked] public int WaveTotalEnemies { get; set; }
         [Networked] public NetworkBool IsPaused { get; set; }
         [Networked] public NetworkBool IsAllWavesCleared { get; set; }
+        [Networked] public int StageId { get; set; }
+        [Networked] public int PlayerId { get; set; }
 
         // --- ChangeDetector（遅延参加クライアント向け状態同期） ---
 
@@ -387,6 +389,8 @@ namespace Game.Shared.Network.Survivor
             WaveTotalEnemies = 0;
             IsPaused = false;
             IsAllWavesCleared = false;
+            StageId = 0;
+            PlayerId = 0;
         }
 
         /// <summary>
@@ -483,6 +487,21 @@ namespace Game.Shared.Network.Survivor
         /// サーバー → 全クライアント: 全プレイヤー接続完了通知。
         /// MPPM 等ではサーバーとクライアントが別 DI コンテナのため、MessagePipe だけでは届かない。
         /// </summary>
+        /// <summary>
+        /// クライアント → サーバー: 選択したステージ ID を通知。
+        /// 最初に受信した値を採用（複数クライアント対応）。
+        /// </summary>
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RpcSetSessionInfo(int stageId, int playerId)
+        {
+            if (StageId == 0)
+            {
+                StageId = stageId;
+                PlayerId = playerId;
+                Debug.Log($"[SurvivorFusionGameState] Session info set: stageId={stageId}, playerId={playerId}");
+            }
+        }
+
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         public void RpcNotifyAllPlayersReady()
         {

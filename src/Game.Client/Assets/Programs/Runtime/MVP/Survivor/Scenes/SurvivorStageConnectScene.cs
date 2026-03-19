@@ -66,6 +66,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 var stageId = session.StageId;
+                var playerId = session.PlayerId;
 
                 // Phase 1: ネットワーク初期化（モード別）
                 if (!UnityPlaymodeHelper.IsServer())
@@ -99,12 +100,14 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     SceneComponent.SetStatus("Connecting to server...");
                     await ConnectToServerAsync(stageId);
+                    await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
                 else if (_runnerService.IsHostMode)
                 {
                     // Editor Host mode: Server + ローカルClient
+                    await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
@@ -169,6 +172,23 @@ namespace Game.MVP.Survivor.Scenes
             var sessionToken = SurvivorNetworkMatchConnector.SessionToken;
             Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
             await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
+        }
+
+        /// <summary>
+        /// Fusion 接続後にステージ ID をサーバーに RPC 通知。
+        /// SurvivorFusionGameState が Spawn されるまで待機。
+        /// </summary>
+        private async UniTask NotifySessionInfoToServer(int stageId, int playerId)
+        {
+            await UniTask.WaitUntil(
+                () => _runnerService.TryGet<SurvivorFusionGameState>(out _),
+                cancellationToken: SceneComponent.destroyCancellationToken);
+
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.RpcSetSessionInfo(stageId, playerId);
+                Debug.Log($"[SurvivorStageConnectScene] Sent session info: stageId={stageId}, playerId={playerId}");
+            }
         }
 
         private async UniTask WaitForAllPlayersReadyAsync()
