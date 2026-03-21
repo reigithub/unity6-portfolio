@@ -6,6 +6,7 @@ using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
@@ -42,22 +43,30 @@ namespace Game.MVP.Survivor.Item
         // ドロップグループキャッシュ (GroupId -> List<SurvivorItemDropMaster>)
         private readonly Dictionary<int, List<SurvivorItemDropMaster>> _dropGroupCache = new();
 
+        // ポーズ参照
+        private SurvivorFusionGameState _gameState;
+
         // ネットワーク
-        private ISurvivorNetworkBridge _networkBridge;
+        [Inject] private IFusionRunnerService _runnerService;
 
         // Events
         private readonly Subject<SurvivorItem> _onItemCollected = new();
         public Observable<SurvivorItem> OnItemCollected => _onItemCollected;
 
-        public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
-        {
-            _networkBridge = bridge;
-        }
-
         public UniTask InitializeAsync()
         {
+            _runnerService.TryGet(out _gameState);
             Debug.Log("[SurvivorItemSpawner] Initialized (lazy loading enabled)");
             return UniTask.CompletedTask;
+        }
+
+        /// <summary>
+        /// アイテムマスターを外部から参照（サーバー側アイテム収集処理用）
+        /// </summary>
+        public bool TryGetItemMaster(int itemId, out SurvivorItemMaster master)
+        {
+            master = GetOrAddItemMaster(itemId);
+            return master != null;
         }
 
         /// <summary>
@@ -157,7 +166,8 @@ namespace Game.MVP.Survivor.Item
                 master.EffectRange,
                 master.EffectDuration,
                 master.Rarity,
-                master.Scale.ToScale()
+                master.Scale.ToScale(),
+                _gameState
             );
 
             item.OnCollected += OnItemCollectedHandler;
@@ -206,7 +216,8 @@ namespace Game.MVP.Survivor.Item
                 _activeItems[itemId].Add(item);
 
                 // サーバー: クライアントにアイテムスポーンを通知
-                _networkBridge?.NotifyItemSpawned(itemId, position.x, position.y, position.z);
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyItemSpawned(itemId, position.x, position.y, position.z);
             }
         }
 
@@ -353,7 +364,8 @@ namespace Game.MVP.Survivor.Item
             _onItemCollected.OnNext(item);
 
             // サーバー: クライアントにアイテム回収を通知
-            _networkBridge?.NotifyItemDespawned(item.ItemId);
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                gs.NotifyItemDespawned(item.ItemId);
 
             ReturnToPool(item);
         }

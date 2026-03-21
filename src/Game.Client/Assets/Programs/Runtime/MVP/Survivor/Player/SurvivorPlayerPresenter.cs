@@ -3,6 +3,7 @@ using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using R3;
 using UnityEngine;
+using VContainer;
 
 namespace Game.MVP.Survivor.Player
 {
@@ -12,6 +13,8 @@ namespace Game.MVP.Survivor.Player
     /// </summary>
     public class SurvivorPlayerPresenter : MonoBehaviour
     {
+        [Inject] private ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
+
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
         private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
 
@@ -28,9 +31,7 @@ namespace Game.MVP.Survivor.Player
             }
         }
 
-        public void Initialize(
-            SurvivorPlayerController controller,
-            ISubscriber<SurvivorSignals.Player.Died> diedSubscriber)
+        public void Initialize(SurvivorPlayerController controller)
         {
             _controller = controller;
             _subscriptions.Dispose();
@@ -49,7 +50,7 @@ namespace Game.MVP.Survivor.Player
                 .AddTo(ref _subscriptions);
 
             // 死亡シグナル → Death アニメーション
-            diedSubscriber
+            _playerDiedSub
                 .Subscribe(_ =>
                 {
                     if (_animator != null)

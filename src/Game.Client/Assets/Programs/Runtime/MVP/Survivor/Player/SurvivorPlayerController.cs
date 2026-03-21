@@ -1,11 +1,13 @@
+using Fusion.Addons.KCC;
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
+using Game.MVP.Survivor.Item;
 using Game.Shared.Item;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -19,69 +21,44 @@ namespace Game.MVP.Survivor.Player
 {
     /// <summary>
     /// Survivorプレイヤーコントローラー
-    /// SDUnityChanPlayerControllerをベースにしたRigidbody + RaycastCheckerベースの移動制御
+    /// KCC（Advanced Kinematic Character Controller）ベースの移動制御。
+    /// ゲームロジック（HP/スタミナ/ステート）は SurvivorFusionPlayer + Fusion FSM が管理。
+    /// このクラスは移動実行、入力蓄積、アイテム吸引、UI データ提供（ReactiveProperty）を担当。
     /// </summary>
-    [RequireComponent(typeof(Rigidbody))]
-    [RequireComponent(typeof(RaycastChecker))]
-    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorNetworkPlayerStateBindable
+    public partial class SurvivorPlayerController : MonoBehaviour, IDamageable, ISurvivorPlayerMovementHandler
     {
         // Profiler markers
-        private static readonly ProfilerMarker s_updateInputMarker = new("ProfilerMarker.Player.UpdateInput");
         private static readonly ProfilerMarker s_attractItemsMarker = new("ProfilerMarker.Player.AttractItems");
-        private static readonly ProfilerMarker s_safeMovementMarker = new("ProfilerMarker.Player.SafeMovement");
 
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
+        [Inject] private IFusionRunnerService _runnerService;
 
-        private readonly Subject<SurvivorSignals.Player.DamageReceived> _onDamageReceived = new();
-        private readonly Subject<SurvivorSignals.Player.Died> _onDied = new();
-        public Observable<SurvivorSignals.Player.DamageReceived> OnDamageReceived => _onDamageReceived;
-        public Observable<SurvivorSignals.Player.Died> OnDied => _onDied;
-
-        [Header("ジョギング速度")]
+        [Header("振り向き速度 (degrees/sec)")]
         [SerializeField]
-        private float _jogSpeed = 5.0f;
-
-        [Header("走る速度")]
-        [SerializeField]
-        private float _runSpeed = 8.0f;
-
-        [Header("振り向き補間比率")]
-        [SerializeField]
-        private float _rotationRatio = 10.0f;
+        private float _rotationSpeed = 600f;
 
         [Inject] private readonly IGameRootController _gameRootController;
         [Inject] private readonly IInputService _inputService;
 
         // Components
-        private Rigidbody _rigidbody;
-        private RaycastChecker _groundedRaycastChecker;
-        private CapsuleCollider _capsuleCollider;
+        private KCC _kcc;
 
-        // Sweep-based移動用の定数
-        private const float SkinWidth = 0.01f; // 壁との最小距離
-        private const float StepHeight = 0.3f; // この高さ以下の障害物は乗り越え可能
-
-        // マスターデータから設定される値
-        private int _maxHp = 100;
-        private int _maxStamina = 100;
-        private int _staminaDepleteRate = 10;
-        private int _staminaRegenRate = 5;
-        private float _staminaAccumulator = 0f; // スタミナ変化の端数を蓄積
+        // マスターデータから設定される値（移動/アイテム関連のみ。HP/スタミナは FusionPlayer 管理）
+        private float _jogSpeed = 5.0f;
+        private float _runSpeed = 8.0f;
         private float _pickupRange = 2f;
-        private float _invincibilityDuration = 0.5f;
         private float _itemAttractDistance = 5f;
         private float _itemAttractSpeed = 10f;
         private float _itemCollectDistance = 1f;
 
         // 入力関連
         private Transform _mainCamera;
-        private Vector2 _moveValue;
         private Vector3 _moveVector;
-        private readonly ReactiveProperty<float> _speed = new();
         private Quaternion _lookRotation = Quaternion.identity;
 
-        // Reactive Properties
+        // Reactive Properties（[Networked] からのミラー。UI が購読）
+        private readonly ReactiveProperty<float> _speed = new();
         private readonly ReactiveProperty<int> _currentHp = new();
         private readonly ReactiveProperty<int> _currentStamina = new();
         private readonly ReactiveProperty<bool> _isInvincible = new();
@@ -89,8 +66,8 @@ namespace Game.MVP.Survivor.Player
         public ReadOnlyReactiveProperty<int> CurrentHp => _currentHp;
         public ReadOnlyReactiveProperty<int> CurrentStamina => _currentStamina;
         public ReadOnlyReactiveProperty<bool> IsInvincible => _isInvincible;
-        public int MaxHp => _maxHp;
-        public int MaxStamina => _maxStamina;
+        public int MaxHp => _fusionPlayer != null ? _fusionPlayer.MaxHealth : 0;
+        public int MaxStamina => _fusionPlayer != null ? _fusionPlayer.MaxStamina : 0;
         public float PickupRange => _pickupRange;
         public float ItemAttractDistance => _itemAttractDistance;
         public float ItemAttractSpeed => _itemAttractSpeed;
@@ -100,72 +77,48 @@ namespace Game.MVP.Survivor.Player
         // IDamageable
         public bool IsDead => _currentHp.Value <= 0;
 
-        // State
-        private float _invincibilityTimer;
-
         // アイテム吸引用
         private readonly Collider[] _itemHitBuffer = new Collider[50];
         private const float ItemCheckInterval = 0.1f;
         private float _itemCheckTimer;
 
         // ネットワーク同期用
-        private SurvivorNetworkPlayerState _networkPlayerState;
-        private ISurvivorPlayerInputProvider _inputProvider;
-        private ISurvivorNetworkPlayerStateSynchronizer _stateSynchronizer;
-        private bool _skipPhysics;
-        private float _cameraRotationY;
+        private SurvivorFusionPlayer _fusionPlayer;
+        public SurvivorFusionPlayer FusionPlayer => _fusionPlayer;
+        private SurvivorFusionGameState _gameState;
+
+        // 入力蓄積（ExpertMovement パターン: フレームレート差による入力の不均一を補正）
+        private Vector2 _accumulatedMoveDirection;
+        private float _accumulatedMoveDirectionSize;
+        private float _lastCameraRotationY;
 
         #region MonoBehaviour Methods
 
         private void Awake()
         {
-            TryGetComponent(out _rigidbody);
-            TryGetComponent(out _groundedRaycastChecker);
-            TryGetComponent(out _capsuleCollider);
-
-            SurvivorNetworkPlayerStateBindableRegistry.Register(this);
+            TryGetComponent(out _kcc);
         }
 
         private void Update()
         {
-            UpdateInput();
+            AccumulateRenderInput();
             UpdateItemAttraction();
-            _stateMachine?.Update();
-        }
-
-        private void FixedUpdate()
-        {
-            if (_skipPhysics) return;
-
-            _stateMachine?.FixedUpdate();
-
-            if (_stateSynchronizer != null)
-            {
-                var snapshot = new SurvivorNetworkPlayerStateSnapshot
-                {
-                    PositionX = transform.position.x,
-                    PositionY = transform.position.y,
-                    PositionZ = transform.position.z,
-                    RotationY = transform.eulerAngles.y,
-                    Speed = _speed.Value,
-                    CurrentHp = _currentHp.Value,
-                    CurrentStamina = _currentStamina.Value,
-                    IsInvincible = _isInvincible.Value
-                };
-                _stateSynchronizer.PushState(snapshot);
-            }
         }
 
         private void OnDestroy()
         {
-            SurvivorNetworkPlayerStateBindableRegistry.Unregister(this);
+            if (_fusionPlayer != null)
+            {
+                _fusionPlayer.OnStateChanged -= SyncFromNetworkedState;
+                _fusionPlayer.InputGatherer = null;
+                _fusionPlayer.MovementHandler = null;
+                _fusionPlayer = null;
+            }
 
             _speed.Dispose();
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
-            _onDamageReceived.Dispose();
-            _onDied.Dispose();
         }
 
         #endregion
@@ -173,41 +126,39 @@ namespace Game.MVP.Survivor.Player
         #region Network
 
         /// <summary>
-        /// サーバー / クライアント: NetworkSurvivorPlayerState をバインド
+        /// Fusion 2: SurvivorFusionPlayer をバインド
         /// </summary>
-        public void BindNetworkPlayerState(SurvivorNetworkPlayerState playerState)
+        public void BindFusionPlayer(SurvivorFusionPlayer fusionPlayer)
         {
-            _networkPlayerState = playerState;
+            _fusionPlayer = fusionPlayer;
 
-            if (NetworkModeHelper.IsNetworkServer)
+            // 移動ハンドラを設定
+            fusionPlayer.MovementHandler = this;
+
+            // [Networked] → ReactiveProperty ミラーリング
+            fusionPlayer.OnStateChanged += SyncFromNetworkedState;
+
+            // InputAuthority プレイヤー: Fusion OnInput 用の入力収集デリゲートを設定
+            // 蓄積された移動入力を時間加重平均で返す（ExpertMovement パターン）
+            if (fusionPlayer.HasInputAuthority)
             {
-                // Server / Host: 状態同期を有効化
-                _stateSynchronizer = new SurvivorNetworkPlayerStateSynchronizer(playerState);
-
-                // リモートプレイヤーは ServerInputProvider
-                // Host + isOwned: Initialize で設定済みの LocalInputProvider を維持
-                if (!playerState.isOwned)
+                fusionPlayer.InputGatherer = () =>
                 {
-                    _inputProvider = new ServerInputProvider(playerState);
-                }
-            }
+                    var input = new SurvivorPlayerNetworkInput
+                    {
+                        Move = _accumulatedMoveDirectionSize > 0f
+                            ? _accumulatedMoveDirection / _accumulatedMoveDirectionSize
+                            : Vector2.zero,
+                        IsSprinting = _inputService.Player.LeftShift.IsPressed(),
+                        CameraRotationY = _lastCameraRotationY
+                    };
 
-            if (!NetworkModeHelper.IsNetworkServer)
-            {
-                if (playerState.isOwned)
-                {
-                    // ローカルプレイヤー: 入力を ServerRpc で送信 + ローカル予測移動
-                    _inputProvider = new ClientInputProvider(_inputService, playerState);
-                }
-                // else: リモートプレイヤーは入力不要（SyncVar で補間表示のみ）
-            }
+                    // 蓄積リセット
+                    _accumulatedMoveDirection = Vector2.zero;
+                    _accumulatedMoveDirectionSize = 0f;
 
-            // View: Client-only の全プレイヤー + Host の自プレイヤー
-            // Dedicated Server: isOwned=false（全プレイヤー remote） → View 不作成
-            if (!NetworkModeHelper.IsNetworkServer || playerState.isOwned)
-            {
-                var view = gameObject.AddComponent<SurvivorPlayerView>();
-                view.Initialize(this, playerState);
+                    return input;
+                };
             }
         }
 
@@ -220,37 +171,47 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void Initialize(SurvivorPlayerLevelMaster levelMaster)
         {
-            _maxHp = levelMaster.MaxHp;
-            _maxStamina = levelMaster.MaxStamina;
-            _staminaDepleteRate = levelMaster.StaminaDepleteRate;
-            _staminaRegenRate = levelMaster.StaminaRegenRate;
+            _runnerService.TryGet(out _gameState);
+
+            // 移動/アイテム関連（Controller が使用）
             _jogSpeed = levelMaster.MoveSpeed.ToUnit();
             _runSpeed = levelMaster.RunSpeed.ToUnit();
             _pickupRange = levelMaster.PickupRange.ToUnit();
-            _invincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
             _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
             _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
             _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
 
-            _currentHp.Value = _maxHp;
-            _currentStamina.Value = _maxStamina;
+            // ゲームロジック関連（FusionPlayer が [Networked] で管理）
+            if (_fusionPlayer != null)
+            {
+                _fusionPlayer.Health = levelMaster.MaxHp;
+                _fusionPlayer.MaxHealth = levelMaster.MaxHp;
+                _fusionPlayer.Stamina = levelMaster.MaxStamina;
+                _fusionPlayer.MaxStamina = levelMaster.MaxStamina;
+                _fusionPlayer.StaminaDepleteRate = levelMaster.StaminaDepleteRate;
+                _fusionPlayer.StaminaRegenRate = levelMaster.StaminaRegenRate;
+                _fusionPlayer.JogSpeed = _jogSpeed;
+                _fusionPlayer.RunSpeed = _runSpeed;
+                _fusionPlayer.InvincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
+                _fusionPlayer.IsInvincible = false;
+                _fusionPlayer.StaminaAccumulator = 0f;
+                _fusionPlayer.InvincibilityTimer = 0f;
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorPlayerController] Initialize: _fusionPlayer is NULL, [Networked] values not set");
+            }
+
+            // ReactiveProperty 初期値（UI 用ミラー）
+            _currentHp.Value = levelMaster.MaxHp;
+            _currentStamina.Value = levelMaster.MaxStamina;
             _isInvincible.Value = false;
-            _invincibilityTimer = 0f;
 
             // メインカメラを自動取得（サーバーでは _gameRootController が null）
             if (_mainCamera == null)
             {
                 _mainCamera = _gameRootController?.MainCamera?.transform;
             }
-
-            // デフォルト入力プロバイダー（SP/Host ローカルプレイヤー用）
-            _inputProvider = new LocalInputProvider(_inputService);
-
-            // ステートマシン初期化
-            InitializeStateMachine();
-
-            // プレイヤースポーンシグナルを発行（カメラフォロー等に使用）
-            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
         }
 
         /// <summary>
@@ -258,33 +219,41 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void UpdateLevelStats(SurvivorPlayerLevelMaster levelMaster)
         {
-            var previousMaxHp = _maxHp;
-            var previousMaxStamina = _maxStamina;
-
-            _maxHp = levelMaster.MaxHp;
-            _maxStamina = levelMaster.MaxStamina;
-            _staminaDepleteRate = levelMaster.StaminaDepleteRate;
-            _staminaRegenRate = levelMaster.StaminaRegenRate;
+            // 移動/アイテム関連
             _jogSpeed = levelMaster.MoveSpeed.ToUnit();
             _runSpeed = levelMaster.RunSpeed.ToUnit();
             _pickupRange = levelMaster.PickupRange.ToUnit();
-            _invincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
             _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
             _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
             _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
 
-            // レベルアップ時のHP増加（差分を回復）
-            if (_maxHp > previousMaxHp)
+            // FusionPlayer のレートとステータスを更新
+            if (_fusionPlayer != null)
             {
-                var hpIncrease = _maxHp - previousMaxHp;
-                _currentHp.Value = Mathf.Min(_currentHp.Value + hpIncrease, _maxHp);
-            }
+                var previousMaxHp = _fusionPlayer.MaxHealth;
+                var previousMaxStamina = _fusionPlayer.MaxStamina;
 
-            // レベルアップ時のスタミナ増加（差分を回復）
-            if (_maxStamina > previousMaxStamina)
-            {
-                var staminaIncrease = _maxStamina - previousMaxStamina;
-                _currentStamina.Value = Mathf.Min(_currentStamina.Value + staminaIncrease, _maxStamina);
+                _fusionPlayer.StaminaDepleteRate = levelMaster.StaminaDepleteRate;
+                _fusionPlayer.StaminaRegenRate = levelMaster.StaminaRegenRate;
+                _fusionPlayer.JogSpeed = _jogSpeed;
+                _fusionPlayer.RunSpeed = _runSpeed;
+                _fusionPlayer.InvincibilityDuration = levelMaster.InvincibilityDuration.ToSeconds();
+                _fusionPlayer.MaxHealth = levelMaster.MaxHp;
+                _fusionPlayer.MaxStamina = levelMaster.MaxStamina;
+
+                // レベルアップ時のHP増加（差分を回復）
+                if (levelMaster.MaxHp > previousMaxHp)
+                {
+                    var hpIncrease = levelMaster.MaxHp - previousMaxHp;
+                    _fusionPlayer.Health = Mathf.Min(_fusionPlayer.Health + hpIncrease, levelMaster.MaxHp);
+                }
+
+                // レベルアップ時のスタミナ増加（差分を回復）
+                if (levelMaster.MaxStamina > previousMaxStamina)
+                {
+                    var staminaIncrease = levelMaster.MaxStamina - previousMaxStamina;
+                    _fusionPlayer.Stamina = Mathf.Min(_fusionPlayer.Stamina + staminaIncrease, levelMaster.MaxStamina);
+                }
             }
         }
 
@@ -298,76 +267,26 @@ namespace Game.MVP.Survivor.Player
 
         #endregion
 
-        #region Input
+        #region Input / ProcessTick
 
-        private void UpdateInput()
+        /// <summary>
+        /// ISurvivorPlayerMovementHandler: Fusion tick ごとに FusionPlayer から呼ばれる。
+        /// 移動実行とアイテム収集のみ。HP/スタミナ/ステートは FusionPlayer + Fusion FSM が管理。
+        /// </summary>
+        public void ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime)
         {
-            using (s_updateInputMarker.Auto())
-            {
-                if (_inputProvider == null) return;
-
-                if (!_inputProvider.TryGetMoveInput(out var moveValue, out var isSprinting, out var cameraRotationY))
-                    return; // Client: ServerRpc 送信済み、ローカル処理不要
-
-                // SP/Server/Host 共通の入力処理
-                _moveValue = moveValue;
-                _cameraRotationY = cameraRotationY;
-                _moveVector = new Vector3(_moveValue.x, 0f, _moveValue.y).normalized;
-
-                var wantToRun = isSprinting && IsMoveInput();
-                var isRunning = wantToRun && _currentStamina.Value > 0;
-                _speed.Value = _moveVector.magnitude * (isRunning ? _runSpeed : _jogSpeed);
-
-                UpdateStamina(isRunning);
-
-                if (IsMoveInput())
-                {
-                    _lookRotation = Quaternion.LookRotation(_moveVector);
-                }
-            }
-        }
-
-        private void UpdateStamina(bool isRunning)
-        {
-            if (isRunning)
-            {
-                // ダッシュ中: スタミナ消費（1秒毎にStaminaDepleteRate分消費）
-                _staminaAccumulator -= _staminaDepleteRate * Time.deltaTime;
-            }
-            else
-            {
-                // ダッシュしていない: スタミナ回復（1秒毎にStaminaRegenRate分回復）
-                _staminaAccumulator += _staminaRegenRate * Time.deltaTime;
-            }
-
-            // 蓄積された変化を整数として適用
-            if (_staminaAccumulator >= 1f)
-            {
-                var regenAmount = Mathf.FloorToInt(_staminaAccumulator);
-                _staminaAccumulator -= regenAmount;
-                _currentStamina.Value = Mathf.Min(_maxStamina, _currentStamina.Value + regenAmount);
-            }
-            else if (_staminaAccumulator <= -1f)
-            {
-                var depleteAmount = Mathf.FloorToInt(-_staminaAccumulator);
-                _staminaAccumulator += depleteAmount;
-                _currentStamina.Value = Mathf.Max(0, _currentStamina.Value - depleteAmount);
-            }
-        }
-
-        private bool IsMoveInput()
-        {
-            return _moveValue.magnitude > 0.1f;
+            ExecuteMovement(input, deltaTime);
+            CollectItemsFromKCCHits();
         }
 
         public bool IsMoving()
         {
-            return _speed.Value > 0f;
+            return _fusionPlayer != null && _fusionPlayer.Speed > 0f;
         }
 
         public bool IsGrounded()
         {
-            return _groundedRaycastChecker.Check();
+            return _kcc != null && _kcc.FixedData.IsGrounded;
         }
 
         #endregion
@@ -381,7 +300,8 @@ namespace Game.MVP.Survivor.Player
         {
             using (s_attractItemsMarker.Auto())
             {
-                if (_skipPhysics) return; // Client-only: サーバーがアイテム管理
+                if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+                if (_gameState != null && _gameState.IsPaused) return;
                 _itemCheckTimer -= Time.deltaTime;
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;
@@ -398,8 +318,14 @@ namespace Game.MVP.Survivor.Player
                 {
                     if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
                     {
-                        // アイテムに吸引開始を通知（ターゲットと速度を渡す）
+                        // 吸引開始（収集は KCCData.Hits または ItemProxyCollectible.Update の到達判定で行う）
                         collectible.StartAttraction(transform, _itemAttractSpeed);
+
+                        // プロキシアイテムに収集距離を伝達（毎フレームの到達判定用）
+                        if (_itemHitBuffer[i].TryGetComponent<ItemProxyCollectible>(out var proxy))
+                        {
+                            proxy.CollectDistance = _itemCollectDistance;
+                        }
                     }
                 }
             }
@@ -407,80 +333,92 @@ namespace Game.MVP.Survivor.Player
 
         #endregion
 
-        #region Movement (Called from States)
+        #region Input Accumulation
 
-        private void HandleMovement()
+        /// <summary>
+        /// 毎 Update で呼び出し、移動入力を時間加重で蓄積する。
+        /// Fusion の OnInput で蓄積値の平均を返すことで、フレームレート差による入力の不均一を補正。
+        /// </summary>
+        private void AccumulateRenderInput()
         {
-            if (IsMoveInput())
-            {
-                var cameraRot = Quaternion.Euler(0f, _cameraRotationY, 0f);
-                var forward = cameraRot * Vector3.forward;
-                var right = cameraRot * Vector3.right;
+            if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
 
-                _moveVector = (forward * _moveValue.y + right * _moveValue.x).normalized;
-                _lookRotation = Quaternion.LookRotation(_moveVector);
-            }
+            var move = _inputService.Player.Move.ReadValue<Vector2>();
+            var dt = Time.unscaledDeltaTime;
 
-            // Sweep-based移動: 移動前にCapsuleCastで衝突チェック
-            var desiredMovement = _moveVector * _speed.Value * Time.fixedDeltaTime;
-            var safeMovement = CalculateSafeMovement(desiredMovement);
-            _rigidbody.MovePosition(_rigidbody.position + safeMovement);
-
-            if (IsMoveInput())
-            {
-                _rigidbody.MoveRotation(
-                    Quaternion.Slerp(_rigidbody.rotation, _lookRotation, _rotationRatio * Time.fixedDeltaTime));
-            }
+            _accumulatedMoveDirection += move * dt;
+            _accumulatedMoveDirectionSize += dt;
+            _lastCameraRotationY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f;
         }
 
         /// <summary>
-        /// CapsuleCastで衝突チェックを行い、安全な移動量を計算
-        /// StepHeight以下の障害物は無視して乗り越え可能
+        /// Render フレームの入力予測処理。現在の入力を KCC に設定してレンダー予測を可能にする。
+        /// SurvivorFusionPlayer.Render() から ISurvivorPlayerMovementHandler 経由で呼ばれる。
         /// </summary>
-        private Vector3 CalculateSafeMovement(Vector3 desiredMovement)
+        public void ProcessRenderInput(KCC kcc)
         {
-            using (s_safeMovementMarker.Auto())
+            if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+
+            var move = _inputService.Player.Move.ReadValue<Vector2>();
+            var isMoveInput = move.magnitude > 0.1f;
+            var wantToRun = _inputService.Player.LeftShift.IsPressed() && isMoveInput;
+            var isRunning = wantToRun && _fusionPlayer.Stamina > 0;
+            var speed = (isMoveInput ? 1f : 0f) * (isRunning ? _runSpeed : _jogSpeed);
+
+            var cameraRotY = _mainCamera != null ? _mainCamera.eulerAngles.y : 0f;
+            var cameraRot = Quaternion.Euler(0f, cameraRotY, 0f);
+            var moveVector = isMoveInput
+                ? (cameraRot * Vector3.forward * move.y + cameraRot * Vector3.right * move.x).normalized
+                : Vector3.zero;
+
+            kcc.SetInputDirection(moveVector);
+            kcc.SetSpeed(speed);
+
+            if (isMoveInput)
             {
-                if (_capsuleCollider == null || desiredMovement.sqrMagnitude < 0.0001f)
-                {
-                    return desiredMovement;
-                }
+                var targetYaw = Quaternion.LookRotation(moveVector).eulerAngles.y;
+                var deltaYaw = Mathf.DeltaAngle(kcc.RenderData.LookYaw, targetYaw);
+                var maxDelta = _rotationSpeed * Time.deltaTime;
+                var clampedDelta = Mathf.Clamp(deltaYaw, -maxDelta, maxDelta);
+                kcc.AddLookRotation(0f, clampedDelta);
+            }
+        }
 
-                var moveDistance = desiredMovement.magnitude;
-                var moveDirection = desiredMovement.normalized;
+        #endregion
 
-                // CapsuleColliderの上下端点を計算
-                // point2をStepHeight分上げることで、低い障害物を無視
-                var center = _rigidbody.position + _capsuleCollider.center;
-                var halfHeight = Mathf.Max(0f, _capsuleCollider.height * 0.5f - _capsuleCollider.radius);
-                var point1 = center + Vector3.up * halfHeight;
-                // StepHeightより上の位置から判定開始（低い障害物は無視）
-                var point2Bottom = center - Vector3.up * halfHeight;
-                var point2 = new Vector3(point2Bottom.x, _rigidbody.position.y + StepHeight + _capsuleCollider.radius, point2Bottom.z);
+        #region Movement
 
-                // point2がpoint1より上になってしまう場合は補正
-                if (point2.y > point1.y)
-                {
-                    point2 = point1;
-                }
+        private void ExecuteMovement(SurvivorPlayerNetworkInput input, float deltaTime)
+        {
+            var moveValue = input.Move;
+            var isMoveInput = moveValue.magnitude > 0.1f;
 
-                // CapsuleCastで衝突チェック（Enemyレイヤーを除外して構造物のみ判定）
-                var obstacleLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-                if (Physics.CapsuleCast(
-                        point1, point2,
-                        _capsuleCollider.radius,
-                        moveDirection,
-                        out var hit,
-                        moveDistance + SkinWidth,
-                        obstacleLayerMask,
-                        QueryTriggerInteraction.Ignore))
-                {
-                    // 衝突した場合、衝突点の手前までの移動に制限
-                    var safeDistance = Mathf.Max(0f, hit.distance - SkinWidth);
-                    return moveDirection * safeDistance;
-                }
+            if (isMoveInput)
+            {
+                var cameraRot = Quaternion.Euler(0f, input.CameraRotationY, 0f);
+                var forward = cameraRot * Vector3.forward;
+                var right = cameraRot * Vector3.right;
+                _moveVector = (forward * moveValue.y + right * moveValue.x).normalized;
+                _lookRotation = Quaternion.LookRotation(_moveVector);
+            }
+            else
+            {
+                _moveVector = Vector3.zero;
+            }
 
-                return desiredMovement;
+            // KCC に移動方向と速度を設定（Speed は FusionPlayer が [Networked] で管理）
+            _kcc.SetInputDirection(_moveVector);
+            _kcc.SetSpeed(_fusionPlayer != null ? _fusionPlayer.Speed : 0f);
+
+            // 回転: KCC.AddLookRotation で最大速度制限付き差分回転
+            // KCC がティック間の補間/予測を内部処理する
+            if (isMoveInput)
+            {
+                var targetYaw = _lookRotation.eulerAngles.y;
+                var deltaYaw = Mathf.DeltaAngle(_kcc.FixedData.LookYaw, targetYaw);
+                var maxDelta = _rotationSpeed * deltaTime;
+                var clampedDelta = Mathf.Clamp(deltaYaw, -maxDelta, maxDelta);
+                _kcc.AddLookRotation(0f, clampedDelta);
             }
         }
 
@@ -488,14 +426,21 @@ namespace Game.MVP.Survivor.Player
 
         #region Damage / Heal
 
+        /// <summary>
+        /// IDamageable: ダメージを FusionPlayer の Fusion FSM に委譲。
+        /// NormalState.OnFixedUpdate で消費され、HP 減算→無敵/死亡遷移が行われる。
+        /// </summary>
         public void TakeDamage(int damage)
         {
-            TakeDamageWithStateMachine(damage);
+            _fusionPlayer?.RequestDamage(damage);
         }
 
         public void Heal(int amount)
         {
-            _currentHp.Value = Mathf.Min(_maxHp, _currentHp.Value + amount);
+            if (_fusionPlayer != null)
+            {
+                _fusionPlayer.Health = Mathf.Min(_fusionPlayer.MaxHealth, _fusionPlayer.Health + amount);
+            }
         }
 
         /// <summary>
@@ -503,21 +448,55 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void SetCurrentHp(int value)
         {
-            _currentHp.Value = Mathf.Clamp(value, 0, _maxHp);
+            if (_fusionPlayer != null)
+            {
+                _fusionPlayer.Health = Mathf.Clamp(value, 0, _fusionPlayer.MaxHealth);
+            }
         }
 
         #endregion
 
-        #region Collision
+        #region Networked State Mirror
 
-        private void OnTriggerEnter(Collider other)
+        /// <summary>
+        /// [Networked] → ReactiveProperty ミラーリング。
+        /// SurvivorFusionPlayer.Render() の ChangeDetector から呼ばれる。
+        /// UI が購読する ReactiveProperty を [Networked] 値で更新し、ダメージ/死亡シグナルを発行。
+        /// </summary>
+        /// <summary>
+        /// [Networked] → ReactiveProperty ミラーリング。
+        /// SurvivorFusionPlayer.Render() の ChangeDetector から呼ばれる。
+        /// UI 用の ReactiveProperty を [Networked] 値で更新する。
+        /// ダメージ/死亡シグナルは MessagePipe RPC 経由（NotifyPlayerDamaged）で発行されるため、
+        /// ここでは発火しない（予測/再シミュレーションによる Health 変動で誤発火を防ぐ）。
+        /// </summary>
+        private void SyncFromNetworkedState(SurvivorFusionPlayer fp)
         {
-            if (_skipPhysics) return; // Client-only: サーバーがアイテム収集を管理
+            _currentHp.Value = fp.Health;
+            _currentStamina.Value = fp.Stamina;
+            _isInvincible.Value = fp.IsInvincible;
+            _speed.Value = fp.Speed;
+        }
 
-            // アイテムとの衝突
-            if (other.CompareLayer(LayerConstants.Item))
+        #endregion
+
+        #region KCC Item Collection
+
+
+        /// <summary>
+        /// KCCData.Hits からアイテム収集。ProcessTick の ExecuteMovement 後に呼ぶ。
+        /// KCC カプセル内のアイテムを直接収集する（OnTriggerEnter 非使用）。
+        /// </summary>
+        private void CollectItemsFromKCCHits()
+        {
+            if (_kcc == null || _fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
+
+            foreach (var hit in _kcc.FixedData.Hits.All)
             {
-                if (other.TryGetComponent<ICollectible>(out var collectible))
+                if (hit.Collider != null
+                    && hit.Collider.gameObject.layer == LayerConstants.Item
+                    && hit.Collider.TryGetComponent<ICollectible>(out var collectible)
+                    && !collectible.IsCollected)
                 {
                     collectible.Collect();
                 }

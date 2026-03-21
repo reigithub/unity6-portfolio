@@ -11,7 +11,7 @@ using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -35,12 +35,14 @@ namespace Game.MVP.Survivor.Scenes
     public partial class SurvivorStageScene : GamePrefabScene<SurvivorStageScene, SurvivorStageSceneComponent>, IGameSceneScope
     {
         [Inject] private readonly IGameSceneService _sceneService;
+        [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAddressableAssetService _addressableService;
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IInputService _inputService;
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -54,7 +56,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
 
         private SurvivorStageModel _stageModel;
-        private SurvivorNetworkPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
@@ -76,7 +77,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorStageScene] Startup: {NetworkModeHelper.GetDebugStatus()}");
+            Debug.Log($"[SurvivorStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
@@ -93,11 +94,27 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
 
-            // インゲームフィールドをロード
+            // スポーン完了後にアクティブシーンを復元するため事前に保存
+            var rootScene = SceneManager.GetActiveScene();
+
+            // インゲームフィールドをロード（SetActiveScene で物理シーンがアクティブになる）
             await LoadUnitySceneAsync();
+
+            // サーバーにフィールドシーンロード完了を通知
+            // サーバーはこの通知を受けてからプレイヤーをスポーンする（アクティブシーン = 物理シーン保証）
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.RpcNotifyFieldSceneLoaded();
+            }
 
             // プレイヤーを動的生成
             await SpawnPlayerAsync();
+
+            // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
+            if (rootScene.IsValid())
+            {
+                SceneManager.SetActiveScene(rootScene);
+            }
 
             BuildStateMachine();
             SubscribeEvents();
@@ -160,7 +177,7 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster);
+            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster, SceneComponent.transform);
             if (playerController != null)
             {
                 // SceneComponentにプレイヤーを設定
@@ -219,23 +236,29 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             // ヒットコールバック設定（武器サブクラスから Collider + WeaponId を受け取り、サーバーに委譲）
+            // SP: SurvivorEnemyController（直接参照）、MP: EnemyProxyTarget（クライアント敵プロキシ）
             SceneComponent.WeaponManager.SetHitCallback((other, weaponId) =>
             {
-                if (_localPlayerState == null || !NetworkModeHelper.IsNetworkClientConnected) return;
+                if (!_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer)) return;
 
-                // Pure client: プロキシターゲット
-                var proxy = other.GetComponentInParent<EnemyProxyTarget>();
-                if (proxy != null)
+                int networkId = -1;
+                var enemy = other.GetComponentInParent<SurvivorEnemyController>();
+                if (enemy != null && !enemy.IsDead)
                 {
-                    _localPlayerState.ReportHitServerRpc(proxy.NetworkId, weaponId);
-                    return;
+                    networkId = enemy.NetworkId;
+                }
+                else
+                {
+                    var proxy = other.GetComponentInParent<EnemyProxyTarget>();
+                    if (proxy != null)
+                    {
+                        networkId = proxy.NetworkId;
+                    }
                 }
 
-                // Host mode: 実体エネミー（NetworkId はスポーン時に設定済み）
-                var enemy = other.GetComponentInParent<SurvivorEnemyController>();
-                if (enemy != null && !enemy.IsDead && enemy.NetworkId >= 0)
+                if (networkId >= 0)
                 {
-                    _localPlayerState.ReportHitServerRpc(enemy.NetworkId, weaponId);
+                    localPlayer.RpcClientHitReported(networkId, weaponId);
                 }
             });
 
@@ -423,8 +446,6 @@ namespace Game.MVP.Survivor.Scenes
         public override async UniTask Terminate()
         {
             // イベント解除は Disposables で自動処理
-
-            _networkConnector?.Disconnect();
             ApplicationEvents.ResumeTime();
 
             Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
@@ -452,7 +473,7 @@ namespace Game.MVP.Survivor.Scenes
             // スカイボックスをデフォルトに戻す
             GameRootController?.ResetSkyboxMaterial();
 
-            // ステージ環境シーンをアンロード
+            // ステージ環境シーンをアンロード（Fusion 切断前に実行 — Shutdown がシーンをクリーンアップするため）
             if (_stageSceneInstance.HasValue)
             {
                 await _addressableService.UnloadSceneAsync(_stageSceneInstance.Value);
@@ -461,6 +482,10 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await base.Terminate();
+
+            // Fusion 切断（Addressables シーンアンロード後に実行）
+            _networkConnector?.Disconnect();
+            await UniTask.Yield();
         }
 
         /// <summary>

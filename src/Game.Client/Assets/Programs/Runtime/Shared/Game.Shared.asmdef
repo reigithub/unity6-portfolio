@@ -14,8 +14,10 @@
         "DOTween.Modules",
         "Cysharp.Net.Http.YetAnotherHttpHandler",
         "MagicOnion.Unity",
-        "Mirror",
-        "Mirror.Transports",
+        "Fusion.Unity",
+        "Fusion.Addons.Physics",
+        "Fusion.Addons.KCC",
+        "Fusion.Addons.FSM",
         "Unity.Collections",
         "VContainer"
     ],

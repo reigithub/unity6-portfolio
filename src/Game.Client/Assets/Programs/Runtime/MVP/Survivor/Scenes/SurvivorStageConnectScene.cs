@@ -2,7 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
@@ -27,6 +27,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILocalServerOrchestrator _localServerOrchestrator;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
+        [Inject] private readonly IFusionRunnerService _runnerService;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -65,6 +66,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 var stageId = session.StageId;
+                var playerId = session.PlayerId;
 
                 // Phase 1: ネットワーク初期化（モード別）
                 if (!UnityPlaymodeHelper.IsServer())
@@ -93,21 +95,23 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
-                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, {NetworkModeHelper.GetDebugStatus()}");
+                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={SurvivorNetworkMatchConnector.HasMatchResult}, {_runnerService.GetDebugStatus()}");
                 if (SurvivorNetworkMatchConnector.HasMatchResult)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
                     await ConnectToServerAsync(stageId);
+                    await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkModeHelper.IsNetworkHost)
+                else if (_runnerService.IsHostMode)
                 {
                     // Editor Host mode: Server + ローカルClient
+                    await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                else if (NetworkModeHelper.IsNetworkServer)
+                else if (_runnerService.IsServer)
                 {
                     // Editor Server-only mode: 全 Client 接続待ち
                     SceneComponent.SetStatus("Waiting for clients...");
@@ -166,8 +170,25 @@ namespace Game.MVP.Survivor.Scenes
             var address = SurvivorNetworkMatchConnector.ServerAddress;
             var port = SurvivorNetworkMatchConnector.ServerPort;
             var sessionToken = SurvivorNetworkMatchConnector.SessionToken;
-            Debug.Log($"[SurvivorStageConnectScene] Connecting to Mirror server: {address}:{port} (stageId={stageId})");
+            Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
             await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
+        }
+
+        /// <summary>
+        /// Fusion 接続後にステージ ID をサーバーに RPC 通知。
+        /// SurvivorFusionGameState が Spawn されるまで待機。
+        /// </summary>
+        private async UniTask NotifySessionInfoToServer(int stageId, int playerId)
+        {
+            await UniTask.WaitUntil(
+                () => _runnerService.TryGet<SurvivorFusionGameState>(out _),
+                cancellationToken: SceneComponent.destroyCancellationToken);
+
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.RpcSetSessionInfo(stageId, playerId);
+                Debug.Log($"[SurvivorStageConnectScene] Sent session info: stageId={stageId}, playerId={playerId}");
+            }
         }
 
         private async UniTask WaitForAllPlayersReadyAsync()

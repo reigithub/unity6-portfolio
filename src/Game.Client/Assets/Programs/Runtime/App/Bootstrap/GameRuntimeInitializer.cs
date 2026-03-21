@@ -24,12 +24,12 @@ namespace Game.App
                 //    VContainer により Root の子スコープとして自動接続される
                 var scope = SurvivorGameLauncher.CreateScope();
 
-                // 3. Mirror インフラ作成
+                // 3. サーバーインフラ初期化（ヘルスプローブ、コマンドライン引数解析）
                 UnityServerBootstrap.Initialize();
 
-                // 4. セッション開始
-                scope.Container.Resolve<SurvivorUnityServerSession>()
-                    .StartSession(SurvivorNetworkMatchConnector.ExpectedPlayerCount);
+                // 4. Fusion Server セッション開始
+                var connector = scope.Container.Resolve<ISurvivorNetworkStageConnector>();
+                _ = connector.StartServerAsync(stageId: 0);
             }
             else
             {

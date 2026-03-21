@@ -639,5 +639,44 @@ namespace Game.Tests.MVP
         }
 
         #endregion
+
+        #region ForceSetHp Tests
+
+        [Test]
+        public void ForceSetHp_SetsExactValue()
+        {
+            _model.CurrentHp.Value = 100;
+            _model.MaxHp.Value = 100;
+
+            _model.ForceSetHp(42);
+
+            Assert.That(_model.CurrentHp.Value, Is.EqualTo(42));
+        }
+
+        [Test]
+        public void ForceSetHp_Zero_MarksDead()
+        {
+            _model.CurrentHp.Value = 100;
+            _model.MaxHp.Value = 100;
+
+            _model.ForceSetHp(0);
+
+            Assert.That(_model.CurrentHp.Value, Is.EqualTo(0));
+            Assert.That(_model.IsDead, Is.True);
+        }
+
+        [Test]
+        public void ForceSetHp_AfterDamage_OverwritesPreviousValue()
+        {
+            _model.CurrentHp.Value = 100;
+            _model.MaxHp.Value = 100;
+
+            _model.TakeDamage(30); // 70
+            _model.ForceSetHp(55); // サーバー権威で上書き
+
+            Assert.That(_model.CurrentHp.Value, Is.EqualTo(55));
+        }
+
+        #endregion
     }
 }

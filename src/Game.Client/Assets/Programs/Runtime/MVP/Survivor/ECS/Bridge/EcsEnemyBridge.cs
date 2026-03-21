@@ -5,6 +5,7 @@ using Game.Client.MasterData;
 using Game.Library.Shared.Dto;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.MVP.Survivor.Enemy;
@@ -41,6 +42,7 @@ namespace Game.MVP.Survivor.ECS
         // DI
         [Inject] private IAddressableAssetService _assetService;
         [Inject] private IMasterDataService _masterDataService;
+        [Inject] private IFusionRunnerService _runnerService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         // State
@@ -71,7 +73,6 @@ namespace Game.MVP.Survivor.ECS
         public Observable<DeathEventData> OnDeathEvent => _onDeathEvent;
 
         // ネットワーク同期
-        private ISurvivorNetworkBridge _networkBridge;
         private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
@@ -105,11 +106,6 @@ namespace Game.MVP.Survivor.ECS
             _playerTransforms.RemoveAll(t => t == null);
             if (_playerTransforms.Count == 0) return null;
             return _playerTransforms[UnityEngine.Random.Range(0, _playerTransforms.Count)];
-        }
-
-        public void SetNetworkBridge(ISurvivorNetworkBridge bridge)
-        {
-            _networkBridge = bridge;
         }
 
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
@@ -242,16 +238,16 @@ namespace Game.MVP.Survivor.ECS
                 _ecsWorld.GetExistingSystemManaged<PresentationSystemGroup>()?.Update();
 
                 // ネットワーク同期（サーバー時のみ）
-                if (_networkBridge != null)
+                if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
                 {
                     // 新規エンティティにネットワークIDを割り当て、Spawnスナップショットを送信
-                    TrackNewEntitiesForNetwork();
+                    TrackNewEntitiesForNetwork(batchSync);
 
                     _enemySyncTimer -= Time.deltaTime;
                     if (_enemySyncTimer <= 0f)
                     {
                         _enemySyncTimer = EnemySyncInterval;
-                        SyncEnemyStatesToNetwork();
+                        SyncEnemyStatesToNetwork(batchSync);
                     }
                 }
             }
@@ -261,7 +257,7 @@ namespace Game.MVP.Survivor.ECS
         /// 新規生成されたエンティティにネットワークIDを割り当て、Spawnスナップショットを送信する。
         /// GOプロキシの有無に関わらずサーバーで常に実行される。
         /// </summary>
-        private void TrackNewEntitiesForNetwork()
+        private void TrackNewEntitiesForNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             var entityManager = _ecsWorld.EntityManager;
             var query = entityManager.CreateEntityQuery(typeof(EnemyData), typeof(LocalTransform), typeof(EnemyAliveTag));
@@ -277,7 +273,7 @@ namespace Game.MVP.Survivor.ECS
                 var data = entityManager.GetComponentData<EnemyData>(entity);
                 var lt = entityManager.GetComponentData<LocalTransform>(entity);
 
-                _networkBridge.BroadcastEnemyStates(new[]
+                batchSync.WriteEnemyStates(new[]
                 {
                     new SurvivorNetworkEnemyStateSnapshot
                     {
@@ -296,7 +292,7 @@ namespace Game.MVP.Survivor.ECS
             }
         }
 
-        private void SyncEnemyStatesToNetwork()
+        private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             if (_ecsWorld == null || !_ecsWorld.IsCreated) return;
 
@@ -362,7 +358,7 @@ namespace Game.MVP.Survivor.ECS
                     SyncType = EnemySyncType.PositionUpdate
                 };
             }
-            _networkBridge.BroadcastEnemyStates(snapshots);
+            batchSync.WriteEnemyStates(snapshots);
         }
 
         private void SpawnNextEnemy()
@@ -485,9 +481,10 @@ namespace Game.MVP.Survivor.ECS
             _waveManager?.OnEnemyKilled(isBoss);
 
             // Deathスナップショット送信
-            if (_entityNetworkIds.TryGetValue(deathInfo.Entity, out var deadNetId))
+            if (_entityNetworkIds.TryGetValue(deathInfo.Entity, out var deadNetId)
+                && _runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var deathBatchSync))
             {
-                _networkBridge?.BroadcastEnemyStates(new[]
+                deathBatchSync.WriteEnemyStates(new[]
                 {
                     new SurvivorNetworkEnemyStateSnapshot
                     {

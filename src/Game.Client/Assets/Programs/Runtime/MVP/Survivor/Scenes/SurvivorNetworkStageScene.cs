@@ -1,14 +1,13 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
-using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -32,17 +31,22 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAddressableAssetService _addressableService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
 
         // Server signals
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.ApplyRequested> _weaponApplySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Item.CollectReported> _itemCollectReportedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
 
         private SurvivorStageModel _stageModel;
-        private SurvivorNetworkPlayerState _localPlayerState;
         private SurvivorStageWaveManager _waveManager;
         private SurvivorNetworkWeaponManager _weaponManager;
+        private SurvivorFusionGameState _gameState;
         private SceneInstance? _stageSceneInstance;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
@@ -64,7 +68,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorNetworkStageScene] Startup: {NetworkModeHelper.GetDebugStatus()}");
+            Debug.Log($"[SurvivorNetworkStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             var session = _saveService.CurrentSession;
             if (session == null)
@@ -84,8 +88,20 @@ namespace Game.MVP.Survivor.Scenes
                 _stageModel.GetStartingWeaponId(),
                 _stageModel.GetDamageMultiplier());
 
+            // スポーン完了後にアクティブシーンを復元するため事前に保存
+            var rootScene = SceneManager.GetActiveScene();
+
             await LoadUnitySceneAsync();
+            await UniTask.Yield();
             await SpawnPlayerAsync();
+
+            // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
+            if (rootScene.IsValid())
+            {
+                SceneManager.SetActiveScene(rootScene);
+            }
+
+            _runnerService.TryGet(out _gameState);
 
             BuildStateMachine();
             SubscribeEvents();
@@ -119,6 +135,37 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            // クライアントのフィールドシーンロード完了を待機
+            // クライアントの SetActiveScene が完了してからスポーンすることで、
+            // レプリケーション時にクライアント側でも物理シーンに配置されることを保証する
+            Debug.Log("[SurvivorNetworkStageScene] Waiting for client field scene loaded...");
+            var fieldSceneTcs = new UniTaskCompletionSource();
+            var fieldSceneSub = _clientFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
+            try
+            {
+                await UniTask.WhenAny(
+                    fieldSceneTcs.Task,
+                    UniTask.Delay(System.TimeSpan.FromSeconds(10), DelayType.Realtime));
+            }
+            finally
+            {
+                fieldSceneSub.Dispose();
+            }
+            Debug.Log("[SurvivorNetworkStageScene] Client field scene loaded (or timeout), spawning player");
+
+            // Fusion プレイヤーオブジェクトを PlayerStart 位置にスポーン
+            Debug.Log($"[SurvivorNetworkStageScene] SpawnPlayerAsync: PlayerStart pos={playerStart.transform.position}, Runner={_runnerService.Runner != null}");
+            if (_runnerService.Runner != null &&
+                _runnerService.Runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
+            {
+                fusionRunner.SpawnConnectedPlayers(playerStart.transform.position, Quaternion.identity);
+                Debug.Log("[SurvivorNetworkStageScene] SpawnConnectedPlayers called");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorNetworkStageScene] FusionRunner not found, spawn skipped!");
+            }
+
             var playerMaster = _stageModel.PlayerMaster;
             var levelMaster = _stageModel.CurrentLevelMaster;
             if (playerMaster == null || levelMaster == null)
@@ -142,7 +189,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => _stageModel.AddKill())
                 .AddTo(Disposables);
 
-            // アイテム収集 → ClientRpc通知
+            // アイテム収集 → ClientRpc/RPC通知
             if (SceneComponent.SurvivorItemSpawner != null)
             {
                 SceneComponent.SurvivorItemSpawner.OnItemCollected
@@ -150,14 +197,14 @@ namespace Game.MVP.Survivor.Scenes
                     {
                         _stageModel.CollectItem(item);
 
-                        var gm = SurvivorNetworkGameManager.Instance;
-                        gm?.NotifyItemCollectedClientRpc(
-                            _localPlayerState?.PlayerUserId ?? default,
-                            item.ItemId,
-                            (int)item.ItemType,
-                            item.EffectValue,
-                            _stageModel.Experience.Value,
-                            _stageModel.ExperienceToNextLevel.Value);
+                        if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                            gs.NotifyItemCollected(
+                                "",
+                                item.ItemId,
+                                (int)item.ItemType,
+                                item.EffectValue,
+                                _stageModel.Experience.Value,
+                                _stageModel.ExperienceToNextLevel.Value);
                     })
                     .AddTo(Disposables);
             }
@@ -182,13 +229,10 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeSignals()
         {
-            SceneComponent.PlayerController.OnDamageReceived
-                .Subscribe(s => _stageModel.TakeDamage(s.Damage))
-                .AddTo(Disposables);
+            // サーバー権威の残HPで同期（RPC → MessagePipe 経由。SurvivorStageScene と同じパス）
+            _damageReceivedSub.Subscribe(s => _stageModel.ForceSetHp(s.RemainingHp)).AddTo(Disposables);
 
-            SceneComponent.PlayerController.OnDied
-                .Subscribe(_ => _stageModel.ForceSetHp(0))
-                .AddTo(Disposables);
+            _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
 
             _waveManager.OnWaveStarted
                 .Subscribe(s => _stageModel.CurrentWave.Value = s.WaveNumber)
@@ -210,13 +254,10 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SetupServerNetworking()
         {
-            var networkBridge = new SurvivorNetworkBridge();
-            SceneComponent.EnemySpawner?.SetNetworkBridge(networkBridge);
-            SceneComponent.SurvivorItemSpawner?.SetNetworkBridge(networkBridge);
-
-            // 武器適用・ヒット報告シグナル購読
+            // 武器適用・ヒット報告・アイテム収集報告シグナル購読
             _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
             _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
+            _itemCollectReportedSub.Subscribe(s => OnServerItemCollectReported(s.ItemId)).AddTo(Disposables);
 
             // シグナル→ClientRpcブリッジ
             SubscribeNetworkSignals();
@@ -229,27 +270,30 @@ namespace Game.MVP.Survivor.Scenes
         {
             _waveManager.OnWaveStarted.Subscribe(s =>
             {
-                var gm = SurvivorNetworkGameManager.Instance;
-                gm?.NotifyWaveStartedClientRpc(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyWaveStarted(s.WaveNumber, s.TargetKillCount, s.EnemyCount);
             }).AddTo(Disposables);
 
             _waveManager.OnWaveCompleted.Subscribe(s =>
             {
-                // サーバー側でスコアを計算し、計算済みスコアをクライアントに送信
                 var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
                 var spawnInfo = _waveManager.GetSpawnInfo();
                 var hpRatio = _stageModel.MaxHp.Value > 0
                     ? (float)_stageModel.CurrentHp.Value / _stageModel.MaxHp.Value : 1f;
                 var waveClearScore = remainingTime > 0
                     ? (int)(remainingTime * spawnInfo.ScoreMultiplier * hpRatio) : 0;
-                var gm = SurvivorNetworkGameManager.Instance;
-                gm?.NotifyWaveClearedClientRpc(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
+
+                if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                    gs.NotifyWaveCompleted(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
             }).AddTo(Disposables);
 
-            // IsAllWavesCleared は変更なし（ReactiveProperty、IPublisher ではない）
             _waveManager.IsAllWavesCleared
                 .Where(cleared => cleared)
-                .Subscribe(_ => SurvivorNetworkGameManager.Instance?.NotifyAllWavesClearedClientRpc())
+                .Subscribe(_ =>
+                {
+                    if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                        gs.NotifyAllWavesCleared();
+                })
                 .AddTo(Disposables);
         }
 
@@ -258,6 +302,9 @@ namespace Game.MVP.Survivor.Scenes
             Debug.Log("[SurvivorNetworkStageScene] All players disconnected, clearing enemies");
             SceneComponent.EnemySpawner?.ClearAllEnemies();
         }
+
+        /// <summary>プレイヤーと敵の最大許容距離（武器射程 + ネットワーク遅延マージン）</summary>
+        private const float MaxHitValidationDistance = 30f;
 
         private void OnServerHitReported(int enemyNetworkId, int weaponId)
         {
@@ -269,21 +316,66 @@ namespace Game.MVP.Survivor.Scenes
                 ? SceneComponent.PlayerController.transform.position
                 : enemy.transform.position;
 
+            // サーバー側距離検証: プレイヤーと敵の距離が許容範囲内か
+            float distance = Vector3.Distance(playerPos, enemy.transform.position);
+            if (distance > MaxHitValidationDistance)
+            {
+                Debug.LogWarning($"[ServerHitValidation] Rejected: enemy={enemyNetworkId}, weapon={weaponId}, distance={distance:F1} > {MaxHitValidationDistance}");
+                return;
+            }
+
             _weaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
         }
 
-        private void OnServerWeaponApply(WeaponApplyRequest request)
+        /// <summary>
+        /// サーバー: クライアントからのアイテム収集報告を処理。
+        /// マスターデータからアイテム効果を取得し、モデルに適用後、結果を全クライアントに通知。
+        /// </summary>
+        private void OnServerItemCollectReported(int itemId)
+        {
+            var itemSpawner = SceneComponent.SurvivorItemSpawner;
+            if (itemSpawner == null) return;
+
+            // マスターデータからアイテム情報を取得
+            if (!itemSpawner.TryGetItemMaster(itemId, out var master)) return;
+
+            var itemType = (SurvivorItemType)master.ItemType;
+            var effectValue = master.EffectValue;
+
+            // サーバー側モデルにアイテム効果を適用
+            switch (itemType)
+            {
+                case SurvivorItemType.Experience:
+                    _stageModel.AddExperience(effectValue);
+                    break;
+                case SurvivorItemType.Recovery:
+                    _stageModel.Heal(effectValue);
+                    break;
+            }
+
+            // 全クライアントに結果を通知
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.NotifyItemCollected(
+                    "", itemId, (int)itemType, effectValue,
+                    _stageModel.Experience.Value,
+                    _stageModel.ExperienceToNextLevel.Value);
+                gs.NotifyItemDespawned(itemId);
+            }
+        }
+
+        private void OnServerWeaponApply(SurvivorWeaponApplyRequest request)
         {
             switch (request.Type)
             {
-                case WeaponApplyType.AddOrUpgrade:
+                case SurvivorWeaponApplyType.AddOrUpgrade:
                     if (request.IsNewWeapon)
                         _weaponManager.AddWeapon(request.WeaponId);
                     else
                         _weaponManager.UpgradeWeapon(request.WeaponId);
                     break;
 
-                case WeaponApplyType.Replace:
+                case SurvivorWeaponApplyType.Replace:
                     _weaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
                     break;
             }

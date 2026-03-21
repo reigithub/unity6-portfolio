@@ -1,76 +1,106 @@
 using Cysharp.Threading.Tasks;
+using Fusion.Addons.KCC;
 using Game.Client.MasterData;
+using Game.Shared.Constants;
+using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using VContainer;
 
 namespace Game.MVP.Survivor.Player
 {
     /// <summary>
     /// Survivorプレイヤー生成地点
-    /// ステージシーンに配置され、プレイヤーアセットを動的に生成する
+    /// ステージシーンに配置され、Fusion Spawn 済みの SurvivorFusionPlayer GO に
+    /// SurvivorPlayerController と視覚モデルを動的に追加する
     /// </summary>
     public class SurvivorPlayerStart : MonoBehaviour
     {
         [Inject] private readonly IAddressableAssetService _addressableService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
 
-        private SurvivorPlayerController _spawnedPlayer;
-
         /// <summary>
-        /// スポーン済みプレイヤーコントローラー
+        /// Fusion Spawn 済みの SurvivorFusionPlayer GO にプレイヤーコントローラーと視覚モデルを追加する
         /// </summary>
-        public SurvivorPlayerController SpawnedPlayer => _spawnedPlayer;
-
-        /// <summary>
-        /// プレイヤーを生成し初期化する
-        /// </summary>
-        /// <param name="resolver"></param>
-        /// <param name="playerMaster">プレイヤー基本情報（AssetName取得用）</param>
-        /// <param name="levelMaster">レベル依存ステータス（初期化用）</param>
-        public async UniTask<SurvivorPlayerController> LoadPlayerAsync(IObjectResolver resolver, SurvivorPlayerMaster playerMaster, SurvivorPlayerLevelMaster levelMaster)
+        public async UniTask<SurvivorPlayerController> LoadPlayerAsync(
+            IObjectResolver resolver,
+            SurvivorPlayerMaster playerMaster,
+            SurvivorPlayerLevelMaster levelMaster,
+            Transform sceneComponentRoot = null)
         {
-            if (_addressableService == null)
+            // 1. Fusion Spawn 済みの SurvivorFusionPlayer を取得
+            //    サーバー側: 直前の SpawnConnectedPlayers で即座に利用可能
+            //    クライアント側: サーバーからのレプリケーション完了を待機
+            if (!_runnerService.TryGet<SurvivorFusionPlayer>(out var fusionPlayer))
             {
-                Debug.LogError("[SurvivorPlayerStart] AddressableService is not injected!");
+                await UniTask.WaitUntil(
+                    () => _runnerService.TryGet(out fusionPlayer),
+                    cancellationToken: destroyCancellationToken);
+            }
+
+            if (fusionPlayer == null)
+            {
+                Debug.LogError("[SurvivorPlayerStart] SurvivorFusionPlayer not found!");
                 return null;
             }
 
-            // プレイヤーアセット生成
-            var playerObj = await _addressableService.InstantiateAsync(playerMaster.AssetName, transform);
-            if (playerObj == null)
+            var playerGo = fusionPlayer.gameObject;
+
+            // 2. SceneComponent(SurvivorStageScene(Clone)) の子として配置
+            // Fusion のオブジェクトプロバイダは GameRootScene にインスタンス化するため、
+            // SceneComponent 配下に移動して他のゲームオブジェクト（アイテム、敵プロキシ等）と
+            // 同じ階層・物理シーンに配置する。
+            if (sceneComponentRoot != null)
             {
-                Debug.LogError($"[SurvivorPlayerStart] Failed to instantiate player: {playerMaster.AssetName}");
-                return null;
+                playerGo.transform.SetParent(sceneComponentRoot, true);
+            }
+            Debug.Log($"[SurvivorPlayerStart] Player parented to {playerGo.transform.parent?.name}, scene={playerGo.scene.name}");
+            if (playerGo.TryGetComponent<KCC>(out var kcc))
+            {
+                kcc.SetPosition(transform.position);
+                kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
+                // kcc.Settings.AntiJitterDistance = Vector2.zero;
+                // kcc.Settings.ForcePredictedLookRotation = true;
+                kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_PredictRender;
+                kcc.Settings.PredictionCorrectionSpeed = 2f;
+
+                Debug.Log($"[SurvivorPlayerStart] KCC configured in scene={playerGo.scene.name}, pos={transform.position}");
+            }
+            else
+            {
+                Debug.LogError("[SurvivorPlayerStart] KCC not found on FusionPlayer!");
             }
 
-            // SurvivorPlayerControllerを取得
-            if (!playerObj.TryGetComponent<SurvivorPlayerController>(out var playerController))
-            {
-                Debug.LogError($"[SurvivorPlayerStart] Player prefab does not have SurvivorPlayerController: {playerMaster.AssetName}");
-                return null;
-            }
-
-            resolver.Inject(playerController);
-
-            _spawnedPlayer = playerController;
-
-            // プレイヤー初期化（VContainerからのInjectは親スコープから行われる）
+            // 4. プレハブ上の SurvivorPlayerController を取得して初期化
+            var playerController = playerGo.GetComponent<SurvivorPlayerController>();
             playerController.Initialize(levelMaster);
 
+            // 5. モデルロード + Presenter 追加（クライアントのみ — サーバーは視覚不要）
             if (UnityPlaymodeHelper.IsClient())
             {
-                // Presenter初期化（ビジュアル駆動）— サーバーでは不要
-                var playerPresenter = playerObj.AddComponent<SurvivorPlayerPresenter>();
-                var diedSub = resolver.Resolve<ISubscriber<SurvivorSignals.Player.Died>>();
-                playerPresenter.Initialize(playerController, diedSub);
+                var modelAssetName = playerMaster.AssetName + "_Model";
+                var modelObj = await _addressableService.InstantiateAsync(modelAssetName, playerGo.transform);
+                if (modelObj != null)
+                {
+                    modelObj.transform.localPosition = Vector3.zero;
+                    modelObj.transform.localRotation = Quaternion.identity;
+                }
+
+                var playerPresenter = playerGo.AddComponent<SurvivorPlayerPresenter>();
+                resolver.Inject(playerPresenter);
+                playerPresenter.Initialize(playerController);
             }
 
-            Debug.Log($"[SurvivorPlayerStart] Player spawned: {playerMaster.Name} at {transform.position}");
+            // カメラフォロー用シグナル発行（KCC が RenderData で滑らかに補間するためルート transform）
+            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(playerGo.transform));
 
+            Debug.Log($"[SurvivorPlayerStart] Player configured at {playerGo.transform.position}");
             return playerController;
         }
     }

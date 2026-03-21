@@ -4,8 +4,7 @@
     "references": [
         "Game.Shared",
         "Game.Library.Shared",
-        "Mirror",
-        "Mirror.Transports",
+        "Fusion.Unity",
         "Unity.Collections",
         "UniTask",
         "MessagePipe",

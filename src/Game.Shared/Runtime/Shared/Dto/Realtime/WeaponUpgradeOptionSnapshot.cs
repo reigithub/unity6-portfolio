@@ -3,7 +3,8 @@ using MessagePack;
 namespace Game.Library.Shared.Dto
 {
     /// <summary>
-    /// 武器アップグレード選択肢スナップショット
+    /// 武器アップグレード選択肢スナップショット（最小構成）。
+    /// 名前・説明・アイコンはクライアント側でマスターデータから索引する。
     /// </summary>
     [MessagePackObject]
     public class WeaponUpgradeOptionSnapshot
@@ -12,21 +13,9 @@ namespace Game.Library.Shared.Dto
         public int WeaponId { get; set; }
 
         [Key(1)]
-        public string WeaponName { get; set; } = string.Empty;
-
-        [Key(2)]
         public bool IsNewWeapon { get; set; }
 
-        [Key(3)]
+        [Key(2)]
         public int CurrentLevel { get; set; }
-
-        [Key(4)]
-        public string Description { get; set; } = string.Empty;
-
-        [Key(5)]
-        public string UpgradeEffect { get; set; } = string.Empty;
-
-        [Key(6)]
-        public string IconAssetName { get; set; } = string.Empty;
     }
 }

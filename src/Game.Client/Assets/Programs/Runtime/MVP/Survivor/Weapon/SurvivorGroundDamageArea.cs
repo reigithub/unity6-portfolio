@@ -1,5 +1,6 @@
 using System;
 using Game.Shared.Constants;
+using Game.Shared.Network.Survivor;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Weapon
@@ -12,6 +13,9 @@ namespace Game.MVP.Survivor.Weapon
     {
         [SerializeField] private SphereCollider _damageCollider;
         [SerializeField] private ParticleSystem _vfx;
+
+        // ポーズ参照（生成元マネージャーが設定）
+        private SurvivorFusionGameState _gameState;
 
         // 状態
         private int _damage;
@@ -27,6 +31,8 @@ namespace Game.MVP.Survivor.Weapon
 
         public int Damage => _damage;
         public float Knockback => _knockback;
+
+        public void Initialize(SurvivorFusionGameState gameState) => _gameState = gameState;
 
         /// <summary>
         /// ダメージエリアを有効化
@@ -54,6 +60,7 @@ namespace Game.MVP.Survivor.Weapon
         private void Update()
         {
             if (!_isActive) return;
+            if (_gameState != null && _gameState.IsPaused) return;
 
             _remainingTime -= Time.deltaTime;
             _nextProcTime -= Time.deltaTime;

@@ -21,12 +21,12 @@ using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
 using Game.Shared.Chat.Client;
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Realtime.Client;
-using Game.Shared.Unity.Server;
 using Game.Shared.Signals.Survivor;
+using Game.Shared.Unity.Server;
 using UnityEngine;
 
 namespace Game.MVP.Survivor
@@ -34,7 +34,7 @@ namespace Game.MVP.Survivor
     /// <summary>
     /// Survivor用のVContainer LifetimeScope
     /// MVP.Coreのシーンサービスと、Survivor固有のサービス/モデルを登録
-    /// NetworkModeHelper.IsHeadlessServer でサーバー/クライアントのDI登録をランタイム分岐
+    /// UnityPlaymodeHelper.IsServer() でサーバー/クライアントのDI登録をランタイム分岐
     /// </summary>
     public class SurvivorLifetimeScope : LifetimeScope
     {
@@ -50,6 +50,7 @@ namespace Game.MVP.Survivor
             builder.Register<AddressableAssetService>(Lifetime.Singleton).As<IAddressableAssetService>();
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
+            builder.Register<FusionRunnerService>(Lifetime.Singleton).As<IFusionRunnerService>();
 
             if (UnityPlaymodeHelper.IsServer())
             {
@@ -80,17 +81,13 @@ namespace Game.MVP.Survivor
             // Server実装: セッション情報を供給可能なサーバー用セーブサービス
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
-            // NGO Client（サーバーでは接続不要）
-            builder.Register<NullSurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            // Fusion Server（サーバーモードでも Fusion 経由で接続）
+            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
 
-            builder.RegisterComponentOnNewGameObject<SurvivorUnityServerSession>(
-                    Lifetime.Scoped, "[ServerSession]")
-                .DontDestroyOnLoad();
-
-            // Server Game Loop: AllPlayersReady → SurvivorStageScene 遷移
+            // Server Game Loop: AllPlayersReady → SurvivorNetworkStageScene 遷移
             builder.RegisterEntryPoint<SurvivorServerGameLoop>();
         }
 
@@ -175,9 +172,9 @@ namespace Game.MVP.Survivor
             builder.Register<ChatClient>(Lifetime.Singleton).As<IChatClient>();
 
             // ========================================
-            // NGO Client（クライアント接続用）
+            // Fusion Client（クライアント接続用）
             // ========================================
-            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // ========================================
             // Local Server Orchestrator（SP モード用）
@@ -228,7 +225,9 @@ namespace Game.MVP.Survivor
             // Server
             builder.RegisterMessageBroker<SurvivorSignals.Weapon.HitReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Weapon.ApplyRequested>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Item.CollectReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsSceneReady>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.ClientFieldSceneLoaded>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersDisconnected>(options);
         }
     }

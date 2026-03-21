@@ -15,8 +15,28 @@ MonoBehaviour:
   m_GroupName: SurvivorPrefabs
   m_GUID: 75503b5e72d6e184cbf76e980dd5e5dd
   m_SerializeEntries:
+  - m_GUID: 2e30e61ba8f86fd448d50d5c795607e6
+    m_Address: SDUnityChan_Model
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 73fee9971f6488c468b0bdd49a79f6c6
+    m_Address: SurvivorFusionEnemyBatchSync
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: aa551d6d6e0838845aec283a52ba407c
     m_Address: SDUnityChan
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4d508b0d21593d4fadc57b3e975dc8b
+    m_Address: SurvivorFusionPlayer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cd5d7456130a64540b526bf79f317c7b
+    m_Address: SurvivorFusionGameState
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -27,11 +47,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e4e010e565a57484d8c9de177ac0b5f4
     m_Address: LockOnIndicator
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 2c0c9171a25dd154d9f5bde3eb8c9d27
-    m_Address: SurvivorNetworkPrefabs
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

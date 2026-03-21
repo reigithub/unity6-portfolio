@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
+using Game.Shared.Network.Fusion;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -25,7 +27,10 @@ namespace Game.MVP.Survivor.Weapon
         [Inject] private IMasterDataService _masterDataService;
         [Inject] private IAddressableAssetService _assetService;
         [Inject] private ILockOnService _lockOnService;
+        [Inject] private IFusionRunnerService _runnerService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
+
+        private SurvivorFusionGameState _gameState;
 
         // 装備中の武器
         private readonly List<SurvivorWeaponBase> _weapons = new();
@@ -56,6 +61,7 @@ namespace Game.MVP.Survivor.Weapon
         {
             _owner = owner;
             _damageMultiplier = damageMultiplier;
+            _runnerService.TryGet(out _gameState);
 
             _vfxSpawner = new SurvivorWeaponVfxSpawner(transform, _assetService);
 
@@ -89,7 +95,7 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster);
-            await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner);
+            await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner, _gameState);
             weapon.OnHitCallback = _hitCallback;
 
             _weapons.Add(weapon);
@@ -280,6 +286,8 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private void Update()
         {
+            if (_gameState != null && _gameState.IsPaused) return;
+
             float deltaTime = Time.deltaTime;
             foreach (var weapon in _weapons)
             {

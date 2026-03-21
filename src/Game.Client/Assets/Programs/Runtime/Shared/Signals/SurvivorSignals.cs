@@ -29,6 +29,8 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct AllClientsSceneReady { }
 
+            public readonly struct ClientFieldSceneLoaded { }
+
             public readonly struct AllPlayersDisconnected { }
         }
 
@@ -279,6 +281,17 @@ namespace Game.Shared.Signals.Survivor
                     ItemId = itemId;
                 }
             }
+
+            /// <summary>クライアント→サーバー: アイテム収集報告</summary>
+            public readonly struct CollectReported
+            {
+                public readonly int ItemId;
+
+                public CollectReported(int itemId)
+                {
+                    ItemId = itemId;
+                }
+            }
         }
 
         // --- Weapon ---
@@ -299,9 +312,9 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct ApplyRequested
             {
-                public readonly WeaponApplyRequest Request;
+                public readonly SurvivorWeaponApplyRequest Request;
 
-                public ApplyRequested(WeaponApplyRequest request)
+                public ApplyRequested(SurvivorWeaponApplyRequest request)
                 {
                     Request = request;
                 }

@@ -10,6 +10,7 @@ namespace Game.Library.Shared.Dto
         Spawn = 0,
         PositionUpdate = 1,
         Death = 2,
+        Attack = 3,
     }
 
     /// <summary>

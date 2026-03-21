@@ -2,6 +2,7 @@ using Game.Client.MasterData;
 using Game.Shared.Combat;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using R3;
 using Unity.Profiling;
 using UnityEngine;
@@ -44,10 +45,15 @@ namespace Game.MVP.Survivor.Enemy
         private Transform _target;
         private bool _isDead;
         private int _networkId = -1;
+        private IFusionRunnerService _runnerService;
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onDeath = new();
         public Observable<SurvivorEnemyController> OnDeath => _onDeath;
+
+        /// <summary>キルカウントに加算せず静かに回収する際のイベント</summary>
+        private readonly Subject<SurvivorEnemyController> _onSilentRemoval = new();
+        public Observable<SurvivorEnemyController> OnSilentRemoval => _onSilentRemoval;
 
         // IDeathNotifier implementation
         private readonly Subject<DeathEventData> _onDeathEvent = new();
@@ -63,6 +69,9 @@ namespace Game.MVP.Survivor.Enemy
         public int AttackDamage => _attackDamage;
         public int ExperienceValue => _experienceValue;
         public bool IsDead => _isDead;
+
+        private bool _isPaused;
+        public void SetPaused(bool paused) => _isPaused = paused;
 
         /// <summary>ネットワーク同期用ID（SurvivorEnemySpawnerが設定）</summary>
         public int NetworkId => _networkId;
@@ -121,6 +130,7 @@ namespace Game.MVP.Survivor.Enemy
         public void Initialize(
             SurvivorEnemyMaster master,
             Transform target,
+            IFusionRunnerService runnerService,
             float speedMultiplier = 1f,
             float healthMultiplier = 1f,
             float damageMultiplier = 1f,
@@ -128,6 +138,7 @@ namespace Game.MVP.Survivor.Enemy
             int itemDropGroupId = 0,
             int expDropGroupId = 0)
         {
+            _runnerService = runnerService;
             _enemyId = master.Id;
             _enemyType = master.EnemyType;
             _target = target;
@@ -155,6 +166,12 @@ namespace Game.MVP.Survivor.Enemy
             {
                 _navAgent.speed = _moveSpeed;
                 _navAgent.enabled = true;
+
+                // NavMesh 上に明示的にスナップ（enabled 時の自動スナップが失敗するケースに対応）
+                if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    _navAgent.Warp(hit.position);
+                }
             }
 
             if (_collider != null)
@@ -165,11 +182,68 @@ namespace Game.MVP.Survivor.Enemy
             InitializeStateMachine();
         }
 
+        // NavMesh 復帰チェック間隔
+        private const float NavMeshCheckInterval = 1f;
+        private float _navMeshCheckTimer;
+
+        private float _unreachableTimer;
+
         private void Update()
         {
+            if (_isPaused) return;
+
             using (s_enemyUpdateMarker.Auto())
             {
                 _stateMachine?.Update();
+            }
+
+            // パス到達不能検知: NavAgent がパスを持てない状態が続く場合は強制デスポーン
+            if (!_isDead && _navAgent != null && _navAgent.enabled && _target != null)
+            {
+                if (_navAgent.isOnNavMesh && !_navAgent.hasPath && !_navAgent.pathPending)
+                {
+                    _unreachableTimer += Time.deltaTime;
+                    if (_unreachableTimer > 5f)
+                    {
+                        _unreachableTimer = 0f;
+                        // キルカウントに加算させずに静かに回収（PerformDeath は使わない）
+                        _isDead = true;
+                        if (_navAgent != null) _navAgent.enabled = false;
+                        if (_collider != null) _collider.enabled = false;
+                        gameObject.SetActive(false);
+                        _onSilentRemoval?.OnNext(this);
+                        return;
+                    }
+                }
+                else
+                {
+                    _unreachableTimer = 0f;
+                }
+            }
+
+            // NavMesh から外れたエネミーを定期的に再スナップ（サーバー側のみ有効）
+            if (_navAgent != null && _navAgent.enabled && !_isDead)
+            {
+                _navMeshCheckTimer -= Time.deltaTime;
+                if (_navMeshCheckTimer <= 0f)
+                {
+                    _navMeshCheckTimer = NavMeshCheckInterval;
+                    if (!_navAgent.isOnNavMesh)
+                    {
+                        // 広範囲で NavMesh を探索し、見つからなければ即座にデスポーン
+                        if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, 50f, UnityEngine.AI.NavMesh.AllAreas))
+                        {
+                            _navAgent.Warp(hit.position);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[SurvivorEnemyController] Enemy {_enemyId} (nid={_networkId}) unreachable from NavMesh, forcing death");
+                            _currentHp = 0;
+                            _hasPendingDamage = false;
+                            PerformDeath();
+                        }
+                    }
+                }
             }
         }
 
@@ -182,6 +256,17 @@ namespace Game.MVP.Survivor.Enemy
         }
 
         public void SetNetworkId(int id) => _networkId = id;
+
+        /// <summary>
+        /// Fusion Runner.DeltaTime を優先し、利用不可時は Time.deltaTime にフォールバック。
+        /// ゲームロジックタイマー（攻撃クールダウン、HitStun）で使用。
+        /// </summary>
+        internal float GetDeltaTime()
+        {
+            if (_runnerService != null && _runnerService.IsActive && _runnerService.Runner != null)
+                return _runnerService.Runner.DeltaTime;
+            return Time.deltaTime;
+        }
 
         public void ApplyKnockback(Vector3 knockback)
         {
@@ -202,7 +287,7 @@ namespace Game.MVP.Survivor.Enemy
             _hasPendingDamage = false;
             _pendingDamageAmount = 0;
             _target = null;
-            _stateMachine = null;
+            // _stateMachine は再利用（遷移テーブルは不変のため InitializeStateMachine で再構築しない）
             _damageableTarget = null;
 
             if (_navAgent != null)

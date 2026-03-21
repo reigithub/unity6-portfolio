@@ -1,0 +1,267 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4364400493229672838
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6230949141046958128}
+  - component: {fileID: 2467486419845175979}
+  - component: {fileID: 5055728534628363837}
+  - component: {fileID: 2765137264471296877}
+  - component: {fileID: 7755548024961192585}
+  - component: {fileID: 4158219806842584690}
+  - component: {fileID: 1234567890123456789}
+  - component: {fileID: 149732650033804965}
+  - component: {fileID: 1557887492066355885}
+  - component: {fileID: 9004441084084587357}
+  - component: {fileID: 4172074802452438206}
+  - component: {fileID: 7902126580220891594}
+  m_Layer: 0
+  m_Name: SurvivorFusionPlayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6230949141046958128
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2467486419845175979
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1919371485
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 5055728534628363837}
+  - {fileID: 7755548024961192585}
+  - {fileID: 1557887492066355885}
+  - {fileID: 9004441084084587357}
+  - {fileID: 4172074802452438206}
+  - {fileID: 7902126580220891594}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &5055728534628363837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39ce4428c05fc934491525c1143480ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Fusion.SurvivorFusionPlayer
+  _Health: 0
+  _MaxHealth: 0
+  _Stamina: 0
+  _MaxStamina: 0
+  _Speed: 0
+  _IsInvincible:
+    _value: 0
+  _StaminaAccumulator: 0
+  _InvincibilityTimer: 0
+  _LookYaw: 0
+  _normalState: {fileID: 9004441084084587357}
+  _invincibleState: {fileID: 4172074802452438206}
+  _deadState: {fileID: 7902126580220891594}
+--- !u!54 &2765137264471296877
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 126
+  m_CollisionDetection: 0
+--- !u!114 &7755548024961192585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f7684f04e649e84fb2ee1bc9fbee42d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.KCC::Fusion.Addons.KCC.KCC
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  _settings:
+    Shape: 1
+    IsTrigger: 0
+    Radius: 0.4
+    Height: 1
+    Extent: 0.035
+    ColliderLayer: 0
+    CollisionLayerMask:
+      serializedVersion: 2
+      m_Bits: 1
+    Features: -1
+    InputAuthorityBehavior: 0
+    StateAuthorityBehavior: 0
+    ProxyInterpolationMode: 0
+    ForcePredictedLookRotation: 1
+    AllowClientTeleports: 0
+    Processors:
+    - {fileID: 4158219806842584690}
+    - {fileID: 1234567890123456789}
+    - {fileID: 561824206424634091, guid: 68c4081a63f1dfd469da9c95bea22158, type: 3}
+    - {fileID: 8306782452827789390, guid: 6d976f9777012db4aa55e7e6b1991afe, type: 3}
+    MaxPenetrationSteps: 8
+    CCDRadiusMultiplier: 0.75
+    AntiJitterDistance: {x: 0, y: 0}
+    PredictionCorrectionSpeed: 2
+    NetworkedInteractions: 8
+    CompressNetworkPosition: 0
+    ForceSingleOverlapQuery: 0
+    SuppressConvexMeshColliders: 0
+--- !u!114 &4158219806842584690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 264c0f9c9a7bf4a4a927334fa1712bf6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.KCC::Fusion.Addons.KCC.EnvironmentProcessor
+  KinematicSpeed: 20
+  JumpMultiplier: 1
+  Gravity: {x: 0, y: -15, z: 0}
+  RelativePriority: 0
+  MaxGroundAngle: 60
+  DynamicGroundFriction: 20
+  KinematicGroundAcceleration: 50
+  KinematicGroundFriction: 35
+  DynamicAirFriction: 2
+  KinematicAirAcceleration: 5
+  KinematicAirFriction: 2
+--- !u!114 &1234567890123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c24e729eadfb5c442a3718e7f2f79a49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SpeedProcessor
+--- !u!114 &149732650033804965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adeb3d6bb3f4a414c8c3c72f430f3841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Player.SurvivorPlayerController
+  _jogSpeed: 5
+  _runSpeed: 8
+  _rotationSpeed: 600
+--- !u!114 &1557887492066355885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2615d364a70f4817830b874e07a6cc81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.FSM::Fusion.Addons.FSM.StateMachineController
+  _enableLogging: 0
+--- !u!114 &9004441084084587357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5b532abf1b31f24aaf4a8a6fecad425, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SurvivorPlayerNormalState
+  _priority: 0
+  _checkPriorityOnExit: 1
+--- !u!114 &4172074802452438206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 608a332767fc454408cd1126595ddc11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SurvivorPlayerInvincibleState
+  _priority: 0
+  _checkPriorityOnExit: 1
+--- !u!114 &7902126580220891594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4364400493229672838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 289a1859d0661fb43821fa5c74345535, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Network.Survivor.SurvivorPlayerDeadState
+  _priority: 0
+  _checkPriorityOnExit: 1

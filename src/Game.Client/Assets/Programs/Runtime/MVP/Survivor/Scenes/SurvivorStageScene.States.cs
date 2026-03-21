@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Game.Client.MasterData;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
@@ -11,7 +12,6 @@ using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Bootstrap;
-using Game.Shared.Network;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -76,6 +76,11 @@ namespace Game.MVP.Survivor.Scenes
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
+
+            protected bool TryGetLocalPlayer(out SurvivorFusionPlayer player)
+            {
+                return Context._runnerService.TryGetLocalPlayerComponent(out player);
+            }
         }
 
         #endregion
@@ -115,7 +120,7 @@ namespace Game.MVP.Survivor.Scenes
                 await View.InitializeItemSpawnerAsync();
 
                 // MP Client: ネットワーク初期化
-                if (NetworkModeHelper.IsNetworkClientConnected)
+                if (Context._runnerService.IsActive)
                 {
                     await InitializeClientViewsAsync();
                 }
@@ -149,7 +154,10 @@ namespace Game.MVP.Survivor.Scenes
                 AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
 
                 // サーバーに準備完了を通知（サーバーはこれを受けてゲーム開始）
-                Context._localPlayerState?.NotifySceneReadyServerRpc();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientSceneReady();
+                }
                 Debug.Log("[ReadyState] Scene ready notification sent to server");
 
                 _countdownComplete = true;
@@ -172,37 +180,33 @@ namespace Game.MVP.Survivor.Scenes
             /// </summary>
             private async UniTask InitializeClientViewsAsync()
             {
-                // ローカルプレイヤーの NetworkSurvivorPlayerState を取得
-                if (NetworkModeHelper.TryGetLocalPlayerComponent<SurvivorNetworkPlayerState>(out var localPlayerState))
-                {
-                    Context._localPlayerState = localPlayerState;
-                    Debug.Log("[ReadyState] Local NetworkSurvivorPlayerState bound");
-
-                    // PlayerController に NetworkPlayerState をバインド
-                    // → ClientInputProvider 生成 → SendMoveInputServerRpc でサーバーに入力送信
-                    var playerController = View.PlayerController;
-                    if (playerController != null)
-                    {
-                        playerController.BindNetworkPlayerState(Context._localPlayerState);
-                        Debug.Log("[ReadyState] Client: PlayerController bound to NetworkPlayerState");
-                    }
-                }
-
                 // EnemyView: Addressableプレハブプリロード → 正式モデルで表示
                 var enemyViewGo = new GameObject("[SurvivorEnemyView]");
                 enemyViewGo.transform.SetParent(View.transform);
                 var enemyView = enemyViewGo.AddComponent<SurvivorEnemyView>();
                 await enemyView.InitializeAsync(
                     Context._enemyBatchSub,
-                    Context.ScopedResolver.Resolve<IMasterDataService>(),
+                    Context._masterDataService,
                     Context._addressableService);
 
                 var itemViewGo = new GameObject("[SurvivorItemView]");
                 itemViewGo.transform.SetParent(View.transform);
-                await itemViewGo.AddComponent<SurvivorItemView>().InitializeAsync(
+                var itemView = itemViewGo.AddComponent<SurvivorItemView>();
+                Context._runnerService.TryGet<SurvivorFusionGameState>(out var itemViewGameState);
+                await itemView.InitializeAsync(
                     Context._itemSpawnedSub, Context._itemDespawnedSub,
-                    Context.ScopedResolver.Resolve<IMasterDataService>(),
-                    Context._addressableService);
+                    Context._masterDataService,
+                    Context._addressableService,
+                    itemViewGameState);
+
+                // アイテムプロキシ収集時にサーバーへ RPC 送信
+                itemView.OnProxyItemCollected += itemId =>
+                {
+                    if (TryGetLocalPlayer(out var localPlayer))
+                    {
+                        localPlayer.RpcClientItemCollected(itemId);
+                    }
+                };
             }
         }
 
@@ -217,13 +221,13 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Enter()
             {
-                Debug.Log($"[PlayingState] Enter ({NetworkModeHelper.GetDebugStatus()})");
+                Debug.Log($"[PlayingState] Enter ({Context._runnerService.GetDebugStatus()})");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
 
                 _disconnected = false;
 
-                NetworkModeHelper.OnClientDisconnected += OnDisconnected;
+                Context._runnerService.OnClientDisconnected += OnDisconnected;
 
                 if (_isFirstEntry)
                 {
@@ -283,12 +287,12 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                NetworkModeHelper.OnClientDisconnected -= OnDisconnected;
+                Context._runnerService.OnClientDisconnected -= OnDisconnected;
             }
 
             private void OnDisconnected()
             {
-                Debug.LogWarning("[PlayingState] Mirror server disconnected");
+                Debug.LogWarning("[PlayingState] Server disconnected");
                 _disconnected = true;
             }
         }
@@ -305,7 +309,10 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
                 ApplicationEvents.ShowCursor();
 
-                Context._localPlayerState?.RequestPauseServerRpc();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestPause();
+                }
 
                 ShowPauseDialogAsync().Forget();
             }
@@ -333,7 +340,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[PausedState] Exit");
 
-                Context._localPlayerState?.RequestResumeServerRpc();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestResume();
+                }
 
                 ApplicationEvents.ResumeTime();
             }
@@ -349,9 +359,13 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log($"[LevelUpState] Enter - Level {StageModel.Level.Value}");
                 ApplicationEvents.PauseTime();
+                Context._inputService.DisablePlayer();
                 ApplicationEvents.ShowCursor();
 
-                Context._localPlayerState?.RequestPauseServerRpc();
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientRequestPause();
+                }
 
                 ShowLevelUpDialogAsync().Forget();
             }
@@ -416,8 +430,10 @@ namespace Game.MVP.Survivor.Scenes
                             await View.WeaponManager.ReplaceWeaponAsync(
                                 removeWeaponId.Value,
                                 result.WeaponId);
-                            Context._localPlayerState?.SendWeaponReplaceServerRpc(
-                                removeWeaponId.Value, result.WeaponId);
+                            if (TryGetLocalPlayer(out var rp))
+                            {
+                                rp.RpcClientWeaponReplace(removeWeaponId.Value, result.WeaponId);
+                            }
                             break;
                         }
 
@@ -427,15 +443,20 @@ namespace Game.MVP.Survivor.Scenes
                     else
                     {
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
-                        Context._localPlayerState?.SendWeaponChoiceServerRpc(
-                            result.WeaponId, result.IsNewWeapon);
+                        if (TryGetLocalPlayer(out var cp))
+                        {
+                            cp.RpcClientWeaponChoice(result.WeaponId, result.IsNewWeapon);
+                        }
                         break;
                     }
                 }
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
 
-                Context._localPlayerState?.RequestResumeServerRpc();
+                if (TryGetLocalPlayer(out var resumePlayer))
+                {
+                    resumePlayer.RpcClientRequestResume();
+                }
 
                 Transition(StageEvent.LevelUpComplete);
             }
@@ -452,23 +473,42 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[LevelUpState] Exit");
                 ApplicationEvents.ResumeTime();
+                Context._inputService.EnablePlayer();
             }
 
-            private static List<SurvivorWeaponUpgradeOption> ConvertNetworkOptions(
+            /// <summary>
+            /// サーバーから受信した最小構造体をマスターデータで補完し、UI 用オプションに変換する。
+            /// </summary>
+            private List<SurvivorWeaponUpgradeOption> ConvertNetworkOptions(
                 SurvivorNetworkWeaponUpgradeOption[] networkOptions)
             {
                 var result = new List<SurvivorWeaponUpgradeOption>(networkOptions.Length);
+                var memDb = Context._masterDataService.MemoryDatabase;
+
                 foreach (var opt in networkOptions)
                 {
+                    memDb.SurvivorWeaponMasterTable.TryFindById(opt.WeaponId, out var weaponMaster);
+
+                    string upgradeEffect = null;
+                    if (!opt.IsNewWeapon)
+                    {
+                        var nextLevel = opt.CurrentLevel + 1;
+                        if (memDb.SurvivorWeaponLevelMasterTable.TryFindByWeaponIdAndLevel(
+                            (opt.WeaponId, nextLevel), out var levelMaster))
+                        {
+                            upgradeEffect = levelMaster.Description;
+                        }
+                    }
+
                     result.Add(new SurvivorWeaponUpgradeOption
                     {
                         WeaponId = opt.WeaponId,
-                        WeaponName = opt.WeaponName.ToString(),
+                        WeaponName = weaponMaster?.Name ?? "",
                         IsNewWeapon = opt.IsNewWeapon,
                         CurrentLevel = opt.CurrentLevel,
-                        Description = opt.Description.ToString(),
-                        UpgradeEffect = opt.UpgradeEffect.ToString(),
-                        IconAssetName = opt.IconAssetName.ToString()
+                        Description = weaponMaster?.Description ?? "",
+                        UpgradeEffect = upgradeEffect,
+                        IconAssetName = weaponMaster?.IconAssetName ?? ""
                     });
                 }
                 return result;
@@ -599,7 +639,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[RetryState] Enter");
 
-                Context._localPlayerState?.RequestQuitServerRpc();
+                // Fusion: quit は Disconnect で処理（Terminate() 内）
 
                 // Retryフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;
@@ -643,7 +683,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[QuitToTitleState] Enter");
 
-                Context._localPlayerState?.RequestQuitServerRpc();
+                // Fusion: quit は Disconnect で処理（Terminate() 内）
 
                 // Quitフラグを設定（Terminate()でセーブデータ更新をスキップ）
                 Context._retryOrQuit = true;

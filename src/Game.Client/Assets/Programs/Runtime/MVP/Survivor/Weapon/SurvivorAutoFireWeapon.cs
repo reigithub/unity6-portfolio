@@ -30,6 +30,7 @@ namespace Game.MVP.Survivor.Weapon
 
         protected override void InitializePoolItem(SurvivorProjectile projectile)
         {
+            projectile.Initialize(GameState);
             projectile.OnHit += OnProjectileHit;
             projectile.OnLifetimeExpired += ReturnToPool;
         }

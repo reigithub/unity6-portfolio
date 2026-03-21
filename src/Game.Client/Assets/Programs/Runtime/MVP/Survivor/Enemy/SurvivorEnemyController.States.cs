@@ -29,26 +29,35 @@ namespace Game.MVP.Survivor.Enemy
         // StateMachine
         private StateMachine<SurvivorEnemyController, EnemyEvent> _stateMachine;
 
+        private bool _stateMachineBuilt;
+
         private void InitializeStateMachine()
         {
-            _stateMachine = new StateMachine<SurvivorEnemyController, EnemyEvent>(this);
+            // 遷移テーブルはインスタンス生涯で一度だけ構築（プール再利用時はスキップ）
+            if (!_stateMachineBuilt)
+            {
+                _stateMachine = new StateMachine<SurvivorEnemyController, EnemyEvent>(this);
 
-            // 遷移テーブル構築
-            _stateMachine.AddTransition<IdleState, ChaseState>(EnemyEvent.FoundTarget);
-            _stateMachine.AddTransition<ChaseState, AttackState>(EnemyEvent.EnterAttackRange);
-            _stateMachine.AddTransition<ChaseState, IdleState>(EnemyEvent.LostTarget);
-            _stateMachine.AddTransition<AttackState, ChaseState>(EnemyEvent.ExitAttackRange);
-            _stateMachine.AddTransition<AttackState, IdleState>(EnemyEvent.LostTarget);
-            _stateMachine.AddTransition<ChaseState, HitStunState>(EnemyEvent.TakeHit);
-            _stateMachine.AddTransition<AttackState, HitStunState>(EnemyEvent.TakeHit);
-            _stateMachine.AddTransition<IdleState, HitStunState>(EnemyEvent.TakeHit);
-            _stateMachine.AddTransition<HitStunState, ChaseState>(EnemyEvent.RecoverFromHit);
-            _stateMachine.AddTransition<IdleState, DeathState>(EnemyEvent.Die);
-            _stateMachine.AddTransition<ChaseState, DeathState>(EnemyEvent.Die);
-            _stateMachine.AddTransition<AttackState, DeathState>(EnemyEvent.Die);
-            _stateMachine.AddTransition<HitStunState, DeathState>(EnemyEvent.Die);
+                _stateMachine.AddTransition<IdleState, ChaseState>(EnemyEvent.FoundTarget);
+                _stateMachine.AddTransition<ChaseState, AttackState>(EnemyEvent.EnterAttackRange);
+                _stateMachine.AddTransition<ChaseState, IdleState>(EnemyEvent.LostTarget);
+                _stateMachine.AddTransition<AttackState, ChaseState>(EnemyEvent.ExitAttackRange);
+                _stateMachine.AddTransition<AttackState, IdleState>(EnemyEvent.LostTarget);
+                _stateMachine.AddTransition<ChaseState, HitStunState>(EnemyEvent.TakeHit);
+                _stateMachine.AddTransition<AttackState, HitStunState>(EnemyEvent.TakeHit);
+                _stateMachine.AddTransition<IdleState, HitStunState>(EnemyEvent.TakeHit);
+                _stateMachine.AddTransition<HitStunState, HitStunState>(EnemyEvent.TakeHit);
+                _stateMachine.AddTransition<HitStunState, ChaseState>(EnemyEvent.RecoverFromHit);
+                _stateMachine.AddTransition<HitStunState, DeathState>(EnemyEvent.Die);
+                _stateMachine.AddTransition<IdleState, DeathState>(EnemyEvent.Die);
+                _stateMachine.AddTransition<ChaseState, DeathState>(EnemyEvent.Die);
+                _stateMachine.AddTransition<AttackState, DeathState>(EnemyEvent.Die);
 
-            // 初期ステート
+                _stateMachineBuilt = true;
+            }
+
+            // プール再利用時: 実行状態をリセットして初期ステートに戻す
+            _stateMachine.Reset();
             _stateMachine.SetInitState<ChaseState>();
         }
 
@@ -85,10 +94,8 @@ namespace Game.MVP.Survivor.Enemy
             if (!_hasPendingDamage) return false;
 
             _hasPendingDamage = false;
-            int appliedDamage = _pendingDamageAmount;
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
-            Debug.Log($"[EnemyDmg] id={EnemyId} applied={appliedDamage} hp={_currentHp + appliedDamage}→{_currentHp}");
 
             _onHitReceived.OnNext(Unit.Default);
 
@@ -209,6 +216,9 @@ namespace Game.MVP.Survivor.Enemy
                     ctx._navAgent.isStopped = true;
                 }
 
+                // 攻撃クールダウンを初期化（モーション再生後にダメージが発生するように）
+                ctx._attackTimer = ctx._attackCooldown;
+
                 ctx.CurrentAnimationState = EnemyAnimationState.Attack;
                 ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Attack);
             }
@@ -245,7 +255,7 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 // 攻撃クールダウン
-                ctx._attackTimer -= Time.deltaTime;
+                ctx._attackTimer -= ctx.GetDeltaTime();
                 if (ctx._attackTimer <= 0f)
                 {
                     // 攻撃実行
@@ -260,18 +270,16 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private void PerformAttack()
         {
-            // ターゲットへのダメージ
             if (_target == null) return;
 
-            // IDamageableをキャッシュ
             if (_damageableTarget == null)
             {
                 _damageableTarget = _target.GetComponent<IDamageable>();
             }
 
-            if (_damageableTarget == null || _damageableTarget.IsDead) return;
+            if (_damageableTarget == null) return;
+            if (_damageableTarget.IsDead) return;
 
-            // 攻撃範囲内かチェック
             float sqrDistance = (transform.position - _target.position).sqrMagnitude;
             if (sqrDistance <= _attackRange * _attackRange)
             {
@@ -302,7 +310,7 @@ namespace Game.MVP.Survivor.Enemy
                 if (CheckDamageAndTransition()) return;
 
                 var ctx = Context;
-                ctx._hitStunTimer -= Time.deltaTime;
+                ctx._hitStunTimer -= ctx.GetDeltaTime();
 
                 if (ctx._hitStunTimer <= 0f)
                 {

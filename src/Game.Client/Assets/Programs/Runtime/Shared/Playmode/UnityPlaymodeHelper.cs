@@ -1,4 +1,4 @@
-using Game.Shared.Network;
+using Game.Shared.Network.Fusion;
 
 namespace Game.Shared.Playmode
 {
@@ -11,7 +11,7 @@ namespace Game.Shared.Playmode
 #elif UNITY_EDITOR
             return Multiplayer.MppmHelper.IsServer();
 #else
-            return NetworkModeHelper.IsHeadlessServer;
+            return FusionRunnerService.Current?.IsDedicatedServer ?? false;
 #endif
         }
 
@@ -33,7 +33,7 @@ namespace Game.Shared.Playmode
 #elif UNITY_EDITOR
             return Multiplayer.MppmHelper.IsHost();
 #else
-            return NetworkModeHelper.IsNetworkHost;
+            return FusionRunnerService.Current?.IsHostMode ?? false;
 #endif
         }
     }
