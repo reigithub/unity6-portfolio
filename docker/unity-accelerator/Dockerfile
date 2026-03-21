@@ -7,7 +7,7 @@
 # ベースイメージ: https://hub.docker.com/r/unity/accelerator
 # ※ unitytechnologies/accelerator は非推奨（2022年以降更新なし）
 
-FROM unity/accelerator:v1.5.134-g9567a594
+FROM unity/accelerator:v1.5.137-g4eddaf6a
 
 # カスタムエントリポイントをコピー
 COPY entrypoint.sh /custom-entrypoint.sh
