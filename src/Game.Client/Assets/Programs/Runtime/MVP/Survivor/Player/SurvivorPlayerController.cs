@@ -34,11 +34,6 @@ namespace Game.MVP.Survivor.Player
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
         [Inject] private IFusionRunnerService _runnerService;
 
-        private readonly Subject<SurvivorSignals.Player.DamageReceived> _onDamageReceived = new();
-        private readonly Subject<SurvivorSignals.Player.Died> _onDied = new();
-        public Observable<SurvivorSignals.Player.DamageReceived> OnDamageReceived => _onDamageReceived;
-        public Observable<SurvivorSignals.Player.Died> OnDied => _onDied;
-
         [Header("振り向き速度 (degrees/sec)")]
         [SerializeField]
         private float _rotationSpeed = 600f;
@@ -124,8 +119,6 @@ namespace Game.MVP.Survivor.Player
             _currentHp.Dispose();
             _currentStamina.Dispose();
             _isInvincible.Dispose();
-            _onDamageReceived.Dispose();
-            _onDied.Dispose();
         }
 
         #endregion

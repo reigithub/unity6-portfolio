@@ -732,5 +732,76 @@ namespace Game.Editor.Tests
         }
 
         #endregion
+
+        #region Reset Tests
+
+        [Test]
+        public void Reset_ClearsCurrentState_AllowsSetInitState()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update(); // StateA.Enter
+
+            Assert.That(stateMachine.IsProcessing(), Is.True);
+
+            stateMachine.Reset();
+
+            Assert.That(stateMachine.IsProcessing(), Is.False);
+
+            // Reset 後に SetInitState で再起動可能
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            Assert.That(stateMachine.IsCurrentState<StateA>(), Is.True);
+        }
+
+        [Test]
+        public void Reset_PreservesTransitionTable()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            stateMachine.Reset();
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update(); // StateA
+
+            // 遷移テーブルが保持されていることを確認
+            var result = stateMachine.Transition(TestEvent.ToStateB);
+            Assert.That(result, Is.EqualTo(StateEventResult.Succeeded));
+
+            stateMachine.Update();
+            Assert.That(stateMachine.IsCurrentState<StateB>(), Is.True);
+        }
+
+        [Test]
+        public void Reset_AfterTransition_CanRestartFromDifferentState()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            stateMachine.Transition(TestEvent.ToStateB);
+            stateMachine.Update();
+            Assert.That(stateMachine.IsCurrentState<StateB>(), Is.True);
+
+            stateMachine.Reset();
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            // StateB ではなく StateA から再開
+            Assert.That(stateMachine.IsCurrentState<StateA>(), Is.True);
+        }
+
+        #endregion
     }
 }

@@ -234,18 +234,6 @@ namespace Game.MVP.Survivor.Scenes
 
             _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
 
-            // StageModel → UI バインディング（HP/Stamina）
-            _stageModel.CurrentHp
-                .CombineLatest(_stageModel.MaxHp, (current, max) => (current, max))
-                .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
-                .AddTo(Disposables);
-
-            SceneComponent.PlayerController.CurrentStamina
-                .CombineLatest(SceneComponent.PlayerController.CurrentHp, (stamina, _) => stamina)
-                .Subscribe(stamina => SceneComponent.UpdateStamina(
-                    stamina, SceneComponent.PlayerController.MaxStamina))
-                .AddTo(Disposables);
-
             _waveManager.OnWaveStarted
                 .Subscribe(s => _stageModel.CurrentWave.Value = s.WaveNumber)
                 .AddTo(Disposables);

@@ -22,6 +22,9 @@ namespace Game.MVP.Survivor.Services
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IFusionRunnerService _runnerService;
 
+        // _runnerService が未注入（テスト環境など）の場合はサーバーとして動作する
+        private bool IsServer => _runnerService == null || _runnerService.IsServer;
+
         private readonly Subject<SurvivorSignals.Wave.Started> _onWaveStarted = new();
         private readonly Subject<SurvivorSignals.Wave.Completed> _onWaveCompleted = new();
         public Observable<SurvivorSignals.Wave.Started> OnWaveStarted => _onWaveStarted;
@@ -97,7 +100,7 @@ namespace Game.MVP.Survivor.Services
         /// </summary>
         public void IncrementClientKillCount()
         {
-            if (_runnerService.IsServer) return;
+            if (IsServer) return;
             if (_enemiesKilled.Value < _targetKillsThisWave.Value)
             {
                 _enemiesKilled.Value++;
@@ -125,7 +128,7 @@ namespace Game.MVP.Survivor.Services
         public void StartWave()
         {
             // Client-only: Wave進行はサーバーが駆動
-            if (!_runnerService.IsServer) return;
+            if (!IsServer) return;
 
             _currentWaveIndex++;
             _enemiesKilled.Value = 0;
@@ -202,7 +205,7 @@ namespace Game.MVP.Survivor.Services
         public void OnEnemyKilled(bool isBoss = false)
         {
             // Client-only: キルトラッキングはサーバーが駆動
-            if (!_runnerService.IsServer) return;
+            if (!IsServer) return;
 
             // 全ウェーブクリア後はキル処理しない（残存敵の死亡による再トリガー防止）
             if (_isAllWavesCleared.Value) return;
