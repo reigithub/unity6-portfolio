@@ -279,17 +279,17 @@ namespace Game.Tests.Shared.Network
             _mockCache.GetAsync<TestResponse>(Arg.Any<string>())
                 .Returns(UniTask.FromResult(cacheEntry));
 
-            var options = new RequestOptions { UseCache = true, FallbackToCache = false };
+            // サーキットブレーカー Open + UseCache/FallbackToCache 両方 false
+            // → キャッシュ参照をスキップして CircuitOpenError を返す（HTTP 通信なし）
+            _mockNetworkService.CanExecute.Returns(false);
+            var options = new RequestOptions { UseCache = false, FallbackToCache = false };
 
             // Act
-            // オンラインだが期限切れキャッシュの場合、HTTP通信を試みる
-            // FallbackToCache=false にしないと、HTTP失敗時に期限切れキャッシュが
-            // フォールバックとして返されてしまうため明示的に無効化
             var result = await _client.GetAsync<TestResponse>("api/test", options);
 
-            // Assert - オンライン時は期限切れキャッシュを返さず、HTTP通信を試みる
-            // HTTP通信はモックできないため、この場合は失敗する
+            // Assert - 期限切れキャッシュは返されない
             Assert.That(result.FromCache, Is.False);
+            Assert.That(result.IsSuccess, Is.False);
         }
 
         [Test]
