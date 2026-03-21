@@ -196,6 +196,17 @@ namespace Game.Library.Shared
             return newState;
         }
 
+        /// <summary>
+        /// ステートマシンの実行状態をリセット（遷移テーブルは保持）。
+        /// プールから再利用する際に SetInitState で初期ステートを再設定可能にする。
+        /// </summary>
+        public void Reset()
+        {
+            _currentState = null;
+            _nextState = null;
+            _currentPhase = StatePhase.Idle;
+        }
+
         #endregion
 
         #region Transition

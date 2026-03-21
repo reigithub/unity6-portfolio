@@ -202,6 +202,10 @@ namespace Game.MVP.Survivor.Enemy
                 .Subscribe(OnEnemyDeath)
                 .AddTo(this);
 
+            controller.OnSilentRemoval
+                .Subscribe(OnEnemySilentRemoval)
+                .AddTo(this);
+
             if (UnityPlaymodeHelper.IsClient())
             {
                 instance.AddComponent<SurvivorEnemyPresenter>();
@@ -387,6 +391,7 @@ namespace Game.MVP.Survivor.Enemy
                 enemy.Initialize(
                     enemyMaster,
                     targetPlayer,
+                    _runnerService,
                     _currentSpawnInfo.EnemySpeedMultiplier,
                     _currentSpawnInfo.EnemyHealthMultiplier,
                     _currentSpawnInfo.EnemyDamageMultiplier,
@@ -571,6 +576,21 @@ namespace Game.MVP.Survivor.Enemy
                     pool.Enqueue(enemy);
                 }
             }
+        }
+
+        /// <summary>
+        /// 到達不能エネミーの静かな回収（キルカウント・ドロップ・ウェーブ通知なし）
+        /// </summary>
+        private void OnEnemySilentRemoval(SurvivorEnemyController enemy)
+        {
+            if (_enemyNetworkIds.TryGetValue(enemy, out var networkId))
+            {
+                _enemyByNetworkId.Remove(networkId);
+                _spawnedNetworkIds.Remove(networkId);
+            }
+            _enemyNetworkIds.Remove(enemy);
+            _activeEnemies.Remove(enemy);
+            ReturnToPool(enemy);
         }
 
         private void OnEnemyDeath(SurvivorEnemyController enemy)
