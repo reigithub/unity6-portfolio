@@ -102,7 +102,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2.7.0
         if: always()
         with:
           name: EditMode Test Report
@@ -165,7 +165,7 @@ jobs:
           retention-days: ${{ fromJSON(env.ARTIFACT_RETENTION_DAYS) }}
 
       - name: Publish test results
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2.7.0
         if: always()
         with:
           name: PlayMode Test Report
