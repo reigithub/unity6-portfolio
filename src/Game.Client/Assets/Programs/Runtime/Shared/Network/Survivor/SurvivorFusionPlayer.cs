@@ -94,7 +94,6 @@ namespace Game.Shared.Network.Survivor
 
         public void RequestDamage(int damage)
         {
-            Debug.Log($"[SurvivorFusionPlayer] RequestDamage({damage}), Health={Health}, HasState={HasStateAuthority}, HasInput={HasInputAuthority}");
             _hasPendingDamage = true;
             _pendingDamageAmount = damage;
         }
@@ -113,7 +112,6 @@ namespace Game.Shared.Network.Survivor
             }
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
-                Debug.Log($"[SurvivorFusionPlayer] NotifyDamaged({damage}), Health={Health}");
                 gs.NotifyPlayerDamaged(damage, Health);
             }
             else
@@ -146,7 +144,6 @@ namespace Game.Shared.Network.Survivor
             if (_playerFsm != null)
             {
                 _playerFsm.ForceActivateState(_normalState.StateId);
-                Debug.Log($"[SurvivorFusionPlayer] Fusion FSM activated with initial state: Normal");
             }
 
             // KCC の手動更新を有効化（入力設定→KCC更新→カメラ更新の順序を保証）
@@ -227,12 +224,7 @@ namespace Game.Shared.Network.Survivor
                 var isRunning = wantToRun && Stamina > 0;
                 if (HasStateAuthority)
                 {
-                    float prevSpeed = Speed;
                     Speed = (isMoveInput ? 1f : 0f) * (isRunning ? RunSpeed : JogSpeed);
-                    if (Mathf.Abs(prevSpeed - Speed) > 0.01f)
-                    {
-                        Debug.Log($"[SurvivorFusionPlayer] Speed changed: {prevSpeed:F2} → {Speed:F2}, JogSpeed={JogSpeed:F2}, RunSpeed={RunSpeed:F2}, Stamina={Stamina}");
-                    }
                 }
 
                 // 3. Fusion FSM が自動で OnFixedUpdate 実行（ダメージ/無敵/死亡）

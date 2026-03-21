@@ -203,7 +203,6 @@ namespace Game.MVP.Survivor.Player
                 _fusionPlayer.IsInvincible = false;
                 _fusionPlayer.StaminaAccumulator = 0f;
                 _fusionPlayer.InvincibilityTimer = 0f;
-                Debug.Log($"[SurvivorPlayerController] Initialize: FusionPlayer set Health={levelMaster.MaxHp}, MaxStamina={levelMaster.MaxStamina}, JogSpeed={_jogSpeed:F2}, RunSpeed={_runSpeed:F2}, InvDuration={_fusionPlayer.InvincibilityDuration:F2}");
             }
             else
             {
@@ -440,7 +439,6 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void TakeDamage(int damage)
         {
-            Debug.Log($"[SurvivorPlayerController] TakeDamage({damage}), _fusionPlayer={(_fusionPlayer != null ? "exists" : "NULL")}");
             _fusionPlayer?.RequestDamage(damage);
         }
 

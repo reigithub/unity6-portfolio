@@ -86,10 +86,8 @@ namespace Game.MVP.Survivor.Enemy
             if (!_hasPendingDamage) return false;
 
             _hasPendingDamage = false;
-            int appliedDamage = _pendingDamageAmount;
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
-            Debug.Log($"[EnemyDmg] id={EnemyId} applied={appliedDamage} hp={_currentHp + appliedDamage}→{_currentHp}");
 
             _onHitReceived.OnNext(Unit.Default);
 
@@ -205,7 +203,6 @@ namespace Game.MVP.Survivor.Enemy
             public override void Enter()
             {
                 var ctx = Context;
-                Debug.Log($"[Enemy:{ctx._enemyId}] AttackState.Enter: cooldown={ctx._attackCooldown:F2}");
                 if (ctx._navAgent != null && ctx._navAgent.isOnNavMesh)
                 {
                     ctx._navAgent.isStopped = true;
@@ -220,13 +217,12 @@ namespace Game.MVP.Survivor.Enemy
 
             public override void Update()
             {
-                if (CheckDamageAndTransition()) { Debug.Log($"[Enemy:{Context._enemyId}] AttackState: exiting via damage transition"); return; }
+                if (CheckDamageAndTransition()) return;
 
                 var ctx = Context;
 
                 if (ctx._target == null)
                 {
-                    Debug.Log($"[Enemy:{ctx._enemyId}] AttackState: target lost");
                     StateMachine.Transition(EnemyEvent.LostTarget);
                     return;
                 }
@@ -235,7 +231,6 @@ namespace Game.MVP.Survivor.Enemy
                 float exitRange = ctx._attackRange * ctx._attackRangeExitMultiplier;
                 if (sqrDistance > exitRange * exitRange)
                 {
-                    Debug.Log($"[Enemy:{ctx._enemyId}] AttackState: ExitAttackRange dist={Mathf.Sqrt(sqrDistance):F2} > exitRange={exitRange:F2} (range={ctx._attackRange:F2} * mult={ctx._attackRangeExitMultiplier:F2})");
                     StateMachine.Transition(EnemyEvent.ExitAttackRange);
                     return;
                 }
@@ -267,25 +262,20 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private void PerformAttack()
         {
-            if (_target == null) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: _target is null"); return; }
+            if (_target == null) return;
 
             if (_damageableTarget == null)
             {
                 _damageableTarget = _target.GetComponent<IDamageable>();
             }
 
-            if (_damageableTarget == null) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: _damageableTarget is null on {_target.name}"); return; }
-            if (_damageableTarget.IsDead) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: target IsDead=true"); return; }
+            if (_damageableTarget == null) return;
+            if (_damageableTarget.IsDead) return;
 
             float sqrDistance = (transform.position - _target.position).sqrMagnitude;
             if (sqrDistance <= _attackRange * _attackRange)
             {
-                Debug.Log($"[Enemy:{_enemyId}] PerformAttack: dealing {_attackDamage} damage, dist={Mathf.Sqrt(sqrDistance):F2}");
                 _damageableTarget.TakeDamage(_attackDamage);
-            }
-            else
-            {
-                Debug.Log($"[Enemy:{_enemyId}] PerformAttack: out of range dist={Mathf.Sqrt(sqrDistance):F2} > range={_attackRange:F2}");
             }
         }
 

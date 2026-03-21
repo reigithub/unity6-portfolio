@@ -23,7 +23,6 @@ namespace Game.Shared.Network.Survivor
 
         protected override void OnEnterState()
         {
-            Debug.Log($"[InvincibleState] Enter: Duration={_player.InvincibilityDuration:F2}, Health={_player.Health}");
             _player.IsInvincible = true;
             _player.InvincibilityTimer = _player.InvincibilityDuration;
         }
@@ -47,7 +46,6 @@ namespace Game.Shared.Network.Survivor
 
         protected override void OnExitState()
         {
-            Debug.Log($"[InvincibleState] Exit → Normal");
             _player.IsInvincible = false;
         }
     }

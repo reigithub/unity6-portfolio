@@ -27,12 +27,10 @@ namespace Game.Shared.Network.Survivor
             if (!_player.HasPendingDamage) return;
 
             int damage = _player.ConsumePendingDamage();
-            Debug.Log($"[NormalState] Consumed damage={damage}, Health={_player.Health}");
             if (damage <= 0) return;
 
             // HP 減算
             _player.Health = Mathf.Max(0, _player.Health - damage);
-            Debug.Log($"[NormalState] After damage: Health={_player.Health}");
 
             // サーバー→クライアント: ダメージ通知（MessagePipe 経由で UI 更新）
             _player.NotifyDamaged(damage);
