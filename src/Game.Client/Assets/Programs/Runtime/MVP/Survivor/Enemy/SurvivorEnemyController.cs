@@ -174,6 +174,10 @@ namespace Game.MVP.Survivor.Enemy
             InitializeStateMachine();
         }
 
+        // NavMesh 復帰チェック間隔
+        private const float NavMeshCheckInterval = 1f;
+        private float _navMeshCheckTimer;
+
         private void Update()
         {
             if (_isPaused) return;
@@ -181,6 +185,31 @@ namespace Game.MVP.Survivor.Enemy
             using (s_enemyUpdateMarker.Auto())
             {
                 _stateMachine?.Update();
+            }
+
+            // NavMesh から外れたエネミーを定期的に再スナップ（サーバー側のみ有効）
+            if (_navAgent != null && _navAgent.enabled && !_isDead)
+            {
+                _navMeshCheckTimer -= Time.deltaTime;
+                if (_navMeshCheckTimer <= 0f)
+                {
+                    _navMeshCheckTimer = NavMeshCheckInterval;
+                    if (!_navAgent.isOnNavMesh)
+                    {
+                        // 広範囲で NavMesh を探索し、見つからなければ即座にデスポーン
+                        if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, 50f, UnityEngine.AI.NavMesh.AllAreas))
+                        {
+                            _navAgent.Warp(hit.position);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[SurvivorEnemyController] Enemy {_enemyId} (nid={_networkId}) unreachable from NavMesh, forcing death");
+                            _currentHp = 0;
+                            _hasPendingDamage = false;
+                            PerformDeath();
+                        }
+                    }
+                }
             }
         }
 

@@ -37,6 +37,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.ApplyRequested> _weaponApplySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Item.CollectReported> _itemCollectReportedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
@@ -227,12 +229,21 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeSignals()
         {
-            SceneComponent.PlayerController.OnDamageReceived
-                .Subscribe(s => _stageModel.TakeDamage(s.Damage))
+            // サーバー権威の残HPで同期（RPC → MessagePipe 経由。SurvivorStageScene と同じパス）
+            _damageReceivedSub.Subscribe(s => _stageModel.ForceSetHp(s.RemainingHp)).AddTo(Disposables);
+
+            _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
+
+            // StageModel → UI バインディング（HP/Stamina）
+            _stageModel.CurrentHp
+                .CombineLatest(_stageModel.MaxHp, (current, max) => (current, max))
+                .Subscribe(hp => SceneComponent.UpdateHp(hp.current, hp.max))
                 .AddTo(Disposables);
 
-            SceneComponent.PlayerController.OnDied
-                .Subscribe(_ => _stageModel.ForceSetHp(0))
+            SceneComponent.PlayerController.CurrentStamina
+                .CombineLatest(SceneComponent.PlayerController.CurrentHp, (stamina, _) => stamina)
+                .Subscribe(stamina => SceneComponent.UpdateStamina(
+                    stamina, SceneComponent.PlayerController.MaxStamina))
                 .AddTo(Disposables);
 
             _waveManager.OnWaveStarted

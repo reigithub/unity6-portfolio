@@ -17,6 +17,7 @@
         "Fusion.Unity",
         "Fusion.Addons.Physics",
         "Fusion.Addons.KCC",
+        "Fusion.Addons.FSM",
         "Unity.Collections",
         "VContainer"
     ],

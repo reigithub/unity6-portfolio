@@ -42,11 +42,12 @@ namespace Game.MVP.Survivor.Enemy
             _stateMachine.AddTransition<ChaseState, HitStunState>(EnemyEvent.TakeHit);
             _stateMachine.AddTransition<AttackState, HitStunState>(EnemyEvent.TakeHit);
             _stateMachine.AddTransition<IdleState, HitStunState>(EnemyEvent.TakeHit);
+            _stateMachine.AddTransition<HitStunState, HitStunState>(EnemyEvent.TakeHit);
             _stateMachine.AddTransition<HitStunState, ChaseState>(EnemyEvent.RecoverFromHit);
+            _stateMachine.AddTransition<HitStunState, DeathState>(EnemyEvent.Die);
             _stateMachine.AddTransition<IdleState, DeathState>(EnemyEvent.Die);
             _stateMachine.AddTransition<ChaseState, DeathState>(EnemyEvent.Die);
             _stateMachine.AddTransition<AttackState, DeathState>(EnemyEvent.Die);
-            _stateMachine.AddTransition<HitStunState, DeathState>(EnemyEvent.Die);
 
             // 初期ステート
             _stateMachine.SetInitState<ChaseState>();
@@ -204,6 +205,7 @@ namespace Game.MVP.Survivor.Enemy
             public override void Enter()
             {
                 var ctx = Context;
+                Debug.Log($"[Enemy:{ctx._enemyId}] AttackState.Enter: cooldown={ctx._attackCooldown:F2}");
                 if (ctx._navAgent != null && ctx._navAgent.isOnNavMesh)
                 {
                     ctx._navAgent.isStopped = true;
@@ -218,12 +220,13 @@ namespace Game.MVP.Survivor.Enemy
 
             public override void Update()
             {
-                if (CheckDamageAndTransition()) return;
+                if (CheckDamageAndTransition()) { Debug.Log($"[Enemy:{Context._enemyId}] AttackState: exiting via damage transition"); return; }
 
                 var ctx = Context;
 
                 if (ctx._target == null)
                 {
+                    Debug.Log($"[Enemy:{ctx._enemyId}] AttackState: target lost");
                     StateMachine.Transition(EnemyEvent.LostTarget);
                     return;
                 }
@@ -232,6 +235,7 @@ namespace Game.MVP.Survivor.Enemy
                 float exitRange = ctx._attackRange * ctx._attackRangeExitMultiplier;
                 if (sqrDistance > exitRange * exitRange)
                 {
+                    Debug.Log($"[Enemy:{ctx._enemyId}] AttackState: ExitAttackRange dist={Mathf.Sqrt(sqrDistance):F2} > exitRange={exitRange:F2} (range={ctx._attackRange:F2} * mult={ctx._attackRangeExitMultiplier:F2})");
                     StateMachine.Transition(EnemyEvent.ExitAttackRange);
                     return;
                 }
@@ -263,22 +267,25 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private void PerformAttack()
         {
-            // ターゲットへのダメージ
-            if (_target == null) return;
+            if (_target == null) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: _target is null"); return; }
 
-            // IDamageableをキャッシュ
             if (_damageableTarget == null)
             {
                 _damageableTarget = _target.GetComponent<IDamageable>();
             }
 
-            if (_damageableTarget == null || _damageableTarget.IsDead) return;
+            if (_damageableTarget == null) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: _damageableTarget is null on {_target.name}"); return; }
+            if (_damageableTarget.IsDead) { Debug.Log($"[Enemy:{_enemyId}] PerformAttack: target IsDead=true"); return; }
 
-            // 攻撃範囲内かチェック
             float sqrDistance = (transform.position - _target.position).sqrMagnitude;
             if (sqrDistance <= _attackRange * _attackRange)
             {
+                Debug.Log($"[Enemy:{_enemyId}] PerformAttack: dealing {_attackDamage} damage, dist={Mathf.Sqrt(sqrDistance):F2}");
                 _damageableTarget.TakeDamage(_attackDamage);
+            }
+            else
+            {
+                Debug.Log($"[Enemy:{_enemyId}] PerformAttack: out of range dist={Mathf.Sqrt(sqrDistance):F2} > range={_attackRange:F2}");
             }
         }
 

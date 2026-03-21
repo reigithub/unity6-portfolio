@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Fusion;
+using Fusion.Addons.FSM;
 using Fusion.Addons.KCC;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
@@ -14,7 +16,7 @@ namespace Game.Shared.Network.Survivor
     /// 別 NetworkObject として Spawn され、[Networked] プロパティでプレイヤー状態を自動同期。
     /// InputAuthority 側は IFusionRunnerService に Register し、SurvivorPlayerController がポーリングでバインド。
     /// </summary>
-    public class SurvivorFusionPlayer : NetworkBehaviour
+    public class SurvivorFusionPlayer : NetworkBehaviour, IStateMachineOwner
     {
         [Inject] private IFusionRunnerService _runnerService;
         [Inject] private IPublisher<SurvivorSignals.Player.LeveledUp> _playerLeveledUpPub;
@@ -26,6 +28,8 @@ namespace Game.Shared.Network.Survivor
         [Networked] public int MaxStamina { get; set; }
         [Networked] public float Speed { get; set; }
         [Networked] public NetworkBool IsInvincible { get; set; }
+        [Networked] public float StaminaAccumulator { get; set; }
+        [Networked] public float InvincibilityTimer { get; set; }
         [Networked] public float LookYaw { get; set; }
 
         private ChangeDetector _changeDetector;
@@ -42,11 +46,108 @@ namespace Game.Shared.Network.Survivor
         /// <summary>クライアント側で状態変更を検知するイベント</summary>
         public event Action<SurvivorFusionPlayer> OnStateChanged;
 
+        /// <summary>
+        /// Fusion FSM 初期化（Awake）。
+        /// StateMachineController.DynamicWordCount が Spawned() より前に呼ばれるため、
+        /// FSM オブジェクトを Awake で作成して CollectStateMachines 時に WordCount を返せるようにする。
+        /// </summary>
+        private void Awake()
+        {
+            if (_normalState == null) TryGetComponent(out _normalState);
+            if (_invincibleState == null) TryGetComponent(out _invincibleState);
+            if (_deadState == null) TryGetComponent(out _deadState);
+
+            if (_normalState != null && _invincibleState != null && _deadState != null)
+            {
+                _playerFsm = new StateMachine<StateBehaviour>("PlayerState", _normalState, _invincibleState, _deadState);
+                _normalState.Initialize(this, _invincibleState, _deadState);
+                _invincibleState.Initialize(this, _normalState, _deadState);
+                _deadState.Initialize(this);
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorFusionPlayer] Fusion FSM states not found on GameObject");
+            }
+        }
+
+        // --- Fusion FSM ---
+        [SerializeField] private SurvivorPlayerNormalState _normalState;
+        [SerializeField] private SurvivorPlayerInvincibleState _invincibleState;
+        [SerializeField] private SurvivorPlayerDeadState _deadState;
+        private StateMachine<StateBehaviour> _playerFsm;
+
+        // --- ダメージ受付 ---
+        private bool _hasPendingDamage;
+        private int _pendingDamageAmount;
+
+        /// <summary>ダメージ受付（ステートの OnFixedUpdate で消費される）</summary>
+        public bool HasPendingDamage => _hasPendingDamage;
+
+        /// <summary>無敵持続時間（マスターデータから SurvivorPlayerController が設定）</summary>
+        public float InvincibilityDuration { get; set; }
+
+        // マスターデータから SurvivorPlayerController.Initialize で設定
+        public int StaminaDepleteRate { get; set; }
+        public int StaminaRegenRate { get; set; }
+        public float JogSpeed { get; set; }
+        public float RunSpeed { get; set; }
+
+        public void RequestDamage(int damage)
+        {
+            Debug.Log($"[SurvivorFusionPlayer] RequestDamage({damage}), Health={Health}, HasState={HasStateAuthority}, HasInput={HasInputAuthority}");
+            _hasPendingDamage = true;
+            _pendingDamageAmount = damage;
+        }
+
+        /// <summary>
+        /// サーバー側: ダメージ適用後に RPC 経由で全クライアントに通知。
+        /// SurvivorFusionGameState.NotifyPlayerDamaged → MessagePipe で UI 更新。
+        /// </summary>
+        public void NotifyDamaged(int damage)
+        {
+            if (!HasStateAuthority) return;
+            if (_runnerService == null)
+            {
+                Debug.LogWarning($"[SurvivorFusionPlayer] NotifyDamaged: _runnerService is NULL");
+                return;
+            }
+            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                Debug.Log($"[SurvivorFusionPlayer] NotifyDamaged({damage}), Health={Health}");
+                gs.NotifyPlayerDamaged(damage, Health);
+            }
+            else
+            {
+                Debug.LogWarning($"[SurvivorFusionPlayer] NotifyDamaged: SurvivorFusionGameState not found");
+            }
+        }
+
+        public int ConsumePendingDamage()
+        {
+            _hasPendingDamage = false;
+            var amount = _pendingDamageAmount;
+            _pendingDamageAmount = 0;
+            return amount;
+        }
+
+        public void CollectStateMachines(List<IStateMachine> stateMachines)
+        {
+            if (_playerFsm != null)
+                stateMachines.Add(_playerFsm);
+        }
+
         public override void Spawned()
         {
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             TryGetComponent(out _kcc);
             _runnerService?.TryGet(out _gameState);
+
+            // Fusion FSM: Awake で作成済み → Spawned で初期ステート設定
+            if (_playerFsm != null)
+            {
+                _playerFsm.ForceActivateState(_normalState.StateId);
+                Debug.Log($"[SurvivorFusionPlayer] Fusion FSM activated with initial state: Normal");
+            }
 
             // KCC の手動更新を有効化（入力設定→KCC更新→カメラ更新の順序を保証）
             if (_kcc != null)
@@ -113,19 +214,33 @@ namespace Game.Shared.Network.Survivor
             {
                 _inputReceived = true;
 
-                if (MovementHandler != null)
+                // 1. スタミナ計算（[Networked] を直接更新）
+                if (HasStateAuthority)
                 {
-                    var snapshot = MovementHandler.ProcessTick(input, Runner.DeltaTime);
+                    UpdateStamina(input, Runner.DeltaTime);
+                }
 
-                    if (HasStateAuthority)
+                // 2. 速度計算
+                var moveValue = input.Move;
+                var isMoveInput = moveValue.magnitude > 0.1f;
+                var wantToRun = input.IsSprinting && isMoveInput;
+                var isRunning = wantToRun && Stamina > 0;
+                if (HasStateAuthority)
+                {
+                    float prevSpeed = Speed;
+                    Speed = (isMoveInput ? 1f : 0f) * (isRunning ? RunSpeed : JogSpeed);
+                    if (Mathf.Abs(prevSpeed - Speed) > 0.01f)
                     {
-                        Speed = snapshot.Speed;
-                        Health = snapshot.Health;
-                        MaxHealth = snapshot.MaxHealth;
-                        Stamina = snapshot.Stamina;
-                        MaxStamina = snapshot.MaxStamina;
-                        IsInvincible = snapshot.IsInvincible;
+                        Debug.Log($"[SurvivorFusionPlayer] Speed changed: {prevSpeed:F2} → {Speed:F2}, JogSpeed={JogSpeed:F2}, RunSpeed={RunSpeed:F2}, Stamina={Stamina}");
                     }
+                }
+
+                // 3. Fusion FSM が自動で OnFixedUpdate 実行（ダメージ/無敵/死亡）
+
+                // 4. 移動（生存中のみ）
+                if (Health > 0 && MovementHandler != null)
+                {
+                    MovementHandler.ProcessTick(input, Runner.DeltaTime);
                 }
             }
             else
@@ -151,6 +266,41 @@ namespace Game.Shared.Network.Survivor
                     LookYaw = _kcc.FixedData.LookYaw;
                 }
             }
+        }
+
+        /// <summary>
+        /// スタミナ計算。[Networked] Stamina / StaminaAccumulator を直接更新。
+        /// </summary>
+        private void UpdateStamina(SurvivorPlayerNetworkInput input, float deltaTime)
+        {
+            var isMoveInput = input.Move.magnitude > 0.1f;
+            var isRunning = input.IsSprinting && isMoveInput && Stamina > 0;
+
+            float accumulator = StaminaAccumulator;
+
+            if (isRunning)
+            {
+                accumulator -= StaminaDepleteRate * deltaTime;
+            }
+            else
+            {
+                accumulator += StaminaRegenRate * deltaTime;
+            }
+
+            if (accumulator >= 1f)
+            {
+                var regenAmount = Mathf.FloorToInt(accumulator);
+                accumulator -= regenAmount;
+                Stamina = Mathf.Min(MaxStamina, Stamina + regenAmount);
+            }
+            else if (accumulator <= -1f)
+            {
+                var depleteAmount = Mathf.FloorToInt(-accumulator);
+                accumulator += depleteAmount;
+                Stamina = Mathf.Max(0, Stamina - depleteAmount);
+            }
+
+            StaminaAccumulator = accumulator;
         }
 
         public override void Render()

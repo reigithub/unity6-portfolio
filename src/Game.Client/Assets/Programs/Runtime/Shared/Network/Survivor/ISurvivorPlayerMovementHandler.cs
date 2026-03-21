@@ -5,9 +5,10 @@ namespace Game.Shared.Network.Survivor
     public interface ISurvivorPlayerMovementHandler
     {
         /// <summary>
-        /// Fusion tick ごとに呼ばれる。入力消費 → ステート更新 → 物理移動 → スナップショット返却。
+        /// Fusion tick ごとに呼ばれる。入力→移動変換とアイテム収集のみ。
+        /// スタミナ/HP/ステートはすべて SurvivorFusionPlayer が [Networked] で管理。
         /// </summary>
-        SurvivorPlayerPhysicsSnapshot ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime);
+        void ProcessTick(SurvivorPlayerNetworkInput input, float deltaTime);
 
         /// <summary>
         /// SurvivorFusionPlayer.Spawned から呼ばれ、入力収集と移動ハンドラをバインドする。
@@ -18,15 +19,5 @@ namespace Game.Shared.Network.Survivor
         /// Render フレームごとに呼ばれる。現在の入力を KCC に設定してレンダー予測を可能にする。
         /// </summary>
         void ProcessRenderInput(KCC kcc);
-    }
-
-    public struct SurvivorPlayerPhysicsSnapshot
-    {
-        public float Speed;
-        public int Health;
-        public int MaxHealth;
-        public int Stamina;
-        public int MaxStamina;
-        public bool IsInvincible;
     }
 }

@@ -130,7 +130,9 @@ namespace Game.MVP.Survivor.Scenes.Models
 
         public void TakeDamage(int damage)
         {
+            var before = CurrentHp.Value;
             CurrentHp.Value = Math.Max(0, CurrentHp.Value - damage);
+            UnityEngine.Debug.Log($"[StageModel] TakeDamage({damage}): {before} → {CurrentHp.Value}, MaxHp={MaxHp.Value}");
         }
 
         public void Heal(int amount)

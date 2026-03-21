@@ -81,6 +81,7 @@ namespace Game.MVP.Survivor.Enemy
         private int _nextNetworkId;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
         private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
+        private readonly HashSet<int> _spawnedNetworkIds = new(); // クライアントに Spawn 済みの NetworkId
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onEnemyKilled = new();
@@ -290,9 +291,22 @@ namespace Game.MVP.Survivor.Enemy
             {
                 var enemy = _activeEnemies[i];
                 var networkId = _enemyNetworkIds.TryGetValue(enemy, out var id) ? id : -1;
-                var syncType = enemy.CurrentAnimationState == EnemyAnimationState.Attack
-                    ? EnemySyncType.Attack
-                    : EnemySyncType.PositionUpdate;
+
+                // 未送信のエネミーは Spawn タイプで送信（クライアントがプロキシを生成するため）
+                EnemySyncType syncType;
+                if (!_spawnedNetworkIds.Contains(networkId))
+                {
+                    syncType = EnemySyncType.Spawn;
+                    _spawnedNetworkIds.Add(networkId);
+                }
+                else if (enemy.CurrentAnimationState == EnemyAnimationState.Attack)
+                {
+                    syncType = EnemySyncType.Attack;
+                }
+                else
+                {
+                    syncType = EnemySyncType.PositionUpdate;
+                }
 
                 snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
@@ -398,24 +412,8 @@ namespace Game.MVP.Survivor.Enemy
                 _spawnTimer = spawnInfo.SpawnInterval;
                 _currentSpawnIndex++;
 
-                // サーバー: スポーンイベントを送信
-                if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var spawnBatchSync))
-                {
-                    var spawnSnapshot = new SurvivorNetworkEnemyStateSnapshot
-                    {
-                        NetworkId = networkId,
-                        EnemyMasterId = enemy.EnemyId,
-                        PositionX = spawnPosition.x,
-                        PositionY = spawnPosition.y,
-                        PositionZ = spawnPosition.z,
-                        VelocityX = 0f,
-                        VelocityY = 0f,
-                        VelocityZ = 0f,
-                        CurrentHp = enemy.CurrentHp,
-                        SyncType = EnemySyncType.Spawn
-                    };
-                    spawnBatchSync.WriteEnemyStates(new[] { spawnSnapshot });
-                }
+                // Spawn SyncType は SyncEnemyStatesToNetwork で _spawnedNetworkIds により自動設定される
+                // 個別の WriteEnemyStates は ActiveCount をリセットするため使用しない
 
                 if (_remainingSpawnCount <= 0)
                 {
@@ -470,9 +468,9 @@ namespace Game.MVP.Survivor.Enemy
             {
                 for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
                 {
-                    var candidatePosition = GetRandomSpawnPosition(minDistance, maxDistance);
+                    if (!TryGetRandomSpawnPosition(minDistance, maxDistance, out var candidatePosition))
+                        continue; // NavMesh 上に位置が見つからない場合はリトライ
 
-                    // スポーン位置が有効かチェック
                     if (IsValidSpawnPosition(candidatePosition, spawnRadius))
                     {
                         position = candidatePosition;
@@ -480,13 +478,19 @@ namespace Game.MVP.Survivor.Enemy
                     }
                 }
 
-                // 全ての試行が失敗した場合、コライダーチェックなしで位置を返す（フォールバック）
-                position = GetRandomSpawnPosition(minDistance, maxDistance);
-                return true; // フォールバックとして常に成功扱い
+                // フォールバック: コライダーチェックなしだが NavMesh 上の位置のみ許可
+                for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
+                {
+                    if (TryGetRandomSpawnPosition(minDistance, maxDistance, out position))
+                        return true;
+                }
+
+                position = default;
+                return false;
             }
         }
 
-        private Vector3 GetRandomSpawnPosition(float minDistance, float maxDistance)
+        private bool TryGetRandomSpawnPosition(float minDistance, float maxDistance, out Vector3 position)
         {
             float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
             float distance = Random.Range(minDistance, maxDistance);
@@ -504,10 +508,12 @@ namespace Game.MVP.Survivor.Enemy
             // NavMesh 上の最寄り点にスナップ（地形の凹凸・NavMesh 外スポーンを防止）
             if (UnityEngine.AI.NavMesh.SamplePosition(rawPosition, out var hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
             {
-                return hit.position;
+                position = hit.position;
+                return true;
             }
 
-            return rawPosition;
+            position = default;
+            return false;
         }
 
         /// <summary>
@@ -639,6 +645,7 @@ namespace Game.MVP.Survivor.Enemy
             _nextNetworkId = 0;
             _enemyNetworkIds.Clear();
             _enemyByNetworkId.Clear();
+            _spawnedNetworkIds.Clear();
             _isSpawning = false;
         }
 
