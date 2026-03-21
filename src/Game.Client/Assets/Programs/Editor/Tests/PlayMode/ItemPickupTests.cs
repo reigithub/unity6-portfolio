@@ -280,11 +280,31 @@ namespace Game.Tests.PlayMode
             public bool IsMagnetic { get; set; }
             public float MagnetRange { get; set; }
             public float MagnetSpeed { get; set; }
+            public bool IsCollected { get; private set; }
 
-            private void OnTriggerEnter(Collider other)
+            /// <summary>収集判定距離</summary>
+            private const float PickupDistance = 1.0f;
+
+            private Transform _playerTransform;
+
+            private void Update()
             {
-                if (other.CompareTag("Player") && PlayerStats != null)
+                if (IsCollected || PlayerStats == null) return;
+
+                // プレイヤー参照がなければタグで検索
+                if (_playerTransform == null)
                 {
+                    var player = GameObject.FindGameObjectWithTag("Player");
+                    if (player != null) _playerTransform = player.transform;
+                }
+
+                if (_playerTransform == null) return;
+
+                // 距離ベースの収集判定（OnTriggerEnter は headless CI で不安定なため）
+                float distance = Vector3.Distance(transform.position, _playerTransform.position);
+                if (distance <= PickupDistance)
+                {
+                    IsCollected = true;
                     ApplyEffect();
                     Destroy(gameObject);
                 }
