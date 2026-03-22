@@ -1,4 +1,3 @@
-#if !UNITY_SERVER
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
@@ -100,4 +99,3 @@ namespace Game.MVP.Survivor.Enemy
         }
     }
 }
-#endif

@@ -176,10 +176,12 @@ namespace Game.MVP.Survivor
             // ========================================
             builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
+#if !UNITY_SERVER
             // ========================================
             // Local Server Orchestrator（SP モード用）
             // ========================================
             builder.Register<LocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+#endif
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
