@@ -2,8 +2,8 @@
 
 [日本語版はこちら](ARCHITECTURE.md)
 
-**Version**: 1.8
-**Last Updated**: February 25, 2026
+**Version**: 1.9
+**Last Updated**: March 22, 2026
 
 ---
 
@@ -1517,6 +1517,35 @@ Title -> MULTI -> EnsureValidSession -> TryAutoRejoinAsync()
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.10 Photon Fusion Realtime Game Flow (Survivor)
+
+Server authority model for Survivor multiplayer (MPPM / Dedicated Server):
+
+#### 7.10.1 Responsibility Separation
+
+| Layer | Class | Responsibility | Execution |
+|-------|-------|---------------|-----------|
+| **NetworkBehaviour** | SurvivorFusionPlayer | `[Networked]` state, FSM execution, RPC | Server + Client (prediction) |
+| **Controller** | SurvivorPlayerController | Movement (KCC), input accumulation, item attraction | Server + Client |
+| **View** | SurvivorEnemyView / ItemView | Proxy management, Dead Reckoning, sync reception | Client only |
+| **Presenter** | Player/EnemyPresenter | Animator / VFX control | Client only |
+| **Spawner** | SurvivorEnemySpawner | Enemy spawn/recycle, batch sync, NavMesh validation | Server only |
+
+#### 7.10.2 Enemy Synchronization
+
+- **Spawn**: Tracked via `_spawnedNetworkIds`. Sent as `EnemySyncType.Spawn` in periodic sync
+- **Position/Attack**: Periodic sync (10Hz) with `EnemySyncType.PositionUpdate` / `Attack`
+- **Death**: Queued in `_pendingDeaths`. Integrated into next periodic sync
+- **Silent Removal**: Unreachable enemies removed without kill count. Death SyncType sent to client
+- **Warning**: Individual `WriteEnemyStates()` calls reset `ActiveCount` and destroy other enemy data. Always integrate into periodic sync
+
+#### 7.10.3 Player State (Fusion FSM)
+
+- **NormalState**: Consumes pending damage → HP reduction → transition to Invincible/Dead
+- **InvincibleState**: Timer management using `Runner.DeltaTime` → return to Normal
+- **DeadState**: Sends `RpcClientPlayerDied` (InputAuthority → Server → broadcast)
+- **Initialization**: FSM must be created in `Awake()` (DynamicWordCount queried before `Spawned()`)
+
 ---
 
 ## 8. Class Design (UML)
@@ -1847,44 +1876,41 @@ On the MVP pattern side, ViewModel (presentation logic) and Model (domain state 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.3 Damage Processing Sequence (Survivor)
+### 9.3 Damage Processing Sequence (Survivor Server Authority Model)
+
+#### Player Damage (Enemy → Player)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Damage Processing Sequence                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Weapon   Projectile   Enemy    VFXSpawner   HUD   StageModel   │
-│    │          │          │          │         │         │       │
-│    │ Spawn    │          │          │         │         │       │
-│    │─────────▶│          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │OnTrigger │          │         │         │       │
-│    │          │─────────▶│          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ ┌────────┴────────┐│         │       │
-│    │          │          │ │TakeDamage()     ││         │       │
-│    │          │          │ │- Calculate      ││         │       │
-│    │          │          │ │- Apply Knockback││         │       │
-│    │          │          │ └────────┬────────┘│         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ SpawnHitEffect    │         │       │
-│    │          │          │─────────▶│         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ ShowDamageNumber  │         │       │
-│    │          │          │─────────────────▶│         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ [if Dead]│         │         │       │
-│    │          │          │──────────────────────────────▶│       │
-│    │          │          │          │         │AddScore │       │
-│    │          │          │          │         │AddExp   │       │
-│    │          │          │          │         │         │       │
-│    │          │ Return   │          │         │         │       │
-│    │◀─────────│          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Server:  EnemyController   FusionPlayer   Fusion FSM    FusionGameState
+              │                  │             │              │
+              │ TakeDamage()     │             │              │
+              │─────────────────▶│             │              │
+              │          RequestDamage()       │              │
+              │                  │────────────▶│              │
+              │                  │  NormalState │              │
+              │                  │  HP -= dmg   │              │
+              │                  │ NotifyDamaged│              │
+              │                  │─────────────│─────────────▶│
+              │                  │             │  RPC(All)     │
+              │                  │             │  MessagePipe  │
+Client:       │            ChangeDetector      │         StageModel
+              │          SyncFromNetworkedState │         ForceSetHp()
+              │          → ReactiveProperty     │         → UI Update
+```
+
+#### Enemy Damage (Player Weapon → Enemy)
+
+```
+Client:  Weapon    EnemyProxyTarget   FusionPlayer      Server
+           │            │                  │               │
+           │ SphereCast  │                  │               │
+           │────────────▶│ (ICombatTarget)  │               │
+           │        RpcClientHitReported    │               │
+           │──────────────────────────────▶│  RPC          │
+           │                               │──────────────▶│
+           │                               │  Distance check│
+           │                               │  ProcessHitAuth│
+           │                               │  TakeDamage    │
 ```
 
 ---
@@ -2054,6 +2080,39 @@ Unity6Portfolio/
 | **Impact** | Common foundation (JWT auth, etc.) shared via Game.Server.Shared. Managed together with Docker Compose |
 | **Status** | Adopted |
 
+#### ADR-008: Photon Fusion 2 Server Authority Model
+
+| Item | Details |
+|------|---------|
+| **Decision** | Adopt Photon Fusion 2 (Server/Client mode) for Survivor multiplayer |
+| **Context** | Server-authoritative realtime gameplay required |
+| **Alternatives** | A) Mirror B) Photon Fusion 2 C) Custom MagicOnion implementation |
+| **Rationale** | `[Networked]` properties for automatic sync, resimulation support, KCC/FSM addon ecosystem |
+| **Impact** | Efficient testing with MPPM, Dedicated Server build support |
+| **Status** | Adopted |
+
+#### ADR-009: Fusion FSM Addon for State Synchronization
+
+| Item | Details |
+|------|---------|
+| **Decision** | Migrate player state machine to Fusion FSM addon (StateBehaviour + StateMachineController) |
+| **Context** | Custom StateMachine<TContext,TEvent> incompatible with network resimulation |
+| **Alternatives** | A) Manual sync via [Networked] flags B) Fusion FSM addon |
+| **Rationale** | DynamicWordCount for automatic buffer management, state auto-interpolation, resimulation support |
+| **Note** | FSM must be created in `Awake()` (DynamicWordCount queried before Spawned()) |
+| **Status** | Adopted |
+
+#### ADR-010: Integrated Enemy Batch Sync
+
+| Item | Details |
+|------|---------|
+| **Decision** | Integrate enemy Spawn/Death into periodic sync (10Hz), eliminate individual WriteEnemyStates calls |
+| **Context** | Individual WriteEnemyStates resets ActiveCount, destroying other enemy data in the NetworkArray |
+| **Alternatives** | A) Individual RPC B) Periodic sync integration C) Separate channel |
+| **Rationale** | Single NetworkArray management is simplest. _spawnedNetworkIds and _pendingDeaths include Spawn/Death in next sync |
+| **Impact** | Up to 0.1s delay for Spawn/Death visibility, visually acceptable |
+| **Status** | Adopted |
+
 ### 11.2 Known Technical Debt
 
 | Item | Details | Priority | Status |
@@ -2064,11 +2123,12 @@ Unity6Portfolio/
 | ~~Asset delivery~~ | ~~Local only~~ | ~~Medium~~ | Local/remote auto-switching |
 | ~~Network features~~ | ~~Server communication not implemented~~ | ~~High~~ | Ranking and auth completed |
 | ~~Multiplayer~~ | ~~Multiplayer not implemented~~ | ~~High~~ | Lobby and matchmaking completed |
+| ~~Server authority~~ | ~~Client-authoritative game logic~~ | ~~High~~ | Fusion FSM + [Networked] migration completed |
 | P3 feature additions | Localization, in-app purchase system, etc. | Low | Not started (optional) |
 
 **Resolved Items**:
 - MessageBroker: Changed to direct calls via IPlayerCollisionHandler
-- Tests: EditMode 710 + PlayMode 63 = 773 tests
+- Tests: EditMode 767 + PlayMode 63 = 830 tests
 - XML documentation: Added to major interfaces and extension methods
 - Profiler markers: 27 markers added
 - Custom exceptions: 7 classes added
@@ -2078,6 +2138,8 @@ Unity6Portfolio/
 - Addressables sync: Editor auto-sync system for team development (2026/02)
 - ECS enemy system: DOTS (Entities + Jobs + Burst) hybrid implementation, up to 20.3x speedup in spawn calculation (2026/02)
 - Multiplayer: Lobby and matchmaking via MagicOnion gRPC, SignalR chat, MPPM support (2026/02)
+- Server authority model: Photon Fusion 2 Server/Client mode, Fusion FSM state sync, enemy batch sync integration (2026/03)
+- View/Presenter separation: Dead Reckoning struct extraction, item collection logic Controller integration (2026/03)
 
 ---
 
@@ -2094,6 +2156,10 @@ Unity6Portfolio/
 | **Unary RPC** | MagicOnion request/response RPC |
 | **StreamingHub** | MagicOnion real-time bidirectional communication hub |
 | **MPPM** | Multiplayer Play Mode (in-editor multiplayer testing in Unity) |
+| **Fusion FSM** | Photon Fusion FSM addon. Network-synced state machine using StateBehaviour + StateMachineController |
+| **Dead Reckoning** | Client-side position prediction interpolation. Predicts from server sync position + velocity, corrects error with exponential decay |
+| **BatchSync** | Batch synchronization of enemy states via NetworkArray. Classified by SyncType: Spawn/Position/Attack/Death |
+| **Silent Removal** | Removal of unreachable enemies without kill count increment. Sends Death SyncType to destroy client proxy |
 
 ### B. Related Documents
 

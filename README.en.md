@@ -208,9 +208,10 @@ dotnet test
 * **Lobby System**: Real-time lobby via MagicOnion StreamingHub (create/join/leave/ready/game start), Valkey persistence
 * **Matchmaking System**: Queue-based matchmaking, real-time notifications via Redis Pub/Sub, session token issuance
 * **Real-time Chat**: Room-based messaging via SignalR + MagicOnion
+* **Server Authority Model**: Photon Fusion 2 Server/Client mode, Fusion FSM for player state network synchronization, enemy batch sync with Dead Reckoning interpolation
 * **MPPM Support**: Multi-editor multiplayer testing with Multiplayer Play Mode, per-clone data path isolation
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
-* **CI/CD**: Automated testing (Client 773 + Server 56 = 829 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
+* **CI/CD**: Automated testing (Client 830 + Server 206 = 1036 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -483,6 +484,32 @@ Real-time multiplayer infrastructure using MagicOnion (gRPC StreamingHub) + Valk
 
 </details>
 
+<details><summary>Server Authority Model (Photon Fusion 2)</summary>
+
+Server-authoritative gameplay for Survivor multiplayer using Server/Client mode:
+
+**Player State Management:**
+- `[Networked]` properties (HP/Stamina/Speed/IsInvincible) for server-authoritative state
+- Fusion FSM addon (StateBehaviour + StateMachineController) for state synchronization (Normal/Invincible/Dead)
+- KCC (Kinematic Character Controller) for movement prediction/interpolation
+
+**Damage Processing Flow:**
+- Enemy → `TakeDamage()` → `RequestDamage()` → Fusion FSM NormalState consumes → HP reduction
+- Server broadcasts `NotifyPlayerDamaged` RPC to all clients → MessagePipe → UI update
+
+**Enemy Synchronization:**
+- Server spawns/controls enemies (NavMeshAgent), batch sync at 10Hz (NetworkArray<512>)
+- Client displays with Dead Reckoning + exponential correction decay
+- Spawn/Death integrated into periodic sync (`_spawnedNetworkIds` / `_pendingDeaths`)
+- Unreachable enemies silently removed without kill count increment (Silent Removal)
+
+**View/Presenter Separation:**
+- View: Proxy management, Dead Reckoning, sync reception (SurvivorEnemyView / ItemView)
+- Presenter: Animator / VFX control (SurvivorEnemyPresenter / PlayerPresenter)
+- Controller: Game logic (server-side execution only)
+
+</details>
+
 <details><summary>Authentication & Account Management System</summary>
 
 Server-integrated authentication and session management system:
@@ -735,6 +762,9 @@ Unity6Portfolio/
 | MagicOnion.Client | 7.0.3 | gRPC StreamingHub client |
 | Unity.Entities (DOTS)| 1.4.4 | ECS enemy system |
 | Unity.Burst | 1.8.27 | Burst compiler |
+| Photon Fusion 2 | 2.0 | Real-time networking (Server/Client) |
+| Fusion.Addons.KCC | - | Kinematic Character Controller |
+| Fusion.Addons.FSM | - | Network-synced state machine |
 | DOTween | 1.2.790 | Animation |
 
 **Server (ASP.NET Core 9):**
