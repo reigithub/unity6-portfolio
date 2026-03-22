@@ -1,9 +1,7 @@
-#if !UNITY_SERVER
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Shaders;
-#endif
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -30,7 +28,6 @@ namespace Game.MVP.Survivor.Enemy
         [SerializeField] private Gradient _dissolveEdgeGradient;
         [SerializeField] private Vector3 _dissolveDirection = Vector3.up;
 
-#if !UNITY_SERVER
         // Property Block for efficient material updates (no material instance creation)
         private MaterialPropertyBlock _propertyBlock;
 
@@ -303,8 +300,6 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 #endif
-
-#endif // !UNITY_SERVER
 
 #if UNITY_EDITOR
         private void OnValidate()

@@ -537,17 +537,12 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> TitleScene: 起動
 
-    state "ソロプレイ" as Solo {
-        TitleScene --> StageScene: SOLO
-    }
-
-    state "マルチプレイ" as Multi {
-        TitleScene --> LobbyScene: MULTI
-        TitleScene --> LobbyRoomScene: MULTI (自動復帰)
-        LobbyScene --> LobbyRoomScene: ロビー参加/作成
-        LobbyRoomScene --> MatchmakingScene: 全員Ready
-        MatchmakingScene --> StageScene: マッチ成立
-    }
+    TitleScene --> StageScene: SOLO（ソロプレイ）
+    TitleScene --> LobbyScene: MULTI（マルチプレイ）
+    TitleScene --> LobbyRoomScene: MULTI（自動復帰）
+    LobbyScene --> LobbyRoomScene: ロビー参加/作成
+    LobbyRoomScene --> MatchmakingScene: 全員Ready
+    MatchmakingScene --> StageScene: マッチ成立
 
     StageScene --> ResultScene: ゲーム終了
     StageScene --> PauseDialog: ポーズ
