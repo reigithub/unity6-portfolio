@@ -318,13 +318,18 @@ namespace Game.MVP.Survivor.Player
                 {
                     if (_itemHitBuffer[i].TryGetComponent<ICollectible>(out var collectible) && !collectible.IsCollected)
                     {
-                        // 吸引開始（収集は KCCData.Hits または ItemProxyCollectible.Update の到達判定で行う）
-                        collectible.StartAttraction(transform, _itemAttractSpeed);
+                        var itemPos = _itemHitBuffer[i].transform.position;
+                        var distance = Vector3.Distance(transform.position, itemPos);
 
-                        // プロキシアイテムに収集距離を伝達（毎フレームの到達判定用）
-                        if (_itemHitBuffer[i].TryGetComponent<ItemProxyCollectible>(out var proxy))
+                        if (distance <= _itemCollectDistance)
                         {
-                            proxy.CollectDistance = _itemCollectDistance;
+                            // 収集距離以内 → 即座に収集
+                            collectible.Collect();
+                        }
+                        else
+                        {
+                            // 吸引開始（収集は KCCData.Hits または次回の距離チェックで行う）
+                            collectible.StartAttraction(transform, _itemAttractSpeed);
                         }
                     }
                 }

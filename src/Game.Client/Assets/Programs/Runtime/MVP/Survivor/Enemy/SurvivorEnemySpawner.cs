@@ -82,6 +82,7 @@ namespace Game.MVP.Survivor.Enemy
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
         private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
         private readonly HashSet<int> _spawnedNetworkIds = new(); // クライアントに Spawn 済みの NetworkId
+        private readonly List<SurvivorNetworkEnemyStateSnapshot> _pendingDeaths = new(); // 次回同期で送信する Death
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onEnemyKilled = new();
@@ -287,10 +288,10 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
-            if (_activeEnemies.Count == 0)
+            if (_activeEnemies.Count == 0 && _pendingDeaths.Count == 0)
                 return;
 
-            var snapshots = new SurvivorNetworkEnemyStateSnapshot[_activeEnemies.Count];
+            var snapshots = new SurvivorNetworkEnemyStateSnapshot[_activeEnemies.Count + _pendingDeaths.Count];
             for (int i = 0; i < _activeEnemies.Count; i++)
             {
                 var enemy = _activeEnemies[i];
@@ -326,6 +327,14 @@ namespace Game.MVP.Survivor.Enemy
                     SyncType = syncType
                 };
             }
+
+            // 保留中の Death を末尾に追加
+            for (int i = 0; i < _pendingDeaths.Count; i++)
+            {
+                snapshots[_activeEnemies.Count + i] = _pendingDeaths[i];
+            }
+            _pendingDeaths.Clear();
+
             batchSync.WriteEnemyStates(snapshots);
         }
 
@@ -579,12 +588,25 @@ namespace Game.MVP.Survivor.Enemy
         }
 
         /// <summary>
-        /// 到達不能エネミーの静かな回収（キルカウント・ドロップ・ウェーブ通知なし）
+        /// 到達不能エネミーの静かな回収（キルカウント・ドロップ・ウェーブ通知なし）。
+        /// クライアントには Death SyncType を送信してプロキシを破棄させる。
         /// </summary>
         private void OnEnemySilentRemoval(SurvivorEnemyController enemy)
         {
+            // 次回定期同期で Death を送信（WriteEnemyStates の個別呼び出しは ActiveCount を破壊するため使わない）
             if (_enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
+                _pendingDeaths.Add(new SurvivorNetworkEnemyStateSnapshot
+                {
+                    NetworkId = networkId,
+                    EnemyMasterId = enemy.EnemyId,
+                    PositionX = enemy.transform.position.x,
+                    PositionY = enemy.transform.position.y,
+                    PositionZ = enemy.transform.position.z,
+                    CurrentHp = 0,
+                    SyncType = EnemySyncType.Death
+                });
+
                 _enemyByNetworkId.Remove(networkId);
                 _spawnedNetworkIds.Remove(networkId);
             }
@@ -597,24 +619,19 @@ namespace Game.MVP.Survivor.Enemy
         {
             Debug.Log($"[SurvivorEnemySpawner] EnemyDeath: id={enemy.EnemyId}, boss={enemy.IsBoss}, active={_activeEnemies.Count - 1}, time={Time.time:F1}s");
 
-            // サーバー: 死亡イベントを送信
-            if (_enemyNetworkIds.TryGetValue(enemy, out var networkId)
-                && _runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var deathBatchSync))
+            // 次回定期同期で Death を送信（WriteEnemyStates の個別呼び出しは ActiveCount を破壊するため使わない）
+            if (_enemyNetworkIds.TryGetValue(enemy, out var networkId))
             {
-                var deathSnapshot = new SurvivorNetworkEnemyStateSnapshot
+                _pendingDeaths.Add(new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
                     PositionX = enemy.transform.position.x,
                     PositionY = enemy.transform.position.y,
                     PositionZ = enemy.transform.position.z,
-                    VelocityX = 0f,
-                    VelocityY = 0f,
-                    VelocityZ = 0f,
                     CurrentHp = 0,
                     SyncType = EnemySyncType.Death
-                };
-                deathBatchSync.WriteEnemyStates(new[] { deathSnapshot });
+                });
             }
 
             if (_enemyNetworkIds.TryGetValue(enemy, out var removedNetworkId))
@@ -666,6 +683,7 @@ namespace Game.MVP.Survivor.Enemy
             _enemyNetworkIds.Clear();
             _enemyByNetworkId.Clear();
             _spawnedNetworkIds.Clear();
+            _pendingDeaths.Clear();
             _isSpawning = false;
         }
 

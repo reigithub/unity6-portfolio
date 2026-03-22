@@ -34,18 +34,42 @@ namespace Game.MVP.Survivor.Enemy
         private IMasterDataService _masterDataService;
         private IAddressableAssetService _assetService;
 
+        /// <summary>ネットワーク同期の位置補間状態</summary>
+        private struct EnemyProxyInterpolation
+        {
+            public Vector3 LastSyncPosition;
+            public Vector3 Velocity;
+            public float TimeSinceSync;
+            public Vector3 CorrectionOffset;
+
+            public void OnSyncReceived(Vector3 serverPos, Vector3 serverVel, float maxCorrectionDist)
+            {
+                var predicted = LastSyncPosition + Velocity * TimeSinceSync + CorrectionOffset;
+                CorrectionOffset = predicted - serverPos;
+                if (CorrectionOffset.sqrMagnitude > maxCorrectionDist * maxCorrectionDist)
+                    CorrectionOffset = Vector3.zero;
+                LastSyncPosition = serverPos;
+                Velocity = serverVel;
+                TimeSinceSync = 0f;
+            }
+
+            public Vector3 GetPosition(float deltaTime, float correctionDecayRate)
+            {
+                TimeSinceSync += deltaTime;
+                var predicted = LastSyncPosition + Velocity * TimeSinceSync;
+                CorrectionOffset = Vector3.Lerp(CorrectionOffset, Vector3.zero, correctionDecayRate * deltaTime);
+                return predicted + CorrectionOffset;
+            }
+        }
+
         private class EnemyProxyData
         {
             public GameObject GameObject;
             public Animator Animator;
             public int EnemyMasterId;
             public bool IsDead;
-
-            // デッドレコニング状態
-            public Vector3 LastSyncPosition;
-            public Vector3 Velocity;
-            public float TimeSinceSync;
-            public Vector3 CorrectionOffset;
+            public float DeathAnimDuration;
+            public EnemyProxyInterpolation Interpolation;
         }
 
         public async UniTask InitializeAsync(
@@ -140,6 +164,7 @@ namespace Game.MVP.Survivor.Enemy
 
             // ICombatTarget実装を追加（ヒット報告用NetworkId + LockOn用CenterPosition）
             var proxyTarget = instance.AddComponent<EnemyProxyTarget>();
+            proxyTarget.OwnerView = this;
             proxyTarget.NetworkId = e.NetworkId;
 
             _proxies[e.NetworkId] = new EnemyProxyData
@@ -148,10 +173,14 @@ namespace Game.MVP.Survivor.Enemy
                 Animator = instance.GetComponentInChildren<Animator>(),
                 EnemyMasterId = e.EnemyMasterId,
                 IsDead = false,
-                LastSyncPosition = pos,
-                Velocity = Vector3.zero,
-                TimeSinceSync = 0f,
-                CorrectionOffset = Vector3.zero
+                DeathAnimDuration = GetDeathAnimDuration(e.EnemyMasterId),
+                Interpolation = new EnemyProxyInterpolation
+                {
+                    LastSyncPosition = pos,
+                    Velocity = Vector3.zero,
+                    TimeSinceSync = 0f,
+                    CorrectionOffset = Vector3.zero
+                }
             };
         }
 
@@ -159,22 +188,9 @@ namespace Game.MVP.Survivor.Enemy
         {
             if (!_proxies.TryGetValue(e.NetworkId, out var data) || data.IsDead) return;
 
-            var newServerPos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
-            var newVelocity = new Vector3(e.VelocityX, e.VelocityY, e.VelocityZ);
-
-            // 現在の予測位置と新しいサーバー権威位置の差分を計算
-            var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync + data.CorrectionOffset;
-            data.CorrectionOffset = predictedPos - newServerPos;
-
-            // 大きすぎる誤差はスナップ（ノックバック・テレポート等）
-            if (data.CorrectionOffset.sqrMagnitude > MaxCorrectionDistance * MaxCorrectionDistance)
-            {
-                data.CorrectionOffset = Vector3.zero;
-            }
-
-            data.LastSyncPosition = newServerPos;
-            data.Velocity = newVelocity;
-            data.TimeSinceSync = 0f;
+            var serverPos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
+            var serverVel = new Vector3(e.VelocityX, e.VelocityY, e.VelocityZ);
+            data.Interpolation.OnSyncReceived(serverPos, serverVel, MaxCorrectionDistance);
         }
 
         private void HandleAttack(SurvivorNetworkEnemyStateSnapshot e)
@@ -209,9 +225,8 @@ namespace Game.MVP.Survivor.Enemy
                 col.enabled = false;
             }
 
-            // 死亡アニメーション後に破棄
-            float deathDuration = GetDeathAnimDuration(data.EnemyMasterId);
-            DestroyProxyDelayed(e.NetworkId, deathDuration).Forget();
+            // 死亡アニメーション後に破棄（SpawnProxy 時にキャッシュ済み）
+            DestroyProxyDelayed(e.NetworkId, data.DeathAnimDuration).Forget();
         }
 
         private float GetDeathAnimDuration(int enemyMasterId)
@@ -248,20 +263,11 @@ namespace Game.MVP.Survivor.Enemy
                 var data = kvp.Value;
                 if (data.GameObject == null || data.IsDead) continue;
 
-                data.TimeSinceSync += dt;
+                // 1. 補間済み位置を取得して反映
+                data.GameObject.transform.position = data.Interpolation.GetPosition(dt, CorrectionDecayRate);
 
-                // 1. デッドレコニング: 最終同期位置 + 速度 × 経過時間
-                var predictedPos = data.LastSyncPosition + data.Velocity * data.TimeSinceSync;
-
-                // 2. 補正オフセットを指数減衰で解消
-                data.CorrectionOffset = Vector3.Lerp(
-                    data.CorrectionOffset, Vector3.zero, CorrectionDecayRate * dt);
-
-                // 3. 表示位置 = 予測位置 + 残余補正
-                data.GameObject.transform.position = predictedPos + data.CorrectionOffset;
-
-                // 4. 回転: 速度方向を向く
-                Vector3 moveDir = data.Velocity;
+                // 2. 回転: 速度方向を向く
+                Vector3 moveDir = data.Interpolation.Velocity;
                 moveDir.y = 0f;
                 if (moveDir.sqrMagnitude > 0.01f)
                 {
@@ -274,9 +280,15 @@ namespace Game.MVP.Survivor.Enemy
                 // 5. アニメーション: 速度ベースで歩行/待機
                 if (data.Animator != null)
                 {
-                    data.Animator.SetFloat(SpeedHash, data.Velocity.magnitude > 0.1f ? 1f : 0f);
+                    data.Animator.SetFloat(SpeedHash, data.Interpolation.Velocity.magnitude > 0.1f ? 1f : 0f);
                 }
             }
+        }
+
+        /// <summary>プロキシの死亡状態を返す（EnemyProxyTarget.IsDead から参照）</summary>
+        public bool IsProxyDead(int networkId)
+        {
+            return !_proxies.TryGetValue(networkId, out var data) || data.IsDead;
         }
 
         private static void SetLayerRecursively(GameObject go, int layer)
@@ -313,9 +325,10 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class EnemyProxyTarget : MonoBehaviour, ICombatTarget
     {
+        public SurvivorEnemyView OwnerView { get; set; }
         public int NetworkId { get; set; }
         public Vector3 CenterPosition => transform.position + Vector3.up;
-        public bool IsDead => false;
+        public bool IsDead => OwnerView != null && OwnerView.IsProxyDead(NetworkId);
         public void TakeDamage(int damage) { }
         public void ApplyKnockback(Vector3 knockback) { }
     }

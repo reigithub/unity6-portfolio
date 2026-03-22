@@ -260,25 +260,13 @@ namespace Game.MVP.Survivor.Item
             IsCollected = false;
         }
 
-        /// <summary>アイテム収集距離。SurvivorPlayerController から設定される。</summary>
-        public float CollectDistance { get; set; } = 0.5f;
-
         private void Update()
         {
             if (_attractTarget == null) return;
             if (_gameState != null && _gameState.IsPaused) return;
 
+            // 吸引移動のみ（収集判定は SurvivorPlayerController が担当）
             var diff = _attractTarget.position - transform.position;
-            var distance = diff.magnitude;
-
-            // 収集距離以内なら即座に収集（UpdateItemAttraction の間隔に依存しない）
-            if (distance <= CollectDistance)
-            {
-                Collect();
-                return;
-            }
-
-            // 吸引移動
             transform.position += diff.normalized * _attractSpeed * Time.deltaTime;
         }
     }
