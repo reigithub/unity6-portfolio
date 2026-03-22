@@ -207,9 +207,10 @@ dotnet test
 * **ロビーシステム**: MagicOnion StreamingHubによるリアルタイムロビー（作成/参加/退出/レディ/ゲーム開始）、Valkey永続化
 * **マッチメイキングシステム**: キューベースのマッチメイキング、Redis Pub/Subによるリアルタイム通知、セッショントークン発行
 * **リアルタイムチャット**: SignalR + MagicOnionによるルームベースメッセージング
+* **サーバー権威モデル**: Photon Fusion 2 Server/Client モード、Fusion FSM によるプレイヤーステートのネットワーク同期、敵バッチ同期（Dead Reckoning 補間）
 * **MPPM対応**: Multiplayer Play Modeによるエディタ内マルチプレイテスト、クローン別データパス分離
 * **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
-* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント773 + サーバー56 = 829テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
+* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント830 + サーバー206 = 1036テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -482,6 +483,32 @@ MagicOnion（gRPC StreamingHub）+ Valkey によるリアルタイムマルチ�
 
 </details>
 
+<details><summary>サーバー権威モデル（Photon Fusion 2）</summary>
+
+Survivor マルチプレイの Server/Client モードによるサーバー権威ゲームプレイ:
+
+**プレイヤー状態管理:**
+- `[Networked]` プロパティ（HP/Stamina/Speed/IsInvincible）によるサーバー権威状態
+- Fusion FSM アドオン（StateBehaviour + StateMachineController）によるステート同期（Normal/Invincible/Dead）
+- KCC（Kinematic Character Controller）による移動・回転の予測/補間
+
+**ダメージ処理フロー:**
+- エネミー → `TakeDamage()` → `RequestDamage()` → Fusion FSM NormalState が消費 → HP 減算
+- サーバーから全クライアントへ `NotifyPlayerDamaged` RPC → MessagePipe → UI 更新
+
+**敵同期方式:**
+- サーバーが敵を生成・AI 制御（NavMeshAgent）、10Hz でバッチ同期（NetworkArray<512>）
+- クライアントは Dead Reckoning + 補正減衰で位置補間表示
+- Spawn/Death は定期同期に統合（`_spawnedNetworkIds` / `_pendingDeaths`）
+- 到達不能エネミーはキルカウント非加算で静的回収（Silent Removal）
+
+**View/Presenter 分離:**
+- View: プロキシ管理、Dead Reckoning、同期受信（SurvivorEnemyView / ItemView）
+- Presenter: Animator / VFX 制御（SurvivorEnemyPresenter / PlayerPresenter）
+- Controller: ゲームロジック（サーバー側のみ実行）
+
+</details>
+
 <details><summary>認証・アカウント管理システム</summary>
 
 サーバー連携による認証・セッション管理システム:
@@ -736,6 +763,9 @@ Unity6Portfolio/
 | MagicOnion.Client    | 7.0.3      | gRPC StreamingHub クライアント  |
 | Unity.Entities (DOTS)| 1.4.4      | ECS敵システム                  |
 | Unity.Burst          | 1.8.27     | Burst コンパイラ               |
+| Photon Fusion 2      | 2.0        | リアルタイムネットワーク（Server/Client） |
+| Fusion.Addons.KCC    | -          | Kinematic Character Controller  |
+| Fusion.Addons.FSM    | -          | ネットワーク同期ステートマシン     |
 | DOTween              | 1.2.790    | アニメーション                  |
 
 **サーバー (ASP.NET Core 9):**

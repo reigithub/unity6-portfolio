@@ -2,8 +2,8 @@
 
 [English version is here](ARCHITECTURE.en.md)
 
-**バージョン**: 1.8
-**最終更新**: 2026年2月25日
+**バージョン**: 1.9
+**最終更新**: 2026年3月22日
 
 ---
 
@@ -1509,6 +1509,84 @@ Title → MULTI → EnsureValidSession → TryAutoRejoinAsync()
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.10 Photon Fusion リアルタイムゲームフロー（Survivor）
+
+Survivor マルチプレイモード（MPPM / Dedicated Server）のサーバー権威モデル:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│           Photon Fusion 2 Server Authority Model                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① プレイヤー状態管理（Fusion FSM + [Networked]）                │
+│  ┌──────────────────────┐     ┌──────────────────────┐         │
+│  │ SurvivorFusionPlayer │────▶│ StateMachineController│         │
+│  │ [Networked] HP/Stam  │     │ (Fusion.Addons.FSM)  │         │
+│  │ [Networked] Speed    │     ├──────────────────────┤         │
+│  │ [Networked] IsInvinc │     │ NormalState           │         │
+│  ├──────────────────────┤     │ InvincibleState       │         │
+│  │ NotifyDamaged() ─────│──▶  │ DeadState             │         │
+│  │   → RPC → MessagePipe│     └──────────────────────┘         │
+│  └──────────────────────┘                                       │
+│         ▲                                                       │
+│         │ BindFusionPlayer()                                    │
+│  ┌──────┴───────────────┐                                       │
+│  │SurvivorPlayerController│  移動実行（KCC）、入力蓄積           │
+│  │ (MonoBehaviour)       │  アイテム吸引、ReactiveProperty ミラー│
+│  └───────────────────────┘                                      │
+│                                                                 │
+│  ② 敵バッチ同期（10Hz 定期同期）                                 │
+│  ┌──────────────────────┐     ┌──────────────────────┐         │
+│  │ SurvivorEnemySpawner │────▶│FusionEnemyBatchSync  │         │
+│  │ (Server)             │     │ NetworkArray<512>    │         │
+│  ├──────────────────────┤     ├──────────────────────┤         │
+│  │ _spawnedNetworkIds   │     │ WriteEnemyStates()   │         │
+│  │ _pendingDeaths       │     │ ChangeDetector       │──▶Client│
+│  │ SyncEnemyStatesToNet │     │ → MessagePipe        │         │
+│  └──────────────────────┘     └──────────────────────┘         │
+│         │                              │                        │
+│         │ Spawn/Position/Attack/Death  │                        │
+│         ▼                              ▼                        │
+│  ┌──────────────────────┐     ┌──────────────────────┐         │
+│  │ SurvivorEnemyView    │     │ SurvivorItemView     │         │
+│  │ (Client Proxy)       │     │ (Client Proxy)       │         │
+│  ├──────────────────────┤     ├──────────────────────┤         │
+│  │ EnemyProxyTarget     │     │ ItemProxyCollectible  │         │
+│  │  (ICombatTarget)     │     │  (ICollectible)       │         │
+│  │ EnemyProxyInterp.    │     │ 吸引移動のみ          │         │
+│  │  (Dead Reckoning)    │     │ 収集判定はController  │         │
+│  └──────────────────────┘     └──────────────────────┘         │
+│                                                                 │
+│  ③ MPPM / #if UNITY_SERVER 使い分け                              │
+│  ┌──────────────────────────────────────────────────┐          │
+│  │ MPPM: 同一プロセスで Server/Client 共存           │          │
+│  │  → ランタイムチェック（IsClient(), IsServer）     │          │
+│  │ Dedicated Server Build: UNITY_SERVER 定義         │          │
+│  │  → コンパイル時除外は型定義自体が除外されるケース │          │
+│  │    のみ（LocalServerOrchestrator 等）              │          │
+│  └──────────────────────────────────────────────────┘          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 7.10.1 責務分離
+
+| 層 | クラス | 責務 | 実行場所 |
+|----|--------|------|---------|
+| **NetworkBehaviour** | SurvivorFusionPlayer | `[Networked]` 状態管理、FSM 実行、RPC | Server + Client（予測） |
+| **Controller** | SurvivorPlayerController | 移動（KCC）、入力蓄積、アイテム吸引 | Server + Client |
+| **View** | SurvivorEnemyView / ItemView | プロキシ管理、Dead Reckoning、同期受信 | Client のみ |
+| **Presenter** | Player/EnemyPresenter | Animator / VFX 制御 | Client のみ |
+| **Spawner** | SurvivorEnemySpawner | 敵生成/回収、バッチ同期、NavMesh 検証 | Server のみ |
+
+#### 7.10.2 敵同期方式
+
+- **Spawn**: `_spawnedNetworkIds` で未送信を追跡。定期同期で `EnemySyncType.Spawn` を送信
+- **Position/Attack**: 定期同期（10Hz）で `EnemySyncType.PositionUpdate` / `Attack`
+- **Death**: `_pendingDeaths` キューに蓄積。次回定期同期で統合送信
+- **Silent Removal**: 到達不能エネミーをキルカウント非加算で回収。Death SyncType でクライアント通知
+- **注意**: `WriteEnemyStates()` を個別呼び出しすると `ActiveCount` がリセットされ他のエネミーデータが消失する。必ず定期同期に統合すること
+
 ---
 
 ## 8. クラス設計（UML）
@@ -1838,44 +1916,51 @@ MVPパターン側では、Presenterの肥大化を防ぐためにViewModel（�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.3 ダメージ処理シーケンス（Survivor）
+### 9.3 ダメージ処理シーケンス（Survivor サーバー権威モデル）
+
+#### プレイヤーへのダメージ（エネミー → プレイヤー）
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Damage Processing Sequence                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Weapon   Projectile   Enemy    VFXSpawner   HUD   StageModel   │
-│    │          │          │          │         │         │       │
-│    │ Spawn    │          │          │         │         │       │
-│    │─────────▶│          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │OnTrigger │          │         │         │       │
-│    │          │─────────▶│          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ ┌────────┴────────┐│         │       │
-│    │          │          │ │TakeDamage()     ││         │       │
-│    │          │          │ │- Calculate      ││         │       │
-│    │          │          │ │- Apply Knockback││         │       │
-│    │          │          │ └────────┬────────┘│         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ SpawnHitEffect    │         │       │
-│    │          │          │─────────▶│         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ ShowDamageNumber  │         │       │
-│    │          │          │─────────────────▶│         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│    │          │          │ [if Dead]│         │         │       │
-│    │          │          │──────────────────────────────▶│       │
-│    │          │          │          │         │AddScore │       │
-│    │          │          │          │         │AddExp   │       │
-│    │          │          │          │         │         │       │
-│    │          │ Return   │          │         │         │       │
-│    │◀─────────│          │          │         │         │       │
-│    │          │          │          │         │         │       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Server:  EnemyController   FusionPlayer   Fusion FSM    FusionGameState
+              │                  │             │              │
+              │ TakeDamage()     │             │              │
+              │─────────────────▶│             │              │
+              │                  │             │              │
+              │          RequestDamage()       │              │
+              │                  │────────────▶│              │
+              │                  │  NormalState │              │
+              │                  │  OnFixedUpdate              │
+              │                  │  HP -= damage│              │
+              │                  │             │              │
+              │                  │ NotifyDamaged│              │
+              │                  │─────────────│─────────────▶│
+              │                  │             │  RPC(All)     │
+              │                  │             │  MessagePipe  │
+              │                  │             │              │
+Client:       │            ChangeDetector      │         StageModel
+              │             Render()           │         ForceSetHp()
+              │          SyncFromNetworkedState │         → UI Update
+              │          → ReactiveProperty     │              │
+```
+
+#### エネミーへのダメージ（プレイヤー武器 → エネミー）
+
+```
+Client:  Weapon    EnemyProxyTarget   FusionPlayer      Server
+           │            │                  │               │
+           │ SphereCast  │                  │               │
+           │────────────▶│                  │               │
+           │  (ICombatTarget)               │               │
+           │            NetworkId           │               │
+           │                  │             │               │
+           │        RpcClientHitReported    │               │
+           │──────────────────────────────▶│               │
+           │                               │  RPC          │
+           │                               │──────────────▶│
+           │                               │  OnServerHit  │
+           │                               │  距離検証      │
+           │                               │  ProcessHitAuth│
+           │                               │  TakeDamage    │
 ```
 
 ---
@@ -2045,6 +2130,39 @@ Unity6Portfolio/
 | **影響** | Game.Server.Sharedで共通基盤（JWT認証等）を共有。Docker Composeで統合管理 |
 | **状態** | 採用済み |
 
+#### ADR-008: Photon Fusion 2 サーバー権威モデル
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | Survivor マルチプレイに Photon Fusion 2（Server/Client モード）を採用 |
+| **背景** | サーバー権威型のリアルタイムゲームプレイが必要 |
+| **選択肢** | A) Mirror B) Photon Fusion 2 C) MagicOnion 独自実装 |
+| **判断理由** | `[Networked]` プロパティによる自動同期、再シミュレーション対応、KCC/FSM アドオン充実 |
+| **影響** | MPPM でのテスト効率向上、Dedicated Server ビルド対応 |
+| **状態** | 採用済み |
+
+#### ADR-009: Fusion FSM アドオンによるステート同期
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | プレイヤーステートマシンを Fusion FSM アドオン（StateBehaviour + StateMachineController）に移行 |
+| **背景** | 自作 StateMachine<TContext,TEvent> はネットワーク再シミュレーションに非対応 |
+| **選択肢** | A) [Networked] フラグで手動同期 B) Fusion FSM アドオン |
+| **判断理由** | DynamicWordCount による自動バッファ管理、状態の自動補間、再シミュレーション対応 |
+| **注意** | FSM は `Awake()` で作成必須（DynamicWordCount が Spawned() より前に照会されるため） |
+| **状態** | 採用済み |
+
+#### ADR-010: 敵バッチ同期の統合方式
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | 敵の Spawn/Death を定期同期（10Hz）に統合し、個別 WriteEnemyStates を廃止 |
+| **背景** | 個別 WriteEnemyStates が ActiveCount をリセットし他のエネミーデータを消失させる問題 |
+| **選択肢** | A) 個別 RPC B) 定期同期統合 C) 別チャネル分離 |
+| **判断理由** | 単一 NetworkArray での一括管理が最もシンプル。_spawnedNetworkIds と _pendingDeaths で Spawn/Death を次回同期に含める |
+| **影響** | Spawn/Death に最大 0.1 秒の遅延が発生するが、ビジュアル上は問題なし |
+| **状態** | 採用済み |
+
 ### 11.2 既知の技術的負債
 
 | 項目 | 内容 | 優先度 | 状態 |
@@ -2055,13 +2173,15 @@ Unity6Portfolio/
 | ~~アセット配信~~ | ~~ローカルのみ対応~~ | ~~中~~ | ✅ ローカル/リモート自動切替 |
 | ~~ネットワーク機能~~ | ~~サーバー通信未実装~~ | ~~高~~ | ✅ ランキング・認証完了 |
 | ~~マルチプレイ~~ | ~~マルチプレイ未実装~~ | ~~高~~ | ✅ ロビー・マッチメイキング完了 |
+| ~~サーバー権威~~ | ~~クライアント権威のゲームロジック~~ | ~~高~~ | ✅ Fusion FSM + [Networked] 移行完了 |
 | P3機能追加 | ローカライズ、課金システム等 | 低 | 未着手（オプション） |
 
 **改善完了項目**:
 - MessageBroker: IPlayerCollisionHandlerによる直接呼び出しに変更
-- テスト: EditMode 710 + PlayMode 63 = 773テスト
+- テスト: EditMode 767 + PlayMode 63 = 830テスト
 - XMLドキュメント: 主要インターフェース・拡張メソッドに追加完了
 - Profilerマーカー: 27マーカー追加
+- サーバー権威モデル: Fusion FSM 移行、ダメージ/スタミナ/HP の [Networked] 管理、敵バッチ同期統合
 - カスタム例外: 7クラス追加
 - アセット配信: Addressablesローカル/リモート自動切替（2026/02）
 - CI/CD: Unity Acceleratorキャッシュ、アセットキャッシュ最適化（2026/02）
@@ -2069,6 +2189,8 @@ Unity6Portfolio/
 - Addressables同期: チーム開発向けエディタ自動同期システム（2026/02）
 - ECS敵システム: DOTS（Entities + Jobs + Burst）ハイブリッド実装、スポーン計算最大20.3倍高速化（2026/02）
 - マルチプレイ: MagicOnion gRPCによるロビー・マッチメイキング、SignalRチャット、MPPM対応（2026/02）
+- サーバー権威モデル: Photon Fusion 2 Server/Client モード、Fusion FSM ステート同期、敵バッチ同期統合（2026/03）
+- View/Presenter 責務分離: Dead Reckoning 構造体分離、アイテム収集判定の Controller 統合（2026/03）
 
 ---
 
@@ -2085,6 +2207,10 @@ Unity6Portfolio/
 | **Unary RPC** | MagicOnion のリクエスト/レスポンス型RPC |
 | **StreamingHub** | MagicOnion のリアルタイム双方向通信Hub |
 | **MPPM** | Multiplayer Play Mode（Unity エディタ内マルチプレイテスト） |
+| **Fusion FSM** | Photon Fusion FSM アドオン。StateBehaviour + StateMachineController でネットワーク同期対応のステートマシン |
+| **Dead Reckoning** | クライアント側の位置予測補間。サーバーからの同期位置+速度を基に補間し、誤差を指数減衰で補正 |
+| **BatchSync** | 敵の状態を NetworkArray で一括同期する方式。Spawn/Position/Attack/Death の SyncType で分類 |
+| **Silent Removal** | 到達不能エネミーのキルカウント非加算回収。Death SyncType でクライアントプロキシを破棄 |
 
 ### B. 関連ドキュメント
 
