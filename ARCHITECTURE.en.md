@@ -540,17 +540,12 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> TitleScene: Launch
 
-    state "Solo Play" as Solo {
-        TitleScene --> StageScene: SOLO
-    }
-
-    state "Multiplayer" as Multi {
-        TitleScene --> LobbyScene: MULTI
-        TitleScene --> LobbyRoomScene: MULTI (auto-rejoin)
-        LobbyScene --> LobbyRoomScene: Join/Create Lobby
-        LobbyRoomScene --> MatchmakingScene: All Ready
-        MatchmakingScene --> StageScene: Match Found
-    }
+    TitleScene --> StageScene: SOLO (Solo Play)
+    TitleScene --> LobbyScene: MULTI (Multiplayer)
+    TitleScene --> LobbyRoomScene: MULTI (auto-rejoin)
+    LobbyScene --> LobbyRoomScene: Join/Create Lobby
+    LobbyRoomScene --> MatchmakingScene: All Ready
+    MatchmakingScene --> StageScene: Match Found
 
     StageScene --> ResultScene: Game Over
     StageScene --> PauseDialog: Pause
