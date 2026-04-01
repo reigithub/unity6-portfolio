@@ -243,7 +243,7 @@ jobs:
             reportgenerator \
               -reports:"$coverage_files" \
               -targetdir:CoverageReport \
-              -reporttypes:"Html;MarkdownSummaryGithub;Badges" \
+              -reporttypes:"Html;MarkdownSummaryGithub;XmlSummary;Badges" \
               -assemblyfilters:"+Game.Server;+Game.Shared;+Game.Realtime;+Game.Realtime.Shared" \
               -classfilters:"-*Migrations*"
 
@@ -254,6 +254,37 @@ jobs:
           else
             echo "No coverage files found" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Check coverage threshold
+        if: success()
+        run: |
+          THRESHOLD=50
+          if [ -f "CoverageReport/Summary.xml" ]; then
+            LINE_COVERAGE=$(grep -oP 'Linecoverage>\K[0-9.]+' CoverageReport/Summary.xml | head -1)
+            BRANCH_COVERAGE=$(grep -oP 'Branchcoverage>\K[0-9.]+' CoverageReport/Summary.xml | head -1)
+
+            echo "Line Coverage: ${LINE_COVERAGE:-N/A}%"
+            echo "Branch Coverage: ${BRANCH_COVERAGE:-N/A}%"
+
+            LINE_INT=${LINE_COVERAGE%.*}
+            if [ "${LINE_INT:-0}" -lt "$THRESHOLD" ]; then
+              echo "::error::Line coverage ${LINE_COVERAGE}% is below threshold ${THRESHOLD}%"
+              exit 1
+            fi
+            echo "Coverage check passed: ${LINE_COVERAGE}% >= ${THRESHOLD}%"
+          else
+            echo "::warning::Coverage summary XML not found, skipping threshold check"
+          fi
+
+      # PRコメント投稿:
+      # - marocchino/sticky-pull-request-comment: header指定でstickyコメント（上書き更新）がネイティブ対応、pathパラメータでファイル直接読込可能
+      # - gh pr comment: sticky機能を自前実装する必要がありメンテナンスコスト増
+      - name: Post coverage to PR
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@52423e01640425a022ef5fd42c6fb5f633a02728 # v2.9.1
+        with:
+          header: coverage-report
+          path: CoverageReport/SummaryGithub.md
 
       - name: Upload coverage report
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
