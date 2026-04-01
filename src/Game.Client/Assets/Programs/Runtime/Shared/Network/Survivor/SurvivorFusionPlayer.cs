@@ -182,7 +182,16 @@ namespace Game.Shared.Network.Survivor
         }
 
         private bool _inputReceived;
+        private int _ticksSinceLastInput;
         private bool _wasPaused;
+
+        /// <summary>
+        /// 入力タイムアウト閾値（Tick数）。
+        /// Fusion 2 のデフォルト TickRate 60Hz で 30tick = 約500ms。
+        /// 1-2tickの一時的な入力途絶では前回入力を維持し、
+        /// 長期途絶（切断等）のみゼロ入力にリセットする。
+        /// </summary>
+        private const int InputTimeoutTicks = 30;
 
         /// <summary>
         /// [Networked] IsPaused の変化に応じて KCC.SetActive を切り替える。
@@ -210,6 +219,7 @@ namespace Game.Shared.Network.Survivor
             if (GetInput(out SurvivorPlayerNetworkInput input))
             {
                 _inputReceived = true;
+                _ticksSinceLastInput = 0;
 
                 // 1. スタミナ計算（[Networked] を直接更新）
                 if (HasStateAuthority)
@@ -237,13 +247,20 @@ namespace Game.Shared.Network.Survivor
             }
             else
             {
-                // 入力受信前のみ KCC にゼロ入力を設定。
-                // 入力受信後に GetInput() が false を返す場合（サーバーで入力未到着ティック等）は
-                // KCC の既存入力を維持し、前回の移動方向を継続させる。
-                // ゼロ入力を設定すると地面摩擦で減速し、クライアント予測と乖離する。
-                if (!_inputReceived && _kcc != null)
+                _ticksSinceLastInput++;
+
+                // 入力受信前、またはタイムアウト閾値超過時にゼロ入力を設定。
+                // 1-2tickの一時的な入力途絶では KCC の既存入力を維持し、
+                // クライアント予測との乖離を防ぐ��
+                if ((!_inputReceived || _ticksSinceLastInput > InputTimeoutTicks) && _kcc != null)
                 {
                     _kcc.SetInputDirection(Vector3.zero);
+
+                    // 長期途絶時は速度もリセット（サーバー権威）
+                    if (_inputReceived && _ticksSinceLastInput > InputTimeoutTicks && HasStateAuthority)
+                    {
+                        Speed = 0f;
+                    }
                 }
             }
 
