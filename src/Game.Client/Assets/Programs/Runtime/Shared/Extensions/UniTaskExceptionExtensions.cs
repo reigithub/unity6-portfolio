@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Services.Network.Policies;
 using UnityEngine;
 
 namespace Game.Shared.Extensions
@@ -37,22 +38,21 @@ namespace Game.Shared.Extensions
         #region Retry Extensions
 
         /// <summary>
-        /// リトライ付きでUniTaskを実行する
+        /// リトライ付きでUniTaskを実行する（指数バックオフ + Jitter）
         /// </summary>
         /// <param name="taskFactory">UniTaskを生成するファクトリ関数</param>
-        /// <param name="maxRetries">最大リトライ回数</param>
-        /// <param name="retryDelayMs">リトライ間隔（ミリ秒）</param>
+        /// <param name="retryPolicy">リトライポリシー（null時はRetryPolicy.Default）</param>
         /// <param name="context">ログに出力するコンテキスト情報</param>
         /// <returns>実行結果のUniTask</returns>
         public static async UniTask WithRetry(
             Func<UniTask> taskFactory,
-            int maxRetries = 3,
-            int retryDelayMs = 500,
+            RetryPolicy retryPolicy = null,
             string context = "AsyncOperation")
         {
+            retryPolicy ??= RetryPolicy.Default;
             Exception lastException = null;
 
-            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            for (var attempt = 0; attempt <= retryPolicy.MaxRetries; attempt++)
             {
                 try
                 {
@@ -67,36 +67,61 @@ namespace Game.Shared.Extensions
                 {
                     lastException = ex;
 
-                    if (attempt < maxRetries)
+                    if (attempt < retryPolicy.MaxRetries)
                     {
-                        Debug.LogWarning($"[{context}] Attempt {attempt + 1}/{maxRetries + 1} failed: {ex.Message}. Retrying...");
-                        await UniTask.Delay(retryDelayMs);
+                        var delayMs = retryPolicy.GetDelayMs(attempt);
+                        var jitter = (int)(delayMs * UnityEngine.Random.Range(-0.25f, 0.25f));
+                        var actualDelay = Mathf.Max(0, delayMs + jitter);
+
+                        Debug.LogWarning(
+                            $"[{context}] Attempt {attempt + 1}/{retryPolicy.MaxRetries + 1} failed: {ex.Message}. " +
+                            $"Retrying in {actualDelay}ms...");
+                        await UniTask.Delay(actualDelay);
                     }
                 }
             }
 
-            Debug.LogError($"[{context}] All {maxRetries + 1} attempts failed");
+            Debug.LogError($"[{context}] All {retryPolicy.MaxRetries + 1} attempts failed");
             throw lastException;
         }
 
         /// <summary>
-        /// リトライ付きでUniTaskを実行する（戻り値あり版）
+        /// リトライ付きでUniTaskを実行する（レガシー互換: 固定遅延版）
+        /// </summary>
+        [Obsolete("Use WithRetry(taskFactory, retryPolicy, context) instead")]
+        public static UniTask WithRetry(
+            Func<UniTask> taskFactory,
+            int maxRetries,
+            int retryDelayMs = 500,
+            string context = "AsyncOperation")
+        {
+            var policy = new RetryPolicy
+            {
+                MaxRetries = maxRetries,
+                InitialDelayMs = retryDelayMs,
+                BackoffMultiplier = 1.0,
+                MaxDelayMs = retryDelayMs,
+            };
+            return WithRetry(taskFactory, policy, context);
+        }
+
+        /// <summary>
+        /// リトライ付きでUniTaskを実行する（戻り値あり版、指数バックオフ + Jitter）
         /// </summary>
         /// <typeparam name="T">戻り値の型</typeparam>
         /// <param name="taskFactory">UniTaskを生成するファクトリ関数</param>
-        /// <param name="maxRetries">最大リトライ回数</param>
-        /// <param name="retryDelayMs">リトライ間隔（ミリ秒）</param>
+        /// <param name="retryPolicy">リトライポリシー（null時はRetryPolicy.Default）</param>
         /// <param name="context">ログに出力するコンテキスト情報</param>
         /// <returns>実行結果</returns>
         public static async UniTask<T> WithRetry<T>(
             Func<UniTask<T>> taskFactory,
-            int maxRetries = 3,
-            int retryDelayMs = 500,
+            RetryPolicy retryPolicy = null,
             string context = "AsyncOperation")
         {
+            retryPolicy ??= RetryPolicy.Default;
             Exception lastException = null;
 
-            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            for (var attempt = 0; attempt <= retryPolicy.MaxRetries; attempt++)
             {
                 try
                 {
@@ -110,16 +135,42 @@ namespace Game.Shared.Extensions
                 {
                     lastException = ex;
 
-                    if (attempt < maxRetries)
+                    if (attempt < retryPolicy.MaxRetries)
                     {
-                        Debug.LogWarning($"[{context}] Attempt {attempt + 1}/{maxRetries + 1} failed: {ex.Message}. Retrying...");
-                        await UniTask.Delay(retryDelayMs);
+                        var delayMs = retryPolicy.GetDelayMs(attempt);
+                        var jitter = (int)(delayMs * UnityEngine.Random.Range(-0.25f, 0.25f));
+                        var actualDelay = Mathf.Max(0, delayMs + jitter);
+
+                        Debug.LogWarning(
+                            $"[{context}] Attempt {attempt + 1}/{retryPolicy.MaxRetries + 1} failed: {ex.Message}. " +
+                            $"Retrying in {actualDelay}ms...");
+                        await UniTask.Delay(actualDelay);
                     }
                 }
             }
 
-            Debug.LogError($"[{context}] All {maxRetries + 1} attempts failed");
+            Debug.LogError($"[{context}] All {retryPolicy.MaxRetries + 1} attempts failed");
             throw lastException;
+        }
+
+        /// <summary>
+        /// リトライ付きでUniTaskを実行する（戻り値あり版、レガシー互換: 固定遅延版）
+        /// </summary>
+        [Obsolete("Use WithRetry<T>(taskFactory, retryPolicy, context) instead")]
+        public static UniTask<T> WithRetry<T>(
+            Func<UniTask<T>> taskFactory,
+            int maxRetries,
+            int retryDelayMs = 500,
+            string context = "AsyncOperation")
+        {
+            var policy = new RetryPolicy
+            {
+                MaxRetries = maxRetries,
+                InitialDelayMs = retryDelayMs,
+                BackoffMultiplier = 1.0,
+                MaxDelayMs = retryDelayMs,
+            };
+            return WithRetry(taskFactory, policy, context);
         }
 
         #endregion
