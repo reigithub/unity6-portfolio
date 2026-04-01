@@ -8,25 +8,16 @@ namespace Game.MVP.Core.Services
 {
     /// <summary>
     /// MVP用オーディオ再生サービス
-    /// VContainerでDIされる、またはコンストラクタインジェクションで使用
+    /// VContainerの[Inject]コンストラクタ、またはAppServiceProviderからの手動生成で使用
     /// </summary>
     public class AudioService : AudioServiceBase
     {
-        [Inject] private IAddressableAssetService _assetService;
-        [Inject] private IMasterDataService _masterDataService;
+        private readonly IAddressableAssetService _assetService;
+        private readonly IMasterDataService _masterDataService;
 
         protected override MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
-        /// <summary>
-        /// VContainer用のデフォルトコンストラクタ
-        /// </summary>
-        public AudioService()
-        {
-        }
-
-        /// <summary>
-        /// 手動インジェクション用コンストラクタ（AppServiceProvider等で使用）
-        /// </summary>
+        [Inject]
         public AudioService(IAddressableAssetService assetService, IMasterDataService masterDataService)
         {
             _assetService = assetService;
