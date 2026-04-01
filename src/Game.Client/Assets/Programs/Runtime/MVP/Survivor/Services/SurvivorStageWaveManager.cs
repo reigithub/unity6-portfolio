@@ -71,6 +71,7 @@ namespace Game.MVP.Survivor.Services
         public bool IsLastWave => _currentWaveIndex >= 0 && _currentWaveIndex >= _waves.Length - 1;
 
         // ステージのウェーブ情報キャッシュ
+        public int StageId => _stageId;
         private int _stageId;
         private SurvivorStageWaveMaster[] _waves;
         private int _currentWaveIndex;
