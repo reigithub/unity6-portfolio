@@ -34,8 +34,11 @@ public static class TsvReader
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var result = new List<object>();
 
-        foreach (var line in lines.Skip(1))
+        for (var lineIndex = 1; lineIndex < lines.Length; lineIndex++)
         {
+            var line = lines[lineIndex];
+            var rowNumber = lineIndex + 1; // 1始まり（ヘッダーが1行目）
+
             if (string.IsNullOrWhiteSpace(line))
             {
                 continue;
@@ -56,8 +59,15 @@ public static class TsvReader
                     continue;
                 }
 
-                var value = ParseValue(property.PropertyType, values[index]);
-                property.SetValue(instance, value);
+                try
+                {
+                    var value = ParseValue(property.PropertyType, values[index]);
+                    property.SetValue(instance, value);
+                }
+                catch (Exception ex) when (ex is not TsvParseException)
+                {
+                    throw new TsvParseException(tsvPath, rowNumber, property.Name, values[index], property.PropertyType, ex);
+                }
             }
 
             result.Add(instance);
@@ -201,5 +211,32 @@ public static class TsvReader
             _ when type == typeof(Guid) => Guid.Parse(rawValue),
             _ => throw new NotSupportedException($"Unsupported type: {type.FullName}"),
         };
+    }
+}
+
+/// <summary>
+/// TSVパースエラー。行番号・列名・入力値を保持する。
+/// </summary>
+public class TsvParseException : Exception
+{
+    public string FilePath { get; }
+    public int RowNumber { get; }
+    public string ColumnName { get; }
+    public string RawValue { get; }
+    public Type TargetType { get; }
+
+    public TsvParseException(
+        string filePath, int rowNumber, string columnName,
+        string rawValue, Type targetType, Exception inner)
+        : base(
+            $"TSV parse error at {Path.GetFileName(filePath)} row {rowNumber}, " +
+            $"column '{columnName}': cannot convert '{rawValue}' to {targetType.Name}",
+            inner)
+    {
+        FilePath = filePath;
+        RowNumber = rowNumber;
+        ColumnName = columnName;
+        RawValue = rawValue;
+        TargetType = targetType;
     }
 }

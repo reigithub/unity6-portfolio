@@ -368,9 +368,17 @@ public class MasterDataCommands
                 AnsiConsole.MarkupLine($"  [green]VALID:[/] {table.TableName} ({elements.Length} rows)");
                 valid++;
             }
+            catch (TsvParseException tex)
+            {
+                AnsiConsole.MarkupLine(
+                    $"  [red]ERROR:[/] {table.TableName} - " +
+                    $"Row {tex.RowNumber}, Column '{Markup.Escape(tex.ColumnName)}': " +
+                    $"cannot convert '{Markup.Escape(tex.RawValue)}' to {tex.TargetType.Name}");
+                errors++;
+            }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"  [red]ERROR:[/] {table.TableName} - {ex.Message}");
+                AnsiConsole.MarkupLine($"  [red]ERROR:[/] {table.TableName} - {Markup.Escape(ex.Message)}");
                 errors++;
             }
         }
