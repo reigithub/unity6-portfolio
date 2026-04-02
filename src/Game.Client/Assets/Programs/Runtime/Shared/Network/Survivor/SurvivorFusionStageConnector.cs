@@ -125,16 +125,20 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        public void Disconnect()
+        public async UniTask DisconnectAsync()
         {
             if (_runner != null)
             {
                 if (_runner.Runner != null)
                 {
-                    _runner.Runner.Shutdown();
+                    await _runner.Runner.Shutdown();
                 }
-                UnityEngine.Object.Destroy(_runner.gameObject);
-                _runner = null;
+
+                if (_runner != null)
+                {
+                    UnityEngine.Object.Destroy(_runner.gameObject);
+                    _runner = null;
+                }
             }
 
             _session = null;
@@ -143,7 +147,10 @@ namespace Game.Shared.Network.Survivor
             Debug.Log("[SurvivorFusionStageConnector] Disconnected");
         }
 
-        public void Dispose() => Disconnect();
+        /// <summary>同期版（互換性維持）。内部でDisconnectAsyncをFire-and-Forgetで実行。</summary>
+        public void Disconnect() => DisconnectAsync().Forget();
+
+        public void Dispose() => DisconnectAsync().Forget();
 
         // =====================================================================
         //  プレハブ読み込み（Addressables）
