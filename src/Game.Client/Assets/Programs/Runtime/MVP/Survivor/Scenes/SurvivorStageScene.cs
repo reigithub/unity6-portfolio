@@ -307,9 +307,9 @@ namespace Game.MVP.Survivor.Scenes
 
             _enemyBatchSub.Subscribe(signal =>
             {
-                foreach (var e in signal.Enemies)
+                for (int i = 0; i < signal.Count; i++)
                 {
-                    if (e.SyncType == EnemySyncType.Death)
+                    if (signal.Enemies[i].SyncType == EnemySyncType.Death)
                     {
                         _waveManager.IncrementClientKillCount();
                     }

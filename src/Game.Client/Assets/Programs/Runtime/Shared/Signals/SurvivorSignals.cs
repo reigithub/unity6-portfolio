@@ -172,10 +172,12 @@ namespace Game.Shared.Signals.Survivor
             public readonly struct BatchUpdated
             {
                 public readonly SurvivorNetworkEnemyStateSnapshot[] Enemies;
+                public readonly int Count;
 
-                public BatchUpdated(SurvivorNetworkEnemyStateSnapshot[] enemies)
+                public BatchUpdated(SurvivorNetworkEnemyStateSnapshot[] enemies, int count)
                 {
                     Enemies = enemies;
+                    Count = count;
                 }
             }
         }
