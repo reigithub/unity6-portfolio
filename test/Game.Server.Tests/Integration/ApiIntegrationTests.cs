@@ -259,6 +259,115 @@ public class ApiIntegrationTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest, loginResponse.StatusCode);
     }
 
+    // --- Email認証フロー ---
+
+    [Fact]
+    public async Task EmailLogin_ValidCredentials_Returns200WithToken()
+    {
+        var (email, password) = await CreateEmailUserAsync();
+
+        var response = await _client.PostAsJsonAsync("/api/auth/email/login", new
+        {
+            Email = email,
+            Password = password
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var data = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(data);
+        Assert.NotEmpty(data.Token);
+    }
+
+    [Fact]
+    public async Task EmailLogin_WrongPassword_Returns401()
+    {
+        var (email, _) = await CreateEmailUserAsync();
+
+        var response = await _client.PostAsJsonAsync("/api/auth/email/login", new
+        {
+            Email = email,
+            Password = "WrongPassword999!"
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task VerifyEmail_InvalidToken_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/email/verify", new
+        {
+            Token = "invalid-verification-token"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ForgotPassword_ExistingEmail_Returns200()
+    {
+        var (email, _) = await CreateEmailUserAsync();
+
+        var response = await _client.PostAsJsonAsync("/api/auth/email/forgot-password", new
+        {
+            Email = email
+        });
+
+        // 情報漏洩防止のため、メール存在有無に関わらず常に200
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ForgotPassword_NonExistentEmail_Returns200()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/email/forgot-password", new
+        {
+            Email = "nobody-exists@example.com"
+        });
+
+        // 情報漏洩防止のため常に200
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_InvalidToken_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/email/reset-password", new
+        {
+            Token = "invalid-reset-token",
+            NewPassword = "NewPassword123!"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    // --- ユーザー更新 ---
+
+    [Fact]
+    public async Task UpdateMe_ValidRequest_Returns200WithUpdatedUser()
+    {
+        var (token, signingKey) = await GuestLoginAndGetTokenWithKey();
+
+        var response = await PutSignedAsync(token, signingKey, "/api/users/me", new
+        {
+            UserName = "UpdatedName"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateMe_Unauthorized_Returns401()
+    {
+        using var unauthClient = CreateJsonClient();
+        var response = await unauthClient.PutAsJsonAsync("/api/users/me", new
+        {
+            UserName = "ShouldFail"
+        });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     #region Helpers
 
     /// <summary>
@@ -293,6 +402,41 @@ public class ApiIntegrationTests : IAsyncLifetime
     private Task<HttpResponseMessage> PostSignedAsync<T>(string token, string signingKey, string path, T body)
     {
         return SendSignedAsync(HttpMethod.Post, token, signingKey, path, body);
+    }
+
+    /// <summary>
+    /// 署名付き PUT リクエストを送信する
+    /// </summary>
+    private Task<HttpResponseMessage> PutSignedAsync<T>(string token, string signingKey, string path, T body)
+    {
+        return SendSignedAsync(HttpMethod.Put, token, signingKey, path, body);
+    }
+
+    /// <summary>
+    /// ゲストログイン → メール連携 → Email/Password を返すヘルパー
+    /// </summary>
+    private async Task<(string Email, string Password)> CreateEmailUserAsync()
+    {
+        var email = $"email-test-{Guid.NewGuid():N}@example.com";
+        var password = "TestPassword123!";
+
+        // 1. Guest login
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "email-flow-" + Guid.NewGuid().ToString("N")
+        });
+        guestResponse.EnsureSuccessStatusCode();
+        var guestData = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        // 2. Link email (signed)
+        var linkResponse = await PostSignedAsync(guestData!.Token, guestData.SigningKey, "/api/auth/link/email", new
+        {
+            Email = email,
+            Password = password
+        });
+        linkResponse.EnsureSuccessStatusCode();
+
+        return (email, password);
     }
 
     /// <summary>
