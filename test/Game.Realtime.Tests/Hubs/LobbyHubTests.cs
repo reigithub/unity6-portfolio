@@ -3,6 +3,7 @@ using Game.Library.Shared.Dto;
 using Game.Realtime.Hubs;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
+using MagicOnion;
 using MagicOnion.Server.Hubs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -203,6 +204,97 @@ public class LobbyHubTests
         var hasLeftField = typeof(LobbyHub).GetField("_hasLeft", BindingFlags.NonPublic | BindingFlags.Instance);
         var hasLeftValue = (int)hasLeftField!.GetValue(hub)!;
         Assert.Equal(1, hasLeftValue);
+    }
+
+    // ---------------------------------------------------------------
+    // SendMessageAsync / SetStageAsync / SetReadyAsync テスト
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void SendMessageAsync_WithNullGroup_DoesNotThrow()
+    {
+        // Arrange: _currentGroup = null（デフォルト）
+        var hub = CreateHub();
+        SetPrivateField(hub, "_lobbyId", "msg-lobby");
+        SetPrivateField(hub, "_userId", "msg-user");
+
+        // Act & Assert: 例外なし（_currentGroup == null で early return）
+        hub.SendMessageAsync("Hello");
+    }
+
+    [Fact]
+    public async Task SetStageAsync_WithEmptyLobbyId_IsNoop()
+    {
+        // Arrange: _lobbyId は空文字（デフォルト）
+        var hub = CreateHub();
+
+        // Act
+        await hub.SetStageAsync(5);
+
+        // Assert: GetLobbyAsync が呼ばれない（early return）
+        _mockLobbyDataService.Verify(
+            s => s.GetLobbyAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetReadyAsync_WithEmptyLobbyId_IsNoop()
+    {
+        // Arrange: _lobbyId は空文字（デフォルト）
+        var hub = CreateHub();
+
+        // Act
+        await hub.SetReadyAsync(true);
+
+        // Assert: SetReadyAndCheckAllAsync が呼ばれない（early return）
+        _mockLobbyDataService.Verify(
+            s => s.SetReadyAndCheckAllAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetStageAsync_NonHost_ThrowsPermissionDenied()
+    {
+        // Arrange
+        var hub = CreateHub();
+        SetPrivateField(hub, "_lobbyId", "host-check-lobby");
+        SetPrivateField(hub, "_userId", "non-host-user");
+
+        _mockLobbyDataService.Setup(s => s.GetLobbyAsync("host-check-lobby"))
+            .ReturnsAsync(new LobbyInfo
+            {
+                LobbyId = "host-check-lobby",
+                HostUserId = "actual-host-user",  // 異なるユーザー
+            });
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ReturnStatusException>(
+            () => hub.SetStageAsync(5).AsTask());
+    }
+
+    [Fact]
+    public async Task SetReadyAsync_AllReady_InvokesTokenService()
+    {
+        // Arrange
+        var hub = CreateHub();
+        SetPrivateField(hub, "_lobbyId", "ready-lobby");
+        SetPrivateField(hub, "_userId", "ready-user");
+
+        _mockLobbyDataService.Setup(s => s.SetReadyAndCheckAllAsync("ready-lobby", "ready-user", true))
+            .ReturnsAsync((true, true));  // 全員レディ
+
+        _mockLobbyDataService.Setup(s => s.GetPlayersAsync("ready-lobby"))
+            .ReturnsAsync(Array.Empty<LobbyPlayerInfo>());  // プレイヤー0人 → StartGameAsync は abort
+
+        // Act
+        await hub.SetReadyAsync(true);
+
+        // Assert: SetReadyAndCheckAllAsync が呼ばれたこと
+        _mockLobbyDataService.Verify(
+            s => s.SetReadyAndCheckAllAsync("ready-lobby", "ready-user", true), Times.Once);
+
+        // allReady=true だが _currentGroup=null なので StartGameAsync には入らない
+        // GetPlayersAsync は呼ばれない
+        _mockLobbyDataService.Verify(
+            s => s.GetPlayersAsync(It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>

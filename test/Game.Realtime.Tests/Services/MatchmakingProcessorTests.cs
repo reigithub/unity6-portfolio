@@ -180,4 +180,79 @@ public class MatchmakingProcessorTests
             x => x.EnqueuePlayerAsync(It.IsAny<string>(), "survival", 1, It.IsAny<int>()),
             Times.AtLeast(1));
     }
+
+    [Fact]
+    public async Task ProcessAsync_CancellationToken_StopsProcessing()
+    {
+        // Arrange: キャンセルトークンを即座にキャンセル
+        _queueServiceMock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(Array.Empty<string>());
+
+        var processor = CreateProcessor();
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        await processor.StartAsync(cts.Token);
+        await cts.CancelAsync();
+        await processor.StopAsync(CancellationToken.None);
+
+        // Assert: 正常終了する（例外なし）
+    }
+
+    [Fact]
+    public async Task ProcessAsync_SupplementsFromAnyQueue()
+    {
+        // Arrange: stageId=1 キューに1人、anyキューに1人 → matchSize=2 で成立
+        _queueServiceMock.Setup(x => x.GetActiveStageKeysAsync("survival"))
+            .ReturnsAsync(new[] { "1" });
+
+        var queueCallCount = 0;
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 1))
+            .ReturnsAsync(() =>
+            {
+                queueCallCount++;
+                return queueCallCount == 1 ? 1 : 0;
+            });
+
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 1))
+            .ReturnsAsync(new[] { "p1" });
+
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p1"))
+            .ReturnsAsync(2);
+        _queueServiceMock.Setup(x => x.GetPlayerMatchSizeAsync("p_any"))
+            .ReturnsAsync(2);
+
+        // stageキューから追加取得（空）
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 1, 2))
+            .ReturnsAsync(Array.Empty<string>());
+
+        // anyキュー（stageId=0）から補填
+        _queueServiceMock.Setup(x => x.GetQueueCountAsync("survival", 0))
+            .ReturnsAsync(1);
+        _queueServiceMock.Setup(x => x.DequeueTopPlayersAsync("survival", 0, 2))
+            .ReturnsAsync(new[] { "p_any" });
+
+        _tokenServiceMock.Setup(x => x.IssueTokenAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .ReturnsAsync("token");
+
+        _subscriberMock.Setup(x => x.PublishAsync(
+                It.IsAny<RedisChannel>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(1);
+
+        var processor = CreateProcessor();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+        // Act
+        await processor.StartAsync(cts.Token);
+        await Task.Delay(3000);
+        await processor.StopAsync(CancellationToken.None);
+
+        // Assert: 2人分のトークンが発行（stageキュー1人 + anyキュー1人）
+        _tokenServiceMock.Verify(
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()),
+            Times.Exactly(2));
+    }
 }
