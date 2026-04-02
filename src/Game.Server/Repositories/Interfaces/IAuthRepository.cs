@@ -48,4 +48,8 @@ public interface IAuthRepository
     Task UnlinkEmailAsync(Guid id, string deviceFingerprint);
 
     Task UpdateTransferPasswordHashAsync(Guid id, string? transferPasswordHash);
+
+    Task UpdateRefreshTokenAsync(Guid id, string? refreshTokenHash, DateTime? expiry);
+
+    Task<UserInfo?> GetByRefreshTokenHashAsync(string refreshTokenHash);
 }

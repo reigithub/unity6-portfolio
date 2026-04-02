@@ -11,6 +11,7 @@ namespace Game.Shared.Services
     {
         bool IsAuthenticated { get; }
         string AuthToken { get; }
+        string RefreshToken { get; }
         string UserId { get; }
         string UserName { get; }
         string AuthType { get; }

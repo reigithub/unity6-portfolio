@@ -11,6 +11,7 @@ namespace Game.Shared.SaveData
     {
         public int Version { get; set; } = 1;
         public string AuthToken { get; set; }
+        public string RefreshToken { get; set; }
         public string UserId { get; set; }
         public string UserName { get; set; }
         public string AuthType { get; set; }

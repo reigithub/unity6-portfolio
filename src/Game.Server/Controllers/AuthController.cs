@@ -31,16 +31,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    [Authorize]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Refresh([FromBody] EmptyRequest _)
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
-        {
-            return Unauthorized();
-        }
-
-        var result = await _authService.RefreshTokenAsync(userId);
+        var result = await _authService.RefreshTokenAsync(request.RefreshToken);
 
         return result.Match(
             success => Ok(success),

@@ -93,10 +93,21 @@ namespace Game.Shared.Services
 
         public async UniTask<ApiResponse<LoginResponse>> RefreshTokenAsync()
         {
-            // refresh は空ボディの POST（Bearer トークンで認証）
-            // デバイス情報ヘッダーを付与してセキュリティ向上
-            var response = await _apiClient.PostAsync<EmptyRequest, LoginResponse>(
-                "api/auth/refresh", new EmptyRequest(), AuthRequestOptions);
+            var refreshToken = _authSessionService.RefreshToken;
+
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return new ApiResponse<LoginResponse>
+                {
+                    IsSuccess = false,
+                    Error = new ApiErrorResponse { Message = "No refresh token available" },
+                    StatusCode = 401,
+                };
+            }
+
+            var request = new RefreshTokenRequest { RefreshToken = refreshToken };
+            var response = await _apiClient.PostAsync<RefreshTokenRequest, LoginResponse>(
+                "api/auth/refresh", request, AuthRequestOptions);
 
             if (response.IsSuccess)
             {
@@ -170,7 +181,8 @@ namespace Game.Shared.Services
                 UserId = data.UserId,
                 UserName = data.UserName,
                 Token = data.Token,
-                SigningKey = data.SigningKey
+                SigningKey = data.SigningKey,
+                RefreshToken = data.RefreshToken,
             };
             await _authSessionService.SaveSessionAsync(loginData, data.AuthType?.ToLower() ?? "guest");
             _apiClient.SetAuthToken(data.Token);

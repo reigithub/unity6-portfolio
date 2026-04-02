@@ -101,32 +101,42 @@ public class AuthService : IAuthService
             dbTransaction.Commit();
         }
 
-        string token = GenerateJwtToken(user);
+        var (accessToken, refreshToken, signingKey) = await IssueTokenPairAsync(user);
         return new LoginResponse
         {
             UserId = user.UserId,
             UserName = user.UserName,
-            Token = token,
-            SigningKey = DeriveUserSigningKey(user.Id),
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            SigningKey = signingKey,
         };
     }
 
-    public async Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(Guid id)
+    public async Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string refreshToken)
     {
-        var user = await _authRepository.GetByIdAsync(id);
+        var hash = HashRefreshToken(refreshToken);
+        var user = await _authRepository.GetByRefreshTokenHashAsync(hash);
 
         if (user == null)
         {
-            return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
+            return new ApiError("Invalid refresh token", "INVALID_REFRESH_TOKEN", StatusCodes.Status401Unauthorized);
         }
 
-        string token = GenerateJwtToken(user);
+        if (user.RefreshTokenExpiry.HasValue && user.RefreshTokenExpiry.Value < DateTime.UtcNow)
+        {
+            await _authRepository.UpdateRefreshTokenAsync(user.Id, null, null);
+            return new ApiError("Refresh token expired", "REFRESH_TOKEN_EXPIRED", StatusCodes.Status401Unauthorized);
+        }
+
+        // トークンローテーション: 新ペア発行、旧RefreshToken無効化
+        var (accessToken, newRefreshToken, signingKey) = await IssueTokenPairAsync(user);
         return new LoginResponse
         {
             UserId = user.UserId,
             UserName = user.UserName,
-            Token = token,
-            SigningKey = DeriveUserSigningKey(user.Id),
+            Token = accessToken,
+            RefreshToken = newRefreshToken,
+            SigningKey = signingKey,
         };
     }
 
@@ -138,14 +148,15 @@ public class AuthService : IAuthService
         {
             await _authRepository.UpdateLastLoginAsync(existingUser.Id, DateTime.UtcNow);
 
-            string token = GenerateJwtToken(existingUser);
+            var (token, refresh, key) = await IssueTokenPairAsync(existingUser);
             return new LoginResponse
             {
                 UserId = existingUser.UserId,
                 UserName = existingUser.UserName,
                 Token = token,
+                RefreshToken = refresh,
                 IsNewUser = false,
-                SigningKey = DeriveUserSigningKey(existingUser.Id),
+                SigningKey = key,
             };
         }
 
@@ -170,25 +181,27 @@ public class AuthService : IAuthService
             }
 
             await _authRepository.UpdateLastLoginAsync(existingUser.Id, DateTime.UtcNow);
-            string existingToken = GenerateJwtToken(existingUser);
+            var (existingToken, existingRefresh, existingKey) = await IssueTokenPairAsync(existingUser);
             return new LoginResponse
             {
                 UserId = existingUser.UserId,
                 UserName = existingUser.UserName,
                 Token = existingToken,
+                RefreshToken = existingRefresh,
                 IsNewUser = false,
-                SigningKey = DeriveUserSigningKey(existingUser.Id),
+                SigningKey = existingKey,
             };
         }
 
-        string newToken = GenerateJwtToken(created);
+        var (newToken, newRefresh, newKey) = await IssueTokenPairAsync(created);
         return new LoginResponse
         {
             UserId = created.UserId,
             UserName = created.UserName,
             Token = newToken,
+            RefreshToken = newRefresh,
             IsNewUser = true,
-            SigningKey = DeriveUserSigningKey(created.Id),
+            SigningKey = newKey,
         };
     }
 
@@ -234,13 +247,14 @@ public class AuthService : IAuthService
 
         tx.Commit();
 
-        string token = GenerateJwtToken(user);
+        var (token, refresh, key) = await IssueTokenPairAsync(user);
         return new LoginResponse
         {
             UserId = user.UserId,
             UserName = user.UserName,
             Token = token,
-            SigningKey = DeriveUserSigningKey(user.Id),
+            RefreshToken = refresh,
+            SigningKey = key,
         };
     }
 
@@ -363,16 +377,17 @@ public class AuthService : IAuthService
         // Re-fetch user to get updated state for JWT
         var updatedUser = await _authRepository.GetByIdAsync(id)
             ?? throw new InvalidOperationException($"User {id} not found after update");
-        string token = GenerateJwtToken(updatedUser);
+        var (token, refresh, key) = await IssueTokenPairAsync(updatedUser);
 
         return new AccountLinkResponse
         {
             UserId = updatedUser.UserId,
             UserName = updatedUser.UserName,
             Token = token,
+            RefreshToken = refresh,
             AuthType = updatedUser.AuthType,
             Email = updatedUser.Email,
-            SigningKey = DeriveUserSigningKey(updatedUser.Id),
+            SigningKey = key,
         };
     }
 
@@ -400,17 +415,46 @@ public class AuthService : IAuthService
         // Re-fetch user to get updated state for JWT
         var updatedUser = await _authRepository.GetByIdAsync(id)
             ?? throw new InvalidOperationException($"User {id} not found after update");
-        string token = GenerateJwtToken(updatedUser);
+        var (token, refresh, key) = await IssueTokenPairAsync(updatedUser);
 
         return new AccountLinkResponse
         {
             UserId = updatedUser.UserId,
             UserName = updatedUser.UserName,
             Token = token,
+            RefreshToken = refresh,
             AuthType = updatedUser.AuthType,
             Email = null,
-            SigningKey = DeriveUserSigningKey(updatedUser.Id),
+            SigningKey = key,
         };
+    }
+
+    /// <summary>
+    /// AccessToken + RefreshToken を発行し、RefreshToken ハッシュを DB に保存する。
+    /// 全ログインフローの共通終端処理。
+    /// </summary>
+    private async Task<(string accessToken, string refreshToken, string signingKey)> IssueTokenPairAsync(UserInfo user)
+    {
+        var accessToken = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken();
+        var refreshTokenHash = HashRefreshToken(refreshToken);
+        var refreshExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshExpirationDays);
+
+        await _authRepository.UpdateRefreshTokenAsync(user.Id, refreshTokenHash, refreshExpiry);
+
+        return (accessToken, refreshToken, DeriveUserSigningKey(user.Id));
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+    }
+
+    private static string HashRefreshToken(string token)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexStringLower(bytes);
     }
 
     private string DeriveUserSigningKey(Guid userId)
