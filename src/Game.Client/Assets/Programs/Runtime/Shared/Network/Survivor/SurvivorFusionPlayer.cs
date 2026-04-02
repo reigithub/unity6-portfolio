@@ -95,7 +95,7 @@ namespace Game.Shared.Network.Survivor
         public void RequestDamage(int damage)
         {
             _hasPendingDamage = true;
-            _pendingDamageAmount = damage;
+            _pendingDamageAmount += damage;
         }
 
         /// <summary>
