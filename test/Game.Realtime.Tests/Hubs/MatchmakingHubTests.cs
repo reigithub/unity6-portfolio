@@ -40,4 +40,20 @@ public class MatchmakingHubTests
         // Assert
         Assert.IsAssignableFrom<Game.Library.Shared.Realtime.Hubs.IMatchmakingHub>(hub);
     }
+
+    [Fact]
+    public void MatchmakingHub_HasRequiredDependencies()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<MatchmakingHub>>();
+        var redis = new Mock<IConnectionMultiplexer>();
+        var matchmakingValidator = new Mock<IMatchmakingValidator>();
+
+        // Act
+        var hub = new MatchmakingHub(logger.Object, redis.Object, matchmakingValidator.Object);
+
+        // Assert — コンストラクタが3つの依存を受け取れること
+        Assert.NotNull(hub);
+        Assert.IsAssignableFrom<Game.Library.Shared.Realtime.Hubs.IMatchmakingHub>(hub);
+    }
 }

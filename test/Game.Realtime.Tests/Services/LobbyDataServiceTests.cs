@@ -778,4 +778,161 @@ public class LobbyDataServiceTests
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(currentPlayers);
     }
+
+    // --- SetStageAsync ---
+
+    [Fact]
+    public async Task SetStageAsync_UpdatesStageId()
+    {
+        // Arrange
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby"),
+                It.Is<RedisValue>(f => f.ToString() == "stageId"),
+                It.Is<RedisValue>(v => v.ToString() == "5"),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        // Act
+        await _service.SetStageAsync("test-lobby", 5);
+
+        // Assert
+        _dbMock.Verify(x => x.HashSetAsync(
+            It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby"),
+            It.Is<RedisValue>(f => f.ToString() == "stageId"),
+            It.IsAny<RedisValue>(),
+            It.IsAny<When>(),
+            It.IsAny<CommandFlags>()), Times.Once);
+    }
+
+    // --- SetReadyAndCheckAllAsync ---
+
+    [Fact]
+    public async Task SetReadyAndCheckAllAsync_ReturnsFalse_WhenPlayerNotInLobby()
+    {
+        // Arrange
+        _dbMock.Setup(x => x.HashGetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "user1"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisValue.Null);
+
+        // Act
+        var (success, allReady) = await _service.SetReadyAndCheckAllAsync("test-lobby", "user1", true);
+
+        // Assert
+        Assert.False(success);
+        Assert.False(allReady);
+    }
+
+    [Fact]
+    public async Task SetReadyAndCheckAllAsync_ReturnsTrue_NotAllReady()
+    {
+        // Arrange: user1 がレディ設定、user2 は未レディ
+        var user1Data = """{"playerName":"User1","isReady":false,"joinedAt":1000}""";
+        var user2Data = """{"playerName":"User2","isReady":false,"joinedAt":1001}""";
+
+        _dbMock.Setup(x => x.HashGetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "user1"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue(user1Data));
+
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "user1"),
+                It.IsAny<RedisValue>(),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _dbMock.Setup(x => x.HashGetAllAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new[]
+            {
+                new HashEntry("user1", """{"playerName":"User1","isReady":true,"joinedAt":1000}"""),
+                new HashEntry("user2", user2Data),
+            });
+
+        // Act
+        var (success, allReady) = await _service.SetReadyAndCheckAllAsync("test-lobby", "user1", true);
+
+        // Assert
+        Assert.True(success);
+        Assert.False(allReady);
+    }
+
+    [Fact]
+    public async Task SetReadyAndCheckAllAsync_ReturnsTrue_AllReady()
+    {
+        // Arrange: user1 がレディ設定後、全員レディ
+        var user1Data = """{"playerName":"User1","isReady":false,"joinedAt":1000}""";
+
+        _dbMock.Setup(x => x.HashGetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "user1"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue(user1Data));
+
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "user1"),
+                It.IsAny<RedisValue>(),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _dbMock.Setup(x => x.HashGetAllAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:test-lobby:players"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new[]
+            {
+                new HashEntry("user1", """{"playerName":"User1","isReady":true,"joinedAt":1000}"""),
+                new HashEntry("user2", """{"playerName":"User2","isReady":true,"joinedAt":1001}"""),
+            });
+
+        // Act
+        var (success, allReady) = await _service.SetReadyAndCheckAllAsync("test-lobby", "user1", true);
+
+        // Assert
+        Assert.True(success);
+        Assert.True(allReady);
+    }
+
+    [Fact]
+    public async Task SetReadyAndCheckAllAsync_SinglePlayer_AllReady()
+    {
+        // Arrange: 1人ロビーで自分がレディ → 全員レディ
+        var userData = """{"playerName":"Solo","isReady":false,"joinedAt":1000}""";
+
+        _dbMock.Setup(x => x.HashGetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:solo-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "solo-user"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new RedisValue(userData));
+
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:solo-lobby:players"),
+                It.Is<RedisValue>(v => v.ToString() == "solo-user"),
+                It.IsAny<RedisValue>(),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _dbMock.Setup(x => x.HashGetAllAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:solo-lobby:players"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(new[]
+            {
+                new HashEntry("solo-user", """{"playerName":"Solo","isReady":true,"joinedAt":1000}"""),
+            });
+
+        // Act
+        var (success, allReady) = await _service.SetReadyAndCheckAllAsync("solo-lobby", "solo-user", true);
+
+        // Assert
+        Assert.True(success);
+        Assert.True(allReady);
+    }
 }
