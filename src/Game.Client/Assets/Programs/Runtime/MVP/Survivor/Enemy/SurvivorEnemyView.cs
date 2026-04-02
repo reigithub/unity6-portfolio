@@ -9,6 +9,7 @@ using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -28,11 +29,24 @@ namespace Game.MVP.Survivor.Enemy
         private const float CorrectionDecayRate = 10f;
         private const float MaxCorrectionDistance = 3f;
 
+        // LODティア: 距離²と更新間隔（フレーム数）
+        private const float NearDistanceSq = 20f * 20f;   // 400
+        private const float MidDistanceSq = 40f * 40f;    // 1600
+        private const int NearUpdateInterval = 1;           // 毎フレーム
+        private const int MidUpdateInterval = 2;            // 2フレームに1回
+        private const int FarUpdateInterval = 5;            // 5フレームに1回
+
+        private static readonly ProfilerMarker s_updateMarker = new("ProfilerMarker.EnemyView.Update");
+        private static readonly ProfilerMarker s_frustumMarker = new("ProfilerMarker.EnemyView.FrustumCalc");
+        private static readonly ProfilerMarker s_spawnProxyMarker = new("ProfilerMarker.EnemyView.SpawnProxy");
+
         private readonly Dictionary<int, EnemyProxyData> _proxies = new();
         private readonly Dictionary<int, GameObject> _prefabs = new();
+        private readonly Plane[] _frustumPlanes = new Plane[6];
         private IDisposable _subscription;
         private IMasterDataService _masterDataService;
         private IAddressableAssetService _assetService;
+        private Camera _camera;
 
         /// <summary>ネットワーク同期の位置補間状態</summary>
         private struct EnemyProxyInterpolation
@@ -70,15 +84,19 @@ namespace Game.MVP.Survivor.Enemy
             public bool IsDead;
             public float DeathAnimDuration;
             public EnemyProxyInterpolation Interpolation;
+            public int LodUpdateInterval = NearUpdateInterval;
+            public int FrameOffset; // networkId % FarUpdateInterval で分散
         }
 
         public async UniTask InitializeAsync(
             ISubscriber<SurvivorSignals.Enemy.BatchUpdated> subscriber,
             IMasterDataService masterDataService,
-            IAddressableAssetService assetService)
+            IAddressableAssetService assetService,
+            Camera mainCamera = null)
         {
             _masterDataService = masterDataService;
             _assetService = assetService;
+            _camera = mainCamera;
 
             // 全敵プレハブをプリロード
             var allEnemies = masterDataService.MemoryDatabase.SurvivorEnemyMasterTable.All;
@@ -120,6 +138,8 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SpawnProxy(SurvivorNetworkEnemyStateSnapshot e)
         {
+            using var spawnScope = s_spawnProxyMarker.Auto();
+
             // 既存プロキシがある場合は破棄（ネットワークID再利用時の安全策）
             if (_proxies.TryGetValue(e.NetworkId, out var existing))
             {
@@ -174,6 +194,7 @@ namespace Game.MVP.Survivor.Enemy
                 EnemyMasterId = e.EnemyMasterId,
                 IsDead = false,
                 DeathAnimDuration = GetDeathAnimDuration(e.EnemyMasterId),
+                FrameOffset = e.NetworkId % FarUpdateInterval,
                 Interpolation = new EnemyProxyInterpolation
                 {
                     LastSyncPosition = pos,
@@ -256,32 +277,80 @@ namespace Game.MVP.Survivor.Enemy
 
         private void Update()
         {
+            using var updateScope = s_updateMarker.Auto();
+
             float dt = Time.deltaTime;
+            int frameCount = Time.frameCount;
+
+            // カメラがあれば視錐台平面をキャッシュ（1回/フレーム）
+            Vector3 cameraPos = Vector3.zero;
+            if (_camera != null)
+            {
+                using var frustumScope = s_frustumMarker.Auto();
+                GeometryUtility.CalculateFrustumPlanes(_camera, _frustumPlanes);
+                cameraPos = _camera.transform.position;
+            }
 
             foreach (var kvp in _proxies)
             {
                 var data = kvp.Value;
                 if (data.GameObject == null || data.IsDead) continue;
 
-                // 1. 補間済み位置を取得して反映
-                data.GameObject.transform.position = data.Interpolation.GetPosition(dt, CorrectionDecayRate);
-
-                // 2. 回転: 速度方向を向く
-                Vector3 moveDir = data.Interpolation.Velocity;
-                moveDir.y = 0f;
-                if (moveDir.sqrMagnitude > 0.01f)
+                // LODティアを定期的に再分類（FarUpdateInterval毎）
+                if (_camera != null && frameCount % FarUpdateInterval == 0)
                 {
-                    data.GameObject.transform.rotation = Quaternion.Slerp(
-                        data.GameObject.transform.rotation,
-                        Quaternion.LookRotation(moveDir),
-                        dt * InterpolationSpeed);
+                    data.LodUpdateInterval = ClassifyLod(data, cameraPos);
                 }
 
-                // 5. アニメーション: 速度ベースで歩行/待機
-                if (data.Animator != null)
+                // このフレームが更新対象でなければスキップ
+                if (data.LodUpdateInterval > 1 &&
+                    frameCount % data.LodUpdateInterval != data.FrameOffset % data.LodUpdateInterval)
                 {
-                    data.Animator.SetFloat(SpeedHash, data.Interpolation.Velocity.magnitude > 0.1f ? 1f : 0f);
+                    continue;
                 }
+
+                UpdateProxyTransform(data, dt);
+            }
+        }
+
+        private int ClassifyLod(EnemyProxyData data, Vector3 cameraPos)
+        {
+            var proxyPos = data.GameObject.transform.position;
+            float distSq = (proxyPos - cameraPos).sqrMagnitude;
+
+            if (distSq <= NearDistanceSq)
+            {
+                var bounds = new Bounds(proxyPos, Vector3.one);
+                if (GeometryUtility.TestPlanesAABB(_frustumPlanes, bounds))
+                    return NearUpdateInterval;
+            }
+
+            if (distSq <= MidDistanceSq)
+                return MidUpdateInterval;
+
+            return FarUpdateInterval;
+        }
+
+        private void UpdateProxyTransform(EnemyProxyData data, float dt)
+        {
+            // 1. 補間済み位置を取得して反映
+            data.GameObject.transform.position = data.Interpolation.GetPosition(dt, CorrectionDecayRate);
+
+            // 2. 回転: 速度方向を向く
+            Vector3 moveDir = data.Interpolation.Velocity;
+            moveDir.y = 0f;
+            if (moveDir.sqrMagnitude > 0.01f)
+            {
+                data.GameObject.transform.rotation = Quaternion.Slerp(
+                    data.GameObject.transform.rotation,
+                    Quaternion.LookRotation(moveDir),
+                    dt * InterpolationSpeed);
+            }
+
+            // 3. アニメーション: 速度ベースで歩行/待機
+            if (data.Animator != null)
+            {
+                data.Animator.SetFloat(SpeedHash, data.Interpolation.Velocity.magnitude > 0.1f ? 1f : 0f);
             }
         }
 

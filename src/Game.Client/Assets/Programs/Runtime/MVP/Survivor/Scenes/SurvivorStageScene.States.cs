@@ -187,7 +187,8 @@ namespace Game.MVP.Survivor.Scenes
                 await enemyView.InitializeAsync(
                     Context._enemyBatchSub,
                     Context._masterDataService,
-                    Context._addressableService);
+                    Context._addressableService,
+                    GameRootController?.MainCamera);
 
                 var itemViewGo = new GameObject("[SurvivorItemView]");
                 itemViewGo.transform.SetParent(View.transform);
