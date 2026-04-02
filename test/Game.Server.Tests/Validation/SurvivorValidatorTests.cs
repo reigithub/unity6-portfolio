@@ -214,4 +214,84 @@ public class SurvivorValidatorTests
     {
         _validator.ValidateScoreSubmit(ValidRequest()); // 例外なし
     }
+
+    // --- ClearTime 境界値 ---
+
+    [Fact]
+    public void Validate_ClearTimeExactlyAtBufferLimit_Passes()
+    {
+        var request = ValidRequest();
+        request.ClearTime = 125.0f; // TimeLimit(120) + Buffer(5) = 125 ちょうど
+
+        _validator.ValidateScoreSubmit(request); // 例外なし
+    }
+
+    [Fact]
+    public void Validate_ClearTimeJustAboveBufferLimit_Throws()
+    {
+        var request = ValidRequest();
+        request.ClearTime = 125.01f; // バッファ上限を微小超過
+
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateScoreSubmit(request));
+        Assert.Equal("INVALID_SCORE", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void Validate_ClearTimeMinPositive_Passes()
+    {
+        var request = ValidRequest();
+        request.ClearTime = 0.01f; // 最小の正値
+
+        _validator.ValidateScoreSubmit(request); // 例外なし
+    }
+
+    [Fact]
+    public void Validate_ScoreZeroWaveZero_Passes()
+    {
+        var request = ValidRequest();
+        request.Score = 0;
+        request.WaveReached = 0;
+
+        _validator.ValidateScoreSubmit(request); // 例外なし
+    }
+
+    // --- ValidateLimit 境界値 ---
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1001)]
+    public void ValidateLimit_OutOfRange_Throws(int limit)
+    {
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateLimit(limit));
+        Assert.Equal("INVALID_INPUT", ex.ErrorCode);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(500)]
+    [InlineData(1000)]
+    public void ValidateLimit_InRange_Passes(int limit)
+    {
+        _validator.ValidateLimit(limit); // 例外なし
+    }
+
+    // --- ValidateOffset 境界値 ---
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(100001)]
+    public void ValidateOffset_OutOfRange_Throws(int offset)
+    {
+        var ex = Assert.Throws<ErrorException>(() => _validator.ValidateOffset(offset));
+        Assert.Equal("INVALID_INPUT", ex.ErrorCode);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(50000)]
+    [InlineData(100000)]
+    public void ValidateOffset_InRange_Passes(int offset)
+    {
+        _validator.ValidateOffset(offset); // 例外なし
+    }
 }

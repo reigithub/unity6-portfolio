@@ -269,4 +269,64 @@ public class ChatRoomControllerTests
         Assert.Equal(0, info.JoinedAt);
         Assert.Equal(0, info.Permissions);
     }
+
+    // --- KickMember テスト ---
+
+    [Fact]
+    public async Task KickMember_Returns200_WhenSuccess()
+    {
+        // Arrange
+        _roomDataServiceMock.Setup(x => x.ExistsAsync("room-1")).ReturnsAsync(true);
+        _roomDataServiceMock.Setup(x => x.GetMemberPermissionsAsync("room-1", "test-user-id"))
+            .ReturnsAsync((int)(ChatRoomPermissions.Kick | ChatRoomPermissions.SendMessage));
+        _roomDataServiceMock.Setup(x => x.RemoveMemberAsync("room-1", "target-user"))
+            .ReturnsAsync(true);
+
+        var mockGroupClient = new Mock<IChatHubClient>();
+        _hubContextMock.Setup(h => h.Clients.Group("room-1"))
+            .Returns(mockGroupClient.Object);
+
+        var request = new InviteMemberRequest { TargetUserId = "target-user", PlayerName = "TargetPlayer" };
+
+        // Act
+        var result = await _controller.KickMember("room-1", request);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var data = Assert.IsType<SuccessResponse>(okResult.Value);
+        Assert.True(data.Success);
+    }
+
+    [Fact]
+    public async Task KickMember_Returns403_WhenNoPermission()
+    {
+        // Arrange
+        _roomDataServiceMock.Setup(x => x.ExistsAsync("room-1")).ReturnsAsync(true);
+        _roomDataServiceMock.Setup(x => x.GetMemberPermissionsAsync("room-1", "test-user-id"))
+            .ReturnsAsync((int)ChatRoomPermissions.SendMessage); // Kick権限なし
+
+        var request = new InviteMemberRequest { TargetUserId = "target-user", PlayerName = "TargetPlayer" };
+
+        // Act
+        var result = await _controller.KickMember("room-1", request);
+
+        // Assert
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task KickMember_Returns404_WhenRoomNotExists()
+    {
+        // Arrange
+        _roomDataServiceMock.Setup(x => x.ExistsAsync("nonexistent")).ReturnsAsync(false);
+
+        var request = new InviteMemberRequest { TargetUserId = "target-user", PlayerName = "TargetPlayer" };
+
+        // Act
+        var result = await _controller.KickMember("nonexistent", request);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
 }
