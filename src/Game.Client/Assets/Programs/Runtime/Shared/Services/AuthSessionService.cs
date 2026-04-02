@@ -23,6 +23,7 @@ namespace Game.Shared.Services
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(_data?.AuthToken);
         public string AuthToken => _data?.AuthToken;
+        public string RefreshToken => _data?.RefreshToken;
         public string UserId => _data?.UserId;
         public string UserName => _data?.UserName;
         public string AuthType => _data?.AuthType;
@@ -32,6 +33,7 @@ namespace Game.Shared.Services
         {
             _data ??= new SessionSaveData();
             _data.AuthToken = response.Token;
+            _data.RefreshToken = response.RefreshToken;
             _data.UserId = response.UserId;
             _data.UserName = response.UserName;
             _data.AuthType = authType;

@@ -320,6 +320,85 @@ public class AuthServiceTests : IAsyncLifetime
         Assert.Equal("INVALID_CREDENTIALS", error.ErrorCode);
     }
 
+    [Fact]
+    public async Task GuestLoginAsync_ReturnsRefreshToken()
+    {
+        // Arrange
+        var service = CreateAuthService();
+        var request = new GuestLoginRequest { DeviceFingerprint = "refresh_test_device_0123456789" };
+
+        // Act
+        var result = await service.GuestLoginAsync(request);
+
+        // Assert
+        LoginResponse? response = ExtractSuccess(result);
+        Assert.NotNull(response);
+        Assert.NotEmpty(response.Token);
+        Assert.NotEmpty(response.RefreshToken);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithValidRefreshToken_ReturnsNewTokenPair()
+    {
+        // Arrange
+        var service = CreateAuthService();
+        var loginResult = await service.GuestLoginAsync(
+            new GuestLoginRequest { DeviceFingerprint = "refresh_valid_device_0123456789" });
+        var loginResponse = ExtractSuccess(loginResult);
+        Assert.NotNull(loginResponse);
+
+        // Act
+        var refreshResult = await service.RefreshTokenAsync(loginResponse.RefreshToken);
+
+        // Assert
+        LoginResponse? refreshResponse = ExtractSuccess(refreshResult);
+        Assert.NotNull(refreshResponse);
+        Assert.NotEmpty(refreshResponse.Token);
+        Assert.NotEmpty(refreshResponse.RefreshToken);
+        // RefreshTokenはローテーション（新規発行）されるため必ず異なる
+        Assert.NotEqual(loginResponse.RefreshToken, refreshResponse.RefreshToken);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithReusedRefreshToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var service = CreateAuthService();
+        var loginResult = await service.GuestLoginAsync(
+            new GuestLoginRequest { DeviceFingerprint = "refresh_reuse_device_0123456789" });
+        var loginResponse = ExtractSuccess(loginResult);
+        Assert.NotNull(loginResponse);
+
+        var originalRefreshToken = loginResponse.RefreshToken;
+
+        // First refresh (valid — rotates token)
+        await service.RefreshTokenAsync(originalRefreshToken);
+
+        // Act: Reuse the old refresh token (should be invalidated by rotation)
+        var result = await service.RefreshTokenAsync(originalRefreshToken);
+
+        // Assert
+        ApiError? error = ExtractError(result);
+        Assert.NotNull(error);
+        Assert.Equal("INVALID_REFRESH_TOKEN", error.ErrorCode);
+        Assert.Equal(401, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var service = CreateAuthService();
+
+        // Act
+        var result = await service.RefreshTokenAsync("completely_invalid_token");
+
+        // Assert
+        ApiError? error = ExtractError(result);
+        Assert.NotNull(error);
+        Assert.Equal("INVALID_REFRESH_TOKEN", error.ErrorCode);
+    }
+
     internal static TSuccess? ExtractSuccess<TSuccess, TError>(Result<TSuccess, TError> result)
     {
         TSuccess? success = default;

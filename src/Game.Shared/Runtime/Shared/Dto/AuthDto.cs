@@ -113,6 +113,16 @@ namespace Game.Library.Shared.Dto
 
         [Key(4)]
         public string SigningKey { get; set; } = string.Empty;
+
+        [Key(5)]
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    [MessagePackObject]
+    public class RefreshTokenRequest
+    {
+        [Key(0)]
+        public string RefreshToken { get; set; } = string.Empty;
     }
 
     [MessagePackObject]
@@ -135,6 +145,9 @@ namespace Game.Library.Shared.Dto
 
         [Key(5)]
         public string SigningKey { get; set; } = string.Empty;
+
+        [Key(6)]
+        public string RefreshToken { get; set; } = string.Empty;
     }
 
     [MessagePackObject]

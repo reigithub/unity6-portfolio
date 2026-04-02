@@ -7,7 +7,7 @@ public interface IAuthService
 {
     Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request);
 
-    Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(Guid id);
+    Task<Result<LoginResponse, ApiError>> RefreshTokenAsync(string refreshToken);
 
     Task<Result<LoginResponse, ApiError>> GuestLoginAsync(GuestLoginRequest request);
 

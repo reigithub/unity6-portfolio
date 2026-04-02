@@ -14,6 +14,7 @@ public class AuthRepository : IAuthRepository
           ""EmailVerificationToken"", ""EmailVerificationExpiry"",
           ""PasswordResetToken"", ""PasswordResetExpiry"",
           ""FailedLoginAttempts"", ""LockoutEndAt"",
+          ""RefreshTokenHash"", ""RefreshTokenExpiry"",
           ""CreatedAt"", ""UpdatedAt""";
 
     private readonly IDbSession _dbSession;
@@ -257,6 +258,26 @@ public class AuthRepository : IAuthRepository
               SET ""TransferPasswordHash"" = @TransferPasswordHash
               WHERE ""Id"" = @Id",
             new { Id = id, TransferPasswordHash = transferPasswordHash },
+            transaction: _dbSession.Transaction);
+    }
+
+    public async Task UpdateRefreshTokenAsync(Guid id, string? refreshTokenHash, DateTime? expiry)
+    {
+        await _dbSession.Connection.ExecuteAsync(
+            @"UPDATE ""User"".""UserInfo""
+              SET ""RefreshTokenHash"" = @RefreshTokenHash,
+                  ""RefreshTokenExpiry"" = @RefreshTokenExpiry
+              WHERE ""Id"" = @Id",
+            new { Id = id, RefreshTokenHash = refreshTokenHash, RefreshTokenExpiry = expiry },
+            transaction: _dbSession.Transaction);
+    }
+
+    public async Task<UserInfo?> GetByRefreshTokenHashAsync(string refreshTokenHash)
+    {
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
+            $@"SELECT {SelectColumns}
+              FROM ""User"".""UserInfo"" WHERE ""RefreshTokenHash"" = @Hash",
+            new { Hash = refreshTokenHash },
             transaction: _dbSession.Transaction);
     }
 }
