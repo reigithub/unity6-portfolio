@@ -8,22 +8,13 @@ namespace Game.MVP.Core.Services
 {
     /// <summary>
     /// MVP用マスターデータサービス
-    /// VContainerでDIされる、またはコンストラクタインジェクションで使用
+    /// VContainerの[Inject]コンストラクタ、またはAppServiceProviderからの手動生成で使用
     /// </summary>
     public class MasterDataService : MasterDataServiceBase
     {
-        [Inject] private IAddressableAssetService _assetService;
+        private readonly IAddressableAssetService _assetService;
 
-        /// <summary>
-        /// VContainer用のデフォルトコンストラクタ
-        /// </summary>
-        public MasterDataService()
-        {
-        }
-
-        /// <summary>
-        /// 手動インジェクション用コンストラクタ（AppServiceProvider等で使用）
-        /// </summary>
+        [Inject]
         public MasterDataService(IAddressableAssetService assetService)
         {
             _assetService = assetService;

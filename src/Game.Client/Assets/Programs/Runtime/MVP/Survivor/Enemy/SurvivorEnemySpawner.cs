@@ -14,7 +14,6 @@ using R3;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer;
-using Random = UnityEngine.Random;
 
 namespace Game.MVP.Survivor.Enemy
 {
@@ -64,6 +63,12 @@ namespace Game.MVP.Survivor.Enemy
 
         // Services
         private SurvivorStageWaveManager _waveManager;
+
+        /// <summary>
+        /// Wave単位のシードRNG。Wave開始時にステージID＋Wave番号からシードを生成。
+        /// デバッグ再現性の確保と決定論的スポーン位置を実現する。
+        /// </summary>
+        private System.Random _waveRng;
 
         // State
         private bool _isSpawning;
@@ -126,7 +131,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             if (_playerTransforms.Count > 0)
-                return _playerTransforms[Random.Range(0, _playerTransforms.Count)];
+                return _playerTransforms[NextRange(0, _playerTransforms.Count)];
             return _playerTransform;
         }
 
@@ -224,7 +229,11 @@ namespace Game.MVP.Survivor.Enemy
             _remainingSpawnCount = _currentSpawnInfo.EnemyCount;
             _isSpawning = true;
 
-            Debug.Log($"[SurvivorEnemySpawner] Wave started. Enemy types: {_enemySpawnList.Count}, Total: {_remainingSpawnCount}");
+            // Wave単位の決定論的RNGを初期化（同一ステージ・同一Waveで再現可能）
+            var seed = _waveManager.StageId * 10000 + _currentSpawnInfo.WaveNumber;
+            _waveRng = new System.Random(seed);
+
+            Debug.Log($"[SurvivorEnemySpawner] Wave started. Enemy types: {_enemySpawnList.Count}, Total: {_remainingSpawnCount}, RNG Seed: {seed}");
         }
 
         private float GetNetworkDeltaTime()
@@ -504,10 +513,24 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        private float NextRange(float min, float max)
+        {
+            if (_waveRng == null)
+                return UnityEngine.Random.Range(min, max);
+            return (float)(_waveRng.NextDouble() * (max - min) + min);
+        }
+
+        private int NextRange(int min, int maxExclusive)
+        {
+            if (_waveRng == null)
+                return UnityEngine.Random.Range(min, maxExclusive);
+            return _waveRng.Next(min, maxExclusive);
+        }
+
         private bool TryGetRandomSpawnPosition(float minDistance, float maxDistance, out Vector3 position)
         {
-            float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-            float distance = Random.Range(minDistance, maxDistance);
+            float angle = NextRange(0f, 360f) * Mathf.Deg2Rad;
+            float distance = NextRange(minDistance, maxDistance);
 
             Vector3 offset = new Vector3(
                 Mathf.Cos(angle) * distance,
