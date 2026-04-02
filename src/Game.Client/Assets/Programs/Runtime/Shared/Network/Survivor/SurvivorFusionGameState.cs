@@ -399,7 +399,11 @@ namespace Game.Shared.Network.Survivor
         public void OnPlayerDied(string userId)
         {
             if (!HasStateAuthority) return;
-            _deadPlayerIds.Add(userId);
+            if (!_deadPlayerIds.Add(userId))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] Duplicate death for player: {userId}");
+                return;
+            }
             Debug.Log($"[SurvivorFusionGameState] Player died: {userId} ({_deadPlayerIds.Count}/{_totalPlayerCount})");
 
             if (_totalPlayerCount > 0 && _deadPlayerIds.Count >= _totalPlayerCount)
