@@ -109,14 +109,15 @@ namespace Game.MVP.Survivor.Enemy
                 }
             }
 
-            _subscription = subscriber.Subscribe(signal => OnReceived(signal.Enemies));
+            _subscription = subscriber.Subscribe(signal => OnReceived(signal.Enemies, signal.Count));
             Debug.Log($"[SurvivorEnemyView] Initialized: prefabs={_prefabs.Count}");
         }
 
-        private void OnReceived(SurvivorNetworkEnemyStateSnapshot[] enemies)
+        private void OnReceived(SurvivorNetworkEnemyStateSnapshot[] enemies, int count)
         {
-            foreach (var e in enemies)
+            for (int i = 0; i < count; i++)
             {
+                var e = enemies[i];
                 switch (e.SyncType)
                 {
                     case EnemySyncType.Spawn:
@@ -297,7 +298,7 @@ namespace Game.MVP.Survivor.Enemy
                 if (data.GameObject == null || data.IsDead) continue;
 
                 // LODティアを定期的に再分類（FarUpdateInterval毎）
-                if (_camera != null && frameCount % FarUpdateInterval == 0)
+                if (_camera != null && (frameCount + data.FrameOffset) % FarUpdateInterval == 0)
                 {
                     data.LodUpdateInterval = ClassifyLod(data, cameraPos);
                 }

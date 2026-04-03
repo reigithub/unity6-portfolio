@@ -85,10 +85,6 @@ namespace Game.Shared.Network.Survivor
             Session?.SpawnConnectedPlayers(Runner, position, rotation);
         }
 
-        private void OnDestroy()
-        {
-        }
-
         // =====================================================================
         //  INetworkRunnerCallbacks
         // =====================================================================

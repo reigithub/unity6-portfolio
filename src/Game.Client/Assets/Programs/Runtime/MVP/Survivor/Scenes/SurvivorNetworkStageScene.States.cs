@@ -290,6 +290,9 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorNetworkStageScene.VictoryState] Enter");
                 ApplicationEvents.PauseTime();
 
+                // 未送信のDeath/Position をクライアントに即座に同期（GameEnded RPC より先に届ける）
+                View.EnemySpawner?.FlushPendingSync();
+
                 // 残存敵を全クリア＆スポーン停止
                 View.EnemySpawner?.ClearAllEnemies();
 
@@ -309,9 +312,9 @@ namespace Game.MVP.Survivor.Scenes
                 Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
                 await Context._saveService.SaveAsync();
 
-                // クライアントに勝利を通知
+                // クライアントに勝利を通知（確定キル数を含め、バッチ同期遅延による不整合を防止）
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-                    gs.NotifyGameEnded(true, clearTime);
+                    gs.NotifyGameEnded(true, clearTime, kills);
 
                 Debug.Log("[SurvivorNetworkStageScene.VictoryState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();
@@ -331,6 +334,9 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorNetworkStageScene.GameOverState] Enter");
                 ApplicationEvents.PauseTime();
 
+                // 未送信のDeath/Position をクライアントに即座に同期（GameEnded RPC より先に届ける）
+                View.EnemySpawner?.FlushPendingSync();
+
                 // 残存敵を全クリア＆スポーン停止
                 View.EnemySpawner?.ClearAllEnemies();
 
@@ -348,9 +354,9 @@ namespace Game.MVP.Survivor.Scenes
                 Context._saveService.CompleteCurrentStage(score, kills, clearTime, false, false, 0f);
                 await Context._saveService.SaveAsync();
 
-                // クライアントに敗北を通知
+                // クライアントに敗北を通知（確定キル数を含め、バッチ同期遅延による不整合を防止）
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-                    gs.NotifyGameEnded(false, clearTime);
+                    gs.NotifyGameEnded(false, clearTime, kills);
 
                 Debug.Log("[SurvivorNetworkStageScene.GameOverState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();

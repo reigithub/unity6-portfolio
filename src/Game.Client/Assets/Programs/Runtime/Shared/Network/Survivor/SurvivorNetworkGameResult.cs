@@ -37,6 +37,7 @@ namespace Game.Shared.Network.Survivor
     {
         public bool IsVictory;
         public float ClearTime;
+        public int TotalKills;
 
         public static SurvivorNetworkGameResult FromDto(GameResultSnapshot dto)
         {

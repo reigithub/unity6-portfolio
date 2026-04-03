@@ -60,6 +60,7 @@ namespace Game.MVP.Survivor.Enemy
         private readonly Dictionary<int, Queue<SurvivorEnemyController>> _pools = new();
         private readonly Dictionary<int, GameObject> _enemyPrefabs = new();
         private readonly List<SurvivorEnemyController> _activeEnemies = new();
+        private readonly Dictionary<int, int> _activeCountByEnemyId = new();
 
         // Services
         private SurvivorStageWaveManager _waveManager;
@@ -295,6 +296,24 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        /// <summary>
+        /// 未送信の敵状態（Spawn/Death含む）を即座にネットワーク同期する。
+        /// ゲーム終了直前に呼び出し、クライアントに全Deathが届くことを保証する。
+        /// </summary>
+        public void FlushPendingSync()
+        {
+            Debug.Log($"[SurvivorEnemySpawner] FlushPendingSync: active={_activeEnemies.Count}, pendingDeaths={_pendingDeaths.Count}");
+            if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
+            {
+                SyncEnemyStatesToNetwork(batchSync);
+                Debug.Log("[SurvivorEnemySpawner] FlushPendingSync: sync completed");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorEnemySpawner] FlushPendingSync: batchSync not found");
+            }
+        }
+
         private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             if (_activeEnemies.Count == 0 && _pendingDeaths.Count == 0)
@@ -431,6 +450,7 @@ namespace Game.MVP.Survivor.Enemy
                 _enemyByNetworkId[networkId] = enemy;
                 enemy.SetNetworkId(networkId);
                 _activeEnemies.Add(enemy);
+                IncrementActiveCount(enemy.EnemyId);
                 _remainingSpawnCount--;
                 _spawnTimer = spawnInfo.SpawnInterval;
                 _currentSpawnIndex++;
@@ -467,14 +487,19 @@ namespace Game.MVP.Survivor.Enemy
         /// </summary>
         private int GetActiveCountByEnemyId(int enemyId)
         {
-            int count = 0;
-            foreach (var enemy in _activeEnemies)
-            {
-                if (enemy != null && !enemy.IsDead && enemy.EnemyId == enemyId)
-                    count++;
-            }
+            return _activeCountByEnemyId.TryGetValue(enemyId, out var count) ? count : 0;
+        }
 
-            return count;
+        private void IncrementActiveCount(int enemyId)
+        {
+            _activeCountByEnemyId.TryGetValue(enemyId, out var count);
+            _activeCountByEnemyId[enemyId] = count + 1;
+        }
+
+        private void DecrementActiveCount(int enemyId)
+        {
+            if (_activeCountByEnemyId.TryGetValue(enemyId, out var count) && count > 0)
+                _activeCountByEnemyId[enemyId] = count - 1;
         }
 
         /// <summary>
@@ -635,6 +660,7 @@ namespace Game.MVP.Survivor.Enemy
             }
             _enemyNetworkIds.Remove(enemy);
             _activeEnemies.Remove(enemy);
+            DecrementActiveCount(enemy.EnemyId);
             ReturnToPool(enemy);
         }
 
@@ -663,6 +689,7 @@ namespace Game.MVP.Survivor.Enemy
             }
             _enemyNetworkIds.Remove(enemy);
             _activeEnemies.Remove(enemy);
+            DecrementActiveCount(enemy.EnemyId);
             _onEnemyKilled.OnNext(enemy);
 
             // 死亡アニメーション再生後にプールに戻す（マスターデータから時間を取得）
@@ -702,6 +729,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             _activeEnemies.Clear();
+            _activeCountByEnemyId.Clear();
             _nextNetworkId = 0;
             _enemyNetworkIds.Clear();
             _enemyByNetworkId.Clear();

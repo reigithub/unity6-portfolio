@@ -296,7 +296,16 @@ namespace Game.MVP.Survivor.Scenes
                 _waveManager.SetWaveFromServer(s.WaveNumber, s.WaveNumber + 1);
             }).AddTo(Disposables);
 
-            _gameEndedSub.Subscribe(s => _stageModel.SetNetworkResult(s.Result)).AddTo(Disposables);
+            _gameEndedSub.Subscribe(s =>
+            {
+                // サーバーの確定キル数でクライアントのカウントを上書き（バッチ同期遅延による不整合を防止）
+                if (s.Result.TotalKills > 0)
+                {
+                    _stageModel.TotalKills.Value = s.Result.TotalKills;
+                }
+                Debug.Log($"[SurvivorStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
+                _stageModel.SetNetworkResult(s.Result);
+            }).AddTo(Disposables);
 
             _enemyKilledSub.Subscribe(s =>
             {
@@ -307,12 +316,18 @@ namespace Game.MVP.Survivor.Scenes
 
             _enemyBatchSub.Subscribe(signal =>
             {
-                foreach (var e in signal.Enemies)
+                int deathCount = 0;
+                for (int i = 0; i < signal.Count; i++)
                 {
-                    if (e.SyncType == EnemySyncType.Death)
+                    if (signal.Enemies[i].SyncType == EnemySyncType.Death)
                     {
                         _waveManager.IncrementClientKillCount();
+                        deathCount++;
                     }
+                }
+                if (deathCount > 0)
+                {
+                    Debug.Log($"[SurvivorStageScene] BatchUpdated: deaths={deathCount}, clientKills={_stageModel.TotalKills.Value}");
                 }
             }).AddTo(Disposables);
 

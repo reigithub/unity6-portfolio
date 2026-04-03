@@ -17,14 +17,19 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IFusionRunnerService _runnerService;
         [Inject] private IPublisher<SurvivorSignals.Enemy.BatchUpdated> _enemyBatchPub;
 
+        private const int MaxEnemies = 512;
+
         [Networked] public int ActiveCount { get; set; }
-        [Networked, Capacity(512)]
+        [Networked, Capacity(MaxEnemies)]
         public NetworkArray<SurvivorEnemyStateData> EnemyStates => default;
 
         private ChangeDetector _changeDetector;
+        private SurvivorNetworkEnemyStateSnapshot[] _snapshotBuffer;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private bool _hasLoggedFirstWrite;
         private bool _hasLoggedFirstPublish;
+#endif
 
         public override void Spawned()
         {
@@ -32,6 +37,7 @@ namespace Game.Shared.Network.Survivor
 
             _runnerService?.Register(this);
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+            _snapshotBuffer = new SurvivorNetworkEnemyStateSnapshot[MaxEnemies];
             Debug.Log($"[SurvivorFusionEnemyBatchSync] Spawned (StateAuth={HasStateAuthority}, Injected={_enemyBatchPub != null})");
         }
 
@@ -45,12 +51,14 @@ namespace Game.Shared.Network.Survivor
         {
             if (!HasStateAuthority) return;
 
-            ActiveCount = Mathf.Min(snapshots.Length, 512);
+            ActiveCount = Mathf.Min(snapshots.Length, MaxEnemies);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!_hasLoggedFirstWrite)
             {
                 _hasLoggedFirstWrite = true;
                 Debug.Log($"[SurvivorFusionEnemyBatchSync] First WriteEnemyStates: count={ActiveCount}");
             }
+#endif
             for (int i = 0; i < ActiveCount; i++)
             {
                 var s = snapshots[i];
@@ -87,11 +95,10 @@ namespace Game.Shared.Network.Survivor
         private void PublishBatch()
         {
             var count = ActiveCount;
-            var snapshots = new SurvivorNetworkEnemyStateSnapshot[count];
             for (int i = 0; i < count; i++)
             {
                 var e = EnemyStates[i];
-                snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
+                _snapshotBuffer[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = e.NetworkId,
                     EnemyMasterId = e.EnemyMasterId,
@@ -105,12 +112,14 @@ namespace Game.Shared.Network.Survivor
                     SyncTypeByte = e.SyncTypeByte,
                 };
             }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!_hasLoggedFirstPublish)
             {
                 _hasLoggedFirstPublish = true;
                 Debug.Log($"[SurvivorFusionEnemyBatchSync] First ChangeDetector publish: count={count}");
             }
-            _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(snapshots));
+#endif
+            _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(_snapshotBuffer, count));
         }
     }
 }
