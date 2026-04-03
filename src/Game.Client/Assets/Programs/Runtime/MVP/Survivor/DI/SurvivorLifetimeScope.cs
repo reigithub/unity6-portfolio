@@ -178,9 +178,18 @@ namespace Game.MVP.Survivor
 
 #if !UNITY_SERVER
             // ========================================
-            // Local Server Orchestrator（SP モード用）
+            // Local Server Orchestrator（UseLocalServerOrchestrator 有効時のみ実体を生成）
             // ========================================
-            builder.Register<LocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+            if (GameEnvironmentHelper.CurrentConfig?.UseLocalServerOrchestrator == true)
+            {
+                builder.Register<LocalServerOrchestrator>(Lifetime.Singleton)
+                    .As<ILocalServerOrchestrator>();
+            }
+            else
+            {
+                builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton)
+                    .As<ILocalServerOrchestrator>();
+            }
 #endif
 
             // Game Runner (Entry Point)

@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Fusion;
+using Fusion.Sockets;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -55,7 +56,7 @@ namespace Game.Shared.Network.Survivor
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var result = await _runner.StartAsync(GameMode.Host, sessionName);
+                var result = await _runner.StartAsync(GameMode.Host, sessionName, NetAddress.Any());
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Host start failed: {result.ShutdownReason}");
 
@@ -82,7 +83,7 @@ namespace Game.Shared.Network.Survivor
 
                 EnsureRunner();
 
-                var result = await _runner.StartAsync(GameMode.Client, sessionName);
+                var result = await _runner.StartAsync(GameMode.Client, sessionName, NetAddress.Any());
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Client connect failed: {result.ShutdownReason}");
 
@@ -110,7 +111,8 @@ namespace Game.Shared.Network.Survivor
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var result = await _runner.StartAsync(GameMode.Server, sessionName);
+                var serverPort = SurvivorNetworkMatchConnector.ServerPort;
+                var result = await _runner.StartAsync(GameMode.Server, sessionName, NetAddress.Any(serverPort));
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Server start failed: {result.ShutdownReason}");
 

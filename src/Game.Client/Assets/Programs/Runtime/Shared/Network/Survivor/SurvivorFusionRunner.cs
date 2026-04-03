@@ -39,9 +39,10 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// Fusion セッションを開始する。
+        /// Server: NetAddress.Any(port) でバインド。Client: NetAddress.Any() で自動割り当て。
         /// </summary>
         public async Cysharp.Threading.Tasks.UniTask<StartGameResult> StartAsync(
-            GameMode gameMode, string sessionName)
+            GameMode gameMode, string sessionName, NetAddress address)
         {
             Runner = gameObject.AddComponent<NetworkRunner>();
             Runner.ProvideInput = gameMode != GameMode.Server;
@@ -60,13 +61,14 @@ namespace Game.Shared.Network.Survivor
             {
                 GameMode = gameMode,
                 SessionName = sessionName,
+                Address = address,
                 SceneManager = sceneManager,
                 ObjectProvider = objectProvider,
             });
 
             if (result.Ok)
             {
-                Debug.Log($"[SurvivorFusionRunner] Session started: mode={gameMode}, session={sessionName}");
+                Debug.Log($"[SurvivorFusionRunner] Session started: mode={gameMode}, session={sessionName}, address={address}");
             }
             else
             {
