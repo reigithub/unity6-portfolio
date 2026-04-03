@@ -550,11 +550,13 @@ namespace Game.MVP.Survivor.Scenes
                 // クリア記録を保存
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
+                var totalKillsRaw = StageModel.TotalKills.Value;
+                var totalTargetKills = Context._waveManager.TotalTargetKills;
                 var clearTime = StageModel.GameTime.Value;
                 var isTimeUp = StageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
-                Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
+                Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
 
                 Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
                 await Context._saveService.SaveAsync();

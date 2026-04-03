@@ -296,6 +296,24 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        /// <summary>
+        /// 未送信の敵状態（Spawn/Death含む）を即座にネットワーク同期する。
+        /// ゲーム終了直前に呼び出し、クライアントに全Deathが届くことを保証する。
+        /// </summary>
+        public void FlushPendingSync()
+        {
+            Debug.Log($"[SurvivorEnemySpawner] FlushPendingSync: active={_activeEnemies.Count}, pendingDeaths={_pendingDeaths.Count}");
+            if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
+            {
+                SyncEnemyStatesToNetwork(batchSync);
+                Debug.Log("[SurvivorEnemySpawner] FlushPendingSync: sync completed");
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorEnemySpawner] FlushPendingSync: batchSync not found");
+            }
+        }
+
         private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             if (_activeEnemies.Count == 0 && _pendingDeaths.Count == 0)

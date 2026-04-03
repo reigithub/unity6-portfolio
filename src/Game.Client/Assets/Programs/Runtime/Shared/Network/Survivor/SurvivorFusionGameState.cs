@@ -288,20 +288,21 @@ namespace Game.Shared.Network.Survivor
         // =====================================================================
 
         /// <summary>サーバー側: ゲーム終了を通知</summary>
-        public void NotifyGameEnded(bool isVictory, float clearTime)
+        public void NotifyGameEnded(bool isVictory, float clearTime, int totalKills = 0)
         {
             if (!HasStateAuthority) return;
-            RpcNotifyGameEnded(isVictory, clearTime);
+            RpcNotifyGameEnded(isVictory, clearTime, totalKills);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyGameEnded(NetworkBool isVictory, float clearTime)
+        public void RpcNotifyGameEnded(NetworkBool isVictory, float clearTime, int totalKills)
         {
-            Debug.Log($"[SurvivorFusionGameState] GameEnded: victory={isVictory}");
+            Debug.Log($"[SurvivorFusionGameState] GameEnded: victory={isVictory}, totalKills={totalKills}");
             var result = new SurvivorNetworkGameResult
             {
                 IsVictory = isVictory,
-                ClearTime = clearTime
+                ClearTime = clearTime,
+                TotalKills = totalKills,
             };
             _gameEndedPub?.Publish(new SurvivorSignals.Game.Ended(result));
         }
