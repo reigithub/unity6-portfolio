@@ -17,7 +17,7 @@ public class MatchmakingProcessorTests
     private readonly Mock<ISubscriber> _subscriberMock;
     private readonly Mock<ILogger<MatchmakingProcessor>> _loggerMock;
     private readonly MatchmakingConfiguration _config;
-    private readonly GameServerConfiguration _gameServerConfig;
+    private readonly UnityServerConfiguration _unityServerConfig;
 
     public MatchmakingProcessorTests()
     {
@@ -38,7 +38,7 @@ public class MatchmakingProcessorTests
             },
         };
 
-        _gameServerConfig = new GameServerConfiguration
+        _unityServerConfig = new UnityServerConfiguration
         {
             ServerAddress = "localhost",
             ServerPort = 7777,
@@ -52,7 +52,7 @@ public class MatchmakingProcessorTests
             _tokenServiceMock.Object,
             _redisMock.Object,
             Options.Create(_config),
-            Options.Create(_gameServerConfig),
+            Options.Create(_unityServerConfig),
             _loggerMock.Object);
     }
 

@@ -19,7 +19,7 @@ public class LobbyHubTests
     private readonly Mock<ILogger<LobbyHub>> _mockLogger;
     private readonly Mock<ILobbyDataService> _mockLobbyDataService;
     private readonly Mock<IMatchSessionTokenService> _mockTokenService;
-    private readonly IOptions<GameServerConfiguration> _gameServerConfig;
+    private readonly IOptions<UnityServerConfiguration> _unityServerConfig;
     private readonly Mock<ILobbyValidator> _mockLobbyValidator;
 
     public LobbyHubTests()
@@ -27,7 +27,7 @@ public class LobbyHubTests
         _mockLogger = new Mock<ILogger<LobbyHub>>();
         _mockLobbyDataService = new Mock<ILobbyDataService>();
         _mockTokenService = new Mock<IMatchSessionTokenService>();
-        _gameServerConfig = Options.Create(new GameServerConfiguration());
+        _unityServerConfig = Options.Create(new UnityServerConfiguration());
         _mockLobbyValidator = new Mock<ILobbyValidator>();
     }
 
@@ -35,7 +35,7 @@ public class LobbyHubTests
     {
         return new LobbyHub(
             _mockLogger.Object, _mockLobbyDataService.Object, _mockTokenService.Object,
-            _gameServerConfig, _mockLobbyValidator.Object);
+            _unityServerConfig, _mockLobbyValidator.Object);
     }
 
     [Fact]

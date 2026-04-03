@@ -20,7 +20,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private readonly ILogger<LobbyHub> _logger;
     private readonly ILobbyDataService _lobbyDataService;
     private readonly IMatchSessionTokenService _tokenService;
-    private readonly GameServerConfiguration _gameServerConfig;
+    private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
 
     // lobby ごとの userId → ConnectionId マッピング（Hub はリクエストごとにインスタンス生成のため static）
@@ -36,13 +36,13 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
         IMatchSessionTokenService tokenService,
-        IOptions<GameServerConfiguration> gameServerConfig,
+        IOptions<UnityServerConfiguration> unityServerConfig,
         ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
         _tokenService = tokenService;
-        _gameServerConfig = gameServerConfig.Value;
+        _unityServerConfig = unityServerConfig.Value;
         _lobbyValidator = lobbyValidator;
     }
 
@@ -179,7 +179,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {
                 _currentGroup.Only(new[] { connId }).OnGameStarting(
-                    matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort, token);
+                    matchId, _unityServerConfig.ServerAddress, _unityServerConfig.ServerPort, token);
             }
         }
 

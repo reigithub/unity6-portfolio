@@ -34,9 +34,9 @@ public static class RealtimeServiceExtensions
         services.Configure<MatchmakingConfiguration>(
             configuration.GetSection("Matchmaking"));
 
-        // Game Server Configuration
-        services.Configure<GameServerConfiguration>(
-            configuration.GetSection("GameServer"));
+        // Unity Dedicated Server Configuration
+        services.Configure<UnityServerConfiguration>(
+            configuration.GetSection("UnityServer"));
 
         // Unity Server Auth Settings (HMAC 署名用シークレット)
         services.Configure<UnityServerAuthSettings>(

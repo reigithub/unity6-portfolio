@@ -257,7 +257,7 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 |-----|------|
 | JWT認証 | 共通の認証ミドルウェア設定（トークン検証、userId抽出） |
 | ヘルスチェック | `/health` エンドポイント共通実装 |
-| 設定クラス | GameServerConfiguration 等の共通設定 |
+| 設定クラス | UnityServerConfiguration 等の共通設定 |
 | 拡張メソッド | ClaimsPrincipal からの userId 取得など |
 
 ### 3.4 プロジェクト間依存関係

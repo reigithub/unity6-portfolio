@@ -15,7 +15,7 @@ public class MatchmakingProcessor : BackgroundService
     private readonly IMatchSessionTokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
     private readonly MatchmakingConfiguration _config;
-    private readonly GameServerConfiguration _gameServerConfig;
+    private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILogger<MatchmakingProcessor> _logger;
 
     public MatchmakingProcessor(
@@ -23,14 +23,14 @@ public class MatchmakingProcessor : BackgroundService
         IMatchSessionTokenService tokenService,
         IConnectionMultiplexer redis,
         IOptions<MatchmakingConfiguration> config,
-        IOptions<GameServerConfiguration> gameServerConfig,
+        IOptions<UnityServerConfiguration> unityServerConfig,
         ILogger<MatchmakingProcessor> logger)
     {
         _queueService = queueService;
         _tokenService = tokenService;
         _redis = redis;
         _config = config.Value;
-        _gameServerConfig = gameServerConfig.Value;
+        _unityServerConfig = unityServerConfig.Value;
         _logger = logger;
     }
 
@@ -286,8 +286,8 @@ public class MatchmakingProcessor : BackgroundService
             {
                 MatchId = matchId,
                 PlayerIds = playerIds,
-                ServerAddress = _gameServerConfig.ServerAddress,
-                ServerPort = _gameServerConfig.ServerPort,
+                ServerAddress = _unityServerConfig.ServerAddress,
+                ServerPort = _unityServerConfig.ServerPort,
                 SessionToken = token,
                 StageId = stageId,
             };
