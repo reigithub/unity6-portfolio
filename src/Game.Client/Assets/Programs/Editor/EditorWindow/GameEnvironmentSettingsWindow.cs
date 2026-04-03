@@ -120,6 +120,7 @@ namespace Game.Editor
             EditorGUILayout.Toggle("Debug Log", config.EnableDebugLog);
             EditorGUILayout.Toggle("Analytics", config.EnableAnalytics);
             EditorGUILayout.Toggle("Local Master Data", config.UseLocalMasterData);
+            EditorGUILayout.Toggle("Local Server Orchestrator", config.UseLocalServerOrchestrator);
             EditorGUI.EndDisabledGroup();
         }
 

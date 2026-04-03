@@ -22,6 +22,7 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _useLocalServerOrchestrator: 0
     _addressablesConfig:
       _profileName: Default
       _useRemoteLoadPath: 0
@@ -34,6 +35,7 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _useLocalServerOrchestrator: 0
     _addressablesConfig:
       _profileName: Develop-R2
       _useRemoteLoadPath: 1
@@ -46,6 +48,7 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _useLocalServerOrchestrator: 0
     _addressablesConfig:
       _profileName: Staging-R2
       _useRemoteLoadPath: 1
@@ -58,6 +61,7 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _useLocalServerOrchestrator: 0
     _addressablesConfig:
       _profileName: Review-R2
       _useRemoteLoadPath: 1
@@ -70,6 +74,7 @@ MonoBehaviour:
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
+    _useLocalServerOrchestrator: 0
     _addressablesConfig:
       _profileName: Release-R2
       _useRemoteLoadPath: 1
