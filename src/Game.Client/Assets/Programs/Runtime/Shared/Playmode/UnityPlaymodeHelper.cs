@@ -20,7 +20,7 @@ namespace Game.Shared.Playmode
 #if UNITY_SERVER
             return false;
 #elif UNITY_EDITOR
-            return Multiplayer.MppmHelper.IsClient();
+            return Multiplayer.MppmHelper.IsClient() || !Multiplayer.MppmHelper.IsActive();
 #else
             return true;
 #endif
