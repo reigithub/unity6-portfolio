@@ -26,8 +26,10 @@ namespace Game.Shared.Network.Survivor
         private ChangeDetector _changeDetector;
         private SurvivorNetworkEnemyStateSnapshot[] _snapshotBuffer;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private bool _hasLoggedFirstWrite;
         private bool _hasLoggedFirstPublish;
+#endif
 
         public override void Spawned()
         {
@@ -50,11 +52,13 @@ namespace Game.Shared.Network.Survivor
             if (!HasStateAuthority) return;
 
             ActiveCount = Mathf.Min(snapshots.Length, MaxEnemies);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!_hasLoggedFirstWrite)
             {
                 _hasLoggedFirstWrite = true;
                 Debug.Log($"[SurvivorFusionEnemyBatchSync] First WriteEnemyStates: count={ActiveCount}");
             }
+#endif
             for (int i = 0; i < ActiveCount; i++)
             {
                 var s = snapshots[i];
@@ -108,11 +112,13 @@ namespace Game.Shared.Network.Survivor
                     SyncTypeByte = e.SyncTypeByte,
                 };
             }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!_hasLoggedFirstPublish)
             {
                 _hasLoggedFirstPublish = true;
                 Debug.Log($"[SurvivorFusionEnemyBatchSync] First ChangeDetector publish: count={count}");
             }
+#endif
             _enemyBatchPub?.Publish(new SurvivorSignals.Enemy.BatchUpdated(_snapshotBuffer, count));
         }
     }

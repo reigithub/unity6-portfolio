@@ -166,6 +166,16 @@ namespace Game.MVP.Survivor.Player
 
         #region Initialize
 
+        private void ApplyMovementParams(SurvivorPlayerLevelMaster levelMaster)
+        {
+            _jogSpeed = levelMaster.MoveSpeed.ToUnit();
+            _runSpeed = levelMaster.RunSpeed.ToUnit();
+            _pickupRange = levelMaster.PickupRange.ToUnit();
+            _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
+            _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
+            _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
+        }
+
         /// <summary>
         /// マスターデータから初期化
         /// </summary>
@@ -173,13 +183,7 @@ namespace Game.MVP.Survivor.Player
         {
             _runnerService.TryGet(out _gameState);
 
-            // 移動/アイテム関連（Controller が使用）
-            _jogSpeed = levelMaster.MoveSpeed.ToUnit();
-            _runSpeed = levelMaster.RunSpeed.ToUnit();
-            _pickupRange = levelMaster.PickupRange.ToUnit();
-            _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
-            _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
-            _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
+            ApplyMovementParams(levelMaster);
 
             // ゲームロジック関連（FusionPlayer が [Networked] で管理）
             if (_fusionPlayer != null)
@@ -219,13 +223,7 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         public void UpdateLevelStats(SurvivorPlayerLevelMaster levelMaster)
         {
-            // 移動/アイテム関連
-            _jogSpeed = levelMaster.MoveSpeed.ToUnit();
-            _runSpeed = levelMaster.RunSpeed.ToUnit();
-            _pickupRange = levelMaster.PickupRange.ToUnit();
-            _itemAttractDistance = levelMaster.ItemAttractDistance.ToUnit();
-            _itemAttractSpeed = levelMaster.ItemAttractSpeed.ToUnit();
-            _itemCollectDistance = levelMaster.ItemCollectDistance.ToUnit();
+            ApplyMovementParams(levelMaster);
 
             // FusionPlayer のレートとステータスを更新
             if (_fusionPlayer != null)
