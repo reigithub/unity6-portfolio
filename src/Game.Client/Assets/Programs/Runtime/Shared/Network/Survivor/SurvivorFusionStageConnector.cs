@@ -158,26 +158,18 @@ namespace Game.Shared.Network.Survivor
 
         private async UniTask PreloadPrefabsAsync()
         {
-            if (_gameStatePrefabAsset == null)
-            {
-                _gameStatePrefabAsset = await _assetService.LoadAssetAsync<GameObject>(GameStateAddress);
-                if (_gameStatePrefabAsset == null)
-                    Debug.LogError($"[SurvivorFusionStageConnector] Failed to load: {GameStateAddress}");
-            }
+            _gameStatePrefabAsset = await LoadPrefabIfNeededAsync(GameStateAddress, _gameStatePrefabAsset);
+            _playerPrefabAsset = await LoadPrefabIfNeededAsync(PlayerAddress, _playerPrefabAsset);
+            _enemyBatchSyncPrefabAsset = await LoadPrefabIfNeededAsync(EnemyBatchSyncAddress, _enemyBatchSyncPrefabAsset);
+        }
 
-            if (_playerPrefabAsset == null)
-            {
-                _playerPrefabAsset = await _assetService.LoadAssetAsync<GameObject>(PlayerAddress);
-                if (_playerPrefabAsset == null)
-                    Debug.LogError($"[SurvivorFusionStageConnector] Failed to load: {PlayerAddress}");
-            }
-
-            if (_enemyBatchSyncPrefabAsset == null)
-            {
-                _enemyBatchSyncPrefabAsset = await _assetService.LoadAssetAsync<GameObject>(EnemyBatchSyncAddress);
-                if (_enemyBatchSyncPrefabAsset == null)
-                    Debug.LogError($"[SurvivorFusionStageConnector] Failed to load: {EnemyBatchSyncAddress}");
-            }
+        private async UniTask<GameObject> LoadPrefabIfNeededAsync(string address, GameObject current)
+        {
+            if (current != null) return current;
+            var loaded = await _assetService.LoadAssetAsync<GameObject>(address);
+            if (loaded == null)
+                Debug.LogError($"[SurvivorFusionStageConnector] Failed to load: {address}");
+            return loaded;
         }
 
         private void ReleasePrefabs()

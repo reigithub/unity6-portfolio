@@ -19,13 +19,19 @@ namespace Game.Shared.Network.Survivor
     {
         [Inject] private IFusionRunnerService _runnerService;
 
-        // --- MessagePipe Publishers (VContainer InjectGameObject で解決) ---
+        // --- MessagePipe Publishers ---
+        // VContainer InjectGameObject で解決される。
+        // サーバー専用 Publisher はクライアントDIスコープで null になるため、
+        // 各 RPC 内で null 条件演算子（?.）でガードしている。
 
+        // Player
         [Inject] private IPublisher<SurvivorSignals.Player.DamageReceived> _playerDamagedPub;
         [Inject] private IPublisher<SurvivorSignals.Player.Died> _playerDiedPub;
         [Inject] private IPublisher<SurvivorSignals.Player.ItemCollected> _itemCollectedPub;
         [Inject] private IPublisher<SurvivorSignals.Player.LeveledUp> _playerLeveledUpPub;
         [Inject] private IPublisher<SurvivorSignals.Player.WeaponChanged> _weaponChangedPub;
+
+        // Enemy / Wave / Game
         [Inject] private IPublisher<SurvivorSignals.Enemy.Killed> _enemyKilledPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.Started> _waveStartedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveClearedPub;
@@ -34,13 +40,17 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+
+        // Connection / Session
         [Inject] private IPublisher<SurvivorSignals.Connection.PlayerConnected> _playerConnectedPub;
         [Inject] private IPublisher<SurvivorSignals.Connection.PlayerDisconnected> _playerDisconnectedPub;
-        [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
-        [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedPub;
+
+        // Weapon / Item（サーバー側: クライアントRPCからのイベント中継）
+        [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
+        [Inject] private IPublisher<SurvivorSignals.Weapon.ApplyRequested> _weaponApplyPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Spawned> _itemSpawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.Despawned> _itemDespawnedPub;
         [Inject] private IPublisher<SurvivorSignals.Item.CollectReported> _itemCollectReportedPub;
@@ -135,7 +145,12 @@ namespace Game.Shared.Network.Survivor
         //  ウェーブイベント
         // =====================================================================
 
-        /// <summary>サーバー側: ウェーブ開始を全クライアントに通知</summary>
+        /// <summary>
+        /// サーバー側: ウェーブ開始を全クライアントに通知。
+        /// [Networked] プロパティを直接更新し、ChangeDetector (Render) で検知・Publish する方式。
+        /// 遅延参加クライアントが CurrentWave/WaveTargetKills/WaveTotalEnemies を即座に取得できるため、
+        /// 状態同期が必要な情報はこのパターンを使用する。
+        /// </summary>
         public void NotifyWaveStarted(int waveNumber, int targetKills, int totalEnemies)
         {
             if (!HasStateAuthority) return;
@@ -145,7 +160,11 @@ namespace Game.Shared.Network.Survivor
             // ChangeDetector (Render) が CurrentWave 変更を検知して _waveStartedPub に Publish
         }
 
-        /// <summary>サーバー側: ウェーブクリアを全クライアントに通知</summary>
+        /// <summary>
+        /// サーバー側: ウェーブクリアを全クライアントに通知。
+        /// RPC で明示的にブロードキャストする方式。
+        /// クリアスコアなど一時的なイベントデータ（状態として保持不要）はこのパターンを使用する。
+        /// </summary>
         public void NotifyWaveCompleted(int waveNumber, int nextWaveNumber, int waveClearScore)
         {
             if (!HasStateAuthority) return;

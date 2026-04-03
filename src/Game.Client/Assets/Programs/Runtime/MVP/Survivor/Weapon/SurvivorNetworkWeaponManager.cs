@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.Weapon
         [Inject] private readonly IMasterDataService _masterDataService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
-        private readonly List<NetworkWeaponSlot> _weapons = new();
+        private readonly Dictionary<int, NetworkWeaponSlot> _weapons = new();
         private float _damageMultiplier = 1f;
 
         private const float PierceDetectionRadius = 0.5f;
@@ -43,8 +43,7 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public bool AddWeapon(int weaponId)
         {
-            var existing = _weapons.Find(w => w.WeaponId == weaponId);
-            if (existing != null)
+            if (_weapons.TryGetValue(weaponId, out var existing))
             {
                 return UpgradeWeapon(weaponId);
             }
@@ -72,7 +71,7 @@ namespace Game.MVP.Survivor.Weapon
             };
 
             ApplyLevel(slot, levelMasters, 1);
-            _weapons.Add(slot);
+            _weapons[weaponId] = slot;
 
             Debug.Log($"[SurvivorNetworkWeaponManager] Added weapon: {weaponMaster.Name} Lv.1");
             return true;
@@ -83,8 +82,7 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public bool UpgradeWeapon(int weaponId)
         {
-            var slot = _weapons.Find(w => w.WeaponId == weaponId);
-            if (slot == null) return false;
+            if (!_weapons.TryGetValue(weaponId, out var slot)) return false;
 
             int nextLevel = slot.Level + 1;
             if (nextLevel > slot.MaxLevel)
@@ -108,14 +106,13 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public bool ReplaceWeapon(int removeWeaponId, int newWeaponId)
         {
-            var removeSlot = _weapons.Find(w => w.WeaponId == removeWeaponId);
-            if (removeSlot == null)
+            if (!_weapons.TryGetValue(removeWeaponId, out var removeSlot))
             {
                 Debug.LogError($"[SurvivorNetworkWeaponManager] Weapon to remove not found: {removeWeaponId}");
                 return false;
             }
 
-            _weapons.Remove(removeSlot);
+            _weapons.Remove(removeWeaponId);
             Debug.Log($"[SurvivorNetworkWeaponManager] Removed weapon: {removeSlot.Name}");
 
             return AddWeapon(newWeaponId);
@@ -126,8 +123,7 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         public bool TryGetWeaponById(int weaponId, out NetworkWeaponSlot slot)
         {
-            slot = _weapons.Find(w => w.WeaponId == weaponId);
-            return slot != null;
+            return _weapons.TryGetValue(weaponId, out slot);
         }
 
         /// <summary>
@@ -136,7 +132,7 @@ namespace Game.MVP.Survivor.Weapon
         public void UpdateDamageMultiplier(float multiplier)
         {
             _damageMultiplier = multiplier;
-            foreach (var slot in _weapons)
+            foreach (var slot in _weapons.Values)
             {
                 slot.DamageMultiplier = multiplier;
             }
@@ -174,7 +170,7 @@ namespace Game.MVP.Survivor.Weapon
             var options = new List<SurvivorWeaponUpgradeOption>();
 
             // 既存武器のアップグレード（最大レベル未満のみ）
-            foreach (var slot in _weapons)
+            foreach (var slot in _weapons.Values)
             {
                 if (slot.Level >= slot.MaxLevel) continue;
 
@@ -200,7 +196,7 @@ namespace Game.MVP.Survivor.Weapon
             var allWeapons = MemoryDatabase.SurvivorWeaponMasterTable.All;
             foreach (var weaponMaster in allWeapons)
             {
-                if (_weapons.Any(w => w.WeaponId == weaponMaster.Id)) continue;
+                if (_weapons.ContainsKey(weaponMaster.Id)) continue;
 
                 options.Add(new SurvivorWeaponUpgradeOption
                 {

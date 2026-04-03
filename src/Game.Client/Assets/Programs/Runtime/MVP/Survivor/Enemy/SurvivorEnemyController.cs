@@ -182,8 +182,9 @@ namespace Game.MVP.Survivor.Enemy
             InitializeStateMachine();
         }
 
-        // NavMesh 復帰チェック間隔
         private const float NavMeshCheckInterval = 1f;
+        private const float UnreachableTimeout = 5f;
+        private const float NavMeshSearchRadius = 50f;
         private float _navMeshCheckTimer;
 
         private float _unreachableTimer;
@@ -203,7 +204,7 @@ namespace Game.MVP.Survivor.Enemy
                 if (_navAgent.isOnNavMesh && !_navAgent.hasPath && !_navAgent.pathPending)
                 {
                     _unreachableTimer += Time.deltaTime;
-                    if (_unreachableTimer > 5f)
+                    if (_unreachableTimer > UnreachableTimeout)
                     {
                         _unreachableTimer = 0f;
                         // キルカウントに加算させずに静かに回収（PerformDeath は使わない）
@@ -231,7 +232,7 @@ namespace Game.MVP.Survivor.Enemy
                     if (!_navAgent.isOnNavMesh)
                     {
                         // 広範囲で NavMesh を探索し、見つからなければ即座にデスポーン
-                        if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, 50f, UnityEngine.AI.NavMesh.AllAreas))
+                        if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out var hit, NavMeshSearchRadius, UnityEngine.AI.NavMesh.AllAreas))
                         {
                             _navAgent.Warp(hit.position);
                         }

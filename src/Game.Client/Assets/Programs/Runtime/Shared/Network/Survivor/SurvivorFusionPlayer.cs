@@ -110,7 +110,7 @@ namespace Game.Shared.Network.Survivor
                 Debug.LogWarning($"[SurvivorFusionPlayer] NotifyDamaged: _runnerService is NULL");
                 return;
             }
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.NotifyPlayerDamaged(damage, Health);
             }
@@ -249,15 +249,15 @@ namespace Game.Shared.Network.Survivor
             {
                 _ticksSinceLastInput++;
 
-                // 入力受信前、またはタイムアウト閾値超過時にゼロ入力を設定。
-                // 1-2tickの一時的な入力途絶では KCC の既存入力を維持し、
-                // クライアント予測との乖離を防ぐ��
-                if ((!_inputReceived || _ticksSinceLastInput > InputTimeoutTicks) && _kcc != null)
+                // 1-2tickの一時的な入力途絶では KCC の既存入力を維持し、クライアント予測との乖離を防ぐ
+                var isBeforeFirstInput = !_inputReceived;
+                var isInputTimeout = _inputReceived && _ticksSinceLastInput > InputTimeoutTicks;
+
+                if ((isBeforeFirstInput || isInputTimeout) && _kcc != null)
                 {
                     _kcc.SetInputDirection(Vector3.zero);
 
-                    // 長期途絶時は速度もリセット（サーバー権威）
-                    if (_inputReceived && _ticksSinceLastInput > InputTimeoutTicks && HasStateAuthority)
+                    if (isInputTimeout && HasStateAuthority)
                     {
                         Speed = 0f;
                     }
@@ -347,31 +347,30 @@ namespace Game.Shared.Network.Survivor
         //  Client→Server RPC（InputAuthority のみ送信可能）
         // =====================================================================
 
+        private bool TryGetGameState(out SurvivorFusionGameState gs)
+        {
+            return _runnerService.TryGet(out gs);
+        }
+
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientSceneReady()
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-            {
+            if (TryGetGameState(out var gs))
                 gs.OnClientSceneReady(Object.InputAuthority);
-            }
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientRequestPause()
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-            {
+            if (TryGetGameState(out var gs))
                 gs.OnClientRequestPause();
-            }
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientRequestResume()
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-            {
+            if (TryGetGameState(out var gs))
                 gs.OnClientRequestResume();
-            }
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
@@ -382,7 +381,7 @@ namespace Game.Shared.Network.Survivor
                 Debug.LogWarning($"[SurvivorFusionPlayer] Rejected invalid weapon choice: {weaponId}");
                 return;
             }
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.OnClientWeaponChoice(weaponId, isNewWeapon);
             }
@@ -391,7 +390,7 @@ namespace Game.Shared.Network.Survivor
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId)
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.OnClientWeaponReplace(removeWeaponId, newWeaponId);
             }
@@ -400,7 +399,7 @@ namespace Game.Shared.Network.Survivor
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientHitReported(int enemyNetworkId, int weaponId)
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.OnClientHitReported(enemyNetworkId, weaponId);
             }
@@ -409,7 +408,7 @@ namespace Game.Shared.Network.Survivor
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientItemCollected(int itemId)
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.OnClientItemCollected(itemId);
             }
@@ -418,7 +417,7 @@ namespace Game.Shared.Network.Survivor
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientPlayerDied()
         {
-            if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            if (TryGetGameState(out var gs))
             {
                 gs.NotifyPlayerDied();
                 gs.OnPlayerDied("");
