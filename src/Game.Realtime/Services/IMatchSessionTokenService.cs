@@ -14,7 +14,7 @@ public interface IMatchSessionTokenService
     /// <summary>
     /// セッショントークンを検証
     /// </summary>
-    Task<SessionTokenInfo?> ValidateTokenAsync(string token);
+    Task<MatchSessionTokenInfo?> ValidateTokenAsync(string token);
 
     /// <summary>
     /// セッショントークンを無効化
@@ -25,7 +25,7 @@ public interface IMatchSessionTokenService
 /// <summary>
 /// セッショントークン情報
 /// </summary>
-public class SessionTokenInfo
+public class MatchSessionTokenInfo
 {
     public string UserId { get; init; } = string.Empty;
 

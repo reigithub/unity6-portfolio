@@ -38,7 +38,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
         var token = SessionTokenHelper.CreateToken(_secretKey, userId, matchId);
 
         // Valkey にも保存（失効管理・追跡用）
-        var info = new SessionTokenInfo
+        var info = new MatchSessionTokenInfo
         {
             UserId = userId,
             MatchId = matchId,
@@ -56,7 +56,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
         return token;
     }
 
-    public async Task<SessionTokenInfo?> ValidateTokenAsync(string token)
+    public async Task<MatchSessionTokenInfo?> ValidateTokenAsync(string token)
     {
         // Step 1: HMAC 署名検証（Valkey 不要、ローカルで完結）
         var parsed = SessionTokenHelper.ParseAndVerify(token, _secretKey);
@@ -75,7 +75,7 @@ public class MatchSessionTokenService : IMatchSessionTokenService
             return null;
         }
 
-        return new SessionTokenInfo
+        return new MatchSessionTokenInfo
         {
             UserId = parsed.UserId,
             MatchId = parsed.MatchId,
