@@ -15,6 +15,7 @@
         "Cysharp.Net.Http.YetAnotherHttpHandler",
         "MagicOnion.Unity",
         "Fusion.Unity",
+        "Fusion.Sockets",
         "Fusion.Addons.Physics",
         "Fusion.Addons.KCC",
         "Fusion.Addons.FSM",

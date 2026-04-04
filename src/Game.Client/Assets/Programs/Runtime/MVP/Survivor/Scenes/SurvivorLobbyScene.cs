@@ -211,7 +211,7 @@ namespace Game.MVP.Survivor.Scenes
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
             SurvivorNetworkMatchConnector.SetExpectedPlayerCount(
                 result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1);
-            SurvivorNetworkMatchConnector.StoreMatchResult(result);
+            SurvivorNetworkMatchConnector.ConfigureForMatchmaking(result);
             SceneComponent.SetInteractables(false);
 
             try

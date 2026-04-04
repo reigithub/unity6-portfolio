@@ -19,6 +19,9 @@ MonoBehaviour:
     _apiBaseUrl: http://localhost:5000
     _grpcBaseUrl: http://localhost:5001
     _webSocketUrl: 
+    _unityServerAddress: 
+    _unityServerPort: 7777
+    _unityServerSessionName: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
@@ -32,6 +35,9 @@ MonoBehaviour:
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
     _grpcBaseUrl: 
     _webSocketUrl: 
+    _unityServerAddress: 
+    _unityServerPort: 7777
+    _unityServerSessionName: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
@@ -45,6 +51,9 @@ MonoBehaviour:
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
     _grpcBaseUrl: 
     _webSocketUrl: 
+    _unityServerAddress: 
+    _unityServerPort: 7777
+    _unityServerSessionName: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
@@ -58,6 +67,9 @@ MonoBehaviour:
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
     _grpcBaseUrl: 
     _webSocketUrl: 
+    _unityServerAddress: 
+    _unityServerPort: 7777
+    _unityServerSessionName: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0
@@ -71,6 +83,9 @@ MonoBehaviour:
     _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
     _grpcBaseUrl: 
     _webSocketUrl: 
+    _unityServerAddress: 
+    _unityServerPort: 7777
+    _unityServerSessionName: 
     _enableDebugLog: 0
     _enableAnalytics: 0
     _useLocalMasterData: 0

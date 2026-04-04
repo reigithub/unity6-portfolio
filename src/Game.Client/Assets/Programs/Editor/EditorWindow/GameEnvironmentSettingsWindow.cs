@@ -117,6 +117,9 @@ namespace Game.Editor
             EditorGUILayout.TextField("API URL", config.ApiBaseUrl);
             EditorGUILayout.TextField("gRPC URL", config.GrpcBaseUrl);
             EditorGUILayout.TextField("WebSocket URL", config.WebSocketUrl);
+            EditorGUILayout.TextField("Unity Server Address", config.UnityServerAddress ?? string.Empty);
+            EditorGUILayout.IntField("Unity Server Port", config.UnityServerPort);
+            EditorGUILayout.TextField("Unity Session Name", config.UnityServerSessionName ?? string.Empty);
             EditorGUILayout.Toggle("Debug Log", config.EnableDebugLog);
             EditorGUILayout.Toggle("Analytics", config.EnableAnalytics);
             EditorGUILayout.Toggle("Local Master Data", config.UseLocalMasterData);

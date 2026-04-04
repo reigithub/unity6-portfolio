@@ -36,10 +36,17 @@ namespace Game.Library.Shared.RequestSigning
         /// </summary>
         public static string ComputeSignature(byte[] secretKey, string canonicalString)
         {
-            using var hmac = new HMACSHA256(secretKey);
-            var data = Encoding.UTF8.GetBytes(canonicalString);
-            var hash = hmac.ComputeHash(data);
+            var hash = ComputeSignatureBytes(secretKey, canonicalString);
             return BytesToHex(hash);
+        }
+
+        /// <summary>
+        /// HMAC-SHA256 署名の生バイト列を返す。
+        /// </summary>
+        internal static byte[] ComputeSignatureBytes(byte[] secretKey, string data)
+        {
+            using var hmac = new HMACSHA256(secretKey);
+            return hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         }
 
         /// <summary>
@@ -54,7 +61,7 @@ namespace Game.Library.Shared.RequestSigning
         /// <summary>
         /// 定時間文字列比較（タイミング攻撃対策）
         /// </summary>
-        private static bool CryptographicEquals(string a, string b)
+        internal static bool CryptographicEquals(string a, string b)
         {
             if (a == null || b == null)
             {

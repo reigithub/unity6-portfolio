@@ -82,7 +82,7 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
             // Fusion Server（サーバーモードでも Fusion 経由で接続）
-            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
@@ -174,7 +174,7 @@ namespace Game.MVP.Survivor
             // ========================================
             // Fusion Client（クライアント接続用）
             // ========================================
-            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
 #if !UNITY_SERVER
             // ========================================

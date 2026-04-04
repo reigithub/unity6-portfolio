@@ -138,8 +138,9 @@ namespace Game.MVP.Survivor.Scenes
 
         /// <summary>
         /// クライアント接続準備（エディタ/配布ビルド共通）。
-        /// MatchResult 未設定時、UseLocalServerOrchestrator 設定に応じて
-        /// ローカルサーバー起動、または起動済みサーバーへの接続情報をセットする。
+        /// MatchResult 未設定時、環境設定に応じて接続先を決定する。
+        /// 優先順位: 1) マッチメイキング済み → スキップ、2) ローカルオーケストレーター、
+        /// 3) FusionServerAddress が設定されていればリモートサーバー、4) ローカル(127.0.0.1)
         /// </summary>
         private async UniTask PrepareClientConnectionAsync()
         {
@@ -151,13 +152,31 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorStageConnectScene] Starting local server orchestrator...");
                 SceneComponent.SetStatus("Starting local server...");
                 await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
-                SurvivorNetworkMatchConnector.SetLocalServer(
+                SurvivorNetworkMatchConnector.ConfigureForLocalServer(
                     _localServerOrchestrator.HeadlessServerPort);
+                return;
+            }
+
+            // FusionServerAddress が設定されていればクラウドサーバーに接続
+            var envConfig = GameEnvironmentHelper.CurrentConfig;
+            var address = envConfig?.UnityServerAddress;
+            if (!string.IsNullOrEmpty(address) &&
+                address != "localhost" &&
+                address != SurvivorNetworkMatchConnector.DefaultLocalAddress)
+            {
+                var port = envConfig.UnityServerPort > 0
+                    ? envConfig.UnityServerPort
+                    : SurvivorNetworkMatchConnector.DefaultPort;
+                var sessionName = !string.IsNullOrEmpty(envConfig.UnityServerSessionName)
+                    ? envConfig.UnityServerSessionName
+                    : SurvivorNetworkMatchConnector.DefaultRemoteSessionName;
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {address}:{port} ({sessionName})");
+                SurvivorNetworkMatchConnector.ConfigureForRemoteServer(address, port, sessionName);
             }
             else
             {
-                Debug.Log("[SurvivorStageConnectScene] Connecting to running server (sp-local)...");
-                SurvivorNetworkMatchConnector.SetLocalServer(7777);
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({SurvivorNetworkMatchConnector.DefaultLocalSessionName})...");
+                SurvivorNetworkMatchConnector.ConfigureForLocalServer(SurvivorNetworkMatchConnector.DefaultPort);
             }
         }
 
