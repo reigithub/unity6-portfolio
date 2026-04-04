@@ -39,7 +39,7 @@ else
 fi
 
 # 必須変数の確認
-REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME" "INSTANCE_NAME" "SECRET_DB_CONNECTION" "SECRET_JWT" "SECRET_REQUEST_SIGNING" "SECRET_VALKEY_CONNECTION")
+REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME" "INSTANCE_NAME" "SECRET_DB_CONNECTION" "SECRET_JWT" "SECRET_REQUEST_SIGNING" "SECRET_VALKEY_CONNECTION" "SECRET_UNITY_SERVER_AUTH")
 for var in "${REQUIRED_VARS[@]}"; do
     if [[ -z "${!var}" ]]; then
         echo "[ERROR] Required variable $var is not set in .env"
@@ -110,6 +110,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     SECRETS="$SECRETS,Jwt__Secret=${SECRET_JWT}:latest"
     SECRETS="$SECRETS,RequestSigning__SecretKey=${SECRET_REQUEST_SIGNING}:latest"
     SECRETS="$SECRETS,ConnectionStrings__Valkey=${SECRET_VALKEY_CONNECTION}:latest"
+    SECRETS="$SECRETS,UnityServerAuth__SecretKey=${SECRET_UNITY_SERVER_AUTH}:latest"
     [[ -n "$SECRET_RESEND" ]] && SECRETS="$SECRETS,Resend__ApiKey=${SECRET_RESEND}:latest"
 
     # デプロイコマンドを構築
