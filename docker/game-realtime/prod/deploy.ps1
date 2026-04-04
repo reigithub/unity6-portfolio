@@ -120,6 +120,10 @@ if (-not $BuildOnly) {
     if ($env:Jwt__Issuer) { $EnvVars += "Jwt__Issuer=$env:Jwt__Issuer" }
     if ($env:Jwt__Audience) { $EnvVars += "Jwt__Audience=$env:Jwt__Audience" }
 
+    # Add Unity Server settings if configured
+    if ($env:UNITY_SERVER_ADDRESS) { $EnvVars += "UnityServer__ServerAddress=$env:UNITY_SERVER_ADDRESS" }
+    if ($env:UNITY_SERVER_PORT) { $EnvVars += "UnityServer__ServerPort=$env:UNITY_SERVER_PORT" }
+
     # Add Valkey settings if configured
     if ($ValkeyEnabled) {
         $ValkeyPort = if ($env:VALKEY_PORT) { $env:VALKEY_PORT } else { "6379" }

@@ -119,6 +119,10 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     [[ -n "$Jwt__Issuer" ]] && ENV_VARS="$ENV_VARS,Jwt__Issuer=$Jwt__Issuer"
     [[ -n "$Jwt__Audience" ]] && ENV_VARS="$ENV_VARS,Jwt__Audience=$Jwt__Audience"
 
+    # Unity Server 接続設定
+    [[ -n "$UNITY_SERVER_ADDRESS" ]] && ENV_VARS="$ENV_VARS,UnityServer__ServerAddress=$UNITY_SERVER_ADDRESS"
+    [[ -n "$UNITY_SERVER_PORT" ]] && ENV_VARS="$ENV_VARS,UnityServer__ServerPort=$UNITY_SERVER_PORT"
+
     # Valkey 設定を追加
     if [[ "$VALKEY_ENABLED" == "true" ]]; then
         VALKEY_PORT="${VALKEY_PORT:-6379}"
