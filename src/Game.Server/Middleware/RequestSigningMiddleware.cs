@@ -23,6 +23,7 @@ public class RequestSigningMiddleware
         "/api/auth/email/forgot-password",
         "/api/auth/email/reset-password",
         "/api/auth/email/verify",
+        "/api/unity-server-auth/issue-token",
     };
 
     public RequestSigningMiddleware(

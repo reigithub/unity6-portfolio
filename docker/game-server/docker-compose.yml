@@ -72,8 +72,10 @@ services:
       - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
       - Jwt__Issuer=Game.Server
       - Jwt__Audience=Game.Client
-      - UnityServerAuth__SecretKey=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
+      - GameServer__BaseUrl=http://server:8080
     depends_on:
+      server:
+        condition: service_healthy
       valkey:
         condition: service_healthy
     healthcheck:

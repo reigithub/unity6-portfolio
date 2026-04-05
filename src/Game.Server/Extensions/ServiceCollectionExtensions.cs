@@ -81,6 +81,13 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Unity Server Auth（SP/MP 共通のトークン発行）
+        services.AddOptions<UnityServerAuthSettings>()
+            .Bind(configuration.GetSection("UnityServerAuth"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<IUnityServerAuthService, UnityServerAuthService>();
+
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));

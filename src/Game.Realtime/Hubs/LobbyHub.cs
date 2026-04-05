@@ -19,7 +19,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 {
     private readonly ILogger<LobbyHub> _logger;
     private readonly ILobbyDataService _lobbyDataService;
-    private readonly IMatchSessionTokenService _tokenService;
+    private readonly IUnityServerAuthApiClient _unityServerAuthApi;
     private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
 
@@ -35,13 +35,13 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     public LobbyHub(
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
-        IMatchSessionTokenService tokenService,
+        IUnityServerAuthApiClient unityServerAuthApi,
         IOptions<UnityServerConfiguration> unityServerConfig,
         ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
-        _tokenService = tokenService;
+        _unityServerAuthApi = unityServerAuthApi;
         _unityServerConfig = unityServerConfig.Value;
         _lobbyValidator = lobbyValidator;
     }
@@ -168,18 +168,21 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             return;
         }
 
-        var matchId = Guid.NewGuid().ToString("N");
+        var matchId = $"mp-{Guid.NewGuid():N}";
 
-        // プレイヤーごとに個別トークンを発行して送信
+        // 全プレイヤーに同一 matchId でトークンを発行して送信
         LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
         foreach (var player in players)
         {
-            var token = await _tokenService.IssueTokenAsync(player.UserId, matchId);
+            var authResponse = await _unityServerAuthApi.IssueTokenAsync(player.UserId, matchId);
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {
                 _currentGroup.Only(new[] { connId }).OnGameStarting(
-                    matchId, _unityServerConfig.ServerAddress, _unityServerConfig.ServerPort, token);
+                    matchId,
+                    _unityServerConfig.ServerAddress,
+                    _unityServerConfig.ServerPort,
+                    authResponse.Token);
             }
         }
 

@@ -12,7 +12,7 @@ namespace Game.Realtime.Services;
 public class MatchmakingProcessor : BackgroundService
 {
     private readonly IMatchmakingQueueService _queueService;
-    private readonly IMatchSessionTokenService _tokenService;
+    private readonly IUnityServerAuthApiClient _unityServerAuthApi;
     private readonly IConnectionMultiplexer _redis;
     private readonly MatchmakingConfiguration _config;
     private readonly UnityServerConfiguration _unityServerConfig;
@@ -20,14 +20,14 @@ public class MatchmakingProcessor : BackgroundService
 
     public MatchmakingProcessor(
         IMatchmakingQueueService queueService,
-        IMatchSessionTokenService tokenService,
+        IUnityServerAuthApiClient unityServerAuthApi,
         IConnectionMultiplexer redis,
         IOptions<MatchmakingConfiguration> config,
         IOptions<UnityServerConfiguration> unityServerConfig,
         ILogger<MatchmakingProcessor> logger)
     {
         _queueService = queueService;
-        _tokenService = tokenService;
+        _unityServerAuthApi = unityServerAuthApi;
         _redis = redis;
         _config = config.Value;
         _unityServerConfig = unityServerConfig.Value;
@@ -274,13 +274,13 @@ public class MatchmakingProcessor : BackgroundService
 
     private async Task CreateMatchAsync(string gameMode, string[] playerIds, int stageId)
     {
-        var matchId = Guid.NewGuid().ToString("N");
+        var matchId = $"mp-{Guid.NewGuid():N}";
         var subscriber = _redis.GetSubscriber();
 
-        // プレイヤーごとに個別トークンを発行し、トークン入り MatchResult を配信
+        // 全プレイヤーに同一 matchId でトークンを発行し、MatchResult を配信
         await Task.WhenAll(playerIds.Select(async playerId =>
         {
-            var token = await _tokenService.IssueTokenAsync(playerId, matchId);
+            var authResponse = await _unityServerAuthApi.IssueTokenAsync(playerId, matchId);
 
             var matchResult = new MatchResult
             {
@@ -288,7 +288,7 @@ public class MatchmakingProcessor : BackgroundService
                 PlayerIds = playerIds,
                 ServerAddress = _unityServerConfig.ServerAddress,
                 ServerPort = _unityServerConfig.ServerPort,
-                SessionToken = token,
+                SessionToken = authResponse.Token,
                 StageId = stageId,
             };
 
@@ -296,7 +296,6 @@ public class MatchmakingProcessor : BackgroundService
             var channel = RedisChannel.Literal($"matchmaking:notify:{playerId}");
             await subscriber.PublishAsync(channel, json);
 
-            // プレイヤーメタデータのクリーンアップ
             await _queueService.CleanupPlayerAsync(playerId);
         }));
 
