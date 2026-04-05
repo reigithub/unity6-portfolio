@@ -5,21 +5,45 @@ namespace Game.Realtime.Tests.Shared;
 
 /// <summary>
 /// SessionTokenHelper の単体テスト。
-/// HMAC トークンの生成・検証・有効期限・改ざん検知を検証する。
+/// MessagePack バイナリ形式トークンの生成・検証・有効期限・改ざん検知を検証する。
 /// </summary>
 public class SessionTokenHelperTests
 {
     private readonly byte[] _secretKey = Encoding.UTF8.GetBytes("test-secret-key-for-session-token");
 
-    #region CreateToken
+    #region CreateToken / CreateTokenBytes
 
     [Fact]
-    public void CreateToken_ReturnsTokenWithDotSeparator()
+    public void CreateToken_ReturnsNonEmptyBase64String()
     {
         var token = SessionTokenHelper.CreateToken(_secretKey, "user1", "match1");
 
         Assert.NotNull(token);
-        Assert.Contains(".", token);
+        Assert.NotEmpty(token);
+        // Base64 として有効かどうか確認
+        var bytes = Convert.FromBase64String(token);
+        Assert.NotEmpty(bytes);
+    }
+
+    [Fact]
+    public void CreateTokenBytes_ReturnsTokenWithin128Bytes()
+    {
+        var token = SessionTokenHelper.CreateTokenBytes(_secretKey, "user1", "match1");
+
+        Assert.NotNull(token);
+        Assert.True(token.Length <= 128, $"トークンサイズ {token.Length}B が Fusion 上限 128B を超えています");
+    }
+
+    [Fact]
+    public void CreateTokenBytes_ReturnsTokenWithUuidUserId()
+    {
+        var userId = Guid.NewGuid().ToString(); // 36文字 UUID
+        var matchId = $"match-{Guid.NewGuid():N}"; // 42文字
+
+        var token = SessionTokenHelper.CreateTokenBytes(_secretKey, userId, matchId);
+
+        Assert.NotNull(token);
+        Assert.True(token.Length <= 128, $"UUID 形式 userId でもトークンサイズ {token.Length}B が 128B 以内であること");
     }
 
     [Fact]
@@ -66,8 +90,35 @@ public class SessionTokenHelperTests
         var result = SessionTokenHelper.ParseAndVerify(token, _secretKey);
 
         Assert.NotNull(result);
-        Assert.True(result!.IssuedAt >= before, "IssuedAt should be >= test start time");
-        Assert.True(result.IssuedAt <= after, "IssuedAt should be <= test end time");
+        Assert.True(result!.IssuedAt >= before, "IssuedAt はテスト開始時刻以降であること");
+        Assert.True(result.IssuedAt <= after, "IssuedAt はテスト終了時刻以前であること");
+    }
+
+    [Fact]
+    public void ParseAndVerifyBytes_ReturnsResult_WhenTokenBytesAreValid()
+    {
+        var tokenBytes = SessionTokenHelper.CreateTokenBytes(_secretKey, "user1", "match1");
+
+        var result = SessionTokenHelper.ParseAndVerifyBytes(tokenBytes, _secretKey);
+
+        Assert.NotNull(result);
+        Assert.Equal("user1", result!.UserId);
+        Assert.Equal("match1", result.MatchId);
+    }
+
+    [Fact]
+    public void ParseAndVerify_AndParseAndVerifyBytes_ReturnSameResult()
+    {
+        var token = SessionTokenHelper.CreateToken(_secretKey, "user1", "match1");
+        var tokenBytes = Convert.FromBase64String(token);
+
+        var result1 = SessionTokenHelper.ParseAndVerify(token, _secretKey);
+        var result2 = SessionTokenHelper.ParseAndVerifyBytes(tokenBytes, _secretKey);
+
+        Assert.NotNull(result1);
+        Assert.NotNull(result2);
+        Assert.Equal(result1!.UserId, result2!.UserId);
+        Assert.Equal(result1.MatchId, result2.MatchId);
     }
 
     #endregion
@@ -91,41 +142,54 @@ public class SessionTokenHelperTests
     }
 
     [Fact]
-    public void ParseAndVerify_ReturnsNull_WhenTokenHasNoDot()
+    public void ParseAndVerify_ReturnsNull_WhenTokenIsInvalidBase64()
     {
-        var result = SessionTokenHelper.ParseAndVerify("nodottoken", _secretKey);
+        var result = SessionTokenHelper.ParseAndVerify("not-valid-base64!!!", _secretKey);
 
         Assert.Null(result);
     }
 
     [Fact]
-    public void ParseAndVerify_ReturnsNull_WhenSignatureIsTampered()
+    public void ParseAndVerifyBytes_ReturnsNull_WhenTokenIsNull()
     {
-        var token = SessionTokenHelper.CreateToken(_secretKey, "user1", "match1");
-
-        // 署名部分を改ざん
-        var dotIndex = token.LastIndexOf('.');
-        var tamperedToken = token.Substring(0, dotIndex) + ".0000000000000000000000000000000000000000000000000000000000000000";
-
-        var result = SessionTokenHelper.ParseAndVerify(tamperedToken, _secretKey);
+        var result = SessionTokenHelper.ParseAndVerifyBytes(null!, _secretKey);
 
         Assert.Null(result);
     }
 
     [Fact]
-    public void ParseAndVerify_ReturnsNull_WhenPayloadIsTampered()
+    public void ParseAndVerifyBytes_ReturnsNull_WhenTokenIsTooShort()
     {
-        var token = SessionTokenHelper.CreateToken(_secretKey, "user1", "match1");
+        // 32B 以下はペイロードなしとして拒否される
+        var result = SessionTokenHelper.ParseAndVerifyBytes(new byte[32], _secretKey);
 
-        // ペイロード部分を改ざん（別ユーザーの Base64Url エンコード）
-        var dotIndex = token.LastIndexOf('.');
-        var signature = token.Substring(dotIndex);
-        var fakePayload = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes("hacker|match1|9999999999"))
-            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
-        var tamperedToken = fakePayload + signature;
+        Assert.Null(result);
+    }
 
-        var result = SessionTokenHelper.ParseAndVerify(tamperedToken, _secretKey);
+    [Fact]
+    public void ParseAndVerifyBytes_ReturnsNull_WhenSignatureIsTampered()
+    {
+        var tokenBytes = SessionTokenHelper.CreateTokenBytes(_secretKey, "user1", "match1");
+
+        // 末尾 32B（署名）を改ざん
+        var tampered = (byte[])tokenBytes.Clone();
+        tampered[tampered.Length - 1] ^= 0xFF;
+
+        var result = SessionTokenHelper.ParseAndVerifyBytes(tampered, _secretKey);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ParseAndVerifyBytes_ReturnsNull_WhenPayloadIsTampered()
+    {
+        var tokenBytes = SessionTokenHelper.CreateTokenBytes(_secretKey, "user1", "match1");
+
+        // ペイロード先頭バイトを改ざん（署名と不一致になる）
+        var tampered = (byte[])tokenBytes.Clone();
+        tampered[0] ^= 0xFF;
+
+        var result = SessionTokenHelper.ParseAndVerifyBytes(tampered, _secretKey);
 
         Assert.Null(result);
     }
@@ -141,35 +205,6 @@ public class SessionTokenHelperTests
         Assert.Null(result);
     }
 
-    [Fact]
-    public void ParseAndVerify_ReturnsNull_WhenPayloadHasInvalidFormat()
-    {
-        // パイプ区切りが2つでない不正ペイロードを手動生成
-        var payload = "onlyonepart";
-        var payloadB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload))
-            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
-        var signature = HmacRequestSigner.ComputeSignature(_secretKey, payload);
-        var token = $"{payloadB64}.{signature}";
-
-        var result = SessionTokenHelper.ParseAndVerify(token, _secretKey);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void ParseAndVerify_ReturnsNull_WhenTimestampIsNotNumeric()
-    {
-        var payload = "user1|match1|notanumber";
-        var payloadB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload))
-            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
-        var signature = HmacRequestSigner.ComputeSignature(_secretKey, payload);
-        var token = $"{payloadB64}.{signature}";
-
-        var result = SessionTokenHelper.ParseAndVerify(token, _secretKey);
-
-        Assert.Null(result);
-    }
-
     #endregion
 
     #region Expiry
@@ -177,13 +212,32 @@ public class SessionTokenHelperTests
     [Fact]
     public void ParseAndVerify_ReturnsNull_WhenTokenIsExpired()
     {
-        // DefaultExpiry (5分) を超過したタイムスタンプで手動トークン生成
+        // DefaultExpiry (5分) を超過したタイムスタンプを持つトークンを手動生成
         var expiredTimestamp = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds();
-        var payload = $"user1|match1|{expiredTimestamp}";
-        var payloadB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload))
-            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
-        var signature = HmacRequestSigner.ComputeSignature(_secretKey, payload);
-        var token = $"{payloadB64}.{signature}";
+
+        // MessagePackWriter で手動パック
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>(128);
+        var writer = new MessagePack.MessagePackWriter(buffer);
+        writer.WriteArrayHeader(3);
+        writer.Write("user1");
+        writer.Write("match1");
+        writer.Write(expiredTimestamp);
+        writer.Flush();
+        var payloadBytes = buffer.WrittenMemory.ToArray();
+
+        // HMAC 署名を公開 API 経由で生成（HMAC-SHA256 の生バイト列を取得）
+        // HmacRequestSigner.ComputeSignatureBytes は internal のため
+        // 同じ HMAC を別経路で計算する
+        byte[] signature;
+        using (var hmac = new System.Security.Cryptography.HMACSHA256(_secretKey))
+        {
+            signature = hmac.ComputeHash(payloadBytes);
+        }
+
+        var tokenBytes = new byte[payloadBytes.Length + signature.Length];
+        Buffer.BlockCopy(payloadBytes, 0, tokenBytes, 0, payloadBytes.Length);
+        Buffer.BlockCopy(signature, 0, tokenBytes, payloadBytes.Length, signature.Length);
+        var token = Convert.ToBase64String(tokenBytes);
 
         var result = SessionTokenHelper.ParseAndVerify(token, _secretKey);
 

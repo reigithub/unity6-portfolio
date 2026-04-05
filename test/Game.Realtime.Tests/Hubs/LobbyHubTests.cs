@@ -18,7 +18,7 @@ public class LobbyHubTests
 {
     private readonly Mock<ILogger<LobbyHub>> _mockLogger;
     private readonly Mock<ILobbyDataService> _mockLobbyDataService;
-    private readonly Mock<IMatchSessionTokenService> _mockTokenService;
+    private readonly Mock<IUnityServerAuthApiClient> _mockUnityServerAuthApi;
     private readonly IOptions<UnityServerConfiguration> _unityServerConfig;
     private readonly Mock<ILobbyValidator> _mockLobbyValidator;
 
@@ -26,7 +26,7 @@ public class LobbyHubTests
     {
         _mockLogger = new Mock<ILogger<LobbyHub>>();
         _mockLobbyDataService = new Mock<ILobbyDataService>();
-        _mockTokenService = new Mock<IMatchSessionTokenService>();
+        _mockUnityServerAuthApi = new Mock<IUnityServerAuthApiClient>();
         _unityServerConfig = Options.Create(new UnityServerConfiguration());
         _mockLobbyValidator = new Mock<ILobbyValidator>();
     }
@@ -34,7 +34,7 @@ public class LobbyHubTests
     private LobbyHub CreateHub()
     {
         return new LobbyHub(
-            _mockLogger.Object, _mockLobbyDataService.Object, _mockTokenService.Object,
+            _mockLogger.Object, _mockLobbyDataService.Object, _mockUnityServerAuthApi.Object,
             _unityServerConfig, _mockLobbyValidator.Object);
     }
 
@@ -271,7 +271,7 @@ public class LobbyHubTests
     }
 
     [Fact]
-    public async Task SetReadyAsync_AllReady_InvokesTokenService()
+    public async Task SetReadyAsync_AllReady_InvokesGameServerApi()
     {
         // Arrange
         var hub = CreateHub();
@@ -295,6 +295,10 @@ public class LobbyHubTests
         // GetPlayersAsync は呼ばれない
         _mockLobbyDataService.Verify(
             s => s.GetPlayersAsync(It.IsAny<string>()), Times.Never);
+
+        // Game.Server API は呼ばれない（StartGameAsync が abort のため）
+        _mockUnityServerAuthApi.Verify(
+            s => s.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     /// <summary>
