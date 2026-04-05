@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using Cysharp.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
@@ -94,11 +93,12 @@ namespace Game.Shared.Network.Survivor
 
                 EnsureRunner();
 
-                // セッショントークンを ConnectionToken として送信（128B 以内に収まるよう base64url 形式）
+                // セッショントークン（Base64 文字列）をバイナリに変換して ConnectionToken として送信
+                // サーバー側は MessagePack + HMAC-SHA256 バイナリ形式（~117B、128B 上限以内）
                 byte[] connectionToken = null;
                 if (!string.IsNullOrEmpty(sessionToken))
                 {
-                    connectionToken = Encoding.UTF8.GetBytes(sessionToken);
+                    connectionToken = Convert.FromBase64String(sessionToken);
                     if (connectionToken.Length > 128)
                     {
                         Debug.LogWarning($"[SurvivorFusionStageConnector] ConnectionToken {connectionToken.Length}B が 128B を超えています。トークンが Fusion に無視される可能性があります。");
@@ -314,8 +314,8 @@ namespace Game.Shared.Network.Survivor
         // =====================================================================
 
         /// <summary>
-        /// SessionToken を検証する IFusionServerAuthProvider 実装。
-        /// ConnectionToken（UTF-8 エンコードされたトークン文字列）を HMAC で検証する。
+        /// SessionToken を検証する IUnityServerAuthProvider 実装。
+        /// ConnectionToken（MessagePack + HMAC-SHA256 バイナリ形式）を直接検証する。
         /// </summary>
         private class SessionTokenAuthProvider : IUnityServerAuthProvider
         {
@@ -327,14 +327,13 @@ namespace Game.Shared.Network.Survivor
             }
 
             /// <summary>
-            /// ConnectionToken バイト列を UTF-8 デコードして SessionToken として検証する。
+            /// ConnectionToken バイト列を MessagePack + HMAC-SHA256 形式で直接検証する。
             /// </summary>
             public bool ValidateConnectionToken(byte[] token)
             {
                 if (token == null || token.Length == 0) return false;
 
-                var tokenStr = Encoding.UTF8.GetString(token);
-                return SessionTokenHelper.ParseAndVerify(tokenStr, _secretKey) != null;
+                return SessionTokenHelper.ParseAndVerifyBytes(token, _secretKey) != null;
             }
         }
     }

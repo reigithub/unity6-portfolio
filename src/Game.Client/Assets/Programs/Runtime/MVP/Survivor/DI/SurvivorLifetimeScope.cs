@@ -20,6 +20,7 @@ using AuthApiService = Game.Shared.Services.AuthApiService;
 using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
+using UnityServerAuthApiService = Game.Shared.Services.UnityServerAuthApiService;
 using Game.Shared.Chat.Client;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
@@ -153,6 +154,7 @@ namespace Game.MVP.Survivor
             builder.Register<AuthSessionService>(Lifetime.Singleton).As<IAuthSessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
+            builder.Register<UnityServerAuthApiService>(Lifetime.Singleton).As<IUnityServerAuthApiService>();
 
             // Request Queue & Notifications
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();

@@ -131,10 +131,11 @@ namespace Game.Shared.Network.Survivor
         /// SP ローカルサーバー接続として設定する。
         /// </summary>
         /// <param name="port">ローカルサーバーのポート番号。</param>
-        public static void ConfigureForLocalServer(ushort port)
+        /// <param name="sessionToken">セッショントークン（HMAC 認証用）。省略時は空文字。</param>
+        /// <param name="sessionName">セッション名。省略時は <see cref="DefaultLocalSessionName"/>。</param>
+        public static void ConfigureForLocalServer(ushort port, string sessionToken = "", string sessionName = DefaultLocalSessionName)
         {
-            _params = new ConnectionParams(ConnectionSource.Local,
-                DefaultLocalAddress, port, DefaultLocalSessionName, string.Empty);
+            _params = new ConnectionParams(ConnectionSource.Local, DefaultLocalAddress, port, sessionName, sessionToken);
         }
 
         /// <summary>
@@ -143,10 +144,10 @@ namespace Game.Shared.Network.Survivor
         /// <param name="address">サーバーIPアドレスまたはホスト名。</param>
         /// <param name="port">サーバーポート番号。</param>
         /// <param name="sessionName">セッション名。省略時は <see cref="DefaultRemoteSessionName"/>。</param>
-        public static void ConfigureForRemoteServer(string address, ushort port, string sessionName = DefaultRemoteSessionName)
+        /// <param name="sessionToken">セッショントークン（HMAC 認証用）。省略時は空文字。</param>
+        public static void ConfigureForRemoteServer(string address, ushort port, string sessionName = DefaultRemoteSessionName, string sessionToken = "")
         {
-            _params = new ConnectionParams(ConnectionSource.Remote,
-                address, port, sessionName, string.Empty);
+            _params = new ConnectionParams(ConnectionSource.Remote, address, port, sessionName, sessionToken);
         }
 
         /// <summary>
@@ -155,8 +156,7 @@ namespace Game.Shared.Network.Survivor
         /// <param name="result">マッチメイキングサーバーから受け取った <see cref="MatchResult"/>。</param>
         public static void ConfigureForMatchmaking(MatchResult result)
         {
-            _params = new ConnectionParams(ConnectionSource.Matchmaking,
-                result.ServerAddress, (ushort)result.ServerPort, result.MatchId, result.SessionToken);
+            _params = new ConnectionParams(ConnectionSource.Matchmaking, result.ServerAddress, (ushort)result.ServerPort, result.MatchId, result.SessionToken);
         }
 
         /// <summary>

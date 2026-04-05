@@ -13,6 +13,7 @@ using MessagePipe;
 using R3;
 using UnityEngine;
 using VContainer;
+using Game.Library.Shared.Dto;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -29,6 +30,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly IUnityServerAuthApiService _unityServerAuthApiService;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -152,8 +154,12 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorStageConnectScene] Starting local server orchestrator...");
                 SceneComponent.SetStatus("Starting local server...");
                 await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
+
+                // SP ローカル: セッション名はサーバーと同じ固定値を使用（トークンは認証用のみ）
+                var localTokenResult = await IssueTokenAsync();
                 SurvivorNetworkMatchConnector.ConfigureForLocalServer(
-                    _localServerOrchestrator.HeadlessServerPort);
+                    _localServerOrchestrator.HeadlessServerPort,
+                    sessionToken: localTokenResult?.Token ?? "");
                 return;
             }
 
@@ -167,17 +173,48 @@ namespace Game.MVP.Survivor.Scenes
                 var port = envConfig.UnityServerPort > 0
                     ? envConfig.UnityServerPort
                     : SurvivorNetworkMatchConnector.DefaultPort;
-                var sessionName = !string.IsNullOrEmpty(envConfig.UnityServerSessionName)
-                    ? envConfig.UnityServerSessionName
-                    : SurvivorNetworkMatchConnector.DefaultRemoteSessionName;
+
+                // SP リモートサーバー接続用のトークンを取得
+                var tokenResult = await IssueTokenAsync();
+                var sessionName = tokenResult != null
+                    ? tokenResult.SessionName
+                    : (!string.IsNullOrEmpty(envConfig.UnityServerSessionName)
+                        ? envConfig.UnityServerSessionName
+                        : SurvivorNetworkMatchConnector.DefaultRemoteSessionName);
+                var sessionToken = tokenResult != null ? tokenResult.Token : string.Empty;
+
                 Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {address}:{port} ({sessionName})");
-                SurvivorNetworkMatchConnector.ConfigureForRemoteServer(address, port, sessionName);
+                SurvivorNetworkMatchConnector.ConfigureForRemoteServer(address, port, sessionName, sessionToken);
             }
             else
             {
+                // SP ローカル: セッション名はサーバーと同じ固定値を使用（トークンは認証用のみ）
+                var defaultTokenResult = await IssueTokenAsync();
                 Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({SurvivorNetworkMatchConnector.DefaultLocalSessionName})...");
-                SurvivorNetworkMatchConnector.ConfigureForLocalServer(SurvivorNetworkMatchConnector.DefaultPort);
+                SurvivorNetworkMatchConnector.ConfigureForLocalServer(
+                    SurvivorNetworkMatchConnector.DefaultPort,
+                    sessionToken: defaultTokenResult?.Token ?? "");
             }
+        }
+
+        /// <summary>
+        /// SP 接続用セッショントークンとセッション名を Game.Server から取得する。
+        /// 取得失敗時は null を返す。
+        /// </summary>
+        /// <returns>取得成功時はトークンレスポンス、失敗時は null。</returns>
+        private async UniTask<UnityServerAuthResponse> IssueTokenAsync()
+        {
+            var response = await _unityServerAuthApiService.IssueTokenAsync();
+            if (response.IsSuccess && response.Data != null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[SurvivorStageConnectScene] Session token acquired, session={response.Data.SessionName}");
+#endif
+                return response.Data;
+            }
+
+            Debug.LogWarning($"[SurvivorStageConnectScene] Failed to fetch session token: {response.Error?.Message ?? "Unknown error"}. Proceeding without token.");
+            return null;
         }
 
         private async UniTask ConnectToServerAsync(int stageId)
