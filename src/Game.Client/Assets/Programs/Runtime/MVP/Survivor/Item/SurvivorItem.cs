@@ -108,7 +108,7 @@ namespace Game.MVP.Survivor.Item
         private void Update()
         {
             if (_isCollected) return;
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             if (_isBeingAttracted && _attractTarget != null)
             {

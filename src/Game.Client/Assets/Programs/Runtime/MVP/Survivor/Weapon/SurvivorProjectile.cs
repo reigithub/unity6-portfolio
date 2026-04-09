@@ -103,7 +103,7 @@ namespace Game.MVP.Survivor.Weapon
         private void Update()
         {
             if (!_isActive) return;
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             // 追尾処理
             if (_homing > 0 && _homingTarget != null && _homingTarget.gameObject.activeInHierarchy)

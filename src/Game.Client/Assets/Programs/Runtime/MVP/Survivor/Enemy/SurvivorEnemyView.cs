@@ -149,9 +149,14 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             GameObject instance;
+            var pos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
             if (_prefabs.TryGetValue(e.EnemyMasterId, out var prefab) && prefab != null)
             {
+                // プレハブを一時的に非アクティブ化して Instantiate することで、
+                // NavMeshAgent が NavMesh 外の位置（原点）で Awake するエラーを防ぐ
+                prefab.SetActive(false);
                 instance = Instantiate(prefab, transform);
+                prefab.SetActive(true);
 
                 // サーバー専用コンポーネントを除去（クライアントではAI/物理不要）
                 var controller = instance.GetComponent<SurvivorEnemyController>();
@@ -160,19 +165,23 @@ namespace Game.MVP.Survivor.Enemy
                 var presenter = instance.GetComponent<SurvivorEnemyPresenter>();
                 if (presenter != null) Destroy(presenter);
 
+                // NavMeshAgent はクライアントプロキシでは不要のため除去
                 var navAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();
-                if (navAgent != null) navAgent.enabled = false;
+                if (navAgent != null) Destroy(navAgent);
+
+                // 正しいサーバー位置に配置してからアクティブ化
+                instance.transform.position = pos;
+                instance.SetActive(true);
             }
             else
             {
                 // フォールバック: プレハブ未ロード時
                 instance = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                instance.transform.position = pos;
                 Debug.LogWarning($"[SurvivorEnemyView] Prefab not found for enemy {e.EnemyMasterId}, using fallback");
             }
 
             instance.name = $"EnemyProxy_{e.NetworkId}";
-            var pos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
-            instance.transform.position = pos;
 
             // Enemyレイヤー設定（子オブジェクト含む — LockOn/SphereCast検出用）
             SetLayerRecursively(instance, LayerConstants.Enemy);

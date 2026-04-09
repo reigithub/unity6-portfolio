@@ -286,7 +286,7 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private void Update()
         {
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             float deltaTime = Time.deltaTime;
             foreach (var weapon in _weapons)

@@ -197,7 +197,14 @@ namespace Game.MVP.Survivor.Enemy
                 return null;
             }
 
+            // プレハブを一時的に非アクティブ化して Instantiate することで、
+            // NavMeshAgent が NavMesh 外の位置（原点）で Awake するエラーを防ぐ。
+            // プール初期化直後は SetActive(false) のままプールに戻すため問題なし。
+            // スポーン時は SpawnNextEnemy で位置設定後に SetActive(true) する。
+            prefab.SetActive(false);
             var instance = Instantiate(prefab, transform);
+            prefab.SetActive(true);
+
             if (!instance.TryGetComponent<SurvivorEnemyController>(out var controller))
             {
                 Debug.LogError($"[SurvivorEnemySpawner] SurvivorEnemyController not found on prefab: {enemyId}");
@@ -247,7 +254,7 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // ポーズ状態の同期
-            bool isPaused = _gameState != null && _gameState.IsPaused;
+            bool isPaused = _gameState != null && _gameState.IsEffectivelyPaused;
             if (isPaused != _wasPaused)
             {
                 _wasPaused = isPaused;

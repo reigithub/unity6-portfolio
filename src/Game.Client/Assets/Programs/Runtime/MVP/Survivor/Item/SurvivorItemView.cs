@@ -144,7 +144,7 @@ namespace Game.MVP.Survivor.Item
 
         private void Update()
         {
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             float dt = Time.deltaTime;
 
@@ -263,7 +263,7 @@ namespace Game.MVP.Survivor.Item
         private void Update()
         {
             if (_attractTarget == null) return;
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             // 吸引移動のみ（収集判定は SurvivorPlayerController が担当）
             var diff = _attractTarget.position - transform.position;
