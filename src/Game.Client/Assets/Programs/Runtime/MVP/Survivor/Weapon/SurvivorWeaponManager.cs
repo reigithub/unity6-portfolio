@@ -223,11 +223,14 @@ namespace Game.MVP.Survivor.Weapon
                 });
             }
 
-            // ランダムに選択
+            // 決定論的 RNG でランダムに選択（UnityEngine.Random はクライアント/サーバーで非同期のため System.Random を使用）
+            int firstLevel = _weapons.Count > 0 ? _weapons[0].Level : 0;
+            int seed = firstLevel * 31 + _weapons.Count * 97 + (int)(Time.time * 100);
+            var rng = new System.Random(seed);
             var result = new List<SurvivorWeaponUpgradeOption>();
             while (result.Count < count && options.Count > 0)
             {
-                int index = UnityEngine.Random.Range(0, options.Count);
+                int index = rng.Next(0, options.Count);
                 result.Add(options[index]);
                 options.RemoveAt(index);
             }
@@ -286,7 +289,7 @@ namespace Game.MVP.Survivor.Weapon
         /// </summary>
         private void Update()
         {
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             float deltaTime = Time.deltaTime;
             foreach (var weapon in _weapons)

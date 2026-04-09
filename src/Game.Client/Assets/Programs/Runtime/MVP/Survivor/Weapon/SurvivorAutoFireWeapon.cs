@@ -173,6 +173,15 @@ namespace Game.MVP.Survivor.Weapon
                     && other.GetComponentInParent<EnemyProxyTarget>() == null)
                     return;
 
+                // 射程外のヒットはスキップ（チート対策 + 不要な VFX 防止）
+                // 1.2x マージンでフレーム間移動のオーバーシュートを吸収する
+                if (_owner != null)
+                {
+                    float sqrDistance = (_owner.position - projectile.transform.position).sqrMagnitude;
+                    if (sqrDistance > _range * _range * 1.2f)
+                        return;
+                }
+
                 projectile.MarkPrimaryHitProcessed();
 
                 // ヒットVFX（ダメージ計算前に表示 — ProcRate失敗でもプロジェクタイルは当たった）

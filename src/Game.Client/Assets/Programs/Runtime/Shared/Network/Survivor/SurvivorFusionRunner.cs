@@ -18,7 +18,7 @@ namespace Game.Shared.Network.Survivor
         public NetworkRunner Runner { get; private set; }
 
         /// <summary>セッション管理（Host/Server 時に設定）</summary>
-        internal SurvivorFusionServerSession Session { get; set; }
+        internal SurvivorUnityServerSession Session { get; set; }
 
         /// <summary>Shutdown 時の通知</summary>
         internal Action<ShutdownReason> OnShutdownCallback { get; set; }
@@ -32,6 +32,9 @@ namespace Game.Shared.Network.Survivor
         /// <summary>IFusionRunnerService（SurvivorFusionStageConnector が設定）</summary>
         internal IFusionRunnerService RunnerService { get; set; }
 
+        /// <summary>接続認証プロバイダ。Server モード時に設定すると OnConnectRequest で検証する。</summary>
+        internal IUnityServerAuthProvider AuthProvider { get; set; }
+
         public void Initialize()
         {
             DontDestroyOnLoad(gameObject);
@@ -39,12 +42,13 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// Fusion セッションを開始する。
+        /// FusionConnectionConfig に必要なパラメータをすべてまとめて受け取る。
         /// </summary>
-        public async Cysharp.Threading.Tasks.UniTask<StartGameResult> StartAsync(
-            GameMode gameMode, string sessionName)
+        /// <param name="config">接続設定（GameMode / SessionName / Address / ConnectionToken 等）</param>
+        public async Cysharp.Threading.Tasks.UniTask<StartGameResult> StartAsync(FusionConnectionConfig config)
         {
             Runner = gameObject.AddComponent<NetworkRunner>();
-            Runner.ProvideInput = gameMode != GameMode.Server;
+            Runner.ProvideInput = config.GameMode != GameMode.Server;
 
             // Physics Addon: KCC は独自の物理クエリを使用するため Physics.Simulate() は不要。
             // プロジェクタイルは SphereCast（即時クエリ）でヒット検出するため SyncTransforms で十分。
@@ -58,15 +62,18 @@ namespace Game.Shared.Network.Survivor
 
             var result = await Runner.StartGame(new StartGameArgs
             {
-                GameMode = gameMode,
-                SessionName = sessionName,
+                GameMode = config.GameMode,
+                SessionName = config.SessionName,
+                Address = config.Address,
+                CustomPublicAddress = config.CustomPublicAddress,
+                ConnectionToken = config.ConnectionToken,
                 SceneManager = sceneManager,
                 ObjectProvider = objectProvider,
             });
 
             if (result.Ok)
             {
-                Debug.Log($"[SurvivorFusionRunner] Session started: mode={gameMode}, session={sessionName}");
+                Debug.Log($"[SurvivorFusionRunner] Session started: mode={config.GameMode}, session={config.SessionName}, address={config.Address}");
             }
             else
             {
@@ -128,7 +135,28 @@ namespace Game.Shared.Network.Survivor
 
         // --- 未使用コールバック（最小実装） ---
         public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
-        public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
+
+        /// <summary>
+        /// クライアントからの接続要求。AuthProvider が設定されている場合は ConnectionToken を検証する。
+        /// </summary>
+        public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
+        {
+            if (AuthProvider == null)
+            {
+                request.Accept();
+                return;
+            }
+
+            if (AuthProvider.ValidateConnectionToken(token))
+            {
+                request.Accept();
+            }
+            else
+            {
+                Debug.LogWarning("[SurvivorFusionRunner] Connection refused: invalid token");
+                request.Refuse();
+            }
+        }
         public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
         {
             Debug.LogError($"[SurvivorFusionRunner] Connect failed: {reason}");

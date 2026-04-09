@@ -1248,6 +1248,7 @@ GameObject:
   - component: {fileID: 2737679039579240257}
   - component: {fileID: 5113180855035363397}
   - component: {fileID: 412673693063438150}
+  - component: {fileID: 5436508134480932163}
   m_Layer: 7
   m_Name: DragonUsurperRed
   m_TagString: Enemy
@@ -1329,9 +1330,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2737679039579240257}
-  _animator: {fileID: 9586004}
   _collider: {fileID: 7997532273401686708}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 9586004}
+  _renderers:
+  - {fileID: 13772040}
+  _visualEffectController: {fileID: 412673693063438150}
 --- !u!114 &412673693063438150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1429,6 +1432,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &5436508134480932163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 139696}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 7997532273401686708}
+  _animator: {fileID: 9586004}
 --- !u!1 &139704
 GameObject:
   m_ObjectHideFlags: 0

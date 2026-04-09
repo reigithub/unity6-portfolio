@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Fusion.Addons.KCC;
 using Game.Client.MasterData;
 using Game.MVP.Core.DI;
@@ -9,6 +10,7 @@ using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Playmode;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -37,6 +39,8 @@ namespace Game.MVP.Survivor.Player
         [Header("振り向き速度 (degrees/sec)")]
         [SerializeField]
         private float _rotationSpeed = 600f;
+
+        [SerializeField] private GameObject _visual;
 
         [Inject] private readonly IGameRootController _gameRootController;
         [Inject] private readonly IInputService _inputService;
@@ -177,10 +181,21 @@ namespace Game.MVP.Survivor.Player
         }
 
         /// <summary>
-        /// マスターデータから初期化
+        /// マスターデータから初期化（互換性維持用オーバーロード）
         /// </summary>
         public void Initialize(SurvivorPlayerLevelMaster levelMaster)
+            => Initialize(levelMaster, null);
+
+        /// <summary>
+        /// マスターデータから初期化。スポーン位置が指定された場合は KCC を設定する
+        /// </summary>
+        /// <param name="levelMaster">プレイヤーレベルマスターデータ</param>
+        /// <param name="spawnPosition">スポーン位置（null の場合は KCC 設定をスキップ）</param>
+        public void Initialize(SurvivorPlayerLevelMaster levelMaster, Vector3? spawnPosition)
         {
+            if (spawnPosition.HasValue)
+                ConfigureKCC(spawnPosition.Value);
+
             _runnerService.TryGet(out _gameState);
 
             ApplyMovementParams(levelMaster);
@@ -263,6 +278,49 @@ namespace Game.MVP.Survivor.Player
             _mainCamera = mainCamera;
         }
 
+        /// <summary>
+        /// KCC のスポーン位置と設定を適用する。
+        /// Awake で初期化済みだが念のため null チェックを行う。
+        /// </summary>
+        /// <param name="spawnPosition">スポーン位置</param>
+        private void ConfigureKCC(Vector3 spawnPosition)
+        {
+            if (_kcc == null) TryGetComponent(out _kcc);
+            if (_kcc == null) return;
+
+            _kcc.SetPosition(spawnPosition);
+            _kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
+            _kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
+            _kcc.Settings.StateAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
+            _kcc.Settings.AntiJitterDistance = new Vector2(0.025f, 0.01f);
+            _kcc.Settings.PredictionCorrectionSpeed = 15f;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[SurvivorPlayerController] KCC configured: pos={spawnPosition}, scene={gameObject.scene.name}");
+#endif
+        }
+
+        /// <summary>
+        /// Visual の非同期初期化。Presenter に初期化を委譲し、完了後に Visual を有効化する。
+        /// サーバー側では Visual を有効化せず、Spawned シグナルのみ発行する。
+        /// </summary>
+        /// <param name="playerMaster">プレイヤーマスターデータ（アセット名取得用）</param>
+        /// <param name="resolver">VContainer リゾルバー（Presenter への Inject 用）</param>
+        public async UniTask InitializeVisualAsync(SurvivorPlayerMaster playerMaster, IObjectResolver resolver)
+        {
+            if (!UnityPlaymodeHelper.IsServer() && _visual != null)
+            {
+                if (_visual.TryGetComponent<SurvivorPlayerPresenter>(out var presenter))
+                    await presenter.InitializeAsync(playerMaster.AssetName, resolver, this);
+
+                // DI 注入 + Animator 設定完了後に Visual を有効化（OnEnable で購読開始）
+                _visual.SetActive(true);
+            }
+
+            // カメラフォロー用シグナル発行（KCC が RenderData で滑らかに補間するためルート transform）
+            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+        }
+
         #endregion
 
         #region Input / ProcessTick
@@ -299,7 +357,7 @@ namespace Game.MVP.Survivor.Player
             using (s_attractItemsMarker.Auto())
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
-                if (_gameState != null && _gameState.IsPaused) return;
+                if (_gameState != null && _gameState.IsEffectivelyPaused) return;
                 _itemCheckTimer -= Time.deltaTime;
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;

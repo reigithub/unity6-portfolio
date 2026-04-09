@@ -12,25 +12,25 @@ namespace Game.Realtime.Services;
 public class MatchmakingProcessor : BackgroundService
 {
     private readonly IMatchmakingQueueService _queueService;
-    private readonly IMatchSessionTokenService _tokenService;
+    private readonly IUnityServerApiClient _unityServerApi;
     private readonly IConnectionMultiplexer _redis;
     private readonly MatchmakingConfiguration _config;
-    private readonly GameServerConfiguration _gameServerConfig;
+    private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILogger<MatchmakingProcessor> _logger;
 
     public MatchmakingProcessor(
         IMatchmakingQueueService queueService,
-        IMatchSessionTokenService tokenService,
+        IUnityServerApiClient unityServerApi,
         IConnectionMultiplexer redis,
         IOptions<MatchmakingConfiguration> config,
-        IOptions<GameServerConfiguration> gameServerConfig,
+        IOptions<UnityServerConfiguration> unityServerConfig,
         ILogger<MatchmakingProcessor> logger)
     {
         _queueService = queueService;
-        _tokenService = tokenService;
+        _unityServerApi = unityServerApi;
         _redis = redis;
         _config = config.Value;
-        _gameServerConfig = gameServerConfig.Value;
+        _unityServerConfig = unityServerConfig.Value;
         _logger = logger;
     }
 
@@ -274,21 +274,36 @@ public class MatchmakingProcessor : BackgroundService
 
     private async Task CreateMatchAsync(string gameMode, string[] playerIds, int stageId)
     {
-        var matchId = Guid.NewGuid().ToString("N");
+        var matchId = $"mp-{Guid.NewGuid():N}";
         var subscriber = _redis.GetSubscriber();
 
-        // プレイヤーごとに個別トークンを発行し、トークン入り MatchResult を配信
-        await Task.WhenAll(playerIds.Select(async playerId =>
+        // 先頭プレイヤーのトークン発行時のみ DS セッション割り当てを実行し、
+        // 残りのプレイヤーへのトークン発行と並行して完了を待つ。
+        // 同一 matchId を共有するため DS 割り当ては 1 回のみ必要。
+        var leaderId = playerIds[0];
+        var leaderAuthTask = _unityServerApi.IssueTokenAsync(leaderId, matchId, stageId, playerIds.Length);
+
+        // 2 人目以降は DS 割り当てなし（stageId=0）で並列発行
+        var followerTasks = playerIds.Skip(1)
+            .Select(playerId => _unityServerApi.IssueTokenAsync(playerId, matchId, stageId: 0, expectedPlayers: playerIds.Length))
+            .ToArray();
+
+        await Task.WhenAll([leaderAuthTask, .. followerTasks]);
+
+        // 全トークンが揃ったら MatchResult を配信
+        await Task.WhenAll(playerIds.Select(async (playerId, index) =>
         {
-            var token = await _tokenService.IssueTokenAsync(playerId, matchId);
+            var authResponse = index == 0
+                ? await leaderAuthTask
+                : await followerTasks[index - 1];
 
             var matchResult = new MatchResult
             {
                 MatchId = matchId,
                 PlayerIds = playerIds,
-                ServerAddress = _gameServerConfig.ServerAddress,
-                ServerPort = _gameServerConfig.ServerPort,
-                SessionToken = token,
+                ServerAddress = _unityServerConfig.ServerAddress,
+                ServerPort = _unityServerConfig.ServerPort,
+                SessionToken = authResponse.Token,
                 StageId = stageId,
             };
 
@@ -296,7 +311,6 @@ public class MatchmakingProcessor : BackgroundService
             var channel = RedisChannel.Literal($"matchmaking:notify:{playerId}");
             await subscriber.PublishAsync(channel, json);
 
-            // プレイヤーメタデータのクリーンアップ
             await _queueService.CleanupPlayerAsync(playerId);
         }));
 

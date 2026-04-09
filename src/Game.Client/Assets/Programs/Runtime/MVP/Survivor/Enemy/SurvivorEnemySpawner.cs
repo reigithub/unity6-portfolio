@@ -197,7 +197,14 @@ namespace Game.MVP.Survivor.Enemy
                 return null;
             }
 
+            // プレハブを一時的に非アクティブ化して Instantiate することで、
+            // NavMeshAgent が NavMesh 外の位置（原点）で Awake するエラーを防ぐ。
+            // プール初期化直後は SetActive(false) のままプールに戻すため問題なし。
+            // スポーン時は SpawnNextEnemy で位置設定後に SetActive(true) する。
+            prefab.SetActive(false);
             var instance = Instantiate(prefab, transform);
+            prefab.SetActive(true);
+
             if (!instance.TryGetComponent<SurvivorEnemyController>(out var controller))
             {
                 Debug.LogError($"[SurvivorEnemySpawner] SurvivorEnemyController not found on prefab: {enemyId}");
@@ -212,11 +219,6 @@ namespace Game.MVP.Survivor.Enemy
             controller.OnSilentRemoval
                 .Subscribe(OnEnemySilentRemoval)
                 .AddTo(this);
-
-            if (UnityPlaymodeHelper.IsClient())
-            {
-                instance.AddComponent<SurvivorEnemyPresenter>();
-            }
 
             return controller;
         }
@@ -247,7 +249,7 @@ namespace Game.MVP.Survivor.Enemy
         private void Update()
         {
             // ポーズ状態の同期
-            bool isPaused = _gameState != null && _gameState.IsPaused;
+            bool isPaused = _gameState != null && _gameState.IsEffectivelyPaused;
             if (isPaused != _wasPaused)
             {
                 _wasPaused = isPaused;
@@ -393,7 +395,7 @@ namespace Game.MVP.Survivor.Enemy
                     return;
                 }
 
-                var enemy = GetFromPool(spawnInfo.EnemyId);
+                SurvivorEnemyController enemy = GetFromPool(spawnInfo.EnemyId);
                 if (enemy == null)
                 {
                     Debug.LogWarning($"[SurvivorEnemySpawner] Pool exhausted for enemy {spawnInfo.EnemyId}, creating new");
@@ -421,9 +423,10 @@ namespace Game.MVP.Survivor.Enemy
 
                 enemy.transform.position = spawnPosition;
                 enemy.gameObject.SetActive(true);
-                Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
 
-                // マスターデータから初期化（MP: ランダムプレイヤーをターゲット）
+                // SetActive(true) の後に Initialize を呼ぶ。
+                // Initialize 末尾で _onInitialized が発火し、Visual 子内の Presenter が購読を開始する。
+                // SetActive より前に Initialize すると Presenter.OnEnable がまだ走っておらず購読漏れになる。
                 var targetPlayer = GetRandomPlayerTransform();
                 enemy.Initialize(
                     enemyMaster,
@@ -436,14 +439,7 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ItemDropGroupId,
                     spawnInfo.ExpDropGroupId
                 );
-
-                if (UnityPlaymodeHelper.IsClient())
-                {
-                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
-                    {
-                        component.Initialize(enemy);
-                    }
-                }
+                Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
 
                 var networkId = _nextNetworkId++;
                 _enemyNetworkIds[enemy] = networkId;
@@ -619,13 +615,9 @@ namespace Game.MVP.Survivor.Enemy
             using (s_returnToPoolMarker.Auto())
             {
                 var enemyId = enemy.EnemyId;
-                if (UnityPlaymodeHelper.IsClient())
-                {
-                    if (enemy.TryGetComponent<SurvivorEnemyPresenter>(out var component))
-                    {
-                        component.ResetForPool();
-                    }
-                }
+
+                // ResetForPool で Controller 状態リセット + _visual.SetActive(false) + gameObject.SetActive(false)
+                // _visual.SetActive(false) により Presenter.OnDisable が走り購読解除 + VFX リセットが自動実行される
                 enemy.ResetForPool();
 
                 if (_pools.TryGetValue(enemyId, out var pool))

@@ -1548,6 +1548,7 @@ GameObject:
   - component: {fileID: 5142580594023096365}
   - component: {fileID: 8345991338663050680}
   - component: {fileID: 7590376328021463456}
+  - component: {fileID: 8001706748311978816}
   m_Layer: 7
   m_Name: DragonSoulEaterGrey
   m_TagString: Enemy
@@ -1629,9 +1630,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 5142580594023096365}
-  _animator: {fileID: 9590000}
   _collider: {fileID: 1551944012958346679}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 9590000}
+  _renderers:
+  - {fileID: 13775546}
+  _visualEffectController: {fileID: 7590376328021463456}
 --- !u!114 &7590376328021463456
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1729,6 +1732,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &8001706748311978816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 174418}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 1551944012958346679}
+  _animator: {fileID: 9590000}
 --- !u!1 &176574
 GameObject:
   m_ObjectHideFlags: 0

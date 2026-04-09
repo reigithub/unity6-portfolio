@@ -23,6 +23,9 @@ namespace Game.MVP.Survivor.Enemy
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
         [SerializeField] private Collider _collider;
+        [SerializeField] private Animator _animator;
+        [SerializeField] private Renderer[] _renderers;
+        [SerializeField] private EnemyVisualEffectController _visualEffectController;
 
         // マスターデータから設定される値
         private int _enemyId;
@@ -95,14 +98,7 @@ namespace Game.MVP.Survivor.Enemy
             ? _collider.bounds.center
             : transform.position;
 
-        // R3 Observables — Presenter が購読
-        private readonly Subject<Unit> _onHitReceived = new();
-        public Observable<Unit> OnHitReceived => _onHitReceived;
-
-        private readonly Subject<EnemyAnimationState> _onAnimationStateChanged = new();
-        public Observable<EnemyAnimationState> OnAnimationStateChanged => _onAnimationStateChanged;
-
-        // Presenter / Snapshot が読み取るプロパティ
+        // Snapshot が読み取るプロパティ
         public EnemyAnimationState CurrentAnimationState { get; internal set; }
         public float NormalizedSpeed => _navAgent != null && _navAgent.speed > 0.01f
             ? _navAgent.velocity.magnitude / _navAgent.speed : 0f;
@@ -110,18 +106,14 @@ namespace Game.MVP.Survivor.Enemy
         /// <summary>NavMeshAgentの現在速度ベクトル（ネットワーク同期用）</summary>
         public Vector3 Velocity => _navAgent != null ? _navAgent.velocity : Vector3.zero;
 
-        private void Awake()
+        /// <summary>
+        /// クライアントプロキシ用にサーバー専用コンポーネントを破棄する。
+        /// EnemyView / EcsEnemyBridge から呼ばれる。
+        /// </summary>
+        public void StripForProxy()
         {
-            if (_navAgent == null)
-            {
-                TryGetComponent(out _navAgent);
-            }
-
-            if (_collider == null)
-            {
-                _collider = GetComponentInChildren<Collider>();
-            }
-
+            if (_navAgent != null) Destroy(_navAgent);
+            Destroy(this);
         }
 
         /// <summary>
@@ -180,6 +172,14 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             InitializeStateMachine();
+
+            // サーバー時は Renderer/Animator を明示的に無効化（不要な描画計算を防止）
+            if (_runnerService != null && _runnerService.IsServer)
+            {
+                if (_animator != null) _animator.enabled = false;
+                if (_renderers != null)
+                    foreach (var r in _renderers) r.enabled = false;
+            }
         }
 
         private const float NavMeshCheckInterval = 1f;
@@ -301,6 +301,9 @@ namespace Game.MVP.Survivor.Enemy
                 _collider.enabled = true;
             }
 
+            // VFX エフェクトをリセット
+            _visualEffectController?.ResetEffects();
+
             gameObject.SetActive(false);
         }
 
@@ -308,8 +311,6 @@ namespace Game.MVP.Survivor.Enemy
         {
             _onDeath.Dispose();
             _onDeathEvent.Dispose();
-            _onHitReceived.Dispose();
-            _onAnimationStateChanged.Dispose();
         }
     }
 }

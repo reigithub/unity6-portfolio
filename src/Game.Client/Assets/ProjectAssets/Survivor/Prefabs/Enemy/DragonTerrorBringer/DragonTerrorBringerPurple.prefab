@@ -334,6 +334,7 @@ GameObject:
   - component: {fileID: 2252044598026125500}
   - component: {fileID: 4557729819858260715}
   - component: {fileID: 217952301565528135}
+  - component: {fileID: 8328001289830146802}
   m_Layer: 7
   m_Name: DragonTerrorBringerPurple
   m_TagString: Enemy
@@ -415,9 +416,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2252044598026125500}
-  _animator: {fileID: 9584802}
   _collider: {fileID: 8292854553957775970}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 9584802}
+  _renderers:
+  - {fileID: 13753596}
+  _visualEffectController: {fileID: 217952301565528135}
 --- !u!114 &217952301565528135
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -515,6 +518,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &8328001289830146802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 109776}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 8292854553957775970}
+  _animator: {fileID: 9584802}
 --- !u!1 &110244
 GameObject:
   m_ObjectHideFlags: 0

@@ -73,7 +73,11 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act - プレイヤーをアイテムに向かって移動
-            yield return MovePlayerTowards(healthItem.transform.position, 3f);
+            yield return MovePlayerTowards(healthItem.transform.position, 5f, 10f);
+
+            // 距離判定と破棄処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
 
             // Assert
             Assert.AreEqual(initialHP + 30, _playerStats.CurrentHP, "HP should increase by heal amount");
@@ -91,7 +95,11 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act
-            yield return MovePlayerTowards(healthItem.transform.position, 3f);
+            yield return MovePlayerTowards(healthItem.transform.position, 5f, 10f);
+
+            // 距離判定と破棄処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
 
             // Assert
             Assert.AreEqual(_playerStats.MaxHP, _playerStats.CurrentHP, "HP should not exceed MaxHP");
@@ -109,7 +117,11 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act
-            yield return MovePlayerTowards(expItem.transform.position, 3f);
+            yield return MovePlayerTowards(expItem.transform.position, 5f, 10f);
+
+            // 距離判定と破棄処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
 
             // Assert
             Assert.AreEqual(initialExp + 100, _playerStats.CurrentExp, "Exp should increase by item amount");
@@ -126,8 +138,12 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act
-            yield return MovePlayerTowards(item.transform.position, 3f);
-            yield return null; // 1フレーム待機
+            yield return MovePlayerTowards(item.transform.position, 5f, 10f);
+
+            // 距離判定と破棄処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
+            yield return null;
 
             // Assert
             Assert.IsTrue(item == null || !item.gameObject.activeInHierarchy,
@@ -147,7 +163,12 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act - 速度を上げてタイムアウトも延長（CI環境対応）
-            yield return MovePlayerTowards(new Vector3(0, 0, 2f), 10f, 10f);
+            yield return MovePlayerTowards(new Vector3(0, 0, 2f), 15f, 15f);
+
+            // 各アイテムの収集処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
+            yield return null;
 
             // Assert
             Assert.AreEqual(60, _playerStats.CurrentExp, "Should collect all exp items");
@@ -173,14 +194,28 @@ namespace Game.Tests.PlayMode
 
             for (int i = 0; i < 30; i++)
             {
+                // アイテムが破棄されたかをチェック（距離が PickupDistance 以内だと破棄される）
+                if (magnetItem == null || item == null)
+                {
+                    break;
+                }
+
                 magnetItem.UpdateMagnet(_player.transform);
                 yield return null;
             }
 
-            var finalDistance = Vector3.Distance(_player.transform.position, item.transform.position);
-
-            // Assert
-            Assert.Less(finalDistance, initialDistance, "Item should move closer to player due to magnet effect");
+            // Assert - アイテムが破棄されていなければ、マグネット効果で近づいているはず
+            // または、取得距離まで近づいていれば成功（吸引効果がある）
+            if (magnetItem != null && item != null)
+            {
+                var finalDistance = Vector3.Distance(_player.transform.position, item.transform.position);
+                Assert.Less(finalDistance, initialDistance, "Item should move closer to player due to magnet effect");
+            }
+            else
+            {
+                // アイテムが取得されたことも成功
+                Assert.Pass("Item was attracted and collected by player");
+            }
         }
 
         /// <summary>
@@ -196,7 +231,11 @@ namespace Game.Tests.PlayMode
             yield return new WaitForFixedUpdate();
 
             // Act
-            yield return MovePlayerTowards(healthItem.transform.position, 3f);
+            yield return MovePlayerTowards(healthItem.transform.position, 5f, 10f);
+
+            // 距離判定と破棄処理が完了するまで待機
+            yield return new WaitForFixedUpdate();
+            yield return null;
 
             // Assert
             Assert.AreEqual(initialHP, _playerStats.CurrentHP, "HP should not change when already at max");
@@ -249,10 +288,12 @@ namespace Game.Tests.PlayMode
                 var direction = (target - _player.transform.position).normalized;
                 direction.y = 0;
 
-                if (direction.magnitude < 0.1f) break;
+                float distance = Vector3.Distance(_player.transform.position, target);
+                if (distance < 0.5f) break; // PickupDistance に余裕を持たせる
 
-                _characterController.Move(direction * speed * Time.deltaTime);
-                _characterController.Move(Vector3.down * 9.8f * Time.deltaTime);
+                // ワールド座標で直接移動（CharacterController.Move ではなく）
+                Vector3 moveDirection = direction * speed * Time.deltaTime;
+                _player.transform.position += moveDirection;
 
                 elapsed += Time.deltaTime;
                 yield return null;
@@ -289,7 +330,8 @@ namespace Game.Tests.PlayMode
 
             private void Update()
             {
-                if (IsCollected || PlayerStats == null) return;
+                if (PlayerStats == null) return;
+                if (IsCollected || gameObject == null) return;
 
                 // プレイヤー参照がなければタグで検索
                 if (_playerTransform == null)

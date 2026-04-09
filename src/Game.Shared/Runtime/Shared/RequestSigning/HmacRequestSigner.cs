@@ -36,10 +36,28 @@ namespace Game.Library.Shared.RequestSigning
         /// </summary>
         public static string ComputeSignature(byte[] secretKey, string canonicalString)
         {
-            using var hmac = new HMACSHA256(secretKey);
-            var data = Encoding.UTF8.GetBytes(canonicalString);
-            var hash = hmac.ComputeHash(data);
+            var hash = ComputeSignatureBytes(secretKey, canonicalString);
             return BytesToHex(hash);
+        }
+
+        /// <summary>
+        /// HMAC-SHA256 署名の生バイト列を返す（文字列データ用）。
+        /// </summary>
+        internal static byte[] ComputeSignatureBytes(byte[] secretKey, string data)
+        {
+            using var hmac = new HMACSHA256(secretKey);
+            return hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+        }
+
+        /// <summary>
+        /// HMAC-SHA256 署名の生バイト列を返す（バイナリデータ用）。
+        /// </summary>
+        /// <param name="secretKey">HMAC シークレットキー</param>
+        /// <param name="data">署名対象のバイト列</param>
+        internal static byte[] ComputeSignatureBytes(byte[] secretKey, byte[] data)
+        {
+            using var hmac = new HMACSHA256(secretKey);
+            return hmac.ComputeHash(data);
         }
 
         /// <summary>
@@ -54,7 +72,7 @@ namespace Game.Library.Shared.RequestSigning
         /// <summary>
         /// 定時間文字列比較（タイミング攻撃対策）
         /// </summary>
-        private static bool CryptographicEquals(string a, string b)
+        internal static bool CryptographicEquals(string a, string b)
         {
             if (a == null || b == null)
             {
@@ -62,6 +80,27 @@ namespace Game.Library.Shared.RequestSigning
             }
 
             if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            int result = 0;
+            for (int i = 0; i < a.Length; i++)
+            {
+                result |= a[i] ^ b[i];
+            }
+
+            return result == 0;
+        }
+
+        /// <summary>
+        /// 定時間バイト列比較（タイミング攻撃対策）
+        /// </summary>
+        /// <param name="a">比較するバイト列 A</param>
+        /// <param name="b">比較するバイト列 B</param>
+        internal static bool CryptographicEquals(byte[] a, byte[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length)
             {
                 return false;
             }

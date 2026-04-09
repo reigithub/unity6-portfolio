@@ -29,6 +29,7 @@ namespace Game.MVP.Survivor.Item
     /// Survivorアイテム
     /// マスタデータからItemTypeに応じた効果を持つ汎用アイテム
     /// プレイヤーからStartAttractionを呼ばれることで吸引開始
+    /// 表示ロジック（浮遊アニメーション）はクライアント側の ItemProxyCollectible が担当する
     /// </summary>
     public class SurvivorItem : MonoBehaviour, ICollectible
     {
@@ -42,19 +43,10 @@ namespace Game.MVP.Survivor.Item
         [SerializeField] private int _rarity = 1;
         [SerializeField] private float _scale = 1f;
 
-        [Header("Visual")]
-        [SerializeField] private float _floatAmplitude = 0.2f;
-        [SerializeField] private float _floatSpeed = 2f;
-
         // 吸引状態
         private Transform _attractTarget;
         private float _attractSpeed;
         private bool _isBeingAttracted;
-
-        // 浮遊アニメーション
-        private Vector3 _initialPosition;
-        private float _floatTimer;
-        private float _baseFloatAmplitude;
 
         // 収集状態
         private bool _isCollected;
@@ -87,7 +79,6 @@ namespace Game.MVP.Survivor.Item
             _effectDuration = effectDuration;
             _rarity = rarity;
             _scale = scale > 0f ? scale : 1f;
-            _baseFloatAmplitude = _floatAmplitude * _scale;
             _gameState = gameState;
 
             ApplyTransform();
@@ -99,16 +90,10 @@ namespace Game.MVP.Survivor.Item
             transform.localScale = Vector3.one * _scale;
         }
 
-        private void Start()
-        {
-            _initialPosition = transform.position;
-            _baseFloatAmplitude = _floatAmplitude * _scale;
-        }
-
         private void Update()
         {
             if (_isCollected) return;
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             if (_isBeingAttracted && _attractTarget != null)
             {
@@ -116,18 +101,6 @@ namespace Game.MVP.Survivor.Item
                 Vector3 direction = (_attractTarget.position - transform.position).normalized;
                 transform.position += direction * _attractSpeed * Time.deltaTime;
             }
-            else
-            {
-                // 浮遊アニメーション（ビジュアル）
-                UpdateFloatAnimation();
-            }
-        }
-
-        private void UpdateFloatAnimation()
-        {
-            _floatTimer += Time.deltaTime * _floatSpeed;
-            float yOffset = Mathf.Sin(_floatTimer) * _baseFloatAmplitude;
-            transform.position = _initialPosition + Vector3.up * yOffset;
         }
 
         /// <summary>
@@ -158,6 +131,15 @@ namespace Game.MVP.Survivor.Item
         }
 
         /// <summary>
+        /// クライアントプロキシ用にサーバー専用コンポーネントを破棄する。
+        /// SurvivorItemView から呼ばれる。
+        /// </summary>
+        public void StripForProxy()
+        {
+            Destroy(this);
+        }
+
+        /// <summary>
         /// プールに戻す際のリセット
         /// </summary>
         public void Reset()
@@ -166,7 +148,6 @@ namespace Game.MVP.Survivor.Item
             _isBeingAttracted = false;
             _attractTarget = null;
             _attractSpeed = 0f;
-            _floatTimer = 0f;
         }
 
         /// <summary>
@@ -175,7 +156,6 @@ namespace Game.MVP.Survivor.Item
         public void SetPosition(Vector3 position)
         {
             transform.position = position;
-            _initialPosition = position;
         }
     }
 }

@@ -238,6 +238,7 @@ GameObject:
   - component: {fileID: 3156367827074836842}
   - component: {fileID: 6977514774450943729}
   - component: {fileID: 2918736328581690055}
+  - component: {fileID: 5236311757006973530}
   m_Layer: 7
   m_Name: MushroomAngryPA
   m_TagString: Enemy
@@ -319,9 +320,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 3156367827074836842}
-  _animator: {fileID: 7442050115661319743}
   _collider: {fileID: 8223286669960190727}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 7442050115661319743}
+  _renderers:
+  - {fileID: 1221193201481847483}
+  _visualEffectController: {fileID: 2918736328581690055}
 --- !u!114 &2918736328581690055
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -419,6 +422,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &5236311757006973530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4245915190017150719}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 8223286669960190727}
+  _animator: {fileID: 7442050115661319743}
 --- !u!1 &5632524212304190485
 GameObject:
   m_ObjectHideFlags: 0

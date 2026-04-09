@@ -10,9 +10,9 @@ namespace Game.Shared.Network.Survivor
 {
     /// <summary>
     /// Fusion セッション管理。プレイヤー接続追跡と AllPlayersReady 通知を担当。
-    /// SurvivorFusionStageConnector から生成され、SurvivorFusionRunner のコールバックを受ける。
+    /// SurvivorNetworkStageConnector から生成され、SurvivorFusionRunner のコールバックを受ける。
     /// </summary>
-    public class SurvivorFusionServerSession
+    public class SurvivorUnityServerSession
     {
         private readonly IFusionRunnerService _runnerService;
         private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
@@ -26,7 +26,7 @@ namespace Game.Shared.Network.Survivor
 
         public int ConnectedPlayerCount => _connectedPlayers.Count;
 
-        public SurvivorFusionServerSession(
+        public SurvivorUnityServerSession(
             IFusionRunnerService runnerService,
             IPublisher<SurvivorSignals.Session.AllPlayersReady> allPlayersReadyPub,
             IPublisher<SurvivorSignals.Session.GameStarted> gameStartedPub,

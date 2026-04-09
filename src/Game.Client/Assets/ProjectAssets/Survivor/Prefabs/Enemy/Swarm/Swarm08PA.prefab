@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4993897013919249133}
   - component: {fileID: 3551693851289921379}
   - component: {fileID: 5494322135641905640}
+  - component: {fileID: 1366327534560604245}
   m_Layer: 7
   m_Name: Swarm08PA
   m_TagString: Enemy
@@ -94,9 +95,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 4993897013919249133}
-  _animator: {fileID: 935239177575416298}
   _collider: {fileID: 5034595195709958334}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 935239177575416298}
+  _renderers:
+  - {fileID: 921007616236996589}
+  _visualEffectController: {fileID: 5494322135641905640}
 --- !u!114 &5494322135641905640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,6 +197,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &1366327534560604245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 16829958793894433}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 5034595195709958334}
+  _animator: {fileID: 935239177575416298}
 --- !u!1 &366229167135885180
 GameObject:
   m_ObjectHideFlags: 0

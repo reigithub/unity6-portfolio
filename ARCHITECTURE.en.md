@@ -260,7 +260,7 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 |---------|-------------|
 | JWT Authentication | Common auth middleware configuration (token validation, userId extraction) |
 | Health Check | Shared `/health` endpoint implementation |
-| Configuration | Common configuration classes such as GameServerConfiguration |
+| Configuration | Common configuration classes such as UnityServerConfiguration |
 | Extensions | Utilities like userId extraction from ClaimsPrincipal |
 
 ### 3.4 Inter-Project Dependencies

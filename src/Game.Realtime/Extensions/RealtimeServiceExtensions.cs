@@ -21,8 +21,9 @@ public static class RealtimeServiceExtensions
         // Distributed Lock Provider (レースコンディション防止)
         services.AddDistributedLock();
 
-        // Match Session Token Service (Dedicated Server 接続認証用)
-        services.AddSingleton<IMatchSessionTokenService, MatchSessionTokenService>();
+        // Game.Server API クライアント（サービス間 HTTP 通信）
+        services.AddHttpClient();
+        services.AddSingleton<IUnityServerApiClient, UnityServerApiClient>();
 
         // Matchmaking Queue Service
         services.AddSingleton<IMatchmakingQueueService, MatchmakingQueueService>();
@@ -34,13 +35,15 @@ public static class RealtimeServiceExtensions
         services.Configure<MatchmakingConfiguration>(
             configuration.GetSection("Matchmaking"));
 
-        // Game Server Configuration
-        services.Configure<GameServerConfiguration>(
-            configuration.GetSection("GameServer"));
+        // Unity Dedicated Server Configuration
+        services.Configure<UnityServerConfiguration>(
+            configuration.GetSection("UnityServer"));
 
-        // Unity Server Auth Settings (HMAC 署名用シークレット)
-        services.Configure<UnityServerAuthSettings>(
-            configuration.GetSection("UnityServerAuth"));
+        // Game.Server 接続設定
+        services.AddOptions<GameServerSettings>()
+            .Bind(configuration.GetSection("GameServer"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Matchmaking Background Processor
         services.AddHostedService<MatchmakingProcessor>();

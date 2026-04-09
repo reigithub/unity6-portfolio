@@ -19,8 +19,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 {
     private readonly ILogger<LobbyHub> _logger;
     private readonly ILobbyDataService _lobbyDataService;
-    private readonly IMatchSessionTokenService _tokenService;
-    private readonly GameServerConfiguration _gameServerConfig;
+    private readonly IUnityServerApiClient _unityServerApi;
+    private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
 
     // lobby ごとの userId → ConnectionId マッピング（Hub はリクエストごとにインスタンス生成のため static）
@@ -35,14 +35,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     public LobbyHub(
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
-        IMatchSessionTokenService tokenService,
-        IOptions<GameServerConfiguration> gameServerConfig,
+        IUnityServerApiClient unityServerApi,
+        IOptions<UnityServerConfiguration> unityServerConfig,
         ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
-        _tokenService = tokenService;
-        _gameServerConfig = gameServerConfig.Value;
+        _unityServerApi = unityServerApi;
+        _unityServerConfig = unityServerConfig.Value;
         _lobbyValidator = lobbyValidator;
     }
 
@@ -168,18 +168,28 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             return;
         }
 
-        var matchId = Guid.NewGuid().ToString("N");
+        var matchId = $"mp-{Guid.NewGuid():N}";
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        var stageId = lobby?.StageId ?? 0;
 
-        // プレイヤーごとに個別トークンを発行して送信
+        // リーダー（先頭プレイヤー）のトークン発行時に DS セッション割り当てを実行
         LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
+        var isFirst = true;
         foreach (var player in players)
         {
-            var token = await _tokenService.IssueTokenAsync(player.UserId, matchId);
+            var authResponse = await _unityServerApi.IssueTokenAsync(
+                player.UserId, matchId,
+                stageId: isFirst ? stageId : 0,
+                expectedPlayers: players.Length);
+            isFirst = false;
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {
                 _currentGroup.Only(new[] { connId }).OnGameStarting(
-                    matchId, _gameServerConfig.ServerAddress, _gameServerConfig.ServerPort, token);
+                    matchId,
+                    _unityServerConfig.ServerAddress,
+                    _unityServerConfig.ServerPort,
+                    authResponse.Token);
             }
         }
 

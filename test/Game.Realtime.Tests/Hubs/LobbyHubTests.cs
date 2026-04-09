@@ -18,24 +18,24 @@ public class LobbyHubTests
 {
     private readonly Mock<ILogger<LobbyHub>> _mockLogger;
     private readonly Mock<ILobbyDataService> _mockLobbyDataService;
-    private readonly Mock<IMatchSessionTokenService> _mockTokenService;
-    private readonly IOptions<GameServerConfiguration> _gameServerConfig;
+    private readonly Mock<IUnityServerApiClient> _mockUnityServerApi;
+    private readonly IOptions<UnityServerConfiguration> _unityServerConfig;
     private readonly Mock<ILobbyValidator> _mockLobbyValidator;
 
     public LobbyHubTests()
     {
         _mockLogger = new Mock<ILogger<LobbyHub>>();
         _mockLobbyDataService = new Mock<ILobbyDataService>();
-        _mockTokenService = new Mock<IMatchSessionTokenService>();
-        _gameServerConfig = Options.Create(new GameServerConfiguration());
+        _mockUnityServerApi = new Mock<IUnityServerApiClient>();
+        _unityServerConfig = Options.Create(new UnityServerConfiguration());
         _mockLobbyValidator = new Mock<ILobbyValidator>();
     }
 
     private LobbyHub CreateHub()
     {
         return new LobbyHub(
-            _mockLogger.Object, _mockLobbyDataService.Object, _mockTokenService.Object,
-            _gameServerConfig, _mockLobbyValidator.Object);
+            _mockLogger.Object, _mockLobbyDataService.Object, _mockUnityServerApi.Object,
+            _unityServerConfig, _mockLobbyValidator.Object);
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public class LobbyHubTests
     }
 
     [Fact]
-    public async Task SetReadyAsync_AllReady_InvokesTokenService()
+    public async Task SetReadyAsync_AllReady_InvokesGameServerApi()
     {
         // Arrange
         var hub = CreateHub();
@@ -295,6 +295,11 @@ public class LobbyHubTests
         // GetPlayersAsync は呼ばれない
         _mockLobbyDataService.Verify(
             s => s.GetPlayersAsync(It.IsAny<string>()), Times.Never);
+
+        // Game.Server API は呼ばれない（StartGameAsync が abort のため）
+        _mockUnityServerApi.Verify(
+            s => s.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
     }
 
     /// <summary>

@@ -40,22 +40,35 @@ namespace Game.Shared
     {
         [SerializeField] private GameEnvironment _environment;
         [SerializeField] private DependencyResolverMode _dependencyResolverMode;
+
         [SerializeField] private string _apiBaseUrl;
         [SerializeField] private string _grpcBaseUrl;
         [SerializeField] private string _webSocketUrl;
+
+        [SerializeField] private string _unityServerAddress;
+        [SerializeField] private ushort _unityServerPort = 7777;
+        [SerializeField] private string _unityServerSessionName;
+
         [SerializeField] private bool _enableDebugLog;
         [SerializeField] private bool _enableAnalytics;
         [SerializeField] private bool _useLocalMasterData;
+        [SerializeField] private bool _useLocalServerOrchestrator;
+
         [SerializeField] private AddressablesEnvironmentConfig _addressablesConfig;
+
 
         public GameEnvironment Environment => _environment;
         public DependencyResolverMode DependencyResolverMode => _dependencyResolverMode;
         public string ApiBaseUrl => _apiBaseUrl;
         public string GrpcBaseUrl => _grpcBaseUrl;
         public string WebSocketUrl => _webSocketUrl;
+        public string UnityServerAddress => _unityServerAddress;
+        public ushort UnityServerPort => _unityServerPort;
+        public string UnityServerSessionName => _unityServerSessionName;
         public bool EnableDebugLog => _enableDebugLog;
         public bool EnableAnalytics => _enableAnalytics;
         public bool UseLocalMasterData => _useLocalMasterData;
+        public bool UseLocalServerOrchestrator => _useLocalServerOrchestrator;
         public AddressablesEnvironmentConfig AddressablesConfig => _addressablesConfig;
     }
 

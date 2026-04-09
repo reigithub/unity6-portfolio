@@ -26,7 +26,7 @@ COPY . .
 # ビルド時の不要ファイルを除去 + 実行権限付与
 RUN rm -rf *_BackUpThisFolder_ButDontShipItWithYourGame \
            *_BurstDebugInformation_DoNotShip \
-    && chmod +x Unity6GameServer \
+    && chmod +x Unity6GameServer* \
     && chown -R gameserver:gameserver /app
 
 USER gameserver
@@ -35,9 +35,9 @@ USER gameserver
 EXPOSE 7777/udp
 EXPOSE 7778/tcp
 
-# TCP ヘルスチェック（bash の /dev/tcp を使用、追加パッケージ不要）
+# HTTP ヘルスチェック（ServerHttpListener の GET /health）
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
-    CMD bash -c 'echo > /dev/tcp/localhost/7778' || exit 1
+    CMD bash -c 'exec 3<>/dev/tcp/localhost/7778 && echo -e "GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n" >&3 && cat <&3 | head -1 | grep -q "200 OK"' || exit 1
 
-ENTRYPOINT ["./Unity6GameServer", "-batchmode", "-nographics"]
+ENTRYPOINT ["./Unity6GameServer.x86_64", "-batchmode", "-nographics"]
 CMD ["--port", "7777", "--health-port", "7778", "--players", "4"]

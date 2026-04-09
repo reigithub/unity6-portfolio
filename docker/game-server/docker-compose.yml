@@ -45,6 +45,7 @@ services:
       - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
       - Jwt__Issuer=Game.Server
       - Jwt__Audience=Game.Client
+      - UnityServerAuth__SecretKey=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
     depends_on:
       db:
         condition: service_healthy
@@ -71,8 +72,10 @@ services:
       - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in .env}
       - Jwt__Issuer=Game.Server
       - Jwt__Audience=Game.Client
-      - UnityServerAuth__SecretKey=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
+      - GameServer__BaseUrl=http://server:8080
     depends_on:
+      server:
+        condition: service_healthy
       valkey:
         condition: service_healthy
     healthcheck:
@@ -84,18 +87,22 @@ services:
 
 #  unity-server:
 #    image: unity-server-linux
-#    container_name: game-server-unity-server
+#    container_name: game-server-unity
 #    build:
 #      context: ../../src/Game.Client/Builds/Server/Linux
-#      dockerfile: ../../docker/unity-server/Dockerfile
+#      dockerfile: ../../../../../docker/unity-server/Dockerfile
 #    ports:
 #      - "7777:7777/udp"
 #      - "7778:7778/tcp"
 #    environment:
 #      - UNITY_SERVER_AUTH_SESSION_SECRET=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
-#    command: ["--port", "7777", "--health-port", "7778", "--players", "4", "--secret", "${UNITY_SERVER_AUTH_SESSION_SECRET}"]
+#      - GAME_SERVER_URL=http://server:8080
+#    command: ["--port", "7777", "--health-port", "7778", "--players", "4"]
+#    depends_on:
+#      server:
+#        condition: service_healthy
 #    healthcheck:
-#      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7778' || exit 1"]
+#      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/7778 && echo -e \"GET /health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && cat <&3 | head -1 | grep -q \"200 OK\"' || exit 1"]
 #      interval: 10s
 #      timeout: 3s
 #      retries: 3

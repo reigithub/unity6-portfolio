@@ -926,6 +926,7 @@ GameObject:
   - component: {fileID: 2878181655799567387}
   - component: {fileID: 8303194171675301675}
   - component: {fileID: 44902873134588599}
+  - component: {fileID: 7557291198687933377}
   m_Layer: 7
   m_Name: TurtleShellPolyart
   m_TagString: Enemy
@@ -1007,9 +1008,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2878181655799567387}
-  _animator: {fileID: 5162232971360506}
   _collider: {fileID: 2514723860956597277}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 5162232971360506}
+  _renderers:
+  - {fileID: 734471815632122533}
+  _visualEffectController: {fileID: 44902873134588599}
 --- !u!114 &44902873134588599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1107,6 +1110,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &7557291198687933377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6753617674297473082}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 2514723860956597277}
+  _animator: {fileID: 5162232971360506}
 --- !u!1 &6861681153245785469
 GameObject:
   m_ObjectHideFlags: 0

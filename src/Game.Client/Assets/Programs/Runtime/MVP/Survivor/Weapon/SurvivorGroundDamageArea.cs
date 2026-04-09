@@ -60,7 +60,7 @@ namespace Game.MVP.Survivor.Weapon
         private void Update()
         {
             if (!_isActive) return;
-            if (_gameState != null && _gameState.IsPaused) return;
+            if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
             _remainingTime -= Time.deltaTime;
             _nextProcTime -= Time.deltaTime;

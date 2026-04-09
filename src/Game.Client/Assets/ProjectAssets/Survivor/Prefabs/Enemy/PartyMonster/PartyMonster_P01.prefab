@@ -2783,6 +2783,7 @@ GameObject:
   - component: {fileID: 6607595481128036623}
   - component: {fileID: 2343108114834623282}
   - component: {fileID: 6541570197226702312}
+  - component: {fileID: 3270107507563616062}
   m_Layer: 7
   m_Name: PartyMonster_P01
   m_TagString: Enemy
@@ -2893,9 +2894,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 5283057916122152221}
-  _animator: {fileID: 8903687710321359521}
   _collider: {fileID: 6607595481128036623}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 8903687710321359521}
+  _renderers:
+  - {fileID: 9174182162200932993}
+  - {fileID: 4867325781978955368}
+  - {fileID: 2344532223531826693}
+  - {fileID: 6225701929654630931}
+  - {fileID: 2526562878583810568}
+  - {fileID: 6792971205395317754}
+  - {fileID: 5443205815808767730}
+  _visualEffectController: {fileID: 6541570197226702312}
 --- !u!114 &6541570197226702312
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2999,6 +3008,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &3270107507563616062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8597698371886135454}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 6607595481128036623}
+  _animator: {fileID: 8903687710321359521}
 --- !u!1 &8692607577877473419
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,3 +1,4 @@
+using Game.MVP.Survivor.Enemy;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Unity.Entities;
@@ -13,12 +14,6 @@ namespace Game.MVP.Survivor.ECS
     /// </summary>
     public class EcsEnemyProxy : MonoBehaviour, ICombatTarget
     {
-        // Animator hashes（SurvivorEnemyPresenterと同一パラメータ）
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int DeathHash = Animator.StringToHash("Death");
-        private static readonly int HitHash = Animator.StringToHash("Hit");
-        private static readonly int AttackHash = Animator.StringToHash("Attack");
-
         /// <summary>対応するECSエンティティ</summary>
         private Entity _entity;
 
@@ -28,11 +23,11 @@ namespace Game.MVP.Survivor.ECS
         /// <summary>ECS上で死亡済みかどうか</summary>
         private bool _isDead;
 
-        /// <summary>コライダーの参照（CenterPosition用）</summary>
-        private Collider _collider;
+        /// <summary>コライダーの参照（CenterPosition用）— Inspector で事前設定</summary>
+        [SerializeField] private Collider _collider;
 
-        /// <summary>Animator参照</summary>
-        private Animator _animator;
+        /// <summary>Animator参照 — Inspector で事前設定</summary>
+        [SerializeField] private Animator _animator;
 
         /// <summary>前フレームのAI状態（変化検知用）</summary>
         private EcsEnemyAIStateType _lastAIState;
@@ -80,12 +75,6 @@ namespace Game.MVP.Survivor.ECS
             }
         }
 
-        private void Awake()
-        {
-            _collider = GetComponentInChildren<Collider>();
-            _animator = GetComponentInChildren<Animator>();
-        }
-
         private void Update()
         {
             if (_isDead || !IsEntityValid())
@@ -110,7 +99,7 @@ namespace Game.MVP.Survivor.ECS
                     if (_animator != null)
                     {
                         float speed = enemyData.MoveSpeed > 0 ? 1f : 0f;
-                        _animator.SetFloat(SpeedHash, speed);
+                        _animator.SetFloat(EnemyAnimatorHashes.Speed, speed);
                     }
                     break;
 
@@ -140,18 +129,18 @@ namespace Game.MVP.Survivor.ECS
                     break;
 
                 case EcsEnemyAIStateType.Attack:
-                    _animator.SetFloat(SpeedHash, 0f);
-                    _animator.SetTrigger(AttackHash);
+                    _animator.SetFloat(EnemyAnimatorHashes.Speed, 0f);
+                    _animator.SetTrigger(EnemyAnimatorHashes.Attack);
                     _proxyAttackTimer = 0f; // 最初の攻撃は即時
                     break;
 
                 case EcsEnemyAIStateType.HitStun:
-                    _animator.SetFloat(SpeedHash, 0f);
-                    _animator.SetTrigger(HitHash);
+                    _animator.SetFloat(EnemyAnimatorHashes.Speed, 0f);
+                    _animator.SetTrigger(EnemyAnimatorHashes.Hit);
                     break;
 
                 case EcsEnemyAIStateType.Dead:
-                    _animator.SetTrigger(DeathHash);
+                    _animator.SetTrigger(EnemyAnimatorHashes.Death);
                     break;
             }
         }

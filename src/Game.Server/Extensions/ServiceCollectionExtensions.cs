@@ -81,6 +81,15 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Unity Server（SP/MP 共通のトークン発行 + DS ライフサイクル管理）
+        services.AddOptions<UnityServerSettings>()
+            .Bind(configuration.GetSection("UnityServerAuth"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<IUnityServerRegistryService, UnityServerRegistryService>();
+        services.AddSingleton<ISessionAssignmentService, SessionAssignmentService>();
+        services.AddSingleton<IUnityServerService, UnityServerService>();
+
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));

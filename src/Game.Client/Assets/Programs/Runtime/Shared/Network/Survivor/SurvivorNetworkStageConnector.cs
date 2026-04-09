@@ -1,9 +1,12 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Fusion;
+using Fusion.Sockets;
+using Game.Library.Shared.RequestSigning;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
+using Game.Shared.Unity.Server;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
@@ -15,7 +18,7 @@ namespace Game.Shared.Network.Survivor
     /// ISurvivorNetworkStageConnector の Fusion 2 実装。
     /// Fusion NetworkRunner を生成し、Host/Client/Server セッションを管理する。
     /// </summary>
-    public class SurvivorFusionStageConnector : ISurvivorNetworkStageConnector
+    public class SurvivorNetworkStageConnector : ISurvivorNetworkStageConnector
     {
         [Inject] private readonly IObjectResolver _resolver;
         [Inject] private readonly IAddressableAssetService _assetService;
@@ -29,7 +32,7 @@ namespace Game.Shared.Network.Survivor
         private const string EnemyBatchSyncAddress = "SurvivorFusionEnemyBatchSync";
 
         private SurvivorFusionRunner _runner;
-        private SurvivorFusionServerSession _session;
+        private SurvivorUnityServerSession _session;
         private GameMode _gameMode;
         private bool _isConnecting;
 
@@ -55,7 +58,15 @@ namespace Game.Shared.Network.Survivor
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var result = await _runner.StartAsync(GameMode.Host, sessionName);
+                var config = new FusionConnectionConfig
+                {
+                    GameMode = GameMode.Host,
+                    SessionName = sessionName,
+                    Address = NetAddress.Any(),
+                    ConnectionToken = null,
+                };
+
+                var result = await _runner.StartAsync(config);
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Host start failed: {result.ShutdownReason}");
 
@@ -82,7 +93,27 @@ namespace Game.Shared.Network.Survivor
 
                 EnsureRunner();
 
-                var result = await _runner.StartAsync(GameMode.Client, sessionName);
+                // セッショントークン（Base64 文字列）をバイナリに変換して ConnectionToken として送信
+                // サーバー側は MessagePack + HMAC-SHA256 バイナリ形式（~117B、128B 上限以内）
+                byte[] connectionToken = null;
+                if (!string.IsNullOrEmpty(sessionToken))
+                {
+                    connectionToken = Convert.FromBase64String(sessionToken);
+                    if (connectionToken.Length > 128)
+                    {
+                        Debug.LogWarning($"[SurvivorFusionStageConnector] ConnectionToken {connectionToken.Length}B が 128B を超えています。トークンが Fusion に無視される可能性があります。");
+                    }
+                }
+
+                var config = new FusionConnectionConfig
+                {
+                    GameMode = GameMode.Client,
+                    SessionName = sessionName,
+                    Address = NetAddress.Any(),
+                    ConnectionToken = connectionToken,
+                };
+
+                var result = await _runner.StartAsync(config);
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Client connect failed: {result.ShutdownReason}");
 
@@ -110,7 +141,26 @@ namespace Game.Shared.Network.Survivor
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var result = await _runner.StartAsync(GameMode.Server, sessionName);
+                var serverPort = SurvivorNetworkMatchConnector.ServerPort;
+
+                // 環境変数 PUBLIC_ADDRESS から公開アドレスを取得（GCE/NAT対応）
+                NetAddress? publicAddress = null;
+                var publicIp = System.Environment.GetEnvironmentVariable("PUBLIC_ADDRESS");
+                if (!string.IsNullOrEmpty(publicIp))
+                {
+                    publicAddress = NetAddress.CreateFromIpPort(publicIp, serverPort);
+                }
+
+                var config = new FusionConnectionConfig
+                {
+                    GameMode = GameMode.Server,
+                    SessionName = sessionName,
+                    Address = NetAddress.Any(serverPort),
+                    CustomPublicAddress = publicAddress,
+                    ConnectionToken = null,
+                };
+
+                var result = await _runner.StartAsync(config);
                 if (!result.Ok)
                     throw new InvalidOperationException($"Fusion Server start failed: {result.ShutdownReason}");
 
@@ -205,6 +255,12 @@ namespace Game.Shared.Network.Survivor
             _runner.Resolver = _resolver;
             _runner.RunnerService = _runnerService;
             _runner.OnShutdownCallback = OnRunnerShutdown;
+
+            // UnityServerBootstrap で解析済みの認証シークレットがあれば認証プロバイダを設定
+            if (UnityServerBootstrap.AuthSecretKey != null)
+            {
+                _runner.AuthProvider = new SessionTokenAuthProvider(UnityServerBootstrap.AuthSecretKey);
+            }
         }
 
         private void CreateSession(int expectedPlayerCount)
@@ -213,7 +269,7 @@ namespace Game.Shared.Network.Survivor
             if (_playerPrefabAsset != null)
                 playerPrefab = _playerPrefabAsset.GetComponent<NetworkObject>();
 
-            _session = new SurvivorFusionServerSession(
+            _session = new SurvivorUnityServerSession(
                 _runnerService,
                 _allPlayersReadyPub,
                 _gameStartedPub,
@@ -251,6 +307,34 @@ namespace Game.Shared.Network.Survivor
             _runnerService.Clear();
             _runnerService.RaiseClientDisconnected();
             _session = null;
+        }
+
+        // =====================================================================
+        //  プライベートクラス
+        // =====================================================================
+
+        /// <summary>
+        /// SessionToken を検証する IUnityServerAuthProvider 実装。
+        /// ConnectionToken（MessagePack + HMAC-SHA256 バイナリ形式）を直接検証する。
+        /// </summary>
+        private class SessionTokenAuthProvider : IUnityServerAuthProvider
+        {
+            private readonly byte[] _secretKey;
+
+            public SessionTokenAuthProvider(byte[] secretKey)
+            {
+                _secretKey = secretKey;
+            }
+
+            /// <summary>
+            /// ConnectionToken バイト列を MessagePack + HMAC-SHA256 形式で直接検証する。
+            /// </summary>
+            public bool ValidateConnectionToken(byte[] token)
+            {
+                if (token == null || token.Length == 0) return false;
+
+                return SessionTokenHelper.ParseAndVerifyBytes(token, _secretKey) != null;
+            }
         }
     }
 }

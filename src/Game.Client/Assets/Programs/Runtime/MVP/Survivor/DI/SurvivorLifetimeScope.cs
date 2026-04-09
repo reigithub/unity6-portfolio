@@ -20,6 +20,7 @@ using AuthApiService = Game.Shared.Services.AuthApiService;
 using AuthSessionService = Game.Shared.Services.AuthSessionService;
 using SurvivorScoreApiService = Game.Shared.Services.SurvivorScoreApiService;
 using UnityApiClient = Game.Shared.Services.UnityApiClient;
+using UnityServerApiService = Game.Shared.Services.UnityServerApiService;
 using Game.Shared.Chat.Client;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
@@ -82,7 +83,7 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorServerSaveService>(Lifetime.Singleton).As<ISurvivorSaveService>();
 
             // Fusion Server（サーバーモードでも Fusion 経由で接続）
-            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
@@ -153,6 +154,7 @@ namespace Game.MVP.Survivor
             builder.Register<AuthSessionService>(Lifetime.Singleton).As<IAuthSessionService>();
             builder.Register<AuthApiService>(Lifetime.Singleton).As<IAuthApiService>();
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
+            builder.Register<UnityServerApiService>(Lifetime.Singleton).As<IUnityServerApiService>();
 
             // Request Queue & Notifications
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
@@ -174,13 +176,22 @@ namespace Game.MVP.Survivor
             // ========================================
             // Fusion Client（クライアント接続用）
             // ========================================
-            builder.Register<SurvivorFusionStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
+            builder.Register<SurvivorNetworkStageConnector>(Lifetime.Singleton).As<ISurvivorNetworkStageConnector>();
 
 #if !UNITY_SERVER
             // ========================================
-            // Local Server Orchestrator（SP モード用）
+            // Local Server Orchestrator（UseLocalServerOrchestrator 有効時のみ実体を生成）
             // ========================================
-            builder.Register<LocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+            if (GameEnvironmentHelper.CurrentConfig?.UseLocalServerOrchestrator == true)
+            {
+                builder.Register<LocalServerOrchestrator>(Lifetime.Singleton)
+                    .As<ILocalServerOrchestrator>();
+            }
+            else
+            {
+                builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton)
+                    .As<ILocalServerOrchestrator>();
+            }
 #endif
 
             // Game Runner (Entry Point)

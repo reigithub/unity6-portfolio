@@ -1187,6 +1187,7 @@ GameObject:
   - component: {fileID: 4624385510383345130}
   - component: {fileID: 1538592446192910689}
   - component: {fileID: 7245866387218300158}
+  - component: {fileID: 3961851242825723597}
   m_Layer: 7
   m_Name: DragonNightmareDarkBlue
   m_TagString: Enemy
@@ -1268,9 +1269,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 4624385510383345130}
-  _animator: {fileID: 9533082}
   _collider: {fileID: 6416595944455025566}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 9533082}
+  _renderers:
+  - {fileID: 13723644}
+  _visualEffectController: {fileID: 7245866387218300158}
 --- !u!114 &7245866387218300158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1368,6 +1371,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &3961851242825723597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 132742}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 6416595944455025566}
+  _animator: {fileID: 9533082}
 --- !u!1 &133434
 GameObject:
   m_ObjectHideFlags: 0

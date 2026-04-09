@@ -46,12 +46,6 @@ namespace Game.MVP.Survivor.Enemy
         {
             _propertyBlock = new MaterialPropertyBlock();
 
-            // 自動検出
-            if (_targetRenderers == null || _targetRenderers.Length == 0)
-            {
-                _targetRenderers = GetComponentsInChildren<Renderer>();
-            }
-
             // デフォルトグラデーション設定
             if (_dissolveEdgeGradient == null || _dissolveEdgeGradient.colorKeys.Length == 0)
             {

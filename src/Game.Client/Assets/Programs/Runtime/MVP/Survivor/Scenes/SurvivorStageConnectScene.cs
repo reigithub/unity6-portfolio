@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
+using Game.Shared;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
@@ -12,6 +13,7 @@ using MessagePipe;
 using R3;
 using UnityEngine;
 using VContainer;
+using Game.Library.Shared.Dto;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -28,6 +30,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly IUnityServerApiService _unityServerApiService;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -72,25 +75,26 @@ namespace Game.MVP.Survivor.Scenes
                 if (!UnityPlaymodeHelper.IsServer())
                 {
 #if UNITY_EDITOR
-                    if (Game.Shared.Multiplayer.MppmHelper.IsActive())
+                    var role = Game.Shared.Multiplayer.MppmHelper.ResolveTag();
+                    if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Host)
                     {
-                        // MPPM: タグに従いローカルロールで起動（MatchResult は無視）
-                        await StartEditorNetworkAsync(stageId);
+                        Debug.Log("[SurvivorStageConnectScene] MPPM Host mode");
+                        SceneComponent.SetStatus("Starting host...");
+                        await _networkConnector.StartHostAsync(stageId);
                     }
-                    else if (!SurvivorNetworkMatchConnector.HasMatchResult)
+                    else if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Server)
                     {
-                        // Non-MPPM SP: Host モードで起動
-                        await StartEditorNetworkAsync(stageId);
+                        Debug.Log("[SurvivorStageConnectScene] MPPM Server mode");
+                        SceneComponent.SetStatus("Starting server...");
+                        await _networkConnector.StartServerAsync(stageId);
                     }
-                    // else: Non-MPPM + MatchResult → 外部サーバー接続（Phase 2）
+                    else
+                    {
+                        // Client / None → 起動済みサーバーに接続
+                        await PrepareClientConnectionAsync(stageId);
+                    }
 #else
-                    if (!SurvivorNetworkMatchConnector.HasMatchResult)
-                    {
-                        // 配布ビルド SP: Orchestrator で全サービス起動
-                        SceneComponent.SetStatus("Starting local server...");
-                        await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
-                        SurvivorNetworkMatchConnector.SetLocalServer(_localServerOrchestrator.HeadlessServerPort);
-                    }
+                    await PrepareClientConnectionAsync(stageId);
 #endif
                 }
 
@@ -134,36 +138,83 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-#if UNITY_EDITOR
         /// <summary>
-        /// Editor ネットワーク初期化。MPPM タグでロール判定し分岐する。
-        /// 非MPPM 時はタグ空 → Host (SP デフォルト)。
+        /// クライアント接続準備（エディタ/配布ビルド共通）。
+        /// MatchResult 未設定時、環境設定に応じて接続先を決定する。
+        /// 優先順位: 1) マッチメイキング済み → スキップ、2) ローカルオーケストレーター、
+        /// 3) FusionServerAddress が設定されていればリモートサーバー、4) ローカル(127.0.0.1)
         /// </summary>
-        private async UniTask StartEditorNetworkAsync(int stageId)
+        private async UniTask PrepareClientConnectionAsync(int stageId)
         {
-            var role = Game.Shared.Multiplayer.MppmHelper.ResolveTag();
+            if (SurvivorNetworkMatchConnector.HasMatchResult)
+                return; // マッチメイキング経由 → Phase 2 で接続
 
-            switch (role)
+            if (GameEnvironmentHelper.CurrentConfig?.UseLocalServerOrchestrator == true)
             {
-                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Host:
-                    Debug.Log("[SurvivorStageConnectScene] Editor Host mode: starting host...");
-                    SceneComponent.SetStatus("Starting host...");
-                    await _networkConnector.StartHostAsync(stageId);
-                    break;
+                Debug.Log("[SurvivorStageConnectScene] Starting local server orchestrator...");
+                SceneComponent.SetStatus("Starting local server...");
+                await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
 
-                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Client:
-                    Debug.Log("[SurvivorStageConnectScene] Editor Client mode: will connect to localhost:7777...");
-                    SurvivorNetworkMatchConnector.SetLocalServer(7777);
-                    break;
+                var localTokenResult = await IssueTokenAsync(stageId);
+                SurvivorNetworkMatchConnector.ConfigureForLocalServer(
+                    _localServerOrchestrator.HeadlessServerPort,
+                    sessionToken: localTokenResult?.Token ?? "",
+                    sessionName: localTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName);
+                return;
+            }
 
-                case Game.Shared.Multiplayer.MppmHelper.MppmTag.Server:
-                    Debug.Log("[SurvivorStageConnectScene] Editor Server-only mode: starting server...");
-                    SceneComponent.SetStatus("Starting server...");
-                    await _networkConnector.StartServerAsync(stageId);
-                    break;
+            // FusionServerAddress が設定されていればクラウドサーバーに接続
+            var envConfig = GameEnvironmentHelper.CurrentConfig;
+            var address = envConfig?.UnityServerAddress;
+            if (!string.IsNullOrEmpty(address) &&
+                address != "localhost" &&
+                address != SurvivorNetworkMatchConnector.DefaultLocalAddress)
+            {
+                var port = envConfig.UnityServerPort > 0
+                    ? envConfig.UnityServerPort
+                    : SurvivorNetworkMatchConnector.DefaultPort;
+
+                var tokenResult = await IssueTokenAsync(stageId);
+                var sessionName = tokenResult != null
+                    ? tokenResult.SessionName
+                    : (!string.IsNullOrEmpty(envConfig.UnityServerSessionName)
+                        ? envConfig.UnityServerSessionName
+                        : SurvivorNetworkMatchConnector.DefaultRemoteSessionName);
+                var sessionToken = tokenResult != null ? tokenResult.Token : string.Empty;
+
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {address}:{port} ({sessionName})");
+                SurvivorNetworkMatchConnector.ConfigureForRemoteServer(address, port, sessionName, sessionToken);
+            }
+            else
+            {
+                var defaultTokenResult = await IssueTokenAsync(stageId);
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({defaultTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName})...");
+                SurvivorNetworkMatchConnector.ConfigureForLocalServer(
+                    SurvivorNetworkMatchConnector.DefaultPort,
+                    sessionToken: defaultTokenResult?.Token ?? "",
+                    sessionName: defaultTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName);
             }
         }
+
+        /// <summary>
+        /// SP 接続用セッショントークンとセッション名を Game.Server から取得する。
+        /// 取得失敗時は null を返す。
+        /// </summary>
+        /// <returns>取得成功時はトークンレスポンス、失敗時は null。</returns>
+        private async UniTask<UnityServerAuthResponse> IssueTokenAsync(int stageId = 0, int expectedPlayers = 1)
+        {
+            var response = await _unityServerApiService.IssueTokenAsync(stageId, expectedPlayers);
+            if (response.IsSuccess && response.Data != null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[SurvivorStageConnectScene] Session token acquired, session={response.Data.SessionName}");
 #endif
+                return response.Data;
+            }
+
+            Debug.LogWarning($"[SurvivorStageConnectScene] Failed to fetch session token: {response.Error?.Message ?? "Unknown error"}. Proceeding without token.");
+            return null;
+        }
 
         private async UniTask ConnectToServerAsync(int stageId)
         {

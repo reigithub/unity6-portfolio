@@ -34,7 +34,7 @@ if (Test-Path $EnvFile) {
 }
 
 # Check required variables
-$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "SECRET_DB_CONNECTION", "SECRET_JWT", "SECRET_REQUEST_SIGNING", "SECRET_VALKEY_CONNECTION")
+$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "INSTANCE_NAME", "SECRET_DB_CONNECTION", "SECRET_JWT", "SECRET_REQUEST_SIGNING", "SECRET_VALKEY_CONNECTION", "SECRET_UNITY_SERVER_AUTH")
 foreach ($var in $RequiredVars) {
     if (-not (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue)) {
         Write-Host "[ERROR] Required variable $var is not set in .env" -ForegroundColor Red
@@ -114,7 +114,8 @@ if (-not $BuildOnly) {
         "ConnectionStrings__Default=$env:SECRET_DB_CONNECTION`:latest",
         "Jwt__Secret=$env:SECRET_JWT`:latest",
         "RequestSigning__SecretKey=$env:SECRET_REQUEST_SIGNING`:latest",
-        "ConnectionStrings__Valkey=$env:SECRET_VALKEY_CONNECTION`:latest"
+        "ConnectionStrings__Valkey=$env:SECRET_VALKEY_CONNECTION`:latest",
+        "UnityServerAuth__SecretKey=$env:SECRET_UNITY_SERVER_AUTH`:latest"
     )
     if ($env:SECRET_RESEND) { $Secrets += "Resend__ApiKey=$env:SECRET_RESEND`:latest" }
     $SecretsString = $Secrets -join ","

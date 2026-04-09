@@ -226,8 +226,8 @@ namespace Game.MVP.Survivor.Scenes
             // プレイヤー数をキャッシュ
             SurvivorNetworkMatchConnector.SetExpectedPlayerCount(_maxPlayers);
 
-            // MatchResult にトークンを含めて保存
-            SurvivorNetworkMatchConnector.StoreMatchResult(new MatchResult
+            // マッチメイキング結果をトークン含めて設定
+            SurvivorNetworkMatchConnector.ConfigureForMatchmaking(new MatchResult
             {
                 MatchId = matchId,
                 PlayerIds = System.Array.Empty<string>(),

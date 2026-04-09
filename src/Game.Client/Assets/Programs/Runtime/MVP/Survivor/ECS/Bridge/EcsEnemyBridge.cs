@@ -162,27 +162,16 @@ namespace Game.MVP.Survivor.ECS
 
             var instance = Instantiate(prefab, transform);
 
-            // 既存のSurvivorEnemyController/Presenterを破棄（ECSが制御するため）
-            // enabled=falseではなくDestroy: GetComponentInParent<ICombatTarget>()が
-            // disabled Controllerを検出してダメージルーティングが誤動作するのを防止
-            var existingController = instance.GetComponent<Enemy.SurvivorEnemyController>();
-            if (existingController != null)
-                Destroy(existingController);
-
-            var presenter = instance.GetComponent<Enemy.SurvivorEnemyPresenter>();
-            if (presenter != null)
-                Destroy(presenter);
-
-            // NavMeshAgentも無効化（ECSが直進移動を担当）
-            var navAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();
-            if (navAgent != null)
-                navAgent.enabled = false;
-
-            // EcsEnemyProxyを追加
-            if (!instance.TryGetComponent<EcsEnemyProxy>(out var proxy))
+            // enabled=false ではなく Destroy: GetComponentInParent<ICombatTarget>() が
+            // disabled Controller を検出してダメージルーティングが誤動作するのを防止
+            if (instance.TryGetComponent<Enemy.SurvivorEnemyController>(out var controller))
             {
-                proxy = instance.AddComponent<EcsEnemyProxy>();
+                controller.StripForProxy();
             }
+
+            // EcsEnemyProxy はプレハブに事前配置済み（disabled）、有効化するだけ
+            instance.TryGetComponent<EcsEnemyProxy>(out var proxy);
+            proxy.enabled = true;
 
             return proxy;
         }

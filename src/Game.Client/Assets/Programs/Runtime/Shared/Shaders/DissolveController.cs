@@ -48,11 +48,6 @@ namespace Game.Shared.Shaders
 
         private void Awake()
         {
-            if (_targetRenderer == null)
-            {
-                TryGetComponent(out _targetRenderer);
-            }
-
             _propertyBlock = new MaterialPropertyBlock();
 
             // デフォルトのグラデーション設定

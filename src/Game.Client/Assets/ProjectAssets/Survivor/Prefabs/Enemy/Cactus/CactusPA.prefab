@@ -526,6 +526,7 @@ GameObject:
   - component: {fileID: 2864699298536117679}
   - component: {fileID: 3626327263253841318}
   - component: {fileID: 7446018379514362006}
+  - component: {fileID: 8111587625766761599}
   m_Layer: 7
   m_Name: CactusPA
   m_TagString: Enemy
@@ -607,9 +608,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2864699298536117679}
-  _animator: {fileID: 7769598065701365474}
   _collider: {fileID: 4567662351657181125}
-  _visualEffectController: {fileID: 0}
+  _animator: {fileID: 7769598065701365474}
+  _renderers:
+  - {fileID: 2900174197949582312}
+  _visualEffectController: {fileID: 7446018379514362006}
 --- !u!114 &7446018379514362006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -707,6 +710,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &8111587625766761599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7427070853888570003}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 4567662351657181125}
+  _animator: {fileID: 7769598065701365474}
 --- !u!1 &7712155012871449178
 GameObject:
   m_ObjectHideFlags: 0

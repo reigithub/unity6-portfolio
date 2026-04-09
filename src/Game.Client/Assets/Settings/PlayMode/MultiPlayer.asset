@@ -16,15 +16,19 @@ MonoBehaviour:
   m_EnableEditors: 1
   m_MainEditorInstance:
     Name: Main Editor
-    <CorrespondingNodeId>k__BackingField: 
-    m_Nodes: []
+    <CorrespondingNodeId>k__BackingField: Main Editor|0_run
+    m_Nodes:
+    - Main Editor|0_run
+    - Main Editor|0_deploy
     m_Role: 1
     m_PlayerTag: Client
     m_InitialScene: {fileID: 0}
   m_EditorInstances:
   - Name: Player 2
-    <CorrespondingNodeId>k__BackingField: 
-    m_Nodes: []
+    <CorrespondingNodeId>k__BackingField: Player 2|1_run
+    m_Nodes:
+    - Player 2|1_run
+    - Player 2|1_deploy
     m_Role: 1
     m_PlayerTag: Client
     m_InitialScene: {fileID: 0}
@@ -32,8 +36,10 @@ MonoBehaviour:
       StreamLogsToMainEditor: 1
       LogsColor: {r: 0.3643, g: 0.581, b: 0.8679, a: 1}
   - Name: Player 3
-    <CorrespondingNodeId>k__BackingField: 
-    m_Nodes: []
+    <CorrespondingNodeId>k__BackingField: Player 3|2_run
+    m_Nodes:
+    - Player 3|2_run
+    - Player 3|2_deploy
     m_Role: 2
     m_PlayerTag: Server
     m_InitialScene: {fileID: 0}
