@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
-using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Survivor;
@@ -20,11 +19,6 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class SurvivorEnemyView : MonoBehaviour
     {
-        // Animator hashes（SurvivorEnemyPresenter と同一）
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int AttackHash = Animator.StringToHash("Attack");
-        private static readonly int DeathHash = Animator.StringToHash("Death");
-
         private const float InterpolationSpeed = 8f;
         private const float CorrectionDecayRate = 10f;
         private const float MaxCorrectionDistance = 3f;
@@ -47,46 +41,6 @@ namespace Game.MVP.Survivor.Enemy
         private IMasterDataService _masterDataService;
         private IAddressableAssetService _assetService;
         private Camera _camera;
-
-        /// <summary>ネットワーク同期の位置補間状態</summary>
-        private struct EnemyProxyInterpolation
-        {
-            public Vector3 LastSyncPosition;
-            public Vector3 Velocity;
-            public float TimeSinceSync;
-            public Vector3 CorrectionOffset;
-
-            public void OnSyncReceived(Vector3 serverPos, Vector3 serverVel, float maxCorrectionDist)
-            {
-                var predicted = LastSyncPosition + Velocity * TimeSinceSync + CorrectionOffset;
-                CorrectionOffset = predicted - serverPos;
-                if (CorrectionOffset.sqrMagnitude > maxCorrectionDist * maxCorrectionDist)
-                    CorrectionOffset = Vector3.zero;
-                LastSyncPosition = serverPos;
-                Velocity = serverVel;
-                TimeSinceSync = 0f;
-            }
-
-            public Vector3 GetPosition(float deltaTime, float correctionDecayRate)
-            {
-                TimeSinceSync += deltaTime;
-                var predicted = LastSyncPosition + Velocity * TimeSinceSync;
-                CorrectionOffset = Vector3.Lerp(CorrectionOffset, Vector3.zero, correctionDecayRate * deltaTime);
-                return predicted + CorrectionOffset;
-            }
-        }
-
-        private class EnemyProxyData
-        {
-            public GameObject GameObject;
-            public Animator Animator;
-            public int EnemyMasterId;
-            public bool IsDead;
-            public float DeathAnimDuration;
-            public EnemyProxyInterpolation Interpolation;
-            public int LodUpdateInterval = NearUpdateInterval;
-            public int FrameOffset; // networkId % FarUpdateInterval で分散
-        }
 
         public async UniTask InitializeAsync(
             ISubscriber<SurvivorSignals.Enemy.BatchUpdated> subscriber,
@@ -159,13 +113,9 @@ namespace Game.MVP.Survivor.Enemy
                 prefab.SetActive(true);
 
                 // サーバー専用コンポーネントを除去（クライアントではAI/物理不要）
-                // Presenter は Visual 子にあるため Root の GetComponent では見つからない
-                var controller = instance.GetComponent<SurvivorEnemyController>();
-                if (controller != null) Destroy(controller);
-
-                // NavMeshAgent はクライアントプロキシでは不要のため除去
-                var navAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();
-                if (navAgent != null) Destroy(navAgent);
+                // StripForProxy が NavMeshAgent と Controller の両方を Destroy する
+                if (instance.TryGetComponent<SurvivorEnemyController>(out var controller))
+                    controller.StripForProxy();
 
                 // 正しいサーバー位置に配置してからアクティブ化
                 instance.transform.position = pos;
@@ -184,8 +134,9 @@ namespace Game.MVP.Survivor.Enemy
             // Enemyレイヤー設定（子オブジェクト含む — LockOn/SphereCast検出用）
             SetLayerRecursively(instance, LayerConstants.Enemy);
 
-            // 全Colliderをトリガーに変更（物理衝突なし、検出のみ）
-            foreach (var col in instance.GetComponentsInChildren<Collider>())
+            // 全Colliderをトリガーに変更してキャッシュ（HandleDeath での再探索を排除）
+            var colliders = instance.GetComponentsInChildren<Collider>();
+            foreach (var col in colliders)
             {
                 col.isTrigger = true;
             }
@@ -195,10 +146,13 @@ namespace Game.MVP.Survivor.Enemy
             proxyTarget.OwnerView = this;
             proxyTarget.NetworkId = e.NetworkId;
 
+            // Animator は Root に配置済み
+            instance.TryGetComponent<Animator>(out var animator);
             _proxies[e.NetworkId] = new EnemyProxyData
             {
                 GameObject = instance,
-                Animator = instance.GetComponentInChildren<Animator>(),
+                Animator = animator,
+                Colliders = colliders,
                 EnemyMasterId = e.EnemyMasterId,
                 IsDead = false,
                 DeathAnimDuration = GetDeathAnimDuration(e.EnemyMasterId),
@@ -227,11 +181,7 @@ namespace Game.MVP.Survivor.Enemy
             if (!_proxies.TryGetValue(e.NetworkId, out var data)) return;
             if (data.IsDead) return;
 
-            if (data.Animator != null)
-            {
-                data.Animator.SetFloat(SpeedHash, 0f);
-                data.Animator.SetTrigger(AttackHash);
-            }
+            data.PlayAttack();
         }
 
         private void HandleDeath(SurvivorNetworkEnemyStateSnapshot e)
@@ -239,20 +189,7 @@ namespace Game.MVP.Survivor.Enemy
             if (!_proxies.TryGetValue(e.NetworkId, out var data)) return;
             if (data.IsDead) return;
 
-            data.IsDead = true;
-
-            // 死亡アニメーション
-            if (data.Animator != null)
-            {
-                data.Animator.SetFloat(SpeedHash, 0f);
-                data.Animator.SetTrigger(DeathHash);
-            }
-
-            // コライダー無効化（死亡後の命中防止）
-            foreach (var col in data.GameObject.GetComponentsInChildren<Collider>())
-            {
-                col.enabled = false;
-            }
+            data.PlayDeath();
 
             // 死亡アニメーション後に破棄（SpawnProxy 時にキャッシュ済み）
             DestroyProxyDelayed(e.NetworkId, data.DeathAnimDuration).Forget();
@@ -356,10 +293,7 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             // 3. アニメーション: 速度ベースで歩行/待機
-            if (data.Animator != null)
-            {
-                data.Animator.SetFloat(SpeedHash, data.Interpolation.Velocity.magnitude > 0.1f ? 1f : 0f);
-            }
+            data.UpdateAnimatorSpeed(data.Interpolation.Velocity.magnitude);
         }
 
         /// <summary>プロキシの死亡状態を返す（EnemyProxyTarget.IsDead から参照）</summary>
@@ -393,20 +327,5 @@ namespace Game.MVP.Survivor.Enemy
             }
             _prefabs.Clear();
         }
-    }
-
-    /// <summary>
-    /// クライアント敵プロキシ用ターゲットコンポーネント。
-    /// LockOnServiceがOverlapSphereで検出し、CenterPositionを取得する。
-    /// ICombatTarget実装: TakeDamage/ApplyKnockbackはno-op（ダメージはRPC経由でサーバーが処理）。
-    /// </summary>
-    public class EnemyProxyTarget : MonoBehaviour, ICombatTarget
-    {
-        public SurvivorEnemyView OwnerView { get; set; }
-        public int NetworkId { get; set; }
-        public Vector3 CenterPosition => transform.position + Vector3.up;
-        public bool IsDead => OwnerView != null && OwnerView.IsProxyDead(NetworkId);
-        public void TakeDamage(int damage) { }
-        public void ApplyKnockback(Vector3 knockback) { }
     }
 }

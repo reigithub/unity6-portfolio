@@ -1,8 +1,8 @@
+using Cysharp.Threading.Tasks;
 using Game.Library.Shared;
 using Game.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Events;
-using R3;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -97,7 +97,8 @@ namespace Game.MVP.Survivor.Enemy
             _currentHp -= _pendingDamageAmount;
             _hitStunTimer = _hitStunDuration;
 
-            _onHitReceived.OnNext(Unit.Default);
+            // VFX を直接駆動（Presenter 廃止に伴い Controller が直接制御）
+            _visualEffectController?.PlayHitFlash();
 
             shouldDie = _currentHp <= 0;
             return true;
@@ -145,7 +146,6 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 ctx.CurrentAnimationState = EnemyAnimationState.Idle;
-                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Idle);
             }
 
             public override void Update()
@@ -174,7 +174,6 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 ctx.CurrentAnimationState = EnemyAnimationState.Chase;
-                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Chase);
             }
 
             public override void Update()
@@ -220,7 +219,6 @@ namespace Game.MVP.Survivor.Enemy
                 ctx._attackTimer = ctx._attackCooldown;
 
                 ctx.CurrentAnimationState = EnemyAnimationState.Attack;
-                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.Attack);
             }
 
             public override void Update()
@@ -301,7 +299,6 @@ namespace Game.MVP.Survivor.Enemy
                 }
 
                 ctx.CurrentAnimationState = EnemyAnimationState.HitStun;
-                ctx._onAnimationStateChanged.OnNext(EnemyAnimationState.HitStun);
             }
 
             public override void Update()
@@ -350,7 +347,9 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             CurrentAnimationState = EnemyAnimationState.Death;
-            _onAnimationStateChanged.OnNext(EnemyAnimationState.Death);
+
+            // VFX を直接駆動（サーバーでは Renderer が disabled のため副作用なし）
+            _visualEffectController?.PlayDeathDissolveAsync(destroyCancellationToken).Forget();
 
             // ゲームロジック（イベント）は常に実行
             _onDeath.OnNext(this);
