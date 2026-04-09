@@ -324,6 +324,10 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            // 武器発射レート検証: バースト攻撃や不正な高頻度ヒットを排除
+            if (!_weaponManager.ValidateHitRate(weaponId, Time.time))
+                return;
+
             _weaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
         }
 
@@ -366,21 +370,32 @@ namespace Game.MVP.Survivor.Scenes
 
         private void OnServerWeaponApply(SurvivorWeaponApplyRequest request)
         {
+            bool success = false;
             switch (request.Type)
             {
                 case SurvivorWeaponApplyType.AddOrUpgrade:
-                    if (request.IsNewWeapon)
-                        _weaponManager.AddWeapon(request.WeaponId);
-                    else
-                        _weaponManager.UpgradeWeapon(request.WeaponId);
+                    success = request.IsNewWeapon
+                        ? _weaponManager.AddWeapon(request.WeaponId)
+                        : _weaponManager.UpgradeWeapon(request.WeaponId);
                     break;
 
                 case SurvivorWeaponApplyType.Replace:
-                    _weaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
+                    success = _weaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
                     break;
             }
 
             _weaponManager.UpdateDamageMultiplier(_stageModel.GetDamageMultiplier());
+
+            // 武器変更をクライアントに通知（整合性確認用）
+            if (success && _gameState != null && _weaponManager.TryGetWeaponById(request.WeaponId, out var slot))
+            {
+                _gameState.NotifyWeaponChanged(
+                    "",
+                    request.WeaponId,
+                    slot.Level,
+                    request.IsNewWeapon || request.Type == SurvivorWeaponApplyType.Replace);
+            }
+
             Debug.Log($"[SurvivorNetworkStageScene] Server weapon applied: type={request.Type}, weaponId={request.WeaponId}");
         }
 

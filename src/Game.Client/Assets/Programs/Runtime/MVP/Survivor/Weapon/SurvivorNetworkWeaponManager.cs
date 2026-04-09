@@ -25,6 +25,10 @@ namespace Game.MVP.Survivor.Weapon
 
         private const float PierceDetectionRadius = 0.5f;
 
+        // グローバルヒットレート制限
+        private const int MaxHitsPerSecond = 30;
+        private readonly Queue<float> _globalHitWindow = new();
+
         /// <summary>
         /// 初期化。初期武器を追加する。
         /// </summary>
@@ -127,6 +131,31 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
+        /// グローバルバースト制限と武器別発射レートを検証する。
+        /// サーバー側で不正なヒット頻度を検出してチート対策を行う。
+        /// </summary>
+        /// <param name="weaponId">検証対象の武器 ID</param>
+        /// <param name="currentTime">現在のゲーム時間（秒）</param>
+        /// <returns>ヒットを受け入れる場合 true</returns>
+        public bool ValidateHitRate(int weaponId, float currentTime)
+        {
+            // グローバルバースト検出: 過去1秒以内のヒット総数を制限
+            while (_globalHitWindow.Count > 0 && _globalHitWindow.Peek() < currentTime - 1f)
+                _globalHitWindow.Dequeue();
+            if (_globalHitWindow.Count >= MaxHitsPerSecond)
+            {
+                Debug.LogWarning($"[WeaponRateLimit] Global burst limit exceeded: {_globalHitWindow.Count}/{MaxHitsPerSecond}");
+                return false;
+            }
+
+            _globalHitWindow.Enqueue(currentTime);
+
+            // 武器別レート検証
+            if (!TryGetWeaponById(weaponId, out var slot)) return false;
+            return slot.ValidateFireRate(currentTime);
+        }
+
+        /// <summary>
         /// ダメージ倍率を更新。
         /// </summary>
         public void UpdateDamageMultiplier(float multiplier)
@@ -210,11 +239,15 @@ namespace Game.MVP.Survivor.Weapon
                 });
             }
 
-            // ランダムに選択
+            // 決定論的 RNG でランダムに選択（UnityEngine.Random はクライアント/サーバーで非同期のため System.Random を使用）
+            int firstLevel = 0;
+            foreach (var s in _weapons.Values) { firstLevel = s.Level; break; }
+            int seed = firstLevel * 31 + _weapons.Count * 97 + (int)(Time.time * 100);
+            var rng = new System.Random(seed);
             var result = new List<SurvivorWeaponUpgradeOption>();
             while (result.Count < count && options.Count > 0)
             {
-                int index = Random.Range(0, options.Count);
+                int index = rng.Next(0, options.Count);
                 result.Add(options[index]);
                 options.RemoveAt(index);
             }
@@ -241,6 +274,8 @@ namespace Game.MVP.Survivor.Weapon
             slot.Pierce = levelMaster.Penetration;
             slot.Knockback = levelMaster.Knockback.ToUnit();
             slot.Range = levelMaster.Range.ToUnit();
+            slot.ProcInterval = levelMaster.ProcInterval;
+            slot.EmitCount = levelMaster.EmitCount;
 
             return true;
         }
