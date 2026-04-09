@@ -35,6 +35,7 @@ Transform:
   m_Children:
   - {fileID: 7882198427339131158}
   - {fileID: 1530897500530277740}
+  - {fileID: 7852163008133908708}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &871670616094634140
@@ -94,9 +95,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 5385569805065863378}
-  _animator: {fileID: 871670616094634140}
   _collider: {fileID: 3480157317415196920}
-  _visualEffectController: {fileID: 0}
+  _visual: {fileID: 1660703032254628326}
 --- !u!114 &5903687188282028452
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -323,6 +323,53 @@ Transform:
   - {fileID: 5815140927299684796}
   m_Father: {fileID: 4085530504604010703}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1660703032254628326
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7852163008133908708}
+  - component: {fileID: 3834552223254010655}
+  m_Layer: 0
+  m_Name: Visual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7852163008133908708
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1660703032254628326}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 833854997431449644}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3834552223254010655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1660703032254628326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e82c0c3ec56dcd448b6f0b3b0a200356, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyPresenter
+  _controller: {fileID: 6989965091563144981}
+  _animator: {fileID: 871670616094634140}
+  _visualEffectController: {fileID: 5903687188282028452}
 --- !u!1 &1802962454703380741
 GameObject:
   m_ObjectHideFlags: 0

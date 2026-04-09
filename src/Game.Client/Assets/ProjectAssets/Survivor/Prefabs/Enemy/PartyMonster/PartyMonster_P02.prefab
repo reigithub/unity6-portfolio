@@ -1607,6 +1607,53 @@ Transform:
   - {fileID: 8774347840185441957}
   m_Father: {fileID: 5159228069126568913}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4763177905196768369
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9035201812132128101}
+  - component: {fileID: 7329859125483184472}
+  m_Layer: 0
+  m_Name: Visual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9035201812132128101
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4763177905196768369}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5159228069126568913}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7329859125483184472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4763177905196768369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e82c0c3ec56dcd448b6f0b3b0a200356, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyPresenter
+  _controller: {fileID: 8066129032649849624}
+  _animator: {fileID: 4617311004935347474}
+  _visualEffectController: {fileID: 2664603109752984444}
 --- !u!1 &4837397751916949886
 GameObject:
   m_ObjectHideFlags: 0
@@ -1807,6 +1854,7 @@ Transform:
   - {fileID: 3304726918609368932}
   - {fileID: 9043589632627961925}
   - {fileID: 568313055959828704}
+  - {fileID: 9035201812132128101}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &4617311004935347474
@@ -1889,9 +1937,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 8243946997359805468}
-  _animator: {fileID: 4617311004935347474}
   _collider: {fileID: 4800694499774389454}
-  _visualEffectController: {fileID: 0}
+  _visual: {fileID: 4763177905196768369}
 --- !u!114 &2664603109752984444
 MonoBehaviour:
   m_ObjectHideFlags: 0
