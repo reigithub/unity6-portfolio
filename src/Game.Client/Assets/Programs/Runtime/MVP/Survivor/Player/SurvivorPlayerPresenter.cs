@@ -8,36 +8,35 @@ namespace Game.MVP.Survivor.Player
 {
     /// <summary>
     /// プレイヤービジュアル駆動 — Controller の R3 Observable と MessagePipe シグナルを購読し Animator を制御。
-    /// Game.MVP.Survivor アセンブリ内（Server ビルドから除外済み）。
+    /// Visual 子 GameObject に配置され、SetActive(false) で一括停止する。
+    /// Animator は Addressable モデルロード後に SetAnimator() で設定する。
     /// </summary>
     public class SurvivorPlayerPresenter : MonoBehaviour
     {
         [Inject] private ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
 
+        [SerializeField] private SurvivorPlayerController _controller;
+
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
         private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
 
         private Animator _animator;
-        private SurvivorPlayerController _controller;
         private R3.DisposableBag _subscriptions;
 
-        private void Awake()
+        /// <summary>
+        /// Addressable モデルロード完了後に Animator を設定する。
+        /// </summary>
+        public void SetAnimator(Animator animator)
         {
-            TryGetComponent(out _animator);
-            if (_animator == null)
-            {
-                _animator = GetComponentInChildren<Animator>();
-            }
+            _animator = animator;
         }
 
-        public void Initialize(SurvivorPlayerController controller)
+        private void OnEnable()
         {
-            _controller = controller;
-            _subscriptions.Dispose();
-            _subscriptions = new R3.DisposableBag();
+            if (_controller == null) return;
 
             // スピードが変わった時にアニメーターを更新
-            controller.Speed
+            _controller.Speed
                 .DistinctUntilChanged()
                 .Subscribe(speed =>
                 {
@@ -49,15 +48,24 @@ namespace Game.MVP.Survivor.Player
                 .AddTo(ref _subscriptions);
 
             // 死亡シグナル → Death アニメーション
-            _playerDiedSub
-                .Subscribe(_ =>
-                {
-                    if (_animator != null)
+            if (_playerDiedSub != null)
+            {
+                _playerDiedSub
+                    .Subscribe(_ =>
                     {
-                        _animator.SetTrigger(AnimatorHashDeath);
-                    }
-                })
-                .AddTo(ref _subscriptions);
+                        if (_animator != null)
+                        {
+                            _animator.SetTrigger(AnimatorHashDeath);
+                        }
+                    })
+                    .AddTo(ref _subscriptions);
+            }
+        }
+
+        private void OnDisable()
+        {
+            _subscriptions.Dispose();
+            _subscriptions = new R3.DisposableBag();
         }
 
         private void OnDestroy()

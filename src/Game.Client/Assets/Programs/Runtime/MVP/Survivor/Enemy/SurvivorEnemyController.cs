@@ -23,6 +23,7 @@ namespace Game.MVP.Survivor.Enemy
         [Header("Components")]
         [SerializeField] private NavMeshAgent _navAgent;
         [SerializeField] private Collider _collider;
+        [SerializeField] private GameObject _visual;
 
         // マスターデータから設定される値
         private int _enemyId;
@@ -102,6 +103,11 @@ namespace Game.MVP.Survivor.Enemy
         private readonly Subject<EnemyAnimationState> _onAnimationStateChanged = new();
         public Observable<EnemyAnimationState> OnAnimationStateChanged => _onAnimationStateChanged;
 
+        private readonly Subject<SurvivorEnemyController> _onInitialized = new();
+
+        /// <summary>Initialize() 完了後に発火。Presenter が購読して自動的に初期化を開始する。</summary>
+        public Observable<SurvivorEnemyController> OnInitialized => _onInitialized;
+
         // Presenter / Snapshot が読み取るプロパティ
         public EnemyAnimationState CurrentAnimationState { get; internal set; }
         public float NormalizedSpeed => _navAgent != null && _navAgent.speed > 0.01f
@@ -180,6 +186,14 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             InitializeStateMachine();
+
+            // サーバー時は Visual 子を無効化（Presenter, Renderer, Animator 等が一括停止）
+            if (_visual != null && _runnerService != null && _runnerService.IsServer)
+            {
+                _visual.SetActive(false);
+            }
+
+            _onInitialized.OnNext(this);
         }
 
         private const float NavMeshCheckInterval = 1f;
@@ -301,6 +315,9 @@ namespace Game.MVP.Survivor.Enemy
                 _collider.enabled = true;
             }
 
+            // Visual 子を無効化（Presenter.OnDisable で購読解除 + VFX リセット）
+            if (_visual != null) _visual.SetActive(false);
+
             gameObject.SetActive(false);
         }
 
@@ -310,6 +327,7 @@ namespace Game.MVP.Survivor.Enemy
             _onDeathEvent.Dispose();
             _onHitReceived.Dispose();
             _onAnimationStateChanged.Dispose();
+            _onInitialized.Dispose();
         }
     }
 }

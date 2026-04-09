@@ -159,11 +159,9 @@ namespace Game.MVP.Survivor.Enemy
                 prefab.SetActive(true);
 
                 // サーバー専用コンポーネントを除去（クライアントではAI/物理不要）
+                // Presenter は Visual 子にあるため Root の GetComponent では見つからない
                 var controller = instance.GetComponent<SurvivorEnemyController>();
                 if (controller != null) Destroy(controller);
-
-                var presenter = instance.GetComponent<SurvivorEnemyPresenter>();
-                if (presenter != null) Destroy(presenter);
 
                 // NavMeshAgent はクライアントプロキシでは不要のため除去
                 var navAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();

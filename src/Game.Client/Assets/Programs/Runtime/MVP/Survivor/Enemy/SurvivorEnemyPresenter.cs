@@ -6,33 +6,45 @@ namespace Game.MVP.Survivor.Enemy
 {
     /// <summary>
     /// 敵ビジュアル駆動 — Controller の R3 Observable を購読し Animator/VFX を制御。
-    /// Game.MVP.Survivor アセンブリ内（Server ビルドから除外済み）。
+    /// Visual 子 GameObject に配置され、SetActive(false) で一括停止する。
+    /// OnEnable で Controller.OnInitialized を購読し、初期化完了後に自動的に購読を開始する。
     /// </summary>
     public class SurvivorEnemyPresenter : MonoBehaviour
     {
-        // Animator hashes（Controller から移動）
+        // Animator hashes
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int DeathHash = Animator.StringToHash("Death");
         private static readonly int HitHash = Animator.StringToHash("Hit");
         private static readonly int AttackHash = Animator.StringToHash("Attack");
 
-        private Animator _animator;
-        private EnemyVisualEffectController _visualEffectController;
-        private SurvivorEnemyController _controller;
+        [SerializeField] private SurvivorEnemyController _controller;
+        [SerializeField] private Animator _animator;
+        [SerializeField] private EnemyVisualEffectController _visualEffectController;
+
         private DisposableBag _subscriptions;
 
-        private void Awake()
+        private void OnEnable()
         {
-            _animator = GetComponentInChildren<Animator>();
-            TryGetComponent(out _visualEffectController);
+            if (_controller == null) return;
+
+            _controller.OnInitialized
+                .Subscribe(SubscribeToController)
+                .AddTo(ref _subscriptions);
         }
 
-        public void Initialize(SurvivorEnemyController controller)
+        private void OnDisable()
         {
-            _controller = controller;
             _subscriptions.Dispose();
             _subscriptions = new DisposableBag();
 
+            if (_visualEffectController != null)
+            {
+                _visualEffectController.ResetEffects();
+            }
+        }
+
+        private void SubscribeToController(SurvivorEnemyController controller)
+        {
             controller.OnHitReceived
                 .Subscribe(_ =>
                 {
@@ -83,18 +95,6 @@ namespace Game.MVP.Survivor.Enemy
             if (_animator != null)
             {
                 _animator.SetFloat(SpeedHash, _controller.NormalizedSpeed);
-            }
-        }
-
-        public void ResetForPool()
-        {
-            _subscriptions.Dispose();
-            _subscriptions = new DisposableBag();
-            _controller = null;
-
-            if (_visualEffectController != null)
-            {
-                _visualEffectController.ResetEffects();
             }
         }
     }
