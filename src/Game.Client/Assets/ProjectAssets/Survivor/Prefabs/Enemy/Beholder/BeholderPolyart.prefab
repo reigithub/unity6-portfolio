@@ -423,6 +423,7 @@ GameObject:
   - component: {fileID: 8595312522768144512}
   - component: {fileID: 4169729871406030682}
   - component: {fileID: 3228798834940960068}
+  - component: {fileID: 5268331735143341808}
   m_Layer: 7
   m_Name: BeholderPolyart
   m_TagString: Enemy
@@ -445,7 +446,6 @@ Transform:
   m_Children:
   - {fileID: 1695502807786446129}
   - {fileID: 1695502807786446125}
-  - {fileID: 3728763999197803061}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &1695502807779455699
@@ -506,7 +506,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 8595312522768144512}
   _collider: {fileID: 417886115427863853}
-  _visual: {fileID: 7951889412472306044}
+  _animator: {fileID: 1695502807779455699}
+  _renderers:
+  - {fileID: 1695502807775235091}
+  _visualEffectController: {fileID: 3228798834940960068}
 --- !u!114 &3228798834940960068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -604,6 +607,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &5268331735143341808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1695502807786733843}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 417886115427863853}
+  _animator: {fileID: 1695502807779455699}
 --- !u!1 &1695502807786733845
 GameObject:
   m_ObjectHideFlags: 0
@@ -1826,50 +1843,3 @@ Transform:
   - {fileID: 1695502807786446109}
   m_Father: {fileID: 1695502807786446105}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7951889412472306044
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3728763999197803061}
-  - component: {fileID: 5718345606392313734}
-  m_Layer: 0
-  m_Name: Visual
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3728763999197803061
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7951889412472306044}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1695502807786446131}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5718345606392313734
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7951889412472306044}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e82c0c3ec56dcd448b6f0b3b0a200356, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyPresenter
-  _controller: {fileID: 4169729871406030682}
-  _animator: {fileID: 1695502807779455699}
-  _visualEffectController: {fileID: 3228798834940960068}

@@ -207,53 +207,6 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 7274137689646547217, guid: 942e6d5330e147fe84c5ab6ab2193ca1, type: 3}
---- !u!1 &1288460074607492075
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3455313354286240975}
-  - component: {fileID: 5811235099622097300}
-  m_Layer: 0
-  m_Name: Visual
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3455313354286240975
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1288460074607492075}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6265206175713501824}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5811235099622097300
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1288460074607492075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e82c0c3ec56dcd448b6f0b3b0a200356, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyPresenter
-  _controller: {fileID: 8303194171675301675}
-  _animator: {fileID: 5162232971360506}
-  _visualEffectController: {fileID: 44902873134588599}
 --- !u!1 &1526939585842620943
 GameObject:
   m_ObjectHideFlags: 0
@@ -973,6 +926,7 @@ GameObject:
   - component: {fileID: 2878181655799567387}
   - component: {fileID: 8303194171675301675}
   - component: {fileID: 44902873134588599}
+  - component: {fileID: 7557291198687933377}
   m_Layer: 7
   m_Name: TurtleShellPolyart
   m_TagString: Enemy
@@ -995,7 +949,6 @@ Transform:
   m_Children:
   - {fileID: 7542937212466122577}
   - {fileID: 6036988292253137531}
-  - {fileID: 3455313354286240975}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &5162232971360506
@@ -1056,7 +1009,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Enemy.SurvivorEnemyController
   _navAgent: {fileID: 2878181655799567387}
   _collider: {fileID: 2514723860956597277}
-  _visual: {fileID: 1288460074607492075}
+  _animator: {fileID: 5162232971360506}
+  _renderers:
+  - {fileID: 734471815632122533}
+  _visualEffectController: {fileID: 44902873134588599}
 --- !u!114 &44902873134588599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1154,6 +1110,20 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   _dissolveDirection: {x: 0, y: 1, z: 0}
+--- !u!114 &7557291198687933377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6753617674297473082}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd1ac1b5121d9c42a9fdc74bf644cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVP.Survivor.ECS::Game.MVP.Survivor.ECS.EcsEnemyProxy
+  _collider: {fileID: 2514723860956597277}
+  _animator: {fileID: 5162232971360506}
 --- !u!1 &6861681153245785469
 GameObject:
   m_ObjectHideFlags: 0
