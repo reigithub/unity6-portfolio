@@ -19,7 +19,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 {
     private readonly ILogger<LobbyHub> _logger;
     private readonly ILobbyDataService _lobbyDataService;
-    private readonly IUnityServerAuthApiClient _unityServerAuthApi;
+    private readonly IUnityServerApiClient _unityServerApi;
     private readonly UnityServerConfiguration _unityServerConfig;
     private readonly ILobbyValidator _lobbyValidator;
 
@@ -35,13 +35,13 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     public LobbyHub(
         ILogger<LobbyHub> logger,
         ILobbyDataService lobbyDataService,
-        IUnityServerAuthApiClient unityServerAuthApi,
+        IUnityServerApiClient unityServerApi,
         IOptions<UnityServerConfiguration> unityServerConfig,
         ILobbyValidator lobbyValidator)
     {
         _logger = logger;
         _lobbyDataService = lobbyDataService;
-        _unityServerAuthApi = unityServerAuthApi;
+        _unityServerApi = unityServerApi;
         _unityServerConfig = unityServerConfig.Value;
         _lobbyValidator = lobbyValidator;
     }
@@ -169,12 +169,19 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         }
 
         var matchId = $"mp-{Guid.NewGuid():N}";
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        var stageId = lobby?.StageId ?? 0;
 
-        // 全プレイヤーに同一 matchId でトークンを発行して送信
+        // リーダー（先頭プレイヤー）のトークン発行時に DS セッション割り当てを実行
         LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
+        var isFirst = true;
         foreach (var player in players)
         {
-            var authResponse = await _unityServerAuthApi.IssueTokenAsync(player.UserId, matchId);
+            var authResponse = await _unityServerApi.IssueTokenAsync(
+                player.UserId, matchId,
+                stageId: isFirst ? stageId : 0,
+                expectedPlayers: players.Length);
+            isFirst = false;
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {

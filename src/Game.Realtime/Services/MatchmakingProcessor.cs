@@ -12,7 +12,7 @@ namespace Game.Realtime.Services;
 public class MatchmakingProcessor : BackgroundService
 {
     private readonly IMatchmakingQueueService _queueService;
-    private readonly IUnityServerAuthApiClient _unityServerAuthApi;
+    private readonly IUnityServerApiClient _unityServerApi;
     private readonly IConnectionMultiplexer _redis;
     private readonly MatchmakingConfiguration _config;
     private readonly UnityServerConfiguration _unityServerConfig;
@@ -20,14 +20,14 @@ public class MatchmakingProcessor : BackgroundService
 
     public MatchmakingProcessor(
         IMatchmakingQueueService queueService,
-        IUnityServerAuthApiClient unityServerAuthApi,
+        IUnityServerApiClient unityServerApi,
         IConnectionMultiplexer redis,
         IOptions<MatchmakingConfiguration> config,
         IOptions<UnityServerConfiguration> unityServerConfig,
         ILogger<MatchmakingProcessor> logger)
     {
         _queueService = queueService;
-        _unityServerAuthApi = unityServerAuthApi;
+        _unityServerApi = unityServerApi;
         _redis = redis;
         _config = config.Value;
         _unityServerConfig = unityServerConfig.Value;
@@ -277,10 +277,25 @@ public class MatchmakingProcessor : BackgroundService
         var matchId = $"mp-{Guid.NewGuid():N}";
         var subscriber = _redis.GetSubscriber();
 
-        // 全プレイヤーに同一 matchId でトークンを発行し、MatchResult を配信
-        await Task.WhenAll(playerIds.Select(async playerId =>
+        // 先頭プレイヤーのトークン発行時のみ DS セッション割り当てを実行し、
+        // 残りのプレイヤーへのトークン発行と並行して完了を待つ。
+        // 同一 matchId を共有するため DS 割り当ては 1 回のみ必要。
+        var leaderId = playerIds[0];
+        var leaderAuthTask = _unityServerApi.IssueTokenAsync(leaderId, matchId, stageId, playerIds.Length);
+
+        // 2 人目以降は DS 割り当てなし（stageId=0）で並列発行
+        var followerTasks = playerIds.Skip(1)
+            .Select(playerId => _unityServerApi.IssueTokenAsync(playerId, matchId, stageId: 0, expectedPlayers: playerIds.Length))
+            .ToArray();
+
+        await Task.WhenAll([leaderAuthTask, .. followerTasks]);
+
+        // 全トークンが揃ったら MatchResult を配信
+        await Task.WhenAll(playerIds.Select(async (playerId, index) =>
         {
-            var authResponse = await _unityServerAuthApi.IssueTokenAsync(playerId, matchId);
+            var authResponse = index == 0
+                ? await leaderAuthTask
+                : await followerTasks[index - 1];
 
             var matchResult = new MatchResult
             {

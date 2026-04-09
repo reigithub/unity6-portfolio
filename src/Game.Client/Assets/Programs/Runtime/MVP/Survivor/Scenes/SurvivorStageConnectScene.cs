@@ -30,7 +30,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly IFusionRunnerService _runnerService;
-        [Inject] private readonly IUnityServerAuthApiService _unityServerAuthApiService;
+        [Inject] private readonly IUnityServerApiService _unityServerApiService;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -91,10 +91,10 @@ namespace Game.MVP.Survivor.Scenes
                     else
                     {
                         // Client / None → 起動済みサーバーに接続
-                        await PrepareClientConnectionAsync();
+                        await PrepareClientConnectionAsync(stageId);
                     }
 #else
-                    await PrepareClientConnectionAsync();
+                    await PrepareClientConnectionAsync(stageId);
 #endif
                 }
 
@@ -144,7 +144,7 @@ namespace Game.MVP.Survivor.Scenes
         /// 優先順位: 1) マッチメイキング済み → スキップ、2) ローカルオーケストレーター、
         /// 3) FusionServerAddress が設定されていればリモートサーバー、4) ローカル(127.0.0.1)
         /// </summary>
-        private async UniTask PrepareClientConnectionAsync()
+        private async UniTask PrepareClientConnectionAsync(int stageId)
         {
             if (SurvivorNetworkMatchConnector.HasMatchResult)
                 return; // マッチメイキング経由 → Phase 2 で接続
@@ -155,11 +155,11 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.SetStatus("Starting local server...");
                 await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
 
-                // SP ローカル: セッション名はサーバーと同じ固定値を使用（トークンは認証用のみ）
-                var localTokenResult = await IssueTokenAsync();
+                var localTokenResult = await IssueTokenAsync(stageId);
                 SurvivorNetworkMatchConnector.ConfigureForLocalServer(
                     _localServerOrchestrator.HeadlessServerPort,
-                    sessionToken: localTokenResult?.Token ?? "");
+                    sessionToken: localTokenResult?.Token ?? "",
+                    sessionName: localTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName);
                 return;
             }
 
@@ -174,8 +174,7 @@ namespace Game.MVP.Survivor.Scenes
                     ? envConfig.UnityServerPort
                     : SurvivorNetworkMatchConnector.DefaultPort;
 
-                // SP リモートサーバー接続用のトークンを取得
-                var tokenResult = await IssueTokenAsync();
+                var tokenResult = await IssueTokenAsync(stageId);
                 var sessionName = tokenResult != null
                     ? tokenResult.SessionName
                     : (!string.IsNullOrEmpty(envConfig.UnityServerSessionName)
@@ -188,12 +187,12 @@ namespace Game.MVP.Survivor.Scenes
             }
             else
             {
-                // SP ローカル: セッション名はサーバーと同じ固定値を使用（トークンは認証用のみ）
-                var defaultTokenResult = await IssueTokenAsync();
-                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({SurvivorNetworkMatchConnector.DefaultLocalSessionName})...");
+                var defaultTokenResult = await IssueTokenAsync(stageId);
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({defaultTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName})...");
                 SurvivorNetworkMatchConnector.ConfigureForLocalServer(
                     SurvivorNetworkMatchConnector.DefaultPort,
-                    sessionToken: defaultTokenResult?.Token ?? "");
+                    sessionToken: defaultTokenResult?.Token ?? "",
+                    sessionName: defaultTokenResult?.SessionName ?? SurvivorNetworkMatchConnector.DefaultLocalSessionName);
             }
         }
 
@@ -202,9 +201,9 @@ namespace Game.MVP.Survivor.Scenes
         /// 取得失敗時は null を返す。
         /// </summary>
         /// <returns>取得成功時はトークンレスポンス、失敗時は null。</returns>
-        private async UniTask<UnityServerAuthResponse> IssueTokenAsync()
+        private async UniTask<UnityServerAuthResponse> IssueTokenAsync(int stageId = 0, int expectedPlayers = 1)
         {
-            var response = await _unityServerAuthApiService.IssueTokenAsync();
+            var response = await _unityServerApiService.IssueTokenAsync(stageId, expectedPlayers);
             if (response.IsSuccess && response.Data != null)
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

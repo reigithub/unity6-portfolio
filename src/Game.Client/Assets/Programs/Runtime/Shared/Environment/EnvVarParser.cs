@@ -1,4 +1,3 @@
-#if !UNITY_SERVER
 using System.Collections.Generic;
 using System.IO;
 
@@ -53,4 +52,3 @@ namespace Game.Shared.Environment
         }
     }
 }
-#endif

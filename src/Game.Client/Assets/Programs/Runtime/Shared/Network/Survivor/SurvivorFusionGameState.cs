@@ -61,6 +61,10 @@ namespace Game.Shared.Network.Survivor
         [Networked] public int WaveTargetKills { get; set; }
         [Networked] public int WaveTotalEnemies { get; set; }
         [Networked] public NetworkBool IsPaused { get; set; }
+
+        /// <summary>Despawn後も安全にアクセス可能なポーズ状態。Object未生存時はfalseを返す。</summary>
+        public bool IsEffectivelyPaused => Object != null && Object.IsValid && IsPaused;
+
         [Networked] public NetworkBool IsAllWavesCleared { get; set; }
         [Networked] public int StageId { get; set; }
         [Networked] public int PlayerId { get; set; }

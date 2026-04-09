@@ -7,6 +7,7 @@ using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
+using Game.Shared.Unity.Server;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
@@ -16,9 +17,9 @@ namespace Game.MVP.Survivor.Server
 {
     /// <summary>
     /// MPPM / Dedicated Server 用エントリポイント。
-    /// AllPlayersReady シグナル受信後にマスターデータ読み込み → SurvivorNetworkStageScene へ遷移し、
-    /// サーバー権威のウェーブ管理・エネミースポーンを開始する。
-    /// クライアントのリトライ時は AllPlayersDisconnected → 次の AllPlayersReady で再遷移する。
+    /// ServerHttpListener からの /session/start リクエストを待機し、
+    /// 接続パラメータを動的設定してから Fusion Server セッションを開始する。
+    /// AllPlayersDisconnected 後はセッション終了通知を送信し、次のリクエスト待機に戻る。
     /// </summary>
     public class SurvivorServerGameLoop : IAsyncStartable
     {
@@ -26,6 +27,7 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
 
@@ -36,9 +38,32 @@ namespace Game.MVP.Survivor.Server
 
             while (!cancellation.IsCancellationRequested)
             {
-                Debug.Log("[SurvivorServerGameLoop] Waiting for AllPlayersReady...");
+                Debug.Log("[SurvivorServerGameLoop] Waiting for session start request via HTTP...");
 
-                // AllPlayersReady シグナルを待機
+                // Step 1: ServerHttpListener からのセッション作成リクエストを待機
+                var request = await WaitForSessionRequestAsync(cancellation);
+
+                Debug.Log($"[SurvivorServerGameLoop] Session request received: matchId={request.MatchId}, stageId={request.StageId}, players={request.ExpectedPlayers}");
+
+                // Step 2: 接続パラメータを動的設定（リクエストの matchId を使用）
+                SurvivorNetworkMatchConnector.ConfigureForDedicatedServer(
+                    SurvivorNetworkMatchConnector.ServerPort,
+                    SurvivorNetworkMatchConnector.ServerAddress,
+                    request.MatchId);
+                SurvivorNetworkMatchConnector.SetExpectedPlayerCount(request.ExpectedPlayers);
+
+                // ServerHttpListener のステータスを active に更新
+                UnityServerBootstrap.HttpListener?.SetSessionActive(request.MatchId);
+
+                // Step 3: Fusion Server セッション開始
+                await _networkConnector.StartServerAsync(request.StageId);
+
+                // Step 4: HTTP レスポンス返却（セッション作成完了通知）
+                request.CompletionSource.TrySetResult(true);
+
+                Debug.Log("[SurvivorServerGameLoop] Fusion session started, waiting for AllPlayersReady...");
+
+                // Step 5: AllPlayersReady シグナルを待機（既存フロー）
                 var readyTcs = new UniTaskCompletionSource();
                 var readySub = _allPlayersReadySub.Subscribe(_ => readyTcs.TrySetResult());
                 try
@@ -50,10 +75,10 @@ namespace Game.MVP.Survivor.Server
                     readySub.Dispose();
                 }
 
-                Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received, waiting for StageId...");
+                Debug.Log("[SurvivorServerGameLoop] AllPlayersReady received, starting stage...");
 
                 // クライアントからのセッション情報を待機（タイムアウト付き）
-                var stageId = 1;
+                var stageId = request.StageId;
                 var playerId = 1;
                 if (_runnerService.TryGet<SurvivorFusionGameState>(out var gameState))
                 {
@@ -67,18 +92,18 @@ namespace Game.MVP.Survivor.Server
 
                     if (gameState.StageId <= 0)
                     {
-                        Debug.LogWarning("[SurvivorServerGameLoop] Session info not received from client, using defaults");
+                        Debug.LogWarning("[SurvivorServerGameLoop] Session info not received from client, using HTTP request defaults");
                     }
                 }
-                Debug.Log($"[SurvivorServerGameLoop] Starting stage {stageId}, player {playerId}");
 
+                Debug.Log($"[SurvivorServerGameLoop] Starting stage {stageId}, player {playerId}");
                 _saveService.StartSession(stageId: stageId, playerId: playerId);
 
                 // SurvivorNetworkStageScene へ遷移
                 await _sceneService.TransitionAsync<SurvivorNetworkStageScene>();
                 Debug.Log("[SurvivorServerGameLoop] SurvivorNetworkStageScene loaded on server");
 
-                // 全プレイヤー離脱を待機（クライアントのリトライ/終了）
+                // Step 6: 全プレイヤー離脱を待機
                 var disconnectTcs = new UniTaskCompletionSource();
                 var disconnectSub = _allPlayersDisconnectedSub.Subscribe(_ => disconnectTcs.TrySetResult());
                 try
@@ -92,9 +117,38 @@ namespace Game.MVP.Survivor.Server
 
                 Debug.Log("[SurvivorServerGameLoop] All players disconnected, resetting for next session");
 
-                // ステージシーンを終了して次のセッションに備える
-                // （SurvivorNetworkStageScene.Terminate → 次のループで AllPlayersReady 待機）
+                // Step 7: Game.Server にセッション終了通知
+                UnityServerBootstrap.NotifySessionEnded(request.MatchId);
+
+                // ServerHttpListener のステータスを idle に戻す
+                UnityServerBootstrap.HttpListener?.SetSessionIdle();
+
+                // Fusion セッションのシャットダウン
+                _networkConnector.Disconnect();
+
+                Debug.Log("[SurvivorServerGameLoop] Session cleanup done, ready for next session");
             }
+        }
+
+        /// <summary>
+        /// ServerHttpListener からセッション作成リクエストが届くまで待機する。
+        /// 100ms 間隔でポーリングする。
+        /// </summary>
+        /// <param name="ct">キャンセルトークン。</param>
+        /// <returns>デキューしたセッション作成リクエスト。</returns>
+        private static async UniTask<ServerHttpListener.SessionStartRequest> WaitForSessionRequestAsync(CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var listener = UnityServerBootstrap.HttpListener;
+                if (listener != null && listener.TryDequeueSessionRequest(out var request))
+                    return request;
+
+                await UniTask.Delay(100, cancellationToken: ct);
+            }
+
+            ct.ThrowIfCancellationRequested();
+            return null; // 到達しない
         }
     }
 }

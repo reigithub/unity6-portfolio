@@ -5,13 +5,13 @@ namespace Game.Shared.Services
 {
     /// <summary>
     /// Unity Dedicated Server 接続トークン取得 API サービス実装。
-    /// Game.Server の POST /api/unity-server-auth/issue-token を呼び出す。
+    /// Game.Server の POST /api/unity-server/issue-token を呼び出す。
     /// </summary>
-    public class UnityServerAuthApiService : IUnityServerAuthApiService
+    public class UnityServerApiService : IUnityServerApiService
     {
         private readonly IApiClient _apiClient;
 
-        public UnityServerAuthApiService(IApiClient apiClient)
+        public UnityServerApiService(IApiClient apiClient)
         {
             _apiClient = apiClient;
         }
@@ -21,10 +21,11 @@ namespace Game.Shared.Services
         /// 認証済みユーザーに対して HMAC 署名付きセッショントークンを発行する。
         /// </summary>
         /// <returns>成功時はトークンとセッション名を含むレスポンス、失敗時はエラー情報。</returns>
-        public async UniTask<ApiResponse<UnityServerAuthResponse>> IssueTokenAsync()
+        public async UniTask<ApiResponse<UnityServerAuthResponse>> IssueTokenAsync(int stageId = 0, int expectedPlayers = 1)
         {
+            var endpoint = $"api/unity-server/issue-token?stageId={stageId}&expectedPlayers={expectedPlayers}";
             return await _apiClient.PostAsync<EmptyRequest, UnityServerAuthResponse>(
-                "api/unity-server-auth/issue-token", new EmptyRequest());
+                endpoint, new EmptyRequest());
         }
     }
 }

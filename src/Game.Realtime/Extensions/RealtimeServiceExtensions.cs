@@ -23,7 +23,7 @@ public static class RealtimeServiceExtensions
 
         // Game.Server API クライアント（サービス間 HTTP 通信）
         services.AddHttpClient();
-        services.AddSingleton<IUnityServerAuthApiClient, UnityServerAuthApiClient>();
+        services.AddSingleton<IUnityServerApiClient, UnityServerApiClient>();
 
         // Matchmaking Queue Service
         services.AddSingleton<IMatchmakingQueueService, MatchmakingQueueService>();

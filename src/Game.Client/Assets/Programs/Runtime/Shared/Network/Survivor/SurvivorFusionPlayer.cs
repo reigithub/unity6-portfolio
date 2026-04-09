@@ -201,7 +201,7 @@ namespace Game.Shared.Network.Survivor
         {
             if (_gameState == null) return;
 
-            bool isPaused = _gameState.IsPaused;
+            bool isPaused = _gameState.IsEffectivelyPaused;
             if (isPaused != _wasPaused)
             {
                 _wasPaused = isPaused;
@@ -209,9 +209,42 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
+        // 診断用: 前フレーム位置との差分を記録
+        private Vector3 _diagLastFixedPos;
+        private Vector3 _diagLastRenderPos;
+        private int _diagWarpCount;
+
         public override void FixedUpdateNetwork()
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
+
+            // 診断: FixedUpdate での状態記録（サーバー・クライアント両方）
+            if (_kcc != null)
+            {
+                var currentPos = _kcc.FixedData.TargetPosition;
+                var delta = Vector3.Distance(currentPos, _diagLastFixedPos);
+                if (_diagLastFixedPos != Vector3.zero && delta > 0.5f)
+                {
+                    _diagWarpCount++;
+                    var hasInputNow = GetInput(out SurvivorPlayerNetworkInput _diagInput);
+                    Debug.LogWarning($"[FusionPlayer DIAG] FixedUpdate warp #{_diagWarpCount}: delta={delta:F3}, " +
+                        $"from={_diagLastFixedPos} to={currentPos}, " +
+                        $"tick={Runner.Tick}, isResim={Runner.IsResimulation}, isForward={Runner.IsForward}, " +
+                        $"speed={Speed:F2}, hasInput={hasInputNow}, " +
+                        $"handler={MovementHandler != null}, " +
+                        $"stateAuth={HasStateAuthority}, inputAuth={HasInputAuthority}");
+                }
+                // サーバー側: 5秒ごとに位置をサンプル出力
+                if (HasStateAuthority && Runner.Tick.Raw % 320 == 0)
+                {
+                    var hasInputSrv = GetInput(out SurvivorPlayerNetworkInput srvInput);
+                    Debug.Log($"[FusionPlayer DIAG-SRV] tick={Runner.Tick}, pos={currentPos}, speed={Speed:F2}, " +
+                        $"handler={MovementHandler != null}, health={Health}, " +
+                        $"getInput={hasInputSrv}, move={srvInput.Move}, " +
+                        $"kccActive={_kcc?.IsActive}, kccSpeed={_kcc?.FixedData.RealSpeed:F2}");
+                }
+                _diagLastFixedPos = currentPos;
+            }
 
             // ポーズ状態の同期 → KCC.SetActive で物理・移動を完全停止/再開
             SyncPauseState();
@@ -227,15 +260,16 @@ namespace Game.Shared.Network.Survivor
                     UpdateStamina(input, Runner.DeltaTime);
                 }
 
-                // 2. 速度計算
+                // 2. 速度計算（サーバー・クライアント両方で実行）
+                // クライアント予測でも Speed を計算しないと、Forward simulation で
+                // Speed=0 のまま ProcessTick が実行されてサーバー補正時にワープが発生する。
+                // クライアントが書き込んだ値はローカル予測として扱われ、
+                // サーバースナップショット到着時に上書きされる。
                 var moveValue = input.Move;
                 var isMoveInput = moveValue.magnitude > 0.1f;
                 var wantToRun = input.IsSprinting && isMoveInput;
                 var isRunning = wantToRun && Stamina > 0;
-                if (HasStateAuthority)
-                {
-                    Speed = (isMoveInput ? 1f : 0f) * (isRunning ? RunSpeed : JogSpeed);
-                }
+                Speed = (isMoveInput ? 1f : 0f) * (isRunning ? RunSpeed : JogSpeed);
 
                 // 3. Fusion FSM が自動で OnFixedUpdate 実行（ダメージ/無敵/死亡）
 
@@ -257,7 +291,7 @@ namespace Game.Shared.Network.Survivor
                 {
                     _kcc.SetInputDirection(Vector3.zero);
 
-                    if (isInputTimeout && HasStateAuthority)
+                    if (isInputTimeout)
                     {
                         Speed = 0f;
                     }
@@ -324,7 +358,21 @@ namespace Game.Shared.Network.Survivor
             // KCC のレンダー更新（補間/予測シミュレーション）
             if (_kcc != null)
             {
+                var beforePos = transform.position;
                 _kcc.ManualRenderUpdate();
+                var afterPos = transform.position;
+
+                // 診断: Render での位置ジャンプ検出
+                if (HasInputAuthority)
+                {
+                    var renderDelta = Vector3.Distance(beforePos, afterPos);
+                    if (renderDelta > 0.5f)
+                    {
+                        Debug.LogWarning($"[FusionPlayer DIAG] Render warp: delta={renderDelta:F3}, " +
+                            $"before={beforePos} after={afterPos}, " +
+                            $"speed={Speed:F2}, kccSpeed={_kcc.RenderData.RealSpeed:F2}");
+                    }
+                }
             }
 
             if (_changeDetector == null) return;

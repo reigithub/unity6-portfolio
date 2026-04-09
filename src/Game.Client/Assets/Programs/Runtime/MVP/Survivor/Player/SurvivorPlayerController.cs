@@ -299,7 +299,7 @@ namespace Game.MVP.Survivor.Player
             using (s_attractItemsMarker.Auto())
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
-                if (_gameState != null && _gameState.IsPaused) return;
+                if (_gameState != null && _gameState.IsEffectivelyPaused) return;
                 _itemCheckTimer -= Time.deltaTime;
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;

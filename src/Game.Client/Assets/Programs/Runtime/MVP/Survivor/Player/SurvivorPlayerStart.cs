@@ -65,10 +65,10 @@ namespace Game.MVP.Survivor.Player
             {
                 kcc.SetPosition(transform.position);
                 kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-                // kcc.Settings.AntiJitterDistance = Vector2.zero;
-                // kcc.Settings.ForcePredictedLookRotation = true;
-                kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_PredictRender;
-                kcc.Settings.PredictionCorrectionSpeed = 2f;
+                kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
+                kcc.Settings.StateAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
+                kcc.Settings.AntiJitterDistance = new Vector2(0.025f, 0.01f);
+                kcc.Settings.PredictionCorrectionSpeed = 15f;
 
                 Debug.Log($"[SurvivorPlayerStart] KCC configured in scene={playerGo.scene.name}, pos={transform.position}");
             }

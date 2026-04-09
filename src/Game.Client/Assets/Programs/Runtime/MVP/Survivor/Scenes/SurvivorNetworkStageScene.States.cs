@@ -183,7 +183,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // ゲームタイマー更新（ポーズ中はスキップ）
-                bool isPaused = Context._gameState != null && Context._gameState.IsPaused;
+                bool isPaused = Context._gameState != null && Context._gameState.IsEffectivelyPaused;
                 if (!isPaused)
                 {
                     var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null

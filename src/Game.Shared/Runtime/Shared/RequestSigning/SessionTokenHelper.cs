@@ -70,7 +70,7 @@ namespace Game.Library.Shared.RequestSigning
         /// <param name="token">検証するトークンのバイト列</param>
         /// <param name="secretKey">HMAC シークレットキー</param>
         /// <returns>検証成功時はパース結果、失敗時は null</returns>
-        public static SessionTokenParseResult? ParseAndVerifyBytes(byte[] token, byte[] secretKey)
+        public static SessionTokenParseResult ParseAndVerifyBytes(byte[] token, byte[] secretKey)
         {
             if (token == null || token.Length <= SignatureSize)
             {
@@ -116,7 +116,7 @@ namespace Game.Library.Shared.RequestSigning
         /// <param name="token">Base64 エンコードされたトークン文字列</param>
         /// <param name="secretKey">HMAC シークレットキー</param>
         /// <returns>検証成功時はパース結果、失敗時は null</returns>
-        public static SessionTokenParseResult? ParseAndVerify(string? token, byte[] secretKey)
+        public static SessionTokenParseResult ParseAndVerify(string token, byte[] secretKey)
         {
             if (string.IsNullOrEmpty(token))
             {
