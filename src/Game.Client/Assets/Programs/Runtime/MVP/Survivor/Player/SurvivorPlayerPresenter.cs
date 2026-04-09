@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using R3;
@@ -9,13 +11,12 @@ namespace Game.MVP.Survivor.Player
     /// <summary>
     /// プレイヤービジュアル駆動 — Controller の R3 Observable と MessagePipe シグナルを購読し Animator を制御。
     /// Visual 子 GameObject に配置され、SetActive(false) で一括停止する。
-    /// Animator は Addressable モデルロード後に SetAnimator() で設定する。
+    /// InitializeAsync でモデルロード・Animator 取得・購読開始をすべて自己完結する。
     /// </summary>
     public class SurvivorPlayerPresenter : MonoBehaviour
     {
         [Inject] private ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
-
-        [SerializeField] private SurvivorPlayerController _controller;
+        [Inject] private IAddressableAssetService _addressableService;
 
         private static readonly int AnimatorHashSpeed = Animator.StringToHash("Speed");
         private static readonly int AnimatorHashDeath = Animator.StringToHash("Death");
@@ -24,48 +25,37 @@ namespace Game.MVP.Survivor.Player
         private R3.DisposableBag _subscriptions;
 
         /// <summary>
-        /// Addressable モデルロード完了後に Animator を設定する。
+        /// DI 注入 → モデルロード → Animator 取得 → 購読開始を自己完結する。
+        /// Controller.InitializeVisualAsync から呼ばれる。
         /// </summary>
-        public void SetAnimator(Animator animator)
+        public async UniTask InitializeAsync(string assetName, IObjectResolver resolver, SurvivorPlayerController controller)
         {
-            _animator = animator;
-        }
+            resolver.Inject(this);
 
-        private void OnEnable()
-        {
-            if (_controller == null) return;
+            var modelObj = await _addressableService.InstantiateAsync(assetName + "_Model", transform);
+            if (modelObj != null)
+            {
+                modelObj.transform.localPosition = Vector3.zero;
+                modelObj.transform.localRotation = Quaternion.identity;
+                modelObj.TryGetComponent(out _animator);
+            }
 
-            // スピードが変わった時にアニメーターを更新
-            _controller.Speed
+            controller.Speed
                 .DistinctUntilChanged()
                 .Subscribe(speed =>
                 {
                     if (_animator != null)
-                    {
                         _animator.SetFloat(AnimatorHashSpeed, speed);
-                    }
                 })
                 .AddTo(ref _subscriptions);
 
-            // 死亡シグナル → Death アニメーション
-            if (_playerDiedSub != null)
-            {
-                _playerDiedSub
-                    .Subscribe(_ =>
-                    {
-                        if (_animator != null)
-                        {
-                            _animator.SetTrigger(AnimatorHashDeath);
-                        }
-                    })
-                    .AddTo(ref _subscriptions);
-            }
-        }
-
-        private void OnDisable()
-        {
-            _subscriptions.Dispose();
-            _subscriptions = new R3.DisposableBag();
+            _playerDiedSub?
+                .Subscribe(_ =>
+                {
+                    if (_animator != null)
+                        _animator.SetTrigger(AnimatorHashDeath);
+                })
+                .AddTo(ref _subscriptions);
         }
 
         private void OnDestroy()

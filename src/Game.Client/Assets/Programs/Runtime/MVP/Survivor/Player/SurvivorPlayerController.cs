@@ -35,7 +35,6 @@ namespace Game.MVP.Survivor.Player
         // VContainer Injection
         [Inject] private IPublisher<SurvivorSignals.Player.Spawned> _spawnedPublisher;
         [Inject] private IFusionRunnerService _runnerService;
-        [Inject] private readonly IAddressableAssetService _addressableService;
 
         [Header("振り向き速度 (degrees/sec)")]
         [SerializeField]
@@ -302,7 +301,7 @@ namespace Game.MVP.Survivor.Player
         }
 
         /// <summary>
-        /// Visual の非同期初期化。モデルアセットをロードしてアニメーターを設定後、Visual を有効化する。
+        /// Visual の非同期初期化。Presenter に初期化を委譲し、完了後に Visual を有効化する。
         /// サーバー側では Visual を有効化せず、Spawned シグナルのみ発行する。
         /// </summary>
         /// <param name="playerMaster">プレイヤーマスターデータ（アセット名取得用）</param>
@@ -311,21 +310,8 @@ namespace Game.MVP.Survivor.Player
         {
             if (!UnityPlaymodeHelper.IsServer() && _visual != null)
             {
-                var modelAssetName = playerMaster.AssetName + "_Model";
-                var modelObj = await _addressableService.InstantiateAsync(modelAssetName, _visual.transform);
-                if (modelObj != null)
-                {
-                    modelObj.transform.localPosition = Vector3.zero;
-                    modelObj.transform.localRotation = Quaternion.identity;
-                }
-
-                var presenter = _visual.GetComponent<SurvivorPlayerPresenter>();
-                if (presenter != null)
-                {
-                    resolver.Inject(presenter);
-                    var animator = modelObj != null ? modelObj.GetComponentInChildren<Animator>() : null;
-                    presenter.SetAnimator(animator);
-                }
+                if (_visual.TryGetComponent<SurvivorPlayerPresenter>(out var presenter))
+                    await presenter.InitializeAsync(playerMaster.AssetName, resolver, this);
 
                 // DI 注入 + Animator 設定完了後に Visual を有効化（OnEnable で購読開始）
                 _visual.SetActive(true);

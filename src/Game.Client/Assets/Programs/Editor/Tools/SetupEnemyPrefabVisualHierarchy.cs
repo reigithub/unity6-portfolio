@@ -106,12 +106,8 @@ public static class SetupEnemyPrefabVisualHierarchy
         if (vt.GetComponent<Game.Shared.Components.VisualRoot>() == null)
             vt.gameObject.AddComponent<Game.Shared.Components.VisualRoot>();
 
-        var p = vt.GetComponent<Game.MVP.Survivor.Player.SurvivorPlayerPresenter>();
-        if (p == null) p = vt.gameObject.AddComponent<Game.MVP.Survivor.Player.SurvivorPlayerPresenter>();
-
-        var pSo = new SerializedObject(p);
-        pSo.FindProperty("_controller").objectReferenceValue = ctrl;
-        pSo.ApplyModifiedPropertiesWithoutUndo();
+        if (vt.GetComponent<Game.MVP.Survivor.Player.SurvivorPlayerPresenter>() == null)
+            vt.gameObject.AddComponent<Game.MVP.Survivor.Player.SurvivorPlayerPresenter>();
 
         // SurvivorPlayerController._visual に Visual GameObject を設定
         var ctrlSo = new SerializedObject(ctrl);
