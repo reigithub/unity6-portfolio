@@ -39,6 +39,9 @@ namespace Game.MVP.Survivor.Enemy
         /// <summary>ディゾルブ中かどうか</summary>
         public bool IsDissolving => _isDissolving;
 
+        /// <summary>ディゾルブの合計時間（ディレイ + 演出）</summary>
+        public float TotalDissolveDuration => _dissolveDelay + _dissolveDuration;
+
         /// <summary>ディゾルブ完了イベント</summary>
         public event Action OnDissolveComplete;
 
