@@ -51,10 +51,8 @@ namespace Game.MVP.Survivor.Scenes
                 .AddTo(Disposables);
 
             // 中断セッションがあれば通知
-            if (_saveService.HasActiveSession)
-            {
-                SceneComponent.ShowResumeOption(_saveService.CurrentSession);
-            }
+            // if (_saveService.HasActiveSession)
+            //     SceneComponent.ShowResumeOption(_saveService.CurrentSession);
         }
 
         public override async UniTask Ready()
