@@ -26,7 +26,7 @@ namespace Game.MVP.Survivor.Weapon
 
         protected override void InitializePoolItem(SurvivorGroundDamageArea area)
         {
-            area.Initialize(GameState);
+            area.Initialize(GameState, RunnerService);
             area.OnHit += OnAreaHit;
             area.OnExpired += OnAreaExpired;
         }

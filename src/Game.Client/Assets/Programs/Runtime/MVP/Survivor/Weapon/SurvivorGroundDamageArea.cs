@@ -1,5 +1,6 @@
 using System;
 using Game.Shared.Constants;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using UnityEngine;
 
@@ -17,6 +18,12 @@ namespace Game.MVP.Survivor.Weapon
         // ポーズ参照（生成元マネージャーが設定）
         private SurvivorFusionGameState _gameState;
 
+        // Runner サービス（PhysicsScene・DeltaTime 取得用）
+        private IFusionRunnerService _runnerService;
+
+        // OverlapSphere バッファ（allocating 版の代替）
+        private static readonly Collider[] s_overlapBuffer = new Collider[32];
+
         // 状態
         private int _damage;
         private float _procInterval;
@@ -32,7 +39,16 @@ namespace Game.MVP.Survivor.Weapon
         public int Damage => _damage;
         public float Knockback => _knockback;
 
-        public void Initialize(SurvivorFusionGameState gameState) => _gameState = gameState;
+        /// <summary>
+        /// ダメージエリアを初期化する
+        /// </summary>
+        /// <param name="gameState">ゲーム状態（ポーズチェック用）</param>
+        /// <param name="runnerService">Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</param>
+        public void Initialize(SurvivorFusionGameState gameState, IFusionRunnerService runnerService = null)
+        {
+            _gameState = gameState;
+            _runnerService = runnerService;
+        }
 
         /// <summary>
         /// ダメージエリアを有効化
@@ -62,25 +78,29 @@ namespace Game.MVP.Survivor.Weapon
             if (!_isActive) return;
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            _remainingTime -= Time.deltaTime;
-            _nextProcTime -= Time.deltaTime;
+            float deltaTime = _runnerService.GetDeltaTime();
+            _remainingTime -= deltaTime;
+            _nextProcTime -= deltaTime;
 
             // ProcInterval毎にダメージ判定
             if (_nextProcTime <= 0f)
             {
                 _nextProcTime = _procInterval;
 
-                // 現在接触中の敵にOnHitを発火
+                // 現在接触中の敵にOnHitを発火（PhysicsScene 版でバッファ再利用）
                 if (_damageCollider != null)
                 {
-                    var colliders = Physics.OverlapSphere(
+                    var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+                    int count = physicsScene.OverlapSphere(
                         transform.position,
                         _damageCollider.radius,
-                        LayerMaskConstants.Enemy);
+                        s_overlapBuffer,
+                        LayerMaskConstants.Enemy,
+                        QueryTriggerInteraction.Collide);
 
-                    foreach (var col in colliders)
+                    for (int i = 0; i < count; i++)
                     {
-                        OnHit?.Invoke(this, col);
+                        OnHit?.Invoke(this, s_overlapBuffer[i]);
                     }
                 }
             }

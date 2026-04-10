@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using UnityEngine;
 
@@ -47,6 +48,9 @@ namespace Game.MVP.Survivor.Weapon
         // ポーズ参照（生成元マネージャーが設定）
         private SurvivorFusionGameState _gameState;
 
+        // Runner サービス（PhysicsScene・DeltaTime 取得用）
+        private IFusionRunnerService _runnerService;
+
         // SphereCast ヒット検出バッファ
         private readonly RaycastHit[] _sphereCastHits = new RaycastHit[10];
 
@@ -66,7 +70,16 @@ namespace Game.MVP.Survivor.Weapon
             gameObject.tag = "Projectile";
         }
 
-        public void Initialize(SurvivorFusionGameState gameState) => _gameState = gameState;
+        /// <summary>
+        /// プロジェクタイルを初期化する
+        /// </summary>
+        /// <param name="gameState">ゲーム状態（ポーズチェック用）</param>
+        /// <param name="runnerService">Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</param>
+        public void Initialize(SurvivorFusionGameState gameState, IFusionRunnerService runnerService = null)
+        {
+            _gameState = gameState;
+            _runnerService = runnerService;
+        }
 
         /// <summary>
         /// プロジェクタイルを発射
@@ -105,12 +118,14 @@ namespace Game.MVP.Survivor.Weapon
             if (!_isActive) return;
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
+            float deltaTime = _runnerService.GetDeltaTime();
+
             // 追尾処理
             if (_homing > 0 && _homingTarget != null && _homingTarget.gameObject.activeInHierarchy)
             {
                 Vector3 targetDirection = (_homingTarget.position - transform.position).normalized;
                 float homingFactor = _homing.ToRate();
-                _direction = Vector3.Slerp(_direction, targetDirection, homingFactor * Time.deltaTime * HomingInterpolationFactor).normalized;
+                _direction = Vector3.Slerp(_direction, targetDirection, homingFactor * deltaTime * HomingInterpolationFactor).normalized;
 
                 if (_direction.magnitude > 0.1f)
                 {
@@ -118,11 +133,12 @@ namespace Game.MVP.Survivor.Weapon
                 }
             }
 
-            // ヒット検出: 移動パス上の SphereCastNonAlloc（貫通対応）
-            float moveDistance = _speed * Time.deltaTime;
+            // ヒット検出: 移動パス上の SphereCast（貫通対応）
+            float moveDistance = _speed * deltaTime;
             if (moveDistance > 0f)
             {
-                int hitCount = Physics.SphereCastNonAlloc(
+                var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+                int hitCount = physicsScene.SphereCast(
                     transform.position, _colliderRadius, _direction,
                     _sphereCastHits, moveDistance, LayerMaskConstants.Enemy,
                     QueryTriggerInteraction.Collide);
@@ -144,7 +160,7 @@ namespace Game.MVP.Survivor.Weapon
             transform.position += _direction * moveDistance;
 
             // 寿命チェック
-            _lifetime -= Time.deltaTime;
+            _lifetime -= deltaTime;
             if (_lifetime <= 0f)
             {
                 _isActive = false;

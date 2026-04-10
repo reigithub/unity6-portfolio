@@ -244,16 +244,17 @@ namespace Game.MVP.Survivor.Enemy
                 // プレイヤーの方を向く
                 Vector3 direction = (ctx._target.position - ctx.transform.position).normalized;
                 direction.y = 0;
+                float dt = ctx.GetDeltaTime();
                 if (direction.magnitude > 0.1f)
                 {
                     ctx.transform.rotation = Quaternion.Slerp(
                         ctx.transform.rotation,
                         Quaternion.LookRotation(direction),
-                        ctx._rotationSpeed * Time.deltaTime);
+                        ctx._rotationSpeed * dt);
                 }
 
                 // 攻撃クールダウン
-                ctx._attackTimer -= ctx.GetDeltaTime();
+                ctx._attackTimer -= dt;
                 if (ctx._attackTimer <= 0f)
                 {
                     // 攻撃実行

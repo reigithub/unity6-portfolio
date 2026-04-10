@@ -358,16 +358,18 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
                 if (_gameState != null && _gameState.IsEffectivelyPaused) return;
-                _itemCheckTimer -= Time.deltaTime;
+                _itemCheckTimer -= _runnerService.GetDeltaTime();
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;
 
-                // ItemレイヤーのみをOverlapSphereで検索
-                int hitCount = Physics.OverlapSphereNonAlloc(
+                // ItemレイヤーのみをPhysicsSceneで検索
+                var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+                int hitCount = physicsScene.OverlapSphere(
                     transform.position,
                     _itemAttractDistance,
                     _itemHitBuffer,
-                    LayerMaskConstants.Item
+                    LayerMaskConstants.Item,
+                    QueryTriggerInteraction.Collide
                 );
 
                 for (int i = 0; i < hitCount; i++)

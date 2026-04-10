@@ -1,5 +1,6 @@
 using System;
 using Game.Shared.Item;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using UnityEngine;
 
@@ -54,6 +55,9 @@ namespace Game.MVP.Survivor.Item
         // ポーズ参照（生成元スポーナーが設定）
         private SurvivorFusionGameState _gameState;
 
+        // Runner サービス（DeltaTime 取得用）
+        private IFusionRunnerService _runnerService;
+
         // Events
         public event Action<SurvivorItem> OnCollected;
 
@@ -70,7 +74,16 @@ namespace Game.MVP.Survivor.Item
         /// <summary>
         /// マスタデータから初期化
         /// </summary>
-        public void Initialize(int itemId, SurvivorItemType itemType, int effectValue, int effectRange, int effectDuration, int rarity, float scale, SurvivorFusionGameState gameState)
+        /// <param name="itemId">アイテム ID</param>
+        /// <param name="itemType">アイテムタイプ</param>
+        /// <param name="effectValue">効果量</param>
+        /// <param name="effectRange">効果範囲</param>
+        /// <param name="effectDuration">効果持続時間</param>
+        /// <param name="rarity">レアリティ</param>
+        /// <param name="scale">スケール</param>
+        /// <param name="gameState">ゲーム状態（ポーズチェック用）</param>
+        /// <param name="runnerService">Fusion Runner サービス（DeltaTime 取得用）</param>
+        public void Initialize(int itemId, SurvivorItemType itemType, int effectValue, int effectRange, int effectDuration, int rarity, float scale, SurvivorFusionGameState gameState, IFusionRunnerService runnerService = null)
         {
             _itemId = itemId;
             _itemType = itemType;
@@ -80,6 +93,7 @@ namespace Game.MVP.Survivor.Item
             _rarity = rarity;
             _scale = scale > 0f ? scale : 1f;
             _gameState = gameState;
+            _runnerService = runnerService;
 
             ApplyTransform();
         }
@@ -99,7 +113,7 @@ namespace Game.MVP.Survivor.Item
             {
                 // 吸引中：ターゲットに向かって移動（ゲームロジック）
                 Vector3 direction = (_attractTarget.position - transform.position).normalized;
-                transform.position += direction * _attractSpeed * Time.deltaTime;
+                transform.position += direction * _attractSpeed * _runnerService.GetDeltaTime();
             }
         }
 

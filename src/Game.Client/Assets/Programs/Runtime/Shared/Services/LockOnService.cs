@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Combat;
 using Game.Shared.LockOn;
+using Game.Shared.Network.Fusion;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,6 +23,7 @@ namespace Game.Shared.Services
         private const float FrontWideAngle = 0f;       // 前方180度（左右90度）= cos(90°)
 
         private readonly IAddressableAssetService _assetService;
+        private readonly IFusionRunnerService _runnerService;
         private readonly ReactiveProperty<Transform> _currentTarget = new();
         private readonly Collider[] _hitBuffer = new Collider[50];
         private Camera _camera;
@@ -34,9 +36,15 @@ namespace Game.Shared.Services
         private LockOnIndicator _indicatorComponent;
         private Canvas _overlayCanvas;
 
-        public LockOnService(IAddressableAssetService assetService)
+        /// <summary>
+        /// ロックオンサービスを生成する
+        /// </summary>
+        /// <param name="assetService">Addressable アセットサービス</param>
+        /// <param name="runnerService">Fusion Runner サービス（PhysicsScene 取得用）</param>
+        public LockOnService(IAddressableAssetService assetService, IFusionRunnerService runnerService = null)
         {
             _assetService = assetService;
+            _runnerService = runnerService;
         }
 
         public void Initialize(Camera camera, int layer)
@@ -85,8 +93,9 @@ namespace Game.Shared.Services
             var ray = _camera.ScreenPointToRay(point);
             int layerMask = 1 << _layer;
 
-            // SphereCastで広い判定範囲を持たせる（クリックしやすくする）
-            if (Physics.SphereCast(ray, HitRadius, out var hit, MaxRayDistance, layerMask))
+            // PhysicsScene.SphereCast でクリック判定（クリックしやすくするため広い判定範囲）
+            var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+            if (physicsScene.SphereCast(ray.origin, HitRadius, ray.direction, out var hit, MaxRayDistance, layerMask))
             {
                 if (hit.collider != null)
                 {
@@ -262,7 +271,8 @@ namespace Game.Shared.Services
         private Transform FindBestTarget()
         {
             int layerMask = 1 << _layer;
-            int hitCount = Physics.OverlapSphereNonAlloc(_owner.position, _searchRange, _hitBuffer, layerMask);
+            var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+            int hitCount = physicsScene.OverlapSphere(_owner.position, _searchRange, _hitBuffer, layerMask, QueryTriggerInteraction.Collide);
 
             if (hitCount == 0) return null;
 

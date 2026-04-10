@@ -4,6 +4,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
@@ -24,6 +25,9 @@ namespace Game.MVP.Survivor.Weapon
 
         /// <summary>ゲーム状態参照（ポーズチェック用。SurvivorWeaponManager が設定）</summary>
         protected SurvivorFusionGameState GameState;
+
+        /// <summary>Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</summary>
+        protected IFusionRunnerService RunnerService;
 
         // マスターデータ
         protected SurvivorWeaponMaster _weaponMaster;
@@ -170,12 +174,19 @@ namespace Game.MVP.Survivor.Weapon
         /// <summary>
         /// マスターデータから初期化
         /// </summary>
+        /// <param name="poolParent">プールの親 Transform</param>
+        /// <param name="owner">武器所有者の Transform</param>
+        /// <param name="damageMultiplier">ダメージ倍率</param>
+        /// <param name="vfxSpawner">VFX スポーナー</param>
+        /// <param name="gameState">ゲーム状態（ポーズチェック用）</param>
+        /// <param name="runnerService">Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</param>
         public virtual UniTask InitializeAsync(
             Transform poolParent,
             Transform owner,
             float damageMultiplier,
             SurvivorWeaponVfxSpawner vfxSpawner,
-            SurvivorFusionGameState gameState)
+            SurvivorFusionGameState gameState,
+            IFusionRunnerService runnerService = null)
         {
             _poolParent = poolParent;
             _weaponId = _weaponMaster.Id;
@@ -197,6 +208,7 @@ namespace Game.MVP.Survivor.Weapon
             ApplyLevel(1);
 
             GameState = gameState;
+            RunnerService = runnerService;
 
             return UniTask.CompletedTask;
         }
@@ -478,9 +490,10 @@ namespace Game.MVP.Survivor.Weapon
             Transform owner,
             float damageMultiplier,
             SurvivorWeaponVfxSpawner vfxSpawner,
-            SurvivorFusionGameState gameState)
+            SurvivorFusionGameState gameState,
+            IFusionRunnerService runnerService = null)
         {
-            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner, gameState);
+            await base.InitializeAsync(poolParent, owner, damageMultiplier, vfxSpawner, gameState, runnerService);
 
             if (!string.IsNullOrEmpty(_currentAssetName))
             {

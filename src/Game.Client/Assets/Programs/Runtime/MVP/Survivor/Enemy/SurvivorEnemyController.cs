@@ -199,11 +199,12 @@ namespace Game.MVP.Survivor.Enemy
             }
 
             // パス到達不能検知: NavAgent がパスを持てない状態が続く場合は強制デスポーン
+            float deltaTime = GetDeltaTime();
             if (!_isDead && _navAgent != null && _navAgent.enabled && _target != null)
             {
                 if (_navAgent.isOnNavMesh && !_navAgent.hasPath && !_navAgent.pathPending)
                 {
-                    _unreachableTimer += Time.deltaTime;
+                    _unreachableTimer += deltaTime;
                     if (_unreachableTimer > UnreachableTimeout)
                     {
                         _unreachableTimer = 0f;
@@ -225,7 +226,7 @@ namespace Game.MVP.Survivor.Enemy
             // NavMesh から外れたエネミーを定期的に再スナップ（サーバー側のみ有効）
             if (_navAgent != null && _navAgent.enabled && !_isDead)
             {
-                _navMeshCheckTimer -= Time.deltaTime;
+                _navMeshCheckTimer -= deltaTime;
                 if (_navMeshCheckTimer <= 0f)
                 {
                     _navMeshCheckTimer = NavMeshCheckInterval;
