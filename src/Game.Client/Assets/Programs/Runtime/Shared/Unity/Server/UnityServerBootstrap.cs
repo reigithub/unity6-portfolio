@@ -47,8 +47,17 @@ namespace Game.Shared.Unity.Server
         /// Dedicated Server の初期化処理を実行する。
         /// メインスレッドから呼ぶこと。
         /// </summary>
-        public static void Initialize()
+        private static bool _initialized;
+
+        /// <summary>
+        /// Dedicated Server の初期化処理を実行する。
+        /// </summary>
+        /// <param name="matchConnector">接続パラメータ設定に使用する <see cref="SurvivorNetworkMatchConnector"/> インスタンス。</param>
+        public static void Initialize(SurvivorNetworkMatchConnector matchConnector)
         {
+            if (_initialized) return;
+            _initialized = true;
+
             Debug.Log("[ServerBootstrap] ========================================");
             Debug.Log("[ServerBootstrap] Dedicated Server starting...");
             Debug.Log($"[ServerBootstrap] BatchMode: {Application.isBatchMode}");
@@ -94,8 +103,8 @@ namespace Game.Shared.Unity.Server
 
             // --- Dedicated Server 接続情報設定（セッション開始前のデフォルト）---
             // セッションリクエスト受信後に SurvivorServerGameLoop が上書きする
-            SurvivorNetworkMatchConnector.ConfigureForDedicatedServer(_gamePort, _address, matchId);
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(playerCount);
+            matchConnector.ConfigureForDedicatedServer(_gamePort, _address, matchId);
+            matchConnector.SetExpectedPlayerCount(playerCount);
 
             // --- Application.quitting ハンドラー登録 ---
             Application.quitting += OnApplicationQuitting;
