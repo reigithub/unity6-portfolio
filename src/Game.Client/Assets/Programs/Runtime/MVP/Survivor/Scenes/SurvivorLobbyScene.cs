@@ -20,6 +20,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IMatchmakingClient _matchmakingClient;
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly ISurvivorSaveService _saveService;
+        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyScene";
 
@@ -209,9 +210,9 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(
+            _matchConnector.SetExpectedPlayerCount(
                 result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1);
-            SurvivorNetworkMatchConnector.ConfigureForMatchmaking(result);
+            _matchConnector.ConfigureForMatchmaking(result);
             SceneComponent.SetInteractables(false);
 
             try

@@ -19,6 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAuthSessionService _authSessionService;
+        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
@@ -224,10 +225,10 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ShowNotification("Game starting...");
 
             // プレイヤー数をキャッシュ
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(_maxPlayers);
+            _matchConnector.SetExpectedPlayerCount(_maxPlayers);
 
             // マッチメイキング結果をトークン含めて設定
-            SurvivorNetworkMatchConnector.ConfigureForMatchmaking(new MatchResult
+            _matchConnector.ConfigureForMatchmaking(new MatchResult
             {
                 MatchId = matchId,
                 PlayerIds = System.Array.Empty<string>(),
