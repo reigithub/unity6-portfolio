@@ -14,5 +14,6 @@ namespace Game.Shared.Network.Survivor
         UniTask StartHostAsync(int stageId);
         UniTask StartServerAsync(int stageId);
         void Disconnect();
+        UniTask DisconnectAsync();
     }
 }

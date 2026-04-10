@@ -123,8 +123,8 @@ namespace Game.MVP.Survivor.Server
                 // ServerHttpListener のステータスを idle に戻す
                 UnityServerBootstrap.HttpListener?.SetSessionIdle();
 
-                // Fusion セッションのシャットダウン
-                _networkConnector.Disconnect();
+                // Fusion セッションのシャットダウン（完了を待機して次のセッション開始に備える）
+                await _networkConnector.DisconnectAsync();
 
                 Debug.Log("[SurvivorServerGameLoop] Session cleanup done, ready for next session");
             }

@@ -500,6 +500,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // Fusion 切断（Addressables シーンアンロード後に実行）
             _networkConnector?.Disconnect();
+            SurvivorNetworkMatchConnector.Clear();
             await UniTask.Yield();
         }
 

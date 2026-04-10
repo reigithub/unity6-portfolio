@@ -109,7 +109,7 @@ namespace Game.Shared.Network.Survivor
                 {
                     GameMode = GameMode.Client,
                     SessionName = sessionName,
-                    Address = NetAddress.Any(),
+                    Address = NetAddress.CreateFromIpPort(address, port),
                     ConnectionToken = connectionToken,
                 };
 
