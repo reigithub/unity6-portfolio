@@ -98,6 +98,7 @@ namespace Game.Shared.Network.Survivor
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _runnerService?.Unregister(this);
+            Destroy(gameObject);
         }
 
         private void Update()

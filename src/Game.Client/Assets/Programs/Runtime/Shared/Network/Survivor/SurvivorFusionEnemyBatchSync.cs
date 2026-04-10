@@ -44,6 +44,7 @@ namespace Game.Shared.Network.Survivor
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _runnerService?.Unregister(this);
+            Destroy(gameObject);
         }
 
         /// <summary>Server 側: スナップショット配列を NetworkArray に書き込む</summary>
