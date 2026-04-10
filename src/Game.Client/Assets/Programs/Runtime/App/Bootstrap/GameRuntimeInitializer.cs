@@ -1,10 +1,12 @@
 using Game.App.Bootstrap;
 using Game.MVP.Core.DI;
 using Game.Shared.Bootstrap;
+using Game.Shared.Network.Survivor;
 using Game.Shared.Playmode;
 using Game.Shared.Realtime;
 using Game.Shared.Unity.Server;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 namespace Game.App
@@ -23,7 +25,8 @@ namespace Game.App
                 var scope = SurvivorGameLauncher.CreateScope();
 
                 // 3. サーバーインフラ初期化（ServerHttpListener 起動、自己登録、コマンドライン引数解析）
-                UnityServerBootstrap.Initialize();
+                var matchConnector = scope.Container.Resolve<SurvivorNetworkMatchConnector>();
+                UnityServerBootstrap.Initialize(matchConnector);
 
                 // Fusion Server セッション開始は SurvivorServerGameLoop が
                 // ServerHttpListener からの /session/start リクエストを受信後に行う。

@@ -23,6 +23,7 @@ namespace Game.Shared.Network.Survivor
         [Inject] private readonly IObjectResolver _resolver;
         [Inject] private readonly IAddressableAssetService _assetService;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
@@ -51,8 +52,8 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Host;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
-                var expectedPlayers = SurvivorNetworkMatchConnector.ExpectedPlayerCount;
+                var sessionName = _matchConnector.MatchId;
+                var expectedPlayers = _matchConnector.ExpectedPlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
@@ -89,7 +90,7 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Client;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
+                var sessionName = _matchConnector.MatchId;
 
                 EnsureRunner();
 
@@ -134,14 +135,14 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Server;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
-                var expectedPlayers = SurvivorNetworkMatchConnector.ExpectedPlayerCount;
+                var sessionName = _matchConnector.MatchId;
+                var expectedPlayers = _matchConnector.ExpectedPlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var serverPort = SurvivorNetworkMatchConnector.ServerPort;
+                var serverPort = _matchConnector.ServerPort;
 
                 // 環境変数 PUBLIC_ADDRESS から公開アドレスを取得（GCE/NAT対応）
                 NetAddress? publicAddress = null;
