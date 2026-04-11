@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Game.Library.Shared.RequestSigning;
+using Game.Server.Attributes;
 using Game.Server.Configuration;
 using Game.Server.Shared.Extensions;
 using Microsoft.Extensions.Options;
@@ -15,17 +16,6 @@ public class RequestSigningMiddleware
     private readonly byte[] _serverSecret;
     private readonly byte[] _dsSecret;
     private readonly bool _enabled;
-
-    private static readonly string[] ExemptPaths = new[]
-    {
-        "/api/auth/guest",
-        "/api/auth/login",
-        "/api/auth/email/login",
-        "/api/auth/email/forgot-password",
-        "/api/auth/email/reset-password",
-        "/api/auth/email/verify",
-        "/api/unity-server/issue-token",
-    };
 
     public RequestSigningMiddleware(
         RequestDelegate next,
@@ -43,29 +33,44 @@ public class RequestSigningMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!_enabled || !RequiresSignatureVerification(context.Request))
+        if (!_enabled)
         {
             await _next(context);
             return;
         }
 
-        if (IsDsEndpoint(context.Request.Path))
+        // 読み取り系メソッド (GET/OPTIONS/HEAD) は署名検証対象外 (境界レベル設計)
+        var method = context.Request.Method;
+        if (HttpMethods.IsGet(method) || HttpMethods.IsOptions(method) || HttpMethods.IsHead(method))
+        {
+            await _next(context);
+            return;
+        }
+
+        // /api/ 配下以外 (/health, /hubs/chat, /openapi 等) はスキップ
+        if (!context.Request.Path.StartsWithSegments("/api"))
+        {
+            await _next(context);
+            return;
+        }
+
+        // endpoint metadata で分岐。未マッチ (404 対象) も skip して後続の 404 に任せる。
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<SkipRequestSigningAttribute>() != null)
+        {
+            await _next(context);
+            return;
+        }
+
+        if (endpoint?.Metadata.GetMetadata<UnityServerSignatureAttribute>() != null)
         {
             await VerifyDsSignatureAsync(context);
+            return;
         }
-        else
-        {
-            await VerifyUserSignatureAsync(context);
-        }
-    }
 
-    /// <summary>
-    /// DS エンドポイント判定。
-    /// <c>/api/unity-server/*</c> のうち <c>issue-token</c> を除くパスを DS 経路とみなす。
-    /// </summary>
-    private static bool IsDsEndpoint(PathString path) =>
-        path.StartsWithSegments("/api/unity-server")
-        && !path.Equals("/api/unity-server/issue-token", StringComparison.OrdinalIgnoreCase);
+        // デフォルト: user signature 経路 (JWT userId 必須)
+        await VerifyUserSignatureAsync(context);
+    }
 
     /// <summary>
     /// DS 署名検証。HMAC-SHA256 + nonce キャッシュによりリプレイ攻撃・改ざんを防ぐ。
@@ -237,31 +242,6 @@ public class RequestSigningMiddleware
         var userIdBytes = Encoding.UTF8.GetBytes(userId);
         using var hmac = new HMACSHA256(_serverSecret);
         return hmac.ComputeHash(userIdBytes);
-    }
-
-    private static bool RequiresSignatureVerification(HttpRequest request)
-    {
-        // 書き込み系メソッドのみ検証（GET はスキップ）
-        if (HttpMethods.IsGet(request.Method) || HttpMethods.IsOptions(request.Method) || HttpMethods.IsHead(request.Method))
-        {
-            return false;
-        }
-
-        // /api/ 配下のエンドポイントのみ対象
-        if (!request.Path.StartsWithSegments("/api"))
-        {
-            return false;
-        }
-
-        // 認証不要エンドポイントは署名検証をスキップ
-        var path = request.Path.Value ?? "";
-        foreach (var exempt in ExemptPaths)
-        {
-            if (path.Equals(exempt, StringComparison.OrdinalIgnoreCase))
-                return false;
-        }
-
-        return true;
     }
 
     private static async Task<byte[]> ReadBodyAsync(HttpRequest request)

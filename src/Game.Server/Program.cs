@@ -125,6 +125,7 @@ public partial class Program
         app.UseHttpsRedirection();
         app.UseCors();
         app.UseResponseCaching();
+        app.UseRouting();
         app.UseAuthentication();
         app.UseMiddleware<RequestSigningMiddleware>();
         app.UseAuthorization();

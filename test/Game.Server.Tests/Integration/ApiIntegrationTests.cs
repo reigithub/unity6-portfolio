@@ -1,11 +1,17 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Game.Library.Shared.RequestSigning;
 using Game.Library.Shared.Dto;
+using Game.Server.Configuration;
 using Game.Server.Tests.Fixtures;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Game.Server.Tests.Integration;
 
@@ -97,6 +103,131 @@ public class ApiIntegrationTests : IAsyncLifetime
         using var unauthClient = CreateJsonClient();
         var response = await unauthClient.GetAsync("/api/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DsEndpoint_WithoutSignature_Returns401()
+    {
+        // [DsSignature] が付いている DS 経路に無署名で POST しても 401 が返ることを確認する
+        // (attribute ベース middleware が DS 経路を正しく fail-closed で保護している regression test)
+        using var unauthClient = CreateJsonClient();
+        var response = await unauthClient.PostAsJsonAsync("/api/unity-server/register", new
+        {
+            DsId = "test-ds",
+            Address = "127.0.0.1",
+            GamePort = 7777,
+            HealthPort = 7778,
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_WithoutJwt_ReturnsNewTokenPair()
+    {
+        // Arrange: ゲストログインで refresh token を取得
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "refresh-test-" + Guid.NewGuid().ToString("N")
+        });
+        guestResponse.EnsureSuccessStatusCode();
+        var initialLogin = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(initialLogin?.RefreshToken);
+
+        // Act: Authorization ヘッダ無しで refresh
+        using var clientWithoutJwt = CreateJsonClient();
+        var response = await clientWithoutJwt.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            RefreshToken = initialLogin.RefreshToken
+        });
+
+        // Assert: 200 OK + 新しい token pair
+        // Note: access token (JWT) は exp claim が秒精度で 1 秒以内の連続発行は同一文字列に
+        // なりうるため、rotation 確認は refresh_token 側の NotEqual で行う
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var newLogin = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(newLogin?.Token);
+        Assert.NotNull(newLogin.RefreshToken);
+        Assert.NotEqual(initialLogin.RefreshToken, newLogin.RefreshToken);
+        Assert.Equal(initialLogin.UserId, newLogin.UserId);
+    }
+
+    [Fact]
+    public async Task Refresh_WithExpiredJwt_ReturnsNewTokenPair()
+    {
+        // Arrange: ゲストログインで refresh token を取得
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "refresh-expired-jwt-" + Guid.NewGuid().ToString("N")
+        });
+        guestResponse.EnsureSuccessStatusCode();
+        var initialLogin = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(initialLogin?.RefreshToken);
+
+        // 期限切れ JWT を手動生成 (JwtSettings から Secret を取得)
+        var jwtSettings = _factory.Services.GetRequiredService<IOptions<JwtSettings>>().Value;
+        var expiredJwt = GenerateExpiredJwt(jwtSettings, initialLogin.UserId);
+
+        using var client = CreateJsonClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", expiredJwt);
+
+        // Act: 期限切れ JWT + 有効な refresh token で refresh
+        // (critical bug の直接再現経路: Header あり + 期限切れ JWT pipeline)
+        var response = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            RefreshToken = initialLogin.RefreshToken
+        });
+
+        // Assert: 200 OK — JWT 期限切れでも refresh 成功 (regression guard)
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var newLogin = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(newLogin?.Token);
+        Assert.NotEqual(expiredJwt, newLogin.Token);
+    }
+
+    [Fact]
+    public async Task Refresh_InvalidRefreshToken_Returns401()
+    {
+        // 完全に無効な refresh token を middleware 経由で送る
+        using var client = CreateJsonClient();
+        var response = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            RefreshToken = "completely-bogus-" + Guid.NewGuid().ToString("N")
+        });
+
+        // Assert: middleware 経由で service に到達し INVALID_REFRESH_TOKEN → 401
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_SameTokenTwice_SecondCallFails()
+    {
+        // Arrange: ゲストログインで refresh token を取得
+        var guestResponse = await _client.PostAsJsonAsync("/api/auth/guest", new
+        {
+            DeviceFingerprint = "refresh-rotation-test-" + Guid.NewGuid().ToString("N")
+        });
+        guestResponse.EnsureSuccessStatusCode();
+        var initialLogin = await guestResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(initialLogin?.RefreshToken);
+
+        using var client = CreateJsonClient();
+
+        // Act 1: 1 回目の refresh は成功 (新 refresh token 発行、旧 refresh token 無効化)
+        var firstResponse = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            RefreshToken = initialLogin.RefreshToken
+        });
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+        // Act 2: 2 回目に同じ (rotation で無効化済みの) refresh token を再使用 → 失敗
+        var secondResponse = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            RefreshToken = initialLogin.RefreshToken
+        });
+
+        // Assert: 2 回目は 401 (replay 防御確認)
+        Assert.Equal(HttpStatusCode.Unauthorized, secondResponse.StatusCode);
     }
 
     [Fact]
@@ -381,6 +512,28 @@ public class ApiIntegrationTests : IAsyncLifetime
         client.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));
         return client;
+    }
+
+    /// <summary>
+    /// テスト用に期限切れ JWT を手動生成する。
+    /// Refresh endpoint の "JWT 期限切れでも refresh が動作する" critical bug regression test 用。
+    /// </summary>
+    private static string GenerateExpiredJwt(JwtSettings settings, string userId)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
+        };
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Secret));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            issuer: settings.Issuer,
+            audience: settings.Audience,
+            claims: claims,
+            notBefore: DateTime.UtcNow.AddMinutes(-10),
+            expires: DateTime.UtcNow.AddMinutes(-5),
+            signingCredentials: credentials);
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);

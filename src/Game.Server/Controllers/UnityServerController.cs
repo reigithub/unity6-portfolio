@@ -1,4 +1,5 @@
 using Game.Library.Shared.Dto;
+using Game.Server.Attributes;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
@@ -40,6 +41,7 @@ public class UnityServerController : ControllerBase
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
     [HttpPost("issue-token")]
     [Authorize]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(UnityServerAuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> IssueToken(
@@ -67,6 +69,7 @@ public class UnityServerController : ControllerBase
     /// <param name="request">DS の識別子・アドレス・ポート情報。</param>
     /// <returns>登録成功時は 200 OK。</returns>
     [HttpPost("register")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Register([FromBody] UnityServerRegistrationRequest request)
@@ -85,6 +88,7 @@ public class UnityServerController : ControllerBase
     /// <param name="request">登録解除する DS の識別子を含むリクエスト。</param>
     /// <returns>登録解除成功時は 200 OK。</returns>
     [HttpPost("deregister")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Deregister([FromBody] UnityServerDeregisterRequest request)
@@ -103,6 +107,7 @@ public class UnityServerController : ControllerBase
     /// <param name="request">ハートビートを送信する DS の識別子を含むリクエスト。</param>
     /// <returns>ハートビート受信成功時は 200 OK。</returns>
     [HttpPost("heartbeat")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Heartbeat([FromBody] UnityServerHeartbeatRequest request)
@@ -122,6 +127,7 @@ public class UnityServerController : ControllerBase
     /// <param name="request">セッションが終了した DS の識別子とマッチIDを含むリクエスト。</param>
     /// <returns>セッション終了通知受信成功時は 200 OK。</returns>
     [HttpPost("session-ended")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SessionEnded([FromBody] UnityServerSessionEndedRequest request)
