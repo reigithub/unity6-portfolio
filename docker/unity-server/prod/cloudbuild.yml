@@ -63,8 +63,6 @@ steps:
           --container-arg="${_GAME_PORT}" \
           --container-arg="--health-port" \
           --container-arg="${_HEALTH_PORT}" \
-          --container-arg="--players" \
-          --container-arg="${_MAX_PLAYERS}" \
           --metadata=google-logging-enabled=true \
           --scopes=https://www.googleapis.com/auth/cloud-platform \
           --region=${_REGION}
@@ -117,7 +115,6 @@ substitutions:
   _NETWORK_TAG: unity-server
   _GAME_PORT: '7777'
   _HEALTH_PORT: '7778'
-  _MAX_PLAYERS: '4'
   _HEALTH_CHECK_NAME: unity-server-health-check
   # Unity Server ビルド成果物のパス（Cloud Build ワークスペース内）
   _BUILD_CONTEXT: 'server-build/'

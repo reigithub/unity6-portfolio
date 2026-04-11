@@ -62,7 +62,6 @@ done
 MACHINE_TYPE="${MACHINE_TYPE:-e2-medium}"
 GAME_PORT="${GAME_PORT:-7777}"
 HEALTH_PORT="${HEALTH_PORT:-7778}"
-MAX_PLAYERS="${MAX_PLAYERS:-4}"
 NETWORK_TAG="${NETWORK_TAG:-unity-server}"
 HEALTH_CHECK_NAME="${HEALTH_CHECK_NAME:-unity-server-health-check}"
 
@@ -80,7 +79,6 @@ echo "IMAGE:           ${IMAGE}:${TAG}"
 echo "MACHINE_TYPE:    $MACHINE_TYPE"
 echo "GAME_PORT:       $GAME_PORT (UDP)"
 echo "HEALTH_PORT:     $HEALTH_PORT (TCP)"
-echo "MAX_PLAYERS:     $MAX_PLAYERS"
 echo "INSTANCE_GROUP:  $INSTANCE_GROUP_NAME"
 echo "NETWORK_TAG:     $NETWORK_TAG"
 echo "BUILD_CONTEXT:   $BUILD_CONTEXT"
@@ -165,8 +163,6 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         --container-arg="${GAME_PORT}" \
         --container-arg="--health-port" \
         --container-arg="${HEALTH_PORT}" \
-        --container-arg="--players" \
-        --container-arg="${MAX_PLAYERS}" \
         --scopes=https://www.googleapis.com/auth/cloud-platform \
         --region="${REGION}" \
         --quiet 2>/dev/null \

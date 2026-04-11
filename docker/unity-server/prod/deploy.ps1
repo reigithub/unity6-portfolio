@@ -56,7 +56,6 @@ foreach ($var in $RequiredVars) {
 $MachineType = if ($env:MACHINE_TYPE) { $env:MACHINE_TYPE } else { "e2-medium" }
 $GamePort = if ($env:GAME_PORT) { $env:GAME_PORT } else { "7777" }
 $HealthPort = if ($env:HEALTH_PORT) { $env:HEALTH_PORT } else { "7778" }
-$MaxPlayers = if ($env:MAX_PLAYERS) { $env:MAX_PLAYERS } else { "4" }
 $NetworkTag = if ($env:NETWORK_TAG) { $env:NETWORK_TAG } else { "unity-server" }
 $HealthCheckName = if ($env:HEALTH_CHECK_NAME) { $env:HEALTH_CHECK_NAME } else { "unity-server-health-check" }
 
@@ -72,7 +71,6 @@ Write-Host "IMAGE:           ${IMAGE}:${Tag}"
 Write-Host "MACHINE_TYPE:    $MachineType"
 Write-Host "GAME_PORT:       $GamePort (UDP)"
 Write-Host "HEALTH_PORT:     $HealthPort (TCP)"
-Write-Host "MAX_PLAYERS:     $MaxPlayers"
 Write-Host "INSTANCE_GROUP:  $env:INSTANCE_GROUP_NAME"
 Write-Host "NETWORK_TAG:     $NetworkTag"
 Write-Host "BUILD_CONTEXT:   $BuildContext"
@@ -165,8 +163,6 @@ if (-not $BuildOnly) {
         --container-arg=$GamePort `
         --container-arg="--health-port" `
         --container-arg=$HealthPort `
-        --container-arg="--players" `
-        --container-arg=$MaxPlayers `
         --scopes=https://www.googleapis.com/auth/cloud-platform `
         --region=$env:REGION `
         --quiet 2>$null
