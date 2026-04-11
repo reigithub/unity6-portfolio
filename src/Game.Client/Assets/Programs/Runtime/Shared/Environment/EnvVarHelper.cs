@@ -116,11 +116,7 @@ namespace Game.Shared.Environment
 
         public static void Set(string key, string value)
         {
-            var envVar = System.Environment.GetEnvironmentVariable(key);
-            if (string.IsNullOrEmpty(envVar))
-            {
-                System.Environment.SetEnvironmentVariable(EnvVarKeys.PublicAddress, value);
-            }
+            if (!string.IsNullOrEmpty(value)) System.Environment.SetEnvironmentVariable(key, value);
         }
 
         public static void Set(string key, Func<string> getter)

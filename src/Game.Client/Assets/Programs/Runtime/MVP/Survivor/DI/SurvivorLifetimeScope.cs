@@ -52,7 +52,7 @@ namespace Game.MVP.Survivor
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
             builder.Register<FusionRunnerService>(Lifetime.Singleton).As<IFusionRunnerService>();
-            builder.Register<SurvivorNetworkSessionConnector>(Lifetime.Singleton).As<ISurvivorNetworkSessionConnector>();
+            builder.Register<UnityServerSessionConfig>(Lifetime.Singleton).As<IUnityServerSessionConfig>();
 
             if (UnityPlaymodeHelper.IsServer())
             {
@@ -88,6 +88,22 @@ namespace Game.MVP.Survivor
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+
+            // ========================================
+            // UnityServer インフラ（Config / Auth / Registry / Listener / Bootstrap）
+            // ========================================
+            // Config を遅延初期化で保持するプロバイダ（UnityServerBootstrap.StartAsync 内でセットされる）
+            builder.Register<UnityServerConfigProvider>(Lifetime.Singleton);
+
+            builder.Register<UnityServerAuthProviderFactory>(Lifetime.Singleton)
+                   .As<IUnityServerAuthProviderFactory>();
+            builder.Register<UnityServerRegistryApiClient>(Lifetime.Singleton)
+                   .As<IUnityServerRegistryApiClient>();
+            builder.Register<UnityServerHttpListener>(Lifetime.Singleton)
+                   .As<IUnityServerHttpListener>();
+
+            // サーバー初期化 EntryPoint（IAsyncStartable として自動実行）
+            builder.RegisterEntryPoint<UnityServerBootstrap>();
 
             // Server Game Loop: AllPlayersReady → SurvivorNetworkStageScene 遷移
             builder.RegisterEntryPoint<SurvivorServerGameLoop>();
@@ -194,6 +210,12 @@ namespace Game.MVP.Survivor
                     .As<ILocalServerOrchestrator>();
             }
 #endif
+
+            // ========================================
+            // UnityServer Null実装（クライアント側では Auth Factory のみ必要）
+            // ========================================
+            builder.Register<NullUnityServerAuthProviderFactory>(Lifetime.Singleton)
+                   .As<IUnityServerAuthProviderFactory>();
 
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();

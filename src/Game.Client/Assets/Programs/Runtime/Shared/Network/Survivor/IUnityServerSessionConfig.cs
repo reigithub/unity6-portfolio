@@ -8,7 +8,7 @@ namespace Game.Shared.Network.Survivor
     /// Configure（全パラメータ初期化）と UpdateConfigure（部分更新）に分離し、
     /// ライフサイクルの異なるサーバーレベルパラメータとセッションレベルパラメータを明示的に管理する。
     /// </summary>
-    public interface ISurvivorNetworkSessionConnector
+    public interface IUnityServerSessionConfig
     {
         /// <summary>接続先サーバーアドレス。</summary>
         string ServerAddress { get; }

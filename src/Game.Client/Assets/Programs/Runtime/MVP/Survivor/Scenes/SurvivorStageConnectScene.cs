@@ -31,7 +31,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerApiService _unityServerApiService;
-        [Inject] private readonly ISurvivorNetworkSessionConnector _sessionConnector;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -100,8 +100,8 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
-                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={_sessionConnector.IsClientConfigured}, {_runnerService.GetDebugStatus()}");
-                if (_sessionConnector.IsClientConfigured)
+                Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={_sessionConfig.IsClientConfigured}, {_runnerService.GetDebugStatus()}");
+                if (_sessionConfig.IsClientConfigured)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
                     await ConnectToServerAsync(stageId);
@@ -147,7 +147,7 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private async UniTask PrepareClientConnectionAsync(int stageId)
         {
-            if (_sessionConnector.IsClientConfigured)
+            if (_sessionConfig.IsClientConfigured)
                 return; // マッチメイキング経由 → Phase 2 で接続
 
             if (GameEnvironmentHelper.CurrentConfig?.UseLocalServerOrchestrator == true)
@@ -157,7 +157,7 @@ namespace Game.MVP.Survivor.Scenes
                 await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
 
                 var localTokenResult = await IssueTokenAsync(stageId);
-                _sessionConnector.Configure(ConnectionSource.Local,
+                _sessionConfig.Configure(ConnectionSource.Local,
                     port: _localServerOrchestrator.HeadlessServerPort,
                     sessionName: localTokenResult.SessionName,
                     sessionToken: localTokenResult.Token);
@@ -166,21 +166,21 @@ namespace Game.MVP.Survivor.Scenes
 
             // FusionServerAddress が設定されていればクラウドサーバーに接続
             var envConfig = GameEnvironmentHelper.CurrentConfig;
-            if (envConfig != null && !_sessionConnector.IsLocalAddress(envConfig.UnityServerAddress))
+            if (envConfig != null && !_sessionConfig.IsLocalAddress(envConfig.UnityServerAddress))
             {
                 var tokenResult = await IssueTokenAsync(stageId);
-                _sessionConnector.Configure(ConnectionSource.Remote,
+                _sessionConfig.Configure(ConnectionSource.Remote,
                     address: envConfig.UnityServerAddress,
                     port: envConfig.UnityServerPort,
                     sessionName: tokenResult.SessionName,
                     sessionToken: tokenResult.Token);
-                Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {_sessionConnector.ServerAddress}:{_sessionConnector.ServerPort} ({_sessionConnector.SessionName})");
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {_sessionConfig.ServerAddress}:{_sessionConfig.ServerPort} ({_sessionConfig.SessionName})");
             }
             else
             {
                 var defaultTokenResult = await IssueTokenAsync(stageId);
-                _sessionConnector.Configure(ConnectionSource.Local, sessionName: defaultTokenResult.SessionName, sessionToken: defaultTokenResult.Token);
-                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({_sessionConnector.SessionName})...");
+                _sessionConfig.Configure(ConnectionSource.Local, sessionName: defaultTokenResult.SessionName, sessionToken: defaultTokenResult.Token);
+                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({_sessionConfig.SessionName})...");
             }
         }
 
@@ -206,9 +206,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask ConnectToServerAsync(int stageId)
         {
-            var address = _sessionConnector.ServerAddress;
-            var port = _sessionConnector.ServerPort;
-            var sessionToken = _sessionConnector.SessionToken;
+            var address = _sessionConfig.ServerAddress;
+            var port = _sessionConfig.ServerPort;
+            var sessionToken = _sessionConfig.SessionToken;
             Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
             await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
         }
@@ -261,7 +261,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             SceneComponent.SetInteractables(false);
             _networkConnector.Disconnect();
-            _sessionConnector.Clear();
+            _sessionConfig.Clear();
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
         }
     }

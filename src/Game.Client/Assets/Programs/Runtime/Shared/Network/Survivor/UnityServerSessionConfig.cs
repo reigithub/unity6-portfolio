@@ -24,10 +24,10 @@ namespace Game.Shared.Network.Survivor
     }
 
     /// <summary>
-    /// <see cref="ISurvivorNetworkSessionConnector"/> の実装。
+    /// <see cref="IUnityServerSessionConfig"/> の実装。
     /// VContainer で Singleton 登録して使用する。
     /// </summary>
-    public class SurvivorNetworkSessionConnector : ISurvivorNetworkSessionConnector
+    public class UnityServerSessionConfig : IUnityServerSessionConfig
     {
         /// <summary>SP ローカルセッションのデフォルト名。</summary>
         private const string DefaultLocalSessionName = "sp-local";

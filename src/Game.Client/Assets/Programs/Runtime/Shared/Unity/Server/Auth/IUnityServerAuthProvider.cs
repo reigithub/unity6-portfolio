@@ -1,4 +1,4 @@
-namespace Game.Shared.Network.Fusion
+namespace Game.Shared.Unity.Server
 {
     /// <summary>
     /// Fusion Dedicated Server の接続認証プロバイダ。

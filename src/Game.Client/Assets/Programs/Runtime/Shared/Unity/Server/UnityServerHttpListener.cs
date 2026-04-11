@@ -7,10 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Shared.Unity.Server
 {
     /// <summary>
+    /// <see cref="IUnityServerHttpListener"/> の実装。
     /// Dedicated Server 向け軽量 HTTP サーバー。
     /// TcpListener + 手動 HTTP パースで実装（IL2CPP 安全性のため HttpListener は使用しない）。
     /// バックグラウンドスレッドでリクエストを受け付け、ConcurrentQueue でメインスレッドとブリッジする。
@@ -21,65 +23,37 @@ namespace Game.Shared.Unity.Server
     /// - POST /session/start    → セッション作成リクエスト（ConcurrentQueue 経由でメインスレッドへ）
     /// - GET  /sessions         → 現在のセッション状態
     /// </remarks>
-    public sealed class ServerHttpListener : IDisposable
+    public sealed class UnityServerHttpListener : IUnityServerHttpListener
     {
-        // ---------------------------------------------------------------
-        // セッション作成リクエストの内部クラス
-        // ---------------------------------------------------------------
-
-        /// <summary>
-        /// バックグラウンドスレッドからメインスレッドへ渡すセッション作成リクエスト。
-        /// </summary>
-        public class SessionStartRequest
-        {
-            /// <summary>マッチID（Fusion セッション識別子）。</summary>
-            public string MatchId;
-
-            /// <summary>ステージID。</summary>
-            public int StageId;
-
-            /// <summary>期待プレイヤー数。</summary>
-            public int ExpectedPlayers;
-
-            /// <summary>
-            /// メインスレッドが処理完了後に SetResult を呼ぶことで HTTP レスポンスを返す。
-            /// </summary>
-            public TaskCompletionSource<bool> CompletionSource = new TaskCompletionSource<bool>();
-        }
-
         // ---------------------------------------------------------------
         // フィールド
         // ---------------------------------------------------------------
 
-        private readonly int _port;
-        private readonly string _dsId;
+        private readonly UnityServerConfigProvider _configProvider;
         private readonly DateTime _startTime;
         private TcpListener _listener;
         private Thread _thread;
         private volatile bool _running;
 
         // バックグラウンド → メインスレッド ブリッジ
-        private readonly ConcurrentQueue<SessionStartRequest> _pendingRequests
-            = new ConcurrentQueue<SessionStartRequest>();
+        private readonly ConcurrentQueue<UnityServerSessionRequest> _pendingRequests
+            = new ConcurrentQueue<UnityServerSessionRequest>();
 
         // 現在のセッション状態
         private volatile string _currentMatchId;
         private volatile string _currentStatus = "idle";
 
-        // DS 認証シークレット（null = 認証スキップ）
-        private byte[] _authSecretKey;
-
         // ---------------------------------------------------------------
         // プロパティ
         // ---------------------------------------------------------------
 
-        /// <summary>現在の DS ステータス。"idle" または "active"。</summary>
+        /// <inheritdoc/>
         public string Status => _currentStatus;
 
-        /// <summary>現在実行中のマッチID。idle 時は null。</summary>
+        /// <inheritdoc/>
         public string CurrentMatchId => _currentMatchId;
 
-        /// <summary>起動からの経過秒数。</summary>
+        /// <inheritdoc/>
         public long UptimeSeconds => (long)(DateTime.UtcNow - _startTime).TotalSeconds;
 
         // ---------------------------------------------------------------
@@ -87,14 +61,14 @@ namespace Game.Shared.Unity.Server
         // ---------------------------------------------------------------
 
         /// <summary>
-        /// ServerHttpListener を初期化する。
+        /// <see cref="UnityServerHttpListener"/> を初期化する。
+        /// 実際の設定値は <see cref="Start"/> 呼び出し時に <see cref="UnityServerConfigProvider.Current"/> から取得する。
         /// </summary>
-        /// <param name="port">HTTP リスンポート番号。</param>
-        /// <param name="dsId">この DS の一意識別子。</param>
-        public ServerHttpListener(int port, string dsId)
+        /// <param name="configProvider">設定プロバイダ（Start 時に Current が参照される）。</param>
+        [Inject]
+        public UnityServerHttpListener(UnityServerConfigProvider configProvider)
         {
-            _port = port;
-            _dsId = dsId;
+            _configProvider = configProvider;
             _startTime = DateTime.UtcNow;
         }
 
@@ -102,26 +76,16 @@ namespace Game.Shared.Unity.Server
         // 公開メソッド
         // ---------------------------------------------------------------
 
-        /// <summary>
-        /// DS 認証シークレットを設定する。
-        /// 未設定（null）の場合は X-DS-Auth ヘッダー検証をスキップする（ローカル開発用）。
-        /// </summary>
-        /// <param name="secretKey">HMAC シークレットのバイト配列。</param>
-        public void SetAuthSecretKey(byte[] secretKey)
-        {
-            _authSecretKey = secretKey;
-        }
-
-        /// <summary>
-        /// HTTP リスナーをバックグラウンドスレッドで起動する。
-        /// </summary>
+        /// <inheritdoc/>
         public void Start()
         {
             if (_running)
                 return;
 
+            var config = _configProvider.Current;
+
             _running = true;
-            _listener = new TcpListener(IPAddress.Any, _port);
+            _listener = new TcpListener(IPAddress.Any, config.HealthPort);
             _listener.Start();
 
             _thread = new Thread(ListenLoop)
@@ -131,25 +95,16 @@ namespace Game.Shared.Unity.Server
             };
             _thread.Start();
 
-            Debug.Log($"[ServerHttpListener] Listening on HTTP port {_port}, dsId={_dsId}");
+            Debug.Log($"[ServerHttpListener] Listening on HTTP port {config.HealthPort}, dsId={config.DsId}");
         }
 
-        /// <summary>
-        /// メインスレッドからセッション作成リクエストをデキューする。
-        /// SurvivorServerGameLoop から毎フレームまたは一定間隔で呼ぶ。
-        /// </summary>
-        /// <param name="request">デキューしたリクエスト。</param>
-        /// <returns>リクエストが存在した場合は true。</returns>
-        public bool TryDequeueSessionRequest(out SessionStartRequest request)
+        /// <inheritdoc/>
+        public bool TryDequeueSessionRequest(out UnityServerSessionRequest request)
         {
             return _pendingRequests.TryDequeue(out request);
         }
 
-        /// <summary>
-        /// セッション状態を active に更新する。
-        /// メインスレッドから呼ぶ。
-        /// </summary>
-        /// <param name="matchId">開始したセッションのマッチID。</param>
+        /// <inheritdoc/>
         public void SetSessionActive(string matchId)
         {
             _currentMatchId = matchId;
@@ -157,10 +112,7 @@ namespace Game.Shared.Unity.Server
             Debug.Log($"[ServerHttpListener] Session active: matchId={matchId}");
         }
 
-        /// <summary>
-        /// セッション状態を idle に戻す。
-        /// メインスレッドから呼ぶ。
-        /// </summary>
+        /// <inheritdoc/>
         public void SetSessionIdle()
         {
             _currentMatchId = null;
@@ -168,9 +120,7 @@ namespace Game.Shared.Unity.Server
             Debug.Log("[ServerHttpListener] Session idle (waiting for next session)");
         }
 
-        /// <summary>
-        /// HTTP リスナーを停止してリソースを解放する。
-        /// </summary>
+        /// <inheritdoc/>
         public void Dispose()
         {
             _running = false;
@@ -235,9 +185,10 @@ namespace Game.Shared.Unity.Server
 #endif
 
                     // DS 認証チェック（シークレット未設定時はスキップ）
-                    if (_authSecretKey != null && _authSecretKey.Length > 0)
+                    var authSecretKey = _configProvider.Current.AuthSecretKey;
+                    if (!authSecretKey.IsEmpty)
                     {
-                        if (!ValidateAuth(headers))
+                        if (!ValidateAuth(headers, authSecretKey))
                         {
                             WriteResponse(stream, 401, "{\"error\":\"Unauthorized\"}");
                             return;
@@ -275,8 +226,9 @@ namespace Game.Shared.Unity.Server
 
         private void HandleHealth(NetworkStream stream)
         {
+            var dsId = _configProvider.Current.DsId;
             var matchIdJson = _currentMatchId == null ? "null" : $"\"{EscapeJson(_currentMatchId)}\"";
-            var json = $"{{\"dsId\":\"{EscapeJson(_dsId)}\","
+            var json = $"{{\"dsId\":\"{EscapeJson(dsId)}\","
                        + $"\"status\":\"{EscapeJson(_currentStatus)}\","
                        + $"\"currentMatchId\":{matchIdJson},"
                        + $"\"uptimeSeconds\":{UptimeSeconds}}}";
@@ -306,7 +258,7 @@ namespace Game.Shared.Unity.Server
             }
 
             // ConcurrentQueue にエンキュー → メインスレッドで処理
-            var request = new SessionStartRequest
+            var request = new UnityServerSessionRequest
             {
                 MatchId = matchId,
                 StageId = stageId,
@@ -444,13 +396,15 @@ namespace Game.Shared.Unity.Server
         // 認証・JSON パースユーティリティ
         // ---------------------------------------------------------------
 
-        private bool ValidateAuth(System.Collections.Generic.Dictionary<string, string> headers)
+        private static bool ValidateAuth(
+            System.Collections.Generic.Dictionary<string, string> headers,
+            ReadOnlyMemory<byte> authSecretKey)
         {
             if (!headers.TryGetValue("X-DS-Auth", out var authHeader))
                 return false;
 
             // バイト列比較（タイミング攻撃対策は省略。内部ネットワーク前提）
-            var expected = Encoding.UTF8.GetString(_authSecretKey);
+            var expected = Encoding.UTF8.GetString(authSecretKey.Span);
             return authHeader == expected;
         }
 

@@ -4,6 +4,7 @@ using Fusion;
 using Fusion.Addons.Physics;
 using Fusion.Sockets;
 using Game.Shared.Network.Fusion;
+using Game.Shared.Unity.Server;
 using UnityEngine;
 using VContainer;
 
