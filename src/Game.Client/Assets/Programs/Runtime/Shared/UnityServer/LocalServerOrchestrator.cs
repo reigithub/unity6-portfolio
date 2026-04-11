@@ -31,7 +31,7 @@ namespace Game.Shared.Unity.Server
             _config = LocalServerConfig.Detect();
 
             // .env からセッショントークンシークレットを取得
-            var envVars = EnvVarParser.Parse(_config.DotEnvFilePath);
+            var envVars = EnvVarHelper.Parse(_config.DotEnvFilePath);
             envVars.TryGetValue(EnvVarKeys.UnityServerAuthSecretKey, out var sessionTokenSecret);
 
             _postgres = new EmbeddedPostgresManager(_config.PgBinDir, _config.PgDataDir, _config.PgPort);

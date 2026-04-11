@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
+using Game.Shared.Environment;
 using Game.Shared.Network.Survivor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,20 +76,22 @@ namespace Game.Shared.Unity.Server
             Debug.Log($"[ServerBootstrap] DsId: {DsId}");
 
             // --- コマンドライン引数解析 ---
-            _gamePort = ParsePort();
-            _healthPort = ParseHealthPort();
+            var args = ClArgsHelper.Parse();
+            _gamePort = ParsePort(args);
+            _healthPort = ParseHealthPort(args);
             byte[] secretKey = ParseSecret();
             GameServerUrl = ParseGameServerUrl();
 
             Debug.Log($"[ServerBootstrap] port={_gamePort}, health={_healthPort}");
             Debug.Log($"[ServerBootstrap] GameServerUrl={GameServerUrl ?? "(none)"}");
 
+            // --- GCE 環境なら外部 IP を自動取得して PUBLIC_ADDRESS 環境変数に設定 ---
+            // 非 GCE 環境では 2 秒 timeout で silent fail する
+            EnvVarHelper.Set(EnvVarKeys.PublicAddress, () => TryFetchGceExternalIp());
+
             // --- ServerHttpListener 起動 ---
             HttpListener = new ServerHttpListener(_healthPort, DsId);
-            if (secretKey != null)
-            {
-                HttpListener.SetAuthSecretKey(secretKey);
-            }
+            HttpListener.SetAuthSecretKey(secretKey);
             HttpListener.Start();
 
             // --- シークレットキー保持 ---
@@ -313,64 +317,100 @@ namespace Game.Shared.Unity.Server
         // コマンドライン引数パース
         // ---------------------------------------------------------------
 
-        private static ushort ParsePort()
+        /// <summary>
+        /// Fusion UDP ポートを解決する。優先順位: CLI 引数 → 環境変数 UNITY_SERVER_PORT → デフォルト 7777。
+        /// </summary>
+        private static ushort ParsePort(Dictionary<string, string> args)
         {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--port" && ushort.TryParse(args[i + 1], out ushort port))
-                    return port;
-            }
+            // var args = System.Environment.GetCommandLineArgs();
+            // for (int i = 0; i < args.Length - 1; i++)
+            // {
+            //     if (args[i] == "--port" && ushort.TryParse(args[i + 1], out ushort cliPort))
+            //         return cliPort;
+            // }
+
+            if (ClArgsHelper.TryGet(args, "--port", out ushort cliPort ,p => ushort.Parse(p)))
+                return cliPort;
+
+            // var envPort = System.Environment.GetEnvironmentVariable(EnvVarKeys.UnityServerPort);
+            // if (!string.IsNullOrEmpty(envPort) && ushort.TryParse(envPort, out ushort parsedEnvPort))
+            //     return parsedEnvPort;
+
+            if (EnvVarHelper.TryGet(EnvVarKeys.UnityServerPort, out ushort port, p => ushort.Parse(p)))
+                return port;
+
             return 7777;
         }
 
-        private static int ParseHealthPort()
+        /// <summary>
+        /// ヘルスチェック TCP ポートを解決する。優先順位: CLI 引数 → 環境変数 UNITY_SERVER_HEALTH_PORT → デフォルト 7778。
+        /// </summary>
+        private static int ParseHealthPort(Dictionary<string, string> args)
         {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--health-port" && int.TryParse(args[i + 1], out int port))
-                    return port;
-            }
+            // var args = System.Environment.GetCommandLineArgs();
+            // for (int i = 0; i < args.Length - 1; i++)
+            // {
+            //     if (args[i] == "--health-port" && int.TryParse(args[i + 1], out int cliPort))
+            //         return cliPort;
+            // }
+
+            if (ClArgsHelper.TryGet(args, "--health-port", out int cliPort ,p => int.Parse(p)))
+                return cliPort;
+
+            if (EnvVarHelper.TryGet(EnvVarKeys.UnityServerHealthPort, out int port, p => int.Parse(p)))
+                return port;
+
+            // var envPort = System.Environment.GetEnvironmentVariable(EnvVarKeys.UnityServerHealthPort);
+            // if (!string.IsNullOrEmpty(envPort) && int.TryParse(envPort, out int parsedEnvPort))
+            //     return parsedEnvPort;
+
             return 7778;
         }
 
         /// <summary>
-        /// --secret 引数または UNITY_SERVER_AUTH_SESSION_SECRET 環境変数から HMAC シークレットを取得する。
+        /// 環境変数 UNITY_SERVER_AUTH_SESSION_SECRET から HMAC シークレットを取得する。
         /// </summary>
         private static byte[] ParseSecret()
         {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--secret" && !string.IsNullOrEmpty(args[i + 1]))
-                    return Encoding.UTF8.GetBytes(args[i + 1]);
-            }
+            EnvVarHelper.TryGet(EnvVarKeys.UnityServerAuthSecretKey, out byte[] secret, s => Encoding.UTF8.GetBytes(s));
+            return secret;
 
-            var envSecret = System.Environment.GetEnvironmentVariable("UNITY_SERVER_AUTH_SESSION_SECRET");
-            if (!string.IsNullOrEmpty(envSecret))
-                return Encoding.UTF8.GetBytes(envSecret);
-
-            return null;
+            // var envSecret = System.Environment.GetEnvironmentVariable(EnvVarKeys.UnityServerAuthSecretKey);
+            // return !string.IsNullOrEmpty(envSecret) ? Encoding.UTF8.GetBytes(envSecret) : null;
         }
 
         /// <summary>
-        /// --game-server-url 引数または GAME_SERVER_URL 環境変数から Game.Server URL を取得する。
+        /// 環境変数 GAME_SERVER_URL から Game.Server URL を取得する。
+        /// 未設定時は null を返し、Initialize 内のガードで自己登録をスキップする。
         /// </summary>
         private static string ParseGameServerUrl()
         {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
+            EnvVarHelper.TryGet(EnvVarKeys.GameServerUrl, out string url, u => u.TrimEnd('/'));
+            return url;
+
+            // var envUrl = System.Environment.GetEnvironmentVariable(EnvVarKeys.GameServerUrl);
+            // return !string.IsNullOrEmpty(envUrl) ? envUrl.TrimEnd('/') : null;
+        }
+
+        /// <summary>
+        /// GCE metadata server から外部 IP を取得する。
+        /// 非 GCE 環境 (Editor / ローカル Docker / オンプレ) では名前解決失敗 or 2 秒 timeout で null を返す。
+        /// </summary>
+        private static string TryFetchGceExternalIp()
+        {
+            try
             {
-                if (args[i] == "--game-server-url" && !string.IsNullOrEmpty(args[i + 1]))
-                    return args[i + 1].TrimEnd('/');
+                using var handler = new HttpClientHandler();
+                using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(2) };
+                client.DefaultRequestHeaders.Add("Metadata-Flavor", "Google");
+                var url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip";
+                return client.GetStringAsync(url).Result?.Trim();
             }
-
-            var envUrl = System.Environment.GetEnvironmentVariable("GAME_SERVER_URL");
-            if (!string.IsNullOrEmpty(envUrl))
-                return envUrl.TrimEnd('/');
-
-            return "http://localhost:5000";
+            catch
+            {
+                // 非 GCE 環境では timeout / 名前解決失敗で null を返す
+                return null;
+            }
         }
     }
 }

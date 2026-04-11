@@ -3,11 +3,13 @@ using Cysharp.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
 using Game.Library.Shared.RequestSigning;
+using Game.Shared.Environment;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using Game.Shared.Unity.Server;
 using MessagePipe;
+using NUnit;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -146,8 +148,7 @@ namespace Game.Shared.Network.Survivor
 
                 // 環境変数 PUBLIC_ADDRESS から公開アドレスを取得（GCE/NAT対応）
                 NetAddress? publicAddress = null;
-                var publicIp = System.Environment.GetEnvironmentVariable("PUBLIC_ADDRESS");
-                if (!string.IsNullOrEmpty(publicIp))
+                if (EnvVarHelper.TryGet(EnvVarKeys.PublicAddress, out var publicIp))
                 {
                     publicAddress = NetAddress.CreateFromIpPort(publicIp, serverPort);
                 }
