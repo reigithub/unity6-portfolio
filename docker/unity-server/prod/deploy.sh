@@ -50,7 +50,7 @@ else
 fi
 
 # 必須変数の確認
-REQUIRED_VARS=("PROJECT_ID" "REGION" "ZONE" "REPO_NAME" "INSTANCE_GROUP_NAME" "INSTANCE_TEMPLATE_NAME")
+REQUIRED_VARS=("PROJECT_ID" "REGION" "ZONE" "REPO_NAME" "INSTANCE_GROUP_NAME" "INSTANCE_TEMPLATE_NAME" "GAME_SERVER_URL" "SECRET_UNITY_SERVER_AUTH")
 for var in "${REQUIRED_VARS[@]}"; do
     if [[ -z "${!var}" ]]; then
         echo "[ERROR] Required variable $var is not set in .env"
@@ -60,8 +60,8 @@ done
 
 # デフォルト値
 MACHINE_TYPE="${MACHINE_TYPE:-e2-medium}"
-GAME_PORT="${GAME_PORT:-7777}"
-HEALTH_PORT="${HEALTH_PORT:-7778}"
+UNITY_SERVER_PORT="${UNITY_SERVER_PORT:-7777}"
+UNITY_SERVER_HEALTH_PORT="${UNITY_SERVER_HEALTH_PORT:-7778}"
 NETWORK_TAG="${NETWORK_TAG:-unity-server}"
 HEALTH_CHECK_NAME="${HEALTH_CHECK_NAME:-unity-server-health-check}"
 
@@ -77,11 +77,13 @@ echo "REGION:          $REGION"
 echo "ZONE:            $ZONE"
 echo "IMAGE:           ${IMAGE}:${TAG}"
 echo "MACHINE_TYPE:    $MACHINE_TYPE"
-echo "GAME_PORT:       $GAME_PORT (UDP)"
-echo "HEALTH_PORT:     $HEALTH_PORT (TCP)"
+echo "UNITY_SERVER_PORT:        $UNITY_SERVER_PORT (UDP)"
+echo "UNITY_SERVER_HEALTH_PORT: $UNITY_SERVER_HEALTH_PORT (TCP)"
 echo "INSTANCE_GROUP:  $INSTANCE_GROUP_NAME"
 echo "NETWORK_TAG:     $NETWORK_TAG"
 echo "BUILD_CONTEXT:   $BUILD_CONTEXT"
+echo "GAME_SERVER_URL: $GAME_SERVER_URL"
+echo "SECRET_NAME:     $SECRET_UNITY_SERVER_AUTH"
 echo "======================================================="
 echo ""
 
@@ -90,20 +92,20 @@ if [[ "$SETUP_INFRA" == "true" ]]; then
     echo "[SETUP] Creating GCE infrastructure..."
 
     # ファイアウォールルール: UDP (ゲームトラフィック)
-    echo "[SETUP] Creating firewall rule for game traffic (UDP ${GAME_PORT})..."
+    echo "[SETUP] Creating firewall rule for game traffic (UDP ${UNITY_SERVER_PORT})..."
     gcloud compute firewall-rules create "${FIREWALL_RULE_GAME:-allow-unity-server-game}" \
         --network="${NETWORK:-default}" \
-        --allow="udp:${GAME_PORT}" \
+        --allow="udp:${UNITY_SERVER_PORT}" \
         --target-tags="${NETWORK_TAG}" \
         --description="Allow UDP game traffic to Unity Server" \
         --quiet 2>/dev/null || echo "  (firewall rule already exists)"
 
     # ファイアウォールルール: TCP (ヘルスチェック)
     # GCE ヘルスチェックのソース IP レンジ: 35.191.0.0/16, 130.211.0.0/22
-    echo "[SETUP] Creating firewall rule for health check (TCP ${HEALTH_PORT})..."
+    echo "[SETUP] Creating firewall rule for health check (TCP ${UNITY_SERVER_HEALTH_PORT})..."
     gcloud compute firewall-rules create "${FIREWALL_RULE_HEALTH:-allow-unity-server-health}" \
         --network="${NETWORK:-default}" \
-        --allow="tcp:${HEALTH_PORT}" \
+        --allow="tcp:${UNITY_SERVER_HEALTH_PORT}" \
         --source-ranges="35.191.0.0/16,130.211.0.0/22" \
         --target-tags="${NETWORK_TAG}" \
         --description="Allow GCE health check to Unity Server" \
@@ -112,12 +114,20 @@ if [[ "$SETUP_INFRA" == "true" ]]; then
     # TCP ヘルスチェック作成
     echo "[SETUP] Creating TCP health check..."
     gcloud compute health-checks create tcp "${HEALTH_CHECK_NAME}" \
-        --port="${HEALTH_PORT}" \
+        --port="${UNITY_SERVER_HEALTH_PORT}" \
         --check-interval=10s \
         --timeout=5s \
         --healthy-threshold=2 \
         --unhealthy-threshold=3 \
         --quiet 2>/dev/null || echo "  (health check already exists)"
+
+    # Secret Manager IAM: GCE デフォルトサービスアカウントに secretAccessor を付与
+    echo "[SETUP] Granting Secret Manager access to GCE default service account..."
+    gcloud secrets add-iam-policy-binding "${SECRET_UNITY_SERVER_AUTH}" \
+        --member="serviceAccount:$(gcloud compute project-info describe --format='value(defaultServiceAccount)')" \
+        --role="roles/secretmanager.secretAccessor" \
+        --project="${PROJECT_ID}" \
+        --quiet 2>/dev/null || echo "  (IAM binding may already exist)"
 
     echo "[SETUP] Infrastructure setup complete"
     echo ""
@@ -151,6 +161,16 @@ else
 fi
 
 if [[ "$BUILD_ONLY" != "true" ]]; then
+    # Secret Manager から HMAC シークレット取得
+    echo "[INFO] Fetching secret from Secret Manager (${SECRET_UNITY_SERVER_AUTH})..."
+    UNITY_SERVER_AUTH_SESSION_SECRET=$(gcloud secrets versions access latest \
+        --secret="${SECRET_UNITY_SERVER_AUTH}" \
+        --project="${PROJECT_ID}")
+    if [[ -z "$UNITY_SERVER_AUTH_SESSION_SECRET" ]]; then
+        echo "[ERROR] Secret Manager から UNITY_SERVER_AUTH_SESSION_SECRET を取得できませんでした"
+        exit 1
+    fi
+
     # インスタンステンプレート作成
     echo "[4/5] Creating instance template..."
     TEMPLATE_NAME="${INSTANCE_TEMPLATE_NAME}-${TAG}"
@@ -159,10 +179,14 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         --machine-type="${MACHINE_TYPE}" \
         --tags="${NETWORK_TAG}" \
         --container-image="${IMAGE}:${TAG}" \
+        --container-env="UNITY_SERVER_AUTH_SESSION_SECRET=${UNITY_SERVER_AUTH_SESSION_SECRET}" \
+        --container-env="GAME_SERVER_URL=${GAME_SERVER_URL}" \
+        --container-env="UNITY_SERVER_PORT=${UNITY_SERVER_PORT}" \
+        --container-env="UNITY_SERVER_HEALTH_PORT=${UNITY_SERVER_HEALTH_PORT}" \
         --container-arg="--port" \
-        --container-arg="${GAME_PORT}" \
+        --container-arg="${UNITY_SERVER_PORT}" \
         --container-arg="--health-port" \
-        --container-arg="${HEALTH_PORT}" \
+        --container-arg="${UNITY_SERVER_HEALTH_PORT}" \
         --scopes=https://www.googleapis.com/auth/cloud-platform \
         --region="${REGION}" \
         --quiet 2>/dev/null \

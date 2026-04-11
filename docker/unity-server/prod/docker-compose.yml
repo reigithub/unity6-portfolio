@@ -19,7 +19,8 @@ services:
       - "7778:7778/tcp"
     environment:
       - UNITY_SERVER_AUTH_SESSION_SECRET=${UNITY_SERVER_AUTH_SESSION_SECRET:?Set UNITY_SERVER_AUTH_SESSION_SECRET in .env}
-    command: ["--port", "7777", "--health-port", "7778", "--secret", "${UNITY_SERVER_AUTH_SESSION_SECRET}"]
+      - GAME_SERVER_URL=${GAME_SERVER_URL:?Set GAME_SERVER_URL in .env}
+    command: ["--port", "${UNITY_SERVER_PORT:-7777}", "--health-port", "${UNITY_SERVER_HEALTH_PORT:-7778}"]
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7778' || exit 1"]
       interval: 10s
