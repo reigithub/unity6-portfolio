@@ -41,7 +41,6 @@ namespace Game.Shared.Unity.Server
         private static volatile bool _heartbeatRunning;
         private static ushort _gamePort;
         private static int _healthPort;
-        private static string _address;
 
         /// <summary>
         /// Dedicated Server の初期化処理を実行する。
@@ -52,8 +51,8 @@ namespace Game.Shared.Unity.Server
         /// <summary>
         /// Dedicated Server の初期化処理を実行する。
         /// </summary>
-        /// <param name="matchConnector">接続パラメータ設定に使用する <see cref="SurvivorNetworkMatchConnector"/> インスタンス。</param>
-        public static void Initialize(SurvivorNetworkMatchConnector matchConnector)
+        /// <param name="sessionConnector">接続パラメータ設定に使用する <see cref="ISurvivorNetworkSessionConnector"/> インスタンス。</param>
+        public static void Initialize(ISurvivorNetworkSessionConnector sessionConnector)
         {
             if (_initialized) return;
             _initialized = true;
@@ -75,15 +74,12 @@ namespace Game.Shared.Unity.Server
             Debug.Log($"[ServerBootstrap] DsId: {DsId}");
 
             // --- コマンドライン引数解析 ---
-            int playerCount = ParsePlayerCount();
             _gamePort = ParsePort();
             _healthPort = ParseHealthPort();
-            _address = ParseAddress();
-            string matchId = ParseMatchId();
             byte[] secretKey = ParseSecret();
             GameServerUrl = ParseGameServerUrl();
 
-            Debug.Log($"[ServerBootstrap] port={_gamePort}, health={_healthPort}, players={playerCount}, address={_address ?? "(auto)"}, matchId={matchId ?? "(none)"}");
+            Debug.Log($"[ServerBootstrap] port={_gamePort}, health={_healthPort}");
             Debug.Log($"[ServerBootstrap] GameServerUrl={GameServerUrl ?? "(none)"}");
 
             // --- ServerHttpListener 起動 ---
@@ -101,10 +97,10 @@ namespace Game.Shared.Unity.Server
                 Debug.Log("[ServerBootstrap] AuthSecretKey が設定されました（HMAC 認証有効）");
             }
 
-            // --- Dedicated Server 接続情報設定（セッション開始前のデフォルト）---
-            // セッションリクエスト受信後に SurvivorServerGameLoop が上書きする
-            matchConnector.ConfigureForDedicatedServer(_gamePort, _address, matchId);
-            matchConnector.SetExpectedPlayerCount(playerCount);
+            // --- Dedicated Server 接続情報設定（Fusion バインドポートのみ）---
+            // SessionName / MaxPlayerCount はセッションリクエスト受信時に
+            // SurvivorServerGameLoop が UpdateConfigure で設定する。
+            sessionConnector.Configure(ConnectionSource.DedicatedServer, port: _gamePort);
 
             // --- Application.quitting ハンドラー登録 ---
             Application.quitting += OnApplicationQuitting;
@@ -134,7 +130,7 @@ namespace Game.Shared.Unity.Server
             {
                 try
                 {
-                    var dsAddress = string.IsNullOrEmpty(_address) ? GetLocalAddress() : _address;
+                    var dsAddress = GetLocalAddress();
                     var body = BuildRegistrationJson(dsAddress);
                     var response = SendHttpPost(
                         $"{GameServerUrl}/api/unity-server/register",
@@ -293,18 +289,14 @@ namespace Game.Shared.Unity.Server
 
         private static string GetLocalAddress()
         {
-            try
+            var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+            foreach (var ip in host.AddressList)
             {
-                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
-                foreach (var ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                        return ip.ToString();
-                }
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    return ip.ToString();
             }
-            catch { }
 
-            return "127.0.0.1";
+            return null;
         }
 
         private static string EscapeJson(string value)
@@ -332,28 +324,6 @@ namespace Game.Shared.Unity.Server
             return 7777;
         }
 
-        private static int ParsePlayerCount()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--players" && int.TryParse(args[i + 1], out int count))
-                    return count;
-            }
-            return 1;
-        }
-
-        private static string ParseAddress()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--address" && !string.IsNullOrEmpty(args[i + 1]))
-                    return args[i + 1];
-            }
-            return null;
-        }
-
         private static int ParseHealthPort()
         {
             var args = System.Environment.GetCommandLineArgs();
@@ -363,20 +333,6 @@ namespace Game.Shared.Unity.Server
                     return port;
             }
             return 7778;
-        }
-
-        /// <summary>
-        /// --match-id 引数からマッチ ID を取得する。
-        /// </summary>
-        private static string ParseMatchId()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--match-id")
-                    return args[i + 1];
-            }
-            return null;
         }
 
         /// <summary>

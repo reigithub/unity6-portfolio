@@ -25,8 +25,8 @@ namespace Game.App
                 var scope = SurvivorGameLauncher.CreateScope();
 
                 // 3. サーバーインフラ初期化（ServerHttpListener 起動、自己登録、コマンドライン引数解析）
-                var matchConnector = scope.Container.Resolve<SurvivorNetworkMatchConnector>();
-                UnityServerBootstrap.Initialize(matchConnector);
+                var sessionConnector = scope.Container.Resolve<ISurvivorNetworkSessionConnector>();
+                UnityServerBootstrap.Initialize(sessionConnector);
 
                 // Fusion Server セッション開始は SurvivorServerGameLoop が
                 // ServerHttpListener からの /session/start リクエストを受信後に行う。

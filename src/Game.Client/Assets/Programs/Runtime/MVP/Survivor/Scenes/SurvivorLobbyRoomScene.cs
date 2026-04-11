@@ -19,7 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAuthSessionService _authSessionService;
-        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
+        [Inject] private readonly ISurvivorNetworkSessionConnector _sessionConnector;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
@@ -224,11 +224,7 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.SetInteractables(false);
             SceneComponent.ShowNotification("Game starting...");
 
-            // プレイヤー数をキャッシュ
-            _matchConnector.SetExpectedPlayerCount(_maxPlayers);
-
-            // マッチメイキング結果をトークン含めて設定
-            _matchConnector.ConfigureForMatchmaking(new MatchResult
+            var matchResult = new MatchResult
             {
                 MatchId = matchId,
                 PlayerIds = System.Array.Empty<string>(),
@@ -236,7 +232,10 @@ namespace Game.MVP.Survivor.Scenes
                 ServerPort = port,
                 SessionToken = sessionToken,
                 StageId = _stageId,
-            });
+            };
+
+            // マッチメイキング結果をトークン含めて設定
+            _sessionConnector.Configure(ConnectionSource.Matchmaking, matchResult, _maxPlayers);
 
             // セッション開始（stageId はロビー情報から取得）
             var playerId = _saveService.Data.SelectedPlayerId;

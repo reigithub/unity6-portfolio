@@ -25,7 +25,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthApiService _authApiService;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly ILobbyClient _lobbyClient;
-        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
+        [Inject] private readonly ISurvivorNetworkSessionConnector _sessionConnector;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -99,7 +99,7 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
-            _matchConnector.SetExpectedPlayerCount(1);
+            _sessionConnector.UpdateConfigure(playerCount: 1);
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 

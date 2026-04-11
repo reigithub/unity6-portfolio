@@ -20,9 +20,6 @@ namespace Game.Editor
         /// <summary>DS プロセス起動時に渡すデフォルトのヘルスチェックポート。</summary>
         private const int DsDefaultHealthPort = 7778;
 
-        /// <summary>DS プロセス起動時に渡すデフォルトの最大プレイヤー数。</summary>
-        private const int DsDefaultMaxPlayers = 4;
-
         /// <summary>ローカル Game.Server の URL（DS がハートビートを送る宛先）。</summary>
         private const string DsLocalGameServerUrl = "http://localhost:5000";
 
@@ -98,8 +95,7 @@ namespace Game.Editor
                 FileName = exePath,
                 Arguments = $"-batchmode -nographics" +
                             $" --port {DsDefaultPort}" +
-                            $" --health-port {DsDefaultHealthPort}" +
-                            $" --players {DsDefaultMaxPlayers}",
+                            $" --health-port {DsDefaultHealthPort}",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,

@@ -28,7 +28,7 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
-        [Inject] private readonly SurvivorNetworkMatchConnector _matchConnector;
+        [Inject] private readonly ISurvivorNetworkSessionConnector _sessionConnector;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
 
@@ -46,12 +46,8 @@ namespace Game.MVP.Survivor.Server
 
                 Debug.Log($"[SurvivorServerGameLoop] Session request received: matchId={request.MatchId}, stageId={request.StageId}, players={request.ExpectedPlayers}");
 
-                // Step 2: 接続パラメータを動的設定（リクエストの matchId を使用）
-                _matchConnector.ConfigureForDedicatedServer(
-                    _matchConnector.ServerPort,
-                    _matchConnector.ServerAddress,
-                    request.MatchId);
-                _matchConnector.SetExpectedPlayerCount(request.ExpectedPlayers);
+                // Step 2: 接続パラメータを動的設定（セッションレベルの matchId のみ更新）
+                _sessionConnector.UpdateConfigure(sessionName: request.MatchId, playerCount: request.ExpectedPlayers);
 
                 // ServerHttpListener のステータスを active に更新
                 UnityServerBootstrap.HttpListener?.SetSessionActive(request.MatchId);

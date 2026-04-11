@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 namespace Game.Shared.Network.Survivor
 {
     /// <summary>
-    /// NGOステージクライアントのインターフェース。
+    /// ステージクライアントのインターフェース。
     /// サーバーではNullNetworkSurvivorStageClientが登録される。
     /// </summary>
     public interface ISurvivorNetworkStageConnector : IDisposable
