@@ -1,8 +1,11 @@
 using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Game.Library.Shared.Dto;
+using MessagePack;
 using UnityEngine;
 using VContainer;
 
@@ -42,9 +45,15 @@ namespace Game.Shared.Unity.Server
 
             try
             {
-                var body = BuildRegistrationJson(config.DsId, dsAddress, config.GamePort, config.HealthPort);
+                var request = new UnityServerRegistrationRequest
+                {
+                    DsId = config.DsId,
+                    Address = dsAddress,
+                    GamePort = config.GamePort,
+                    HealthPort = config.HealthPort,
+                };
                 var url = $"{config.GameServerUrl}/api/unity-server/register";
-                var status = await PostAsync(url, body, config.AuthSecretKey, ct);
+                var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
                 Debug.Log($"[UnityServerRegistryApiClient] 自己登録完了: status={status}");
                 return true;
             }
@@ -65,7 +74,7 @@ namespace Game.Shared.Unity.Server
             try
             {
                 var url = $"{config.GameServerUrl}/api/unity-server/heartbeat?dsId={Uri.EscapeDataString(config.DsId)}";
-                var status = await PostAsync(url, "{}", config.AuthSecretKey, ct);
+                var status = await PostAsync(url, config.AuthSecretKey, ct);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log($"[UnityServerRegistryApiClient] ハートビート送信: status={status}");
 #endif
@@ -88,7 +97,7 @@ namespace Game.Shared.Unity.Server
             try
             {
                 var url = $"{config.GameServerUrl}/api/unity-server/deregister?dsId={Uri.EscapeDataString(config.DsId)}";
-                var status = await PostAsync(url, "{}", config.AuthSecretKey, ct);
+                var status = await PostAsync(url, config.AuthSecretKey, ct);
                 Debug.Log($"[UnityServerRegistryApiClient] 登録解除完了: status={status}");
                 return true;
             }
@@ -111,7 +120,7 @@ namespace Game.Shared.Unity.Server
                 var url = $"{config.GameServerUrl}/api/unity-server/session-ended"
                           + $"?dsId={Uri.EscapeDataString(config.DsId)}"
                           + $"&matchId={Uri.EscapeDataString(matchId ?? string.Empty)}";
-                var status = await PostAsync(url, "{}", config.AuthSecretKey, ct);
+                var status = await PostAsync(url, config.AuthSecretKey, ct);
                 Debug.Log($"[UnityServerRegistryApiClient] セッション終了通知送信: matchId={matchId}, status={status}");
                 return true;
             }
@@ -126,43 +135,49 @@ namespace Game.Shared.Unity.Server
         // HTTP ユーティリティ
         // ---------------------------------------------------------------
 
-        private static async Task<string> PostAsync(
-            string url,
-            string jsonBody,
-            ReadOnlyMemory<byte> authSecretKey,
-            CancellationToken ct)
+        /// <summary>
+        /// MessagePack 形式で body を送信する HTTP POST ヘルパー。
+        /// <c>application/x-msgpack</c> Content-Type で送り、
+        /// サーバー側の <c>MessagePackInputFormatter</c> により DTO に自動バインドされる。
+        /// </summary>
+        private static async Task<string> PostMessagePackAsync<T>(string url, T body, ReadOnlyMemory<byte> authSecretKey, CancellationToken ct)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            AddAuthHeader(request, authSecretKey);
 
-            // X-DS-Auth ヘッダーは各リクエストに個別付与（DefaultRequestHeaders は使わない）
+            var bodyBytes = MessagePackSerializer.Serialize(body);
+            request.Content = new ByteArrayContent(bodyBytes);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
+
+            using var response = await s_httpClient.SendAsync(request, ct);
+            return $"{(int)response.StatusCode} {response.StatusCode}";
+        }
+
+        /// <summary>
+        /// body なしの HTTP POST ヘルパー。<c>[FromQuery]</c> 方式の
+        /// heartbeat / deregister / session-ended エンドポイント用。
+        /// </summary>
+        private static async Task<string> PostAsync(string url, ReadOnlyMemory<byte> authSecretKey, CancellationToken ct)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            AddAuthHeader(request, authSecretKey);
+            // Content は設定しない（null） → Content-Length: 0 で送信される
+
+            using var response = await s_httpClient.SendAsync(request, ct);
+            return $"{(int)response.StatusCode} {response.StatusCode}";
+        }
+
+        /// <summary>
+        /// X-DS-Auth ヘッダを付与する共通処理。
+        /// DefaultRequestHeaders は共有時の競合回避のため使わず、各リクエスト単位で設定する。
+        /// </summary>
+        private static void AddAuthHeader(HttpRequestMessage request, ReadOnlyMemory<byte> authSecretKey)
+        {
             if (!authSecretKey.IsEmpty)
             {
                 var authValue = Encoding.UTF8.GetString(authSecretKey.Span);
                 request.Headers.Add("X-DS-Auth", authValue);
             }
-
-            request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
-
-            var response = await s_httpClient.SendAsync(request, ct);
-            return $"{(int)response.StatusCode} {response.StatusCode}";
-        }
-
-        private static string BuildRegistrationJson(string dsId, string dsAddress, ushort gamePort, int healthPort)
-        {
-            return $"{{\"dsId\":\"{EscapeJson(dsId)}\","
-                   + $"\"address\":\"{EscapeJson(dsAddress)}\","
-                   + $"\"gamePort\":{gamePort},"
-                   + $"\"healthPort\":{healthPort}}}";
-        }
-
-        private static string EscapeJson(string value)
-        {
-            if (value == null)
-                return string.Empty;
-
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"");
         }
     }
 }
