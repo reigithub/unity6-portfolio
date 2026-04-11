@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Game.Shared.Environment;
 using UnityEditor;
 using UnityEngine;
@@ -108,7 +110,7 @@ namespace Game.Editor
             {
                 psi.Environment[EnvVarKeys.UnityServerAuthSecretKey] = secret;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.Log($"[DedicatedServer] {EnvVarKeys.UnityServerAuthSecretKey} を設定しました : {secret}");
+                Debug.Log($"[DedicatedServer] {EnvVarKeys.UnityServerAuthSecretKey} を設定しました : {MaskSecret(secret)}");
 #endif
             }
             else
@@ -121,7 +123,7 @@ namespace Game.Editor
             {
                 psi.Environment[EnvVarKeys.GameServerUrl] = gameServerUrl;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.Log($"[DedicatedServer] {EnvVarKeys.GameServerUrl} を設定しました : {secret}");
+                Debug.Log($"[DedicatedServer] {EnvVarKeys.GameServerUrl} を設定しました : {gameServerUrl}");
 #endif
             }
             else
@@ -258,6 +260,19 @@ namespace Game.Editor
                 Debug.Log("[DedicatedServer] Editor 終了に伴いサーバーを停止します");
                 StopDedicatedServer();
             }
+        }
+
+        /// <summary>
+        /// シークレット値をログ安全な形式にマスクする。
+        /// 値そのものは出力せず、長さと SHA256 ハッシュの先頭 4 バイト (8 hex) のみを返す。
+        /// </summary>
+        private static string MaskSecret(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "(null)";
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+            var prefix = BitConverter.ToString(hash, 0, 4).Replace("-", string.Empty).ToLowerInvariant();
+            return $"len={value.Length}, sha256Prefix={prefix}";
         }
     }
 }

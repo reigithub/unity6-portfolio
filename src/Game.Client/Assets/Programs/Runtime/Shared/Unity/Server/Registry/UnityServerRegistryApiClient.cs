@@ -1,10 +1,10 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
+using Game.Library.Shared.RequestSigning;
 using MessagePack;
 using UnityEngine;
 using VContainer;
@@ -15,6 +15,7 @@ namespace Game.Shared.Unity.Server
     /// <see cref="IUnityServerRegistryApiClient"/> の実装。
     /// Game.Server の <c>/api/unity-server/*</c> エンドポイントに対して HTTP 通信を行う。
     /// <c>static readonly HttpClient</c> でプロセス共有し、ソケット枯渇を防ぐ。
+    /// 各リクエストには HMAC-SHA256 署名（X-Signature / X-Timestamp / X-Nonce）を付与する。
     /// </summary>
     public sealed class UnityServerRegistryApiClient : IUnityServerRegistryApiClient
     {
@@ -73,8 +74,9 @@ namespace Game.Shared.Unity.Server
 
             try
             {
-                var url = $"{config.GameServerUrl}/api/unity-server/heartbeat?dsId={Uri.EscapeDataString(config.DsId)}";
-                var status = await PostAsync(url, config.AuthSecretKey, ct);
+                var request = new UnityServerHeartbeatRequest { DsId = config.DsId };
+                var url = $"{config.GameServerUrl}/api/unity-server/heartbeat";
+                var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log($"[UnityServerRegistryApiClient] ハートビート送信: status={status}");
 #endif
@@ -96,8 +98,9 @@ namespace Game.Shared.Unity.Server
 
             try
             {
-                var url = $"{config.GameServerUrl}/api/unity-server/deregister?dsId={Uri.EscapeDataString(config.DsId)}";
-                var status = await PostAsync(url, config.AuthSecretKey, ct);
+                var request = new UnityServerDeregisterRequest { DsId = config.DsId };
+                var url = $"{config.GameServerUrl}/api/unity-server/deregister";
+                var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
                 Debug.Log($"[UnityServerRegistryApiClient] 登録解除完了: status={status}");
                 return true;
             }
@@ -117,10 +120,13 @@ namespace Game.Shared.Unity.Server
 
             try
             {
-                var url = $"{config.GameServerUrl}/api/unity-server/session-ended"
-                          + $"?dsId={Uri.EscapeDataString(config.DsId)}"
-                          + $"&matchId={Uri.EscapeDataString(matchId ?? string.Empty)}";
-                var status = await PostAsync(url, config.AuthSecretKey, ct);
+                var request = new UnityServerSessionEndedRequest
+                {
+                    DsId = config.DsId,
+                    MatchId = matchId ?? string.Empty,
+                };
+                var url = $"{config.GameServerUrl}/api/unity-server/session-ended";
+                var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
                 Debug.Log($"[UnityServerRegistryApiClient] セッション終了通知送信: matchId={matchId}, status={status}");
                 return true;
             }
@@ -136,16 +142,25 @@ namespace Game.Shared.Unity.Server
         // ---------------------------------------------------------------
 
         /// <summary>
-        /// MessagePack 形式で body を送信する HTTP POST ヘルパー。
+        /// MessagePack 形式で body を送信し HMAC 署名ヘッダを付与する HTTP POST ヘルパー。
         /// <c>application/x-msgpack</c> Content-Type で送り、
         /// サーバー側の <c>MessagePackInputFormatter</c> により DTO に自動バインドされる。
         /// </summary>
-        private static async Task<string> PostMessagePackAsync<T>(string url, T body, ReadOnlyMemory<byte> authSecretKey, CancellationToken ct)
+        /// <param name="url">送信先 URL。</param>
+        /// <param name="body">リクエストボディ DTO。</param>
+        /// <param name="secret">HMAC 署名用シークレット。空の場合は署名ヘッダを付与しない。</param>
+        /// <param name="ct">キャンセルトークン。</param>
+        private static async Task<string> PostMessagePackAsync<T>(
+            string url,
+            T body,
+            ReadOnlyMemory<byte> secret,
+            CancellationToken ct)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, url);
-            AddAuthHeader(request, authSecretKey);
-
             var bodyBytes = MessagePackSerializer.Serialize(body);
+            var uri = new Uri(url);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            AddSignatureHeaders(request, secret, "POST", uri.AbsolutePath, bodyBytes);
             request.Content = new ByteArrayContent(bodyBytes);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msgpack");
 
@@ -154,30 +169,31 @@ namespace Game.Shared.Unity.Server
         }
 
         /// <summary>
-        /// body なしの HTTP POST ヘルパー。<c>[FromQuery]</c> 方式の
-        /// heartbeat / deregister / session-ended エンドポイント用。
+        /// HMAC-SHA256 署名ヘッダ（X-Signature / X-Timestamp / X-Nonce）をリクエストに付与する。
+        /// <paramref name="secret"/> が空の場合は何もしない。
         /// </summary>
-        private static async Task<string> PostAsync(string url, ReadOnlyMemory<byte> authSecretKey, CancellationToken ct)
+        /// <param name="request">ヘッダを付与する HTTP リクエスト。</param>
+        /// <param name="secret">HMAC 署名用シークレット。</param>
+        /// <param name="method">HTTP メソッド（例: "POST"）。</param>
+        /// <param name="path">リクエストパス（クエリを含まない絶対パス）。</param>
+        /// <param name="bodyBytes">シリアライズ済みリクエストボディ。</param>
+        private static void AddSignatureHeaders(
+            HttpRequestMessage request,
+            ReadOnlyMemory<byte> secret,
+            string method,
+            string path,
+            byte[] bodyBytes)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, url);
-            AddAuthHeader(request, authSecretKey);
-            // Content は設定しない（null） → Content-Length: 0 で送信される
+            if (secret.IsEmpty) return;
 
-            using var response = await s_httpClient.SendAsync(request, ct);
-            return $"{(int)response.StatusCode} {response.StatusCode}";
-        }
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var nonce = Guid.NewGuid().ToString("N");
+            var canonical = HmacRequestSigner.BuildCanonicalString(method, path, timestamp, nonce, bodyBytes);
+            var signature = HmacRequestSigner.ComputeSignature(secret.ToArray(), canonical);
 
-        /// <summary>
-        /// X-DS-Auth ヘッダを付与する共通処理。
-        /// DefaultRequestHeaders は共有時の競合回避のため使わず、各リクエスト単位で設定する。
-        /// </summary>
-        private static void AddAuthHeader(HttpRequestMessage request, ReadOnlyMemory<byte> authSecretKey)
-        {
-            if (!authSecretKey.IsEmpty)
-            {
-                var authValue = Encoding.UTF8.GetString(authSecretKey.Span);
-                request.Headers.Add("X-DS-Auth", authValue);
-            }
+            request.Headers.Add("X-Signature", signature);
+            request.Headers.Add("X-Timestamp", timestamp.ToString());
+            request.Headers.Add("X-Nonce", nonce);
         }
     }
 }

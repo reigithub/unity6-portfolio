@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Environment;
+using UnityEngine;
 
 namespace Game.Shared.Unity.Server
 {
@@ -26,6 +27,7 @@ namespace Game.Shared.Unity.Server
             var gamePort = ParsePort(args);
             var healthPort = ParseHealthPort(args);
             var gameServerUrl = ParseGameServerUrl();
+            ValidateGameServerUrl(gameServerUrl);
             var authSecretBytes = ParseSecret();
 
             // GCE 環境の場合は外部 IP を取得（非 GCE では 2 秒 timeout で null）
@@ -93,5 +95,41 @@ namespace Game.Shared.Unity.Server
             EnvVarHelper.TryGet(EnvVarKeys.GameServerUrl, out string url, u => u.TrimEnd('/'));
             return url;
         }
+
+        /// <summary>
+        /// GAME_SERVER_URL の TLS スキーマを検証する。
+        /// 非ローカルホストに対して <c>http://</c> が指定された場合は起動を中止する。
+        /// </summary>
+        /// <param name="url">検証対象の URL。null/空なら検証スキップ (自己登録スキップの既存動作)。</param>
+        /// <exception cref="InvalidOperationException">絶対 URI でない、または非ローカル host に対して http が指定された場合。</exception>
+        private static void ValidateGameServerUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return;
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                throw new InvalidOperationException(
+                    $"GAME_SERVER_URL is not a valid absolute URI: {url}");
+
+            if (uri.Scheme == Uri.UriSchemeHttps) return;
+
+            if (uri.Scheme == Uri.UriSchemeHttp && IsLocalHost(uri.Host))
+            {
+                Debug.LogWarning(
+                    $"[UnityServerConfigFactory] HTTP scheme allowed only for local host: {url}");
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"GAME_SERVER_URL must use https:// in non-local environments, got: {url}");
+        }
+
+        /// <summary>
+        /// 指定ホスト名がローカル扱いかどうかを判定する。
+        /// </summary>
+        private static bool IsLocalHost(string host) =>
+            string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            host == "127.0.0.1" ||
+            host == "::1" ||
+            string.Equals(host, "host.docker.internal", StringComparison.OrdinalIgnoreCase);
     }
 }

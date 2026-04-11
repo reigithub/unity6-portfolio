@@ -13,6 +13,7 @@ public class RequestSigningMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestSigningMiddleware> _logger;
     private readonly byte[] _serverSecret;
+    private readonly byte[] _dsSecret;
     private readonly bool _enabled;
 
     private static readonly string[] ExemptPaths = new[]
@@ -24,20 +25,19 @@ public class RequestSigningMiddleware
         "/api/auth/email/reset-password",
         "/api/auth/email/verify",
         "/api/unity-server/issue-token",
-        "/api/unity-server/register",
-        "/api/unity-server/deregister",
-        "/api/unity-server/heartbeat",
-        "/api/unity-server/session-ended",
     };
 
     public RequestSigningMiddleware(
         RequestDelegate next,
         IOptions<RequestSigningSettings> settings,
+        IOptions<UnityServerSettings> unityServerSettings,
         ILogger<RequestSigningMiddleware> logger)
     {
         _next = next;
         _logger = logger;
         _serverSecret = Encoding.UTF8.GetBytes(settings.Value.SecretKey);
+        // DS 署名用シークレットをコンストラクタでキャッシュ（毎リクエスト変換回避）
+        _dsSecret = Encoding.UTF8.GetBytes(unityServerSettings.Value.SecretKey);
         _enabled = settings.Value.Enabled;
     }
 
@@ -49,6 +49,106 @@ public class RequestSigningMiddleware
             return;
         }
 
+        if (IsDsEndpoint(context.Request.Path))
+        {
+            await VerifyDsSignatureAsync(context);
+        }
+        else
+        {
+            await VerifyUserSignatureAsync(context);
+        }
+    }
+
+    /// <summary>
+    /// DS エンドポイント判定。
+    /// <c>/api/unity-server/*</c> のうち <c>issue-token</c> を除くパスを DS 経路とみなす。
+    /// </summary>
+    private static bool IsDsEndpoint(PathString path) =>
+        path.StartsWithSegments("/api/unity-server")
+        && !path.Equals("/api/unity-server/issue-token", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// DS 署名検証。HMAC-SHA256 + nonce キャッシュによりリプレイ攻撃・改ざんを防ぐ。
+    /// 検証失敗時はすべて 401 を返す（fail-closed）。
+    /// </summary>
+    private async Task VerifyDsSignatureAsync(HttpContext context)
+    {
+        // ボディの再読み取りを可能にする
+        context.Request.EnableBuffering();
+        var bodyBytes = await ReadBodyAsync(context.Request);
+        context.Request.Body.Position = 0;
+
+        // 必須ヘッダーの存在チェック
+        if (!context.Request.Headers.TryGetValue(RequestSigningConstants.SignatureHeader, out var signature) ||
+            !context.Request.Headers.TryGetValue(RequestSigningConstants.TimestampHeader, out var timestampStr) ||
+            !context.Request.Headers.TryGetValue(RequestSigningConstants.NonceHeader, out var nonce))
+        {
+            _logger.LogWarning("DS request signing headers missing for {Path}", context.Request.Path);
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Request signature required." });
+            return;
+        }
+
+        // タイムスタンプ解析
+        if (!long.TryParse(timestampStr, out var timestamp))
+        {
+            _logger.LogWarning("DS invalid timestamp format: {Timestamp}", timestampStr.ToString());
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Invalid request signature." });
+            return;
+        }
+
+        // タイムスタンプ skew 検証（±300 秒）
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var diff = Math.Abs(now - timestamp);
+        if (diff > RequestSigningConstants.TimestampToleranceSeconds)
+        {
+            _logger.LogWarning("DS timestamp expired: request={Timestamp}, now={Now}, diff={Diff}s",
+                timestamp, now, diff);
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Invalid request signature." });
+            return;
+        }
+
+        // HMAC 署名検証（DS 専用シークレットを直接使用。DeriveUserKey は適用しない）
+        var method = context.Request.Method;
+        var path = context.Request.Path.Value ?? "/";
+        var canonicalString = HmacRequestSigner.BuildCanonicalString(method, path, timestamp, nonce!, bodyBytes);
+
+        if (!HmacRequestSigner.VerifySignature(_dsSecret, canonicalString, signature!))
+        {
+            _logger.LogWarning("DS HMAC signature verification failed for {Method} {Path}", method, path);
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Invalid request signature." });
+            return;
+        }
+
+        // Nonce 重複チェック（リプレイ攻撃防御）
+        var nonceResult = await TryAcceptNonce(context, nonce!);
+        if (nonceResult == NonceResult.Unavailable)
+        {
+            _logger.LogWarning("DS nonce validation unavailable (Valkey down), rejecting request");
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Request signature validation unavailable." });
+            return;
+        }
+
+        if (nonceResult == NonceResult.Replayed)
+        {
+            _logger.LogWarning("DS nonce replay detected: {Nonce}", nonce.ToString());
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsJsonAsync(new { error = "UNAUTHORIZED", message = "Invalid request signature." });
+            return;
+        }
+
+        await _next(context);
+    }
+
+    /// <summary>
+    /// ユーザー署名検証（既存ロジック）。JWT の userId から派生キーで HMAC 検証する。
+    /// </summary>
+    private async Task VerifyUserSignatureAsync(HttpContext context)
+    {
         // JWT から userId を取得
         var userId = context.User?.GetUserId();
         if (string.IsNullOrEmpty(userId))
