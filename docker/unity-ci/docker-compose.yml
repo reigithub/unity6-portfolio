@@ -27,10 +27,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        UNITY_VERSION: ${UNITY_VERSION:-6000.3.2f1}
+        UNITY_VERSION: ${UNITY_VERSION:-6000.3.8f1}
         UNITY_MODULE: ${UNITY_MODULE:-windows-mono}
         IMAGE_VERSION: ${IMAGE_VERSION:-3}
-    image: unity-ci-runner:${UNITY_VERSION:-6000.3.2f1}-${UNITY_MODULE:-windows-mono}
+    image: unity-ci-runner:${UNITY_VERSION:-6000.3.8f1}-${UNITY_MODULE:-windows-mono}
     container_name: unity-ci-runner
     restart: unless-stopped
 
