@@ -17,9 +17,9 @@ Unity6Portfolio/
 ├── test/
 │   ├── Game.Server.Tests/    # Server Tests
 │   └── Game.Realtime.Tests/  # Realtime Server Tests
-├── docker/                   # Docker Configuration
+├── docker/                   # Docker Configuration (7 services)
 ├── masterdata/               # Protobuf Schemas + TSV Data
-└── docs/                     # Technical Documentation
+└── docs/                     # Technical Documentation (73 files)
 ```
 
 ---
@@ -50,7 +50,7 @@ Unity6Portfolio/
 
 | Item | Version |
 |------|---------|
-| Unity | 6000.3.2f1 or later |
+| Unity | 6000.3.8f1 or later |
 | .NET SDK | 9.0 or later |
 | OS | Windows 10/11 |
 
@@ -203,7 +203,7 @@ dotnet test
 * **Item System**: Drop lottery, attraction feature, object pooling
 * **Lock-On System**: Automatic target tracking, range management
 * **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
-* **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration
+* **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration, background auto token refresh
 * **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
 * **Lobby System**: Real-time lobby via MagicOnion StreamingHub (create/join/leave/ready/game start), Valkey persistence
 * **Matchmaking System**: Queue-based matchmaking, real-time notifications via Redis Pub/Sub, session token issuance
@@ -211,7 +211,11 @@ dotnet test
 * **Server Authority Model**: Photon Fusion 2 Server/Client mode, Fusion FSM for player state network synchronization, enemy batch sync with Dead Reckoning interpolation
 * **MPPM Support**: Multi-editor multiplayer testing with Multiplayer Play Mode, per-clone data path isolation
 * **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
-* **CI/CD**: Automated testing (Client 830 + Server 206 = 1036 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
+* **Dedicated Server Orchestration**: Linux headless server build, self-registration + 30-second heartbeat to Game.Server, session management (HTTP Listener), Docker container deployment, GCE metadata auto-detection
+* **Request Signing Policy**: Declarative endpoint security (3 signing attributes: SkipRequestSigning / RequireUserSignature / UnityServerSignature), fail-fast startup validation
+* **Enemy LOD System**: Distance-based 3-tier LOD (Near 20m/Mid 40m/Far), staged animation/NavMeshAgent/shadow switching, frame-distributed reclassification to prevent spikes
+* **Editor Tools**: Dedicated Server build & launch menu, enemy prefab auto-setup, bulk material shader switching
+* **CI/CD**: Automated testing (Client 809 + Server 339 = 1,148 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
 
 ---
 
@@ -510,6 +514,91 @@ Server-authoritative gameplay for Survivor multiplayer using Server/Client mode:
 
 </details>
 
+<details><summary>Dedicated Server Orchestration</summary>
+
+Auto-registration, session management, and health check infrastructure for Unity Dedicated Server:
+
+**Server Startup Flow:**
+```
+UnityServerBootstrap (IAsyncStartable)
+  ├── UnityServerConfigFactory builds config
+  │     ├── CLI args (--port, --health-port)
+  │     ├── Environment variables (UNITY_SERVER_PORT, GAME_SERVER_URL, etc.)
+  │     └── GCE metadata (auto-detect external IP, 2-second timeout)
+  ├── UnityServerHttpListener starts (TCP)
+  │     ├── GET /health (Docker HEALTHCHECK)
+  │     └── POST /session/start (session start request)
+  ├── Self-registration to Game.Server (HMAC-signed)
+  └── UnityServerHeartbeatLoop starts (30-second interval)
+```
+
+**Authentication Flow:**
+- DS → Game.Server: HMAC-SHA256 signature (shared secret key)
+- Client → DS: Fusion ConnectionToken (MessagePack + HMAC-SHA256 binary)
+- Session tokens stored in Valkey with 5-minute TTL
+
+**Docker Configuration:**
+- Ports: 7777/udp (Fusion) + 7778/tcp (health check)
+- Runs as non-root user (gameserver)
+- Production deployment in `docker/unity-server/prod/`
+
+**Key Classes:**
+
+| Class | Role |
+|-------|------|
+| `UnityServerBootstrap` | DS startup orchestration (IAsyncStartable) |
+| `UnityServerConfigFactory` | Config from CLI/env vars/GCE |
+| `UnityServerAuthProvider` | Fusion ConnectionToken HMAC validation |
+| `UnityServerRegistryApiClient` | Game.Server register/heartbeat/deregister API |
+| `UnityServerHeartbeatLoop` | Background thread 30-second heartbeat |
+| `UnityServerHttpListener` | TCP health check + session management |
+| `DedicatedServerEditorMenu` | Editor DS build & launch |
+
+</details>
+
+<details><summary>Request Signing Policy System</summary>
+
+Declarative security policy for all REST API endpoints:
+
+**3 Signing Attributes:**
+
+| Attribute | Usage | Examples |
+|-----------|-------|---------|
+| `[SkipRequestSigning]` | No signing required (anonymous auth, refresh) | `/api/auth/login`, `/api/auth/refresh` |
+| `[RequireUserSignature]` | User HMAC signature (JWT userId derived key) | `/api/survivor/scores`, `/api/chat/rooms/*` |
+| `[UnityServerSignature]` | DS shared secret HMAC signature | `/api/unity-server/register`, `/heartbeat` |
+
+**Fail-fast Validation:**
+- `RequestSigningPolicyValidator` scans all endpoints at startup
+- Detects undeclared or conflicting policy attributes, throws `InvalidOperationException`
+- Structurally prevents missing signing policies on new endpoints
+
+</details>
+
+<details><summary>Enemy LOD System</summary>
+
+Distance-based 3-tier LOD for rendering quality optimization:
+
+**LOD Tiers:**
+
+| Tier | Distance | Update Rate | Content |
+|------|----------|-------------|---------|
+| Near | < 20m | Every frame | Full quality (animation, shadows, effects) |
+| Mid | 20–40m | Every 2 frames | Medium quality (simplified shadows) |
+| Far | > 40m | Every 5 frames | Low quality (simplified animation, no shadows) |
+
+**Frame-Distributed Reclassification:**
+- LOD tier recalculation distributed across frames via frame offset
+- `(FrameCount % interval) == FrameOffset` prevents compute spikes
+- Minimizes frame rate impact even with 512 simultaneous entities
+
+**CharacterUnlit Shader:**
+- Lightweight unlit shader for LOD Far tier
+- Supports hit flash and dissolve effects
+- GPU instancing support
+
+</details>
+
 <details><summary>Authentication & Account Management System</summary>
 
 Server-integrated authentication and session management system:
@@ -530,6 +619,12 @@ Server-integrated authentication and session management system:
 - Encrypted token storage (local)
 - Automatic session restoration (on app startup)
 - Device fingerprint generation
+
+**Auto Token Refresh (AuthSessionRefresher):**
+- Background 5-minute interval check (JWT 60-min expiry, proactive refresh at 50-min threshold)
+- Reactive triggers: network recovery, app focus regain, explicit scene/dialog calls
+- Concurrent call deduplication (shared UniTaskCompletionSource)
+- Signal notification of refresh results via MessagePipe
 
 **UI Implementation:**
 - `SurvivorAccountLinkDialog`: Email linking and transfer password UI
@@ -575,19 +670,22 @@ Automated pipeline with GitHub Actions + Docker:
 
 | Category | Test Count | Content |
 |----------|------------|---------|
-| Client EditMode | 710 | Unit tests |
-| Client PlayMode | 63 | Integration tests |
-| Server Unit Tests | 46 | Service, Repository tests |
-| Server Integration Tests | 10 | API integration tests (Testcontainers) |
-| **Total** | **829** | All passing |
+| Client EditMode | 746 | Unit tests (Service, Model, Extension, ECS) |
+| Client PlayMode | 63 | Integration tests (Scene, Input, UI) |
+| Server Tests (Game.Server) | 222 | Controller, Service, Validation, Integration tests |
+| Realtime Server Tests (Game.Realtime) | 117 | Hub, Service, Filter, Validation tests |
+| **Total** | **1,148** | All passing |
 
 **Workflows:**
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| unity-ci-docker.yml | push/PR | Main CI (Docker/Linux) |
-| unity-test.yml | PR | PR testing |
-| code-quality.yml | push/PR | Formatting/static analysis |
+| unity-test.yml | PR | Unity tests (Docker/Linux) |
+| unity-build.yml | manual | Multi-platform build (WebGL GitHub Pages deploy) |
+| unity-server-build.yml | push/PR | Dedicated Server build (Linux) |
 | server-test.yml | push/PR, manual | Server tests + coverage |
+| code-quality.yml | push/PR | Formatting/static analysis |
+| pr-review.yml | PR | Automated review comments |
+| addressables-deploy.yml | manual | Addressables build & Cloudflare R2 deploy |
 
 **Cache Optimization:**
 - Library cache via Unity Accelerator
@@ -618,6 +716,10 @@ Unity6Portfolio/
 │   │   │       │   └── Tests/          Unit tests
 │   │   │       └── Runtime/
 │   │   │           ├── Shared/         Common utilities
+│   │   │           │   ├── Network/    Fusion, MagicOnion communication
+│   │   │           │   ├── Services/   Auth, token refresh
+│   │   │           │   ├── Unity/Server/ DS auth, config, registry
+│   │   │           │   └── Environment/ Env var & CLI helpers
 │   │   │           ├── App/            Entry point
 │   │   │           ├── MVC/            MVC pattern implementation
 │   │   │           │   ├── Core/       Foundation (Services, Scenes)
@@ -636,6 +738,8 @@ Unity6Portfolio/
 │   │   ├── Services/                   Business logic
 │   │   ├── Repositories/              Data access (Dapper)
 │   │   ├── Hubs/                       SignalR Hub (chat)
+│   │   ├── Middleware/                 Request signing validation, policy check
+│   │   ├── Attributes/                Signing policy attributes (3 types)
 │   │   └── Program.cs
 │   │
 │   ├── Game.Realtime/                  # Realtime Server (MagicOnion gRPC)
@@ -671,7 +775,8 @@ Unity6Portfolio/
 │   ├── observability/                  # OpenTelemetry / Aspire Dashboard
 │   ├── migrate/                        # DB migration
 │   ├── unity-accelerator/              # Unity Accelerator Cache Server
-│   └── unity-ci/                       # Unity CI Runner (for GitHub Actions)
+│   ├── unity-ci/                       # Unity CI Runner (for GitHub Actions)
+│   └── unity-server/                   # Dedicated Server (Linux Headless)
 │
 ├── docs/                               # Technical Documentation
 │
@@ -751,7 +856,7 @@ Unity6Portfolio/
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| Unity | 6000.3.2f1 | Game engine |
+| Unity | 6000.3.8f1 | Game engine |
 | cysharp/UniTask | 2.5.10 | Async processing |
 | cysharp/R3 | 1.3.0 | Reactive programming (MVP) |
 | cysharp/MessagePipe | 1.8.1 | Pub/Sub messaging (MVC) |
@@ -759,12 +864,13 @@ Unity6Portfolio/
 | cysharp/MessagePack | 3.1.3 | Binary serialization |
 | cysharp/MemoryPack | 1.21.3 | Save data serialization |
 | hadashiA/VContainer | 1.17.0 | DI container (MVP) |
-| MagicOnion.Client | 7.0.3 | gRPC StreamingHub client |
+| MagicOnion.Client | 7.0.9 | gRPC StreamingHub client |
 | Unity.Entities (DOTS)| 1.4.4 | ECS enemy system |
 | Unity.Burst | 1.8.27 | Burst compiler |
 | Photon Fusion 2 | 2.0 | Real-time networking (Server/Client) |
 | Fusion.Addons.KCC | - | Kinematic Character Controller |
 | Fusion.Addons.FSM | - | Network-synced state machine |
+| Unity.Dedicated Server| 1.3.2 | Dedicated Server build |
 | DOTween | 1.2.790 | Animation |
 
 **Server (ASP.NET Core 9):**
@@ -772,7 +878,7 @@ Unity6Portfolio/
 | Library | Version | Purpose |
 |---------|---------|---------|
 | .NET SDK | 9.0 | Runtime |
-| MagicOnion.Server | 7.0.3 | gRPC StreamingHub server |
+| MagicOnion.Server | 7.0.9 | gRPC StreamingHub server |
 | Grpc.AspNetCore | 2.71.0 | gRPC infrastructure |
 | Dapper | 2.1.66 | Micro-ORM |
 | Npgsql | 9.0.3 | PostgreSQL driver |
@@ -813,16 +919,15 @@ Unity6Portfolio/
 ---
 
 ## Development Period
-* Approximately 8 weeks (as of 2026/2/25)
+* Approximately 13 weeks (as of 2026/4/12)
 
 ---
 
 ## Future Plans
-* Localization support (multi-language)
+* Localization support (multi-language, Unity Localization)
+* Multi-resolution and multi-platform support
+* In-game purchase system sample
 * PlayerLoop intervention sample
-* List sort/filter functionality sample
-* Multi-resolution support
-* Multi-platform support
 
 ---
 

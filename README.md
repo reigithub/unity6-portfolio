@@ -17,9 +17,9 @@ Unity6Portfolio/
 ├── test/
 │   ├── Game.Server.Tests/    # サーバーテスト
 │   └── Game.Realtime.Tests/  # リアルタイムサーバーテスト
-├── docker/                   # Docker 構成
+├── docker/                   # Docker 構成（7サービス）
 ├── masterdata/               # Protobuf スキーマ + TSV データ
-└── docs/                     # 技術ドキュメント
+└── docs/                     # 技術ドキュメント（73ファイル）
 ```
 
 ---
@@ -30,7 +30,6 @@ Unity6Portfolio/
 ---
 
 ## TL;DR
-* このプロジェクトは主に個人または小規模のUnityゲーム開発におけるスターターキットを目指して作成されています
 * コードの再利用性を高め、実装のしやすさや可読性、保守性が向上するような作りを意識しています
 * インゲーム/アウトゲーム共にマスターデータで動作しています(データ駆動型)(調整中の部分を除く)
 * **アセンブリ分割によるモジュラー設計**を採用し、MVC/MVP両パターンのゲームモードを共存可能
@@ -47,10 +46,10 @@ Unity6Portfolio/
 
 ### 必要環境
 
-| 項目 | バージョン |
-|-----|-----------|
-| Unity | 6000.3.2f1 以上 |
-| .NET SDK | 9.0 以上 |
+| 項目 | バージョン         |
+|-----|---------------|
+| Unity | 6000.3.8f1 以上 |
+| .NET SDK | 9.0 以上        |
 | OS | Windows 10/11 |
 
 ### セットアップ手順
@@ -202,7 +201,7 @@ dotnet test
 * **アイテムシステム**: ドロップ抽選、吸引機能、オブジェクトプーリング
 * **ロックオンシステム**: 自動ターゲット追跡、射程管理
 * **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
-* **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元
+* **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元、バックグラウンド自動トークンリフレッシュ
 * **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
 * **ロビーシステム**: MagicOnion StreamingHubによるリアルタイムロビー（作成/参加/退出/レディ/ゲーム開始）、Valkey永続化
 * **マッチメイキングシステム**: キューベースのマッチメイキング、Redis Pub/Subによるリアルタイム通知、セッショントークン発行
@@ -210,7 +209,11 @@ dotnet test
 * **サーバー権威モデル**: Photon Fusion 2 Server/Client モード、Fusion FSM によるプレイヤーステートのネットワーク同期、敵バッチ同期（Dead Reckoning 補間）
 * **MPPM対応**: Multiplayer Play Modeによるエディタ内マルチプレイテスト、クローン別データパス分離
 * **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
-* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント830 + サーバー206 = 1036テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
+* **Dedicated Server オーケストレーション**: Linux ヘッドレスサーバービルド、Game.Server への自己登録＋30秒ハートビート、セッション管理（HTTP Listener）、Docker コンテナデプロイ、GCE メタデータ自動検出
+* **リクエスト署名ポリシー**: 宣言的エンドポイントセキュリティ（3種の署名属性: SkipRequestSigning / RequireUserSignature / UnityServerSignature）、起動時 fail-fast バリデーション
+* **エネミーLODシステム**: 距離ベース3段階LOD（Near 20m/Mid 40m/Far）、アニメーション/NavMeshAgent/影の段階的切り替え、フレーム分散再分類によるスパイク防止
+* **エディターツール**: Dedicated Server ビルド＆起動メニュー、敵プレハブ自動セットアップ、マテリアルシェーダー一括切替
+* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント809 + サーバー339 = 1148テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
 
 ---
 
@@ -509,6 +512,96 @@ Survivor マルチプレイの Server/Client モードによるサーバー権�
 
 </details>
 
+<details><summary>Dedicated Server オーケストレーション</summary>
+
+Unity Dedicated Server の自動登録・セッション管理・ヘルスチェック基盤:
+
+**サーバー起動フロー:**
+```
+UnityServerBootstrap (IAsyncStartable)
+  ├── UnityServerConfigFactory でコンフィグ構築
+  │     ├── CLI引数 (--port, --health-port)
+  │     ├── 環境変数 (UNITY_SERVER_PORT, GAME_SERVER_URL等)
+  │     └── GCEメタデータ (外部IP自動検出, 2秒タイムアウト)
+  ├── UnityServerHttpListener 起動 (TCP)
+  │     ├── GET /health (Docker HEALTHCHECK)
+  │     └── POST /session/start (セッション開始要求)
+  ├── Game.Server へ自己登録 (HMAC署名付き)
+  └── UnityServerHeartbeatLoop 開始 (30秒間隔)
+```
+
+**認証フロー:**
+- DS → Game.Server: HMAC-SHA256署名（共有シークレットキー）
+- クライアント → DS: Fusion ConnectionToken（MessagePack + HMAC-SHA256バイナリ）
+- セッショントークンはValkeyに5分TTLで保存
+
+**Docker構成:**
+- ポート: 7777/udp（Fusion）+ 7778/tcp（ヘルスチェック）
+- 非rootユーザー（gameserver）で実行
+- `docker/unity-server/prod/` に本番デプロイ構成
+
+**エディターツール:**
+- `Project > Server > Start/Stop Dedicated Server` メニュー
+- .env からポート読み取り、PIDセッション管理
+- エディター終了時の自動クリーンアップ
+
+**主要クラス:**
+
+| クラス | 役割 |
+|-------|------|
+| `UnityServerBootstrap` | DS起動オーケストレーション（IAsyncStartable） |
+| `UnityServerConfigFactory` | CLI/環境変数/GCEからコンフィグ構築 |
+| `UnityServerAuthProvider` | Fusion ConnectionToken HMAC検証 |
+| `UnityServerRegistryApiClient` | Game.Server 登録/ハートビート/解除 API |
+| `UnityServerHeartbeatLoop` | バックグラウンドスレッド30秒ハートビート |
+| `UnityServerHttpListener` | TCP ヘルスチェック＋セッション管理 |
+| `DedicatedServerEditorMenu` | エディターからの DS ビルド＆起動 |
+
+</details>
+
+<details><summary>リクエスト署名ポリシーシステム</summary>
+
+REST API の全エンドポイントに対する宣言的セキュリティポリシー:
+
+**3種の署名属性:**
+
+| 属性 | 用途 | 例 |
+|------|------|-----|
+| `[SkipRequestSigning]` | 署名不要（匿名認証、リフレッシュ等） | `/api/auth/login`, `/api/auth/refresh` |
+| `[RequireUserSignature]` | ユーザーHMAC署名（JWT userId派生キー） | `/api/survivor/scores`, `/api/chat/rooms/*` |
+| `[UnityServerSignature]` | DS共有シークレットHMAC署名 | `/api/unity-server/register`, `/heartbeat` |
+
+**fail-fast バリデーション:**
+- `RequestSigningPolicyValidator` が起動時に全エンドポイントをスキャン
+- 未宣言・複数宣言のエンドポイントを検出し `InvalidOperationException` で即停止
+- 新規エンドポイント追加時の署名ポリシー付け忘れを構造的に防止
+
+</details>
+
+<details><summary>エネミーLODシステム</summary>
+
+距離ベースの3段階LODによる描画品質最適化:
+
+**LODティア:**
+
+| ティア | 距離 | 更新頻度 | 内容 |
+|--------|------|---------|------|
+| Near | < 20m | 毎フレーム | フル品質（アニメーション・影・エフェクト） |
+| Mid | 20〜40m | 2フレーム毎 | 中品質（影簡略化） |
+| Far | > 40m | 5フレーム毎 | 低品質（アニメーション簡略化・影なし） |
+
+**フレーム分散再分類:**
+- LODティア再計算をフレームオフセットで分散配置
+- `(FrameCount % interval) == FrameOffset` でスパイクを防止
+- 512体同時管理でもフレームレートへの影響を最小化
+
+**CharacterUnlit シェーダー:**
+- LOD Far 用の軽量アンリットシェーダー
+- ヒットフラッシュ、ディゾルブエフェクト対応
+- GPUインスタンシング対応
+
+</details>
+
 <details><summary>認証・アカウント管理システム</summary>
 
 サーバー連携による認証・セッション管理システム:
@@ -529,6 +622,12 @@ Survivor マルチプレイの Server/Client モードによるサーバー権�
 - トークンの暗号化保存（ローカル）
 - セッション自動復元（アプリ起動時）
 - デバイスフィンガープリント生成
+
+**自動トークンリフレッシュ (AuthSessionRefresher):**
+- バックグラウンド5分間隔の定期チェック（JWT 60分有効期限、50分閾値で先行リフレッシュ）
+- リアクティブトリガー: ネットワーク復帰時、アプリフォーカス復帰時、シーン遷移時の明示呼び出し
+- 並行呼び出しの重複排除（UniTaskCompletionSource共有）
+- MessagePipe経由でリフレッシュ結果をシグナル通知
 
 **UI実装:**
 - `SurvivorAccountLinkDialog`: メール連携・引き継ぎパスワード発行UI
@@ -575,20 +674,23 @@ GitHub Actions + Docker による自動化パイプライン:
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| クライアント EditMode | 710 | ユニットテスト |
-| クライアント PlayMode | 63 | 統合テスト |
-| サーバー単体テスト | 46 | Service, Repositoryテスト |
-| サーバー統合テスト | 10 | API統合テスト（Testcontainers） |
-| **合計** | **829** | 全パス |
+| クライアント EditMode | 746 | ユニットテスト（Service, Model, Extension, ECS） |
+| クライアント PlayMode | 63 | 統合テスト（Scene, Input, UI） |
+| サーバーテスト (Game.Server) | 222 | Controller, Service, Validation, Integration テスト |
+| リアルタイムサーバーテスト (Game.Realtime) | 117 | Hub, Service, Filter, Validation テスト |
+| **合計** | **1148** | 全パス |
 
 **ワークフロー:**
 
 | ワークフロー | トリガー | 内容 |
 |-------------|---------|------|
-| unity-ci-docker.yml | push/PR | メインCI（Docker/Linux） |
-| unity-test.yml | PR | PR用テスト |
-| code-quality.yml | push/PR | フォーマット・静的解析 |
+| unity-test.yml | PR | Unityテスト（Docker/Linux） |
+| unity-build.yml | 手動 | マルチプラットフォームビルド（WebGL GitHub Pagesデプロイ対応） |
+| unity-server-build.yml | push/PR | Dedicated Serverビルド（Linux） |
 | server-test.yml | push/PR, 手動 | サーバーテスト + カバレッジ |
+| code-quality.yml | push/PR | フォーマット・静的解析 |
+| pr-review.yml | PR | 自動レビューコメント |
+| addressables-deploy.yml | 手動 | Addressablesビルド＆Cloudflare R2デプロイ |
 
 **キャッシュ最適化:**
 - Unity Accelerator によるライブラリキャッシュ
@@ -619,6 +721,10 @@ Unity6Portfolio/
 │   │   │       │   └── Tests/          単体テスト
 │   │   │       └── Runtime/
 │   │   │           ├── Shared/         共通ユーティリティ
+│   │   │           │   ├── Network/    Fusion, MagicOnion通信
+│   │   │           │   ├── Services/   認証, トークンリフレッシュ
+│   │   │           │   ├── Unity/Server/ DS認証・コンフィグ・レジストリ
+│   │   │           │   └── Environment/ 環境変数・CLIヘルパー
 │   │   │           ├── App/            エントリーポイント
 │   │   │           ├── MVC/            MVCパターン実装
 │   │   │           │   ├── Core/       基盤(Services, Scenes)
@@ -637,6 +743,8 @@ Unity6Portfolio/
 │   │   ├── Services/                   ビジネスロジック
 │   │   ├── Repositories/              データアクセス (Dapper)
 │   │   ├── Hubs/                       SignalR Hub (チャット)
+│   │   ├── Middleware/                 リクエスト署名検証, ポリシーバリデーション
+│   │   ├── Attributes/                署名ポリシー属性 (3種)
 │   │   └── Program.cs
 │   │
 │   ├── Game.Realtime/                  # リアルタイムサーバー (MagicOnion gRPC)
@@ -672,7 +780,8 @@ Unity6Portfolio/
 │   ├── observability/                  # OpenTelemetry / Aspire Dashboard
 │   ├── migrate/                        # DBマイグレーション
 │   ├── unity-accelerator/              # Unity Accelerator キャッシュサーバー
-│   └── unity-ci/                       # Unity CI Runner (GitHub Actions用)
+│   ├── unity-ci/                       # Unity CI Runner (GitHub Actions用)
+│   └── unity-server/                   # Dedicated Server (Linux ヘッドレス)
 │
 ├── docs/                               # 技術ドキュメント
 │
@@ -752,7 +861,7 @@ Unity6Portfolio/
 
 | ライブラリ              | バージョン   | 用途                          |
 |----------------------|------------|-------------------------------|
-| Unity                | 6000.3.2f1 | ゲームエンジン                  |
+| Unity                | 6000.3.8f1 | ゲームエンジン                  |
 | cysharp/UniTask      | 2.5.10     | 非同期処理                     |
 | cysharp/R3           | 1.3.0      | リアクティブプログラミング (MVP)  |
 | cysharp/MessagePipe  | 1.8.1      | Pub/Sub メッセージング (MVC)    |
@@ -760,12 +869,13 @@ Unity6Portfolio/
 | cysharp/MessagePack  | 3.1.3      | バイナリシリアライズ             |
 | cysharp/MemoryPack   | 1.21.3     | セーブデータシリアライズ          |
 | hadashiA/VContainer  | 1.17.0     | DIコンテナ (MVP)               |
-| MagicOnion.Client    | 7.0.3      | gRPC StreamingHub クライアント  |
+| MagicOnion.Client    | 7.0.9      | gRPC StreamingHub クライアント  |
 | Unity.Entities (DOTS)| 1.4.4      | ECS敵システム                  |
 | Unity.Burst          | 1.8.27     | Burst コンパイラ               |
 | Photon Fusion 2      | 2.0        | リアルタイムネットワーク（Server/Client） |
 | Fusion.Addons.KCC    | -          | Kinematic Character Controller  |
 | Fusion.Addons.FSM    | -          | ネットワーク同期ステートマシン     |
+| Unity.Dedicated Server| 1.3.2     | Dedicated Server ビルド          |
 | DOTween              | 1.2.790    | アニメーション                  |
 
 **サーバー (ASP.NET Core 9):**
@@ -773,7 +883,7 @@ Unity6Portfolio/
 | ライブラリ              | バージョン   | 用途                          |
 |----------------------|------------|-------------------------------|
 | .NET SDK             | 9.0        | ランタイム                     |
-| MagicOnion.Server    | 7.0.3      | gRPC StreamingHub サーバー     |
+| MagicOnion.Server    | 7.0.9      | gRPC StreamingHub サーバー     |
 | Grpc.AspNetCore      | 2.71.0     | gRPC 基盤                     |
 | Dapper               | 2.1.66     | マイクロORM                    |
 | Npgsql               | 9.0.3      | PostgreSQL ドライバ            |
@@ -814,16 +924,15 @@ Unity6Portfolio/
 ---
 
 ## 制作期間
-* 約8週間 (2026/2/25時点)
+* 約13週間 (2026/4/12時点)
 
 ---
 
 ## 今後の予定
-* ローカライズ対応（多言語）
+* ローカライズ対応（多言語、Unity Localization）
+* マルチ解像度・マルチプラットフォーム対応
+* インゲーム課金システムサンプル
 * PlayerLoopへの介入サンプル
-* リストのソート／フィルタ機能サンプル
-* マルチ解像度対応
-* マルチプラットフォーム対応
 
 ---
 

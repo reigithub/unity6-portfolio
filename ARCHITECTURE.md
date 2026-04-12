@@ -2,8 +2,8 @@
 
 [English version is here](ARCHITECTURE.en.md)
 
-**バージョン**: 1.9
-**最終更新**: 2026年3月22日
+**バージョン**: 2.0
+**最終更新**: 2026年4月12日
 
 ---
 
@@ -358,13 +358,13 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 
 | アセンブリ | 役割 | テスト数 |
 |-----------|------|---------|
-| **Game.Tests.Shared** | Shared層ユニットテスト | 351 |
+| **Game.Tests.Shared** | Shared層ユニットテスト（Network含む） | 400 |
 | **Game.Tests.MVC** | MVC層ユニットテスト | 160 |
-| **Game.Tests.MVP** | MVP層ユニットテスト | 166 |
-| **Game.Tests.MVP.ECS** | ECSシステム機能・性能テスト | 33 |
+| **Game.Tests.MVP** | MVP層ユニットテスト | 182 |
+| **Game.Tests.MVP.ECS** | ECSシステム性能テスト | 4 |
 | **Game.Tests.PlayMode** | 統合・PlayModeテスト | 63 |
 
-**合計テスト数**: 773テスト（EditMode 710 + PlayMode 63）
+**合計テスト数**: 809テスト（EditMode 746 + PlayMode 63）
 
 #### サーバー・ツールアセンブリ（.NET 9）
 
@@ -387,6 +387,7 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 | **UsersController** | GET/PUT /api/users/* | ユーザー情報取得・更新 |
 | **SurvivorScoresController** | POST /api/survivor/scores | スコア送信 |
 | **RankingsController** | GET /api/survivor/rankings/* | ランキング取得・自分の順位 |
+| **UnityServerController** | POST /api/unity-server/* | DS登録・解除・ハートビート・セッション管理 |
 | **ChatHub** | /hubs/chat (SignalR) | リアルタイムチャット |
 | **HealthController** | GET /api/health | ヘルスチェック |
 
@@ -1594,6 +1595,141 @@ Survivor マルチプレイモード（MPPM / Dedicated Server）のサーバー
 - **Silent Removal**: 到達不能エネミーをキルカウント非加算で回収。Death SyncType でクライアント通知
 - **注意**: `WriteEnemyStates()` を個別呼び出しすると `ActiveCount` がリセットされ他のエネミーデータが消失する。必ず定期同期に統合すること
 
+### 7.11 Dedicated Server オーケストレーション
+
+Unity Dedicated Server の自己登録・セッション管理・ヘルスチェック基盤:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            Dedicated Server Orchestration Flow                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① DS 起動（UnityServerBootstrap: IAsyncStartable）             │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerConfig     │ ← CLI引数 / 環境変数 / GCEメタデータ  │
+│  │ Factory              │   (優先順: CLI > ENV > GCE)           │
+│  │ DsId, GamePort(7777) │                                       │
+│  │ HealthPort(7778)     │                                       │
+│  │ PublicAddress         │                                       │
+│  │ AuthSecretKey        │                                       │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  ② HTTPリスナー起動                                              │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerHttpListener│ (バックグラウンドスレッド)             │
+│  │ GET /health           │ ← Docker HEALTHCHECK                 │
+│  │ POST /session/start   │ ← Game.Server からのセッション要求   │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  ③ Game.Server へ自己登録                                        │
+│  ┌──────────────────────┐     ┌──────────────────────┐         │
+│  │UnityServerRegistry   │────▶│ POST /api/unity-     │         │
+│  │ApiClient             │     │   server/register    │         │
+│  │  HMAC-SHA256署名      │     │ (Game.Server)       │         │
+│  └──────────┬───────────┘     └──────────────────────┘         │
+│             │                                                   │
+│             ▼                                                   │
+│  ④ ハートビートループ開始                                         │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerHeartbeat  │  30秒間隔で /heartbeat POST           │
+│  │Loop (ThreadPool)     │  切断時は /deregister POST            │
+│  └──────────────────────┘                                       │
+│                                                                 │
+│  ⑤ マッチセッション                                              │
+│  Game.Server                  DS                  Client        │
+│    │ AssignSession             │                    │           │
+│    │  POST /session/start ────▶│                    │           │
+│    │                           │ Fusion Start       │           │
+│    │                           │◀═══ ConnectionToken ═══│      │
+│    │                           │  HMAC検証           │           │
+│    │  POST /session-ended  ◀───│ (ゲーム終了)        │           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 主要クラス
+
+| クラス | 場所 | 責務 |
+|-------|------|------|
+| `UnityServerBootstrap` | Game.Client (Shared) | DS起動オーケストレーション |
+| `UnityServerConfigFactory` | Game.Client (Shared) | CLI/ENV/GCEからコンフィグ構築 |
+| `UnityServerAuthProvider` | Game.Client (Shared) | Fusion ConnectionToken HMAC検証 |
+| `UnityServerRegistryApiClient` | Game.Client (Shared) | Game.Server 登録/ハートビート API |
+| `UnityServerHttpListener` | Game.Client (Shared) | TCP ヘルスチェック＋セッション受付 |
+| `UnityServerController` | Game.Server | DS登録・解除・ハートビート受付 |
+| `UnityServerAuthService` | Game.Server | DSセッショントークン発行 |
+| `UnityServerSessionService` | Game.Server | アイドルDS検索＋セッション割当 |
+
+### 7.12 エネミーLODシステム
+
+距離ベースの3段階LODによるレンダリング最適化:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   Enemy LOD Architecture                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  SurvivorEnemyView (クライアント側)                               │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │ EnemyProxyData                                       │      │
+│  │  ├── LodUpdateInterval: 1 / 2 / 5 フレーム          │      │
+│  │  ├── FrameOffset: フレーム分散用オフセット           │      │
+│  │  └── InterpolationSpeed / CorrectionDecayRate        │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                                                                 │
+│  LODティア判定:                                                  │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐                  │
+│  │   Near   │    │   Mid    │    │   Far    │                  │
+│  │  < 20m   │    │ 20〜40m  │    │  > 40m   │                  │
+│  │ 毎フレーム │    │ 2f毎更新 │    │ 5f毎更新  │                  │
+│  │ フル品質  │    │ 中品質    │    │ 低品質    │                  │
+│  └──────────┘    └──────────┘    └──────────┘                  │
+│                                                                 │
+│  フレーム分散再分類:                                              │
+│  Frame 0: Enemy[0,5,10,...] 再評価                               │
+│  Frame 1: Enemy[1,6,11,...] 再評価                               │
+│  Frame 2: Enemy[2,7,12,...] 再評価   → スパイク防止              │
+│  ...                                                             │
+│                                                                 │
+│  CharacterUnlit シェーダー:                                       │
+│  ├── LOD Far 用軽量アンリットシェーダー                          │
+│  ├── ヒットフラッシュ / ディゾルブ対応                           │
+│  └── GPU インスタンシング対応                                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.13 認証トークンリフレッシュ
+
+バックグラウンドで動作する自動トークンリフレッシュシステム:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                Auth Session Refresher                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  AuthSessionRefresher (IAsyncStartable)                          │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │ トリガー:                                             │      │
+│  │  ├── Periodic: 5分間隔チェック (50分閾値で先行更新)   │      │
+│  │  ├── NetworkRecovery: ネットワーク復帰時              │      │
+│  │  ├── AppFocus: アプリフォーカス復帰時                 │      │
+│  │  └── Explicit: シーン遷移時の明示呼び出し            │      │
+│  │                                                       │      │
+│  │ 重複排除: UniTaskCompletionSource<bool> 共有           │      │
+│  │                                                       │      │
+│  │ 結果通知: MessagePipe → SessionRefreshResult シグナル │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                                                                 │
+│  AppLifecycleBridge (MonoBehaviour)                               │
+│  ├── OnApplicationFocus → IAppLifecycleSignals.OnFocusChanged   │
+│  └── OnApplicationPause → OnFocusChanged (モバイル互換)          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 8. クラス設計（UML）
@@ -1990,7 +2126,7 @@ GitHub Actions を使用した自動化パイプラインを構築していま�
 │  │ Code Quality │───▶│  Unit Tests  │───▶│ Integration  │       │
 │  │    Check     │    │  (EditMode)  │    │   Tests      │       │
 │  └──────────────┘    └──────────────┘    │ (PlayMode)   │       │
-│    - .editorconfig      - 710 tests      └──────────────┘       │
+│    - .editorconfig      - 746 tests      └──────────────┘       │
 │    - Roslyn Analyzer                       - 63 tests           │
 │    - Format Check                                                │
 │                                                                  │
@@ -2016,13 +2152,13 @@ GitHub Actions を使用した自動化パイプラインを構築していま�
 
 | ワークフロー | トリガー | 内容 |
 |-------------|---------|------|
-| `unity-ci-docker.yml` | push/PR | メインCI（Docker/Linux） |
-| `unity-test.yml` | PR | PR用テスト |
+| `unity-test.yml` | PR | Unityテスト（Docker/Linux） |
+| `unity-build.yml` | 手動 | マルチプラットフォームビルド（WebGL GitHub Pagesデプロイ対応） |
+| `unity-server-build.yml` | push/PR | Dedicated Serverビルド（Linux ヘッドレス） |
+| `server-test.yml` | push/PR, 手動 | サーバーテスト（単体 + 統合 + カバレッジ） |
 | `code-quality.yml` | push/PR (*.cs) | フォーマット・静的解析 |
 | `pr-review.yml` | PR | 自動レビューコメント |
-| `server-test.yml` | push/PR, 手動 | サーバーテスト（単体 + 統合 + カバレッジ） |
 | `addressables-deploy.yml` | 手動 | Addressablesビルド＆Cloudflare R2デプロイ（マルチプラットフォーム） |
-| `unity-build.yml` | 手動 | マルチプラットフォームビルド（WebGL GitHub Pagesデプロイ対応） |
 
 ### 10.3 コード品質管理
 
@@ -2046,13 +2182,13 @@ Unity6Portfolio/
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| EditMode | 710 | ユニットテスト（Service, Model, Extension, ECS） |
+| EditMode | 746 | ユニットテスト（Service, Model, Extension, ECS, Network） |
 | PlayMode | 63 | 統合テスト（Scene, Input, UI） |
-| **クライアント合計** | **773** | |
-| サーバー単体テスト | 46 | Service, Repository テスト |
-| サーバー統合テスト | 10 | API統合テスト（Testcontainers + PostgreSQL） |
-| **サーバー合計** | **56** | |
-| **全体合計** | **829** | |
+| **クライアント合計** | **809** | |
+| Game.Server.Tests | 222 | Controller, Service, Validation, Integration テスト |
+| Game.Realtime.Tests | 117 | Hub, Service, Filter, Validation テスト |
+| **サーバー合計** | **339** | |
+| **全体合計** | **1148** | |
 
 ---
 
@@ -2170,12 +2306,45 @@ Unity6Portfolio/
 | **影響** | Spawn/Death に最大 0.1 秒の遅延が発生するが、ビジュアル上は問題なし |
 | **状態** | 採用済み |
 
+#### ADR-011: Dedicated Server オーケストレーション
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | DS の自己登録＋ハートビート＋セッション管理をクライアントコード内に実装 |
+| **背景** | Photon Fusion 2 の Server/Client モード DS を本番環境で運用するための基盤が必要 |
+| **選択肢** | A) Photon Cloud のみ B) 自前オーケストレーション C) Kubernetes Agones |
+| **判断理由** | Photon Cloud は DS ライフサイクル管理に制約あり。GCE/Docker 環境で柔軟に制御するため自前実装。Agones は本プロジェクト規模ではオーバースペック |
+| **影響** | UnityServerBootstrap → Config → HttpListener → Registry → Heartbeat の起動チェーン。Game.Server 側に DS 管理 API 追加 |
+| **状態** | 採用済み |
+
+#### ADR-012: 宣言的リクエスト署名ポリシー
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | REST API の全 POST/PUT/DELETE エンドポイントに署名ポリシー属性を必須化 |
+| **背景** | DS 追加により署名方式が3種（匿名/ユーザー/DS）に増加。付け忘れ防止が必要 |
+| **選択肢** | A) コードレビューで担保 B) 起動時バリデーション C) テストで検出 |
+| **判断理由** | 起動時 fail-fast が最も確実。RequestSigningPolicyValidator が未宣言・重複を即座に検出 |
+| **影響** | 新規エンドポイント追加時は必ず3属性のいずれかを宣言。CI で起動テストが必須 |
+| **状態** | 採用済み |
+
+#### ADR-013: エネミーLOD + フレーム分散
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | 距離ベース3段階LOD＋フレームオフセットによる再分類分散を導入 |
+| **背景** | 512体同時管理での描画負荷軽減が必要。全エネミーを毎フレーム更新するのは非効率 |
+| **選択肢** | A) Unity LOD Group B) カスタムLOD C) GPU Culling |
+| **判断理由** | ECS ハイブリッド構成のためカスタム実装が最適。CharacterUnlit シェーダーとの組み合わせで段階的品質制御が可能 |
+| **影響** | Near(毎フレーム)/Mid(2f毎)/Far(5f毎) の更新頻度制御。フレーム分散でスパイク防止 |
+| **状態** | 採用済み |
+
 ### 11.2 既知の技術的負債
 
 | 項目 | 内容 | 優先度 | 状態 |
 |-----|------|-------|------|
 | ~~MessageBroker過剰使用~~ | ~~OnTriggerEnter等でのPublish~~ | ~~中~~ | ✅ 改善完了 |
-| ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 773テスト達成 |
+| ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 1148テスト達成 |
 | ~~XMLドキュメント~~ | ~~一部未記載~~ | ~~低~~ | ✅ 主要IF完了 |
 | ~~アセット配信~~ | ~~ローカルのみ対応~~ | ~~中~~ | ✅ ローカル/リモート自動切替 |
 | ~~ネットワーク機能~~ | ~~サーバー通信未実装~~ | ~~高~~ | ✅ ランキング・認証完了 |
@@ -2185,7 +2354,7 @@ Unity6Portfolio/
 
 **改善完了項目**:
 - MessageBroker: IPlayerCollisionHandlerによる直接呼び出しに変更
-- テスト: EditMode 767 + PlayMode 63 = 830テスト
+- テスト: EditMode 746 + PlayMode 63 + Server 222 + Realtime 117 = 1148テスト
 - XMLドキュメント: 主要インターフェース・拡張メソッドに追加完了
 - Profilerマーカー: 27マーカー追加
 - サーバー権威モデル: Fusion FSM 移行、ダメージ/スタミナ/HP の [Networked] 管理、敵バッチ同期統合
@@ -2198,6 +2367,8 @@ Unity6Portfolio/
 - マルチプレイ: MagicOnion gRPCによるロビー・マッチメイキング、SignalRチャット、MPPM対応（2026/02）
 - サーバー権威モデル: Photon Fusion 2 Server/Client モード、Fusion FSM ステート同期、敵バッチ同期統合（2026/03）
 - View/Presenter 責務分離: Dead Reckoning 構造体分離、アイテム収集判定の Controller 統合（2026/03）
+- Dedicated Server ビルド: Linux ヘッドレスサーバー、Docker コンテナ化、CI/CD 自動ビルド（2026/04）
+- エネミー LOD システム: 距離ベース描画品質最適化、同期バッファリング、フレーム分散処理（2026/04）
 
 ---
 
