@@ -121,11 +121,18 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// セッションの有効性を確認（未認証時はスキップ）
+        /// セッションの有効性を確認（未認証時はスキップ）。
         /// </summary>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
             if (!_authSessionService.IsAuthenticated) return false;
+
+            // TitleScene で直前に refresh 済みなら skip (default threshold 以内)
+            if (_authSessionService.IsRecentlyRefreshed())
+            {
+                return true;
+            }
+
             var refreshResult = await _authApiService.RefreshTokenAsync();
             return refreshResult.IsSuccess;
         }

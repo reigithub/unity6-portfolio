@@ -176,10 +176,20 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.ShowError(loginResult.Error?.Message ?? NetworkErrorLocalizer.GetOfflineMessage());
                     return false;
                 }
+                // GuestLoginAsync 成功時に AuthApiService.OnLoginSuccessAsync が
+                // MarkRefreshed() を呼ぶため、以降の IsRecentlyRefreshed 判定で skip される
                 return true;
             }
 
-            // 認証済みの場合はトークンリフレッシュを試行
+            // 最後の refresh から default threshold 以内なら skip。
+            // Scene re-creation (OnReturn 経由で Title に戻る) でも singleton の
+            // LastRefreshedAt が保持されるため、時間基準で正しく判定できる。
+            if (_authSessionService.IsRecentlyRefreshed())
+            {
+                return true;
+            }
+
+            // stale 判定: threshold 超過 → 再 refresh
             var refreshResult = await _authApiService.RefreshTokenAsync();
             if (refreshResult.IsSuccess)
             {
