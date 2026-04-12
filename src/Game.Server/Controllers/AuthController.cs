@@ -113,6 +113,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("link/email")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -132,6 +133,7 @@ public class AuthController : ControllerBase
 
     [HttpDelete("link/email")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UnlinkEmail([FromQuery] string deviceFingerprint)
@@ -150,6 +152,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("transfer-password")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(TransferPasswordResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> IssueTransferPassword([FromBody] EmptyRequest _)

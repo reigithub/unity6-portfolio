@@ -1,4 +1,5 @@
 using Game.Library.Shared.Dto;
+using Game.Server.Attributes;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
@@ -10,6 +11,7 @@ namespace Game.Server.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[UserSignature]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

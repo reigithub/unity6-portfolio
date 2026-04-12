@@ -1,4 +1,5 @@
 using Game.Library.Shared.Dto;
+using Game.Server.Attributes;
 using Game.Server.Dto.Responses;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
@@ -11,6 +12,7 @@ namespace Game.Server.Controllers;
 [ApiController]
 [Route("api/survivor/scores")]
 [Authorize]
+[UserSignature]
 public class SurvivorScoresController : ControllerBase
 {
     private readonly ISurvivorScoreService _scoreService;

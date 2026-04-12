@@ -108,7 +108,7 @@ public class ApiIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task DsEndpoint_WithoutSignature_Returns401()
     {
-        // [DsSignature] が付いている DS 経路に無署名で POST しても 401 が返ることを確認する
+        // [UnityServerSignature] が付いている DS 経路に無署名で POST しても 401 が返ることを確認する
         // (attribute ベース middleware が DS 経路を正しく fail-closed で保護している regression test)
         using var unauthClient = CreateJsonClient();
         var response = await unauthClient.PostAsJsonAsync("/api/unity-server/register", new

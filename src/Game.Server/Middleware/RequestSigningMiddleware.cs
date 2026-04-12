@@ -40,22 +40,23 @@ public class RequestSigningMiddleware
         }
 
         // 読み取り系メソッド (GET/OPTIONS/HEAD) は署名検証対象外 (境界レベル設計)
-        var method = context.Request.Method;
-        if (HttpMethods.IsGet(method) || HttpMethods.IsOptions(method) || HttpMethods.IsHead(method))
+        if (!RequestSigningPolicy.RequiresPolicy(context.Request.Method))
         {
             await _next(context);
             return;
         }
 
         // /api/ 配下以外 (/health, /hubs/chat, /openapi 等) はスキップ
-        if (!context.Request.Path.StartsWithSegments("/api"))
+        if (!RequestSigningPolicy.IsApiPath(context.Request.Path))
         {
             await _next(context);
             return;
         }
 
-        // endpoint metadata で分岐。未マッチ (404 対象) も skip して後続の 404 に任せる。
+        // endpoint metadata で分岐 (順序: Skip → DS → User、先勝ち)
+        // 未マッチ (404 対象) の場合は endpoint == null となり、すべての if を抜けて末尾の throw に到達する
         var endpoint = context.GetEndpoint();
+
         if (endpoint?.Metadata.GetMetadata<SkipRequestSigningAttribute>() != null)
         {
             await _next(context);
@@ -68,8 +69,21 @@ public class RequestSigningMiddleware
             return;
         }
 
-        // デフォルト: user signature 経路 (JWT userId 必須)
-        await VerifyUserSignatureAsync(context);
+        if (endpoint?.Metadata.GetMetadata<UserSignatureAttribute>() != null)
+        {
+            await VerifyUserSignatureAsync(context);
+            return;
+        }
+
+        // ここに到達することは想定していない。RequestSigningPolicyValidator が startup で
+        // fail-fast するため、全 /api state-changing endpoint は上記 3 属性のいずれかを持つ。
+        // 万が一到達した場合 (e.g. 動的 endpoint 追加、未マッチの 404) は defense-in-depth の
+        // 第二層として例外を投げ、ExceptionHandlingMiddleware 経由で 500 を返す。
+        throw new InvalidOperationException(
+            $"Endpoint {endpoint?.DisplayName ?? "(unknown)"} ({context.Request.Path}) " +
+            "reached RequestSigningMiddleware without a signing policy attribute. " +
+            "This should have been caught at startup by RequestSigningPolicyValidator. " +
+            "Add [SkipRequestSigning], [RequireUserSignature], or [UnityServerSignature] to the action.");
     }
 
     /// <summary>
