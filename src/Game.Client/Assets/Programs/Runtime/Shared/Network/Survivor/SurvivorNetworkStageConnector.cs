@@ -107,11 +107,14 @@ namespace Game.Shared.Network.Survivor
                     }
                 }
 
+                // Client モードでは Address はローカルソケットのバインド先になる。
+                // サーバーアドレスを指定するとポート競合が発生するため Any() を使用する。
+                // サーバーへの接続は SessionName 経由で Photon Cloud が解決する。
                 var config = new FusionConnectionConfig
                 {
                     GameMode = GameMode.Client,
                     SessionName = sessionName,
-                    Address = NetAddress.CreateFromIpPort(address, port),
+                    Address = NetAddress.Any(),
                     ConnectionToken = connectionToken,
                 };
 

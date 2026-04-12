@@ -78,7 +78,8 @@ namespace Game.Shared.Network.Survivor
             }
             else
             {
-                Debug.LogError($"[SurvivorFusionRunner] Failed to start: {result.ShutdownReason}");
+                Debug.LogError($"[SurvivorFusionRunner] Failed to start: {result.ShutdownReason}, ErrorMessage: {result.ErrorMessage}");
+                if (result.StackTrace != null) Debug.LogError($"[SurvivorFusionRunner] StackTrace: {result.StackTrace}");
             }
 
             return result;
