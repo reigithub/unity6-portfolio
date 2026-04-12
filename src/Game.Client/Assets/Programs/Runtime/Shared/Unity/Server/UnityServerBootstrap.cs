@@ -1,53 +1,73 @@
 using System;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using Game.Shared.Environment;
 using Game.Shared.Network.Survivor;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.Shared.Unity.Server
 {
     /// <summary>
-    /// Dedicated Server 起動時の初期化処理。
-    /// Fusion Server モードで起動し、クライアント接続を受け入れる。
-    /// GameRuntimeInitializer からサーバーモード時に明示的に呼び出される。
+    /// Dedicated Server 起動時の初期化処理を担う IAsyncStartable。
+    /// VContainer の RegisterEntryPoint 経由で自動実行される。
     /// </summary>
-    public static class UnityServerBootstrap
+    /// <remarks>
+    /// 起動順序:
+    /// 1. <see cref="StartAsync"/> で Config を構築し <see cref="UnityServerConfigProvider"/> にセット
+    /// 2. <see cref="IUnityServerHttpListener.Start"/> でヘルスチェックポートをリスン開始
+    /// 3. Fusion ポートを設定
+    /// 4. Game.Server へ自己登録してハートビートを開始
+    /// 5. <see cref="_startupComplete"/> を complete にして他の IAsyncStartable のバリアを解除
+    /// </remarks>
+    public sealed class UnityServerBootstrap : IAsyncStartable, IDisposable
     {
-        /// <summary>
-        /// HMAC 認証用シークレットキー。
-        /// --secret 引数または UNITY_SERVER_AUTH_SESSION_SECRET 環境変数から設定される。
-        /// </summary>
-        public static byte[] AuthSecretKey { get; private set; }
+        private readonly UnityServerConfigProvider _configProvider;
+        private readonly IUnityServerHttpListener _listener;
+        private readonly IUnityServerRegistryApiClient _registry;
+        private readonly IUnityServerSessionConfig _sessionConfig;
+
+        private CancellationTokenSource _heartbeatCts;
+        private Task _heartbeatTask;
+        private readonly UniTaskCompletionSource _startupComplete = new UniTaskCompletionSource();
+        private bool _disposed;
+        private bool _quitHandlerAttached;
 
         /// <summary>
-        /// この DS の一意識別子（起動時に生成）。
+        /// <see cref="UnityServerBootstrap"/> を初期化する。
         /// </summary>
-        public static string DsId { get; private set; }
+        /// <param name="configProvider">設定プロバイダ。</param>
+        /// <param name="listener">HTTP リスナー。</param>
+        /// <param name="registry">Registry クライアント。</param>
+        /// <param name="sessionConfig">Fusion 接続パラメータ設定用コネクタ。</param>
+        [Inject]
+        public UnityServerBootstrap(
+            UnityServerConfigProvider configProvider,
+            IUnityServerHttpListener listener,
+            IUnityServerRegistryApiClient registry,
+            IUnityServerSessionConfig sessionConfig)
+        {
+            _configProvider = configProvider;
+            _listener = listener;
+            _registry = registry;
+            _sessionConfig = sessionConfig;
+        }
 
         /// <summary>
-        /// Game.Server の URL（自己登録・ハートビートに使用）。
+        /// 他の <see cref="IAsyncStartable"/>（例: SurvivorServerGameLoop）から StartAsync 完了を待つためのバリア。
+        /// Listener.Start() 完了を保証してから呼び出し元の処理が走ることを保証する。
         /// </summary>
-        public static string GameServerUrl { get; private set; }
+        /// <param name="ct">キャンセルトークン。</param>
+        public UniTask WaitForStartupAsync(CancellationToken ct)
+            => _startupComplete.Task.AttachExternalCancellation(ct);
 
         /// <summary>
-        /// ServerHttpListener インスタンス（SurvivorServerGameLoop からアクセス可能）。
+        /// サーバー初期化処理を実行する。VContainer から自動呼び出し。
         /// </summary>
-        public static ServerHttpListener HttpListener { get; private set; }
-
-        private static Thread _heartbeatThread;
-        private static volatile bool _heartbeatRunning;
-        private static ushort _gamePort;
-        private static int _healthPort;
-        private static string _address;
-
-        /// <summary>
-        /// Dedicated Server の初期化処理を実行する。
-        /// メインスレッドから呼ぶこと。
-        /// </summary>
-        public static void Initialize()
+        /// <param name="cancellation">キャンセルトークン。</param>
+        public async UniTask StartAsync(CancellationToken cancellation)
         {
             Debug.Log("[ServerBootstrap] ========================================");
             Debug.Log("[ServerBootstrap] Dedicated Server starting...");
@@ -57,355 +77,108 @@ namespace Game.Shared.Unity.Server
             Debug.Log($"[ServerBootstrap] Product Version: {Application.version}");
             Debug.Log("[ServerBootstrap] ========================================");
 
+            // 1. Config 構築（GCE metadata 含む async。非 GCE では 2 秒 timeout で null）
+            var config = await UnityServerConfigFactory.BuildAsync(cancellation);
+
+            Debug.Log($"[ServerBootstrap] DsId={config.DsId}, GamePort={config.GamePort}, HealthPort={config.HealthPort}");
+            Debug.Log($"[ServerBootstrap] GameServerUrl={config.GameServerUrl ?? "(none)"}");
+            Debug.Log($"[ServerBootstrap] PublicAddress={config.PublicAddress ?? "(none)"}");
+            Debug.Log($"[ServerBootstrap] AuthSecretKey={(config.AuthSecretKey.IsEmpty ? "未設定" : "設定済み（HMAC 認証有効）")}");
+
+            // PUBLIC_ADDRESS を環境変数に書き戻す（SurvivorNetworkStageConnector が参照）
+            EnvVarHelper.Set(EnvVarKeys.PublicAddress, config.PublicAddress);
+
+            // 2. ConfigProvider に Config をセット（これ以降 _configProvider.Current が使用可能）
+            _configProvider.Set(config);
+
             // サーバー向けフレームレート設定
             Application.targetFrameRate = 60;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
-            // --- DS 識別子生成 ---
-            DsId = $"ds-{Guid.NewGuid():N}";
-            Debug.Log($"[ServerBootstrap] DsId: {DsId}");
+            // 3. HTTP リスナー起動
+            _listener.Start();
 
-            // --- コマンドライン引数解析 ---
-            int playerCount = ParsePlayerCount();
-            _gamePort = ParsePort();
-            _healthPort = ParseHealthPort();
-            _address = ParseAddress();
-            string matchId = ParseMatchId();
-            byte[] secretKey = ParseSecret();
-            GameServerUrl = ParseGameServerUrl();
+            // 4. Fusion ポート設定（SessionName / MaxPlayerCount はセッションリクエスト受信時に設定）
+            _sessionConfig.Configure(ConnectionSource.DedicatedServer, port: config.GamePort);
 
-            Debug.Log($"[ServerBootstrap] port={_gamePort}, health={_healthPort}, players={playerCount}, address={_address ?? "(auto)"}, matchId={matchId ?? "(none)"}");
-            Debug.Log($"[ServerBootstrap] GameServerUrl={GameServerUrl ?? "(none)"}");
-
-            // --- ServerHttpListener 起動 ---
-            HttpListener = new ServerHttpListener(_healthPort, DsId);
-            if (secretKey != null)
-            {
-                HttpListener.SetAuthSecretKey(secretKey);
-            }
-            HttpListener.Start();
-
-            // --- シークレットキー保持 ---
-            if (secretKey != null)
-            {
-                AuthSecretKey = secretKey;
-                Debug.Log("[ServerBootstrap] AuthSecretKey が設定されました（HMAC 認証有効）");
-            }
-
-            // --- Dedicated Server 接続情報設定（セッション開始前のデフォルト）---
-            // セッションリクエスト受信後に SurvivorServerGameLoop が上書きする
-            SurvivorNetworkMatchConnector.ConfigureForDedicatedServer(_gamePort, _address, matchId);
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(playerCount);
-
-            // --- Application.quitting ハンドラー登録 ---
+            // 5. Application.quitting ハンドラー登録
             Application.quitting += OnApplicationQuitting;
+            _quitHandlerAttached = true;
 
-            // --- Game.Server への自己登録（バックグラウンドスレッドで実行）---
-            if (!string.IsNullOrEmpty(GameServerUrl))
+            // 6. Game.Server への自己登録・ハートビート開始
+            if (!string.IsNullOrEmpty(config.GameServerUrl))
             {
-                RegisterToGameServer();
-                StartHeartbeat();
+                var dsAddress = config.PublicAddress ?? NetworkAddressHelper.GetLocalIPv4Address();
+                await _registry.RegisterAsync(dsAddress, cancellation);
+
+                _heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+                _heartbeatTask = UnityServerHeartbeatLoop.RunAsync(_registry, TimeSpan.FromSeconds(30), _heartbeatCts.Token);
+
+                Debug.Log("[ServerBootstrap] ハートビート開始（30秒間隔）");
             }
             else
             {
                 Debug.LogWarning("[ServerBootstrap] GAME_SERVER_URL が未設定のため自己登録をスキップします");
             }
-        }
 
-        // ---------------------------------------------------------------
-        // 自己登録・ハートビート・登録解除
-        // ---------------------------------------------------------------
+            // 7. 全ての IAsyncStartable がこのバリアを await できるように complete にする
+            _startupComplete.TrySetResult();
 
-        /// <summary>
-        /// Game.Server に DS を自己登録する（バックグラウンドスレッドで実行）。
-        /// </summary>
-        private static void RegisterToGameServer()
-        {
-            ThreadPool.QueueUserWorkItem(_ =>
-            {
-                try
-                {
-                    var dsAddress = string.IsNullOrEmpty(_address) ? GetLocalAddress() : _address;
-                    var body = BuildRegistrationJson(dsAddress);
-                    var response = SendHttpPost(
-                        $"{GameServerUrl}/api/unity-server/register",
-                        body,
-                        AuthSecretKey);
-
-                    Debug.Log($"[ServerBootstrap] 自己登録完了: status={response}");
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[ServerBootstrap] 自己登録失敗: {ex.Message}");
-                }
-            });
+            Debug.Log("[ServerBootstrap] 初期化完了");
         }
 
         /// <summary>
-        /// 30 秒間隔のハートビートを開始する（バックグラウンドスレッド）。
+        /// ハートビート停止、Listener 解放、登録解除を行う。
         /// </summary>
-        private static void StartHeartbeat()
+        public void Dispose()
         {
-            _heartbeatRunning = true;
-            _heartbeatThread = new Thread(HeartbeatLoop)
-            {
-                Name = "DS-Heartbeat",
-                IsBackground = true,
-            };
-            _heartbeatThread.Start();
-            Debug.Log("[ServerBootstrap] ハートビート開始（30秒間隔）");
-        }
+            if (_disposed)
+                return;
 
-        private static void HeartbeatLoop()
-        {
-            while (_heartbeatRunning)
-            {
-                // 30 秒待機（1 秒ずつチェックして停止フラグを確認）
-                for (int i = 0; i < 30 && _heartbeatRunning; i++)
-                    Thread.Sleep(1000);
+            _disposed = true;
 
-                if (!_heartbeatRunning)
-                    break;
-
-                try
-                {
-                    var url = $"{GameServerUrl}/api/unity-server/heartbeat?dsId={Uri.EscapeDataString(DsId)}";
-                    var response = SendHttpPost(url, "{}", AuthSecretKey);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    Debug.Log($"[ServerBootstrap] ハートビート送信: status={response}");
-#endif
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[ServerBootstrap] ハートビート失敗: {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Game.Server に登録解除を通知し、リソースを解放する。
-        /// Application.quitting で呼ばれる。
-        /// </summary>
-        private static void OnApplicationQuitting()
-        {
-            Debug.Log("[ServerBootstrap] Application quitting, クリーンアップ開始");
+            Debug.Log("[ServerBootstrap] Dispose 開始");
 
             // ハートビート停止
-            _heartbeatRunning = false;
-            if (_heartbeatThread != null && _heartbeatThread.IsAlive)
-                _heartbeatThread.Join(2000);
+            _heartbeatCts?.Cancel();
+            try
+            {
+                _heartbeatTask?.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch
+            {
+                // 停止待ちのエラーは無視
+            }
 
             // ServerHttpListener 停止
             try
             {
-                HttpListener?.Dispose();
-                HttpListener = null;
+                _listener?.Dispose();
             }
-            catch (Exception) { }
+            catch
+            {
+                // 停止時の例外は無視
+            }
 
             // Game.Server へ登録解除通知
-            if (!string.IsNullOrEmpty(GameServerUrl))
-            {
-                try
-                {
-                    var url = $"{GameServerUrl}/api/unity-server/deregister?dsId={Uri.EscapeDataString(DsId)}";
-                    SendHttpPost(url, "{}", AuthSecretKey);
-                    Debug.Log("[ServerBootstrap] 登録解除完了");
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[ServerBootstrap] 登録解除失敗: {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// セッション終了を Game.Server に通知する。
-        /// SurvivorServerGameLoop から呼ぶ。
-        /// </summary>
-        /// <param name="matchId">終了したセッションのマッチID。</param>
-        public static void NotifySessionEnded(string matchId)
-        {
-            if (string.IsNullOrEmpty(GameServerUrl))
-                return;
-
-            ThreadPool.QueueUserWorkItem(_ =>
-            {
-                try
-                {
-                    var url = $"{GameServerUrl}/api/unity-server/session-ended"
-                              + $"?dsId={Uri.EscapeDataString(DsId)}"
-                              + $"&matchId={Uri.EscapeDataString(matchId ?? string.Empty)}";
-                    SendHttpPost(url, "{}", AuthSecretKey);
-                    Debug.Log($"[ServerBootstrap] セッション終了通知送信: matchId={matchId}");
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[ServerBootstrap] セッション終了通知失敗: {ex.Message}");
-                }
-            });
-        }
-
-        // ---------------------------------------------------------------
-        // HTTP ユーティリティ（System.Net.Http.HttpClient 使用、IL2CPP 互換）
-        // ---------------------------------------------------------------
-
-        /// <summary>
-        /// HTTP POST を同期実行する。バックグラウンドスレッドから呼ぶこと。
-        /// </summary>
-        /// <param name="url">送信先 URL。</param>
-        /// <param name="jsonBody">JSON ボディ文字列。</param>
-        /// <param name="secretKey">認証シークレット（null で認証ヘッダーなし）。</param>
-        /// <returns>HTTP ステータスコード文字列。</returns>
-        private static string SendHttpPost(string url, string jsonBody, byte[] secretKey)
-        {
-            using var handler = new HttpClientHandler();
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
-
-            if (secretKey != null && secretKey.Length > 0)
-                client.DefaultRequestHeaders.Add("X-DS-Auth", Encoding.UTF8.GetString(secretKey));
-
-            var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
-            var response = client.PostAsync(url, content).Result;
-            return $"{(int)response.StatusCode} {response.StatusCode}";
-        }
-
-        // ---------------------------------------------------------------
-        // ヘルパーメソッド
-        // ---------------------------------------------------------------
-
-        private static string BuildRegistrationJson(string dsAddress)
-        {
-            return $"{{\"dsId\":\"{EscapeJson(DsId)}\","
-                   + $"\"address\":\"{EscapeJson(dsAddress)}\","
-                   + $"\"gamePort\":{_gamePort},"
-                   + $"\"healthPort\":{_healthPort}}}";
-        }
-
-        private static string GetLocalAddress()
-        {
             try
             {
-                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
-                foreach (var ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                        return ip.ToString();
-                }
+                _registry?.DeregisterAsync(CancellationToken.None).Wait(TimeSpan.FromSeconds(2));
             }
-            catch { }
-
-            return "127.0.0.1";
-        }
-
-        private static string EscapeJson(string value)
-        {
-            if (value == null)
-                return string.Empty;
-
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"");
-        }
-
-        // ---------------------------------------------------------------
-        // コマンドライン引数パース
-        // ---------------------------------------------------------------
-
-        private static ushort ParsePort()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
+            catch
             {
-                if (args[i] == "--port" && ushort.TryParse(args[i + 1], out ushort port))
-                    return port;
+                // 登録解除失敗は無視（シャットダウン中のため）
             }
-            return 7777;
-        }
 
-        private static int ParsePlayerCount()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
+            if (_quitHandlerAttached)
             {
-                if (args[i] == "--players" && int.TryParse(args[i + 1], out int count))
-                    return count;
-            }
-            return 1;
-        }
-
-        private static string ParseAddress()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--address" && !string.IsNullOrEmpty(args[i + 1]))
-                    return args[i + 1];
-            }
-            return null;
-        }
-
-        private static int ParseHealthPort()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--health-port" && int.TryParse(args[i + 1], out int port))
-                    return port;
-            }
-            return 7778;
-        }
-
-        /// <summary>
-        /// --match-id 引数からマッチ ID を取得する。
-        /// </summary>
-        private static string ParseMatchId()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--match-id")
-                    return args[i + 1];
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// --secret 引数または UNITY_SERVER_AUTH_SESSION_SECRET 環境変数から HMAC シークレットを取得する。
-        /// </summary>
-        private static byte[] ParseSecret()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--secret" && !string.IsNullOrEmpty(args[i + 1]))
-                    return Encoding.UTF8.GetBytes(args[i + 1]);
+                Application.quitting -= OnApplicationQuitting;
+                _quitHandlerAttached = false;
             }
 
-            var envSecret = System.Environment.GetEnvironmentVariable("UNITY_SERVER_AUTH_SESSION_SECRET");
-            if (!string.IsNullOrEmpty(envSecret))
-                return Encoding.UTF8.GetBytes(envSecret);
-
-            return null;
+            Debug.Log("[ServerBootstrap] Dispose 完了");
         }
 
-        /// <summary>
-        /// --game-server-url 引数または GAME_SERVER_URL 環境変数から Game.Server URL を取得する。
-        /// </summary>
-        private static string ParseGameServerUrl()
-        {
-            var args = System.Environment.GetCommandLineArgs();
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "--game-server-url" && !string.IsNullOrEmpty(args[i + 1]))
-                    return args[i + 1].TrimEnd('/');
-            }
-
-            var envUrl = System.Environment.GetEnvironmentVariable("GAME_SERVER_URL");
-            if (!string.IsNullOrEmpty(envUrl))
-                return envUrl.TrimEnd('/');
-
-            return "http://localhost:5000";
-        }
+        private void OnApplicationQuitting() => Dispose();
     }
 }

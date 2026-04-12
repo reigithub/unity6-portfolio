@@ -3,7 +3,6 @@ using Game.MVP.Core.DI;
 using Game.Shared.Bootstrap;
 using Game.Shared.Playmode;
 using Game.Shared.Realtime;
-using Game.Shared.Unity.Server;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -22,13 +21,11 @@ namespace Game.App
                 //    VContainer により Root の子スコープとして自動接続される
                 var scope = SurvivorGameLauncher.CreateScope();
 
-                // 3. サーバーインフラ初期化（ServerHttpListener 起動、自己登録、コマンドライン引数解析）
-                UnityServerBootstrap.Initialize();
-
+                // VContainer の RegisterEntryPoint<UnityServerBootstrap> が
+                // IAsyncStartable.StartAsync を自動実行するため、直接呼び出しは不要。
                 // Fusion Server セッション開始は SurvivorServerGameLoop が
                 // ServerHttpListener からの /session/start リクエストを受信後に行う。
-                // ここでは即時起動しない。
-                Debug.Log("[GameRuntimeInitializer] Server initialized, waiting for session request via HTTP");
+                Debug.Log("[GameRuntimeInitializer] Server scope created, UnityServerBootstrap will initialize via VContainer EntryPoint");
 
                 _ = scope; // スコープ参照保持（GC 対策）
             }

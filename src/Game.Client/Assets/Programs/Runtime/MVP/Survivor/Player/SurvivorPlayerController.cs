@@ -289,11 +289,7 @@ namespace Game.MVP.Survivor.Player
             if (_kcc == null) return;
 
             _kcc.SetPosition(spawnPosition);
-            _kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-            _kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
-            _kcc.Settings.StateAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
-            _kcc.Settings.AntiJitterDistance = new Vector2(0.025f, 0.01f);
-            _kcc.Settings.PredictionCorrectionSpeed = 15f;
+            KCCSettingsHelper.ApplyDefaults(_kcc);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.Log($"[SurvivorPlayerController] KCC configured: pos={spawnPosition}, scene={gameObject.scene.name}");
@@ -358,16 +354,18 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
                 if (_gameState != null && _gameState.IsEffectivelyPaused) return;
-                _itemCheckTimer -= Time.deltaTime;
+                _itemCheckTimer -= _runnerService.GetDeltaTime();
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;
 
-                // ItemレイヤーのみをOverlapSphereで検索
-                int hitCount = Physics.OverlapSphereNonAlloc(
+                // ItemレイヤーのみをPhysicsSceneで検索
+                var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+                int hitCount = physicsScene.OverlapSphere(
                     transform.position,
                     _itemAttractDistance,
                     _itemHitBuffer,
-                    LayerMaskConstants.Item
+                    LayerMaskConstants.Item,
+                    QueryTriggerInteraction.Collide
                 );
 
                 for (int i = 0; i < hitCount; i++)

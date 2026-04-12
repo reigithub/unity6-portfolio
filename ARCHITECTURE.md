@@ -1114,6 +1114,18 @@ CIがファイル一覧を `index.json` として生成・アップロード:
 | パスワードポリシー | 複雑性ルール | Regex検証 | 8文字以上、大小英字+数字+記号 |
 | 権限モデル | ビットフラグ | Claims-based | チャットルーム単位の権限チェック |
 
+**Request Signing Policy 宣言規約:**
+
+REST API の各 endpoint (POST/PUT/DELETE/PATCH, `/api/*`) は以下 3 属性のいずれか 1 つを必ず宣言する:
+
+| 属性 | 用途 | 例 |
+|---|---|---|
+| `[SkipRequestSigning]` | 署名検証不要 (anonymous 認証、refresh、email 系など) | `/api/auth/login`, `/api/auth/refresh` |
+| `[RequireUserSignature]` | JWT userId + HMAC 派生キーで検証 | `/api/survivor/scores`, `/api/chat/rooms/*` |
+| `[UnityServerSignature]` | Dedicated Server 共有シークレット HMAC | `/api/unity-server/register` |
+
+未宣言 or 複数宣言の endpoint は `RequestSigningPolicyValidator` が起動時に検出し、`InvalidOperationException` で fail-fast する。新規 endpoint 追加時の付け忘れによる類似 bug の再発を防ぐ設計。`src/Game.Server/Middleware/RequestSigningPolicyValidator.cs` を参照。
+
 **gRPC認証 vs REST認証の違い:**
 
 | 項目 | Game.Server (REST) | Game.Realtime (gRPC) |

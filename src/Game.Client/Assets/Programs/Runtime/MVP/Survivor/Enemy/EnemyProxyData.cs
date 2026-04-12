@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace Game.MVP.Survivor.Enemy
@@ -18,6 +19,8 @@ namespace Game.MVP.Survivor.Enemy
         public EnemyProxyInterpolation Interpolation;
         public int LodUpdateInterval = 1;
         public int FrameOffset;
+        public EnemyVisualEffectController VfxController;
+        public int PreviousHp;
 
         /// <summary>攻撃アニメーションを再生する</summary>
         public void PlayAttack()
@@ -27,7 +30,7 @@ namespace Game.MVP.Survivor.Enemy
             Animator.SetTrigger(EnemyAnimatorHashes.Attack);
         }
 
-        /// <summary>死亡アニメーションを再生し、コライダーを無効化する</summary>
+        /// <summary>死亡アニメーションを再生し、コライダーを無効化する。ディゾルブエフェクトも起動する</summary>
         public void PlayDeath()
         {
             IsDead = true;
@@ -37,6 +40,15 @@ namespace Game.MVP.Survivor.Enemy
                 Animator.SetTrigger(EnemyAnimatorHashes.Death);
             }
             DisableColliders();
+
+            // ディゾルブエフェクト再生（CancellationToken は MonoBehaviour.OnDestroy で自動キャンセル）
+            VfxController?.PlayDeathDissolveAsync().Forget();
+        }
+
+        /// <summary>HP 減少検知時にヒットフラッシュを再生</summary>
+        public void PlayHitFlash()
+        {
+            VfxController?.PlayHitFlash();
         }
 
         /// <summary>速度に応じてアニメーターの Speed パラメータを更新する</summary>

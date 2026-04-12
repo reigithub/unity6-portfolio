@@ -87,8 +87,8 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IUnityServerRegistryService, UnityServerRegistryService>();
-        services.AddSingleton<ISessionAssignmentService, SessionAssignmentService>();
-        services.AddSingleton<IUnityServerService, UnityServerService>();
+        services.AddSingleton<IUnityServerSessionService, UnityServerSessionService>();
+        services.AddSingleton<IUnityServerAuthService, UnityServerAuthService>();
 
         // Auth & Resend
         services.Configure<AuthSettings>(configuration.GetSection("Auth"));

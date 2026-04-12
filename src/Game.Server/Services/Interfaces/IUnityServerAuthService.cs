@@ -4,10 +4,10 @@ using Game.Library.Shared.RequestSigning;
 namespace Game.Server.Services.Interfaces;
 
 /// <summary>
-/// Unity Dedicated Server 接続用セッショントークン発行・検証サービスのインターフェース。
+/// Unity Dedicated Server 接続用セッション認証トークン発行・検証サービスのインターフェース。
 /// SP/MP 両モードのクライアントに対して統一的にトークンを発行する。
 /// </summary>
-public interface IUnityServerService
+public interface IUnityServerAuthService
 {
     /// <summary>
     /// 指定ユーザーに対してセッショントークンを発行する。

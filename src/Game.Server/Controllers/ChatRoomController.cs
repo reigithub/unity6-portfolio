@@ -1,5 +1,6 @@
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Enums;
+using Game.Server.Attributes;
 using Game.Server.Hubs;
 using Game.Server.Services.Chat;
 using Game.Server.Services.Chat.Exceptions;
@@ -13,6 +14,7 @@ namespace Game.Server.Controllers;
 [ApiController]
 [Route("api/chat/rooms")]
 [Authorize]
+[UserSignature]
 public class ChatRoomController : ControllerBase
 {
     private readonly IChatRoomDataService _roomDataService;

@@ -167,7 +167,8 @@ namespace Game.MVP.Survivor.Item
                 master.EffectDuration,
                 master.Rarity,
                 master.Scale.ToScale(),
-                _gameState
+                _gameState,
+                _runnerService
             );
 
             item.OnCollected += OnItemCollectedHandler;

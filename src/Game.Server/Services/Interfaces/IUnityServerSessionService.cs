@@ -4,7 +4,7 @@ namespace Game.Server.Services.Interfaces;
 /// Dedicated Server へのセッション割り当てサービスのインターフェース。
 /// 空き DS を選択し、セッション開始を指示する。
 /// </summary>
-public interface ISessionAssignmentService
+public interface IUnityServerSessionService
 {
     /// <summary>
     /// 空き DS を選択し、セッション作成を指示する。

@@ -28,11 +28,23 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IUnityServerHttpListener _listener;
+        [Inject] private readonly IUnityServerRegistryApiClient _registry;
+        [Inject] private readonly UnityServerBootstrap _bootstrap;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
 
+        /// <summary>
+        /// サーバーメインループを開始する。
+        /// UnityServerBootstrap の起動完了を待ってから処理を開始する。
+        /// </summary>
+        /// <param name="cancellation">キャンセルトークン。</param>
         public async UniTask StartAsync(CancellationToken cancellation)
         {
+            // 起動バリア: UnityServerBootstrap.StartAsync 完了（Listener 起動完了）を待つ
+            await _bootstrap.WaitForStartupAsync(cancellation);
+
             // マスターデータ読み込み（初回のみ）
             await _masterDataService.LoadMasterDataAsync();
 
@@ -45,15 +57,11 @@ namespace Game.MVP.Survivor.Server
 
                 Debug.Log($"[SurvivorServerGameLoop] Session request received: matchId={request.MatchId}, stageId={request.StageId}, players={request.ExpectedPlayers}");
 
-                // Step 2: 接続パラメータを動的設定（リクエストの matchId を使用）
-                SurvivorNetworkMatchConnector.ConfigureForDedicatedServer(
-                    SurvivorNetworkMatchConnector.ServerPort,
-                    SurvivorNetworkMatchConnector.ServerAddress,
-                    request.MatchId);
-                SurvivorNetworkMatchConnector.SetExpectedPlayerCount(request.ExpectedPlayers);
+                // Step 2: 接続パラメータを動的設定（セッションレベルの matchId のみ更新）
+                _sessionConfig.UpdateConfigure(sessionName: request.MatchId, playerCount: request.ExpectedPlayers);
 
                 // ServerHttpListener のステータスを active に更新
-                UnityServerBootstrap.HttpListener?.SetSessionActive(request.MatchId);
+                _listener.SetSessionActive(request.MatchId);
 
                 // Step 3: Fusion Server セッション開始
                 await _networkConnector.StartServerAsync(request.StageId);
@@ -118,13 +126,13 @@ namespace Game.MVP.Survivor.Server
                 Debug.Log("[SurvivorServerGameLoop] All players disconnected, resetting for next session");
 
                 // Step 7: Game.Server にセッション終了通知
-                UnityServerBootstrap.NotifySessionEnded(request.MatchId);
+                await _registry.NotifySessionEndedAsync(request.MatchId, cancellation);
 
                 // ServerHttpListener のステータスを idle に戻す
-                UnityServerBootstrap.HttpListener?.SetSessionIdle();
+                _listener.SetSessionIdle();
 
-                // Fusion セッションのシャットダウン
-                _networkConnector.Disconnect();
+                // Fusion セッションのシャットダウン（完了を待機して次のセッション開始に備える）
+                await _networkConnector.DisconnectAsync();
 
                 Debug.Log("[SurvivorServerGameLoop] Session cleanup done, ready for next session");
             }
@@ -136,12 +144,11 @@ namespace Game.MVP.Survivor.Server
         /// </summary>
         /// <param name="ct">キャンセルトークン。</param>
         /// <returns>デキューしたセッション作成リクエスト。</returns>
-        private static async UniTask<ServerHttpListener.SessionStartRequest> WaitForSessionRequestAsync(CancellationToken ct)
+        private async UniTask<UnityServerSessionRequest> WaitForSessionRequestAsync(CancellationToken ct)
         {
             while (!ct.IsCancellationRequested)
             {
-                var listener = UnityServerBootstrap.HttpListener;
-                if (listener != null && listener.TryDequeueSessionRequest(out var request))
+                if (_listener.TryDequeueSessionRequest(out var request))
                     return request;
 
                 await UniTask.Delay(100, cancellationToken: ct);

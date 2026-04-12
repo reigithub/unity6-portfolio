@@ -100,19 +100,21 @@ namespace Game.MVP.Survivor
             await _saveService.LoadAsync();
             await _audioSaveService.LoadAsync();
 
-            // 4. セッション復元とトークン検証
+            // 4. セッション復元とリフレッシュ
             if (await _authSessionService.RestoreSessionAsync())
             {
-                _apiClient.SetAuthToken(_authSessionService.AuthToken);
-
+                // Signing key は userId から決定的に導出されるため、refresh 前後で不変。
+                // HMAC 署名計算が可能な状態で refresh リクエストを送れるよう先に設定する。
                 if (!string.IsNullOrEmpty(_authSessionService.SigningKey))
                 {
                     _apiClient.SetSigningKey(_authSessionService.SigningKey);
                 }
 
-                // トークンの有効性を検証（期限切れの場合はリフレッシュ試行）
-                // 失敗しても起動は継続し、ゲーム開始時に再認証を行う
-                await TryValidateTokenAsync();
+                // AuthToken は意図的に SetAuthToken しない。
+                // 永続化された JWT は既に期限切れの可能性があるため、refresh で新 token を取得した
+                // 時点で AuthApiService.OnLoginSuccessAsync が自動で SetAuthToken を実行する。
+                // refresh が失敗しても起動は継続し、TitleScene.EnsureValidSessionAsync で再認証する。
+                await TryRefreshSessionAsync();
             }
 
             // 5. ChatClient SignalR 接続設定
@@ -180,28 +182,33 @@ namespace Game.MVP.Survivor
         }
 
         /// <summary>
-        /// トークンの有効性を検証し、必要に応じてリフレッシュを試みる
-        /// 起動時のバックグラウンド検証用（失敗しても起動は継続）
+        /// 起動時に保存された refresh token で session を再開する。
+        /// Refresh に成功した場合は <see cref="Game.Shared.Services.AuthApiService"/>.OnLoginSuccessAsync が
+        /// 自動で <see cref="IApiClient.SetAuthToken"/> + <see cref="IApiClient.SetSigningKey"/> を実行する。
+        /// 失敗しても起動は継続し、TitleScene.EnsureValidSessionAsync で再認証を行う (recovery 責務は TitleScene 側)。
         /// </summary>
-        private async UniTask TryValidateTokenAsync()
+        private async UniTask TryRefreshSessionAsync()
         {
             try
             {
                 var refreshResult = await _authApiService.RefreshTokenAsync();
                 if (refreshResult.IsSuccess)
                 {
-                    Debug.Log("[SurvivorGameRunner] Token refreshed successfully");
+                    Debug.Log("[SurvivorGameRunner] Session restored via refresh token");
                 }
                 else
                 {
-                    // リフレッシュ失敗はログのみ（ゲーム開始時に再認証を行う）
-                    Debug.LogWarning($"[SurvivorGameRunner] Token refresh failed: {refreshResult.Error?.Message}. Will re-authenticate on game start.");
+                    // Refresh token 自体が無効 (30 日期限切れ、DB から削除、etc)。
+                    // Client の _apiClient._authToken は null のまま。TitleScene で GuestLogin fallback に進む。
+                    Debug.LogWarning(
+                        $"[SurvivorGameRunner] Refresh token invalid: {refreshResult.Error?.Message}. " +
+                        "Will re-authenticate on title screen.");
                 }
             }
             catch (System.Exception e)
             {
                 // 例外発生時もログのみ
-                Debug.LogWarning($"[SurvivorGameRunner] Token validation error: {e.Message}");
+                Debug.LogWarning($"[SurvivorGameRunner] Session refresh error: {e.Message}");
             }
         }
 

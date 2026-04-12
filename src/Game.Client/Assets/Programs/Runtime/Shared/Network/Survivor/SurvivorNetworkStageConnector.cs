@@ -2,7 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
-using Game.Library.Shared.RequestSigning;
+using Game.Shared.Environment;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
@@ -23,6 +23,8 @@ namespace Game.Shared.Network.Survivor
         [Inject] private readonly IObjectResolver _resolver;
         [Inject] private readonly IAddressableAssetService _assetService;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IUnityServerAuthProviderFactory _authProviderFactory;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
@@ -51,8 +53,8 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Host;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
-                var expectedPlayers = SurvivorNetworkMatchConnector.ExpectedPlayerCount;
+                var sessionName = _sessionConfig.SessionName;
+                var expectedPlayers = _sessionConfig.MaxPlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
@@ -89,7 +91,7 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Client;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
+                var sessionName = _sessionConfig.SessionName;
 
                 EnsureRunner();
 
@@ -105,6 +107,9 @@ namespace Game.Shared.Network.Survivor
                     }
                 }
 
+                // Client モードでは Address はローカルソケットのバインド先になる。
+                // サーバーアドレスを指定するとポート競合が発生するため Any() を使用する。
+                // サーバーへの接続は SessionName 経由で Photon Cloud が解決する。
                 var config = new FusionConnectionConfig
                 {
                     GameMode = GameMode.Client,
@@ -134,19 +139,18 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 _gameMode = GameMode.Server;
-                var sessionName = SurvivorNetworkMatchConnector.MatchId;
-                var expectedPlayers = SurvivorNetworkMatchConnector.ExpectedPlayerCount;
+                var sessionName = _sessionConfig.SessionName;
+                var expectedPlayers = _sessionConfig.MaxPlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
                 CreateSession(expectedPlayers);
 
-                var serverPort = SurvivorNetworkMatchConnector.ServerPort;
+                var serverPort = _sessionConfig.ServerPort;
 
                 // 環境変数 PUBLIC_ADDRESS から公開アドレスを取得（GCE/NAT対応）
                 NetAddress? publicAddress = null;
-                var publicIp = System.Environment.GetEnvironmentVariable("PUBLIC_ADDRESS");
-                if (!string.IsNullOrEmpty(publicIp))
+                if (EnvVarHelper.TryGet(EnvVarKeys.PublicAddress, out var publicIp))
                 {
                     publicAddress = NetAddress.CreateFromIpPort(publicIp, serverPort);
                 }
@@ -256,11 +260,10 @@ namespace Game.Shared.Network.Survivor
             _runner.RunnerService = _runnerService;
             _runner.OnShutdownCallback = OnRunnerShutdown;
 
-            // UnityServerBootstrap で解析済みの認証シークレットがあれば認証プロバイダを設定
-            if (UnityServerBootstrap.AuthSecretKey != null)
-            {
-                _runner.AuthProvider = new SessionTokenAuthProvider(UnityServerBootstrap.AuthSecretKey);
-            }
+            // 認証プロバイダを設定（Client 側は NullFactory が null を返すため認証スキップ）
+            var authProvider = _authProviderFactory.Create();
+            if (authProvider != null)
+                _runner.AuthProvider = authProvider;
         }
 
         private void CreateSession(int expectedPlayerCount)
@@ -307,34 +310,6 @@ namespace Game.Shared.Network.Survivor
             _runnerService.Clear();
             _runnerService.RaiseClientDisconnected();
             _session = null;
-        }
-
-        // =====================================================================
-        //  プライベートクラス
-        // =====================================================================
-
-        /// <summary>
-        /// SessionToken を検証する IUnityServerAuthProvider 実装。
-        /// ConnectionToken（MessagePack + HMAC-SHA256 バイナリ形式）を直接検証する。
-        /// </summary>
-        private class SessionTokenAuthProvider : IUnityServerAuthProvider
-        {
-            private readonly byte[] _secretKey;
-
-            public SessionTokenAuthProvider(byte[] secretKey)
-            {
-                _secretKey = secretKey;
-            }
-
-            /// <summary>
-            /// ConnectionToken バイト列を MessagePack + HMAC-SHA256 形式で直接検証する。
-            /// </summary>
-            public bool ValidateConnectionToken(byte[] token)
-            {
-                if (token == null || token.Length == 0) return false;
-
-                return SessionTokenHelper.ParseAndVerifyBytes(token, _secretKey) != null;
-            }
         }
     }
 }

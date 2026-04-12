@@ -1,7 +1,9 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Fusion;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Item;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Services;
@@ -41,7 +43,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
-        [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsFieldSceneLoaded> _allClientsFieldSceneLoadedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -140,7 +142,7 @@ namespace Game.MVP.Survivor.Scenes
             // レプリケーション時にクライアント側でも物理シーンに配置されることを保証する
             Debug.Log("[SurvivorNetworkStageScene] Waiting for client field scene loaded...");
             var fieldSceneTcs = new UniTaskCompletionSource();
-            var fieldSceneSub = _clientFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
+            var fieldSceneSub = _allClientsFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
             try
             {
                 await UniTask.WhenAny(
@@ -174,10 +176,25 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster);
-            if (playerController != null)
+            SurvivorPlayerController firstController = null;
+            foreach (var player in _runnerService.Runner.ActivePlayers)
             {
-                SceneComponent.SetPlayerController(playerController);
+                if (!_runnerService.Runner.TryGetPlayerObject(player, out _))
+                    continue;
+
+                var ctrl = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster, targetPlayer: player);
+                if (ctrl != null && firstController == null)
+                {
+                    firstController = ctrl;
+                }
+                Debug.Log($"[SurvivorNetworkStageScene] Player initialized: {player}");
+            }
+
+            // TODO: SetPlayerController は1人分しか保持できない。
+            // 複数プレイヤーの距離検証やレベルアップ通知には Dictionary<PlayerRef, SurvivorPlayerController> が必要（別タスク）。
+            if (firstController != null)
+            {
+                SceneComponent.SetPlayerController(firstController);
                 Debug.Log("[SurvivorNetworkStageScene] Player spawned");
             }
         }

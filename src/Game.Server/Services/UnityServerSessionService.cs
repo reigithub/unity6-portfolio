@@ -9,20 +9,20 @@ namespace Game.Server.Services;
 /// Dedicated Server へのセッション割り当てサービス実装。
 /// 空き DS を選択し、HTTP POST /session/start でセッション作成を指示する。
 /// </summary>
-public class SessionAssignmentService : ISessionAssignmentService
+public class UnityServerSessionService : IUnityServerSessionService
 {
     private const string SessionStartPath = "/session/start";
 
     private readonly IUnityServerRegistryService _registryService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly UnityServerSettings _settings;
-    private readonly ILogger<SessionAssignmentService> _logger;
+    private readonly ILogger<UnityServerSessionService> _logger;
 
-    public SessionAssignmentService(
+    public UnityServerSessionService(
         IUnityServerRegistryService registryService,
         IHttpClientFactory httpClientFactory,
         IOptions<UnityServerSettings> settings,
-        ILogger<SessionAssignmentService> logger)
+        ILogger<UnityServerSessionService> logger)
     {
         _registryService = registryService;
         _httpClientFactory = httpClientFactory;

@@ -439,8 +439,8 @@ namespace Game.MVP.Survivor.ECS
             proxy.transform.position = new Vector3(request.Position.x, request.Position.y, request.Position.z);
             proxy.gameObject.SetActive(true);
 
-            // ECSエンティティとProxyを紐付け
-            proxy.Initialize(entity, _ecsWorld, request.EnemyId);
+            // ECSエンティティとProxyを紐付け（_runnerService は PhysicsScene・DeltaTime 取得に使用）
+            proxy.Initialize(entity, _ecsWorld, request.EnemyId, _runnerService);
 
             // ManagedGameObjectReferenceを設定（SetComponentDataはマネージドclass型にも対応）
             _ecsWorld.EntityManager.SetComponentData(entity, new ManagedGameObjectReference

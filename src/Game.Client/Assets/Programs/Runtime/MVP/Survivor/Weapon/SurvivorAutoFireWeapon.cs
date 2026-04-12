@@ -1,6 +1,7 @@
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Combat;
+using Game.Shared.Network.Fusion;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -30,7 +31,7 @@ namespace Game.MVP.Survivor.Weapon
 
         protected override void InitializePoolItem(SurvivorProjectile projectile)
         {
-            projectile.Initialize(GameState);
+            projectile.Initialize(GameState, RunnerService);
             projectile.OnHit += OnProjectileHit;
             projectile.OnLifetimeExpired += ReturnToPool;
         }
@@ -102,7 +103,8 @@ namespace Game.MVP.Survivor.Weapon
         {
             using (s_findTargetMarker.Auto())
             {
-                int hitCount = Physics.OverlapSphereNonAlloc(_owner.position, _range, _hitBuffer);
+                var physicsScene = RunnerService.GetPhysicsSceneOrDefault();
+                int hitCount = physicsScene.OverlapSphere(_owner.position, _range, _hitBuffer, -1, QueryTriggerInteraction.Collide);
 
                 Transform nearest = null;
                 float nearestSqrDistance = float.MaxValue;

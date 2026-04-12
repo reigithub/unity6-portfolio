@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Game.Shared.Environment;
 using UnityEditor;
 using UnityEngine;
@@ -15,16 +17,10 @@ namespace Game.Editor
     public static partial class ProjectEditorMenu
     {
         /// <summary>DS プロセス起動時に渡すデフォルトの Fusion ゲームポート。</summary>
-        private const ushort DsDefaultPort = 7777;
+        private const string DsDefaultPort = "7777";
 
         /// <summary>DS プロセス起動時に渡すデフォルトのヘルスチェックポート。</summary>
-        private const int DsDefaultHealthPort = 7778;
-
-        /// <summary>DS プロセス起動時に渡すデフォルトの最大プレイヤー数。</summary>
-        private const int DsDefaultMaxPlayers = 4;
-
-        /// <summary>ローカル Game.Server の URL（DS がハートビートを送る宛先）。</summary>
-        private const string DsLocalGameServerUrl = "http://localhost:5000";
+        private const string DsDefaultHealthPort = "7778";
 
         private static Process _dsProcess;
 
@@ -83,45 +79,57 @@ namespace Game.Editor
             var exePath = ResolveDsExePath();
             if (exePath == null) return;
 
-            // .env から環境変数を読み込む
-            var repoRoot = ResolveRepoRoot();
-            var envFilePath = Path.Combine(repoRoot, "docker", "game-server", ".env");
-            var envVars = EnvVarParser.Parse(envFilePath);
+            // .env から環境変数を読み込む (パスは EnvVarParser が自動探索)
+            var envFilePath = EnvVarHelper.FindDefaultEnvFile();
+            var envVars = EnvVarHelper.Parse(envFilePath);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Debug.Log($"[DedicatedServer] .env 読み込み: {envFilePath} (存在: {File.Exists(envFilePath)})");
+            Debug.Log($"[DedicatedServer] .env 読み込み: {envFilePath ?? "(not found)"}");
 #endif
+
+            // .env からポートをオーバーライド (未設定時はデフォルト)
+            var port = EnvVarHelper.GetValueOrDefault(envVars, EnvVarKeys.UnityServerPort, DsDefaultPort.ToString());
+            var healthPort = EnvVarHelper.GetValueOrDefault(envVars, EnvVarKeys.UnityServerHealthPort, DsDefaultHealthPort.ToString());
 
             // ProcessStartInfo 構築
             var psi = new ProcessStartInfo
             {
                 FileName = exePath,
                 Arguments = $"-batchmode -nographics" +
-                            $" --port {DsDefaultPort}" +
-                            $" --health-port {DsDefaultHealthPort}" +
-                            $" --players {DsDefaultMaxPlayers}",
+                            $" --port {port}" +
+                            $" --health-port {healthPort}",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
 
+
             // HMAC シークレット
-            if (envVars.TryGetValue(EnvVarKeys.UnityServerAuthSecretKey, out var secret) &&
-                !string.IsNullOrEmpty(secret))
+            if (EnvVarHelper.TryGetValue(envVars, EnvVarKeys.UnityServerAuthSecretKey, out var secret))
             {
                 psi.Environment[EnvVarKeys.UnityServerAuthSecretKey] = secret;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.Log("[DedicatedServer] UNITY_SERVER_AUTH_SESSION_SECRET を設定しました");
+                Debug.Log($"[DedicatedServer] {EnvVarKeys.UnityServerAuthSecretKey} を設定しました : {MaskSecret(secret)}");
 #endif
             }
             else
             {
-                Debug.LogWarning("[DedicatedServer] .env に UNITY_SERVER_AUTH_SESSION_SECRET が見つかりません。HMAC 認証なしで起動します");
+                Debug.LogWarning($"[DedicatedServer] .env に {EnvVarKeys.UnityServerAuthSecretKey} が見つかりません。HMAC 認証なしで起動します");
             }
 
-            // Game.Server URL
-            psi.Environment["GAME_SERVER_URL"] = DsLocalGameServerUrl;
+            // Game.Server URL を .env から取得
+            if (EnvVarHelper.TryGetValue(envVars, EnvVarKeys.GameServerUrl, out var gameServerUrl))
+            {
+                psi.Environment[EnvVarKeys.GameServerUrl] = gameServerUrl;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[DedicatedServer] {EnvVarKeys.GameServerUrl} を設定しました : {gameServerUrl}");
+#endif
+            }
+            else
+            {
+                Debug.LogWarning($"[DedicatedServer] .env に {EnvVarKeys.GameServerUrl} が見つかりません。DS は Game.Server への自己登録をスキップします");
+            }
 
             // プロセス起動
             try
@@ -142,7 +150,7 @@ namespace Game.Editor
             }
 
             _dsPid = _dsProcess.Id;
-            Debug.Log($"[DedicatedServer] 起動しました (PID: {_dsProcess.Id}) port={DsDefaultPort} health={DsDefaultHealthPort}");
+            Debug.Log($"[DedicatedServer] 起動しました (PID: {_dsProcess.Id}) port={port} health={healthPort}");
 
             // 標準出力・エラーを非同期で Unity Console に転送
             _dsProcess.OutputDataReceived += OnDsOutputReceived;
@@ -252,6 +260,19 @@ namespace Game.Editor
                 Debug.Log("[DedicatedServer] Editor 終了に伴いサーバーを停止します");
                 StopDedicatedServer();
             }
+        }
+
+        /// <summary>
+        /// シークレット値をログ安全な形式にマスクする。
+        /// 値そのものは出力せず、長さと SHA256 ハッシュの先頭 4 バイト (8 hex) のみを返す。
+        /// </summary>
+        private static string MaskSecret(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "(null)";
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+            var prefix = BitConverter.ToString(hash, 0, 4).Replace("-", string.Empty).ToLowerInvariant();
+            return $"len={value.Length}, sha256Prefix={prefix}";
         }
     }
 }

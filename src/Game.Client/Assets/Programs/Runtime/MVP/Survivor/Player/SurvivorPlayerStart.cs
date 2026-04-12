@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Fusion;
 using Game.Client.MasterData;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
@@ -24,21 +25,39 @@ namespace Game.MVP.Survivor.Player
         /// <param name="playerMaster">プレイヤーマスターデータ</param>
         /// <param name="levelMaster">プレイヤーレベルマスターデータ</param>
         /// <param name="sceneComponentRoot">親 Transform（null の場合は再配置しない）</param>
+        /// <param name="targetPlayer">対象プレイヤー（null の場合はローカルプレイヤーを取得）</param>
         /// <returns>初期化済み SurvivorPlayerController、取得失敗時は null</returns>
         public async UniTask<SurvivorPlayerController> LoadPlayerAsync(
             IObjectResolver resolver,
             SurvivorPlayerMaster playerMaster,
             SurvivorPlayerLevelMaster levelMaster,
-            Transform sceneComponentRoot = null)
+            Transform sceneComponentRoot = null,
+            PlayerRef? targetPlayer = null)
         {
             // 1. Fusion Spawn 済みの SurvivorFusionPlayer を取得
             //    サーバー側: 直前の SpawnConnectedPlayers で即座に利用可能
             //    クライアント側: サーバーからのレプリケーション完了を待機
-            if (!_runnerService.TryGet<SurvivorFusionPlayer>(out var fusionPlayer))
+            SurvivorFusionPlayer fusionPlayer = null;
+
+            if (targetPlayer.HasValue)
             {
-                await UniTask.WaitUntil(
-                    () => _runnerService.TryGet(out fusionPlayer),
-                    cancellationToken: destroyCancellationToken);
+                // 特定プレイヤー指定: TryGetPlayerComponent で直接取得
+                if (!_runnerService.TryGetPlayerComponent(targetPlayer.Value, out fusionPlayer))
+                {
+                    await UniTask.WaitUntil(
+                        () => _runnerService.TryGetPlayerComponent(targetPlayer.Value, out fusionPlayer),
+                        cancellationToken: destroyCancellationToken);
+                }
+            }
+            else
+            {
+                // 未指定: クライアント側のローカルプレイヤー取得（既存動作維持）
+                if (!_runnerService.TryGetLocalPlayerComponent(out fusionPlayer))
+                {
+                    await UniTask.WaitUntil(
+                        () => _runnerService.TryGetLocalPlayerComponent(out fusionPlayer),
+                        cancellationToken: destroyCancellationToken);
+                }
             }
 
             if (fusionPlayer == null)

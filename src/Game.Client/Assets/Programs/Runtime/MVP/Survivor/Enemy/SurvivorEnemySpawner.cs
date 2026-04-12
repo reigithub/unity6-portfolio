@@ -239,12 +239,7 @@ namespace Game.MVP.Survivor.Enemy
             Debug.Log($"[SurvivorEnemySpawner] Wave started. Enemy types: {_enemySpawnList.Count}, Total: {_remainingSpawnCount}, RNG Seed: {seed}");
         }
 
-        private float GetNetworkDeltaTime()
-        {
-            if (_runnerService.IsActive && _runnerService.Runner != null)
-                return _runnerService.Runner.DeltaTime;
-            return Time.deltaTime;
-        }
+        private float GetNetworkDeltaTime() => _runnerService.GetDeltaTime();
 
         private void Update()
         {

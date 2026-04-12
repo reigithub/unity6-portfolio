@@ -4,6 +4,7 @@ using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Server;
 using Game.Shared;
+using Game.Shared.Bootstrap;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
@@ -52,6 +53,7 @@ namespace Game.MVP.Survivor
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
             builder.Register<FusionRunnerService>(Lifetime.Singleton).As<IFusionRunnerService>();
+            builder.Register<UnityServerSessionConfig>(Lifetime.Singleton).As<IUnityServerSessionConfig>();
 
             if (UnityPlaymodeHelper.IsServer())
             {
@@ -59,6 +61,11 @@ namespace Game.MVP.Survivor
             }
             else
             {
+                // AppLifecycleBridge を LifetimeScope の GameObject に AddComponent。
+                // Scope lifecycle に追従するため static プロパティや global registry を使わない。
+                var appLifecycleBridge = gameObject.AddComponent<AppLifecycleBridge>();
+                builder.RegisterInstance<IAppLifecycleSignals>(appLifecycleBridge);
+
                 RegisterClientServices(builder);
             }
         }
@@ -87,6 +94,23 @@ namespace Game.MVP.Survivor
 
             // Local Server Orchestrator（サーバーでは不要）
             builder.Register<NullLocalServerOrchestrator>(Lifetime.Singleton).As<ILocalServerOrchestrator>();
+
+            // ========================================
+            // UnityServer インフラ（Config / Auth / Registry / Listener / Bootstrap）
+            // ========================================
+            // Config を遅延初期化で保持するプロバイダ（UnityServerBootstrap.StartAsync 内でセットされる）
+            builder.Register<UnityServerConfigProvider>(Lifetime.Singleton);
+
+            builder.Register<UnityServerAuthProviderFactory>(Lifetime.Singleton)
+                   .As<IUnityServerAuthProviderFactory>();
+            builder.Register<UnityServerRegistryApiClient>(Lifetime.Singleton)
+                   .As<IUnityServerRegistryApiClient>();
+            builder.Register<UnityServerHttpListener>(Lifetime.Singleton)
+                   .As<IUnityServerHttpListener>();
+
+            // サーバー初期化 EntryPoint（IAsyncStartable として自動実行）
+            // SurvivorServerGameLoop が具象型で WaitForStartupAsync() を呼ぶため AsSelf() が必要
+            builder.RegisterEntryPoint<UnityServerBootstrap>().AsSelf();
 
             // Server Game Loop: AllPlayersReady → SurvivorNetworkStageScene 遷移
             builder.RegisterEntryPoint<SurvivorServerGameLoop>();
@@ -156,6 +180,12 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
             builder.Register<UnityServerApiService>(Lifetime.Singleton).As<IUnityServerApiService>();
 
+            // AuthSessionRefresher — 独立 background service として session 維持 ([D-Phase 2])
+            // RegisterEntryPoint 単独で IAsyncStartable singleton 登録、その結果に As<T>() を chain して
+            // IAuthSessionRefresher interface も公開する (Register<T> との重複登録を避ける)
+            builder.RegisterEntryPoint<AuthSessionRefresher>()
+                .As<IAuthSessionRefresher>();
+
             // Request Queue & Notifications
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
@@ -194,12 +224,21 @@ namespace Game.MVP.Survivor
             }
 #endif
 
+            // ========================================
+            // UnityServer Null実装（クライアント側では Auth Factory のみ必要）
+            // ========================================
+            builder.Register<NullUnityServerAuthProviderFactory>(Lifetime.Singleton)
+                   .As<IUnityServerAuthProviderFactory>();
+
             // Game Runner (Entry Point)
             builder.Register<SurvivorGameRunner>(Lifetime.Singleton).As<ISurvivorGameRunner>();
         }
 
         private static void RegisterSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
         {
+            // Auth (Phase 2: session refresh result)
+            builder.RegisterMessageBroker<SurvivorSignals.Auth.SessionRefreshResult>(options);
+
             // Player
             builder.RegisterMessageBroker<SurvivorSignals.Player.Spawned>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Player.DamageReceived>(options);
@@ -241,6 +280,7 @@ namespace Game.MVP.Survivor
             builder.RegisterMessageBroker<SurvivorSignals.Item.CollectReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsSceneReady>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.ClientFieldSceneLoaded>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsFieldSceneLoaded>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersDisconnected>(options);
         }
     }

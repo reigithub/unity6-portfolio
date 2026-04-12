@@ -40,4 +40,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
     CMD bash -c 'exec 3<>/dev/tcp/localhost/7778 && echo -e "GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n" >&3 && cat <&3 | head -1 | grep -q "200 OK"' || exit 1
 
 ENTRYPOINT ["./Unity6GameServer.x86_64", "-batchmode", "-nographics"]
-CMD ["--port", "7777", "--health-port", "7778", "--players", "4"]
+CMD ["--port", "7777", "--health-port", "7778"]

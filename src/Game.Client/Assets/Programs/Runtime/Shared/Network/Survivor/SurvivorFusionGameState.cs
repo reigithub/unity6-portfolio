@@ -47,6 +47,7 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadyPub;
         [Inject] private IPublisher<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedPub;
+        [Inject] private IPublisher<SurvivorSignals.Session.AllClientsFieldSceneLoaded> _allClientsFieldSceneLoadedPub;
 
         // Weapon / Item（サーバー側: クライアントRPCからのイベント中継）
         [Inject] private IPublisher<SurvivorSignals.Weapon.HitReported> _hitReportedPub;
@@ -81,6 +82,7 @@ namespace Game.Shared.Network.Survivor
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
         private readonly HashSet<PlayerRef> _sceneReadyPlayers = new();
+        private readonly HashSet<PlayerRef> _fieldSceneReadyPlayers = new();
 
         // =====================================================================
         //  ライフサイクル
@@ -98,6 +100,7 @@ namespace Game.Shared.Network.Survivor
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _runnerService?.Unregister(this);
+            Destroy(gameObject);
         }
 
         private void Update()
@@ -405,6 +408,7 @@ namespace Game.Shared.Network.Survivor
             _totalPlayerCount = count;
             _deadPlayerIds.Clear();
             _sceneReadyPlayers.Clear();
+            _fieldSceneReadyPlayers.Clear();
             _isLevelUpPaused = false;
 
             // [Networked] ゲーム状態をリセット（リトライ時に ChangeDetector が正しく変化を検知するため）
@@ -529,10 +533,19 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-        public void RpcNotifyFieldSceneLoaded()
+        public void RpcNotifyFieldSceneLoaded(RpcInfo info = default)
         {
-            Debug.Log("[SurvivorFusionGameState] Client field scene loaded (RPC received)");
+            var player = info.Source;
+            _fieldSceneReadyPlayers.Add(player);
+            Debug.Log($"[SurvivorFusionGameState] Client field scene loaded: {player} ({_fieldSceneReadyPlayers.Count}/{_totalPlayerCount})");
+
             _clientFieldSceneLoadedPub?.Publish(new SurvivorSignals.Session.ClientFieldSceneLoaded());
+
+            if (_totalPlayerCount > 0 && _fieldSceneReadyPlayers.Count >= _totalPlayerCount)
+            {
+                Debug.Log("[SurvivorFusionGameState] All clients field scene loaded!");
+                _allClientsFieldSceneLoadedPub?.Publish(new SurvivorSignals.Session.AllClientsFieldSceneLoaded());
+            }
         }
 
         public void OnClientSceneReady(PlayerRef player)

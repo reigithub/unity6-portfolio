@@ -43,6 +43,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -500,6 +501,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // Fusion 切断（Addressables シーンアンロード後に実行）
             _networkConnector?.Disconnect();
+            _sessionConfig.Clear();
             await UniTask.Yield();
         }
 

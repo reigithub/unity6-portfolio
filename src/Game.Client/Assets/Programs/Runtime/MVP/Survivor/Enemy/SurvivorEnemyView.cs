@@ -148,6 +148,7 @@ namespace Game.MVP.Survivor.Enemy
 
             // Animator は Root に配置済み
             instance.TryGetComponent<Animator>(out var animator);
+            instance.TryGetComponent<EnemyVisualEffectController>(out var vfxController);
             _proxies[e.NetworkId] = new EnemyProxyData
             {
                 GameObject = instance,
@@ -157,6 +158,8 @@ namespace Game.MVP.Survivor.Enemy
                 IsDead = false,
                 DeathAnimDuration = GetDeathAnimDuration(e.EnemyMasterId),
                 FrameOffset = e.NetworkId % FarUpdateInterval,
+                VfxController = vfxController,
+                PreviousHp = e.CurrentHp,
                 Interpolation = new EnemyProxyInterpolation
                 {
                     LastSyncPosition = pos,
@@ -174,6 +177,13 @@ namespace Game.MVP.Survivor.Enemy
             var serverPos = new Vector3(e.PositionX, e.PositionY, e.PositionZ);
             var serverVel = new Vector3(e.VelocityX, e.VelocityY, e.VelocityZ);
             data.Interpolation.OnSyncReceived(serverPos, serverVel, MaxCorrectionDistance);
+
+            // HP 減少を検知してヒットフラッシュ再生
+            if (e.CurrentHp < data.PreviousHp)
+            {
+                data.PlayHitFlash();
+            }
+            data.PreviousHp = e.CurrentHp;
         }
 
         private void HandleAttack(SurvivorNetworkEnemyStateSnapshot e)
@@ -191,8 +201,9 @@ namespace Game.MVP.Survivor.Enemy
 
             data.PlayDeath();
 
-            // 死亡アニメーション後に破棄（SpawnProxy 時にキャッシュ済み）
-            DestroyProxyDelayed(e.NetworkId, data.DeathAnimDuration).Forget();
+            // ディゾルブ完了まで待ってから破棄（DeathAnimDuration とディゾルブ時間の長い方を使用）
+            float delay = Mathf.Max(data.DeathAnimDuration, data.VfxController?.TotalDissolveDuration ?? 0f);
+            DestroyProxyDelayed(e.NetworkId, delay).Forget();
         }
 
         private float GetDeathAnimDuration(int enemyMasterId)

@@ -15,6 +15,15 @@ namespace Game.Shared.Services
         private const string SaveKey = "session";
         private readonly ISaveDataStorage _storage;
         private SessionSaveData _data;
+        private DateTime? _lastRefreshedAt;
+
+        /// <summary>
+        /// 冗長な refresh 呼び出しを skip する default 時間閾値。
+        /// Server 側 JWT 有効期限 (60 分) の約 0.83% で、安全側に倒した短めの値。
+        /// 呼び出し側は <see cref="IsRecentlyRefreshed()"/> 経由で暗黙参照する。
+        /// カスタム threshold が必要な特殊ケースは <see cref="IsRecentlyRefreshed(TimeSpan)"/> を使用する。
+        /// </summary>
+        private readonly TimeSpan _defaultFreshnessThreshold = TimeSpan.FromSeconds(30);
 
         public AuthSessionService(ISaveDataStorage storage)
         {
@@ -28,6 +37,27 @@ namespace Game.Shared.Services
         public string UserName => _data?.UserName;
         public string AuthType => _data?.AuthType;
         public string SigningKey => _data?.SigningKey;
+
+        public DateTime? LastRefreshedAt => _lastRefreshedAt;
+
+        public bool IsRecentlyRefreshed() => IsRecentlyRefreshed(_defaultFreshnessThreshold);
+
+        public bool IsRecentlyRefreshed(TimeSpan threshold)
+        {
+            if (_lastRefreshedAt == null) return false;
+
+            var elapsed = DateTime.UtcNow - _lastRefreshedAt.Value;
+
+            // 時計巻き戻し (NTP sync 等) 時は safe side (skip しない) に倒す
+            if (elapsed < TimeSpan.Zero) return false;
+
+            return elapsed < threshold;
+        }
+
+        public void MarkRefreshed()
+        {
+            _lastRefreshedAt = DateTime.UtcNow;
+        }
 
         public async UniTask SaveSessionAsync(LoginResponse response, string authType = "guest")
         {
@@ -57,6 +87,7 @@ namespace Game.Shared.Services
             _data ??= new SessionSaveData();
             var fingerprint = _data.DeviceFingerprint;
             _data = new SessionSaveData { DeviceFingerprint = fingerprint };
+            _lastRefreshedAt = null;
             await _storage.SaveAsync(SaveKey, _data);
         }
 

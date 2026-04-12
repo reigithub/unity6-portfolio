@@ -1,18 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Fusion;
+using Game.Shared.Playmode;
 using VContainer;
 
 namespace Game.Shared.Network.Fusion
 {
     public class FusionRunnerService : IFusionRunnerService
     {
-        /// <summary>
-        /// static クラス（UnityPlaymodeHelper 等）からの限定的アクセス用。
-        /// DI 可能なクラスでは必ず IFusionRunnerService を inject すること。
-        /// </summary>
-        internal static FusionRunnerService Current { get; private set; }
-
         public NetworkRunner Runner { get; private set; }
         public bool IsActive => Runner != null && Runner.IsRunning;
         public bool IsServer => IsActive && Runner.IsServer;
@@ -31,14 +26,14 @@ namespace Game.Shared.Network.Fusion
         {
             Runner = runner;
             Resolver = resolver;
-            Current = this;
+            UnityPlaymodeHelper.SetRunnerService(this);
         }
 
         public void Clear()
         {
             Runner = null;
             _registry.Clear();
-            if (Current == this) Current = null;
+            UnityPlaymodeHelper.ClearRunnerService(this);
         }
 
         public string GetDebugStatus()

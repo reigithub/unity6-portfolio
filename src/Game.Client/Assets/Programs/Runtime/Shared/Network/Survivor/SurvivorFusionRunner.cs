@@ -4,6 +4,7 @@ using Fusion;
 using Fusion.Addons.Physics;
 using Fusion.Sockets;
 using Game.Shared.Network.Fusion;
+using Game.Shared.Unity.Server;
 using UnityEngine;
 using VContainer;
 
@@ -77,7 +78,8 @@ namespace Game.Shared.Network.Survivor
             }
             else
             {
-                Debug.LogError($"[SurvivorFusionRunner] Failed to start: {result.ShutdownReason}");
+                Debug.LogError($"[SurvivorFusionRunner] Failed to start: {result.ShutdownReason}, ErrorMessage: {result.ErrorMessage}");
+                if (result.StackTrace != null) Debug.LogError($"[SurvivorFusionRunner] StackTrace: {result.StackTrace}");
             }
 
             return result;

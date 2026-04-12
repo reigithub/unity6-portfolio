@@ -71,16 +71,16 @@ namespace Game.Shared.Unity.Server
             }
 
             // .env から読み取り（パスが null or ファイル不在なら空 Dictionary）
-            var envVars = EnvVarParser.Parse(_config.DotEnvFilePath);
+            var envVars = EnvVarHelper.Parse(_config.DotEnvFilePath);
 
             // 環境変数設定
             psi.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
             psi.Environment["ASPNETCORE_URLS"] = $"http://localhost:{_config.GameServerPort}";
 
             // DB接続文字列（.env の POSTGRES_* を使用、SP は PgPort が異なる）
-            var pgDb = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_DB", "gameserver");
-            var pgUser = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_USER", "gameuser");
-            var pgPass = EnvVarParser.GetValueOrDefault(envVars, "POSTGRES_PASSWORD", "localdev");
+            var pgDb = EnvVarHelper.GetValueOrDefault(envVars, "POSTGRES_DB", "gameserver");
+            var pgUser = EnvVarHelper.GetValueOrDefault(envVars, "POSTGRES_USER", "gameuser");
+            var pgPass = EnvVarHelper.GetValueOrDefault(envVars, "POSTGRES_PASSWORD", "localdev");
             psi.Environment["ConnectionStrings__Default"] =
                 $"Host=localhost;Port={_config.PgPort};Database={pgDb};Username={pgUser};Password={pgPass}";
 

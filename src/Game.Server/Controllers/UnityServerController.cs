@@ -1,35 +1,32 @@
 using Game.Library.Shared.Dto;
-using Game.Server.Configuration;
+using Game.Server.Attributes;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Game.Server.Controllers;
 
 /// <summary>
 /// Unity Dedicated Server 管理エンドポイント。
-/// トークン発行（JWT 認証）と DS ライフサイクル管理（共有シークレット認証）を統合する。
+/// トークン発行（JWT 認証）と DS ライフサイクル管理（HMAC 署名認証）を統合する。
+/// DS ライフサイクル系 Action の認証は <see cref="Middleware.RequestSigningMiddleware"/> で行われる。
 /// </summary>
 [ApiController]
 [Route("api/unity-server")]
 public class UnityServerController : ControllerBase
 {
-    private readonly IUnityServerService _serverService;
+    private readonly IUnityServerAuthService _serverAuthService;
     private readonly IUnityServerRegistryService _registryService;
-    private readonly UnityServerSettings _settings;
     private readonly ILogger<UnityServerController> _logger;
 
     public UnityServerController(
-        IUnityServerService serverService,
+        IUnityServerAuthService serverAuthService,
         IUnityServerRegistryService registryService,
-        IOptions<UnityServerSettings> settings,
         ILogger<UnityServerController> logger)
     {
-        _serverService = serverService;
+        _serverAuthService = serverAuthService;
         _registryService = registryService;
-        _settings = settings.Value;
         _logger = logger;
     }
 
@@ -44,6 +41,7 @@ public class UnityServerController : ControllerBase
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
     [HttpPost("issue-token")]
     [Authorize]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(UnityServerAuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> IssueToken(
@@ -55,7 +53,7 @@ public class UnityServerController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var response = await _serverService.IssueTokenAsync(userId, matchId, stageId, expectedPlayers);
+        var response = await _serverAuthService.IssueTokenAsync(userId, matchId, stageId, expectedPlayers);
 
         _logger.LogInformation(
             "Unity server token issued for user {UserId}, session {SessionName}, stageId={StageId}",
@@ -66,18 +64,16 @@ public class UnityServerController : ControllerBase
 
     /// <summary>
     /// Dedicated Server を DS レジストリに登録する。
-    /// DS 起動時に呼ばれる。
+    /// DS 起動時に呼ばれる。認証は RequestSigningMiddleware で処理済み。
     /// </summary>
     /// <param name="request">DS の識別子・アドレス・ポート情報。</param>
     /// <returns>登録成功時は 200 OK。</returns>
     [HttpPost("register")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Register([FromBody] UnityServerRegistrationRequest request)
     {
-        if (!ValidateDsAuth())
-            return Unauthorized();
-
         await _registryService.RegisterAsync(request);
 
         _logger.LogInformation("DS registered: dsId={DsId}, address={Address}, gamePort={GamePort}", request.DsId, request.Address, request.GamePort);
@@ -87,42 +83,38 @@ public class UnityServerController : ControllerBase
 
     /// <summary>
     /// Dedicated Server を DS レジストリから登録解除する。
-    /// DS 正常終了時に呼ばれる。
+    /// DS 正常終了時に呼ばれる。認証は RequestSigningMiddleware で処理済み。
     /// </summary>
-    /// <param name="dsId">登録解除する DS の識別子。</param>
+    /// <param name="request">登録解除する DS の識別子を含むリクエスト。</param>
     /// <returns>登録解除成功時は 200 OK。</returns>
     [HttpPost("deregister")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Deregister([FromQuery] string dsId)
+    public async Task<IActionResult> Deregister([FromBody] UnityServerDeregisterRequest request)
     {
-        if (!ValidateDsAuth())
-            return Unauthorized();
+        await _registryService.DeregisterAsync(request.DsId);
 
-        await _registryService.DeregisterAsync(dsId);
-
-        _logger.LogInformation("DS deregistered: dsId={DsId}", dsId);
+        _logger.LogInformation("DS deregistered: dsId={DsId}", request.DsId);
 
         return Ok();
     }
 
     /// <summary>
     /// Dedicated Server のハートビートを受信し、生存確認を更新する。
-    /// DS は 30 秒間隔でこのエンドポイントを呼ぶ。
+    /// DS は 30 秒間隔でこのエンドポイントを呼ぶ。認証は RequestSigningMiddleware で処理済み。
     /// </summary>
-    /// <param name="dsId">ハートビートを送信する DS の識別子。</param>
+    /// <param name="request">ハートビートを送信する DS の識別子を含むリクエスト。</param>
     /// <returns>ハートビート受信成功時は 200 OK。</returns>
     [HttpPost("heartbeat")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Heartbeat([FromQuery] string dsId)
+    public async Task<IActionResult> Heartbeat([FromBody] UnityServerHeartbeatRequest request)
     {
-        if (!ValidateDsAuth())
-            return Unauthorized();
+        await _registryService.HeartbeatAsync(request.DsId);
 
-        await _registryService.HeartbeatAsync(dsId);
-
-        _logger.LogDebug("DS heartbeat received: dsId={DsId}", dsId);
+        _logger.LogDebug("DS heartbeat received: dsId={DsId}", request.DsId);
 
         return Ok();
     }
@@ -130,45 +122,21 @@ public class UnityServerController : ControllerBase
     /// <summary>
     /// Dedicated Server からセッション終了を通知する。
     /// DS がセッション完了後に呼び出し、DS ステータスを idle に戻す。
+    /// 認証は RequestSigningMiddleware で処理済み。
     /// </summary>
-    /// <param name="dsId">セッションが終了した DS の識別子。</param>
-    /// <param name="matchId">終了したセッションのマッチID。</param>
+    /// <param name="request">セッションが終了した DS の識別子とマッチIDを含むリクエスト。</param>
     /// <returns>セッション終了通知受信成功時は 200 OK。</returns>
     [HttpPost("session-ended")]
+    [UnityServerSignature]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> SessionEnded([FromQuery] string dsId, [FromQuery] string matchId)
+    public async Task<IActionResult> SessionEnded([FromBody] UnityServerSessionEndedRequest request)
     {
-        if (!ValidateDsAuth())
-            return Unauthorized();
-
-        await _registryService.SessionEndedAsync(dsId, matchId);
+        await _registryService.SessionEndedAsync(request.DsId, request.MatchId);
 
         _logger.LogInformation(
-            "DS session ended: dsId={DsId}, matchId={MatchId}", dsId, matchId);
+            "DS session ended: dsId={DsId}, matchId={MatchId}", request.DsId, request.MatchId);
 
         return Ok();
-    }
-
-    /// <summary>
-    /// リクエストヘッダーの共有シークレットを検証する。
-    /// DS から Game.Server へのリクエストに使用する。
-    /// </summary>
-    /// <returns>認証成功時は true、失敗時は false。</returns>
-    private bool ValidateDsAuth()
-    {
-        if (!Request.Headers.TryGetValue("X-DS-Auth", out var authHeader))
-        {
-            _logger.LogWarning("DS auth header missing: {Path}", Request.Path);
-            return false;
-        }
-
-        if (authHeader.ToString() != _settings.SecretKey)
-        {
-            _logger.LogWarning("DS auth secret mismatch: {Path}", Request.Path);
-            return false;
-        }
-
-        return true;
     }
 }

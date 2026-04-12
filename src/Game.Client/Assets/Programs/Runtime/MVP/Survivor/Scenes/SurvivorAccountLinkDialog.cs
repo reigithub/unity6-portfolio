@@ -19,6 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly IInputService _inputService;
 
         private readonly AccountLinkDialogViewModel _viewModel = new();
@@ -121,13 +122,13 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// セッションの有効性を確認（未認証時はスキップ）
+        /// セッションの有効性を確認（未認証時はスキップ）。
+        /// refresher に proactive refresh を委譲する ([D-Phase 2])。
         /// </summary>
         private async UniTask<bool> EnsureValidSessionAsync()
         {
             if (!_authSessionService.IsAuthenticated) return false;
-            var refreshResult = await _authApiService.RefreshTokenAsync();
-            return refreshResult.IsSuccess;
+            return await _authSessionRefresher.EnsureFreshAsync();
         }
 
         /// <summary>

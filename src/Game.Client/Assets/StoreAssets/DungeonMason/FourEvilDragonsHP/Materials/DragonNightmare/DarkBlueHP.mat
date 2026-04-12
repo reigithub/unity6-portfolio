@@ -21,14 +21,14 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: DarkBlueHP
-  m_Shader: {fileID: 4800000, guid: a1fed925f1952484599c31a3a94c7cab, type: 3}
+  m_Shader: {fileID: 4800000, guid: 54be1da28312e8b4b81233120454c181, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _EMISSION
-  - _SPECULAR_SETUP
+  m_ValidKeywords: []
   m_InvalidKeywords:
+  - _EMISSION
   - _RECEIVESHADOWS_ON
+  - _SPECULAR_SETUP
   m_LightmapFlags: 1
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

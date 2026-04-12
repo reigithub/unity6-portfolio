@@ -4,6 +4,24 @@ namespace Game.Shared.Playmode
 {
     public static class UnityPlaymodeHelper
     {
+        private static IFusionRunnerService _runnerService;
+
+        /// <summary>
+        /// FusionRunnerService が初期化されたときに呼び出す。
+        /// </summary>
+        /// <param name="service">登録するサービスインスタンス。</param>
+        internal static void SetRunnerService(IFusionRunnerService service) => _runnerService = service;
+
+        /// <summary>
+        /// FusionRunnerService がクリアされたときに呼び出す。
+        /// </summary>
+        /// <param name="service">解除するサービスインスタンス。</param>
+        internal static void ClearRunnerService(IFusionRunnerService service)
+        {
+            if (_runnerService == service)
+                _runnerService = null;
+        }
+
         public static bool IsServer()
         {
 #if UNITY_SERVER
@@ -11,7 +29,7 @@ namespace Game.Shared.Playmode
 #elif UNITY_EDITOR
             return Multiplayer.MppmHelper.IsServer();
 #else
-            return FusionRunnerService.Current?.IsDedicatedServer ?? false;
+            return _runnerService?.IsDedicatedServer ?? false;
 #endif
         }
 
@@ -33,7 +51,7 @@ namespace Game.Shared.Playmode
 #elif UNITY_EDITOR
             return Multiplayer.MppmHelper.IsHost();
 #else
-            return FusionRunnerService.Current?.IsHostMode ?? false;
+            return _runnerService?.IsHostMode ?? false;
 #endif
         }
     }

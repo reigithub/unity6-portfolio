@@ -1,5 +1,5 @@
 using Game.Library.Shared.Dto;
-using Game.Server.Dto.Responses;
+using Game.Server.Attributes;
 using Game.Server.Services.Interfaces;
 using Game.Server.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +19,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -31,6 +32,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
@@ -43,6 +45,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("guest")]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -58,6 +61,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("email/login")]
+    [SkipRequestSigning]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> EmailLogin([FromBody] EmailLoginRequest request)
@@ -70,6 +74,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("email/verify")]
+    [SkipRequestSigning]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
@@ -82,6 +87,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("email/forgot-password")]
+    [SkipRequestSigning]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
@@ -93,6 +99,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("email/reset-password")]
+    [SkipRequestSigning]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
@@ -106,6 +113,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("link/email")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
@@ -125,6 +133,7 @@ public class AuthController : ControllerBase
 
     [HttpDelete("link/email")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(AccountLinkResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UnlinkEmail([FromQuery] string deviceFingerprint)
@@ -143,6 +152,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("transfer-password")]
     [Authorize]
+    [UserSignature]
     [ProducesResponseType(typeof(TransferPasswordResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> IssueTransferPassword([FromBody] EmptyRequest _)

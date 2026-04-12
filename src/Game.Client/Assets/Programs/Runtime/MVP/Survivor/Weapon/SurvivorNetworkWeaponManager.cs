@@ -4,6 +4,7 @@ using Game.Client.MasterData;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
 using UnityEngine;
 using VContainer;
@@ -18,12 +19,19 @@ namespace Game.MVP.Survivor.Weapon
     public class SurvivorNetworkWeaponManager
     {
         [Inject] private readonly IMasterDataService _masterDataService;
+        [Inject] private readonly IFusionRunnerService _runnerService;
         private MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
         private readonly Dictionary<int, NetworkWeaponSlot> _weapons = new();
         private float _damageMultiplier = 1f;
 
         private const float PierceDetectionRadius = 0.5f;
+
+        // SphereCast バッファ（SphereCastAll の allocating 版代替）
+        private static readonly RaycastHit[] s_pierceHitBuffer = new RaycastHit[32];
+
+        // 距離でソートするコンパレータ
+        private static readonly RaycastHitDistanceComparer s_pierceHitComparer = new RaycastHitDistanceComparer();
 
         // グローバルヒットレート制限
         private const int MaxHitsPerSecond = 30;
@@ -187,7 +195,7 @@ namespace Game.MVP.Survivor.Weapon
                 var targetPos = target.CenterPosition;
                 var direction = (targetPos - playerPos).normalized;
                 var origin = targetPos + direction * 0.1f;
-                ProcessPierce(slot, origin, direction, target, playerPos, damage);
+                ProcessPierce(slot, origin, direction, target, playerPos, damage, _runnerService);
             }
         }
 
@@ -312,18 +320,20 @@ namespace Game.MVP.Survivor.Weapon
             Vector3 direction,
             ICombatTarget primaryTarget,
             Vector3 playerPos,
-            int damage)
+            int damage,
+            IFusionRunnerService runnerService)
         {
-            var hits = Physics.SphereCastAll(
-                origin, PierceDetectionRadius, direction, slot.Range,
+            var physicsScene = runnerService.GetPhysicsSceneOrDefault();
+            int hitCount = physicsScene.SphereCast(
+                origin, PierceDetectionRadius, direction, s_pierceHitBuffer, slot.Range,
                 LayerMaskConstants.Enemy, QueryTriggerInteraction.Collide);
 
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            System.Array.Sort(s_pierceHitBuffer, 0, hitCount, s_pierceHitComparer);
 
             int pierceRemaining = slot.Pierce;
-            for (int i = 0; i < hits.Length && pierceRemaining > 0; i++)
+            for (int i = 0; i < hitCount && pierceRemaining > 0; i++)
             {
-                var target = hits[i].collider.GetComponentInParent<ICombatTarget>();
+                var target = s_pierceHitBuffer[i].collider.GetComponentInParent<ICombatTarget>();
                 if (target == null || target == primaryTarget || target.IsDead) continue;
 
                 target.TakeDamage(damage);
@@ -331,12 +341,21 @@ namespace Game.MVP.Survivor.Weapon
 
                 if (slot.Knockback > 0)
                 {
-                    var dir = (hits[i].collider.transform.position - playerPos).normalized;
+                    var dir = (s_pierceHitBuffer[i].collider.transform.position - playerPos).normalized;
                     target.ApplyKnockback(dir * slot.Knockback);
                 }
             }
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// RaycastHit を距離でソートするコンパレータ
+    /// </summary>
+    internal sealed class RaycastHitDistanceComparer : System.Collections.Generic.IComparer<UnityEngine.RaycastHit>
+    {
+        public int Compare(UnityEngine.RaycastHit a, UnityEngine.RaycastHit b)
+            => a.distance.CompareTo(b.distance);
     }
 }

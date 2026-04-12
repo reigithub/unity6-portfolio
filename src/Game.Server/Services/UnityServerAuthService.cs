@@ -14,26 +14,26 @@ namespace Game.Server.Services;
 /// HMAC 署名 + Valkey ハイブリッド方式で SP/MP 共通のトークンを発行する。
 /// トークン自体に HMAC 署名を埋め込み、Dedicated Server は HMAC のみで検証可能。
 /// Valkey には引き続き保存し、失効管理やトークン追跡に使用する。
-/// stageId が 0 より大きい場合は SessionAssignmentService 経由で DS へのセッション割り当ても行う。
+/// stageId が 0 より大きい場合は UnityServerSessionService 経由で DS へのセッション割り当ても行う。
 /// </summary>
-public class UnityServerService : IUnityServerService
+public class UnityServerAuthService : IUnityServerAuthService
 {
     private const string KeyPrefix = "session:token:";
 
     private readonly IConnectionMultiplexer _redis;
     private readonly byte[] _secretKey;
-    private readonly ISessionAssignmentService _sessionAssignment;
-    private readonly ILogger<UnityServerService> _logger;
+    private readonly IUnityServerSessionService _unityServerSession;
+    private readonly ILogger<UnityServerAuthService> _logger;
 
-    public UnityServerService(
+    public UnityServerAuthService(
         IConnectionMultiplexer redis,
         IOptions<UnityServerSettings> settings,
-        ISessionAssignmentService sessionAssignment,
-        ILogger<UnityServerService> logger)
+        IUnityServerSessionService unityServerSession,
+        ILogger<UnityServerAuthService> logger)
     {
         _redis = redis;
         _secretKey = Encoding.UTF8.GetBytes(settings.Value.SecretKey);
-        _sessionAssignment = sessionAssignment;
+        _unityServerSession = unityServerSession;
         _logger = logger;
     }
 
@@ -47,8 +47,7 @@ public class UnityServerService : IUnityServerService
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す。</param>
     /// <returns>発行されたトークンとセッション名を含むレスポンス。</returns>
-    public async Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string matchId = null, int stageId = 0, int expectedPlayers = 1)
+    public async Task<UnityServerAuthResponse> IssueTokenAsync(string userId, string matchId, int stageId = 0, int expectedPlayers = 1)
     {
         matchId ??= $"sp-{Guid.NewGuid():N}";
         var tokenExpiry = SessionTokenHelper.DefaultExpiry;
@@ -75,7 +74,7 @@ public class UnityServerService : IUnityServerService
         // DS セッション割り当て（stageId が指定された場合のみ実行）
         if (stageId > 0)
         {
-            await _sessionAssignment.AssignSessionAsync(matchId, stageId, expectedPlayers);
+            await _unityServerSession.AssignSessionAsync(matchId, stageId, expectedPlayers);
         }
 
         return new UnityServerAuthResponse

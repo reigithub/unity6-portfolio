@@ -125,6 +125,7 @@ public partial class Program
         app.UseHttpsRedirection();
         app.UseCors();
         app.UseResponseCaching();
+        app.UseRouting();
         app.UseAuthentication();
         app.UseMiddleware<RequestSigningMiddleware>();
         app.UseAuthorization();
@@ -135,6 +136,10 @@ public partial class Program
         });
         app.MapControllers();
         app.MapHub<Game.Server.Hubs.ChatHub>("/hubs/chat");
+
+        // 全 /api endpoint に signing policy 属性が付与されているかを startup で検証 (fail-fast)
+        // 未宣言・conflict があれば InvalidOperationException を投げて起動を中止する
+        app.ValidateRequestSigningPolicy();
 
         // FluentMigrator: auto-apply migrations in Development
         if (app.Environment.IsDevelopment())

@@ -1,4 +1,5 @@
 using Game.Shared.Network.Survivor;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Shared.Signals.Survivor
@@ -11,6 +12,29 @@ namespace Game.Shared.Signals.Survivor
     /// </summary>
     public static class SurvivorSignals
     {
+        // --- Auth ---
+
+        public static class Auth
+        {
+            /// <summary>
+            /// 認証 session の refresh 試行結果。
+            /// <see cref="AuthSessionRefresher"/> が refresh 完了時に publish する (成功/失敗問わず)。
+            /// </summary>
+            public readonly struct SessionRefreshResult
+            {
+                public readonly bool IsSuccess;
+                public readonly RefreshTrigger Trigger;
+                public readonly string ErrorMessage;
+
+                public SessionRefreshResult(bool isSuccess, RefreshTrigger trigger, string errorMessage)
+                {
+                    IsSuccess = isSuccess;
+                    Trigger = trigger;
+                    ErrorMessage = errorMessage;
+                }
+            }
+        }
+
         // --- Session ---
 
         public static class Session
@@ -30,6 +54,8 @@ namespace Game.Shared.Signals.Survivor
             public readonly struct AllClientsSceneReady { }
 
             public readonly struct ClientFieldSceneLoaded { }
+
+            public readonly struct AllClientsFieldSceneLoaded { }
 
             public readonly struct AllPlayersDisconnected { }
         }

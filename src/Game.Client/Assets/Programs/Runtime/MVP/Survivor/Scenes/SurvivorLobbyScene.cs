@@ -19,7 +19,9 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly IMatchmakingClient _matchmakingClient;
         [Inject] private readonly IAuthSessionService _authSessionService;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly ISurvivorSaveService _saveService;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyScene";
 
@@ -142,6 +144,9 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
+                // Hub 接続前に refresh を保証 (Scenario D 補完対策、主防御は Periodic loop)
+                await _authSessionRefresher.EnsureFreshAsync();
+
                 // Hub 接続してロビールームへ遷移
                 await _lobbyClient.ConnectToLobbyAsync(response.LobbyId, playerName);
                 await _sceneService.TransitionAsync<SurvivorLobbyRoomScene>();
@@ -162,6 +167,9 @@ namespace Game.MVP.Survivor.Scenes
             try
             {
                 var playerName = _authSessionService.UserName ?? "Player";
+
+                // Hub 接続前に refresh を保証 (Scenario D 補完対策、主防御は Periodic loop)
+                await _authSessionRefresher.EnsureFreshAsync();
 
                 // Unary で参加
                 await _lobbyClient.JoinLobbyAsync(lobbyId, playerName);
@@ -209,9 +217,8 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(MatchResult result)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(
-                result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1);
-            SurvivorNetworkMatchConnector.ConfigureForMatchmaking(result);
+            int playerCount = result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1;
+            _sessionConfig.Configure(ConnectionSource.Matchmaking, result, playerCount);
             SceneComponent.SetInteractables(false);
 
             try

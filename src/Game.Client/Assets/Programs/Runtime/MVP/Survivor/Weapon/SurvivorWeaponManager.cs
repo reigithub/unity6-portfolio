@@ -95,7 +95,7 @@ namespace Game.MVP.Survivor.Weapon
             }
 
             var weapon = SurvivorWeaponFactory.Create(_resolver, weaponMaster);
-            await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner, _gameState);
+            await weapon.InitializeAsync(transform, _owner, _damageMultiplier, _vfxSpawner, _gameState, _runnerService);
             weapon.OnHitCallback = _hitCallback;
 
             _weapons.Add(weapon);
@@ -291,7 +291,7 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            float deltaTime = Time.deltaTime;
+            float deltaTime = _runnerService.GetDeltaTime();
             foreach (var weapon in _weapons)
             {
                 weapon.UpdateWeapon(deltaTime);

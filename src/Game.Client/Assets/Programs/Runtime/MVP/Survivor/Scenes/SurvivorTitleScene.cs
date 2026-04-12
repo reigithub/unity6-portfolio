@@ -23,8 +23,10 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly ILobbyClient _lobbyClient;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 
@@ -98,7 +100,7 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
-            SurvivorNetworkMatchConnector.SetExpectedPlayerCount(1);
+            _sessionConfig.UpdateConfigure(playerCount: 1);
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 
@@ -136,6 +138,10 @@ namespace Game.MVP.Survivor.Scenes
 
                 Debug.Log($"[SurvivorTitleScene] Rejoining lobby: {lobby.LobbyId}");
                 var playerName = _authSessionService.UserName ?? "Player";
+
+                // Hub 再接続前に refresh を保証 (長時間ゲーム後の Title 戻り対策)
+                await _authSessionRefresher.EnsureFreshAsync();
+
                 await _lobbyClient.ConnectToLobbyAsync(lobby.LobbyId, playerName);
                 await _sceneService.TransitionAsync<SurvivorLobbyRoomScene>();
                 return true;
@@ -166,7 +172,7 @@ namespace Game.MVP.Survivor.Scenes
                 return true;
             }
 
-            // 未認証の場合はゲストログイン
+            // 未認証の場合はゲストログイン (scene 責務: refresher には移さない)
             if (!_authSessionService.IsAuthenticated)
             {
                 var loginResult = await _authApiService.GuestLoginAsync();
@@ -175,19 +181,21 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.ShowError(loginResult.Error?.Message ?? NetworkErrorLocalizer.GetOfflineMessage());
                     return false;
                 }
+                // GuestLoginAsync 成功時に AuthApiService.OnLoginSuccessAsync が
+                // MarkRefreshed() を呼ぶため、以降の IsRecentlyRefreshed 判定で skip される
                 return true;
             }
 
-            // 認証済みの場合はトークンリフレッシュを試行
-            var refreshResult = await _authApiService.RefreshTokenAsync();
-            if (refreshResult.IsSuccess)
+            // 認証済み → refresher に proactive refresh を委譲
+            // refresher が IsRecentlyRefreshed() 判定 + dedup を内部で実行する
+            if (await _authSessionRefresher.EnsureFreshAsync())
             {
                 return true;
             }
 
-            // リフレッシュ失敗（トークン期限切れ等）の場合、ゲストログインで再認証
+            // Refresh 失敗 (refresh token 無効等) → ゲストログインで session recovery
             // サーバーはデバイスフィンガープリントで既存ユーザーを識別して返す
-            UnityEngine.Debug.Log("[SurvivorTitleScene] Token refresh failed, attempting guest login for session recovery");
+            UnityEngine.Debug.Log("[SurvivorTitleScene] Refresh failed, attempting guest login for session recovery");
             var recoveryResult = await _authApiService.GuestLoginAsync();
             if (!recoveryResult.IsSuccess)
             {

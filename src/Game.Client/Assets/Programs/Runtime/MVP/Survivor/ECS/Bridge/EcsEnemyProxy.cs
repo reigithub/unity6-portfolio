@@ -1,6 +1,7 @@
 using Game.MVP.Survivor.Enemy;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
+using Game.Shared.Network.Fusion;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -41,6 +42,9 @@ namespace Game.MVP.Survivor.ECS
         /// <summary>攻撃範囲（ECS EnemyDataから取得）</summary>
         private float _attackRange;
 
+        /// <summary>Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</summary>
+        private IFusionRunnerService _runnerService;
+
         // Physics overlap用バッファ
         private static readonly Collider[] s_overlapBuffer = new Collider[8];
 
@@ -53,13 +57,18 @@ namespace Game.MVP.Survivor.ECS
         /// <summary>
         /// ECSエンティティとWorldを紐付けて初期化
         /// </summary>
-        public void Initialize(Entity entity, World world, int enemyId)
+        /// <param name="entity">対応するECSエンティティ</param>
+        /// <param name="world">ECS World</param>
+        /// <param name="enemyId">敵マスターID</param>
+        /// <param name="runnerService">Fusion Runner サービス（PhysicsScene・DeltaTime 取得用）</param>
+        public void Initialize(Entity entity, World world, int enemyId, IFusionRunnerService runnerService = null)
         {
             _entity = entity;
             _world = world;
             _isDead = false;
             _lastAIState = EcsEnemyAIStateType.Chase;
             _proxyAttackTimer = 0f;
+            _runnerService = runnerService;
             EnemyId = enemyId;
 
             // コライダーを有効化
@@ -105,7 +114,7 @@ namespace Game.MVP.Survivor.ECS
 
                 case EcsEnemyAIStateType.Attack:
                     // 攻撃タイマー管理
-                    _proxyAttackTimer -= Time.deltaTime;
+                    _proxyAttackTimer -= _runnerService.GetDeltaTime();
                     if (_proxyAttackTimer <= 0f)
                     {
                         PerformAttack();
@@ -150,8 +159,9 @@ namespace Game.MVP.Survivor.ECS
         /// </summary>
         private void PerformAttack()
         {
-            int count = Physics.OverlapSphereNonAlloc(
-                transform.position, _attackRange, s_overlapBuffer, LayerMaskConstants.Player);
+            var physicsScene = _runnerService.GetPhysicsSceneOrDefault();
+            int count = physicsScene.OverlapSphere(
+                transform.position, _attackRange, s_overlapBuffer, LayerMaskConstants.Player, QueryTriggerInteraction.Collide);
 
             for (int i = 0; i < count; i++)
             {

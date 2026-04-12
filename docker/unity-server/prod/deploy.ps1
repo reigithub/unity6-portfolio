@@ -44,7 +44,7 @@ if (Test-Path $EnvFile) {
 }
 
 # Check required variables
-$RequiredVars = @("PROJECT_ID", "REGION", "ZONE", "REPO_NAME", "INSTANCE_GROUP_NAME", "INSTANCE_TEMPLATE_NAME")
+$RequiredVars = @("PROJECT_ID", "REGION", "ZONE", "REPO_NAME", "INSTANCE_GROUP_NAME", "INSTANCE_TEMPLATE_NAME", "GAME_SERVER_URL", "SECRET_UNITY_SERVER_AUTH")
 foreach ($var in $RequiredVars) {
     if (-not (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue)) {
         Write-Host "[ERROR] Required variable $var is not set in .env" -ForegroundColor Red
@@ -54,9 +54,8 @@ foreach ($var in $RequiredVars) {
 
 # Default values
 $MachineType = if ($env:MACHINE_TYPE) { $env:MACHINE_TYPE } else { "e2-medium" }
-$GamePort = if ($env:GAME_PORT) { $env:GAME_PORT } else { "7777" }
-$HealthPort = if ($env:HEALTH_PORT) { $env:HEALTH_PORT } else { "7778" }
-$MaxPlayers = if ($env:MAX_PLAYERS) { $env:MAX_PLAYERS } else { "4" }
+$UnityServerPort = if ($env:UNITY_SERVER_PORT) { $env:UNITY_SERVER_PORT } else { "7777" }
+$UnityServerHealthPort = if ($env:UNITY_SERVER_HEALTH_PORT) { $env:UNITY_SERVER_HEALTH_PORT } else { "7778" }
 $NetworkTag = if ($env:NETWORK_TAG) { $env:NETWORK_TAG } else { "unity-server" }
 $HealthCheckName = if ($env:HEALTH_CHECK_NAME) { $env:HEALTH_CHECK_NAME } else { "unity-server-health-check" }
 
@@ -70,12 +69,13 @@ Write-Host "REGION:          $env:REGION"
 Write-Host "ZONE:            $env:ZONE"
 Write-Host "IMAGE:           ${IMAGE}:${Tag}"
 Write-Host "MACHINE_TYPE:    $MachineType"
-Write-Host "GAME_PORT:       $GamePort (UDP)"
-Write-Host "HEALTH_PORT:     $HealthPort (TCP)"
-Write-Host "MAX_PLAYERS:     $MaxPlayers"
+Write-Host "UNITY_SERVER_PORT:        $UnityServerPort (UDP)"
+Write-Host "UNITY_SERVER_HEALTH_PORT: $UnityServerHealthPort (TCP)"
 Write-Host "INSTANCE_GROUP:  $env:INSTANCE_GROUP_NAME"
 Write-Host "NETWORK_TAG:     $NetworkTag"
 Write-Host "BUILD_CONTEXT:   $BuildContext"
+Write-Host "GAME_SERVER_URL: $env:GAME_SERVER_URL"
+Write-Host "SECRET_NAME:     $env:SECRET_UNITY_SERVER_AUTH"
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -88,10 +88,10 @@ if ($SetupInfra) {
     $FwRuleHealth = if ($env:FIREWALL_RULE_HEALTH) { $env:FIREWALL_RULE_HEALTH } else { "allow-unity-server-health" }
 
     # Firewall rule: UDP (game traffic)
-    Write-Host "[SETUP] Creating firewall rule for game traffic (UDP $GamePort)..." -ForegroundColor Yellow
+    Write-Host "[SETUP] Creating firewall rule for game traffic (UDP $UnityServerPort)..." -ForegroundColor Yellow
     gcloud compute firewall-rules create $FwRuleGame `
         --network=$Network `
-        --allow="udp:$GamePort" `
+        --allow="udp:$UnityServerPort" `
         --target-tags=$NetworkTag `
         --description="Allow UDP game traffic to Unity Server" `
         --quiet 2>$null
@@ -99,10 +99,10 @@ if ($SetupInfra) {
 
     # Firewall rule: TCP (health check)
     # GCE health check source IP ranges: 35.191.0.0/16, 130.211.0.0/22
-    Write-Host "[SETUP] Creating firewall rule for health check (TCP $HealthPort)..." -ForegroundColor Yellow
+    Write-Host "[SETUP] Creating firewall rule for health check (TCP $UnityServerHealthPort)..." -ForegroundColor Yellow
     gcloud compute firewall-rules create $FwRuleHealth `
         --network=$Network `
-        --allow="tcp:$HealthPort" `
+        --allow="tcp:$UnityServerHealthPort" `
         --source-ranges="35.191.0.0/16,130.211.0.0/22" `
         --target-tags=$NetworkTag `
         --description="Allow GCE health check to Unity Server" `
@@ -111,12 +111,22 @@ if ($SetupInfra) {
     # TCP health check
     Write-Host "[SETUP] Creating TCP health check..." -ForegroundColor Yellow
     gcloud compute health-checks create tcp $HealthCheckName `
-        --port=$HealthPort `
+        --port=$UnityServerHealthPort `
         --check-interval=10s `
         --timeout=5s `
         --healthy-threshold=2 `
         --unhealthy-threshold=3 `
         --quiet 2>$null
+
+    # Secret Manager IAM: Grant secretAccessor to GCE default service account
+    Write-Host "[SETUP] Granting Secret Manager access to GCE default service account..." -ForegroundColor Yellow
+    $DefaultSa = gcloud compute project-info describe --format='value(defaultServiceAccount)'
+    gcloud secrets add-iam-policy-binding $env:SECRET_UNITY_SERVER_AUTH `
+        --member="serviceAccount:$DefaultSa" `
+        --role="roles/secretmanager.secretAccessor" `
+        --project=$env:PROJECT_ID `
+        --quiet 2>$null
+    # Ignore error if binding already exists
 
     Write-Host "[SETUP] Infrastructure setup complete" -ForegroundColor Green
     Write-Host ""
@@ -153,6 +163,16 @@ if (-not $SkipBuild) {
 }
 
 if (-not $BuildOnly) {
+    # Fetch HMAC secret from Secret Manager
+    Write-Host "[INFO] Fetching secret from Secret Manager ($env:SECRET_UNITY_SERVER_AUTH)..." -ForegroundColor Yellow
+    $UnitySecret = gcloud secrets versions access latest `
+        --secret="$env:SECRET_UNITY_SERVER_AUTH" `
+        --project="$env:PROJECT_ID"
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($UnitySecret)) {
+        Write-Host "[ERROR] Secret Manager から UNITY_SERVER_AUTH_SESSION_SECRET を取得できませんでした" -ForegroundColor Red
+        exit 1
+    }
+
     # Create instance template
     Write-Host "[4/5] Creating instance template..." -ForegroundColor Yellow
     $TemplateName = "$env:INSTANCE_TEMPLATE_NAME-$Tag"
@@ -161,12 +181,14 @@ if (-not $BuildOnly) {
         --machine-type=$MachineType `
         --tags=$NetworkTag `
         --container-image="${IMAGE}:${Tag}" `
+        --container-env="UNITY_SERVER_AUTH_SESSION_SECRET=$UnitySecret" `
+        --container-env="GAME_SERVER_URL=$env:GAME_SERVER_URL" `
+        --container-env="UNITY_SERVER_PORT=$UnityServerPort" `
+        --container-env="UNITY_SERVER_HEALTH_PORT=$UnityServerHealthPort" `
         --container-arg="--port" `
-        --container-arg=$GamePort `
+        --container-arg=$UnityServerPort `
         --container-arg="--health-port" `
-        --container-arg=$HealthPort `
-        --container-arg="--players" `
-        --container-arg=$MaxPlayers `
+        --container-arg=$UnityServerHealthPort `
         --scopes=https://www.googleapis.com/auth/cloud-platform `
         --region=$env:REGION `
         --quiet 2>$null

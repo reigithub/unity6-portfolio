@@ -172,6 +172,8 @@ namespace Game.Shared.Services
             {
                 _apiClient.SetSigningKey(data.SigningKey);
             }
+
+            _authSessionService.MarkRefreshed();
         }
 
         private async UniTask OnLinkSuccessAsync(AccountLinkResponse data)
@@ -191,6 +193,8 @@ namespace Game.Shared.Services
             {
                 _apiClient.SetSigningKey(data.SigningKey);
             }
+
+            _authSessionService.MarkRefreshed();
         }
 
     }
