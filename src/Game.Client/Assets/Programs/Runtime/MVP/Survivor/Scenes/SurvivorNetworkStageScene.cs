@@ -41,7 +41,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
-        [Inject] private readonly ISubscriber<SurvivorSignals.Session.ClientFieldSceneLoaded> _clientFieldSceneLoadedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsFieldSceneLoaded> _allClientsFieldSceneLoadedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorStageWaveManager _waveManager;
@@ -140,7 +140,7 @@ namespace Game.MVP.Survivor.Scenes
             // レプリケーション時にクライアント側でも物理シーンに配置されることを保証する
             Debug.Log("[SurvivorNetworkStageScene] Waiting for client field scene loaded...");
             var fieldSceneTcs = new UniTaskCompletionSource();
-            var fieldSceneSub = _clientFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
+            var fieldSceneSub = _allClientsFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
             try
             {
                 await UniTask.WhenAny(

@@ -55,6 +55,8 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct ClientFieldSceneLoaded { }
 
+            public readonly struct AllClientsFieldSceneLoaded { }
+
             public readonly struct AllPlayersDisconnected { }
         }
 

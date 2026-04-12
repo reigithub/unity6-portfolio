@@ -280,6 +280,7 @@ namespace Game.MVP.Survivor
             builder.RegisterMessageBroker<SurvivorSignals.Item.CollectReported>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsSceneReady>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.ClientFieldSceneLoaded>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Session.AllClientsFieldSceneLoaded>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersDisconnected>(options);
         }
     }
