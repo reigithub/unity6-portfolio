@@ -2,8 +2,8 @@
 
 [日本語版はこちら](ARCHITECTURE.md)
 
-**Version**: 1.9
-**Last Updated**: March 22, 2026
+**Version**: 2.0
+**Last Updated**: April 12, 2026
 
 ---
 
@@ -361,13 +361,13 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 
 | Assembly | Role | Test Count |
 |----------|------|------------|
-| **Game.Tests.Shared** | Shared layer unit tests | 351 |
+| **Game.Tests.Shared** | Shared layer unit tests (incl. Network) | 400 |
 | **Game.Tests.MVC** | MVC layer unit tests | 160 |
-| **Game.Tests.MVP** | MVP layer unit tests | 166 |
-| **Game.Tests.MVP.ECS** | ECS system functional and performance tests | 33 |
+| **Game.Tests.MVP** | MVP layer unit tests | 182 |
+| **Game.Tests.MVP.ECS** | ECS system performance tests | 4 |
 | **Game.Tests.PlayMode** | Integration and PlayMode tests | 63 |
 
-**Total Test Count**: 773 tests (EditMode 710 + PlayMode 63)
+**Total Test Count**: 809 tests (EditMode 746 + PlayMode 63)
 
 #### Server and Tools Assemblies (.NET 9)
 
@@ -390,6 +390,7 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 | **UsersController** | GET/PUT /api/users/* | User info retrieval and update |
 | **SurvivorScoresController** | POST /api/survivor/scores | Score submission |
 | **RankingsController** | GET /api/survivor/rankings/* | Ranking retrieval, own rank |
+| **UnityServerController** | POST /api/unity-server/* | DS register/deregister/heartbeat/session management |
 | **ChatHub** | /hubs/chat (SignalR) | Real-time chat |
 | **HealthController** | GET /api/health | Health check |
 
@@ -1541,6 +1542,140 @@ Server authority model for Survivor multiplayer (MPPM / Dedicated Server):
 - **DeadState**: Sends `RpcClientPlayerDied` (InputAuthority → Server → broadcast)
 - **Initialization**: FSM must be created in `Awake()` (DynamicWordCount queried before `Spawned()`)
 
+### 7.11 Dedicated Server Orchestration
+
+Self-registration, session management, and health check infrastructure for Unity Dedicated Server:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            Dedicated Server Orchestration Flow                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① DS Startup (UnityServerBootstrap: IAsyncStartable)            │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerConfig     │ ← CLI args / Env vars / GCE metadata  │
+│  │ Factory              │   (Priority: CLI > ENV > GCE)          │
+│  │ DsId, GamePort(7777) │                                       │
+│  │ HealthPort(7778)     │                                       │
+│  │ PublicAddress         │                                       │
+│  │ AuthSecretKey        │                                       │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  ② HTTP Listener Start                                           │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerHttpListener│ (Background thread)                   │
+│  │ GET /health           │ ← Docker HEALTHCHECK                 │
+│  │ POST /session/start   │ ← Session request from Game.Server   │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  ③ Self-registration to Game.Server                              │
+│  ┌──────────────────────┐     ┌──────────────────────┐         │
+│  │UnityServerRegistry   │────▶│ POST /api/unity-     │         │
+│  │ApiClient             │     │   server/register    │         │
+│  │  HMAC-SHA256 signing  │     │ (Game.Server)       │         │
+│  └──────────┬───────────┘     └──────────────────────┘         │
+│             │                                                   │
+│             ▼                                                   │
+│  ④ Heartbeat Loop Start                                          │
+│  ┌──────────────────────┐                                       │
+│  │UnityServerHeartbeat  │  30-sec interval /heartbeat POST      │
+│  │Loop (ThreadPool)     │  Deregister on shutdown               │
+│  └──────────────────────┘                                       │
+│                                                                 │
+│  ⑤ Match Session                                                 │
+│  Game.Server                  DS                  Client        │
+│    │ AssignSession             │                    │           │
+│    │  POST /session/start ────▶│                    │           │
+│    │                           │ Fusion Start       │           │
+│    │                           │◀═══ ConnectionToken ═══│      │
+│    │                           │  HMAC validation    │           │
+│    │  POST /session-ended  ◀───│ (game end)          │           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Key Classes
+
+| Class | Location | Responsibility |
+|-------|----------|---------------|
+| `UnityServerBootstrap` | Game.Client (Shared) | DS startup orchestration |
+| `UnityServerConfigFactory` | Game.Client (Shared) | Config from CLI/ENV/GCE |
+| `UnityServerAuthProvider` | Game.Client (Shared) | Fusion ConnectionToken HMAC validation |
+| `UnityServerRegistryApiClient` | Game.Client (Shared) | Game.Server register/heartbeat API |
+| `UnityServerHttpListener` | Game.Client (Shared) | TCP health check + session receiver |
+| `UnityServerController` | Game.Server | DS register/deregister/heartbeat endpoint |
+| `UnityServerAuthService` | Game.Server | DS session token issuance |
+| `UnityServerSessionService` | Game.Server | Idle DS lookup + session assignment |
+
+### 7.12 Enemy LOD System
+
+Distance-based 3-tier LOD for rendering optimization:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   Enemy LOD Architecture                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  SurvivorEnemyView (Client-side)                                 │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │ EnemyProxyData                                       │      │
+│  │  ├── LodUpdateInterval: 1 / 2 / 5 frames            │      │
+│  │  ├── FrameOffset: frame distribution offset          │      │
+│  │  └── InterpolationSpeed / CorrectionDecayRate        │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                                                                 │
+│  LOD Tier Classification:                                        │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐                  │
+│  │   Near   │    │   Mid    │    │   Far    │                  │
+│  │  < 20m   │    │ 20–40m   │    │  > 40m   │                  │
+│  │ Every frm │    │ Every 2f │    │ Every 5f │                  │
+│  │Full quality│    │ Medium   │    │  Low     │                  │
+│  └──────────┘    └──────────┘    └──────────┘                  │
+│                                                                 │
+│  Frame-Distributed Reclassification:                             │
+│  Frame 0: Enemy[0,5,10,...] re-evaluate                          │
+│  Frame 1: Enemy[1,6,11,...] re-evaluate                          │
+│  Frame 2: Enemy[2,7,12,...] re-evaluate → Spike prevention      │
+│                                                                 │
+│  CharacterUnlit Shader:                                          │
+│  ├── Lightweight unlit shader for LOD Far tier                  │
+│  ├── Hit flash / dissolve effect support                        │
+│  └── GPU instancing support                                     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.13 Auth Token Refresh
+
+Background automatic token refresh system:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                Auth Session Refresher                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  AuthSessionRefresher (IAsyncStartable)                          │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │ Triggers:                                             │      │
+│  │  ├── Periodic: 5-min interval (50-min proactive)      │      │
+│  │  ├── NetworkRecovery: on connectivity restored        │      │
+│  │  ├── AppFocus: on app regains foreground              │      │
+│  │  └── Explicit: scene transition explicit call         │      │
+│  │                                                       │      │
+│  │ Dedup: shared UniTaskCompletionSource<bool>            │      │
+│  │                                                       │      │
+│  │ Signal: MessagePipe → SessionRefreshResult            │      │
+│  └──────────────────────────────────────────────────────┘      │
+│                                                                 │
+│  AppLifecycleBridge (MonoBehaviour)                               │
+│  ├── OnApplicationFocus → IAppLifecycleSignals.OnFocusChanged   │
+│  └── OnApplicationPause → OnFocusChanged (mobile compat)        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 8. Class Design (UML)
@@ -1928,7 +2063,7 @@ An automated pipeline is built using GitHub Actions.
 │  │ Code Quality │───▶│  Unit Tests  │───▶│ Integration  │       │
 │  │    Check     │    │  (EditMode)  │    │   Tests      │       │
 │  └──────────────┘    └──────────────┘    │ (PlayMode)   │       │
-│    - .editorconfig      - 710 tests      └──────────────┘       │
+│    - .editorconfig      - 746 tests      └──────────────┘       │
 │    - Roslyn Analyzer                       - 63 tests           │
 │    - Format Check                                                │
 │                                                                  │
@@ -1954,13 +2089,13 @@ An automated pipeline is built using GitHub Actions.
 
 | Workflow | Trigger | Content |
 |----------|---------|---------|
-| `unity-ci-docker.yml` | push/PR | Main CI (Docker/Linux) |
-| `unity-test.yml` | PR | PR testing |
+| `unity-test.yml` | PR | Unity tests (Docker/Linux) |
+| `unity-build.yml` | manual | Multi-platform build (WebGL GitHub Pages deploy support) |
+| `unity-server-build.yml` | push/PR | Dedicated Server build (Linux headless) |
+| `server-test.yml` | push/PR, manual | Server tests (unit + integration + coverage) |
 | `code-quality.yml` | push/PR (*.cs) | Format and static analysis |
 | `pr-review.yml` | PR | Automated review comments |
-| `server-test.yml` | push/PR, manual | Server tests (unit + integration + coverage) |
 | `addressables-deploy.yml` | manual | Addressables build & Cloudflare R2 deploy (multi-platform) |
-| `unity-build.yml` | manual | Multi-platform build (WebGL GitHub Pages deploy support) |
 
 ### 10.3 Code Quality Management
 
@@ -1984,13 +2119,13 @@ Unity6Portfolio/
 
 | Category | Test Count | Content |
 |----------|-----------|---------|
-| EditMode | 710 | Unit tests (Service, Model, Extension, ECS) |
+| EditMode | 746 | Unit tests (Service, Model, Extension, ECS, Network) |
 | PlayMode | 63 | Integration tests (Scene, Input, UI) |
-| **Client Total** | **773** | |
-| Server unit tests | 46 | Service, Repository tests |
-| Server integration tests | 10 | API integration tests (Testcontainers + PostgreSQL) |
-| **Server Total** | **56** | |
-| **Grand Total** | **829** | |
+| **Client Total** | **809** | |
+| Game.Server.Tests | 222 | Controller, Service, Validation, Integration tests |
+| Game.Realtime.Tests | 117 | Hub, Service, Filter, Validation tests |
+| **Server Total** | **339** | |
+| **Grand Total** | **1,148** | |
 
 ---
 
@@ -2108,12 +2243,45 @@ Unity6Portfolio/
 | **Impact** | Up to 0.1s delay for Spawn/Death visibility, visually acceptable |
 | **Status** | Adopted |
 
+#### ADR-011: Dedicated Server Orchestration
+
+| Item | Details |
+|------|---------|
+| **Decision** | Implement DS self-registration + heartbeat + session management within client code |
+| **Context** | Infrastructure needed to operate Photon Fusion 2 Server/Client mode DS in production |
+| **Alternatives** | A) Photon Cloud only B) Custom orchestration C) Kubernetes Agones |
+| **Rationale** | Photon Cloud has DS lifecycle constraints. Custom implementation for flexible GCE/Docker control. Agones is overkill for this project scale |
+| **Impact** | UnityServerBootstrap → Config → HttpListener → Registry → Heartbeat startup chain. DS management API added to Game.Server |
+| **Status** | Adopted |
+
+#### ADR-012: Declarative Request Signing Policy
+
+| Item | Details |
+|------|---------|
+| **Decision** | Require signing policy attributes on all POST/PUT/DELETE REST API endpoints |
+| **Context** | DS addition increased signature types to 3 (anonymous/user/DS). Prevention of omission needed |
+| **Alternatives** | A) Code review B) Startup validation C) Test detection |
+| **Rationale** | Startup fail-fast is most reliable. RequestSigningPolicyValidator detects undeclared/conflicting policies immediately |
+| **Impact** | All new endpoints must declare one of 3 attributes. Startup test required in CI |
+| **Status** | Adopted |
+
+#### ADR-013: Enemy LOD + Frame Distribution
+
+| Item | Details |
+|------|---------|
+| **Decision** | Introduce distance-based 3-tier LOD with frame-offset reclassification distribution |
+| **Context** | Rendering load reduction needed for 512 simultaneous entities. Updating all enemies every frame is inefficient |
+| **Alternatives** | A) Unity LOD Group B) Custom LOD C) GPU Culling |
+| **Rationale** | Custom implementation optimal for ECS hybrid architecture. Staged quality control via CharacterUnlit shader |
+| **Impact** | Near(every frame)/Mid(every 2f)/Far(every 5f) update frequency control. Frame distribution prevents spikes |
+| **Status** | Adopted |
+
 ### 11.2 Known Technical Debt
 
 | Item | Details | Priority | Status |
 |------|---------|----------|--------|
 | ~~Excessive MessageBroker usage~~ | ~~Publish in OnTriggerEnter, etc.~~ | ~~Medium~~ | Resolved |
-| ~~Test coverage~~ | ~~Currently about 20%~~ | ~~High~~ | 773 tests achieved |
+| ~~Test coverage~~ | ~~Currently about 20%~~ | ~~High~~ | 1,148 tests achieved |
 | ~~XML documentation~~ | ~~Partially missing~~ | ~~Low~~ | Major interfaces completed |
 | ~~Asset delivery~~ | ~~Local only~~ | ~~Medium~~ | Local/remote auto-switching |
 | ~~Network features~~ | ~~Server communication not implemented~~ | ~~High~~ | Ranking and auth completed |
@@ -2123,7 +2291,7 @@ Unity6Portfolio/
 
 **Resolved Items**:
 - MessageBroker: Changed to direct calls via IPlayerCollisionHandler
-- Tests: EditMode 767 + PlayMode 63 = 830 tests
+- Tests: EditMode 746 + PlayMode 63 + Server 222 + Realtime 117 = 1,148 tests
 - XML documentation: Added to major interfaces and extension methods
 - Profiler markers: 27 markers added
 - Custom exceptions: 7 classes added
@@ -2135,6 +2303,8 @@ Unity6Portfolio/
 - Multiplayer: Lobby and matchmaking via MagicOnion gRPC, SignalR chat, MPPM support (2026/02)
 - Server authority model: Photon Fusion 2 Server/Client mode, Fusion FSM state sync, enemy batch sync integration (2026/03)
 - View/Presenter separation: Dead Reckoning struct extraction, item collection logic Controller integration (2026/03)
+- Dedicated Server build: Linux headless server, Docker containerization, CI/CD automated build (2026/04)
+- Enemy LOD system: Distance-based rendering quality optimization, sync buffering, frame-distributed processing (2026/04)
 
 ---
 
