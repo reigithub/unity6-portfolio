@@ -23,6 +23,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly ISurvivorScoreApiService _scoreApiService;
         [Inject] private readonly IAuthSessionService _authSessionService;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
 
@@ -104,6 +105,13 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTask SubmitScoresAsync(SurvivorStageSession session)
         {
             SceneComponent.ShowScoreSubmissionStatus(NetworkErrorLocalizer.GetScoreSubmittingMessage());
+
+            // Scenario B 対策: Title 経由せず長時間プレイした場合の JWT 期限切れ防御
+            // refresher が IsRecentlyRefreshed() で skip 判定するので、fresh 状態なら no-op
+            if (_networkService.IsConnected)
+            {
+                await _authSessionRefresher.EnsureFreshAsync();
+            }
 
             foreach (var result in session.StageResults)
             {

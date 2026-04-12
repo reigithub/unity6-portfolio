@@ -4,6 +4,7 @@ using Game.MVP.Core.Services;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Server;
 using Game.Shared;
+using Game.Shared.Bootstrap;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using MessagePipe;
@@ -60,6 +61,11 @@ namespace Game.MVP.Survivor
             }
             else
             {
+                // AppLifecycleBridge を LifetimeScope の GameObject に AddComponent。
+                // Scope lifecycle に追従するため static プロパティや global registry を使わない。
+                var appLifecycleBridge = gameObject.AddComponent<AppLifecycleBridge>();
+                builder.RegisterInstance<IAppLifecycleSignals>(appLifecycleBridge);
+
                 RegisterClientServices(builder);
             }
         }
@@ -103,7 +109,8 @@ namespace Game.MVP.Survivor
                    .As<IUnityServerHttpListener>();
 
             // サーバー初期化 EntryPoint（IAsyncStartable として自動実行）
-            builder.RegisterEntryPoint<UnityServerBootstrap>();
+            // SurvivorServerGameLoop が具象型で WaitForStartupAsync() を呼ぶため AsSelf() が必要
+            builder.RegisterEntryPoint<UnityServerBootstrap>().AsSelf();
 
             // Server Game Loop: AllPlayersReady → SurvivorNetworkStageScene 遷移
             builder.RegisterEntryPoint<SurvivorServerGameLoop>();
@@ -173,6 +180,12 @@ namespace Game.MVP.Survivor
             builder.Register<SurvivorScoreApiService>(Lifetime.Singleton).As<ISurvivorScoreApiService>();
             builder.Register<UnityServerApiService>(Lifetime.Singleton).As<IUnityServerApiService>();
 
+            // AuthSessionRefresher — 独立 background service として session 維持 ([D-Phase 2])
+            // RegisterEntryPoint 単独で IAsyncStartable singleton 登録、その結果に As<T>() を chain して
+            // IAuthSessionRefresher interface も公開する (Register<T> との重複登録を避ける)
+            builder.RegisterEntryPoint<AuthSessionRefresher>()
+                .As<IAuthSessionRefresher>();
+
             // Request Queue & Notifications
             builder.Register<MemoryRequestQueue>(Lifetime.Singleton).As<IRequestQueue>();
             builder.Register<QueueNotificationService>(Lifetime.Singleton).As<IQueueNotificationService>();
@@ -223,6 +236,9 @@ namespace Game.MVP.Survivor
 
         private static void RegisterSignalBrokers(IContainerBuilder builder, MessagePipeOptions options)
         {
+            // Auth (Phase 2: session refresh result)
+            builder.RegisterMessageBroker<SurvivorSignals.Auth.SessionRefreshResult>(options);
+
             // Player
             builder.RegisterMessageBroker<SurvivorSignals.Player.Spawned>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Player.DamageReceived>(options);

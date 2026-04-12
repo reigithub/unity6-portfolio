@@ -23,6 +23,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAudioService _audioService;
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthApiService _authApiService;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
@@ -137,6 +138,10 @@ namespace Game.MVP.Survivor.Scenes
 
                 Debug.Log($"[SurvivorTitleScene] Rejoining lobby: {lobby.LobbyId}");
                 var playerName = _authSessionService.UserName ?? "Player";
+
+                // Hub 再接続前に refresh を保証 (長時間ゲーム後の Title 戻り対策)
+                await _authSessionRefresher.EnsureFreshAsync();
+
                 await _lobbyClient.ConnectToLobbyAsync(lobby.LobbyId, playerName);
                 await _sceneService.TransitionAsync<SurvivorLobbyRoomScene>();
                 return true;
@@ -167,7 +172,7 @@ namespace Game.MVP.Survivor.Scenes
                 return true;
             }
 
-            // 未認証の場合はゲストログイン
+            // 未認証の場合はゲストログイン (scene 責務: refresher には移さない)
             if (!_authSessionService.IsAuthenticated)
             {
                 var loginResult = await _authApiService.GuestLoginAsync();
@@ -181,24 +186,16 @@ namespace Game.MVP.Survivor.Scenes
                 return true;
             }
 
-            // 最後の refresh から default threshold 以内なら skip。
-            // Scene re-creation (OnReturn 経由で Title に戻る) でも singleton の
-            // LastRefreshedAt が保持されるため、時間基準で正しく判定できる。
-            if (_authSessionService.IsRecentlyRefreshed())
+            // 認証済み → refresher に proactive refresh を委譲
+            // refresher が IsRecentlyRefreshed() 判定 + dedup を内部で実行する
+            if (await _authSessionRefresher.EnsureFreshAsync())
             {
                 return true;
             }
 
-            // stale 判定: threshold 超過 → 再 refresh
-            var refreshResult = await _authApiService.RefreshTokenAsync();
-            if (refreshResult.IsSuccess)
-            {
-                return true;
-            }
-
-            // リフレッシュ失敗（トークン期限切れ等）の場合、ゲストログインで再認証
+            // Refresh 失敗 (refresh token 無効等) → ゲストログインで session recovery
             // サーバーはデバイスフィンガープリントで既存ユーザーを識別して返す
-            UnityEngine.Debug.Log("[SurvivorTitleScene] Token refresh failed, attempting guest login for session recovery");
+            UnityEngine.Debug.Log("[SurvivorTitleScene] Refresh failed, attempting guest login for session recovery");
             var recoveryResult = await _authApiService.GuestLoginAsync();
             if (!recoveryResult.IsSuccess)
             {

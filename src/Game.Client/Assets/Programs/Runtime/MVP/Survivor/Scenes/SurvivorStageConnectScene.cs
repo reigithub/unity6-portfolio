@@ -32,6 +32,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerApiService _unityServerApiService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -149,6 +150,10 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (_sessionConfig.IsClientConfigured)
                 return; // マッチメイキング経由 → Phase 2 で接続
+
+            // Scenario C 対策: IssueTokenAsync (signed POST) 前に refresh を保証。
+            // 以降 IssueTokenAsync が 3 経路で呼ばれるが、refresher 内部で dedup されるため 1 回で済む。
+            await _authSessionRefresher.EnsureFreshAsync();
 
             if (GameEnvironmentHelper.CurrentConfig?.UseLocalServerOrchestrator == true)
             {
