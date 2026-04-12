@@ -289,11 +289,7 @@ namespace Game.MVP.Survivor.Player
             if (_kcc == null) return;
 
             _kcc.SetPosition(spawnPosition);
-            _kcc.Settings.CollisionLayerMask = Physics.DefaultRaycastLayers & ~LayerMaskConstants.Enemy;
-            _kcc.Settings.InputAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
-            _kcc.Settings.StateAuthorityBehavior = EKCCAuthorityBehavior.PredictFixed_InterpolateRender;
-            _kcc.Settings.AntiJitterDistance = new Vector2(0.025f, 0.01f);
-            _kcc.Settings.PredictionCorrectionSpeed = 15f;
+            KCCSettingsHelper.ApplyDefaults(_kcc);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.Log($"[SurvivorPlayerController] KCC configured: pos={spawnPosition}, scene={gameObject.scene.name}");

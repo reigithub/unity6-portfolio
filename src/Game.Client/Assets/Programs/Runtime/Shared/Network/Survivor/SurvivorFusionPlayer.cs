@@ -150,9 +150,20 @@ namespace Game.Shared.Network.Survivor
             if (_kcc != null)
             {
                 _kcc.SetManualUpdate(true);
+
+                // KCC 物理設定を Spawned() で早期適用する（防御的初期化）。
+                // LoadPlayerAsync → ConfigureKCC でも適用されるが、Spawn 直後の物理安定性を保証する。
+                if (HasStateAuthority)
+                {
+                    _kcc.SetPosition(transform.position);
+                    KCCSettingsHelper.ApplyDefaults(_kcc);
+                }
             }
 
-            if (HasInputAuthority || HasStateAuthority)
+            // クライアント側のローカルプレイヤーのみレジストリに登録。
+            // サーバーでは複数プレイヤーが存在するため、シングルトンレジストリには登録しない。
+            // サーバー側は runner.GetPlayerObject(player) / TryGetPlayerComponent で個別アクセスする。
+            if (HasInputAuthority)
             {
                 _runnerService?.Register(this);
             }
@@ -173,7 +184,10 @@ namespace Game.Shared.Network.Survivor
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
-            _runnerService?.Unregister(this);
+            if (HasInputAuthority)
+            {
+                _runnerService?.Unregister(this);
+            }
 
             if (HasInputAuthority && runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
             {
