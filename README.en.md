@@ -1,92 +1,21 @@
 # Unity6Portfolio
 
-A game development portfolio project using Unity 6 (Monorepo Structure)
+A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 (Monorepo)
 
-## Project Structure
+## Highlights
 
-```
-Unity6Portfolio/
-├── src/
-│   ├── Game.Client/          # Unity Client (Unity 6)
-│   ├── Game.Server/          # REST API Server (ASP.NET Core 9)
-│   ├── Game.Realtime/        # Realtime Server (MagicOnion gRPC)
-│   ├── Game.Shared/          # Shared Library (.NET + Unity Package)
-│   ├── Game.Server.Shared/   # Server Shared Library
-│   ├── Game.Client.Linked/   # MasterData Bridge
-│   └── Game.Tools/           # CLI Tools (.NET 9)
-├── test/
-│   ├── Game.Server.Tests/    # Server Tests
-│   └── Game.Realtime.Tests/  # Realtime Server Tests
-├── docker/                   # Docker Configuration (7 services)
-├── masterdata/               # Protobuf Schemas + TSV Data
-└── docs/                     # Technical Documentation (73 files)
-```
+* **8-assembly modular design** — MVC/MVP coexistence with structurally enforced circular reference prevention
+* **1,148 automated tests** (EditMode 746 + PlayMode 63 + Server 339) across 7 CI/CD workflows
+* **ECS + Burst parallelization** — up to 20.3x speedup for enemy spawn calculations (5,000 entities), 23 ProfilerMarkers for instrumentation
+* **Protobuf schema-driven master data** — custom CLI tool (6 subcommands), deploy-target-filtered binary generation from a single schema for Client/Server
+* **Circuit breaker + exponential backoff retry** for fault-tolerant HTTP communication with cache fallback
+* **Photon Fusion 2 server authority model** — Dead Reckoning interpolation, enemy batch sync (NetworkArray<512>), Dedicated Server orchestration
 
----
-
-## Architecture Design
-- [Architecture Details](ARCHITECTURE.md)
-
----
-
-## TL;DR
-
-* This project is designed as a starter kit for individual or small-scale Unity game development
-* Built with emphasis on code reusability, ease of implementation, readability, and maintainability
-* Both in-game and out-game systems are driven by master data (data-driven design)
-* **Modular design with assembly separation** allows MVC/MVP pattern game modes to coexist
-* **Master data definitions separated into Game.Shared** for reusability between client and server
-* Different architecture game modes can be selected and launched from the title screen at startup
+> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 14 ADRs)
 
 ---
 
 [日本語版はこちら](README.md)
-
----
-
-## Setup
-
-### Requirements
-
-| Item | Version |
-|------|---------|
-| Unity | 6000.3.8f1 or later |
-| .NET SDK | 9.0 or later |
-| OS | Windows 10/11 |
-
-### Setup Steps
-
-#### Client (Unity)
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
-   ```
-2. Open the `src/Game.Client/` folder in Unity Hub
-3. Package restoration may take a few minutes on first launch
-4. Open `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` and press Play
-
-#### Server
-
-```bash
-cd src/Game.Server
-dotnet restore
-dotnet run
-```
-
-#### Running Tests
-
-```bash
-# Server tests
-dotnet test
-
-# Unity tests (in Unity Editor)
-# Window > General > Test Runner
-```
-
-### Notes
-* Some packages are installed via NuGetForUnity, so if errors occur on the first build, try building again
-* If Addressables build is required, run build from `Window > Asset Management > Addressables > Groups`
 
 ---
 
@@ -131,6 +60,52 @@ dotnet test
 
 ### Editor Tools
 ![Editor Tool](src/Game.Client/Documentation/GIFs/editor_tool.gif)
+
+<details><summary>Setup</summary>
+
+### Requirements
+
+| Item | Version |
+|------|---------|
+| Unity | 6000.3.8f1 or later |
+| .NET SDK | 9.0 or later |
+| OS | Windows 10/11 |
+
+### Setup Steps
+
+#### Client (Unity)
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/your-username/unity6-portfolio.git
+   ```
+2. Open the `src/Game.Client/` folder in Unity Hub
+3. Package restoration may take a few minutes on first launch
+4. Open `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` and press Play
+
+#### Server
+
+```bash
+cd src/Game.Server
+dotnet restore
+dotnet run
+```
+
+#### Running Tests
+
+```bash
+# Server tests
+dotnet test
+
+# Unity tests (in Unity Editor)
+# Window > General > Test Runner
+```
+
+### Notes
+* Some packages are installed via NuGetForUnity, so if errors occur on the first build, try building again
+* If Addressables build is required, run build from `Window > Asset Management > Addressables > Groups`
+
+</details>
 
 ---
 
@@ -188,34 +163,50 @@ dotnet test
 ---
 
 ## Features
-* **Game Mode Selection System**: Select different architecture game modes from the title screen at startup
-* **Assembly Separation Design**: Manage MVC/MVP patterns in independent assemblies to prevent circular references
-* **Client-Server Sharing**: Share master data definitions between client and server via Game.Shared
-* **Prefab Scene/Dialog Transition**: Asynchronous scene transitions using async/await
-* **State Machine Implementation**: Generic context support with transition table-based state management
-* **Master Data Management**: Protobuf schema-driven, CLI tools for client/server binary generation
-* **Various Game Services**: Common features like audio, scene transitions, messaging
-* **DI Container Support**: Dependency injection via VContainer (for MVP pattern)
-* **Combat System**: Unified combat interfaces with ICombatTarget/IDamageable/IKnockbackable
-* **Weapon System**: Auto-fire and ground-based weapons with generic object pool (WeaponObjectPool<T>)
-* **Enemy AI System**: State machine driven (Idle/Chase/Attack/HitStun/Death) with wave spawning
-* **ECS Enemy System**: Hybrid ECS implementation with Unity DOTS (Entities + Jobs + Burst), Inspector toggle for A/B switching with MonoBehaviour version
-* **Item System**: Drop lottery, attraction feature, object pooling
-* **Lock-On System**: Automatic target tracking, range management
-* **Save Data System**: Binary serialization with MemoryPack, auto-save functionality
-* **Authentication & Account Management**: Guest login, email linking, transfer password issuance, automatic session restoration, background auto token refresh
-* **Ranking System**: Score submission/retrieval, real-time rank display, fast response with Valkey cache
-* **Lobby System**: Real-time lobby via MagicOnion StreamingHub (create/join/leave/ready/game start), Valkey persistence
-* **Matchmaking System**: Queue-based matchmaking, real-time notifications via Redis Pub/Sub, session token issuance
-* **Real-time Chat**: Room-based messaging via SignalR + MagicOnion
-* **Server Authority Model**: Photon Fusion 2 Server/Client mode, Fusion FSM for player state network synchronization, enemy batch sync with Dead Reckoning interpolation
-* **MPPM Support**: Multi-editor multiplayer testing with Multiplayer Play Mode, per-clone data path isolation
-* **Asset Delivery System**: Local/remote switching with Addressables, GameEnvironment integration, editor auto-sync
-* **Dedicated Server Orchestration**: Linux headless server build, self-registration + 30-second heartbeat to Game.Server, session management (HTTP Listener), Docker container deployment, GCE metadata auto-detection
-* **Request Signing Policy**: Declarative endpoint security (3 signing attributes: SkipRequestSigning / RequireUserSignature / UnityServerSignature), fail-fast startup validation
-* **Enemy LOD System**: Distance-based 3-tier LOD (Near 20m/Mid 40m/Far), staged animation/NavMeshAgent/shadow switching, frame-distributed reclassification to prevent spikes
-* **Editor Tools**: Dedicated Server build & launch menu, enemy prefab auto-setup, bulk material shader switching
-* **CI/CD**: Automated testing (Client 809 + Server 339 = 1,148 tests) with GitHub Actions + Docker, Unity Accelerator cache optimization, Addressables deploy automation
+
+### Client Architecture
+* **Assembly Separation**: 8 independent assemblies for MVC/MVP patterns with structurally enforced circular reference prevention
+* **Game Mode Selection**: Select different architecture game modes from the title screen
+* **DI / Event-Driven**: VContainer (MVP) + GameServiceManager (MVC), MessagePipe Pub/Sub, R3 reactive (DistinctUntilChanged / Merge / ThrottleFirst operator composition)
+* **Scene Transitions**: Async (UniTask) transitions with sleep/resume, arguments/return values, dialog stack
+* **State Machine**: Generic context, transition table, O(1) state lookup. Fusion FSM for network-synced states
+
+### Gameplay
+* **Combat System**: Unified interfaces (ICombatTarget/IDamageable/IKnockbackable) for enemies and players
+* **Weapon System**: Auto-fire and ground-based weapons with generic object pool (WeaponObjectPool&lt;T&gt;, ProfilerMarker instrumented)
+* **Enemy AI**: State machine driven (Idle/Chase/Attack/HitStun/Death), wave spawning, NavMesh pathfinding
+* **Item System**: Drop group lottery (probability tables), magnet attraction, object pooling
+* **Save Data**: MemoryPack binary serialization, auto-save (30s intervals, background transition)
+
+### Performance Optimization
+* **ECS Enemy System**: Hybrid ECS with Unity DOTS (Entities + Jobs + Burst), Inspector toggle for MonoBehaviour A/B comparison
+* **Enemy LOD System**: Distance-based 3-tier LOD (Near 20m/Mid 40m/Far), frame-distributed reclassification for spike prevention
+* **Custom Shaders (URP/HLSL)**: ToonLit (Ramp Diffuse + Rim Light + Outline Pass), CharacterLit/Unlit (Hit Flash + Dissolve), LOD Far lightweight unlit. All shaders GPU Instancing enabled
+* **Rendering**: URP with PC high-quality (SSAO, 2048 shadow map) / Mobile lightweight (RenderScale 0.8, no SSAO) dual profiles
+* **Canvas Optimization**: Dynamic/static Canvas separation (fade, lock-on), CanvasGroup.alpha control to avoid unnecessary rebuilds
+
+### Network & Server Integration
+* **HTTP Communication Layer**: Exponential backoff retry (RetryPolicy), circuit breaker (auto-recovery), cache fallback (expired cache response)
+* **Authentication & Account**: Guest login, email linking, transfer password, session auto-restore, background token refresh (deduplication)
+* **Ranking System**: Score submission/retrieval, Valkey Sorted Set caching (5-min TTL)
+* **Lobby System**: Real-time lobby via MagicOnion StreamingHub (create/join/leave/ready/start), Valkey persistence
+* **Matchmaking**: Queue-based, Redis Pub/Sub real-time notifications, session token issuance
+* **Real-time Chat**: Room-based messaging via SignalR WebSocket + MagicOnion
+* **Request Signing Policy**: Declarative endpoint security (3 signing attributes), fail-fast startup validation
+
+### Multiplayer (Photon Fusion 2)
+* **Server Authority Model**: Server/Client mode, [Networked] properties, Fusion FSM player state sync
+* **Enemy Batch Sync**: Server-controlled enemy AI, 10Hz batch sync (NetworkArray<512>), client Dead Reckoning interpolation
+* **Dedicated Server Orchestration**: Linux headless build, self-registration + heartbeat to Game.Server, HMAC auth, Docker deploy
+* **MPPM Support**: In-editor multiplayer testing, per-clone data path isolation
+
+### Development Infrastructure
+* **Master Data**: Protobuf schema-driven, custom CLI tool (codegen/build/validate/scaffold/export/diff), deploy-target-filtered binary generation
+* **Asset Delivery**: Addressables with 4-environment Local/Remote switching, Cloudflare R2 CDN deploy, index.json differential sync, editor auto-sync
+* **CI/CD**: 7 GitHub Actions workflows + Docker Self-hosted Runner + Unity Accelerator, Addressables deploy automation
+* **Testing**: 1,148 tests (EditMode 746 + PlayMode 63 + Server 339), XPlat Code Coverage
+* **Editor Extensions**: 12 EditorWindows (MasterData, Database, environment settings, texture optimization, etc.)
+* **Code Quality**: StyleCop + Roslyn Analyzer + hierarchical .editorconfig, automated format checking
 
 ---
 
@@ -599,6 +590,50 @@ Distance-based 3-tier LOD for rendering quality optimization:
 
 </details>
 
+<details><summary>HTTP Communication Layer</summary>
+
+Robust HTTP communication design built around UnityApiClient:
+
+**Retry Policy (RetryPolicy):**
+- Exponential backoff (initial 1s × 2.0 multiplier, max 30s)
+- Status code filtering (408/429/500/502/503/504)
+- Presets: Default (3 retries) / Aggressive (5 retries, 500ms initial) / None
+
+**Circuit Breaker (CircuitBreakerPolicy):**
+- Automatic Closed → Open → HalfOpen state transitions
+- Opens after consecutive failure threshold (default: 5)
+- Auto-recovers from Open to HalfOpen after 30s, returns to Closed on success
+- Presets: Default / Sensitive (3 failures/60s) / Tolerant (10 failures/15s)
+
+**Cache Fallback:**
+- Serves expired cache responses when circuit is open (`FallbackToCache`)
+- TTL-based response caching
+
+**RequestOptions:**
+- Timeout control (default 15s), cache settings, additional headers
+- Builder pattern: `RequestOptions.WithCache(TimeSpan)` / `.WithTimeout(seconds)`
+
+</details>
+
+<details><summary>Custom Shaders (URP / HLSL)</summary>
+
+Custom HLSL shaders for URP pipeline:
+
+| Shader | LOD | Key Features | Passes |
+|--------|-----|-------------|--------|
+| ToonLit + ToonLighting.hlsl | 300 | Ramp texture cel-shading, Fresnel rim light, normal-offset outline | 5 |
+| CharacterLit | 300 | Hit flash, directional noise dissolve, PBR lighting | 4 |
+| CharacterUnlit | 100 | Lightweight LOD Far variant, hit flash + dissolve support | 2 |
+| Dissolve | 100 | Death effect dissolve | 3 |
+| HitFlash | 100 | Damage flash effect | 3 |
+
+**Common specs:**
+- All shaders support `#pragma multi_compile_instancing` (GPU Instancing)
+- Main light + additional lights support (ToonLit)
+- LOD Far (CharacterUnlit) skips shadow/lighting calculations for reduced draw cost
+
+</details>
+
 <details><summary>Authentication & Account Management System</summary>
 
 Server-integrated authentication and session management system:
@@ -704,7 +739,12 @@ Automated pipeline with GitHub Actions + Docker:
 
 ---
 
-## Folder Structure
+## Project Structure
+
+> For detailed assembly dependencies and design rules, see [ARCHITECTURE.md](ARCHITECTURE.md) §3-4
+
+<details><summary>Folder Structure</summary>
+
 ```
 Unity6Portfolio/
 ├── src/
@@ -787,9 +827,23 @@ Unity6Portfolio/
     └── Game.Realtime.Tests/            # Realtime Server Tests
 ```
 
+</details>
+
 ---
 
 ## Performance Improvement Samples
+
+| Target | Approach | Result |
+|--------|----------|--------|
+| Scene Transition | Task → UniTask migration | 40% CPU reduction, zero allocation |
+| State Machine | HashSet → Dictionary, LINQ elimination, inlining | 2.05x transition speed, 2.14x memory |
+| Enemy Spawn Calc | ECS + Jobs + Burst parallelization | 20.3x speedup at 5,000 entities |
+| Enemy Rendering | Distance-based 3-tier LOD + frame-distributed reclassification | Stable framerate with 512 simultaneous entities |
+| Projectile/Area | WeaponObjectPool&lt;T&gt; generic pool | GC spike elimination |
+| UI Canvas | Dynamic/static Canvas separation, CanvasGroup.alpha control | Unnecessary Canvas rebuild avoidance |
+
+**Instrumentation:** 23 custom ProfilerMarkers across Enemy, Weapon, Pool, ECS, and VFX systems for Unity Profiler Timeline visualization
+
 <details><summary>Scene Transition</summary>
 
 * GameSceneService
@@ -901,14 +955,18 @@ Unity6Portfolio/
 
 ---
 
-## Library/Tool Selection Rationale
-* **VContainer**: DI (Dependency Injection) container for MVP pattern
-* **MessagePipe**: Loosely coupled messaging (Pub/Sub) for UI events and game events
-* **R3**: Complex async event processing, improves maintainability/reusability
-* **UniTask**: Unity-optimized async processing
-* **MasterMemory**: Separates game logic from data, streamlining development cycles
-* **MemoryPack**: High-speed binary serialization for save data
-* **xUnit**: Server-side test framework
+## Library Selection Rationale
+
+| Library | Purpose | Why This One |
+|---------|---------|-------------|
+| VContainer | DI Container (MVP) | Lighter than Zenject, IL2CPP/Source Generator support, faster startup |
+| MessagePipe | Pub/Sub (MVC/MVP) | VContainer integration, type-safe messaging. High-frequency events (collisions) switched to direct calls |
+| R3 | Reactive | UniRx successor (UniRx archived). ObservableTracker leak detection, operator composition (DistinctUntilChanged/Merge/ThrottleFirst) for UI updates and network state monitoring |
+| UniTask | Async Processing | Unity-optimized zero-allocation async/await. WhenAll/WhenAny, CancellationToken propagation, UniTask Tracker |
+| MasterMemory | Master Data DB | In-memory fast lookup. Protobuf schema-driven Client/Server separate binary generation from single definitions |
+| MemoryPack | Save Data | High-speed binary serialization meeting auto-save (30s interval) performance requirements |
+| Photon Fusion 2 | Real-time Networking | Server/Client mode (server authority), [Networked] auto-sync, KCC/FSM addons. PUN2 officially declared legacy by Photon |
+| MagicOnion | gRPC Communication | Type-safe RPC via shared C# interfaces. Both Unary + StreamingHub support. No code generation needed |
 
 ---
 
@@ -918,16 +976,38 @@ Unity6Portfolio/
 
 ---
 
-## Development Period
-* Approximately 13 weeks (as of 2026/4/12)
+## Development Period & Scale
+
+| Item | Value |
+|------|-------|
+| Period | ~13 weeks (Jan 2026–) |
+| C# Files | 447 files (50 test files) |
+| Tests | 1,148 tests (EditMode 746 + PlayMode 63 + Server 339) |
+| Documentation | 73 files |
+| CI/CD Workflows | 7 |
+| Custom Shaders | 5 shaders + 2 HLSL includes |
+| EditorWindows | 12 |
+| ADRs (Architecture Decision Records) | 14 |
 
 ---
 
 ## Future Plans
+
+**Performance & Rendering:**
+* Document Unity Profiler / Memory Profiler measurement results (CPU Timeline, GC Alloc snapshots)
+* URP Renderer Feature for custom post-effects (outline post-processing, etc.)
+
+**UI Animation:**
+* DOTween Sequence compound UI animations (level-up, result screens)
+* Skip/interrupt control (DOKill / IsTweening guard) implementation
+
+**Design Patterns:**
+* ScriptableObject event channel introduction (comparison with MessagePipe)
+* ScriptableObject data assets for runtime configuration
+
+**Platform:**
 * Localization support (multi-language, Unity Localization)
-* Multi-resolution and multi-platform support
-* In-game purchase system sample
-* PlayerLoop intervention sample
+* Multi-resolution & multi-platform support (iOS / Android build & signing)
 
 ---
 

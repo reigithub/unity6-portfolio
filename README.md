@@ -1,90 +1,21 @@
 # Unity6Portfolio
 
-Unity 6 を使用したゲーム開発ポートフォリオプロジェクト（モノレポ構成）
+Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム開発ポートフォリオ（モノレポ構成）
 
-## プロジェクト構成
+## ハイライト
 
-```
-Unity6Portfolio/
-├── src/
-│   ├── Game.Client/          # Unity クライアント (Unity 6)
-│   ├── Game.Server/          # REST API サーバー (ASP.NET Core 9)
-│   ├── Game.Realtime/        # リアルタイムサーバー (MagicOnion gRPC)
-│   ├── Game.Shared/          # 共有ライブラリ (.NET + Unity Package)
-│   ├── Game.Server.Shared/   # サーバー共有ライブラリ
-│   ├── Game.Client.Linked/   # MasterData ブリッジ
-│   └── Game.Tools/           # CLI ツール (.NET 9)
-├── test/
-│   ├── Game.Server.Tests/    # サーバーテスト
-│   └── Game.Realtime.Tests/  # リアルタイムサーバーテスト
-├── docker/                   # Docker 構成（7サービス）
-├── masterdata/               # Protobuf スキーマ + TSV データ
-└── docs/                     # 技術ドキュメント（73ファイル）
-```
+* **8アセンブリ分割**のモジュラー設計 — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
+* **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339）、CI/CD 7ワークフロー
+* **ECS + Burst並列化**で敵スポーン計算を最大20.3倍高速化（5,000体）、23箇所のProfilerMarkerによる計測基盤
+* **Protobufスキーマ駆動**のマスターデータ基盤 — CLIツール自作（6サブコマンド）、Client/Server同一スキーマからデプロイターゲット別バイナリ生成
+* **サーキットブレーカー + 指数バックオフリトライ**によるHTTP通信の耐障害設計、キャッシュフォールバック対応
+* **Photon Fusion 2 サーバー権威モデル** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Dedicated Serverオーケストレーション
 
----
-
-## アーキテクチャ設計
-- [アーキテクチャ詳細](ARCHITECTURE.md)
-
----
-
-## TL;DR
-* コードの再利用性を高め、実装のしやすさや可読性、保守性が向上するような作りを意識しています
-* インゲーム/アウトゲーム共にマスターデータで動作しています(データ駆動型)(調整中の部分を除く)
-* **アセンブリ分割によるモジュラー設計**を採用し、MVC/MVP両パターンのゲームモードを共存可能
-* **マスターデータ定義をGame.Shared**として分離し、クライアント・サーバー間で再利用可能
-* 起動時のゲームモード選択画面から、異なるアーキテクチャのゲームを切り替えて起動可能
+> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 14件）
 
 ---
 
 [English version is here](README.en.md)
-
----
-
-## 環境構築
-
-### 必要環境
-
-| 項目 | バージョン         |
-|-----|---------------|
-| Unity | 6000.3.8f1 以上 |
-| .NET SDK | 9.0 以上        |
-| OS | Windows 10/11 |
-
-### セットアップ手順
-
-#### クライアント (Unity)
-
-1. リポジトリをクローン
-   ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
-   ```
-2. Unity Hub で `src/Game.Client/` フォルダを開く
-3. 初回起動時、パッケージの復元に数分かかる場合があります
-4. `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` を開いて再生
-
-#### サーバー
-
-```bash
-cd src/Game.Server
-dotnet restore
-dotnet run
-```
-
-#### テスト実行
-
-```bash
-# サーバーテスト
-dotnet test
-
-# Unity テスト（Unity Editor内）
-# Window > General > Test Runner
-```
-
-### 注意事項
-* NuGetForUnity経由でインストールされるパッケージがあるため、初回ビルド時にエラーが出る場合は再度ビルドしてください
-* Addressablesのビルドが必要な場合は `Window > Asset Management > Addressables > Groups` からビルドを実行
 
 ---
 
@@ -129,6 +60,52 @@ dotnet test
 
 ### エディターツール
 ![エディターツール](src/Game.Client/Documentation/GIFs/editor_tool.gif)
+
+<details><summary>環境構築</summary>
+
+### 必要環境
+
+| 項目 | バージョン |
+|-----|-----------|
+| Unity | 6000.3.8f1 以上 |
+| .NET SDK | 9.0 以上 |
+| OS | Windows 10/11 |
+
+### セットアップ手順
+
+#### クライアント (Unity)
+
+1. リポジトリをクローン
+   ```bash
+   git clone https://github.com/your-username/unity6-portfolio.git
+   ```
+2. Unity Hub で `src/Game.Client/` フォルダを開く
+3. 初回起動時、パッケージの復元に数分かかる場合があります
+4. `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` を開いて再生
+
+#### サーバー
+
+```bash
+cd src/Game.Server
+dotnet restore
+dotnet run
+```
+
+#### テスト実行
+
+```bash
+# サーバーテスト
+dotnet test
+
+# Unity テスト（Unity Editor内）
+# Window > General > Test Runner
+```
+
+### 注意事項
+* NuGetForUnity経由でインストールされるパッケージがあるため、初回ビルド時にエラーが出る場合は再度ビルドしてください
+* Addressablesのビルドが必要な場合は `Window > Asset Management > Addressables > Groups` からビルドを実行
+
+</details>
 
 ---
 
@@ -186,34 +163,50 @@ dotnet test
 ---
 
 ## 機能一覧
-* **ゲームモード選択システム**: 起動時のタイトル画面から異なるアーキテクチャのゲームモードを選択可能
-* **アセンブリ分割設計**: MVC/MVPパターンを独立したアセンブリで管理し、循環参照を防止
-* **クライアント・サーバー共有**: Game.Sharedによりマスターデータ定義をクライアント・サーバー間で共有
-* **プレハブシーン/ダイアログ遷移機能**: async/awaitによる非同期シーン遷移
-* **ステートマシーン実装**: ジェネリック型コンテキスト付き、遷移テーブルによる状態管理
-* **マスターデータ管理**: Protobufスキーマ駆動、CLIツールによるクライアント・サーバー両対応のバイナリ生成
-* **各種ゲームサービス**: オーディオ、シーン遷移、メッセージングなどの共通機能
-* **DIコンテナ対応**: VContainerによる依存性注入（MVPパターン用）
+
+### クライアント設計
+* **アセンブリ分割設計**: MVC/MVPパターンを独立した8アセンブリで管理、循環参照を構造的に防止
+* **ゲームモード選択**: 起動時のタイトル画面から異なるアーキテクチャのゲームモードを選択可能
+* **DI/イベント駆動**: VContainer（MVP）+ GameServiceManager（MVC）、MessagePipe Pub/Sub、R3リアクティブ（DistinctUntilChanged / Merge / ThrottleFirst等の演算子合成）
+* **シーン遷移**: async/await（UniTask）による非同期遷移、スリープ/復帰、引数・戻り値、ダイアログスタック
+* **ステートマシン**: ジェネリック型コンテキスト・遷移テーブル・O(1)ステート検索。ネットワーク同期にはFusion FSMを使い分け
+
+### ゲームプレイ
 * **戦闘システム**: ICombatTarget/IDamageable/IKnockbackableによる統一的な戦闘インターフェース
-* **武器システム**: 自動発射・地面設置型武器、汎用オブジェクトプール（WeaponObjectPool<T>）
-* **敵AIシステム**: ステートマシン駆動（Idle/Chase/Attack/HitStun/Death）、ウェーブスポーン
-* **ECS敵システム**: Unity DOTS（Entities + Jobs + Burst）によるハイブリッドECS実装、MonoBehaviour版とのInspector切り替え対応
-* **アイテムシステム**: ドロップ抽選、吸引機能、オブジェクトプーリング
-* **ロックオンシステム**: 自動ターゲット追跡、射程管理
-* **セーブデータシステム**: MemoryPackによるバイナリシリアライズ、自動保存
-* **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード発行、セッション自動復元、バックグラウンド自動トークンリフレッシュ
-* **ランキングシステム**: スコア送信・取得、リアルタイム順位表示、Valkeyキャッシュによる高速レスポンス
+* **武器システム**: 自動発射・地面設置型武器、汎用オブジェクトプール（WeaponObjectPool&lt;T&gt;、ProfilerMarker統合）
+* **敵AIシステム**: ステートマシン駆動（Idle/Chase/Attack/HitStun/Death）、ウェーブスポーン、NavMesh経路探索
+* **アイテムシステム**: ドロップグループ抽選（確率テーブル）、マグネット吸引、オブジェクトプーリング
+* **セーブデータ**: MemoryPackバイナリシリアライズ、自動保存（30秒間隔・バックグラウンド移行時）
+
+### パフォーマンス最適化
+* **ECS敵システム**: Unity DOTS（Entities + Jobs + Burst）によるハイブリッドECS、MonoBehaviour版とのInspector切り替え対応
+* **エネミーLODシステム**: 距離ベース3段階LOD（Near 20m/Mid 40m/Far）、フレーム分散再分類によるスパイク防止
+* **カスタムシェーダー（URP/HLSL）**: ToonLit（Ramp Diffuse + Rim Light + Outline Pass）、CharacterLit/Unlit（Hit Flash + Dissolve）、LOD Far用軽量Unlitシェーダー。全シェーダーGPUインスタンシング対応
+* **レンダリング**: URP PC高品質（SSAO、2048影マップ）/ Mobile軽量（RenderScale 0.8、SSAO無効）の2プロファイル
+* **Canvas最適化**: 動的UI用Canvas分離（フェード・ロックオン）、CanvasGroup.alpha制御によるリビルド回避
+
+### ネットワーク・サーバー連携
+* **HTTP通信基盤**: 指数バックオフリトライ（RetryPolicy）、サーキットブレーカー（自動復帰）、キャッシュフォールバック（期限切れキャッシュ応答）
+* **認証・アカウント管理**: ゲストログイン、メール連携、引き継ぎパスワード、セッション自動復元、バックグラウンド自動トークンリフレッシュ（重複排除）
+* **ランキングシステム**: スコア送信・取得、Valkey Sorted Setによる高速ランキング（5分TTL）
 * **ロビーシステム**: MagicOnion StreamingHubによるリアルタイムロビー（作成/参加/退出/レディ/ゲーム開始）、Valkey永続化
-* **マッチメイキングシステム**: キューベースのマッチメイキング、Redis Pub/Subによるリアルタイム通知、セッショントークン発行
-* **リアルタイムチャット**: SignalR + MagicOnionによるルームベースメッセージング
-* **サーバー権威モデル**: Photon Fusion 2 Server/Client モード、Fusion FSM によるプレイヤーステートのネットワーク同期、敵バッチ同期（Dead Reckoning 補間）
-* **MPPM対応**: Multiplayer Play Modeによるエディタ内マルチプレイテスト、クローン別データパス分離
-* **アセット配信システム**: Addressablesによるローカル/リモート切り替え、GameEnvironment連動、エディタ自動同期
-* **Dedicated Server オーケストレーション**: Linux ヘッドレスサーバービルド、Game.Server への自己登録＋30秒ハートビート、セッション管理（HTTP Listener）、Docker コンテナデプロイ、GCE メタデータ自動検出
-* **リクエスト署名ポリシー**: 宣言的エンドポイントセキュリティ（3種の署名属性: SkipRequestSigning / RequireUserSignature / UnityServerSignature）、起動時 fail-fast バリデーション
-* **エネミーLODシステム**: 距離ベース3段階LOD（Near 20m/Mid 40m/Far）、アニメーション/NavMeshAgent/影の段階的切り替え、フレーム分散再分類によるスパイク防止
-* **エディターツール**: Dedicated Server ビルド＆起動メニュー、敵プレハブ自動セットアップ、マテリアルシェーダー一括切替
-* **CI/CD**: GitHub Actions + Docker による自動テスト（クライアント809 + サーバー339 = 1148テスト）、Unity Acceleratorによるキャッシュ最適化、Addressablesデプロイ自動化
+* **マッチメイキング**: キューベース、Redis Pub/Subリアルタイム通知、セッショントークン発行
+* **リアルタイムチャット**: SignalR WebSocket + MagicOnionによるルームベースメッセージング
+* **リクエスト署名ポリシー**: 宣言的エンドポイントセキュリティ（3種の署名属性）、起動時fail-fastバリデーション
+
+### サーバー/クライアントモデル（Photon Fusion 2）
+* **サーバー権威モデル**: Server/Clientモード、[Networked]プロパティ、Fusion FSMによるプレイヤーステート同期
+* **敵バッチ同期**: サーバーが敵AI制御、10Hzバッチ同期（NetworkArray<512>）、クライアントDead Reckoning補間
+* **Dedicated Serverオーケストレーション**: Linux ヘッドレスビルド、Game.Serverへの自己登録＋ハートビート、HMAC認証、Dockerデプロイ
+* **MPPM対応**: エディタ内マルチプレイテスト、クローン別データパス分離
+
+### 開発基盤
+* **マスターデータ管理**: Protobufスキーマ駆動、CLIツール自作（codegen/build/validate/scaffold/export/diff）、デプロイターゲット別バイナリ生成
+* **アセット配信**: Addressablesローカル/リモート4環境切替、Cloudflare R2 CDNデプロイ、index.json差分同期、エディタ自動同期
+* **CI/CD**: GitHub Actions 7ワークフロー + Docker Self-hosted Runner + Unity Accelerator、Addressablesデプロイ自動化
+* **テスト**: 1,148テスト（EditMode 746 + PlayMode 63 + サーバー 339）、XPlat Code Coverage
+* **エディター拡張**: 12個のEditorWindow（MasterData管理、DB管理、環境設定、テクスチャ最適化等）
+* **コード品質**: StyleCop + Roslyn Analyzer + .editorconfig階層、自動フォーマットチェック
 
 ---
 
@@ -602,6 +595,50 @@ REST API の全エンドポイントに対する宣言的セキュリティポ�
 
 </details>
 
+<details><summary>HTTP通信基盤</summary>
+
+UnityApiClientによる堅牢なHTTP通信設計:
+
+**リトライポリシー（RetryPolicy）:**
+- 指数バックオフ（初期1秒 × 2.0倍、上限30秒）
+- リトライ対象ステータスコード別判定（408/429/500/502/503/504）
+- プリセット: Default（3回） / Aggressive（5回、初期500ms） / None（リトライなし）
+
+**サーキットブレーカー（CircuitBreakerPolicy）:**
+- Closed → Open → HalfOpen の3状態自動遷移
+- 連続エラー閾値（デフォルト5回）超過で回路遮断
+- Open状態30秒経過でHalfOpenへ自動復帰、成功時にClosedへ復帰
+- プリセット: Default / Sensitive（3回/60秒） / Tolerant（10回/15秒）
+
+**キャッシュフォールバック:**
+- サーキットOpen時に期限切れキャッシュで応答（`FallbackToCache`）
+- TTL指定によるレスポンスキャッシュ
+
+**RequestOptions:**
+- タイムアウト制御（デフォルト15秒）、キャッシュ設定、追加ヘッダー
+- ビルダーパターン: `RequestOptions.WithCache(TimeSpan)` / `.WithTimeout(seconds)`
+
+</details>
+
+<details><summary>カスタムシェーダー（URP / HLSL）</summary>
+
+URPパイプラインに対応したカスタムHLSLシェーダー群:
+
+| シェーダー | LOD | 主要機能 | Pass数 |
+|-----------|-----|---------|-------|
+| ToonLit + ToonLighting.hlsl | 300 | Rampテクスチャによるセルシェーディング、Fresnelリムライト、法線オフセットアウトライン | 5 |
+| CharacterLit | 300 | ヒットフラッシュ、方向性ノイズディゾルブ、PBRライティング | 4 |
+| CharacterUnlit | 100 | LOD Far用軽量版、ヒットフラッシュ+ディゾルブ対応 | 2 |
+| Dissolve | 100 | 死亡エフェクト用ディゾルブ | 3 |
+| HitFlash | 100 | 被弾エフェクト用フラッシュ | 3 |
+
+**共通仕様:**
+- 全シェーダー `#pragma multi_compile_instancing` 対応（GPUインスタンシング）
+- メインライト + 追加ライト対応（ToonLit）
+- LOD Far（CharacterUnlit）でシャドウ・ライティング計算を省略し描画負荷を軽減
+
+</details>
+
 <details><summary>認証・アカウント管理システム</summary>
 
 サーバー連携による認証・セッション管理システム:
@@ -709,7 +746,12 @@ GitHub Actions + Docker による自動化パイプライン:
 
 ---
 
-## 主なフォルダ構成
+## プロジェクト構成
+
+> 詳細なアセンブリ依存関係・設計ルールは [ARCHITECTURE.md](ARCHITECTURE.md) §3-4 を参照
+
+<details><summary>フォルダ構成</summary>
+
 ```
 Unity6Portfolio/
 ├── src/
@@ -792,9 +834,23 @@ Unity6Portfolio/
     └── Game.Realtime.Tests/            # リアルタイムサーバーテスト
 ```
 
+</details>
+
 ---
 
 ## パフォーマンス改善・検証サンプル
+
+| 対象 | 施策 | 改善結果 |
+|------|------|---------|
+| シーン遷移 | Task → UniTask 移行 | CPU実行時間 40%削減、ゼロアロケーション化 |
+| ステートマシン | HashSet → Dictionary、LINQ排除、インライン化 | 遷移速度 2.05x、メモリ 2.14x改善 |
+| 敵スポーン計算 | ECS + Jobs + Burst 並列化 | 5,000体で 20.3x 高速化 |
+| 敵描画 | 距離ベース3段階LOD + フレーム分散再分類 | 512体同時管理でフレームレート維持 |
+| 弾・エリア生成 | WeaponObjectPool&lt;T&gt; ジェネリックプール | GCスパイク排除 |
+| UI Canvas | 動的/静的Canvas分離、CanvasGroup.alpha制御 | 不要なCanvasリビルド回避 |
+
+**計測インフラ:** カスタムProfilerMarker 23箇所（Enemy, Weapon, Pool, ECS, VFX等）を埋め込み、Unity Profiler Timeline上でボトルネックを可視化
+
 <details><summary>シーン遷移機能</summary>
 
 * GameSceneService
@@ -906,14 +962,18 @@ Unity6Portfolio/
 
 ---
 
-## 主なライブラリ・ツール採用理由
-* **VContainer**: MVPパターンにおける依存性注入(DI)コンテナとして。
-* **MessagePipe**: 疎結合なメッセージング処理(Pub/Sub)のため。
-* **R3**: 複雑な非同期イベント処理、保守性/再利用性の向上のため。
-* **UniTask**: Unityに最適化された非同期処理全般のため。
-* **MasterMemory**: ゲームロジックとデータを分離し、開発サイクルを効率化するため。
-* **MemoryPack**: セーブデータの高速バイナリシリアライズ。
-* **xUnit**: サーバーサイドテスト用フレームワーク。
+## 主なライブラリ選定理由
+
+| ライブラリ | 用途 | 選定理由 |
+|-----------|------|---------|
+| VContainer | DI コンテナ (MVP) | Zenjectより軽量、IL2CPP/ソースジェネレータ対応、起動時間短縮 |
+| MessagePipe | Pub/Sub (MVC/MVP) | VContainer統合、型安全なメッセージング。高頻度イベント（衝突等）は直接呼出に変更済 |
+| R3 | リアクティブ | UniRx後継（UniRxはアーカイブ済み）。ObservableTrackerによるリーク検出、DistinctUntilChanged/Merge/ThrottleFirst等の演算子合成でUI更新・ネットワーク状態監視を構築 |
+| UniTask | 非同期処理 | Unity最適化のゼロアロケーションasync/await。WhenAll/WhenAny、CancellationToken伝搬、UniTask Tracker（リーク検出） |
+| MasterMemory | マスターデータDB | インメモリ高速検索。Protobufスキーマ駆動でClient/Serverに同一定義から別バイナリを生成 |
+| MemoryPack | セーブデータ | 高速バイナリシリアライズ。自動保存（30秒間隔）のパフォーマンス要件を満たす |
+| Photon Fusion 2 | リアルタイム通信 | Server/Clientモード（サーバー権威）、[Networked]自動同期、KCC/FSMアドオン。PUN2はPhoton公式がレガシー宣言済 |
+| MagicOnion | gRPC通信 | C#インターフェース共有で型安全なRPC。Unary + StreamingHub両対応。コード生成不要 |
 
 ---
 
@@ -923,16 +983,38 @@ Unity6Portfolio/
 
 ---
 
-## 制作期間
-* 約13週間 (2026/4/12時点)
+## 制作期間・規模
+
+| 項目 | 値 |
+|------|-----|
+| 制作期間 | 約13週間（2026年1月〜） |
+| C#ファイル数 | 447ファイル（うちテスト50） |
+| テスト | 1,148テスト（EditMode 746 + PlayMode 63 + サーバー 339） |
+| ドキュメント | 73ファイル |
+| CI/CDワークフロー | 7本 |
+| カスタムシェーダー | 5シェーダー + 2 HLSLインクルード |
+| EditorWindow | 12個 |
+| ADR（設計判断記録）| 13件 |
 
 ---
 
 ## 今後の予定
+
+**パフォーマンス・描画:**
+* Unity Profiler / Memory Profilerによる計測結果のドキュメント化（CPU Timeline、GC Allocスナップショット）
+* URP Renderer Featureによるカスタムポストエフェクト（アウトライン後処理等）
+
+**UI演出:**
+* DOTween Sequenceによる複合UI演出（レベルアップ、リザルト）
+* スキップ・割り込み制御（DOKill / IsTweening ガード）の実装
+
+**設計パターン:**
+* ScriptableObjectイベントチャネルの導入（MessagePipeとの使い分け検証）
+* ScriptableObjectデータアセットの追加（ランタイム設定用途）
+
+**プラットフォーム:**
 * ローカライズ対応（多言語、Unity Localization）
-* マルチ解像度・マルチプラットフォーム対応
-* インゲーム課金システムサンプル
-* PlayerLoopへの介入サンプル
+* マルチ解像度・マルチプラットフォーム対応（iOS / Androidビルド・署名）
 
 ---
 

@@ -1676,6 +1676,60 @@ Background automatic token refresh system:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.14 HTTP Communication Layer
+
+Robust HTTP communication layer built around UnityApiClient:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   HTTP Communication Layer                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  UnityApiClient                                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ ExecuteWithRetry<TResponse>()                                │ │
+│  │   ├── RetryPolicy evaluation (IsRetryableStatusCode)         │ │
+│  │   ├── Exponential backoff wait (GetDelayMs)                   │ │
+│  │   └── CancellationToken propagation                           │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌────────────────────────┐    ┌───────────────────────────┐    │
+│  │   RetryPolicy          │    │  CircuitBreakerPolicy      │    │
+│  │  ├ MaxRetries: 3       │    │  ├ FailureThreshold: 5     │    │
+│  │  ├ InitialDelayMs: 1000│    │  ├ OpenDuration: 30s        │    │
+│  │  ├ BackoffMultiplier:2 │    │  ├ Closed → Open → HalfOpen│    │
+│  │  └ StatusCode filter   │    │  └ Auto-recovery             │    │
+│  │    (408,429,5xx)       │    │                              │    │
+│  │                        │    │  Presets:                      │    │
+│  │  Presets:              │    │  ├ Default (5 failures/30s)   │    │
+│  │  ├ Default (3 retries) │    │  ├ Sensitive (3/60s)          │    │
+│  │  ├ Aggressive (5)      │    │  └ Tolerant (10/15s)          │    │
+│  │  └ None (no retry)     │    │                              │    │
+│  └────────────────────────┘    └───────────────────────────┘    │
+│         │                              │                         │
+│         ▼                              ▼                         │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  RequestOptions                                           │    │
+│  │  ├ TimeoutSeconds: 15 (default)                           │    │
+│  │  ├ UseCache / CacheDuration (response caching)            │    │
+│  │  ├ FallbackToCache: true (expired cache on circuit open)  │    │
+│  │  └ Presets: Default / NoRetry / WithCache / WithTimeout   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Related Classes:**
+
+| Class | Path | Role |
+|-------|------|------|
+| `UnityApiClient` | Shared/Services/ | Core HTTP layer integrating retry, circuit breaker, and cache |
+| `RetryPolicy` | Shared/Services/Network/Policies/ | Exponential backoff retry policy (3 presets) |
+| `CircuitBreakerPolicy` | Shared/Services/Network/Policies/ | 3-state circuit breaker (3 presets) |
+| `RequestOptions` | Shared/Services/Network/Models/ | Request configuration (4 presets) |
+| `ApiResponse<T>` | Shared/Services/Network/Models/ | Unified response type (Success/Error/CircuitOpen/Cache) |
+
 ---
 
 ## 8. Class Design (UML)
@@ -2274,6 +2328,17 @@ Unity6Portfolio/
 | **Alternatives** | A) Unity LOD Group B) Custom LOD C) GPU Culling |
 | **Rationale** | Custom implementation optimal for ECS hybrid architecture. Staged quality control via CharacterUnlit shader |
 | **Impact** | Near(every frame)/Mid(every 2f)/Far(every 5f) update frequency control. Frame distribution prevents spikes |
+| **Status** | Adopted |
+
+#### ADR-014: HTTP Communication Layer (Circuit Breaker + Retry)
+
+| Item | Details |
+|------|---------|
+| **Decision** | Integrate RetryPolicy + CircuitBreakerPolicy + cache fallback into UnityApiClient |
+| **Context** | Fault tolerance needed for unstable mobile network connections. Maintain user experience during outages |
+| **Alternatives** | A) Simple UnityWebRequest retry B) Port Polly (.NET standard) C) Custom policy layer |
+| **Rationale** | Polly unavailable in Unity environment, so custom implementation. 3-layer separation of concerns: RetryPolicy (exponential backoff) + CircuitBreakerPolicy (Closed/Open/HalfOpen state transitions) + RequestOptions (builder pattern). Cache fallback with expired cache tolerance for offline resilience |
+| **Impact** | All API calls share unified error handling. Presets (Default/Aggressive/Sensitive) minimize caller configuration burden |
 | **Status** | Adopted |
 
 ### 11.2 Known Technical Debt
