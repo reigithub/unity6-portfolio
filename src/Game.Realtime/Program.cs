@@ -1,13 +1,16 @@
+using System.Net.Security;
 using Game.Realtime.Extensions;
 using Game.Realtime.Filters;
 using Game.Server.Shared.Configuration;
 using Game.Server.Shared.Extensions;
+using Google.Apis.Auth.OAuth2;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using StackExchange.Redis;
 
 namespace Game.Realtime;
 
@@ -43,9 +46,35 @@ public class Program
         });
 
         // Valkey/Redis connection
-        builder.Services.AddValkeyConnection(builder.Configuration);
+        // MagicOnion の MapMagicOnionService() がルートマッピング時に IConnectionMultiplexer を即座に解決するため、
+        // ValkeyConnectionInitializer（IHostedService）パターンではなく、builder.Build() 前に同期接続を確立する。
         var valkeyConnectionString = builder.Configuration.GetConnectionString("Valkey")
-            ?? "localhost:6379,abortConnect=false";
+            ?? throw new InvalidOperationException("ConnectionStrings:Valkey is not configured.");
+        var valkeyOptions = ConfigurationOptions.Parse(valkeyConnectionString);
+        GoogleCredential? valkeyCredential = null;
+
+        if (valkeyOptions.Ssl)
+        {
+            // GCP Memorystore IAM 認証: トークンを取得して接続
+            valkeyCredential = await GoogleCredential.GetApplicationDefaultAsync();
+            var token = await valkeyCredential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+            valkeyOptions.User = "default";
+            valkeyOptions.Password = token;
+            valkeyOptions.CertificateValidation += (_, _, _, errors) =>
+                errors is SslPolicyErrors.None or SslPolicyErrors.RemoteCertificateChainErrors;
+        }
+
+        var valkeyMultiplexer = await ConnectionMultiplexer.ConnectAsync(valkeyOptions);
+        Log.Information("Connected to Valkey/Redis{IamSuffix}", valkeyOptions.Ssl ? " with IAM authentication" : "");
+
+        builder.Services.AddSingleton<IConnectionMultiplexer>(valkeyMultiplexer);
+
+        // IAM トークンリフレッシュ（4分間隔、トークン有効期限は1時間）
+        if (valkeyCredential != null)
+        {
+            var credential = valkeyCredential;
+            builder.Services.AddHostedService(_ => new ValkeyTokenRefreshService(valkeyMultiplexer, credential));
+        }
 
         // gRPC + MagicOnion with Redis backplane
         builder.Services.AddGrpc();
@@ -61,8 +90,8 @@ public class Program
         })
         .UseRedisGroup(options =>
         {
-            options.ConnectionString = valkeyConnectionString;
-        });
+            options.ConnectionMultiplexer = valkeyMultiplexer;
+        }, registerAsDefault: true);
 
         // JWT Authentication
         builder.Services.AddJwtValidation(builder.Configuration);
@@ -109,6 +138,49 @@ public class Program
         finally
         {
             await Log.CloseAndFlushAsync();
+        }
+    }
+
+    /// <summary>
+    /// GCP Memorystore IAM トークンを定期的にリフレッシュする BackgroundService。
+    /// ValkeyConnectionInitializer 相当の機能を Game.Realtime 用に分離。
+    /// </summary>
+    private sealed class ValkeyTokenRefreshService : BackgroundService
+    {
+        private static readonly TimeSpan RefreshInterval = TimeSpan.FromMinutes(4);
+
+        private readonly IConnectionMultiplexer _multiplexer;
+        private readonly GoogleCredential _credential;
+
+        public ValkeyTokenRefreshService(IConnectionMultiplexer multiplexer, GoogleCredential credential)
+        {
+            _multiplexer = multiplexer;
+            _credential = credential;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            using var timer = new PeriodicTimer(RefreshInterval);
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                try
+                {
+                    var newToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync(
+                        cancellationToken: stoppingToken);
+                    foreach (var server in _multiplexer.GetServers())
+                    {
+                        await server.ExecuteAsync("AUTH", "default", newToken);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to refresh Valkey IAM token");
+                }
+            }
         }
     }
 }
