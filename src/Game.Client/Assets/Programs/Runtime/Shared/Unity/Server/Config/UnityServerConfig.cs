@@ -26,8 +26,14 @@ namespace Game.Shared.Unity.Server
         /// </summary>
         public ReadOnlyMemory<byte> AuthSecretKey { get; }
 
-        /// <summary>DS の公開アドレス（GCE 外部 IP または手動設定）。未設定時は null。</summary>
+        /// <summary>DS の公開アドレス（GCE 外部 IP または手動設定）。クライアント UDP 接続用。未設定時は null。</summary>
         public string PublicAddress { get; }
+
+        /// <summary>
+        /// DS の VPC 内部 IP アドレス（GCE 内部 IP または手動設定）。
+        /// Game.Server → DS 間の HTTP 通信（VPC Connector 経由）に使用する。未設定時は null。
+        /// </summary>
+        public string InternalAddress { get; }
 
         /// <summary>
         /// <see cref="UnityServerConfig"/> を初期化する。
@@ -38,13 +44,15 @@ namespace Game.Shared.Unity.Server
         /// <param name="healthPort">ヘルスチェックポート番号。</param>
         /// <param name="authSecretKey">HMAC シークレット（空の場合は認証スキップ）。</param>
         /// <param name="publicAddress">公開アドレス（null 可）。</param>
+        /// <param name="internalAddress">VPC 内部 IP アドレス（null 可）。</param>
         public UnityServerConfig(
             string dsId,
             string gameServerUrl,
             ushort gamePort,
             int healthPort,
             ReadOnlyMemory<byte> authSecretKey,
-            string publicAddress)
+            string publicAddress,
+            string internalAddress = null)
         {
             DsId = dsId;
             GameServerUrl = gameServerUrl;
@@ -52,6 +60,7 @@ namespace Game.Shared.Unity.Server
             HealthPort = healthPort;
             AuthSecretKey = authSecretKey;
             PublicAddress = publicAddress;
+            InternalAddress = internalAddress;
         }
     }
 }

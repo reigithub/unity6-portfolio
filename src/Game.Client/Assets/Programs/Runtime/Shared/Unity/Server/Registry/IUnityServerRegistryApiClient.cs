@@ -14,10 +14,11 @@ namespace Game.Shared.Unity.Server
         /// <summary>
         /// DS を Game.Server に自己登録する。
         /// </summary>
-        /// <param name="dsAddress">DS の公開アドレス（IP 文字列）。</param>
+        /// <param name="dsAddress">DS の公開アドレス（クライアント UDP 接続用 IP 文字列）。</param>
+        /// <param name="internalAddress">DS の VPC 内部 IP アドレス（Game.Server HTTP 通信用）。未設定時は null。</param>
         /// <param name="ct">キャンセルトークン。</param>
         /// <returns>成功した場合は true。</returns>
-        Task<bool> RegisterAsync(string dsAddress, CancellationToken ct);
+        Task<bool> RegisterAsync(string dsAddress, string internalAddress, CancellationToken ct);
 
         /// <summary>
         /// ハートビートを Game.Server に送信する。

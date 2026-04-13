@@ -54,16 +54,21 @@ public class UnityServerSessionService : IUnityServerSessionService
         // 2. 最初の idle DS を選択
         var target = servers[0];
 
+        // InternalAddress が設定されている場合は VPC 内部 IP 経由で通信する（ファイアウォール回避）
+        var dsHost = !string.IsNullOrEmpty(target.InternalAddress) ? target.InternalAddress : target.Address;
+
         _logger.LogInformation(
-            "DS を選択: dsId={DsId}, address={Address}:{HealthPort}, matchId={MatchId}",
-            target.DsId, target.Address, target.HealthPort, matchId);
+            "DS を選択: dsId={DsId}, address={Address}:{HealthPort}, internalAddress={InternalAddress}, matchId={MatchId}",
+            target.DsId, target.Address, target.HealthPort,
+            string.IsNullOrEmpty(target.InternalAddress) ? "(none, fallback to address)" : target.InternalAddress,
+            matchId);
 
         // 3. DS に HTTP POST でセッション作成指示
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
 
         var requestBody = $"{{\"matchId\":\"{matchId}\",\"stageId\":{stageId},\"expectedPlayers\":{expectedPlayers}}}";
-        var url = $"http://{target.Address}:{target.HealthPort}{SessionStartPath}";
+        var url = $"http://{dsHost}:{target.HealthPort}{SessionStartPath}";
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
@@ -83,7 +88,7 @@ public class UnityServerSessionService : IUnityServerSessionService
         await _registryService.SetStatusAsync(target.DsId, "active", matchId);
 
         _logger.LogInformation(
-            "セッション割り当て完了: dsId={DsId}, address={Address}:{HealthPort}, matchId={MatchId}",
-            target.DsId, target.Address, target.HealthPort, matchId);
+            "セッション割り当て完了: dsId={DsId}, url={Url}, matchId={MatchId}",
+            target.DsId, url, matchId);
     }
 }

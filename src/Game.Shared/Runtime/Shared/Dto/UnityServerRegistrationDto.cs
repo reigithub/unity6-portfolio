@@ -32,5 +32,12 @@ namespace Game.Library.Shared.Dto
         /// </summary>
         [Key(3)]
         public int HealthPort { get; set; }
+
+        /// <summary>
+        /// DS の VPC 内部 IP アドレス。Game.Server → DS 間の HTTP 通信（VPC Connector 経由）に使用。
+        /// 非 GCE 環境や環境変数未設定時は null。
+        /// </summary>
+        [Key(4)]
+        public string InternalAddress { get; set; }
     }
 }

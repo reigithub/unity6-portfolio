@@ -83,6 +83,7 @@ namespace Game.Shared.Unity.Server
             Debug.Log($"[ServerBootstrap] DsId={config.DsId}, GamePort={config.GamePort}, HealthPort={config.HealthPort}");
             Debug.Log($"[ServerBootstrap] GameServerUrl={config.GameServerUrl ?? "(none)"}");
             Debug.Log($"[ServerBootstrap] PublicAddress={config.PublicAddress ?? "(none)"}");
+            Debug.Log($"[ServerBootstrap] InternalAddress={config.InternalAddress ?? "(none)"}");
             Debug.Log($"[ServerBootstrap] AuthSecretKey={(config.AuthSecretKey.IsEmpty ? "未設定" : "設定済み（HMAC 認証有効）")}");
 
             // PUBLIC_ADDRESS を環境変数に書き戻す（SurvivorNetworkStageConnector が参照）
@@ -109,7 +110,7 @@ namespace Game.Shared.Unity.Server
             if (!string.IsNullOrEmpty(config.GameServerUrl))
             {
                 var dsAddress = config.PublicAddress ?? NetworkAddressHelper.GetLocalIPv4Address();
-                await _registry.RegisterAsync(dsAddress, cancellation);
+                await _registry.RegisterAsync(dsAddress, config.InternalAddress, cancellation);
 
                 _heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                 _heartbeatTask = UnityServerHeartbeatLoop.RunAsync(_registry, TimeSpan.FromSeconds(30), _heartbeatCts.Token);
