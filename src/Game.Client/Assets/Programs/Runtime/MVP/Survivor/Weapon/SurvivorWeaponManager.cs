@@ -291,7 +291,7 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            float deltaTime = _runnerService.GetDeltaTime();
+            float deltaTime = _runnerService.GetRenderDeltaTime();
             foreach (var weapon in _weapons)
             {
                 weapon.UpdateWeapon(deltaTime);

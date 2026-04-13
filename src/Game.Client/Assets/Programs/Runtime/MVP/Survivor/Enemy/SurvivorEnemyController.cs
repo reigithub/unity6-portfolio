@@ -260,13 +260,13 @@ namespace Game.MVP.Survivor.Enemy
         public void SetNetworkId(int id) => _networkId = id;
 
         /// <summary>
-        /// Fusion Runner.DeltaTime を優先し、利用不可時は Time.deltaTime にフォールバック。
-        /// ゲームロジックタイマー（攻撃クールダウン、HitStun）で使用。
+        /// レンダーフレームの deltaTime を返す。
+        /// Update() で呼ばれるタイマー（攻撃クールダウン、HitStun、NavMesh チェック等）に使用。
+        /// Fusion Runner.DeltaTime（固定 Tick 間隔）ではなく Time.deltaTime を使用することで、
+        /// Resimulation 時の多重加算を防止する。
         /// </summary>
         internal float GetDeltaTime()
         {
-            if (_runnerService != null && _runnerService.IsActive && _runnerService.Runner != null)
-                return _runnerService.Runner.DeltaTime;
             return Time.deltaTime;
         }
 

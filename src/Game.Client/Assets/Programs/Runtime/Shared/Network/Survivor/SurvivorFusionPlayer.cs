@@ -232,6 +232,10 @@ namespace Game.Shared.Network.Survivor
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
 
+            // Resimulation 中はクライアント側の予測再計算をスキップ
+            // State Authority（サーバー）は Resimulation しないため影響なし
+            if (Runner.IsResimulation) return;
+
             // 診断: FixedUpdate での状態記録（サーバー・クライアント両方）
             if (_kcc != null)
             {

@@ -34,5 +34,17 @@ namespace Game.Shared.Network.Fusion
                 return runnerService.Runner.DeltaTime;
             return Time.deltaTime;
         }
+
+        /// <summary>
+        /// MonoBehaviour.Update() 内で使用するレンダーフレームの deltaTime を返す。
+        /// Fusion の Runner.DeltaTime（固定 Tick 間隔）ではなく、Unity の Time.deltaTime を使用。
+        /// 武器タイマー、エネミーAI タイマー等の非ネットワーク同期処理に適切。
+        /// </summary>
+        /// <param name="service">FusionRunnerService。</param>
+        /// <returns>レンダーフレームのデルタタイム。</returns>
+        public static float GetRenderDeltaTime(this IFusionRunnerService service)
+        {
+            return Time.deltaTime;
+        }
     }
 }

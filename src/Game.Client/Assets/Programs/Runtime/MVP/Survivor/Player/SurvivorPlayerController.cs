@@ -354,7 +354,7 @@ namespace Game.MVP.Survivor.Player
             {
                 if (_fusionPlayer == null || !_fusionPlayer.HasInputAuthority) return;
                 if (_gameState != null && _gameState.IsEffectivelyPaused) return;
-                _itemCheckTimer -= _runnerService.GetDeltaTime();
+                _itemCheckTimer -= _runnerService.GetRenderDeltaTime();
                 if (_itemCheckTimer > 0f) return;
                 _itemCheckTimer = ItemCheckInterval;
 
