@@ -13,6 +13,7 @@ public interface IUnityServerSessionService
     /// <param name="matchId">割り当てるマッチID。</param>
     /// <param name="stageId">ステージID。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。</param>
+    /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    Task AssignSessionAsync(string matchId, int stageId, int expectedPlayers);
+    Task<DsInfo> AssignSessionAsync(string matchId, int stageId, int expectedPlayers);
 }

@@ -37,8 +37,9 @@ public class UnityServerSessionService : IUnityServerSessionService
     /// <param name="matchId">割り当てるマッチID。</param>
     /// <param name="stageId">ステージID。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。</param>
+    /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    public async Task AssignSessionAsync(string matchId, int stageId, int expectedPlayers)
+    public async Task<DsInfo> AssignSessionAsync(string matchId, int stageId, int expectedPlayers)
     {
         // 1. DS 一覧取得（ハートビート確認済み + 死亡 DS 自動削除）
         var servers = await _registryService.GetAvailableServersAsync();
@@ -90,5 +91,8 @@ public class UnityServerSessionService : IUnityServerSessionService
         _logger.LogInformation(
             "セッション割り当て完了: dsId={DsId}, url={Url}, matchId={MatchId}",
             target.DsId, url, matchId);
+
+        // 割り当てた DS 情報を返却（クライアントへの接続先動的通知に使用）
+        return target;
     }
 }

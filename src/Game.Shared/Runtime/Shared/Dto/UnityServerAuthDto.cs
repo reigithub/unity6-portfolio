@@ -23,5 +23,21 @@ namespace Game.Library.Shared.Dto
         /// </summary>
         [Key(1)]
         public string SessionName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 割り当てられた DS のアドレス（IP またはホスト名）。
+        /// DS 割り当てが行われた場合（stageId &gt; 0）に設定される。
+        /// 空文字列の場合は <see cref="GameEnvironmentConfig"/> のフォールバックを使用する。
+        /// </summary>
+        [Key(2)]
+        public string ServerAddress { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 割り当てられた DS の Fusion ゲームポート番号。
+        /// DS 割り当てが行われた場合（stageId &gt; 0）に設定される。
+        /// 0 の場合は <see cref="GameEnvironmentConfig"/> のフォールバックを使用する。
+        /// </summary>
+        [Key(3)]
+        public int ServerPort { get; set; }
     }
 }
