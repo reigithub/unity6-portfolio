@@ -917,7 +917,7 @@ MonoBehaviour:
     - line: '|     PS5: 1'
     - line: '|     QNX: 1'
     - line: '|     ReservedCFE: 1'
-    - line: '|     Standalone: 4'
+    - line: '|     Standalone: 0'
     - line: '|     VisionOS: 1'
     - line: '|     WebGL: 1'
     - line: '|     Windows Store Apps: 1'
