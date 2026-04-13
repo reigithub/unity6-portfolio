@@ -1730,6 +1730,60 @@ Unity Dedicated Server の自己登録・セッション管理・ヘルスチェ
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.14 HTTP通信基盤
+
+UnityApiClient を中心とした堅牢なHTTP通信レイヤー:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   HTTP Communication Layer                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  UnityApiClient                                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ ExecuteWithRetry<TResponse>()                                │ │
+│  │   ├── RetryPolicy 判定 (IsRetryableStatusCode)               │ │
+│  │   ├── 指数バックオフ待機 (GetDelayMs)                         │ │
+│  │   └── CancellationToken 伝搬                                 │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌────────────────────────┐    ┌───────────────────────────┐    │
+│  │   RetryPolicy          │    │  CircuitBreakerPolicy      │    │
+│  │  ├ MaxRetries: 3       │    │  ├ FailureThreshold: 5     │    │
+│  │  ├ InitialDelayMs: 1000│    │  ├ OpenDuration: 30秒       │    │
+│  │  ├ BackoffMultiplier:2 │    │  ├ Closed → Open → HalfOpen│    │
+│  │  └ StatusCode判定      │    │  └ 自動復帰                  │    │
+│  │    (408,429,5xx)       │    │                              │    │
+│  │                        │    │  プリセット:                   │    │
+│  │  プリセット:            │    │  ├ Default (5回/30秒)        │    │
+│  │  ├ Default (3回)       │    │  ├ Sensitive (3回/60秒)      │    │
+│  │  ├ Aggressive (5回)    │    │  └ Tolerant (10回/15秒)      │    │
+│  │  └ None (リトライなし) │    │                              │    │
+│  └────────────────────────┘    └───────────────────────────┘    │
+│         │                              │                         │
+│         ▼                              ▼                         │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  RequestOptions                                           │    │
+│  │  ├ TimeoutSeconds: 15（デフォルト）                       │    │
+│  │  ├ UseCache / CacheDuration（レスポンスキャッシュ）       │    │
+│  │  ├ FallbackToCache: true（Circuit Open時に期限切れ応答）  │    │
+│  │  └ プリセット: Default / NoRetry / WithCache / WithTimeout│    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**関連クラス:**
+
+| クラス | パス | 役割 |
+|-------|------|------|
+| `UnityApiClient` | Shared/Services/ | HTTP通信の中核。リトライ・サーキットブレーカー・キャッシュを統合 |
+| `RetryPolicy` | Shared/Services/Network/Policies/ | 指数バックオフリトライポリシー（3プリセット） |
+| `CircuitBreakerPolicy` | Shared/Services/Network/Policies/ | 3状態サーキットブレーカー（3プリセット） |
+| `RequestOptions` | Shared/Services/Network/Models/ | リクエスト設定（4プリセット） |
+| `ApiResponse<T>` | Shared/Services/Network/Models/ | 統一レスポンス型（Success/Error/CircuitOpen/Cache） |
+
 ---
 
 ## 8. クラス設計（UML）
@@ -2337,6 +2391,17 @@ Unity6Portfolio/
 | **選択肢** | A) Unity LOD Group B) カスタムLOD C) GPU Culling |
 | **判断理由** | ECS ハイブリッド構成のためカスタム実装が最適。CharacterUnlit シェーダーとの組み合わせで段階的品質制御が可能 |
 | **影響** | Near(毎フレーム)/Mid(2f毎)/Far(5f毎) の更新頻度制御。フレーム分散でスパイク防止 |
+| **状態** | 採用済み |
+
+#### ADR-014: HTTP通信基盤（サーキットブレーカー + リトライ）
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | UnityApiClient に RetryPolicy + CircuitBreakerPolicy + キャッシュフォールバックを統合 |
+| **背景** | モバイル環境での不安定なネットワーク接続に対する耐障害性が必要。障害時にもユーザー体験を維持したい |
+| **選択肢** | A) UnityWebRequest の単純リトライ B) Polly（.NET標準）移植 C) 自作ポリシー層 |
+| **判断理由** | Unity環境ではPollyが使えないため自作。RetryPolicy（指数バックオフ）+ CircuitBreakerPolicy（Closed/Open/HalfOpen 3状態遷移）+ RequestOptions（ビルダーパターン）の3層構成で関心を分離。サーキットOpen時のキャッシュフォールバック（期限切れ許容）でオフライン耐性を確保 |
+| **影響** | 全API呼び出しが統一されたエラーハンドリングを持つ。プリセット（Default/Aggressive/Sensitive等）で呼び出し元の設定負担を最小化 |
 | **状態** | 採用済み |
 
 ### 11.2 既知の技術的負債
