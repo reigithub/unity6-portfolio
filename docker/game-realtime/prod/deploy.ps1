@@ -55,13 +55,19 @@ if (-not $env:Jwt__Secret) {
 
 # Check Valkey settings (critical for Game.Realtime)
 $ValkeyEnabled = $false
-if ($env:VALKEY_HOST -and $env:VPC_CONNECTOR) {
+if ($env:VALKEY_HOST -and $env:VPC_NETWORK -and $env:VPC_SUBNET) {
     $ValkeyEnabled = $true
-} elseif ($env:VALKEY_HOST -or $env:VPC_CONNECTOR) {
-    Write-Host "[WARN] Valkey requires both VALKEY_HOST and VPC_CONNECTOR to be set." -ForegroundColor Yellow
+} elseif ($env:VALKEY_HOST) {
+    Write-Host "[WARN] Valkey requires VALKEY_HOST, VPC_NETWORK, and VPC_SUBNET to be set." -ForegroundColor Yellow
 }
 if (-not $ValkeyEnabled) {
     Write-Host "[WARN] Valkey is not configured. Redis backplane for MagicOnion will not work." -ForegroundColor Yellow
+}
+
+# Check Direct VPC Egress (required for internal communication)
+$VpcEgressEnabled = $false
+if ($env:VPC_NETWORK -and $env:VPC_SUBNET) {
+    $VpcEgressEnabled = $true
 }
 
 $IMAGE = "$env:REGION-docker.pkg.dev/$env:PROJECT_ID/$env:REPO_NAME/game-realtime"
@@ -74,9 +80,12 @@ Write-Host "SERVICE_NAME:    $env:SERVICE_NAME"
 Write-Host "IMAGE:           ${IMAGE}:${Tag}"
 if ($ValkeyEnabled) {
     Write-Host "VALKEY:          $env:VALKEY_HOST`:$env:VALKEY_PORT"
-    Write-Host "VPC_CONNECTOR:   $env:VPC_CONNECTOR"
 } else {
     Write-Host "VALKEY:          (not configured)"
+}
+if ($VpcEgressEnabled) {
+    Write-Host "VPC_NETWORK:     $env:VPC_NETWORK"
+    Write-Host "VPC_SUBNET:      $env:VPC_SUBNET"
 }
 Write-Host "MIN_INSTANCES:   1 (StreamingHub persistent connections)"
 Write-Host "SESSION_AFFINITY: enabled"
@@ -157,9 +166,12 @@ if (-not $BuildOnly) {
         "--use-http2"
     )
 
-    # Add VPC Connector if Valkey is enabled
-    if ($ValkeyEnabled) {
-        $DeployArgs += "--vpc-connector=$env:VPC_CONNECTOR"
+    # Add Direct VPC Egress (clear legacy VPC Connector)
+    if ($VpcEgressEnabled) {
+        $DeployArgs += "--clear-vpc-connector"
+        $DeployArgs += "--network=$env:VPC_NETWORK"
+        $DeployArgs += "--subnet=$env:VPC_SUBNET"
+        $DeployArgs += "--vpc-egress=private-ranges-only"
     }
 
     & gcloud @DeployArgs
