@@ -68,6 +68,8 @@ jobs:
     outputs:
       unity_project_path: ${{ steps.config.outputs.UNITY_PROJECT_PATH }}
       build_timestamp: ${{ steps.timestamp.outputs.value }}
+      # build / deploy 両方で使う matrix include 配列を動的生成（job-level `if` で matrix を参照できないため）
+      build_matrix: ${{ steps.matrix.outputs.value }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -77,6 +79,22 @@ jobs:
       - name: Generate build timestamp
         id: timestamp
         run: echo "value=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Generate build matrix
+        id: matrix
+        run: |
+          # 対応 runner があるプラットフォームのみ matrix に含める
+          # WebGL / Android / macOS / iOS は scope 外（runner 未配置）→ 入力されても matrix が空 → job スキップ
+          WIN='{"platform":"StandaloneWindows64","build_target":"Win64","runner_label":"windows-mono"}'
+          LINUX='{"platform":"StandaloneLinux64","build_target":"Linux64","runner_label":"linux-il2cpp"}'
+          case "${{ inputs.build_target }}" in
+            All)                 MATRIX="[${WIN},${LINUX}]" ;;
+            StandaloneWindows64) MATRIX="[${WIN}]" ;;
+            StandaloneLinux64)   MATRIX="[${LINUX}]" ;;
+            *)                   MATRIX="[]" ;;
+          esac
+          echo "value=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "Generated matrix: ${MATRIX}"
 
       - name: Load configuration
         id: config
@@ -92,19 +110,13 @@ jobs:
     # platform 別に self-hosted runner を振り分け（matrix.runner_label で AND マッチング）
     runs-on: [self-hosted, linux, unity, docker, "${{ matrix.runner_label }}"]
     needs: load-config
-    if: inputs.build_target == 'All' || inputs.build_target == matrix.platform
     timeout-minutes: 720
     strategy:
       fail-fast: false
+      # load-config が input に応じて生成した matrix を使う
+      # （job-level `if` で matrix context は使えないため、matrix 自体を空にして job をスキップする方式）
       matrix:
-        # 対応 runner があるプラットフォームのみ。WebGL/Android は scope 外（runner 未配置）
-        include:
-          - platform: StandaloneWindows64
-            build_target: Win64
-            runner_label: windows-mono
-          - platform: StandaloneLinux64
-            build_target: Linux64
-            runner_label: linux-il2cpp
+        include: ${{ fromJSON(needs.load-config.outputs.build_matrix) }}
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
@@ -304,15 +316,13 @@ jobs:
     # 軽量タスク（rclone のみ）。任意の self-hosted runner で実行可
     runs-on: [self-hosted, linux, unity, docker]
     needs: [load-config, build-addressables]
-    if: inputs.deploy == true && (inputs.build_target == 'All' || inputs.build_target == matrix.platform)
+    if: inputs.deploy == true
     timeout-minutes: 360
     strategy:
       fail-fast: false
+      # build-addressables と同じ matrix を共有（platform フィールドのみ参照）
       matrix:
-        # build-addressables と同じ対応 platform のみ
-        platform:
-          - StandaloneWindows64
-          - StandaloneLinux64
+        include: ${{ fromJSON(needs.load-config.outputs.build_matrix) }}
     env:
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
 
