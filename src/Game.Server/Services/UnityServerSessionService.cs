@@ -55,7 +55,7 @@ public class UnityServerSessionService : IUnityServerSessionService
         // 2. 最初の idle DS を選択
         var target = servers[0];
 
-        // InternalAddress が設定されている場合は VPC 内部 IP 経由で通信する（ファイアウォール回避）
+        // Direct VPC Egress 経由で VPC 内部 IP に到達可能。InternalAddress 優先、未設定時は外部 IP にフォールバック
         var dsHost = !string.IsNullOrEmpty(target.InternalAddress) ? target.InternalAddress : target.Address;
 
         _logger.LogInformation(
