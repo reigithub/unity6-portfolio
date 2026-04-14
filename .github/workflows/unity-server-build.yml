@@ -90,7 +90,7 @@ jobs:
   # ============================================
   test:
     name: Run Tests
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: load-config
     if: ${{ !inputs.skip_tests }}
     timeout-minutes: 180
@@ -149,7 +149,8 @@ jobs:
   # ============================================
   build-windows-server:
     name: Build Windows Dedicated Server
-    runs-on: [self-hosted, linux, unity, docker]
+    # windows-mono image は win64_server_*_mono バリアントを内包するため windows-mono runner で対応可
+    runs-on: [self-hosted, linux, unity, docker, windows-mono]
     needs: [load-config, test]
     if: |
       always() &&
@@ -215,7 +216,8 @@ jobs:
   # ============================================
   build-linux-server:
     name: Build Linux Dedicated Server
-    runs-on: [self-hosted, linux, unity, docker]
+    # linux-il2cpp image は linux64_server_*_il2cpp / mono バリアントを内包するため linux-il2cpp runner で対応可
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: [load-config, test]
     if: |
       always() &&

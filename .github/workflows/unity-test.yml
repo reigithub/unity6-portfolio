@@ -50,7 +50,7 @@ jobs:
   # ============================================
   test-editmode:
     name: EditMode Tests
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: load-config
     timeout-minutes: 30
     env:
@@ -114,7 +114,7 @@ jobs:
   # ============================================
   test-playmode:
     name: PlayMode Tests
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: [load-config, test-editmode]
     timeout-minutes: 120
     env:
