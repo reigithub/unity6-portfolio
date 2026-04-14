@@ -108,17 +108,17 @@ if ($SetupInfra) {
         --description="Allow GCE health check to Unity Server" `
         --quiet 2>$null
 
-    # Firewall rule: TCP (Cloud Run VPC Connector → DS internal communication)
-    # Game.Server が VPC Connector 経由で DS の /session/start に HTTP POST を送信するために必要
+    # Firewall rule: TCP (Cloud Run Direct VPC Egress → DS internal communication)
+    # Game.Server が Direct VPC Egress 経由で DS の /session/start に HTTP POST を送信するために必要
     $FwRuleInternal = if ($env:FIREWALL_RULE_INTERNAL) { $env:FIREWALL_RULE_INTERNAL } else { "allow-unity-server-internal" }
-    $VpcConnectorSubnet = if ($env:VPC_CONNECTOR_SUBNET) { $env:VPC_CONNECTOR_SUBNET } else { "10.8.0.0/28" }
-    Write-Host "[SETUP] Creating firewall rule for internal traffic (TCP $UnityServerHealthPort from VPC Connector $VpcConnectorSubnet)..." -ForegroundColor Yellow
+    $VpcConnectorSubnet = if ($env:VPC_CONNECTOR_SUBNET) { $env:VPC_CONNECTOR_SUBNET } else { "10.10.0.0/26" }
+    Write-Host "[SETUP] Creating firewall rule for internal traffic (TCP $UnityServerHealthPort from Direct VPC Egress $VpcConnectorSubnet)..." -ForegroundColor Yellow
     gcloud compute firewall-rules create $FwRuleInternal `
         --network=$Network `
         --allow="tcp:$UnityServerHealthPort" `
         --source-ranges="$VpcConnectorSubnet" `
         --target-tags=$NetworkTag `
-        --description="Allow Cloud Run VPC Connector to send session/start to Unity Server" `
+        --description="Allow Cloud Run Direct VPC Egress to send session/start to Unity Server" `
         --quiet 2>$null
     # Ignore error if already exists
 

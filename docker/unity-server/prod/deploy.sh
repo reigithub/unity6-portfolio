@@ -111,16 +111,16 @@ if [[ "$SETUP_INFRA" == "true" ]]; then
         --description="Allow GCE health check to Unity Server" \
         --quiet 2>/dev/null || echo "  (firewall rule already exists)"
 
-    # ファイアウォールルール: TCP (Cloud Run VPC Connector → DS 内部通信)
-    # Game.Server が VPC Connector 経由で DS の /session/start に HTTP POST を送信するために必要
-    VPC_CONNECTOR_SUBNET="${VPC_CONNECTOR_SUBNET:-10.8.0.0/28}"
-    echo "[SETUP] Creating firewall rule for internal traffic (TCP ${UNITY_SERVER_HEALTH_PORT} from VPC Connector ${VPC_CONNECTOR_SUBNET})..."
+    # ファイアウォールルール: TCP (Cloud Run Direct VPC Egress → DS 内部通信)
+    # Game.Server が Direct VPC Egress 経由で DS の /session/start に HTTP POST を送信するために必要
+    VPC_CONNECTOR_SUBNET="${VPC_CONNECTOR_SUBNET:-10.10.0.0/26}"
+    echo "[SETUP] Creating firewall rule for internal traffic (TCP ${UNITY_SERVER_HEALTH_PORT} from Direct VPC Egress ${VPC_CONNECTOR_SUBNET})..."
     gcloud compute firewall-rules create "${FIREWALL_RULE_INTERNAL:-allow-unity-server-internal}" \
         --network="${NETWORK:-default}" \
         --allow="tcp:${UNITY_SERVER_HEALTH_PORT}" \
         --source-ranges="${VPC_CONNECTOR_SUBNET}" \
         --target-tags="${NETWORK_TAG}" \
-        --description="Allow Cloud Run VPC Connector to send session/start to Unity Server" \
+        --description="Allow Cloud Run Direct VPC Egress to send session/start to Unity Server" \
         --quiet 2>/dev/null || echo "  (firewall rule already exists)"
 
     # TCP ヘルスチェック作成
