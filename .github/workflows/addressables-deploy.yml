@@ -89,13 +89,22 @@ jobs:
   # ============================================
   build-addressables:
     name: Build Addressables (${{ matrix.platform }})
-    runs-on: [self-hosted, linux, unity, docker]
+    # platform 別に self-hosted runner を振り分け（matrix.runner_label で AND マッチング）
+    runs-on: [self-hosted, linux, unity, docker, "${{ matrix.runner_label }}"]
     needs: load-config
+    if: inputs.build_target == 'All' || inputs.build_target == matrix.platform
     timeout-minutes: 720
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' || format('["{0}"]', inputs.build_target)) }}
+        # 対応 runner があるプラットフォームのみ。WebGL/Android は scope 外（runner 未配置）
+        include:
+          - platform: StandaloneWindows64
+            build_target: Win64
+            runner_label: windows-mono
+          - platform: StandaloneLinux64
+            build_target: Linux64
+            runner_label: linux-il2cpp
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
@@ -108,23 +117,10 @@ jobs:
           lfs: false
           clean: false
 
-      - name: Get Unity build target
-        id: build-target
-        run: |
-          case "${{ matrix.platform }}" in
-            StandaloneWindows64) echo "target=Win64" >> $GITHUB_OUTPUT ;;
-            StandaloneLinux64) echo "target=Linux64" >> $GITHUB_OUTPUT ;;
-            StandaloneOSX) echo "target=OSXUniversal" >> $GITHUB_OUTPUT ;;
-            WebGL) echo "target=WebGL" >> $GITHUB_OUTPUT ;;
-            Android) echo "target=Android" >> $GITHUB_OUTPUT ;;
-            iOS) echo "target=iOS" >> $GITHUB_OUTPUT ;;
-            *) echo "target=${{ matrix.platform }}" >> $GITHUB_OUTPUT ;;
-          esac
-
       - name: Setup Library cache
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "${{ steps.build-target.outputs.target }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "${{ matrix.build_target }}"
 
       - name: Setup directories
         run: |
@@ -187,7 +183,7 @@ jobs:
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-              -buildTarget "${{ steps.build-target.outputs.target }}" \
+              -buildTarget "${{ matrix.build_target }}" \
               $ACCELERATOR_ARGS \
               -executeMethod Game.Editor.Build.AddressablesR2Uploader.BuildAddressablesCI \
               -logFile "${{ github.workspace }}/Logs/addressables-build-${{ matrix.platform }}.log"
@@ -305,14 +301,18 @@ jobs:
   # ============================================
   deploy-to-r2:
     name: Deploy to R2 (${{ matrix.platform }})
+    # 軽量タスク（rclone のみ）。任意の self-hosted runner で実行可
     runs-on: [self-hosted, linux, unity, docker]
     needs: [load-config, build-addressables]
-    if: inputs.deploy == true
+    if: inputs.deploy == true && (inputs.build_target == 'All' || inputs.build_target == matrix.platform)
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' || format('["{0}"]', inputs.build_target)) }}
+        # build-addressables と同じ対応 platform のみ
+        platform:
+          - StandaloneWindows64
+          - StandaloneLinux64
     env:
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
 
@@ -475,7 +475,7 @@ jobs:
             echo "### Deployed URLs" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             if [ "${{ inputs.build_target }}" == "All" ]; then
-              for platform in StandaloneWindows64 StandaloneLinux64 WebGL Android; do
+              for platform in StandaloneWindows64 StandaloneLinux64; do
                 echo "- **${platform}:** https://${{ env.R2_CUSTOM_DOMAIN }}/${platform}/" >> $GITHUB_STEP_SUMMARY
               done
             else
