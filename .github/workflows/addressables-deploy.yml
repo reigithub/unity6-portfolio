@@ -91,7 +91,7 @@ jobs:
     name: Build Addressables (${{ matrix.platform }})
     runs-on: [self-hosted, linux, unity, docker]
     needs: load-config
-    timeout-minutes: 180
+    timeout-minutes: 720
     strategy:
       fail-fast: false
       matrix:
