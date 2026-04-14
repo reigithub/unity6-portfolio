@@ -26,6 +26,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
+        [Inject] private readonly IRequestQueue _requestQueue;
 
         private readonly TotalResultSceneViewModel _viewModel = new();
 
@@ -160,6 +161,13 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             SceneComponent.HideScoreSubmissionStatus();
+
+            // SurvivorGameRunner.SetupQueueProcessing は再接続時のみ発火するため、
+            // 接続維持中に失敗したリクエストをここで即時処理する（_processLock で重複ガード済）。
+            if (_networkService.IsConnected && _requestQueue.PendingCount > 0)
+            {
+                _requestQueue.ProcessQueueAsync().Forget();
+            }
         }
 
         private async UniTaskVoid OnRetry()

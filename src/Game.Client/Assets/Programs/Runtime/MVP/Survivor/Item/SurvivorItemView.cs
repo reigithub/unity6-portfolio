@@ -115,7 +115,7 @@ namespace Game.MVP.Survivor.Item
             instance.transform.SetParent(transform);
 
             // Item レイヤー設定（PlayerController の OverlapSphere 検出用）
-            SetLayerRecursively(instance, LayerConstants.Item);
+            instance.SetLayerRecursively(LayerConstants.Item);
 
             // ICollectible プロキシ追加（PlayerController の吸引・収集ロジックで動作）
             var collectible = instance.AddComponent<ItemProxyCollectible>();
@@ -148,15 +148,6 @@ namespace Game.MVP.Survivor.Item
             {
                 if (data.GameObject != null) Destroy(data.GameObject);
                 _proxies.Remove(itemId);
-            }
-        }
-
-        private static void SetLayerRecursively(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-            {
-                SetLayerRecursively(child.gameObject, layer);
             }
         }
 

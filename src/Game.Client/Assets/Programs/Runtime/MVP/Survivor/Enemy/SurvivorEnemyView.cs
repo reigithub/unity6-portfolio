@@ -132,7 +132,7 @@ namespace Game.MVP.Survivor.Enemy
             instance.name = $"EnemyProxy_{e.NetworkId}";
 
             // Enemyレイヤー設定（子オブジェクト含む — LockOn/SphereCast検出用）
-            SetLayerRecursively(instance, LayerConstants.Enemy);
+            instance.SetLayerRecursively(LayerConstants.Enemy);
 
             // 全Colliderをトリガーに変更してキャッシュ（HandleDeath での再探索を排除）
             var colliders = instance.GetComponentsInChildren<Collider>();
@@ -311,15 +311,6 @@ namespace Game.MVP.Survivor.Enemy
         public bool IsProxyDead(int networkId)
         {
             return !_proxies.TryGetValue(networkId, out var data) || data.IsDead;
-        }
-
-        private static void SetLayerRecursively(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-            {
-                SetLayerRecursively(child.gameObject, layer);
-            }
         }
 
         private void OnDestroy()

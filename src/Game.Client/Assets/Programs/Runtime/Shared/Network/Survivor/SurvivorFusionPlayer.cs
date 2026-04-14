@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.FSM;
 using Fusion.Addons.KCC;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -139,6 +141,9 @@ namespace Game.Shared.Network.Survivor
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
             TryGetComponent(out _kcc);
             _runnerService?.TryGet(out _gameState);
+
+            // プレハブ側 Layer 設定漏れを補うための保険（敵との物理衝突回避）
+            gameObject.SetLayerRecursively(LayerConstants.Player);
 
             // Fusion FSM: Awake で作成済み → Spawned で初期ステート設定
             if (_playerFsm != null)
