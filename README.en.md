@@ -4,7 +4,7 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 ## Highlights
 
-* **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD, all built single-handedly
+* **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
 * **Photon Fusion 2 server authority model + Dedicated Server operations** — Dead Reckoning interpolation, enemy batch sync (NetworkArray<512>), Linux headless build with self-registration + HMAC auth + Docker deployment
 * **Self-built LiveOps delivery pipeline** — GitHub Actions self-hosted runners + Unity Accelerator + Cloudflare R2 CDN, Addressables with 4-environment switching, index.json differential sync, editor auto-sync
 * **ECS + Burst parallelization** — up to 20.3x speedup for enemy spawn calculations (5,000 entities), 23 ProfilerMarkers for instrumentation
@@ -196,7 +196,7 @@ dotnet test
 * **Real-time Chat**: Room-based messaging via SignalR WebSocket + MagicOnion
 * **Request Signing Policy**: Declarative endpoint security (3 signing attributes), fail-fast startup validation
 
-### Multiplayer (Photon Fusion 2)
+### Realtime Online Gameplay (Photon Fusion 2)
 * **Server Authority Model**: Server/Client mode, [Networked] properties, Fusion FSM player state sync
 * **Enemy Batch Sync**: Server-controlled enemy AI, 10Hz batch sync (NetworkArray<512>), client Dead Reckoning interpolation
 * **Dedicated Server Orchestration**: Linux headless build, self-registration + heartbeat to Game.Server, HMAC auth, Docker deploy
@@ -1003,13 +1003,12 @@ Unity6Portfolio/
 * DOTween Sequence compound UI animations (level-up, result screens)
 * Skip/interrupt control (DOKill / IsTweening guard) implementation
 
-**Design Patterns:**
-* ScriptableObject event channel introduction (comparison with MessagePipe)
-* ScriptableObject data assets for runtime configuration
-
 **Platform:**
 * Localization support (multi-language, Unity Localization)
 * Multi-resolution & multi-platform support (iOS / Android build & signing)
+
+**Features:**
+* In-app purchase system, gacha, present box, etc.
 
 ---
 
