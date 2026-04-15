@@ -1,0 +1,10 @@
+<linker>
+  <!-- Photon Fusion 2: ILWeaver 生成コードが internal フィールド (InvokeRpc, Ptr 等) にアクセスするため、
+       Managed Code Stripping でこれらが除去されると FieldAccessException が発生する。
+       アセンブリ全体を preserve="all" で保護する。
+       ref: https://github.com/Unity-Technologies/com.unity.netcode.gameobjects/issues/2597 -->
+  <assembly fullname="Fusion.Runtime" preserve="all"/>
+  <assembly fullname="Fusion.Unity" preserve="all"/>
+  <assembly fullname="Fusion.Sockets" preserve="all"/>
+  <assembly fullname="Fusion.Common" preserve="all"/>
+</linker>

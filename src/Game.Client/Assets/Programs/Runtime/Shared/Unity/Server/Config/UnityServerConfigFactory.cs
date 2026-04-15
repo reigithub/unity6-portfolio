@@ -15,7 +15,7 @@ namespace Game.Shared.Unity.Server
     {
         /// <summary>
         /// CLI 引数・環境変数・GCE メタデータから設定を非同期で構築する。
-        /// GCE 外部 IP 取得には最大 2 秒を要する。
+        /// GCE 外部 IP・内部 IP 取得を並列実行し、最大 2 秒で完了する。
         /// </summary>
         /// <param name="ct">キャンセルトークン。</param>
         /// <returns>構築済みの <see cref="UnityServerConfig"/>。</returns>
@@ -30,11 +30,22 @@ namespace Game.Shared.Unity.Server
             ValidateGameServerUrl(gameServerUrl);
             var authSecretBytes = ParseSecret();
 
-            // GCE 環境の場合は外部 IP を取得（非 GCE では 2 秒 timeout で null）
+            // 環境変数で上書きされていない場合は GCE メタデータから取得する。
+            // 外部 IP（クライアント UDP 接続用）と内部 IP（Game.Server HTTP 通信用）を並列取得し
+            // 非 GCE 環境でのタイムアウトを 2 秒に抑制する。
             var envPublicAddress = EnvVarHelper.Get(EnvVarKeys.PublicAddress);
-            var publicAddress = !string.IsNullOrEmpty(envPublicAddress)
-                ? envPublicAddress
-                : await GceMetadataDetector.TryFetchExternalIpAsync(ct);
+            var envInternalAddress = EnvVarHelper.Get(EnvVarKeys.InternalAddress);
+
+            var (gceExternalIp, gceInternalIp) = await UniTask.WhenAll(
+                string.IsNullOrEmpty(envPublicAddress)
+                    ? GceMetadataDetector.TryFetchExternalIpAsync(ct)
+                    : UniTask.FromResult<string>(null),
+                string.IsNullOrEmpty(envInternalAddress)
+                    ? GceMetadataDetector.TryFetchInternalIpAsync(ct)
+                    : UniTask.FromResult<string>(null));
+
+            var publicAddress = !string.IsNullOrEmpty(envPublicAddress) ? envPublicAddress : gceExternalIp;
+            var internalAddress = !string.IsNullOrEmpty(envInternalAddress) ? envInternalAddress : gceInternalIp;
 
             var authSecretKey = authSecretBytes != null
                 ? new ReadOnlyMemory<byte>(authSecretBytes)
@@ -46,7 +57,8 @@ namespace Game.Shared.Unity.Server
                 gamePort,
                 healthPort,
                 authSecretKey,
-                publicAddress);
+                publicAddress,
+                internalAddress);
         }
 
         /// <summary>

@@ -60,9 +60,15 @@ public class DsInfo
     public string DsId { get; set; } = string.Empty;
 
     /// <summary>
-    /// DS のアドレス（IP またはホスト名）。
+    /// DS のアドレス（IP またはホスト名）。クライアント UDP 接続用の外部 IP。
     /// </summary>
     public string Address { get; set; } = string.Empty;
+
+    /// <summary>
+    /// DS の VPC 内部 IP アドレス。Game.Server → DS 間の HTTP 通信（VPC Connector 経由）に使用。
+    /// 未設定時は空文字列。その場合は <see cref="Address"/> をフォールバックとして使用する。
+    /// </summary>
+    public string InternalAddress { get; set; } = string.Empty;
 
     /// <summary>
     /// Fusion ゲームポート番号。

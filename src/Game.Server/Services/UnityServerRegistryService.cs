@@ -47,6 +47,7 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                 {
                     DsId = request.DsId,
                     Address = request.Address,
+                    InternalAddress = request.InternalAddress ?? string.Empty,
                     GamePort = request.GamePort,
                     HealthPort = request.HealthPort,
                     Status = "idle",
@@ -66,8 +67,9 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                 await Task.WhenAll(tasks);
 
                 _logger.LogInformation(
-                    "DS registered in Valkey: dsId={DsId}, address={Address}:{GamePort}",
-                    request.DsId, request.Address, request.GamePort);
+                    "DS registered in Valkey: dsId={DsId}, address={Address}:{GamePort}, internalAddress={InternalAddress}",
+                    request.DsId, request.Address, request.GamePort,
+                    string.IsNullOrEmpty(info.InternalAddress) ? "(none)" : info.InternalAddress);
             },
             _logger,
             nameof(RegisterAsync));

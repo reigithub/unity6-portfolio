@@ -103,7 +103,7 @@ jobs:
   # ============================================
   test:
     name: Run Tests
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: load-config
     if: ${{ !inputs.skip_tests }}
     timeout-minutes: 180
@@ -171,7 +171,7 @@ jobs:
   # ============================================
   build-windows:
     name: Build Windows
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, windows-mono]
     needs: [load-config, test]
     if: |
       always() &&
@@ -237,7 +237,7 @@ jobs:
   # ============================================
   build-linux:
     name: Build Linux
-    runs-on: [self-hosted, linux, unity, docker]
+    runs-on: [self-hosted, linux, unity, docker, linux-il2cpp]
     needs: [load-config, test]
     if: |
       always() &&
@@ -303,7 +303,8 @@ jobs:
   # ============================================
   build-macos:
     name: Build macOS
-    runs-on: [self-hosted, linux, unity, docker]
+    # scope 外: 対応する mac-mono runner は未配置。実行すると queue 待機 → cancel を想定
+    runs-on: [self-hosted, linux, unity, docker, mac-mono]
     needs: [load-config, test]
     if: |
       always() &&
@@ -369,7 +370,8 @@ jobs:
   # ============================================
   build-webgl:
     name: Build WebGL
-    runs-on: [self-hosted, linux, unity, docker]
+    # scope 外: 対応する webgl runner は未配置。実行すると queue 待機 → cancel を想定
+    runs-on: [self-hosted, linux, unity, docker, webgl]
     needs: [load-config, test]
     if: |
       always() &&
@@ -435,7 +437,8 @@ jobs:
   # ============================================
   build-android:
     name: Build Android
-    runs-on: [self-hosted, linux, unity, docker]
+    # scope 外: 対応する android runner は未配置。実行すると queue 待機 → cancel を想定
+    runs-on: [self-hosted, linux, unity, docker, android]
     needs: [load-config, test]
     if: |
       always() &&
@@ -501,7 +504,8 @@ jobs:
   # ============================================
   build-ios:
     name: Build iOS (Xcode Project)
-    runs-on: [self-hosted, linux, unity, docker]
+    # scope 外: 対応する ios runner は未配置。実行すると queue 待機 → cancel を想定
+    runs-on: [self-hosted, linux, unity, docker, ios]
     needs: [load-config, test]
     if: |
       always() &&

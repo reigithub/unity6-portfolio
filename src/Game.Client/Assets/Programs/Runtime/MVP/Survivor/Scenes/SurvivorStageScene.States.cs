@@ -200,12 +200,12 @@ namespace Game.MVP.Survivor.Scenes
                     Context._addressableService,
                     itemViewGameState);
 
-                // アイテムプロキシ収集時にサーバーへ RPC 送信
-                itemView.OnProxyItemCollected += itemId =>
+                // アイテムプロキシ収集時にサーバーへ RPC 送信（networkId で個体識別）
+                itemView.OnProxyItemCollected += networkId =>
                 {
                     if (TryGetLocalPlayer(out var localPlayer))
                     {
-                        localPlayer.RpcClientItemCollected(itemId);
+                        localPlayer.RpcClientItemCollected(networkId);
                     }
                 };
             }

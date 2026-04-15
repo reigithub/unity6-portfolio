@@ -52,10 +52,10 @@ if (-not $CONNECTION_NAME) {
     exit 1
 }
 
-# Check VPC Connector (required for Memorystore access)
-$VpcConnectorEnabled = $false
-if ($env:VPC_CONNECTOR) {
-    $VpcConnectorEnabled = $true
+# Check Direct VPC Egress (required for Memorystore / internal communication)
+$VpcEgressEnabled = $false
+if ($env:VPC_NETWORK -and $env:VPC_SUBNET) {
+    $VpcEgressEnabled = $true
 }
 
 Write-Host ""
@@ -66,8 +66,9 @@ Write-Host "SERVICE_NAME:    $env:SERVICE_NAME"
 Write-Host "IMAGE:           ${IMAGE}:${Tag}"
 Write-Host "CLOUD_SQL:       $CONNECTION_NAME"
 Write-Host "DATABASE:        $env:DB_NAME"
-if ($VpcConnectorEnabled) {
-    Write-Host "VPC_CONNECTOR:   $env:VPC_CONNECTOR"
+if ($VpcEgressEnabled) {
+    Write-Host "VPC_NETWORK:     $env:VPC_NETWORK"
+    Write-Host "VPC_SUBNET:      $env:VPC_SUBNET"
 }
 Write-Host "VALKEY_SECRET:   $env:SECRET_VALKEY_CONNECTION"
 Write-Host "=================================" -ForegroundColor Cyan
@@ -138,9 +139,12 @@ if (-not $BuildOnly) {
         "--timeout=300"
     )
 
-    # Add VPC Connector if Valkey is enabled
-    if ($VpcConnectorEnabled) {
-        $DeployArgs += "--vpc-connector=$env:VPC_CONNECTOR"
+    # Add Direct VPC Egress (clear legacy VPC Connector)
+    if ($VpcEgressEnabled) {
+        $DeployArgs += "--clear-vpc-connector"
+        $DeployArgs += "--network=$env:VPC_NETWORK"
+        $DeployArgs += "--subnet=$env:VPC_SUBNET"
+        $DeployArgs += "--vpc-egress=private-ranges-only"
     }
 
     & gcloud @DeployArgs

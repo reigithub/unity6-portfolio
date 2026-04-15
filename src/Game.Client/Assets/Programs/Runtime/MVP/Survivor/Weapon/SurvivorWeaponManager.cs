@@ -284,6 +284,10 @@ namespace Game.MVP.Survivor.Weapon
             return result;
         }
 
+        // 診断: 5 秒毎に武器プールのサイズサマリー
+        private const float DiagSummaryInterval = 5f;
+        private float _diagLastSummaryTime;
+
         /// <summary>
         /// 毎フレーム全武器を更新
         /// </summary>
@@ -291,10 +295,25 @@ namespace Game.MVP.Survivor.Weapon
         {
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            float deltaTime = _runnerService.GetDeltaTime();
+            float deltaTime = _runnerService.GetRenderDeltaTime();
             foreach (var weapon in _weapons)
             {
                 weapon.UpdateWeapon(deltaTime);
+            }
+
+            var now = Time.unscaledTime;
+            if (now - _diagLastSummaryTime >= DiagSummaryInterval)
+            {
+                _diagLastSummaryTime = now;
+                int activeTotal = 0, idleTotal = 0;
+                foreach (var w in _weapons)
+                {
+                    activeTotal += w.ActivePoolItemCount;
+                    idleTotal += w.IdlePoolItemCount;
+                }
+                int vfxPools = _vfxSpawner?.PoolCount ?? 0;
+                int vfxIdle = _vfxSpawner?.TotalIdleParticles ?? 0;
+                Debug.Log($"[SurvivorWeaponManager DIAG] weapons={_weapons.Count}, poolActive={activeTotal}, poolIdle={idleTotal}, vfxPools={vfxPools}, vfxIdle={vfxIdle}");
             }
         }
 

@@ -4,12 +4,14 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 ## ハイライト
 
-* **8アセンブリ分割**のモジュラー設計 — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
-* **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339）、CI/CD 7ワークフロー
+* **Unity × サーバー × インフラをモノレポで一括実装** — Unity 6 クライアント / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
+* **Photon Fusion 2 サーバー権威モデル + Dedicated Server運用** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Linuxヘッドレスビルド自己登録＋HMAC認証＋Docker化
+* **LiveOps配信基盤の自力構築** — GitHub Actions セルフホストランナー + Unity Accelerator + Cloudflare R2 CDN、Addressables 4環境切替・index.json差分同期・エディタ自動同期
 * **ECS + Burst並列化**で敵スポーン計算を最大20.3倍高速化（5,000体）、23箇所のProfilerMarkerによる計測基盤
-* **Protobufスキーマ駆動**のマスターデータ基盤 — CLIツール自作（6サブコマンド）、Client/Server同一スキーマからデプロイターゲット別バイナリ生成
-* **サーキットブレーカー + 指数バックオフリトライ**によるHTTP通信の耐障害設計、キャッシュフォールバック対応
-* **Photon Fusion 2 サーバー権威モデル** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Dedicated Serverオーケストレーション
+* **モバイル実機品質を意識したレンダリング最適化** — カスタムURP/HLSLシェーダー（ToonLit / Dissolve / Hit Flash / Outline）、距離ベース3段階LOD、URP 2プロファイル、Canvas分離
+* **Protobufスキーマ駆動のマスターデータ基盤** — CLIツール自作（6サブコマンド）、Client/Server/Realtime同一スキーマからデプロイターゲット別バイナリ生成
+* **8アセンブリ分割のモジュラー設計** — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
+* **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339・Testcontainers採用）、CI/CD 7ワークフロー
 
 > **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 14件）
 
@@ -194,7 +196,7 @@ dotnet test
 * **リアルタイムチャット**: SignalR WebSocket + MagicOnionによるルームベースメッセージング
 * **リクエスト署名ポリシー**: 宣言的エンドポイントセキュリティ（3種の署名属性）、起動時fail-fastバリデーション
 
-### サーバー/クライアントモデル（Photon Fusion 2）
+### リアルタイムオンラインゲームプレイ（Photon Fusion 2）
 * **サーバー権威モデル**: Server/Clientモード、[Networked]プロパティ、Fusion FSMによるプレイヤーステート同期
 * **敵バッチ同期**: サーバーが敵AI制御、10Hzバッチ同期（NetworkArray<512>）、クライアントDead Reckoning補間
 * **Dedicated Serverオーケストレーション**: Linux ヘッドレスビルド、Game.Serverへの自己登録＋ハートビート、HMAC認証、Dockerデプロイ
@@ -1008,13 +1010,12 @@ Unity6Portfolio/
 * DOTween Sequenceによる複合UI演出（レベルアップ、リザルト）
 * スキップ・割り込み制御（DOKill / IsTweening ガード）の実装
 
-**設計パターン:**
-* ScriptableObjectイベントチャネルの導入（MessagePipeとの使い分け検証）
-* ScriptableObjectデータアセットの追加（ランタイム設定用途）
-
 **プラットフォーム:**
 * ローカライズ対応（多言語、Unity Localization）
 * マルチ解像度・マルチプラットフォーム対応（iOS / Androidビルド・署名）
+
+**機能:**
+* 課金システム・ガチャ・プレゼントBOXなど
 
 ---
 

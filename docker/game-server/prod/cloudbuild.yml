@@ -49,10 +49,10 @@ steps:
           --format="value(connectionName)" > /workspace/connection_name.txt
 
   # ===== Cloud Run にデプロイ =====
-  # 注意: Memorystore for Valkey への接続には VPC Connector が必要
-  # 事前に Serverless VPC Access コネクタを作成してください:
-  #   gcloud compute networks vpc-access connectors create CONNECTOR_NAME \
-  #     --region=REGION --network=VPC_NETWORK --range=10.8.0.0/28
+  # 注意: Memorystore for Valkey / GCE 内部通信には Direct VPC Egress が必要
+  # 事前にサブネットを作成してください:
+  #   gcloud compute networks subnets create game-direct-vpc-subnet \
+  #     --network=default --region=asia-northeast1 --range=10.10.0.0/26
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy'
     entrypoint: 'bash'
@@ -70,7 +70,10 @@ steps:
           --platform=managed \
           --allow-unauthenticated \
           --add-cloudsql-instances=$${CONNECTION_NAME} \
-          --vpc-connector=${_VPC_CONNECTOR} \
+          --clear-vpc-connector \
+          --network=${_VPC_NETWORK} \
+          --subnet=${_VPC_SUBNET} \
+          --vpc-egress=private-ranges-only \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
@@ -97,8 +100,9 @@ substitutions:
   # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
-  # VPC Connector（Memorystore 接続に必要）
-  _VPC_CONNECTOR: ''
+  # Direct VPC Egress（Memorystore / 内部通信に必要）
+  _VPC_NETWORK: default
+  _VPC_SUBNET: game-direct-vpc-subnet
 
 # ===== ビルドオプション =====
 options:

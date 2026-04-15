@@ -28,6 +28,11 @@ namespace Game.MVP.Survivor.Weapon
         public int ActiveCount => _activeItems.Count;
 
         /// <summary>
+        /// プール内に待機中のアイテム数
+        /// </summary>
+        public int IdleCount => _pool.Count;
+
+        /// <summary>
         /// コンストラクタ
         /// </summary>
         /// <param name="prefab">プールするプレハブ</param>

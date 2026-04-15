@@ -57,10 +57,10 @@ if [[ -z "$CONNECTION_NAME" ]]; then
     exit 1
 fi
 
-# VPC Connector の確認（Memorystore 接続に必要）
-VPC_CONNECTOR_ENABLED=false
-if [[ -n "$VPC_CONNECTOR" ]]; then
-    VPC_CONNECTOR_ENABLED=true
+# Direct VPC Egress の確認（Memorystore / 内部通信に必要）
+VPC_EGRESS_ENABLED=false
+if [[ -n "$VPC_NETWORK" && -n "$VPC_SUBNET" ]]; then
+    VPC_EGRESS_ENABLED=true
 fi
 
 echo ""
@@ -71,8 +71,9 @@ echo "SERVICE_NAME:    $SERVICE_NAME"
 echo "IMAGE:           ${IMAGE}:${TAG}"
 echo "CLOUD_SQL:       $CONNECTION_NAME"
 echo "DATABASE:        $DB_NAME"
-if [[ "$VPC_CONNECTOR_ENABLED" == "true" ]]; then
-    echo "VPC_CONNECTOR:   $VPC_CONNECTOR"
+if [[ "$VPC_EGRESS_ENABLED" == "true" ]]; then
+    echo "VPC_NETWORK:     $VPC_NETWORK"
+    echo "VPC_SUBNET:      $VPC_SUBNET"
 fi
 echo "VALKEY_SECRET:   $SECRET_VALKEY_CONNECTION"
 echo "================================="
@@ -131,9 +132,12 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         "--timeout=300"
     )
 
-    # VPC Connector を追加（Valkey 有効時）
-    if [[ "$VPC_CONNECTOR_ENABLED" == "true" ]]; then
-        DEPLOY_ARGS+=("--vpc-connector=$VPC_CONNECTOR")
+    # Direct VPC Egress を追加（レガシー VPC Connector をクリア）
+    if [[ "$VPC_EGRESS_ENABLED" == "true" ]]; then
+        DEPLOY_ARGS+=("--clear-vpc-connector")
+        DEPLOY_ARGS+=("--network=$VPC_NETWORK")
+        DEPLOY_ARGS+=("--subnet=$VPC_SUBNET")
+        DEPLOY_ARGS+=("--vpc-egress=private-ranges-only")
     fi
 
     gcloud "${DEPLOY_ARGS[@]}"

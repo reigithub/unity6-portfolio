@@ -274,7 +274,7 @@ namespace Game.MVP.Survivor.Scenes
             // 武器適用・ヒット報告・アイテム収集報告シグナル購読
             _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
             _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
-            _itemCollectReportedSub.Subscribe(s => OnServerItemCollectReported(s.ItemId)).AddTo(Disposables);
+            _itemCollectReportedSub.Subscribe(s => OnServerItemCollectReported(s.NetworkId)).AddTo(Disposables);
 
             // シグナル→ClientRpcブリッジ
             SubscribeNetworkSignals();
@@ -350,12 +350,16 @@ namespace Game.MVP.Survivor.Scenes
 
         /// <summary>
         /// サーバー: クライアントからのアイテム収集報告を処理。
-        /// マスターデータからアイテム効果を取得し、モデルに適用後、結果を全クライアントに通知。
+        /// networkId で個体を取得してマスターデータからアイテム効果を取得し、モデルに適用後、結果を全クライアントに通知。
         /// </summary>
-        private void OnServerItemCollectReported(int itemId)
+        private void OnServerItemCollectReported(int networkId)
         {
             var itemSpawner = SceneComponent.SurvivorItemSpawner;
             if (itemSpawner == null) return;
+
+            // networkId から個体を取得（すでに破棄済みの報告は無視）
+            if (!itemSpawner.TryGetItemByNetworkId(networkId, out var item)) return;
+            int itemId = item.ItemId;
 
             // マスターデータからアイテム情報を取得
             if (!itemSpawner.TryGetItemMaster(itemId, out var master)) return;
@@ -374,14 +378,14 @@ namespace Game.MVP.Survivor.Scenes
                     break;
             }
 
-            // 全クライアントに結果を通知
+            // 全クライアントに結果を通知（NotifyItemCollected は ItemId、NotifyItemDespawned は networkId）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
                 gs.NotifyItemCollected(
                     "", itemId, (int)itemType, effectValue,
                     _stageModel.Experience.Value,
                     _stageModel.ExperienceToNextLevel.Value);
-                gs.NotifyItemDespawned(itemId);
+                gs.NotifyItemDespawned(networkId);
             }
         }
 

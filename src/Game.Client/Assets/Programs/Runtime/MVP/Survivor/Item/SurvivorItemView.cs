@@ -62,21 +62,20 @@ namespace Game.MVP.Survivor.Item
                 }
             }
 
-            _spawnSub = spawnSub.Subscribe(s => OnSpawned(s.ItemId, s.PosX, s.PosY, s.PosZ));
-            _despawnSub = despawnSub.Subscribe(s => OnDespawned(s.ItemId));
+            _spawnSub = spawnSub.Subscribe(s => OnSpawned(s.NetworkId, s.ItemId, s.PosX, s.PosY, s.PosZ));
+            _despawnSub = despawnSub.Subscribe(s => OnDespawned(s.NetworkId));
             Debug.Log($"[SurvivorItemView] Initialized: prefabs={_prefabs.Count}");
         }
 
-        private void OnSpawned(int itemId, float posX, float posY, float posZ)
+        private void OnSpawned(int networkId, int itemId, float posX, float posY, float posZ)
         {
             var position = new Vector3(posX, posY, posZ);
 
-            // 既存プロキシの再利用
-            if (_proxies.TryGetValue(itemId, out var existing))
+            // 既存プロキシがある場合は破棄（networkId 再利用時の安全策）
+            if (_proxies.TryGetValue(networkId, out var existing))
             {
-                existing.GameObject.transform.position = position;
-                existing.Collectible.Reset();
-                return;
+                if (existing.GameObject != null) Destroy(existing.GameObject);
+                _proxies.Remove(networkId);
             }
 
             float scale = 1f;
@@ -109,20 +108,20 @@ namespace Game.MVP.Survivor.Item
                 Debug.LogWarning($"[SurvivorItemView] Prefab not found for item {itemId}, using fallback");
             }
 
-            instance.name = $"ItemProxy_{itemId}";
+            instance.name = $"ItemProxy_{networkId}";
             instance.transform.position = position;
             instance.transform.localScale = Vector3.one * scale;
             instance.transform.SetParent(transform);
 
             // Item レイヤー設定（PlayerController の OverlapSphere 検出用）
-            SetLayerRecursively(instance, LayerConstants.Item);
+            instance.SetLayerRecursively(LayerConstants.Item);
 
             // ICollectible プロキシ追加（PlayerController の吸引・収集ロジックで動作）
             var collectible = instance.AddComponent<ItemProxyCollectible>();
-            collectible.Initialize(scale, itemId, _gameState);
+            collectible.Initialize(scale, networkId, _gameState);
             collectible.OnCollected += OnProxyItemCollectedHandler;
 
-            _proxies[itemId] = new ItemProxyData
+            _proxies[networkId] = new ItemProxyData
             {
                 GameObject = instance,
                 Collectible = collectible,
@@ -130,33 +129,38 @@ namespace Game.MVP.Survivor.Item
             };
         }
 
-        private void OnDespawned(int itemId)
+        private void OnDespawned(int networkId)
         {
-            if (_proxies.TryGetValue(itemId, out var data))
+            if (_proxies.TryGetValue(networkId, out var data))
             {
                 if (data.GameObject != null) Destroy(data.GameObject);
-                _proxies.Remove(itemId);
+                _proxies.Remove(networkId);
             }
         }
 
-        private void OnProxyItemCollectedHandler(int itemId)
+        private void OnProxyItemCollectedHandler(int networkId)
         {
-            OnProxyItemCollected?.Invoke(itemId);
+            OnProxyItemCollected?.Invoke(networkId);
 
             // クライアント側で即座にプロキシを削除（サーバーの Despawn RPC を待たない）
-            if (_proxies.TryGetValue(itemId, out var data))
+            if (_proxies.TryGetValue(networkId, out var data))
             {
                 if (data.GameObject != null) Destroy(data.GameObject);
-                _proxies.Remove(itemId);
+                _proxies.Remove(networkId);
             }
         }
 
-        private static void SetLayerRecursively(GameObject go, int layer)
+        // 診断: 5 秒毎にプロキシ数サマリー
+        private const float DiagSummaryInterval = 5f;
+        private float _diagLastSummaryTime;
+
+        private void Update()
         {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
+            var now = Time.unscaledTime;
+            if (now - _diagLastSummaryTime >= DiagSummaryInterval)
             {
-                SetLayerRecursively(child.gameObject, layer);
+                _diagLastSummaryTime = now;
+                Debug.Log($"[SurvivorItemView DIAG] proxies={_proxies.Count}, prefabsLoaded={_prefabs.Count}");
             }
         }
 

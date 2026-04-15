@@ -72,15 +72,21 @@ public class UnityServerAuthService : IUnityServerAuthService
             "Issued HMAC session token for user {UserId}, match {MatchId}", userId, matchId);
 
         // DS セッション割り当て（stageId が指定された場合のみ実行）
+        string serverAddress = string.Empty;
+        int serverPort = 0;
         if (stageId > 0)
         {
-            await _unityServerSession.AssignSessionAsync(matchId, stageId, expectedPlayers);
+            var dsInfo = await _unityServerSession.AssignSessionAsync(matchId, stageId, expectedPlayers);
+            serverAddress = dsInfo.Address;
+            serverPort = dsInfo.GamePort;
         }
 
         return new UnityServerAuthResponse
         {
             Token = token,
             SessionName = matchId,
+            ServerAddress = serverAddress,
+            ServerPort = serverPort,
         };
     }
 

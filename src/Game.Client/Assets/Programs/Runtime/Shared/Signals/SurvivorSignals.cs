@@ -286,13 +286,15 @@ namespace Game.Shared.Signals.Survivor
         {
             public readonly struct Spawned
             {
+                public readonly int NetworkId;
                 public readonly int ItemId;
                 public readonly float PosX;
                 public readonly float PosY;
                 public readonly float PosZ;
 
-                public Spawned(int itemId, float posX, float posY, float posZ)
+                public Spawned(int networkId, int itemId, float posX, float posY, float posZ)
                 {
+                    NetworkId = networkId;
                     ItemId = itemId;
                     PosX = posX;
                     PosY = posY;
@@ -302,22 +304,22 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct Despawned
             {
-                public readonly int ItemId;
+                public readonly int NetworkId;
 
-                public Despawned(int itemId)
+                public Despawned(int networkId)
                 {
-                    ItemId = itemId;
+                    NetworkId = networkId;
                 }
             }
 
             /// <summary>クライアント→サーバー: アイテム収集報告</summary>
             public readonly struct CollectReported
             {
-                public readonly int ItemId;
+                public readonly int NetworkId;
 
-                public CollectReported(int itemId)
+                public CollectReported(int networkId)
                 {
-                    ItemId = itemId;
+                    NetworkId = networkId;
                 }
             }
         }

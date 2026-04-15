@@ -1,3 +1,4 @@
+using Game.Shared.Extensions;
 using UnityEditor;
 using UnityEngine;
 
@@ -39,7 +40,7 @@ namespace Game.MVP.Survivor.Editor
                     using (var editingScope = new PrefabUtility.EditPrefabContentsScope(assetPath))
                     {
                         var root = editingScope.prefabContentsRoot;
-                        SetLayerRecursively(root, itemLayer);
+                        root.SetLayerRecursively(itemLayer);
                     }
                     modifiedCount++;
                 }
@@ -47,17 +48,8 @@ namespace Game.MVP.Survivor.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            
-            Debug.Log($"[ItemLayerSetter] Modified {modifiedCount} prefabs. Set layer to '{ItemLayerName}'.");
-        }
 
-        private static void SetLayerRecursively(GameObject obj, int layer)
-        {
-            obj.layer = layer;
-            foreach (Transform child in obj.transform)
-            {
-                SetLayerRecursively(child.gameObject, layer);
-            }
+            Debug.Log($"[ItemLayerSetter] Modified {modifiedCount} prefabs. Set layer to '{ItemLayerName}'.");
         }
     }
 }

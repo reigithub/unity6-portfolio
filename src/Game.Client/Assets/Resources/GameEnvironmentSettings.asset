@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9471648ad196c884282ee28e583fde6e, type: 3}
   m_Name: GameEnvironmentSettings
   m_EditorClassIdentifier: Game.Shared::Game.Shared.GameEnvironmentSettings
-  _environment: 0
+  _environment: 1
   _configs:
   - _environment: 0
     _dependencyResolverMode: 1
@@ -32,8 +32,8 @@ MonoBehaviour:
       _buildRemoteCatalog: 0
   - _environment: 1
     _dependencyResolverMode: 1
-    _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
-    _grpcBaseUrl: 
+    _apiBaseUrl: https://game-server-954800155666.asia-northeast1.run.app
+    _grpcBaseUrl: https://game-realtime-954800155666.asia-northeast1.run.app
     _webSocketUrl: 
     _unityServerAddress: 
     _unityServerPort: 7777
@@ -48,8 +48,8 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 1000
     _dependencyResolverMode: 1
-    _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
-    _grpcBaseUrl: 
+    _apiBaseUrl: https://game-server-954800155666.asia-northeast1.run.app
+    _grpcBaseUrl: https://game-realtime-954800155666.asia-northeast1.run.app
     _webSocketUrl: 
     _unityServerAddress: 
     _unityServerPort: 7777
@@ -64,8 +64,8 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 2000
     _dependencyResolverMode: 1
-    _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
-    _grpcBaseUrl: 
+    _apiBaseUrl: https://game-server-954800155666.asia-northeast1.run.app
+    _grpcBaseUrl: https://game-realtime-954800155666.asia-northeast1.run.app
     _webSocketUrl: 
     _unityServerAddress: 
     _unityServerPort: 7777
@@ -80,8 +80,8 @@ MonoBehaviour:
       _buildRemoteCatalog: 1
   - _environment: 3000
     _dependencyResolverMode: 1
-    _apiBaseUrl: https://game-server-fywq7xza3a-an.a.run.app
-    _grpcBaseUrl: 
+    _apiBaseUrl: https://game-server-954800155666.asia-northeast1.run.app
+    _grpcBaseUrl: https://game-realtime-954800155666.asia-northeast1.run.app
     _webSocketUrl: 
     _unityServerAddress: 
     _unityServerPort: 7777

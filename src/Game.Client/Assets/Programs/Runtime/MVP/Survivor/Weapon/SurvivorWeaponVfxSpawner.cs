@@ -28,6 +28,20 @@ namespace Game.MVP.Survivor.Weapon
         private readonly Dictionary<string, GameObject> _prefabCache = new();
         private readonly HashSet<string> _loadingAssets = new();
 
+        /// <summary>プール数（AssetName 毎）。診断用</summary>
+        public int PoolCount => _pools.Count;
+
+        /// <summary>全プールの待機中 ParticleSystem 総数。診断用</summary>
+        public int TotalIdleParticles
+        {
+            get
+            {
+                int total = 0;
+                foreach (var pool in _pools.Values) total += pool.Count;
+                return total;
+            }
+        }
+
         public SurvivorWeaponVfxSpawner(
             Transform parent,
             IAddressableAssetService assetService,

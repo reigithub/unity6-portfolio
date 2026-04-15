@@ -54,7 +54,10 @@ steps:
           --region=${_REGION} \
           --platform=managed \
           --allow-unauthenticated \
-          --vpc-connector=${_VPC_CONNECTOR} \
+          --clear-vpc-connector \
+          --network=${_VPC_NETWORK} \
+          --subnet=${_VPC_SUBNET} \
+          --vpc-egress=private-ranges-only \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
           --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
@@ -83,8 +86,9 @@ substitutions:
   # Memorystore for Valkey 設定
   _VALKEY_HOST: ''
   _VALKEY_PORT: '6379'
-  # VPC Connector（Memorystore 接続に必要）
-  _VPC_CONNECTOR: ''
+  # Direct VPC Egress（Memorystore / 内部通信に必要）
+  _VPC_NETWORK: default
+  _VPC_SUBNET: game-direct-vpc-subnet
 
 # ===== ビルドオプション =====
 options:

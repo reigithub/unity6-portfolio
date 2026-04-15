@@ -60,13 +60,19 @@ fi
 
 # Valkey 設定の確認（Game.Realtime では必須レベル）
 VALKEY_ENABLED=false
-if [[ -n "$VALKEY_HOST" && -n "$VPC_CONNECTOR" ]]; then
+if [[ -n "$VALKEY_HOST" && -n "$VPC_NETWORK" && -n "$VPC_SUBNET" ]]; then
     VALKEY_ENABLED=true
-elif [[ -n "$VALKEY_HOST" || -n "$VPC_CONNECTOR" ]]; then
-    echo "[WARN] Valkey requires both VALKEY_HOST and VPC_CONNECTOR to be set."
+elif [[ -n "$VALKEY_HOST" ]]; then
+    echo "[WARN] Valkey requires VALKEY_HOST, VPC_NETWORK, and VPC_SUBNET to be set."
 fi
 if [[ "$VALKEY_ENABLED" != "true" ]]; then
     echo "[WARN] Valkey is not configured. Redis backplane for MagicOnion will not work."
+fi
+
+# Direct VPC Egress の確認（内部通信に必要）
+VPC_EGRESS_ENABLED=false
+if [[ -n "$VPC_NETWORK" && -n "$VPC_SUBNET" ]]; then
+    VPC_EGRESS_ENABLED=true
 fi
 
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/game-realtime"
@@ -79,9 +85,12 @@ echo "SERVICE_NAME:    $SERVICE_NAME"
 echo "IMAGE:           ${IMAGE}:${TAG}"
 if [[ "$VALKEY_ENABLED" == "true" ]]; then
     echo "VALKEY:          ${VALKEY_HOST}:${VALKEY_PORT:-6379}"
-    echo "VPC_CONNECTOR:   $VPC_CONNECTOR"
 else
     echo "VALKEY:          (not configured)"
+fi
+if [[ "$VPC_EGRESS_ENABLED" == "true" ]]; then
+    echo "VPC_NETWORK:     $VPC_NETWORK"
+    echo "VPC_SUBNET:      $VPC_SUBNET"
 fi
 echo "MIN_INSTANCES:   1 (StreamingHub persistent connections)"
 echo "SESSION_AFFINITY: enabled"
@@ -154,9 +163,12 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         "--use-http2"
     )
 
-    # VPC Connector を追加（Valkey 有効時）
-    if [[ "$VALKEY_ENABLED" == "true" ]]; then
-        DEPLOY_ARGS+=("--vpc-connector=$VPC_CONNECTOR")
+    # Direct VPC Egress を追加（レガシー VPC Connector をクリア）
+    if [[ "$VPC_EGRESS_ENABLED" == "true" ]]; then
+        DEPLOY_ARGS+=("--clear-vpc-connector")
+        DEPLOY_ARGS+=("--network=$VPC_NETWORK")
+        DEPLOY_ARGS+=("--subnet=$VPC_SUBNET")
+        DEPLOY_ARGS+=("--vpc-egress=private-ranges-only")
     fi
 
     gcloud "${DEPLOY_ARGS[@]}"

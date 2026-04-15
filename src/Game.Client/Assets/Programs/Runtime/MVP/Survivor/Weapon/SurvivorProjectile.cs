@@ -118,7 +118,7 @@ namespace Game.MVP.Survivor.Weapon
             if (!_isActive) return;
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            float deltaTime = _runnerService.GetDeltaTime();
+            float deltaTime = _runnerService.GetRenderDeltaTime();
 
             // 追尾処理
             if (_homing > 0 && _homingTarget != null && _homingTarget.gameObject.activeInHierarchy)

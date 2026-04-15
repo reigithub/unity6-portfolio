@@ -1,4 +1,4 @@
-# docker/unity-server/prod/deploy.ps1
+﻿# docker/unity-server/prod/deploy.ps1
 # Unity Dedicated Server GCE deployment script (PowerShell)
 #
 # Usage:
@@ -9,21 +9,50 @@
 # Deploys to GCE with Container-Optimized OS
 #
 # Options:
-#   -BuildOnly      Build + push only (no deploy)
-#   -SkipBuild      Skip build (deploy with existing image)
-#   -Tag TAG         Image tag (default: latest)
-#   -SetupInfra     First-time GCE infrastructure setup (firewall, health check)
+#   -BuildOnly                  Build + push only (no deploy)
+#   -SkipBuild                  Skip build (deploy with existing image)
+#   -ImageTag TAG               Artifact Registry image tag (default: latest)
+#   -TemplateSuffix SUFFIX      Instance-template name suffix
+#                               If empty, "{ImageTag}-{UnixTime}" is auto-generated
+#                               so re-runs do not collide on alreadyExists.
+#   -InitialDelay SECONDS       Autohealing initial-delay (default: 180)
+#                               Allows time for first docker pull + Unity DS startup.
+#   -Force                      Override rolling-action-in-progress check
+#                               (will disconnect active sessions)
+#   -SetupInfra                 First-time GCE infrastructure setup (firewall, health check)
+#   -Tag TAG                    DEPRECATED: equivalent to -ImageTag and -TemplateSuffix
+#                               Will be removed in next major version.
+#
+# Environment file (.env) variable INITIAL_DELAY overrides default 180 if set.
 
 param(
     [switch]$BuildOnly,
     [switch]$SkipBuild,
-    [string]$Tag = "latest",
-    [switch]$SetupInfra
+    [string]$ImageTag = "latest",
+    [string]$TemplateSuffix = "",
+    [int]$InitialDelay = 180,
+    [switch]$Force,
+    [switch]$SetupInfra,
+    [string]$Tag = ""
 )
 
-$ErrorActionPreference = "Stop"
+# gcloud は warning を stderr に出して exit 0 で返すため、Stop だと致命扱いされて誤中断する。
+# Continue にして $LASTEXITCODE を個別判定する方針。
+$ErrorActionPreference = "Continue"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path "$ScriptDir\..\..\..\"
+
+# Backward-compat: -Tag を ImageTag/TemplateSuffix の両方に適用
+if ($Tag) {
+    if (-not $PSBoundParameters.ContainsKey('ImageTag')) { $ImageTag = $Tag }
+    if (-not $PSBoundParameters.ContainsKey('TemplateSuffix')) { $TemplateSuffix = $Tag }
+    Write-Host "[DEPRECATED] -Tag is deprecated, will be removed in next major version. Use -ImageTag and -TemplateSuffix." -ForegroundColor Yellow
+}
+
+# TemplateSuffix が空なら UnixTime を自動付与 → 同 ImageTag での再実行衝突回避 + ロールバック互換性
+if (-not $TemplateSuffix) {
+    $TemplateSuffix = "$ImageTag-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+}
 
 # Load .env file
 $EnvFile = "$ScriptDir\.env"
@@ -41,6 +70,11 @@ if (Test-Path $EnvFile) {
 } else {
     Write-Host "[ERROR] .env file not found. Copy .env.example to .env and configure." -ForegroundColor Red
     exit 1
+}
+
+# .env で INITIAL_DELAY が指定されていれば上書き（ただし -InitialDelay の明示指定が優先）
+if ($env:INITIAL_DELAY -and -not $PSBoundParameters.ContainsKey('InitialDelay')) {
+    $InitialDelay = [int]$env:INITIAL_DELAY
 }
 
 # Check required variables
@@ -61,13 +95,16 @@ $HealthCheckName = if ($env:HEALTH_CHECK_NAME) { $env:HEALTH_CHECK_NAME } else {
 
 $IMAGE = "$env:REGION-docker.pkg.dev/$env:PROJECT_ID/$env:REPO_NAME/unity-server"
 $BuildContext = "$ProjectRoot\src\Game.Client\Builds\Server\Linux"
+$TemplateName = "$env:INSTANCE_TEMPLATE_NAME-$TemplateSuffix"
 
 Write-Host ""
 Write-Host "===== Deploy Configuration (Unity Server -> GCE) =====" -ForegroundColor Cyan
 Write-Host "PROJECT_ID:      $env:PROJECT_ID"
 Write-Host "REGION:          $env:REGION"
 Write-Host "ZONE:            $env:ZONE"
-Write-Host "IMAGE:           ${IMAGE}:${Tag}"
+Write-Host "IMAGE:           ${IMAGE}:${ImageTag}"
+Write-Host "TEMPLATE_NAME:   $TemplateName"
+Write-Host "INITIAL_DELAY:   $InitialDelay seconds"
 Write-Host "MACHINE_TYPE:    $MachineType"
 Write-Host "UNITY_SERVER_PORT:        $UnityServerPort (UDP)"
 Write-Host "UNITY_SERVER_HEALTH_PORT: $UnityServerHealthPort (TCP)"
@@ -78,6 +115,19 @@ Write-Host "GAME_SERVER_URL: $env:GAME_SERVER_URL"
 Write-Host "SECRET_NAME:     $env:SECRET_UNITY_SERVER_AUTH"
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
+
+# 失敗時に gcloud の stderr を保全して表示するヘルパ。
+# Description: ログ表示用の操作名。Command: gcloud 呼出を含む scriptblock。
+function Invoke-Gcloud {
+    param([string]$Description, [scriptblock]$Command)
+    $captured = & $Command 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] $Description failed (exit=$LASTEXITCODE)" -ForegroundColor Red
+        Write-Host $captured -ForegroundColor DarkGray
+        exit $LASTEXITCODE
+    }
+    return $captured
+}
 
 # Infrastructure setup (first time only)
 if ($SetupInfra) {
@@ -94,7 +144,7 @@ if ($SetupInfra) {
         --allow="udp:$UnityServerPort" `
         --target-tags=$NetworkTag `
         --description="Allow UDP game traffic to Unity Server" `
-        --quiet 2>$null
+        --quiet 2>&1 | Out-Null
     # Ignore error if already exists
 
     # Firewall rule: TCP (health check)
@@ -106,7 +156,20 @@ if ($SetupInfra) {
         --source-ranges="35.191.0.0/16,130.211.0.0/22" `
         --target-tags=$NetworkTag `
         --description="Allow GCE health check to Unity Server" `
-        --quiet 2>$null
+        --quiet 2>&1 | Out-Null
+
+    # Firewall rule: TCP (Cloud Run Direct VPC Egress → DS internal communication)
+    # Game.Server が Direct VPC Egress 経由で DS の /session/start に HTTP POST を送信するために必要
+    $FwRuleInternal = if ($env:FIREWALL_RULE_INTERNAL) { $env:FIREWALL_RULE_INTERNAL } else { "allow-unity-server-internal" }
+    $VpcConnectorSubnet = if ($env:VPC_CONNECTOR_SUBNET) { $env:VPC_CONNECTOR_SUBNET } else { "10.10.0.0/26" }
+    Write-Host "[SETUP] Creating firewall rule for internal traffic (TCP $UnityServerHealthPort from Direct VPC Egress $VpcConnectorSubnet)..." -ForegroundColor Yellow
+    gcloud compute firewall-rules create $FwRuleInternal `
+        --network=$Network `
+        --allow="tcp:$UnityServerHealthPort" `
+        --source-ranges="$VpcConnectorSubnet" `
+        --target-tags=$NetworkTag `
+        --description="Allow Cloud Run Direct VPC Egress to send session/start to Unity Server" `
+        --quiet 2>&1 | Out-Null
 
     # TCP health check
     Write-Host "[SETUP] Creating TCP health check..." -ForegroundColor Yellow
@@ -116,7 +179,7 @@ if ($SetupInfra) {
         --timeout=5s `
         --healthy-threshold=2 `
         --unhealthy-threshold=3 `
-        --quiet 2>$null
+        --quiet 2>&1 | Out-Null
 
     # Secret Manager IAM: Grant secretAccessor to GCE default service account
     Write-Host "[SETUP] Granting Secret Manager access to GCE default service account..." -ForegroundColor Yellow
@@ -125,8 +188,7 @@ if ($SetupInfra) {
         --member="serviceAccount:$DefaultSa" `
         --role="roles/secretmanager.secretAccessor" `
         --project=$env:PROJECT_ID `
-        --quiet 2>$null
-    # Ignore error if binding already exists
+        --quiet 2>&1 | Out-Null
 
     Write-Host "[SETUP] Infrastructure setup complete" -ForegroundColor Green
     Write-Host ""
@@ -148,14 +210,14 @@ if (-not $SkipBuild) {
 
     # Docker build
     Write-Host "[2/5] Building Docker image..." -ForegroundColor Yellow
-    docker build -t "${IMAGE}:${Tag}" `
+    docker build -t "${IMAGE}:${ImageTag}" `
         -f "$ProjectRoot\docker\unity-server\Dockerfile" `
         "$BuildContext"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     # Push to registry
     Write-Host "[3/5] Pushing to Artifact Registry..." -ForegroundColor Yellow
-    docker push "${IMAGE}:${Tag}"
+    docker push "${IMAGE}:${ImageTag}"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } else {
     Write-Host "[2/5] Skipping build..." -ForegroundColor Gray
@@ -163,6 +225,19 @@ if (-not $SkipBuild) {
 }
 
 if (-not $BuildOnly) {
+    # Verify image manifest exists in registry before proceeding (fail-fast)
+    # Requires CI service account to have roles/artifactregistry.reader
+    Write-Host "[CHECK] Verifying image exists in Artifact Registry..." -ForegroundColor Yellow
+    $null = gcloud artifacts docker images describe "${IMAGE}:${ImageTag}" `
+        --format="value(image_summary.digest)" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Image not found: ${IMAGE}:${ImageTag}" -ForegroundColor Red
+        Write-Host "[HINT] Run without -SkipBuild to build & push first," -ForegroundColor Yellow
+        Write-Host "       or specify an existing -ImageTag." -ForegroundColor Yellow
+        Write-Host "[HINT] CI service account requires roles/artifactregistry.reader." -ForegroundColor Yellow
+        exit 1
+    }
+
     # Fetch HMAC secret from Secret Manager
     Write-Host "[INFO] Fetching secret from Secret Manager ($env:SECRET_UNITY_SERVER_AUTH)..." -ForegroundColor Yellow
     $UnitySecret = gcloud secrets versions access latest `
@@ -174,53 +249,76 @@ if (-not $BuildOnly) {
     }
 
     # Create instance template
-    Write-Host "[4/5] Creating instance template..." -ForegroundColor Yellow
-    $TemplateName = "$env:INSTANCE_TEMPLATE_NAME-$Tag"
+    Write-Host "[4/5] Creating instance template $TemplateName..." -ForegroundColor Yellow
 
-    gcloud compute instance-templates create-with-container $TemplateName `
-        --machine-type=$MachineType `
-        --tags=$NetworkTag `
-        --container-image="${IMAGE}:${Tag}" `
-        --container-env="UNITY_SERVER_AUTH_SESSION_SECRET=$UnitySecret" `
-        --container-env="GAME_SERVER_URL=$env:GAME_SERVER_URL" `
-        --container-env="UNITY_SERVER_PORT=$UnityServerPort" `
-        --container-env="UNITY_SERVER_HEALTH_PORT=$UnityServerHealthPort" `
-        --container-arg="--port" `
-        --container-arg=$UnityServerPort `
-        --container-arg="--health-port" `
-        --container-arg=$UnityServerHealthPort `
-        --scopes=https://www.googleapis.com/auth/cloud-platform `
-        --region=$env:REGION `
-        --quiet 2>$null
+    Invoke-Gcloud "Create instance template" {
+        gcloud compute instance-templates create-with-container $TemplateName `
+            --machine-type=$MachineType `
+            --tags=$NetworkTag `
+            --container-image="${IMAGE}:${ImageTag}" `
+            --container-env="UNITY_SERVER_AUTH_SESSION_SECRET=$UnitySecret" `
+            --container-env="GAME_SERVER_URL=$env:GAME_SERVER_URL" `
+            --container-env="UNITY_SERVER_PORT=$UnityServerPort" `
+            --container-env="UNITY_SERVER_HEALTH_PORT=$UnityServerHealthPort" `
+            --container-arg="--port" `
+            --container-arg=$UnityServerPort `
+            --container-arg="--health-port" `
+            --container-arg=$UnityServerHealthPort `
+            --scopes=https://www.googleapis.com/auth/cloud-platform `
+            --region=$env:REGION
+    } | Out-Null
 
     # Update or create MIG
     Write-Host "[5/5] Updating Managed Instance Group..." -ForegroundColor Yellow
+
+    # MIG 存在判定（失敗が想定内なので 2>$null は維持）
     $MigExists = gcloud compute instance-groups managed describe $env:INSTANCE_GROUP_NAME `
         --zone=$env:ZONE 2>$null
-    if ($MigExists) {
-        # Update existing MIG
-        gcloud compute instance-groups managed set-instance-template `
-            $env:INSTANCE_GROUP_NAME `
-            --zone=$env:ZONE `
-            --template=$TemplateName
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-        gcloud compute instance-groups managed rolling-action start-update `
+    if ($MigExists) {
+        # 進行中の rolling-action がある場合は -Force なしで中止（接続中ユーザー保護）
+        $isReached = gcloud compute instance-groups managed describe `
+            $env:INSTANCE_GROUP_NAME --zone=$env:ZONE `
+            --format="value(status.versionTarget.isReached)" 2>$null
+        if ($isReached -eq "False" -and -not $Force) {
+            Write-Host "[ERROR] Rolling update is already in progress." -ForegroundColor Red
+            Write-Host "[HINT] Wait for completion, or use -Force to override (will disconnect active sessions)." -ForegroundColor Yellow
+            exit 1
+        }
+
+        Invoke-Gcloud "Set instance template" {
+            gcloud compute instance-groups managed set-instance-template `
+                $env:INSTANCE_GROUP_NAME `
+                --zone=$env:ZONE `
+                --template=$TemplateName
+        } | Out-Null
+
+        # autohealing initial-delay の更新は致命でない（template 切替成功すれば deploy 全体は成功扱い）
+        gcloud compute instance-groups managed update `
             $env:INSTANCE_GROUP_NAME `
             --zone=$env:ZONE `
-            --version="template=$TemplateName" `
-            --max-surge=1 `
-            --max-unavailable=0
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            --initial-delay=$InitialDelay 2>&1 | Out-Null
+
+        # rolling-action: --max-unavailable=0 と RESTART の衝突を回避するため --minimal-action=replace を明示
+        Invoke-Gcloud "Start rolling update" {
+            gcloud compute instance-groups managed rolling-action start-update `
+                $env:INSTANCE_GROUP_NAME `
+                --zone=$env:ZONE `
+                --version="template=$TemplateName" `
+                --max-surge=1 `
+                --max-unavailable=0 `
+                --minimal-action=replace
+        } | Out-Null
     } else {
         # Create new MIG
-        gcloud compute instance-groups managed create $env:INSTANCE_GROUP_NAME `
-            --zone=$env:ZONE `
-            --template=$TemplateName `
-            --size=1 `
-            --health-check=$HealthCheckName `
-            --initial-delay=60
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Invoke-Gcloud "Create new MIG" {
+            gcloud compute instance-groups managed create $env:INSTANCE_GROUP_NAME `
+                --zone=$env:ZONE `
+                --template=$TemplateName `
+                --size=1 `
+                --health-check=$HealthCheckName `
+                --initial-delay=$InitialDelay
+        } | Out-Null
     }
 
     Write-Host ""
@@ -235,5 +333,5 @@ if (-not $BuildOnly) {
     Write-Host "[5/5] Skipping deploy (BuildOnly mode)..." -ForegroundColor Gray
     Write-Host ""
     Write-Host "===== Build Complete =====" -ForegroundColor Green
-    Write-Host "Image: ${IMAGE}:${Tag}" -ForegroundColor Cyan
+    Write-Host "Image: ${IMAGE}:${ImageTag}" -ForegroundColor Cyan
 }

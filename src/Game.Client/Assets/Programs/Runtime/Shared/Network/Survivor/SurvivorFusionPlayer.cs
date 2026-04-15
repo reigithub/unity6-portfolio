@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.FSM;
 using Fusion.Addons.KCC;
+using Game.Shared.Constants;
+using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -140,6 +142,9 @@ namespace Game.Shared.Network.Survivor
             TryGetComponent(out _kcc);
             _runnerService?.TryGet(out _gameState);
 
+            // プレハブ側 Layer 設定漏れを補うための保険（敵との物理衝突回避）
+            gameObject.SetLayerRecursively(LayerConstants.Player);
+
             // Fusion FSM: Awake で作成済み → Spawned で初期ステート設定
             if (_playerFsm != null)
             {
@@ -232,6 +237,10 @@ namespace Game.Shared.Network.Survivor
         {
             if (!HasStateAuthority && !HasInputAuthority) return;
 
+            // Resimulation 中はクライアント側の予測再計算をスキップ
+            // State Authority（サーバー）は Resimulation しないため影響なし
+            if (Runner.IsResimulation) return;
+
             // 診断: FixedUpdate での状態記録（サーバー・クライアント両方）
             if (_kcc != null)
             {
@@ -265,6 +274,12 @@ namespace Game.Shared.Network.Survivor
 
             if (GetInput(out SurvivorPlayerNetworkInput input))
             {
+                // 診断: サーバー側で連続欠損から復帰した場合ログ
+                if (HasStateAuthority && _ticksSinceLastInput >= 5)
+                {
+                    Debug.Log($"[FusionPlayer DIAG-SRV] Input restored after {_ticksSinceLastInput} missing ticks (tick={Runner.Tick})");
+                }
+
                 _inputReceived = true;
                 _ticksSinceLastInput = 0;
 
@@ -296,6 +311,12 @@ namespace Game.Shared.Network.Survivor
             else
             {
                 _ticksSinceLastInput++;
+
+                // 診断: サーバー側で連続 5 tick 超の入力欠損を検知した最初の tick でログ
+                if (HasStateAuthority && _ticksSinceLastInput == 5)
+                {
+                    Debug.LogWarning($"[FusionPlayer DIAG-SRV] Input missing: 5+ consecutive ticks begin (tick={Runner.Tick})");
+                }
 
                 // 1-2tickの一時的な入力途絶では KCC の既存入力を維持し、クライアント予測との乖離を防ぐ
                 var isBeforeFirstInput = !_inputReceived;
@@ -468,11 +489,11 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientItemCollected(int itemId)
+        public void RpcClientItemCollected(int networkId)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientItemCollected(itemId);
+                gs.OnClientItemCollected(networkId);
             }
         }
 

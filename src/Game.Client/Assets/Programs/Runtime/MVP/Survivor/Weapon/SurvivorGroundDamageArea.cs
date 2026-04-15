@@ -78,7 +78,7 @@ namespace Game.MVP.Survivor.Weapon
             if (!_isActive) return;
             if (_gameState != null && _gameState.IsEffectivelyPaused) return;
 
-            float deltaTime = _runnerService.GetDeltaTime();
+            float deltaTime = _runnerService.GetRenderDeltaTime();
             _remainingTime -= deltaTime;
             _nextProcTime -= deltaTime;
 

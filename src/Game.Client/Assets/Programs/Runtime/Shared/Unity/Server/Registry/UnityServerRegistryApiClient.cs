@@ -38,7 +38,7 @@ namespace Game.Shared.Unity.Server
         }
 
         /// <inheritdoc/>
-        public async Task<bool> RegisterAsync(string dsAddress, CancellationToken ct)
+        public async Task<bool> RegisterAsync(string dsAddress, string internalAddress, CancellationToken ct)
         {
             var config = _configProvider.Current;
             if (string.IsNullOrEmpty(config.GameServerUrl))
@@ -50,12 +50,13 @@ namespace Game.Shared.Unity.Server
                 {
                     DsId = config.DsId,
                     Address = dsAddress,
+                    InternalAddress = internalAddress,
                     GamePort = config.GamePort,
                     HealthPort = config.HealthPort,
                 };
                 var url = $"{config.GameServerUrl}/api/unity-server/register";
                 var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
-                Debug.Log($"[UnityServerRegistryApiClient] 自己登録完了: status={status}");
+                Debug.Log($"[UnityServerRegistryApiClient] 自己登録完了: status={status}, internalAddress={internalAddress ?? "(none)"}");
                 return true;
             }
             catch (Exception ex)

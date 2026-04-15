@@ -142,6 +142,12 @@ namespace Game.MVP.Survivor.Weapon
         public string HitEffectAssetName => _hitEffectAssetName;
         public float HitEffectScale => _hitEffectScale;
 
+        /// <summary>プールアイテムの使用中数（プール無し武器は 0）。診断用</summary>
+        public virtual int ActivePoolItemCount => 0;
+
+        /// <summary>プールアイテムの待機中数（プール無し武器は 0）。診断用</summary>
+        public virtual int IdlePoolItemCount => 0;
+
         // 手動発動関連
         public bool IsManualActivation => _cooldown > 0;
         public bool IsOnCooldown => _cooldownTimer > 0f;
@@ -480,6 +486,9 @@ namespace Game.MVP.Survivor.Weapon
 
         protected WeaponObjectPool<TPoolItem> CurrentPool { get; private set; }
         protected bool IsPoolInitialized { get; private set; }
+
+        public override int ActivePoolItemCount => _poolsByAssetName.Values.Sum(p => p.ActiveCount);
+        public override int IdlePoolItemCount => _poolsByAssetName.Values.Sum(p => p.IdleCount);
 
         protected SurvivorWeaponBase(SurvivorWeaponMaster weaponMaster) : base(weaponMaster)
         {

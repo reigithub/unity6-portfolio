@@ -68,6 +68,8 @@ jobs:
     outputs:
       unity_project_path: ${{ steps.config.outputs.UNITY_PROJECT_PATH }}
       build_timestamp: ${{ steps.timestamp.outputs.value }}
+      # build / deploy 両方で使う matrix include 配列を動的生成（job-level `if` で matrix を参照できないため）
+      build_matrix: ${{ steps.matrix.outputs.value }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -77,6 +79,22 @@ jobs:
       - name: Generate build timestamp
         id: timestamp
         run: echo "value=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Generate build matrix
+        id: matrix
+        run: |
+          # 対応 runner があるプラットフォームのみ matrix に含める
+          # WebGL / Android / macOS / iOS は scope 外（runner 未配置）→ 入力されても matrix が空 → job スキップ
+          WIN='{"platform":"StandaloneWindows64","build_target":"Win64","runner_label":"windows-mono"}'
+          LINUX='{"platform":"StandaloneLinux64","build_target":"Linux64","runner_label":"linux-il2cpp"}'
+          case "${{ inputs.build_target }}" in
+            All)                 MATRIX="[${WIN},${LINUX}]" ;;
+            StandaloneWindows64) MATRIX="[${WIN}]" ;;
+            StandaloneLinux64)   MATRIX="[${LINUX}]" ;;
+            *)                   MATRIX="[]" ;;
+          esac
+          echo "value=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "Generated matrix: ${MATRIX}"
 
       - name: Load configuration
         id: config
@@ -89,13 +107,16 @@ jobs:
   # ============================================
   build-addressables:
     name: Build Addressables (${{ matrix.platform }})
-    runs-on: [self-hosted, linux, unity, docker]
+    # platform 別に self-hosted runner を振り分け（matrix.runner_label で AND マッチング）
+    runs-on: [self-hosted, linux, unity, docker, "${{ matrix.runner_label }}"]
     needs: load-config
-    timeout-minutes: 180
+    timeout-minutes: 720
     strategy:
       fail-fast: false
+      # load-config が input に応じて生成した matrix を使う
+      # （job-level `if` で matrix context は使えないため、matrix 自体を空にして job をスキップする方式）
       matrix:
-        platform: ${{ fromJSON(inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' || format('["{0}"]', inputs.build_target)) }}
+        include: ${{ fromJSON(needs.load-config.outputs.build_matrix) }}
     env:
       UNITY_PROJECT_PATH: ${{ needs.load-config.outputs.unity_project_path }}
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
@@ -108,23 +129,10 @@ jobs:
           lfs: false
           clean: false
 
-      - name: Get Unity build target
-        id: build-target
-        run: |
-          case "${{ matrix.platform }}" in
-            StandaloneWindows64) echo "target=Win64" >> $GITHUB_OUTPUT ;;
-            StandaloneLinux64) echo "target=Linux64" >> $GITHUB_OUTPUT ;;
-            StandaloneOSX) echo "target=OSXUniversal" >> $GITHUB_OUTPUT ;;
-            WebGL) echo "target=WebGL" >> $GITHUB_OUTPUT ;;
-            Android) echo "target=Android" >> $GITHUB_OUTPUT ;;
-            iOS) echo "target=iOS" >> $GITHUB_OUTPUT ;;
-            *) echo "target=${{ matrix.platform }}" >> $GITHUB_OUTPUT ;;
-          esac
-
       - name: Setup Library cache
         run: |
           chmod +x .github/scripts/setup-library-cache.sh
-          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "${{ steps.build-target.outputs.target }}"
+          .github/scripts/setup-library-cache.sh "${{ env.UNITY_PROJECT_PATH }}" "${{ matrix.build_target }}"
 
       - name: Setup directories
         run: |
@@ -187,7 +195,7 @@ jobs:
               -nographics \
               -quit \
               -projectPath "${{ env.UNITY_PROJECT_PATH }}" \
-              -buildTarget "${{ steps.build-target.outputs.target }}" \
+              -buildTarget "${{ matrix.build_target }}" \
               $ACCELERATOR_ARGS \
               -executeMethod Game.Editor.Build.AddressablesR2Uploader.BuildAddressablesCI \
               -logFile "${{ github.workspace }}/Logs/addressables-build-${{ matrix.platform }}.log"
@@ -305,14 +313,16 @@ jobs:
   # ============================================
   deploy-to-r2:
     name: Deploy to R2 (${{ matrix.platform }})
+    # 軽量タスク（rclone のみ）。任意の self-hosted runner で実行可
     runs-on: [self-hosted, linux, unity, docker]
     needs: [load-config, build-addressables]
     if: inputs.deploy == true
     timeout-minutes: 360
     strategy:
       fail-fast: false
+      # build-addressables と同じ matrix を共有（platform フィールドのみ参照）
       matrix:
-        platform: ${{ fromJSON(inputs.build_target == 'All' && '["StandaloneWindows64", "StandaloneLinux64", "WebGL", "Android"]' || format('["{0}"]', inputs.build_target)) }}
+        include: ${{ fromJSON(needs.load-config.outputs.build_matrix) }}
     env:
       BUILD_TIMESTAMP: ${{ needs.load-config.outputs.build_timestamp }}
 
@@ -475,7 +485,7 @@ jobs:
             echo "### Deployed URLs" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             if [ "${{ inputs.build_target }}" == "All" ]; then
-              for platform in StandaloneWindows64 StandaloneLinux64 WebGL Android; do
+              for platform in StandaloneWindows64 StandaloneLinux64; do
                 echo "- **${platform}:** https://${{ env.R2_CUSTOM_DOMAIN }}/${platform}/" >> $GITHUB_STEP_SUMMARY
               done
             else

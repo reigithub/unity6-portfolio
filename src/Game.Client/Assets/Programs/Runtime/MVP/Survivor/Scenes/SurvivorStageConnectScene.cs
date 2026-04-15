@@ -169,23 +169,38 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            // FusionServerAddress が設定されていればクラウドサーバーに接続
+            // DS アドレスをトークンレスポンスから動的取得し、接続先を決定する。
+            // 優先順位: 1) レスポンスの ServerAddress → Remote 接続
+            //           2) envConfig.UnityServerAddress → Remote フォールバック
+            //           3) それ以外 → Local 接続（127.0.0.1）
+            var tokenResult = await IssueTokenAsync(stageId);
             var envConfig = GameEnvironmentHelper.CurrentConfig;
-            if (envConfig != null && !_sessionConfig.IsLocalAddress(envConfig.UnityServerAddress))
+
+            if (!string.IsNullOrEmpty(tokenResult?.ServerAddress) && tokenResult.ServerPort > 0)
             {
-                var tokenResult = await IssueTokenAsync(stageId);
+                // DS 割り当て済み: レスポンスに含まれる DS アドレスへ直接接続
+                _sessionConfig.Configure(ConnectionSource.Remote,
+                    address: tokenResult.ServerAddress,
+                    port: (ushort)tokenResult.ServerPort,
+                    sessionName: tokenResult.SessionName,
+                    sessionToken: tokenResult.Token);
+                Debug.Log($"[SurvivorStageConnectScene] DS アドレスをトークンレスポンスから取得: {_sessionConfig.ServerAddress}:{_sessionConfig.ServerPort} ({_sessionConfig.SessionName})");
+            }
+            else if (envConfig != null && !_sessionConfig.IsLocalAddress(envConfig.UnityServerAddress))
+            {
+                // envConfig にリモートアドレスが設定されている場合のフォールバック（ローカル開発用）
                 _sessionConfig.Configure(ConnectionSource.Remote,
                     address: envConfig.UnityServerAddress,
                     port: envConfig.UnityServerPort,
-                    sessionName: tokenResult.SessionName,
-                    sessionToken: tokenResult.Token);
-                Debug.Log($"[SurvivorStageConnectScene] Connecting to remote server: {_sessionConfig.ServerAddress}:{_sessionConfig.ServerPort} ({_sessionConfig.SessionName})");
+                    sessionName: tokenResult?.SessionName,
+                    sessionToken: tokenResult?.Token);
+                Debug.Log($"[SurvivorStageConnectScene] envConfig フォールバック: {_sessionConfig.ServerAddress}:{_sessionConfig.ServerPort} ({_sessionConfig.SessionName})");
             }
             else
             {
-                var defaultTokenResult = await IssueTokenAsync(stageId);
-                _sessionConfig.Configure(ConnectionSource.Local, sessionName: defaultTokenResult.SessionName, sessionToken: defaultTokenResult.Token);
-                Debug.Log($"[SurvivorStageConnectScene] Connecting to local server ({_sessionConfig.SessionName})...");
+                // ローカル接続（127.0.0.1）
+                _sessionConfig.Configure(ConnectionSource.Local, sessionName: tokenResult?.SessionName, sessionToken: tokenResult?.Token);
+                Debug.Log($"[SurvivorStageConnectScene] ローカルサーバーへ接続 ({_sessionConfig.SessionName})...");
             }
         }
 

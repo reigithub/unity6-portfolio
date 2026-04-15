@@ -124,7 +124,7 @@ namespace Game.Editor.Build
         public static void BuildLinux()
         {
             var scenes = GetBuildScenes();
-            var buildPath = GetBuildPath("Linux", Application.productName);
+            var buildPath = GetBuildPath("Linux", $"{Application.productName}.x86_64");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64, BuildOptions.None);
         }
@@ -136,7 +136,7 @@ namespace Game.Editor.Build
         public static void BuildLinuxDevelopment()
         {
             var scenes = GetBuildScenes();
-            var buildPath = GetBuildPath("Linux-Dev", Application.productName);
+            var buildPath = GetBuildPath("Linux-Dev", $"{Application.productName}.x86_64");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
                 BuildOptions.Development | BuildOptions.AllowDebugging);
@@ -277,7 +277,7 @@ namespace Game.Editor.Build
         {
             var scenes = GetBuildScenes();
             var buildPath = GetBuildPath("Server/Linux",
-                Application.productName);
+                $"{Application.productName}.x86_64");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
                 BuildOptions.None, (int)StandaloneBuildSubtarget.Server);
@@ -291,7 +291,7 @@ namespace Game.Editor.Build
         {
             var scenes = GetBuildScenes();
             var buildPath = GetBuildPath("Server/Linux-Dev",
-                Application.productName);
+                $"{Application.productName}.x86_64");
 
             BuildPlayer(scenes, buildPath, BuildTarget.StandaloneLinux64,
                 BuildOptions.Development | BuildOptions.AllowDebugging,

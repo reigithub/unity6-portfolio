@@ -76,7 +76,10 @@ public class UnityServerController : ControllerBase
     {
         await _registryService.RegisterAsync(request);
 
-        _logger.LogInformation("DS registered: dsId={DsId}, address={Address}, gamePort={GamePort}", request.DsId, request.Address, request.GamePort);
+        _logger.LogInformation(
+            "DS registered: dsId={DsId}, address={Address}, gamePort={GamePort}, internalAddress={InternalAddress}",
+            request.DsId, request.Address, request.GamePort,
+            string.IsNullOrEmpty(request.InternalAddress) ? "(none)" : request.InternalAddress);
 
         return Ok();
     }

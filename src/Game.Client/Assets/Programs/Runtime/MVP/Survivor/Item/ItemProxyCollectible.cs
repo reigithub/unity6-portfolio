@@ -23,8 +23,8 @@ namespace Game.MVP.Survivor.Item
         private float _floatTimer;
         private SurvivorFusionGameState _gameState;
 
-        /// <summary>アイテムID</summary>
-        public int ItemId { get; private set; }
+        /// <summary>ネットワーク個体 ID（サーバー採番、RPC 送信時に使用）</summary>
+        public int NetworkId { get; private set; }
 
         /// <summary>収集済みフラグ</summary>
         public bool IsCollected { get; private set; }
@@ -32,19 +32,19 @@ namespace Game.MVP.Survivor.Item
         /// <summary>吸引中フラグ</summary>
         public bool IsAttracting => _attractTarget != null;
 
-        /// <summary>収集時コールバック（SurvivorItemView が RPC 送信用に設定）</summary>
+        /// <summary>収集時コールバック（引数: NetworkId。SurvivorItemView が RPC 送信用に設定）</summary>
         public event Action<int> OnCollected;
 
         /// <summary>
         /// アイテムプロキシを初期化する。
         /// </summary>
         /// <param name="scale">アイテムのスケール値（浮遊振幅の計算に使用）</param>
-        /// <param name="itemId">アイテムID</param>
+        /// <param name="networkId">ネットワーク個体 ID（サーバー採番）</param>
         /// <param name="gameState">ポーズ判定用ゲーム状態</param>
-        public void Initialize(float scale, int itemId, SurvivorFusionGameState gameState)
+        public void Initialize(float scale, int networkId, SurvivorFusionGameState gameState)
         {
             _scale = scale;
-            ItemId = itemId;
+            NetworkId = networkId;
             _gameState = gameState;
             _initialPosition = transform.position;
             _floatTimer = 0f;
@@ -69,7 +69,7 @@ namespace Game.MVP.Survivor.Item
         {
             if (IsCollected) return;
             IsCollected = true;
-            OnCollected?.Invoke(ItemId);
+            OnCollected?.Invoke(NetworkId);
         }
 
         /// <summary>

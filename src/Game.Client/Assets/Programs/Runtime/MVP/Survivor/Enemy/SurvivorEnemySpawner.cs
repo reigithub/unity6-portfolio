@@ -85,6 +85,10 @@ namespace Game.MVP.Survivor.Enemy
         private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
+
+        // 診断: 5 秒毎にサイズサマリー
+        private const float DiagSummaryInterval = 5f;
+        private float _diagLastSummaryTime;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
         private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
         private readonly HashSet<int> _spawnedNetworkIds = new(); // クライアントに Spawn 済みの NetworkId
@@ -164,6 +168,11 @@ namespace Game.MVP.Survivor.Enemy
                 if (!_enemyPrefabs.ContainsKey(enemy.Id))
                 {
                     var prefab = await _assetService.LoadAssetAsync<GameObject>(enemy.AssetName);
+                    if (prefab == null)
+                    {
+                        Debug.LogError($"[SurvivorEnemySpawner] Failed to load prefab for enemy {enemy.Id} (AssetName={enemy.AssetName}). Skipping pool init.");
+                        continue;
+                    }
                     _enemyPrefabs[enemy.Id] = prefab;
 
                     // プール初期化
@@ -205,6 +214,9 @@ namespace Game.MVP.Survivor.Enemy
             var instance = Instantiate(prefab, transform);
             prefab.SetActive(true);
 
+            // プレハブ側 Layer 設定漏れを補うための保険（Player との物理衝突回避）
+            instance.SetLayerRecursively(LayerConstants.Enemy);
+
             if (!instance.TryGetComponent<SurvivorEnemyController>(out var controller))
             {
                 Debug.LogError($"[SurvivorEnemySpawner] SurvivorEnemyController not found on prefab: {enemyId}");
@@ -239,8 +251,6 @@ namespace Game.MVP.Survivor.Enemy
             Debug.Log($"[SurvivorEnemySpawner] Wave started. Enemy types: {_enemySpawnList.Count}, Total: {_remainingSpawnCount}, RNG Seed: {seed}");
         }
 
-        private float GetNetworkDeltaTime() => _runnerService.GetDeltaTime();
-
         private void Update()
         {
             // ポーズ状態の同期
@@ -251,10 +261,12 @@ namespace Game.MVP.Survivor.Enemy
                 SetAllEnemiesPaused(isPaused);
             }
 
+            float deltaTime = _runnerService.GetRenderDeltaTime();
+
             // サーバー: 定期的に敵状態をバッチ送信（ポーズ中も位置同期は維持）
             if (_runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var batchSync))
             {
-                _enemySyncTimer -= GetNetworkDeltaTime();
+                _enemySyncTimer -= deltaTime;
                 if (_enemySyncTimer <= 0f)
                 {
                     _enemySyncTimer = EnemySyncInterval;
@@ -285,11 +297,20 @@ namespace Game.MVP.Survivor.Enemy
                 return;
             }
 
-            _spawnTimer -= GetNetworkDeltaTime();
+            _spawnTimer -= deltaTime;
 
             if (_spawnTimer <= 0f && _remainingSpawnCount > 0)
             {
                 SpawnNextEnemy();
+            }
+
+            var now = Time.unscaledTime;
+            if (now - _diagLastSummaryTime >= DiagSummaryInterval)
+            {
+                _diagLastSummaryTime = now;
+                int poolsIdle = 0;
+                foreach (var kv in _pools) poolsIdle += kv.Value.Count;
+                Debug.Log($"[SurvivorEnemySpawner DIAG] active={_activeEnemies.Count}, poolsIdle={poolsIdle}, pendingDeaths={_pendingDeaths.Count}, enemyTypes={_pools.Count}");
             }
         }
 

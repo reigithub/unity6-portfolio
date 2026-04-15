@@ -37,8 +37,9 @@ public class UnityServerSessionService : IUnityServerSessionService
     /// <param name="matchId">割り当てるマッチID。</param>
     /// <param name="stageId">ステージID。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。</param>
+    /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    public async Task AssignSessionAsync(string matchId, int stageId, int expectedPlayers)
+    public async Task<DsInfo> AssignSessionAsync(string matchId, int stageId, int expectedPlayers)
     {
         // 1. DS 一覧取得（ハートビート確認済み + 死亡 DS 自動削除）
         var servers = await _registryService.GetAvailableServersAsync();
@@ -54,16 +55,21 @@ public class UnityServerSessionService : IUnityServerSessionService
         // 2. 最初の idle DS を選択
         var target = servers[0];
 
+        // Direct VPC Egress 経由で VPC 内部 IP に到達可能。InternalAddress 優先、未設定時は外部 IP にフォールバック
+        var dsHost = !string.IsNullOrEmpty(target.InternalAddress) ? target.InternalAddress : target.Address;
+
         _logger.LogInformation(
-            "DS を選択: dsId={DsId}, address={Address}:{HealthPort}, matchId={MatchId}",
-            target.DsId, target.Address, target.HealthPort, matchId);
+            "DS を選択: dsId={DsId}, address={Address}:{HealthPort}, internalAddress={InternalAddress}, matchId={MatchId}",
+            target.DsId, target.Address, target.HealthPort,
+            string.IsNullOrEmpty(target.InternalAddress) ? "(none, fallback to address)" : target.InternalAddress,
+            matchId);
 
         // 3. DS に HTTP POST でセッション作成指示
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
 
         var requestBody = $"{{\"matchId\":\"{matchId}\",\"stageId\":{stageId},\"expectedPlayers\":{expectedPlayers}}}";
-        var url = $"http://{target.Address}:{target.HealthPort}{SessionStartPath}";
+        var url = $"http://{dsHost}:{target.HealthPort}{SessionStartPath}";
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
@@ -83,7 +89,10 @@ public class UnityServerSessionService : IUnityServerSessionService
         await _registryService.SetStatusAsync(target.DsId, "active", matchId);
 
         _logger.LogInformation(
-            "セッション割り当て完了: dsId={DsId}, address={Address}:{HealthPort}, matchId={MatchId}",
-            target.DsId, target.Address, target.HealthPort, matchId);
+            "セッション割り当て完了: dsId={DsId}, url={Url}, matchId={MatchId}",
+            target.DsId, url, matchId);
+
+        // 割り当てた DS 情報を返却（クライアントへの接続先動的通知に使用）
+        return target;
     }
 }

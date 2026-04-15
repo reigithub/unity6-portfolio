@@ -20,9 +20,10 @@ name: unity-ci
 
 services:
   # ============================================
-  # Unity CI Runner (GitHub Actions Self-hosted)
+  # Unity CI Runner: Windows Mono (GitHub Actions Self-hosted)
+  # Windows クライアント / Windows DS / Windows Addressables ビルド用
   # ============================================
-  unity-ci-runner:
+  unity-ci-windows-mono:
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,8 +31,8 @@ services:
         UNITY_VERSION: ${UNITY_VERSION:-6000.3.8f1}
         UNITY_MODULE: ${UNITY_MODULE:-windows-mono}
         IMAGE_VERSION: ${IMAGE_VERSION:-3}
-    image: unity-ci-runner:${UNITY_VERSION:-6000.3.8f1}-${UNITY_MODULE:-windows-mono}
-    container_name: unity-ci-runner
+    image: unity-ci-windows-mono:${UNITY_VERSION:-6000.3.8f1}
+    container_name: unity-ci-windows-mono
     restart: unless-stopped
 
     environment:
@@ -49,8 +50,8 @@ services:
       - GITHUB_APP_PRIVATE_KEY_BASE64=${GITHUB_APP_PRIVATE_KEY_BASE64:-}
 
       # Runner configuration
-      - RUNNER_NAME=${RUNNER_NAME:-unity-runner}
-      - RUNNER_LABELS=${RUNNER_LABELS:-self-hosted,linux,unity,docker}
+      - RUNNER_NAME=${RUNNER_NAME:-unity-ci-windows-mono}
+      - RUNNER_LABELS=${RUNNER_LABELS:-self-hosted,linux,unity,docker,windows-mono}
 
       # Unity Accelerator 接続設定
       - UNITY_ACCELERATOR_ENDPOINT=unity-accelerator:10080
@@ -90,6 +91,74 @@ services:
     networks:
       - unity-ci-network
 
+  # ============================================
+  # Unity CI Runner: Linux IL2CPP (GitHub Actions Self-hosted)
+  # Linux クライアント / Linux DS / Linux Addressables / テスト用
+  # `linux-il2cpp` image は Linux Server バリアント（linux64_server_*_il2cpp / mono）
+  # を内包するため、別途 linux-server runner は不要
+  # ============================================
+  unity-ci-linux-il2cpp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UNITY_VERSION: ${UNITY_VERSION:-6000.3.8f1}
+        UNITY_MODULE: linux-il2cpp
+        IMAGE_VERSION: ${IMAGE_VERSION:-3}
+    image: unity-ci-linux-il2cpp:${UNITY_VERSION:-6000.3.8f1}
+    container_name: unity-ci-linux-il2cpp
+    restart: unless-stopped
+
+    environment:
+      # Required - Repository
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+
+      # GitHub App authentication
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_INSTALLATION_ID=${GITHUB_APP_INSTALLATION_ID}
+
+      # Private key (choose one method)
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY:-}
+      - GITHUB_APP_PRIVATE_KEY_BASE64=${GITHUB_APP_PRIVATE_KEY_BASE64:-}
+
+      # Runner configuration
+      - RUNNER_NAME=unity-ci-linux-il2cpp
+      - RUNNER_LABELS=self-hosted,linux,unity,docker,linux-il2cpp
+
+      # Unity Accelerator 接続設定
+      - UNITY_ACCELERATOR_ENDPOINT=unity-accelerator:10080
+
+    volumes:
+      # Unity license file
+      - ${UNITY_LICENSE_PATH:-/var/lib/unity-license}:/unity-license:ro
+
+      # Project Library cache (runner 別に分離: Win64/Linux64 で Library 内容が異なるため)
+      - unity-library-cache-linux-il2cpp:/home/runner/.unity-library-cache
+
+      # Unity global cache
+      - unity-global-cache-linux-il2cpp:/home/runner/.local/share/unity3d
+
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 12G
+        reservations:
+          cpus: '2'
+          memory: 8G
+
+    security_opt:
+      - no-new-privileges:false
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+    networks:
+      - unity-ci-network
+
 # Accelerator と同じネットワークを使用（外部定義）
 networks:
   unity-ci-network:
@@ -97,7 +166,13 @@ networks:
 
 # Named Volumes（WSL2内に保存、docker compose down -v で削除）
 volumes:
+  # unity-ci-windows-mono 用（既存名維持）
   unity-library-cache:
     name: unity-library-cache
   unity-global-cache:
     name: unity-global-cache
+  # unity-ci-linux-il2cpp 用（新規）
+  unity-library-cache-linux-il2cpp:
+    name: unity-library-cache-linux-il2cpp
+  unity-global-cache-linux-il2cpp:
+    name: unity-global-cache-linux-il2cpp
