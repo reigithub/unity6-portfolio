@@ -63,6 +63,12 @@ namespace Game.MVP.Survivor.Item
 
         // Properties
         public int ItemId => _itemId;
+
+        /// <summary>ネットワーク同期用の個体 ID（Spawner が採番して SetNetworkId で設定）</summary>
+        public int NetworkId { get; private set; } = -1;
+
+        public void SetNetworkId(int networkId) => NetworkId = networkId;
+
         public SurvivorItemType ItemType => _itemType;
         public int EffectValue => _effectValue;
         public int EffectRange => _effectRange;

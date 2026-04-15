@@ -85,6 +85,10 @@ namespace Game.MVP.Survivor.Enemy
         private const float EnemySyncInterval = 0.1f; // 10Hz
         private float _enemySyncTimer;
         private int _nextNetworkId;
+
+        // 診断: 5 秒毎にサイズサマリー
+        private const float DiagSummaryInterval = 5f;
+        private float _diagLastSummaryTime;
         private readonly Dictionary<SurvivorEnemyController, int> _enemyNetworkIds = new();
         private readonly Dictionary<int, SurvivorEnemyController> _enemyByNetworkId = new();
         private readonly HashSet<int> _spawnedNetworkIds = new(); // クライアントに Spawn 済みの NetworkId
@@ -298,6 +302,15 @@ namespace Game.MVP.Survivor.Enemy
             if (_spawnTimer <= 0f && _remainingSpawnCount > 0)
             {
                 SpawnNextEnemy();
+            }
+
+            var now = Time.unscaledTime;
+            if (now - _diagLastSummaryTime >= DiagSummaryInterval)
+            {
+                _diagLastSummaryTime = now;
+                int poolsIdle = 0;
+                foreach (var kv in _pools) poolsIdle += kv.Value.Count;
+                Debug.Log($"[SurvivorEnemySpawner DIAG] active={_activeEnemies.Count}, poolsIdle={poolsIdle}, pendingDeaths={_pendingDeaths.Count}, enemyTypes={_pools.Count}");
             }
         }
 

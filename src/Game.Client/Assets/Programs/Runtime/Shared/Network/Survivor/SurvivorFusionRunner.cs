@@ -41,6 +41,34 @@ namespace Game.Shared.Network.Survivor
             DontDestroyOnLoad(gameObject);
         }
 
+        // 診断: 5 秒間の FPS / 最大フレーム時間 / OnInput 呼出回数を集計
+        private const float DiagSummaryInterval = 5f;
+        private int _diagFrameCount;
+        private int _diagOnInputCount;
+        private float _diagMaxFrameTime;
+        private float _diagLastSummaryTime;
+
+        private void Update()
+        {
+            if (Runner == null || !Runner.IsRunning) return;
+
+            _diagFrameCount++;
+            var dt = Time.unscaledDeltaTime;
+            if (dt > _diagMaxFrameTime) _diagMaxFrameTime = dt;
+
+            var now = Time.unscaledTime;
+            var elapsed = now - _diagLastSummaryTime;
+            if (elapsed >= DiagSummaryInterval)
+            {
+                var fps = _diagFrameCount / elapsed;
+                Debug.Log($"[FusionRunner DIAG] FPS={fps:F1}, MaxFrameTime={_diagMaxFrameTime * 1000f:F2}ms, OnInputCalls={_diagOnInputCount} (window={elapsed:F1}s, mode={Runner.GameMode})");
+                _diagFrameCount = 0;
+                _diagOnInputCount = 0;
+                _diagMaxFrameTime = 0f;
+                _diagLastSummaryTime = now;
+            }
+        }
+
         /// <summary>
         /// Fusion セッションを開始する。
         /// FusionConnectionConfig に必要なパラメータをすべてまとめて受け取る。
@@ -112,6 +140,7 @@ namespace Game.Shared.Network.Survivor
 
         public void OnInput(NetworkRunner runner, NetworkInput input)
         {
+            _diagOnInputCount++;
             if (InputProvider != null)
             {
                 input.Set(InputProvider());

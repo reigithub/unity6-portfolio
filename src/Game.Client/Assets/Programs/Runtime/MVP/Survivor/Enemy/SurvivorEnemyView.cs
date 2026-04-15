@@ -231,12 +231,23 @@ namespace Game.MVP.Survivor.Enemy
             }
         }
 
+        // 診断: 5 秒毎にプロキシ数サマリー
+        private const float DiagSummaryInterval = 5f;
+        private float _diagLastSummaryTime;
+
         private void Update()
         {
             using var updateScope = s_updateMarker.Auto();
 
             float dt = Time.deltaTime;
             int frameCount = Time.frameCount;
+
+            var diagNow = Time.unscaledTime;
+            if (diagNow - _diagLastSummaryTime >= DiagSummaryInterval)
+            {
+                _diagLastSummaryTime = diagNow;
+                Debug.Log($"[SurvivorEnemyView DIAG] proxies={_proxies.Count}");
+            }
 
             // カメラがあれば視錐台平面をキャッシュ（1回/フレーム）
             Vector3 cameraPos = Vector3.zero;

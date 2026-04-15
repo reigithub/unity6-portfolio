@@ -274,6 +274,12 @@ namespace Game.Shared.Network.Survivor
 
             if (GetInput(out SurvivorPlayerNetworkInput input))
             {
+                // 診断: サーバー側で連続欠損から復帰した場合ログ
+                if (HasStateAuthority && _ticksSinceLastInput >= 5)
+                {
+                    Debug.Log($"[FusionPlayer DIAG-SRV] Input restored after {_ticksSinceLastInput} missing ticks (tick={Runner.Tick})");
+                }
+
                 _inputReceived = true;
                 _ticksSinceLastInput = 0;
 
@@ -305,6 +311,12 @@ namespace Game.Shared.Network.Survivor
             else
             {
                 _ticksSinceLastInput++;
+
+                // 診断: サーバー側で連続 5 tick 超の入力欠損を検知した最初の tick でログ
+                if (HasStateAuthority && _ticksSinceLastInput == 5)
+                {
+                    Debug.LogWarning($"[FusionPlayer DIAG-SRV] Input missing: 5+ consecutive ticks begin (tick={Runner.Tick})");
+                }
 
                 // 1-2tickの一時的な入力途絶では KCC の既存入力を維持し、クライアント予測との乖離を防ぐ
                 var isBeforeFirstInput = !_inputReceived;
@@ -477,11 +489,11 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientItemCollected(int itemId)
+        public void RpcClientItemCollected(int networkId)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientItemCollected(itemId);
+                gs.OnClientItemCollected(networkId);
             }
         }
 

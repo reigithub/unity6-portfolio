@@ -370,32 +370,32 @@ namespace Game.Shared.Network.Survivor
         //  アイテム同期（RPC 経由で全クライアントに配信）
         // =====================================================================
 
-        /// <summary>サーバー側: アイテムスポーンを全クライアントに通知</summary>
-        public void NotifyItemSpawned(int itemId, float posX, float posY, float posZ)
+        /// <summary>サーバー側: アイテムスポーンを全クライアントに通知（networkId で個体識別）</summary>
+        public void NotifyItemSpawned(int networkId, int itemId, float posX, float posY, float posZ)
         {
             if (!HasStateAuthority) return;
-            RpcNotifyItemSpawned(itemId, posX, posY, posZ);
+            RpcNotifyItemSpawned(networkId, itemId, posX, posY, posZ);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyItemSpawned(int itemId, float posX, float posY, float posZ)
+        public void RpcNotifyItemSpawned(int networkId, int itemId, float posX, float posY, float posZ)
         {
-            Debug.Log($"[SurvivorFusionGameState] RpcItemSpawned: id={itemId}");
-            _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(itemId, posX, posY, posZ));
+            Debug.Log($"[SurvivorFusionGameState] RpcItemSpawned: nid={networkId}, id={itemId}");
+            _itemSpawnedPub?.Publish(new SurvivorSignals.Item.Spawned(networkId, itemId, posX, posY, posZ));
         }
 
-        /// <summary>サーバー側: アイテムデスポーンを全クライアントに通知</summary>
-        public void NotifyItemDespawned(int itemId)
+        /// <summary>サーバー側: アイテムデスポーンを全クライアントに通知（networkId で個体識別）</summary>
+        public void NotifyItemDespawned(int networkId)
         {
             if (!HasStateAuthority) return;
-            RpcNotifyItemDespawned(itemId);
+            RpcNotifyItemDespawned(networkId);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyItemDespawned(int itemId)
+        public void RpcNotifyItemDespawned(int networkId)
         {
-            Debug.Log($"[SurvivorFusionGameState] RpcItemDespawned: id={itemId}");
-            _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(itemId));
+            Debug.Log($"[SurvivorFusionGameState] RpcItemDespawned: nid={networkId}");
+            _itemDespawnedPub?.Publish(new SurvivorSignals.Item.Despawned(networkId));
         }
 
         // =====================================================================
@@ -500,10 +500,10 @@ namespace Game.Shared.Network.Survivor
             _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(enemyNetworkId, weaponId));
         }
 
-        /// <summary>サーバー側: クライアントからのアイテム収集報告</summary>
-        public void OnClientItemCollected(int itemId)
+        /// <summary>サーバー側: クライアントからのアイテム収集報告（networkId で個体識別）</summary>
+        public void OnClientItemCollected(int networkId)
         {
-            _itemCollectReportedPub?.Publish(new SurvivorSignals.Item.CollectReported(itemId));
+            _itemCollectReportedPub?.Publish(new SurvivorSignals.Item.CollectReported(networkId));
         }
 
         // =====================================================================

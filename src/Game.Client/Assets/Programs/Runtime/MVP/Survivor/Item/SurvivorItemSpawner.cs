@@ -43,6 +43,10 @@ namespace Game.MVP.Survivor.Item
         // ドロップグループキャッシュ (GroupId -> List<SurvivorItemDropMaster>)
         private readonly Dictionary<int, List<SurvivorItemDropMaster>> _dropGroupCache = new();
 
+        // ネットワーク個体 ID 管理（サーバー側）
+        private int _nextNetworkId;
+        private readonly Dictionary<int, SurvivorItem> _itemsByNetworkId = new();
+
         // ポーズ参照
         private SurvivorFusionGameState _gameState;
 
@@ -67,6 +71,14 @@ namespace Game.MVP.Survivor.Item
         {
             master = GetOrAddItemMaster(itemId);
             return master != null;
+        }
+
+        /// <summary>
+        /// ネットワーク個体 ID から実体を取得（サーバー側アイテム収集処理用）
+        /// </summary>
+        public bool TryGetItemByNetworkId(int networkId, out SurvivorItem item)
+        {
+            return _itemsByNetworkId.TryGetValue(networkId, out item);
         }
 
         /// <summary>
@@ -221,11 +233,15 @@ namespace Game.MVP.Survivor.Item
                 item.SetPosition(position);
                 item.gameObject.SetActive(true);
 
+                int networkId = _nextNetworkId++;
+                item.SetNetworkId(networkId);
+                _itemsByNetworkId[networkId] = item;
+
                 _activeItems[itemId].Add(item);
 
-                // サーバー: クライアントにアイテムスポーンを通知
+                // サーバー: クライアントにアイテムスポーンを通知（networkId で個体識別）
                 if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-                    gs.NotifyItemSpawned(itemId, position.x, position.y, position.z);
+                    gs.NotifyItemSpawned(networkId, itemId, position.x, position.y, position.z);
             }
         }
 
@@ -371,10 +387,11 @@ namespace Game.MVP.Survivor.Item
         {
             _onItemCollected.OnNext(item);
 
-            // サーバー: クライアントにアイテム回収を通知
+            // サーバー: クライアントにアイテム回収を通知（networkId で個体識別）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-                gs.NotifyItemDespawned(item.ItemId);
+                gs.NotifyItemDespawned(item.NetworkId);
 
+            _itemsByNetworkId.Remove(item.NetworkId);
             ReturnToPool(item);
         }
 
@@ -395,6 +412,8 @@ namespace Game.MVP.Survivor.Item
                 }
                 kvp.Value.Clear();
             }
+            _itemsByNetworkId.Clear();
+            _nextNetworkId = 0;
         }
 
         private void OnDestroy()
@@ -429,6 +448,7 @@ namespace Game.MVP.Survivor.Item
                 }
             }
             _activeItems.Clear();
+            _itemsByNetworkId.Clear();
 
             // ロードしたプレハブをリリース
             foreach (var prefab in _prefabCache.Values)
