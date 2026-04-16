@@ -69,11 +69,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnStageSelected(int stageId)
         {
-            if (!_saveService.IsStageUnlocked(stageId))
-            {
-                // ロック中のステージは選択不可
-                return;
-            }
+            // TODO(アンロック機構の再設計): アンロック状態はサーバー (PostgreSQL) で管理すべきだが、
+            // 現状ローカルセーブデータが源泉になっており不正操作で状態が壊れる構造的不具合がある。
+            // StageSelectSceneViewModel.IsUnlocked=true と同じ理由で遷移ガードも一時無効化する。
 
             SceneComponent.SetInteractables(false);
 
