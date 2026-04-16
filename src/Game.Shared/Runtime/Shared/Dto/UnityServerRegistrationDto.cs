@@ -38,6 +38,6 @@ namespace Game.Library.Shared.Dto
         /// 非 GCE 環境や環境変数未設定時は null。
         /// </summary>
         [Key(4)]
-        public string InternalAddress { get; set; }
+        public string? InternalAddress { get; set; }
     }
 }
