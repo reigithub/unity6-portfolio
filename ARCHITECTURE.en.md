@@ -318,16 +318,9 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 │  Game.MVC.Core    │         │   │ Game.MVP.Survivor │
 │  (MessagePipe)    │         │   │   (Game Impl)     │
 └─────────┬─────────┘         │   └─────────┬─────────┘
-          │                   │             ▲│
-          │                   │   depends on││
-          │                   │   ┌─────────┘│
-          │                   │   │          │
-          │                   │ ┌─┴────────────────────┐
-          │                   │ │Game.MVP.Survivor.ECS │
-          │                   │ │  (DOTS: Burst/Jobs)  │
-          │                   │ └──────────┬───────────┘
-          │                   │            │
-          └─────────┬─────────┴────────────┘
+          │                   │             │
+          │                   │             │
+          └─────────┬─────────┴─────────────┘
                     │
                     ▼
           ┌─────────────────────┐
@@ -354,7 +347,6 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 | **Game.MVC.ScoreTimeAttack** | Score attack game implementation | Game.MVC.Core, Game.Client.MasterData, UnityChan, InputSystem, Cinemachine |
 | **Game.MVP.Core** | MVP pattern foundation | Game.Shared, VContainer, MessagePipe.VContainer |
 | **Game.MVP.Survivor** | Survivor game implementation | Game.MVP.Core, VContainer, AI.Navigation, Cinemachine |
-| **Game.MVP.Survivor.ECS** | ECS enemy system (DOTS parallel processing) | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
 | **Game.App** | Application startup control | Game.Shared, Game.MVC.Core, Game.MVC.ScoreTimeAttack, Game.MVP.Core |
 
 #### Test Assemblies
@@ -364,7 +356,6 @@ A shared foundation library used by both the REST API server (Game.Server) and r
 | **Game.Tests.Shared** | Shared layer unit tests (incl. Network) | 400 |
 | **Game.Tests.MVC** | MVC layer unit tests | 160 |
 | **Game.Tests.MVP** | MVP layer unit tests | 182 |
-| **Game.Tests.MVP.ECS** | ECS system performance tests | 4 |
 | **Game.Tests.PlayMode** | Integration and PlayMode tests | 63 |
 
 **Total Test Count**: 809 tests (EditMode 746 + PlayMode 63)
@@ -2173,7 +2164,7 @@ Unity6Portfolio/
 
 | Category | Test Count | Content |
 |----------|-----------|---------|
-| EditMode | 746 | Unit tests (Service, Model, Extension, ECS, Network) |
+| EditMode | 746 | Unit tests (Service, Model, Extension, Network) |
 | PlayMode | 63 | Integration tests (Scene, Input, UI) |
 | **Client Total** | **809** | |
 | Game.Server.Tests | 222 | Controller, Service, Validation, Integration tests |
@@ -2230,17 +2221,6 @@ Unity6Portfolio/
 | **Rationale** | VContainer integration, type safety, filtering capabilities |
 | **Impact** | High-frequency events (collisions, etc.) have been changed to direct calls |
 | **Status** | Adopted and improvement completed |
-
-#### ADR-005: ECS Enemy System (Hybrid DOTS)
-
-| Item | Details |
-|------|---------|
-| **Decision** | Parallelize enemy spawn, movement, AI, and damage processing with ECS + Jobs + Burst |
-| **Context** | Needed to demonstrate Unity 6 generation DOTS expertise and adaptability to large-scale titles |
-| **Alternatives** | A) Full ECS conversion B) Hybrid ECS (logic in ECS + rendering in GameObject) C) MonoBehaviour only |
-| **Rationale** | Animator and VFX depend on GameObjects. Hybrid approach is the industry-standard practical method |
-| **Impact** | Up to 20.3x speedup in spawn position calculation. A/B comparison via Inspector toggle |
-| **Status** | Adopted |
 
 #### ADR-006: MagicOnion Selection (Realtime Communication)
 
@@ -2326,7 +2306,7 @@ Unity6Portfolio/
 | **Decision** | Introduce distance-based 3-tier LOD with frame-offset reclassification distribution |
 | **Context** | Rendering load reduction needed for 512 simultaneous entities. Updating all enemies every frame is inefficient |
 | **Alternatives** | A) Unity LOD Group B) Custom LOD C) GPU Culling |
-| **Rationale** | Custom implementation optimal for ECS hybrid architecture. Staged quality control via CharacterUnlit shader |
+| **Rationale** | Custom implementation enables staged quality control. Combined with CharacterUnlit shader for lightweight LOD Far pass |
 | **Impact** | Near(every frame)/Mid(every 2f)/Far(every 5f) update frequency control. Frame distribution prevents spikes |
 | **Status** | Adopted |
 
@@ -2364,7 +2344,6 @@ Unity6Portfolio/
 - CI/CD: Unity Accelerator cache, asset cache optimization (2026/02)
 - Ranking system: Valkey cache, Cloud Run production deployment (2026/02)
 - Addressables sync: Editor auto-sync system for team development (2026/02)
-- ECS enemy system: DOTS (Entities + Jobs + Burst) hybrid implementation, up to 20.3x speedup in spawn calculation (2026/02)
 - Multiplayer: Lobby and matchmaking via MagicOnion gRPC, SignalR chat, MPPM support (2026/02)
 - Server authority model: Photon Fusion 2 Server/Client mode, Fusion FSM state sync, enemy batch sync integration (2026/03)
 - View/Presenter separation: Dead Reckoning struct extraction, item collection logic Controller integration (2026/03)

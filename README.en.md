@@ -7,8 +7,6 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 * **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
 * **Photon Fusion 2 server authority model + Dedicated Server operations** — Dead Reckoning interpolation, enemy batch sync (NetworkArray<512>), Linux headless build with self-registration + HMAC auth + Docker deployment
 * **Self-built LiveOps delivery pipeline** — GitHub Actions self-hosted runners + Unity Accelerator + Cloudflare R2 CDN, Addressables with 4-environment switching, index.json differential sync, editor auto-sync
-* **ECS + Burst parallelization** — up to 20.3x speedup for enemy spawn calculations (5,000 entities), 23 ProfilerMarkers for instrumentation
-* **Rendering optimization targeting mobile device quality** — custom URP/HLSL shaders (ToonLit / Dissolve / Hit Flash / Outline), distance-based 3-tier LOD, dual URP profiles, Canvas separation
 * **Protobuf schema-driven master data** — custom CLI tool (6 subcommands), deploy-target-filtered binary generation from a single schema for Client/Server/Realtime
 * **8-assembly modular design** — MVC/MVP coexistence with structurally enforced circular reference prevention
 * **1,148 automated tests** (EditMode 746 + PlayMode 63 + Server 339 with Testcontainers) across 7 CI/CD workflows
@@ -181,7 +179,6 @@ dotnet test
 * **Save Data**: MemoryPack binary serialization, auto-save (30s intervals, background transition)
 
 ### Performance Optimization
-* **ECS Enemy System**: Hybrid ECS with Unity DOTS (Entities + Jobs + Burst), Inspector toggle for MonoBehaviour A/B comparison
 * **Enemy LOD System**: Distance-based 3-tier LOD (Near 20m/Mid 40m/Far), frame-distributed reclassification for spike prevention
 * **Custom Shaders (URP/HLSL)**: ToonLit (Ramp Diffuse + Rim Light + Outline Pass), CharacterLit/Unlit (Hit Flash + Dissolve), LOD Far lightweight unlit. All shaders GPU Instancing enabled
 * **Rendering**: URP with PC high-quality (SSAO, 2048 shadow map) / Mobile lightweight (RenderScale 0.8, no SSAO) dual profiles
@@ -707,7 +704,7 @@ Automated pipeline with GitHub Actions + Docker:
 
 | Category | Test Count | Content |
 |----------|------------|---------|
-| Client EditMode | 746 | Unit tests (Service, Model, Extension, ECS) |
+| Client EditMode | 746 | Unit tests (Service, Model, Extension) |
 | Client PlayMode | 63 | Integration tests (Scene, Input, UI) |
 | Server Tests (Game.Server) | 222 | Controller, Service, Validation, Integration tests |
 | Realtime Server Tests (Game.Realtime) | 117 | Hub, Service, Filter, Validation tests |
@@ -839,12 +836,11 @@ Unity6Portfolio/
 |--------|----------|--------|
 | Scene Transition | Task → UniTask migration | 40% CPU reduction, zero allocation |
 | State Machine | HashSet → Dictionary, LINQ elimination, inlining | 2.05x transition speed, 2.14x memory |
-| Enemy Spawn Calc | ECS + Jobs + Burst parallelization | 20.3x speedup at 5,000 entities |
 | Enemy Rendering | Distance-based 3-tier LOD + frame-distributed reclassification | Stable framerate with 512 simultaneous entities |
 | Projectile/Area | WeaponObjectPool&lt;T&gt; generic pool | GC spike elimination |
 | UI Canvas | Dynamic/static Canvas separation, CanvasGroup.alpha control | Unnecessary Canvas rebuild avoidance |
 
-**Instrumentation:** 23 custom ProfilerMarkers across Enemy, Weapon, Pool, ECS, and VFX systems for Unity Profiler Timeline visualization
+**Instrumentation:** 23 custom ProfilerMarkers across Enemy, Weapon, Pool, and VFX systems for Unity Profiler Timeline visualization
 
 <details><summary>Scene Transition</summary>
 
@@ -883,26 +879,6 @@ Unity6Portfolio/
 
 </details>
 
-<details><summary>ECS Enemy Spawn Position Calculation (Sequential vs Burst Parallel Job)</summary>
-
-* Parallelized batch spawn position calculation with ECS + Jobs + Burst
-  - Burst parallel Job effect becomes more significant as enemy count increases
-  - Achieved up to 20.3x speedup at 5,000 entities
-
-  | Enemy Count | MonoBehaviour (Sequential) | ECS+Burst (Parallel) | Speedup |
-  |:-----|--------------------:|------------------:|---------:|
-  | 100 | 7.37ms | 6.73ms | 1.10x |
-  | 500 | 37.55ms | 17.61ms | 2.13x |
-  | 1,000 | 75.48ms | 13.81ms | 5.47x |
-  | 2,000 | 156.18ms | 14.06ms | 11.11x |
-  | 5,000 | 376.47ms | 18.53ms | 20.31x |
-
-* Measurement Conditions
-  - Iterations: 1,000 frames (excluding 100 warm-up frames)
-  - Burst parallel Job uses IJobParallelFor for multi-threaded execution
-  - MonoBehaviour side uses sequential loop with single-threaded calculation
-
-</details>
 
 ---
 
@@ -921,8 +897,6 @@ Unity6Portfolio/
 | cysharp/MemoryPack | 1.21.3 | Save data serialization |
 | hadashiA/VContainer | 1.17.0 | DI container (MVP) |
 | MagicOnion.Client | 7.0.9 | gRPC StreamingHub client |
-| Unity.Entities (DOTS)| 1.4.4 | ECS enemy system |
-| Unity.Burst | 1.8.27 | Burst compiler |
 | Photon Fusion 2 | 2.0 | Real-time networking (Server/Client) |
 | Fusion.Addons.KCC | - | Kinematic Character Controller |
 | Fusion.Addons.FSM | - | Network-synced state machine |

@@ -315,16 +315,9 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 │  Game.MVC.Core    │         │   │ Game.MVP.Survivor │
 │  (MessagePipe)    │         │   │    (ゲーム実装)    │
 └─────────┬─────────┘         │   └─────────┬─────────┘
-          │                   │             ▲│
-          │                   │        依存 ││
-          │                   │   ┌─────────┘│
-          │                   │   │          │
-          │                   │ ┌─┴────────────────────┐
-          │                   │ │Game.MVP.Survivor.ECS │
-          │                   │ │  (DOTS: Burst/Jobs)  │
-          │                   │ └──────────┬───────────┘
-          │                   │            │
-          └─────────┬─────────┴────────────┘
+          │                   │             │
+          │                   │             │
+          └─────────┬─────────┴─────────────┘
                     │
                     ▼
           ┌─────────────────────┐
@@ -351,7 +344,6 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 | **Game.MVC.ScoreTimeAttack** | スコアアタックゲーム実装 | Game.MVC.Core, Game.Client.MasterData, UnityChan, InputSystem, Cinemachine |
 | **Game.MVP.Core** | MVPパターン基盤 | Game.Shared, VContainer, MessagePipe.VContainer |
 | **Game.MVP.Survivor** | サバイバーゲーム実装 | Game.MVP.Core, VContainer, AI.Navigation, Cinemachine |
-| **Game.MVP.Survivor.ECS** | ECS敵システム（DOTS並列処理） | Game.MVP.Survivor, Unity.Entities, Unity.Burst, Unity.Collections |
 | **Game.App** | アプリケーション起動制御 | Game.Shared, Game.MVC.Core, Game.MVC.ScoreTimeAttack, Game.MVP.Core |
 
 #### テストアセンブリ
@@ -361,7 +353,6 @@ REST APIサーバー（Game.Server）とリアルタイムサーバー（Game.Re
 | **Game.Tests.Shared** | Shared層ユニットテスト（Network含む） | 400 |
 | **Game.Tests.MVC** | MVC層ユニットテスト | 160 |
 | **Game.Tests.MVP** | MVP層ユニットテスト | 182 |
-| **Game.Tests.MVP.ECS** | ECSシステム性能テスト | 4 |
 | **Game.Tests.PlayMode** | 統合・PlayModeテスト | 63 |
 
 **合計テスト数**: 809テスト（EditMode 746 + PlayMode 63）
@@ -2236,7 +2227,7 @@ Unity6Portfolio/
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| EditMode | 746 | ユニットテスト（Service, Model, Extension, ECS, Network） |
+| EditMode | 746 | ユニットテスト（Service, Model, Extension, Network） |
 | PlayMode | 63 | 統合テスト（Scene, Input, UI） |
 | **クライアント合計** | **809** | |
 | Game.Server.Tests | 222 | Controller, Service, Validation, Integration テスト |
@@ -2293,17 +2284,6 @@ Unity6Portfolio/
 | **判断理由** | VContainer統合、型安全、フィルタリング機能 |
 | **影響** | 高頻度イベント（衝突等）は直接呼び出しに変更済み |
 | **状態** | 採用済み・改善完了 |
-
-#### ADR-005: ECS敵システム（ハイブリッドDOTS）
-
-| 項目 | 内容 |
-|-----|------|
-| **決定** | 敵スポーン・移動・AI・ダメージ処理をECS + Jobs + Burstで並列化実装 |
-| **背景** | Unity 6世代のDOTS技術力を証明し、大規模タイトルへの適応力を示す必要があった |
-| **選択肢** | A) 全面ECS化 B) ハイブリッドECS（ロジックECS + 描画GameObject） C) MonoBehaviourのみ |
-| **判断理由** | AnimatorやVFXはGameObject依存。ハイブリッド方式が業界標準の実践的アプローチ |
-| **影響** | スポーン位置計算で最大20.3倍の高速化。Inspector切り替えでA/B比較可能 |
-| **状態** | 採用済み |
 
 #### ADR-006: MagicOnion選定（リアルタイム通信）
 
@@ -2389,7 +2369,7 @@ Unity6Portfolio/
 | **決定** | 距離ベース3段階LOD＋フレームオフセットによる再分類分散を導入 |
 | **背景** | 512体同時管理での描画負荷軽減が必要。全エネミーを毎フレーム更新するのは非効率 |
 | **選択肢** | A) Unity LOD Group B) カスタムLOD C) GPU Culling |
-| **判断理由** | ECS ハイブリッド構成のためカスタム実装が最適。CharacterUnlit シェーダーとの組み合わせで段階的品質制御が可能 |
+| **判断理由** | カスタム実装で段階的品質制御が可能。CharacterUnlit シェーダーとの組み合わせで LOD Far 用の軽量パスを実現 |
 | **影響** | Near(毎フレーム)/Mid(2f毎)/Far(5f毎) の更新頻度制御。フレーム分散でスパイク防止 |
 | **状態** | 採用済み |
 
@@ -2428,7 +2408,6 @@ Unity6Portfolio/
 - CI/CD: Unity Acceleratorキャッシュ、アセットキャッシュ最適化（2026/02）
 - ランキングシステム: Valkeyキャッシュ、Cloud Run本番デプロイ（2026/02）
 - Addressables同期: チーム開発向けエディタ自動同期システム（2026/02）
-- ECS敵システム: DOTS（Entities + Jobs + Burst）ハイブリッド実装、スポーン計算最大20.3倍高速化（2026/02）
 - マルチプレイ: MagicOnion gRPCによるロビー・マッチメイキング、SignalRチャット、MPPM対応（2026/02）
 - サーバー権威モデル: Photon Fusion 2 Server/Client モード、Fusion FSM ステート同期、敵バッチ同期統合（2026/03）
 - View/Presenter 責務分離: Dead Reckoning 構造体分離、アイテム収集判定の Controller 統合（2026/03）
