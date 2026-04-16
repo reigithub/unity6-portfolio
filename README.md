@@ -7,8 +7,6 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 * **Unity × サーバー × インフラをモノレポで一括実装** — Unity 6 クライアント / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
 * **Photon Fusion 2 サーバー権威モデル + Dedicated Server運用** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Linuxヘッドレスビルド自己登録＋HMAC認証＋Docker化
 * **LiveOps配信基盤の自力構築** — GitHub Actions セルフホストランナー + Unity Accelerator + Cloudflare R2 CDN、Addressables 4環境切替・index.json差分同期・エディタ自動同期
-* **ECS + Burst並列化**で敵スポーン計算を最大20.3倍高速化（5,000体）、23箇所のProfilerMarkerによる計測基盤
-* **モバイル実機品質を意識したレンダリング最適化** — カスタムURP/HLSLシェーダー（ToonLit / Dissolve / Hit Flash / Outline）、距離ベース3段階LOD、URP 2プロファイル、Canvas分離
 * **Protobufスキーマ駆動のマスターデータ基盤** — CLIツール自作（6サブコマンド）、Client/Server/Realtime同一スキーマからデプロイターゲット別バイナリ生成
 * **8アセンブリ分割のモジュラー設計** — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
 * **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339・Testcontainers採用）、CI/CD 7ワークフロー
@@ -181,7 +179,6 @@ dotnet test
 * **セーブデータ**: MemoryPackバイナリシリアライズ、自動保存（30秒間隔・バックグラウンド移行時）
 
 ### パフォーマンス最適化
-* **ECS敵システム**: Unity DOTS（Entities + Jobs + Burst）によるハイブリッドECS、MonoBehaviour版とのInspector切り替え対応
 * **エネミーLODシステム**: 距離ベース3段階LOD（Near 20m/Mid 40m/Far）、フレーム分散再分類によるスパイク防止
 * **カスタムシェーダー（URP/HLSL）**: ToonLit（Ramp Diffuse + Rim Light + Outline Pass）、CharacterLit/Unlit（Hit Flash + Dissolve）、LOD Far用軽量Unlitシェーダー。全シェーダーGPUインスタンシング対応
 * **レンダリング**: URP PC高品質（SSAO、2048影マップ）/ Mobile軽量（RenderScale 0.8、SSAO無効）の2プロファイル
@@ -713,7 +710,7 @@ GitHub Actions + Docker による自動化パイプライン:
 
 | カテゴリ | テスト数 | 内容 |
 |---------|---------|------|
-| クライアント EditMode | 746 | ユニットテスト（Service, Model, Extension, ECS） |
+| クライアント EditMode | 746 | ユニットテスト（Service, Model, Extension） |
 | クライアント PlayMode | 63 | 統合テスト（Scene, Input, UI） |
 | サーバーテスト (Game.Server) | 222 | Controller, Service, Validation, Integration テスト |
 | リアルタイムサーバーテスト (Game.Realtime) | 117 | Hub, Service, Filter, Validation テスト |
@@ -846,12 +843,11 @@ Unity6Portfolio/
 |------|------|---------|
 | シーン遷移 | Task → UniTask 移行 | CPU実行時間 40%削減、ゼロアロケーション化 |
 | ステートマシン | HashSet → Dictionary、LINQ排除、インライン化 | 遷移速度 2.05x、メモリ 2.14x改善 |
-| 敵スポーン計算 | ECS + Jobs + Burst 並列化 | 5,000体で 20.3x 高速化 |
 | 敵描画 | 距離ベース3段階LOD + フレーム分散再分類 | 512体同時管理でフレームレート維持 |
 | 弾・エリア生成 | WeaponObjectPool&lt;T&gt; ジェネリックプール | GCスパイク排除 |
 | UI Canvas | 動的/静的Canvas分離、CanvasGroup.alpha制御 | 不要なCanvasリビルド回避 |
 
-**計測インフラ:** カスタムProfilerMarker 23箇所（Enemy, Weapon, Pool, ECS, VFX等）を埋め込み、Unity Profiler Timeline上でボトルネックを可視化
+**計測インフラ:** カスタムProfilerMarker 23箇所（Enemy, Weapon, Pool, VFX等）を埋め込み、Unity Profiler Timeline上でボトルネックを可視化
 
 <details><summary>シーン遷移機能</summary>
 
@@ -890,27 +886,6 @@ Unity6Portfolio/
 
 </details>
 
-<details><summary>ECS敵スポーン位置計算（Sequential vs Burst並列Job）</summary>
-
-* スポーン位置のバッチ計算をECS + Jobs + Burstで並列化
-  - 敵数が増加するほどBurst並列Jobの効果が顕著
-  - 5,000体で最大20.3倍の高速化を達成
-
-  | 敵数 | MonoBehaviour (逐次) | ECS+Burst (並列) | 高速化倍率 |
-  |:-----|--------------------:|------------------:|---------:|
-  | 100 | 7.37ms | 6.73ms | 1.10x |
-  | 500 | 37.55ms | 17.61ms | 2.13x |
-  | 1,000 | 75.48ms | 13.81ms | 5.47x |
-  | 2,000 | 156.18ms | 14.06ms | 11.11x |
-  | 5,000 | 376.47ms | 18.53ms | 20.31x |
-
-* 計測条件
-  - 反復回数: 1,000フレーム（ウォームアップ100フレーム除外）
-  - Burst並列JobはIJobParallelForによるマルチスレッド実行
-  - MonoBehaviour側は逐次ループによるシングルスレッド計算
-
-</details>
-
 ---
 
 ## 使用言語/ライブラリ/ツール
@@ -928,8 +903,6 @@ Unity6Portfolio/
 | cysharp/MemoryPack   | 1.21.3     | セーブデータシリアライズ          |
 | hadashiA/VContainer  | 1.17.0     | DIコンテナ (MVP)               |
 | MagicOnion.Client    | 7.0.9      | gRPC StreamingHub クライアント  |
-| Unity.Entities (DOTS)| 1.4.4      | ECS敵システム                  |
-| Unity.Burst          | 1.8.27     | Burst コンパイラ               |
 | Photon Fusion 2      | 2.0        | リアルタイムネットワーク（Server/Client） |
 | Fusion.Addons.KCC    | -          | Kinematic Character Controller  |
 | Fusion.Addons.FSM    | -          | ネットワーク同期ステートマシン     |
