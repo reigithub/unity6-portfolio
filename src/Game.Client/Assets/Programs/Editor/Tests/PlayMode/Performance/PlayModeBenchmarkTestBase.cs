@@ -16,8 +16,12 @@ namespace Game.Tests.PlayMode.Performance
         protected StringBuilder LogBuilder;
         protected string LogFilePath;
 
-        private int _originalTargetFrameRate;
-        private int _originalVSyncCount;
+        // 複数 Performance fixture 間の相互汚染を防ぐため、最外 fixture で 1 度だけ save / restore する。
+        // 個々 fixture ごとに save すると、他 fixture が既に変更後の値を読み取り、
+        // 最後の TearDown が -1 / 0 のまま放置され、PlayerMovementTests 等の後続テストが壊れる。
+        private static int s_fixtureNestLevel;
+        private static int s_savedTargetFrameRate;
+        private static int s_savedVSyncCount;
 
         protected bool IsBatchMode => Application.isBatchMode;
 
@@ -29,18 +33,28 @@ namespace Game.Tests.PlayMode.Performance
             LogFilePath = Path.Combine(logDir,
                 $"{GetType().Name}_{DateTime.Now:yyyyMMdd_HHmmss}.log");
 
-            // Warmup ノイズ排除: VSync / targetFrameRate を外す
-            _originalTargetFrameRate = Application.targetFrameRate;
-            _originalVSyncCount = QualitySettings.vSyncCount;
-            Application.targetFrameRate = -1;
-            QualitySettings.vSyncCount = 0;
+            // Warmup ノイズ排除: 最初の fixture でのみオリジナル値を保存し、-1 / 0 に設定
+            if (s_fixtureNestLevel == 0)
+            {
+                s_savedTargetFrameRate = Application.targetFrameRate;
+                s_savedVSyncCount = QualitySettings.vSyncCount;
+                Application.targetFrameRate = -1;
+                QualitySettings.vSyncCount = 0;
+            }
+            s_fixtureNestLevel++;
         }
 
         [OneTimeTearDown]
         public void BenchOneTimeTearDown()
         {
-            Application.targetFrameRate = _originalTargetFrameRate;
-            QualitySettings.vSyncCount = _originalVSyncCount;
+            s_fixtureNestLevel--;
+            // 最後の fixture でのみオリジナル値に戻す（後続 PlayMode テストへの残留回避）
+            if (s_fixtureNestLevel <= 0)
+            {
+                s_fixtureNestLevel = 0;
+                Application.targetFrameRate = s_savedTargetFrameRate;
+                QualitySettings.vSyncCount = s_savedVSyncCount;
+            }
         }
 
         [SetUp]
