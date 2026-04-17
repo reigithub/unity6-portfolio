@@ -78,6 +78,14 @@ namespace Game.MVP.Survivor.ECS
         private int _nextNetworkId;
         private readonly Dictionary<Entity, int> _entityNetworkIds = new();
 
+        // L1-4: 事前確保バッファで 10Hz 同期の alloc を排除。
+        // SurvivorFusionEnemyBatchSync.MaxEnemies (= 512) と一致させる。
+        private const int SyncBufferCapacity = 512;
+        private SurvivorNetworkEnemyStateSnapshot[] _syncSnapshotBuffer;
+        // CLAUDE.md 制約対応: Spawn/Death の個別 WriteEnemyStates 呼出を定期同期に統合するための pending queue
+        private readonly HashSet<int> _spawnedNetworkIds = new();
+        private readonly List<SurvivorNetworkEnemyStateSnapshot> _pendingDeaths = new();
+
         // Systems cache
         private PlayerPositionUpdateSystem _playerPositionSystem;
         private SpawnProcessSystem _spawnProcessSystem;
@@ -112,6 +120,12 @@ namespace Game.MVP.Survivor.ECS
         {
             _waveManager = waveManager;
             _spawnSeed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+
+            // L1-4: 同期スナップショットバッファを 1 度だけ確保
+            if (_syncSnapshotBuffer == null)
+            {
+                _syncSnapshotBuffer = new SurvivorNetworkEnemyStateSnapshot[SyncBufferCapacity];
+            }
 
             // ECS World生成
             _ecsWorld = EcsWorldBootstrap.CreateWorld();
@@ -243,8 +257,10 @@ namespace Game.MVP.Survivor.ECS
         }
 
         /// <summary>
-        /// 新規生成されたエンティティにネットワークIDを割り当て、Spawnスナップショットを送信する。
-        /// GOプロキシの有無に関わらずサーバーで常に実行される。
+        /// 新規生成されたエンティティにネットワークIDを割り当てる。
+        /// CLAUDE.md 制約により個別 WriteEnemyStates 呼出は行わず、Spawn 通知は
+        /// 次回の <see cref="SyncEnemyStatesToNetwork"/> で <see cref="_spawnedNetworkIds"/>
+        /// 未登録の active entity を Spawn 扱いで送信することで実現する。
         /// </summary>
         private void TrackNewEntitiesForNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
@@ -255,44 +271,25 @@ namespace Game.MVP.Survivor.ECS
             foreach (var entity in entities)
             {
                 if (_entityNetworkIds.ContainsKey(entity)) continue;
-
                 var networkId = ++_nextNetworkId;
                 _entityNetworkIds[entity] = networkId;
-
-                var data = entityManager.GetComponentData<EnemyData>(entity);
-                var lt = entityManager.GetComponentData<LocalTransform>(entity);
-
-                batchSync.WriteEnemyStates(new[]
-                {
-                    new SurvivorNetworkEnemyStateSnapshot
-                    {
-                        NetworkId = networkId,
-                        EnemyMasterId = data.EnemyId,
-                        PositionX = lt.Position.x,
-                        PositionY = lt.Position.y,
-                        PositionZ = lt.Position.z,
-                        VelocityX = 0f,
-                        VelocityY = 0f,
-                        VelocityZ = 0f,
-                        CurrentHp = data.CurrentHp,
-                        SyncType = EnemySyncType.Spawn
-                    }
-                });
             }
         }
 
         private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
             if (_ecsWorld == null || !_ecsWorld.IsCreated) return;
+            if (_syncSnapshotBuffer == null) return; // InitializeAsync 前防御
 
             var entityManager = _ecsWorld.EntityManager;
             var query = entityManager.CreateEntityQuery(typeof(EnemyData), typeof(LocalTransform), typeof(EnemyAliveTag));
             using var entities = query.ToEntityArray(Allocator.Temp);
 
-            if (entities.Length == 0) return;
+            if (entities.Length == 0 && _pendingDeaths.Count == 0) return;
 
-            var snapshots = new SurvivorNetworkEnemyStateSnapshot[entities.Length];
-            for (int i = 0; i < entities.Length; i++)
+            // L1-4: 事前確保バッファに直接書き込み（alloc 排除）
+            int activeFill = Mathf.Min(entities.Length, SyncBufferCapacity);
+            for (int i = 0; i < activeFill; i++)
             {
                 var entity = entities[i];
                 var data = entityManager.GetComponentData<EnemyData>(entity);
@@ -333,7 +330,19 @@ namespace Game.MVP.Survivor.ECS
                     }
                 }
 
-                snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
+                // CLAUDE.md 制約対応: 未送信 entity は Spawn 扱いで送信、以降 PositionUpdate
+                EnemySyncType syncType;
+                if (!_spawnedNetworkIds.Contains(netId))
+                {
+                    syncType = EnemySyncType.Spawn;
+                    _spawnedNetworkIds.Add(netId);
+                }
+                else
+                {
+                    syncType = EnemySyncType.PositionUpdate;
+                }
+
+                _syncSnapshotBuffer[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = netId,
                     EnemyMasterId = data.EnemyId,
@@ -344,10 +353,20 @@ namespace Game.MVP.Survivor.ECS
                     VelocityY = velocityY,
                     VelocityZ = velocityZ,
                     CurrentHp = data.CurrentHp,
-                    SyncType = EnemySyncType.PositionUpdate
+                    SyncType = syncType
                 };
             }
-            batchSync.WriteEnemyStates(snapshots);
+
+            // 保留中の Death を末尾に追加（バッファ余剰範囲のみ）
+            int deathFill = Mathf.Min(_pendingDeaths.Count, SyncBufferCapacity - activeFill);
+            for (int i = 0; i < deathFill; i++)
+            {
+                _syncSnapshotBuffer[activeFill + i] = _pendingDeaths[i];
+            }
+            _pendingDeaths.Clear();
+
+            int totalCount = activeFill + deathFill;
+            batchSync.WriteEnemyStates(_syncSnapshotBuffer, totalCount);
         }
 
         private void SpawnNextEnemy()
@@ -469,25 +488,22 @@ namespace Game.MVP.Survivor.ECS
             bool isBoss = deathInfo.EnemyType == 3;
             _waveManager?.OnEnemyKilled(isBoss);
 
-            // Deathスナップショット送信
-            if (_entityNetworkIds.TryGetValue(deathInfo.Entity, out var deadNetId)
-                && _runnerService.TryGet<SurvivorFusionEnemyBatchSync>(out var deathBatchSync))
+            // CLAUDE.md 制約対応: Death 通知は定期同期で統合する pending queue に追加
+            if (_entityNetworkIds.TryGetValue(deathInfo.Entity, out var deadNetId))
             {
-                deathBatchSync.WriteEnemyStates(new[]
+                _pendingDeaths.Add(new SurvivorNetworkEnemyStateSnapshot
                 {
-                    new SurvivorNetworkEnemyStateSnapshot
-                    {
-                        NetworkId = deadNetId,
-                        EnemyMasterId = deathInfo.EnemyType,
-                        PositionX = deathInfo.Position.x,
-                        PositionY = deathInfo.Position.y,
-                        PositionZ = deathInfo.Position.z,
-                        VelocityX = 0f,
-                        VelocityY = 0f,
-                        VelocityZ = 0f,
-                        SyncType = EnemySyncType.Death
-                    }
+                    NetworkId = deadNetId,
+                    EnemyMasterId = deathInfo.EnemyType,
+                    PositionX = deathInfo.Position.x,
+                    PositionY = deathInfo.Position.y,
+                    PositionZ = deathInfo.Position.z,
+                    VelocityX = 0f,
+                    VelocityY = 0f,
+                    VelocityZ = 0f,
+                    SyncType = EnemySyncType.Death
                 });
+                _spawnedNetworkIds.Remove(deadNetId);
                 _entityNetworkIds.Remove(deathInfo.Entity);
             }
 

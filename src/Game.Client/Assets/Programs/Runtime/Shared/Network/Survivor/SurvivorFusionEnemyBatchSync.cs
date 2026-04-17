@@ -47,12 +47,22 @@ namespace Game.Shared.Network.Survivor
             Destroy(gameObject);
         }
 
-        /// <summary>Server 側: スナップショット配列を NetworkArray に書き込む</summary>
-        public void WriteEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots)
+        /// <summary>
+        /// Server 側: スナップショット配列を NetworkArray に書き込む。
+        /// 呼び出し側が事前確保バッファを再利用する場合は <paramref name="count"/> に有効要素数を指定する。
+        /// -1 の場合は従来互換で snapshots.Length を使用する。
+        /// </summary>
+        public void WriteEnemyStates(SurvivorNetworkEnemyStateSnapshot[] snapshots, int count = -1)
         {
             if (!HasStateAuthority) return;
 
-            ActiveCount = Mathf.Min(snapshots.Length, MaxEnemies);
+            int effective = count < 0 ? snapshots.Length : count;
+            if (effective > snapshots.Length)
+            {
+                Debug.LogError($"[SurvivorFusionEnemyBatchSync] count={effective} exceeds snapshots.Length={snapshots.Length}; clamping");
+                effective = snapshots.Length;
+            }
+            ActiveCount = Mathf.Min(effective, MaxEnemies);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!_hasLoggedFirstWrite)
             {
