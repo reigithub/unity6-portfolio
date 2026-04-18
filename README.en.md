@@ -11,7 +11,7 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 * **8-assembly modular design** — MVC/MVP coexistence with structurally enforced circular reference prevention
 * **1,148 automated tests** (EditMode 746 + PlayMode 63 + Server 339 with Testcontainers) across 7 CI/CD workflows
 
-> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 14 ADRs)
+> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 15 ADRs)
 
 ---
 
@@ -77,7 +77,7 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
+   git clone https://github.com/reigithub/unity6-portfolio.git
    ```
 2. Open the `src/Game.Client/` folder in Unity Hub
 3. Package restoration may take a few minutes on first launch

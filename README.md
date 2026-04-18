@@ -11,7 +11,7 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 * **8アセンブリ分割のモジュラー設計** — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
 * **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339・Testcontainers採用）、CI/CD 7ワークフロー
 
-> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 14件）
+> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 15件）
 
 ---
 
@@ -77,7 +77,7 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 1. リポジトリをクローン
    ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
+   git clone https://github.com/reigithub/unity6-portfolio.git
    ```
 2. Unity Hub で `src/Game.Client/` フォルダを開く
 3. 初回起動時、パッケージの復元に数分かかる場合があります

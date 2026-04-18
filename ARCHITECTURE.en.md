@@ -2222,6 +2222,18 @@ Unity6Portfolio/
 | **Impact** | High-frequency events (collisions, etc.) have been changed to direct calls |
 | **Status** | Adopted and improvement completed |
 
+#### ADR-005: Deferring ECS (DOTS) Production Deployment
+
+| Item | Details |
+|------|---------|
+| **Decision** | The ECS (Entities + Burst Job) foundation for enemy AI / movement / steering is implemented but its production deployment is deferred to a future scaling milestone. The shipped game runs on the MonoBehaviour-based MVP implementation |
+| **Context** | ECS + Burst Job parallelization was prototyped as preparation for a future enemy-count scaling target (N=2000+). Meanwhile, current production stages run at tens to low-hundreds of enemies, and the existing C# + MonoBehaviour implementation stays within stable alloc / CPU budgets |
+| **Alternatives** | A) Full ECS migration (Entity-ize all enemies, retire MonoBehaviour) B) Keep MVP and apply thorough optimization patterns (Object Pool / NonAlloc physics / struct value types / hash caches, etc.) C) Hybrid: ship MVP in production while keeping ECS systems in place, bridged through `HybridSyncSystem` for a future switch-over |
+| **Rationale** | At the current scale, the MVP-side optimizations deliver sufficient headroom (measured GC Alloc < 50 KB/frame). Promoting ECS to production would incur significant additional cost in VContainer DI integration, Fusion server-authority bridging, and Editor debug/iterate workflow adaptation — a cost that **outweighs the performance upside at the current scale**. Option C retains the ECS layer as "prepared but inactive," preserving a switch-over path for future N scaling |
+| **Impact** | `EnemyMovementSystem` / `EnemySteeringSystem` / `EnemyAIStateSystem` / `EnemyDamageSystem` and 9 `IComponentData` structs (`EnemyData` / `EnemyAIState` / `ChaseTarget`, etc.) are implemented. `HybridSyncSystem` provides the bridge to MVP-side `SurvivorEnemyController`. DI registration is disabled, so the code is effectively dead-code for now |
+| **Reevaluation Trigger** | When a production stage exceeds ~1,000 concurrent enemies, or when Profiler measurements on the MVP implementation show sustained GC spikes / Main Thread saturation |
+| **Status** | Prepared but inactive (retained as a future-scaling option) |
+
 #### ADR-006: MagicOnion Selection (Realtime Communication)
 
 | Item | Details |
@@ -2317,7 +2329,7 @@ Unity6Portfolio/
 | **Decision** | Integrate RetryPolicy + CircuitBreakerPolicy + cache fallback into UnityApiClient |
 | **Context** | Fault tolerance needed for unstable mobile network connections. Maintain user experience during outages |
 | **Alternatives** | A) Simple UnityWebRequest retry B) Port Polly (.NET standard) C) Custom policy layer |
-| **Rationale** | Polly unavailable in Unity environment, so custom implementation. 3-layer separation of concerns: RetryPolicy (exponential backoff) + CircuitBreakerPolicy (Closed/Open/HalfOpen state transitions) + RequestOptions (builder pattern). Cache fallback with expired cache tolerance for offline resilience |
+| **Rationale** | Avoided the cost of adding a non-UPM NuGet dependency, integrating `Task`-based Polly with the UniTask-centric async stack, and validating IL2CPP AOT behavior. Built a thin, project-specific layer tightly integrated with UniTask / UnityWebRequest / diagnostic logging. RetryPolicy (exponential backoff) + CircuitBreakerPolicy (Closed/Open/HalfOpen 3-state transition) + RequestOptions (builder pattern) separate concerns across three layers. Circuit-open cache fallback (stale-if-error) ensures offline resilience |
 | **Impact** | All API calls share unified error handling. Presets (Default/Aggressive/Sensitive) minimize caller configuration burden |
 | **Status** | Adopted |
 
@@ -2332,7 +2344,6 @@ Unity6Portfolio/
 | ~~Network features~~ | ~~Server communication not implemented~~ | ~~High~~ | Ranking and auth completed |
 | ~~Multiplayer~~ | ~~Multiplayer not implemented~~ | ~~High~~ | Lobby and matchmaking completed |
 | ~~Server authority~~ | ~~Client-authoritative game logic~~ | ~~High~~ | Fusion FSM + [Networked] migration completed |
-| P3 feature additions | Localization, in-app purchase system, etc. | Low | Not started (optional) |
 
 **Resolved Items**:
 - MessageBroker: Changed to direct calls via IPlayerCollisionHandler
