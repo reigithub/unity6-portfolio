@@ -3,7 +3,7 @@
 # Usage: docker compose -f docker/game-server/docker-compose.yml build game-realtime-app
 
 # === Build Stage ===
-FROM mcr.microsoft.com/dotnet/sdk:9.0.311 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.313 AS build
 WORKDIR /src
 
 # Copy project files for restore cache
@@ -22,7 +22,7 @@ COPY src/Game.Realtime/ src/Game.Realtime/
 RUN dotnet publish src/Game.Realtime/Game.Realtime.csproj -c Release -o /app/publish
 
 # === Runtime Stage ===
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.13 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.15 AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
