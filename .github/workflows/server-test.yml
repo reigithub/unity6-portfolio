@@ -287,7 +287,7 @@ jobs:
       # - gh pr comment: sticky機能を自前実装する必要がありメンテナンスコスト増
       - name: Post coverage to PR
         if: github.event_name == 'pull_request' && always()
-        uses: marocchino/sticky-pull-request-comment@52423e01640425a022ef5fd42c6fb5f633a02728 # v2.9.1
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           header: coverage-report
           path: CoverageReport/SummaryGithub.md
