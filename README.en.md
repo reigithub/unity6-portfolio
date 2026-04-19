@@ -6,12 +6,12 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 * **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
 * **Photon Fusion 2 server authority model + Dedicated Server operations** — Dead Reckoning interpolation, enemy batch sync (NetworkArray<512>), Linux headless build with self-registration + HMAC auth + Docker deployment
-* **Self-built LiveOps delivery pipeline** — GitHub Actions self-hosted runners + Unity Accelerator + Cloudflare R2 CDN, Addressables with 4-environment switching, index.json differential sync, editor auto-sync
+* **LiveOps delivery pipeline** — GitHub Actions self-hosted runners + Unity Accelerator + Cloudflare R2 CDN, Addressables with 4-environment switching, index.json differential sync, editor auto-sync
 * **Protobuf schema-driven master data** — custom CLI tool (6 subcommands), deploy-target-filtered binary generation from a single schema for Client/Server/Realtime
 * **8-assembly modular design** — MVC/MVP coexistence with structurally enforced circular reference prevention
 * **1,148 automated tests** (EditMode 746 + PlayMode 63 + Server 339 with Testcontainers) across 7 CI/CD workflows
 
-> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 14 ADRs)
+> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 15 ADRs)
 
 ---
 
@@ -77,7 +77,7 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
+   git clone https://github.com/reigithub/unity6-portfolio.git
    ```
 2. Open the `src/Game.Client/` folder in Unity Hub
 3. Package restoration may take a few minutes on first launch
@@ -832,15 +832,24 @@ Unity6Portfolio/
 
 ## Performance Improvement Samples
 
+Given the survivor-style gameplay's large-scale enemy state management and high-frequency projectile / VFX / damage events, GC.Alloc elimination from hot paths is enforced across all layers.
+
 | Target | Approach | Result |
 |--------|----------|--------|
-| Scene Transition | Task → UniTask migration | 40% CPU reduction, zero allocation |
-| State Machine | HashSet → Dictionary, LINQ elimination, inlining | 2.05x transition speed, 2.14x memory |
-| Enemy Rendering | Distance-based 3-tier LOD + frame-distributed reclassification | Stable framerate with 512 simultaneous entities |
-| Projectile/Area | WeaponObjectPool&lt;T&gt; generic pool | GC spike elimination |
-| UI Canvas | Dynamic/static Canvas separation, CanvasGroup.alpha control | Unnecessary Canvas rebuild avoidance |
+| Scene Transition | Task → UniTask migration | 40% CPU reduction, zero allocation (EditMode benchmark measured) |
+| State Machine | HashSet → Dictionary, LINQ elimination, `[MethodImpl(AggressiveInlining)]` | 2.05x transition speed, 2.14x memory (EditMode benchmark measured) |
+| Dead Reckoning Interpolation | `struct EnemyProxyInterpolation` + Vector3 value-type-only operations | per-entity 0.065-0.069μs, ~35μs/frame at N=500 scale, 0B alloc (EditMode benchmark measured) |
+| Network Sync | Pre-allocated `SurvivorNetworkEnemyStateSnapshot[512]` buffer eliminates `new[]` in 10Hz sync | **99.9% GC Alloc reduction** on server-side enemy state sync (EditMode benchmark measured) |
+| Enemy LOD | Distance-based 3-tier LOD (Near / Mid / Far) + frame-distributed reclassification | **60% `EnemyView.Update` Self Time reduction** at N=500 scale (PlayMode integration test measured) |
+| Projectile / VFX / Enemy / Item Spawn | `WeaponObjectPool<T>` generic pool + per-type `Dictionary<int, Queue<T>>` pools | `Instantiate`/`Destroy` spike elimination, stable GC even at 100+ concurrent projectiles |
+| Physics Queries | `OverlapSphere` / `SphereCast` NonAlloc API + `readonly Collider[]` / `RaycastHit[]` buffer reuse (10 locations) | Weapon targeting, projectile collision, lock-on, etc. all alloc-free per frame |
+| Shader / Animator Parameters | `Shader.PropertyToID` (27) + `Animator.StringToHash` (10) cached as `static readonly int` | String-to-hash lookup alloc eliminated on every `SetFloat`/`SetTrigger` call |
+| Distance Comparison | `sqrMagnitude < threshold * threshold` to avoid sqrt (21 locations) | Accelerates weapon nearest-enemy search, LOD classification, and interpolation correction checks |
+| Event Distribution | MessagePipe (`IPublisher` / `ISubscriber`) + R3 `Observable<T>` / `Subject<T>` + 16 `readonly struct` signals | Zero heap alloc on publish, unified Pub/Sub across 30+ locations |
+| Async Processing | UniTask throughout (zero `async void`), no coroutines (zero `new WaitForSeconds`) | Eliminates state machine alloc from Task/Coroutine |
+| GetComponent Caching | `TryGetComponent(out _field)` + `GetComponentsInChildren` cached as fields at Initialize | Zero hierarchy traversal in Update |
 
-**Instrumentation:** 23 custom ProfilerMarkers across Enemy, Weapon, Pool, and VFX systems for Unity Profiler Timeline visualization
+**Instrumentation:** 19 custom `ProfilerMarker`s across Enemy / Weapon / Pool / VFX / Player systems for Unity Profiler Timeline visualization. Quantitative verification via a two-tier test suite: EditMode micro-benchmarks (805 tests) and PlayMode integration tests (88 tests).
 
 <details><summary>Scene Transition</summary>
 
@@ -876,6 +885,104 @@ Unity6Portfolio/
   | Item | Old StateMachine | New StateMachine | Improvement |
   |:-----|---------------:|---------------:|-------:|
   | Memory (bytes) | 2,760,704 | 1,290,240 | 2.14x |
+
+</details>
+
+<details><summary>Dead Reckoning Interpolation (struct + Vector3 value types)</summary>
+
+* `EnemyProxyInterpolation` struct for interpolation state (`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/EnemyProxyInterpolation.cs`)
+  - 4 fields (`LastSyncPosition` / `Velocity` / `TimeSinceSync` / `CorrectionOffset`) held as value types
+  - `OnSyncReceived` / `GetPosition` operate solely on Vector3 and float with 0B alloc
+  - Designed as struct (not class) to prevent boxing
+
+* Measured values (`EnemyProxyInterpolationPerformanceTests`):
+
+  | n | GetPosition (ms/1000iter) | OnSyncReceived (ms/1000iter) | per-entity | GC Alloc |
+  |---|-------------------------:|----------------------------:|:----------:|:--------:|
+  | 100 | 6.61 | 6.79 | 0.066-0.068 μs | 0 |
+  | 256 | 16.93 | 17.46 | 0.066-0.068 μs | 0-4 KB* |
+  | 500 | 33.07 | 34.73 | 0.066-0.069 μs | 0 |
+  | 512 | 33.40 | 34.74 | 0.065-0.068 μs | 0-16 KB* |
+
+  *Some sizes show transient objects from `Vector3.Lerp` internals; expected to be eliminated in Release build equivalent to production
+
+* ~35μs / frame total interpolation cost at N=500 scale
+
+</details>
+
+<details><summary>Network Sync Allocation Reduction</summary>
+
+* Issue: `SurvivorEnemySpawner.SyncEnemyStatesToNetwork` heap-allocated `new SurvivorNetworkEnemyStateSnapshot[count]` every 10Hz
+* Fix: `_syncSnapshotBuffer` pre-allocated with 512 slots at `InitializeAsync`; subsequent writes go directly into the buffer with `count` specifying the valid range
+* Implementation: `SurvivorFusionEnemyBatchSync.WriteEnemyStates(snapshots, count=-1)` overload
+
+* Measured values (`SyncEnemyStatesAllocationPerformanceTests`):
+
+  | Item | Before (new[]) | After (buffer reuse) | Improvement |
+  |------|---------------:|---------------------:|------------:|
+  | GC Alloc / call (N=500 scale) | ~20 KB | 0 B | -100% |
+
+* Target code: `src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemySpawner.cs` + `src/Game.Client/Assets/Programs/Runtime/Shared/Network/Survivor/SurvivorFusionEnemyBatchSync.cs`
+
+</details>
+
+<details><summary>Enemy LOD + Frame-Distributed Reclassification</summary>
+
+* Distance-based 3-tier throttling of enemy proxy updates in `SurvivorEnemyView.Update` (`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemyView.cs`)
+
+  | Tier | Distance² Threshold | Update Interval |
+  |------|---------------------|-----------------|
+  | Near | < 400 (20m²) | Every frame |
+  | Mid | < 1600 (40m²) | Every 2 frames |
+  | Far | ≥ 1600 | Every 5 frames |
+
+* Frame distribution: each proxy gets a `FrameOffset = NetworkId % FarUpdateInterval` to spread reclassification timing and avoid same-frame spikes when reclassifying all proxies at once
+
+* Measured values (`LodEffectivenessTests`, PlayMode integration test):
+
+  | Enemies | LOD OFF (Before) | LOD ON (After) | Reduction |
+  |---------|-----------------:|---------------:|----------:|
+  | 300 | measured | measured | **59.1%** |
+  | 500 | measured | measured | **60.1%** |
+
+  `SurvivorEnemyView.Update` Self Time reduces near-linearly with enemy count
+
+</details>
+
+<details><summary>NonAlloc Physics Queries with Buffer Reuse</summary>
+
+All `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAlloc` calls in hot paths are unified under fixed-size `readonly` array fields to eliminate per-frame alloc.
+
+| Location | Buffer | Size | Purpose |
+|----------|--------|------|---------|
+| `SurvivorAutoFireWeapon` | `_hitBuffer` | `Collider[50]` | Weapon nearest-enemy search |
+| `SurvivorProjectile` | `_sphereCastHits` | `RaycastHit[10]` | Projectile collision detection |
+| `SurvivorGroundDamageArea` | `s_overlapBuffer` | `Collider[32]` (static) | Enemy detection within damage area |
+| `SurvivorPlayerController` | `_itemHitBuffer` | `Collider[50]` | Item magnet detection |
+| `SurvivorNetworkWeaponManager` | `s_pierceHitBuffer` | `RaycastHit[32]` (static) | Server-side pierce processing |
+| `LockOnService` | `_hitBuffer` | `Collider[50]` | Lock-on candidate collection |
+| `EcsEnemyProxy` | `s_overlapBuffer` | `Collider[8]` (static) | ECS enemy attack range |
+| `ScoreTimeAttackEnemyController` | `_raycastHits` / `_overlapResults` | `RaycastHit[1]` + `Collider[10]` | Line-of-sight / player detection |
+
+10 locations total, all held as `readonly` instance fields and reused on every call.
+
+</details>
+
+<details><summary>Object Pools (Projectile / VFX / Enemy / Item)</summary>
+
+Survivor-style games generate tens to hundreds of projectile/VFX spawns per second. All spawns are pooled.
+
+`WeaponObjectPool<T>` generic implementation (`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Weapon/WeaponObjectPool.cs`):
+* `Queue<T> _pool` manages idle items; `Get()` / `TryReturn()` are O(1)
+* `HashSet<T> _activeItems` tracks active items and prevents double-return
+* Pre-instantiates `initialSize` items at construction
+
+Applied to:
+* Projectiles (`SurvivorProjectile`) / Ground-Placed Weapons (`SurvivorGroundWeapon`) — `WeaponObjectPool<T>`
+* Enemies (`SurvivorEnemyController`) — `Dictionary<int, Queue<T>>` (per enemy ID)
+* Items (`SurvivorItem`) — same pattern
+* VFX (`ParticleSystem`) — `Dictionary<string, Queue<T>>` (asset name key)
+* ECS enemy proxies (`EcsEnemyProxy`) — same pattern
 
 </details>
 

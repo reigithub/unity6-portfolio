@@ -86,6 +86,11 @@ namespace Game.MVP.Survivor.Enemy
         private float _enemySyncTimer;
         private int _nextNetworkId;
 
+        // 10Hz 同期での new[] alloc を排除するための事前確保バッファ。
+        // SurvivorFusionEnemyBatchSync.MaxEnemies (= 512) と一致させる。
+        private const int SyncBufferCapacity = 512;
+        private SurvivorNetworkEnemyStateSnapshot[] _syncSnapshotBuffer;
+
         // 診断: 5 秒毎にサイズサマリー
         private const float DiagSummaryInterval = 5f;
         private float _diagLastSummaryTime;
@@ -144,6 +149,12 @@ namespace Game.MVP.Survivor.Enemy
         {
             _waveManager = waveManager;
             _runnerService.TryGet(out _gameState);
+
+            // L1-4: 同期スナップショットバッファを 1 度だけ確保（以降 new 不要）
+            if (_syncSnapshotBuffer == null)
+            {
+                _syncSnapshotBuffer = new SurvivorNetworkEnemyStateSnapshot[SyncBufferCapacity];
+            }
 
             // レイヤーマスクが未設定の場合、Structureレイヤーを使用
             if (_obstacleLayerMask == 0)
@@ -334,11 +345,13 @@ namespace Game.MVP.Survivor.Enemy
 
         private void SyncEnemyStatesToNetwork(SurvivorFusionEnemyBatchSync batchSync)
         {
+            if (_syncSnapshotBuffer == null) return; // InitializeAsync 前防御
             if (_activeEnemies.Count == 0 && _pendingDeaths.Count == 0)
                 return;
 
-            var snapshots = new SurvivorNetworkEnemyStateSnapshot[_activeEnemies.Count + _pendingDeaths.Count];
-            for (int i = 0; i < _activeEnemies.Count; i++)
+            // 事前確保バッファに直接書き込み、alloc を排除
+            int activeFill = Mathf.Min(_activeEnemies.Count, SyncBufferCapacity);
+            for (int i = 0; i < activeFill; i++)
             {
                 var enemy = _activeEnemies[i];
                 var networkId = _enemyNetworkIds.TryGetValue(enemy, out var id) ? id : -1;
@@ -359,7 +372,7 @@ namespace Game.MVP.Survivor.Enemy
                     syncType = EnemySyncType.PositionUpdate;
                 }
 
-                snapshots[i] = new SurvivorNetworkEnemyStateSnapshot
+                _syncSnapshotBuffer[i] = new SurvivorNetworkEnemyStateSnapshot
                 {
                     NetworkId = networkId,
                     EnemyMasterId = enemy.EnemyId,
@@ -374,14 +387,16 @@ namespace Game.MVP.Survivor.Enemy
                 };
             }
 
-            // 保留中の Death を末尾に追加
-            for (int i = 0; i < _pendingDeaths.Count; i++)
+            // 保留中の Death を末尾に追加（バッファ余剰範囲のみ）
+            int deathFill = Mathf.Min(_pendingDeaths.Count, SyncBufferCapacity - activeFill);
+            for (int i = 0; i < deathFill; i++)
             {
-                snapshots[_activeEnemies.Count + i] = _pendingDeaths[i];
+                _syncSnapshotBuffer[activeFill + i] = _pendingDeaths[i];
             }
             _pendingDeaths.Clear();
 
-            batchSync.WriteEnemyStates(snapshots);
+            int totalCount = activeFill + deathFill;
+            batchSync.WriteEnemyStates(_syncSnapshotBuffer, totalCount);
         }
 
         private void SpawnNextEnemy()

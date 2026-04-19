@@ -17,7 +17,7 @@ namespace Game.MVP.Survivor.Enemy
     /// クライアントモード時、バッチ ClientRpc からプロキシ敵オブジェクトを管理。
     /// サーバーからの EnemyMasterId でAddressableプレハブをロードし、正式モデルで表示する。
     /// </summary>
-    public class SurvivorEnemyView : MonoBehaviour
+    public class SurvivorEnemyView : MonoBehaviour, IEnemyDeathQuery
     {
         private const float InterpolationSpeed = 8f;
         private const float CorrectionDecayRate = 10f;
@@ -143,7 +143,7 @@ namespace Game.MVP.Survivor.Enemy
 
             // ICombatTarget実装を追加（ヒット報告用NetworkId + LockOn用CenterPosition）
             var proxyTarget = instance.AddComponent<EnemyProxyTarget>();
-            proxyTarget.OwnerView = this;
+            proxyTarget.DeathQuery = this;
             proxyTarget.NetworkId = e.NetworkId;
 
             // Animator は Root に配置済み

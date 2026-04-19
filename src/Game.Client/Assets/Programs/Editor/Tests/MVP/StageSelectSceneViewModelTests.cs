@@ -132,8 +132,12 @@ namespace Game.Tests.MVP
         }
 
         [Test]
-        public void BuildStageItems_LockedStage_IsUnlockedFalse()
+        public void BuildStageItems_AnyStage_IsUnlockedAlwaysTrue_TechnicalDebtTodo()
         {
+            // TODO(アンロック機構の再設計): 現状ローカルセーブデータ源泉でアンロック状態が壊れる
+            // 構造的不具合があるため、StageSelectSceneViewModel は常に IsUnlocked=true を返す。
+            // サーバー (PostgreSQL) 側で正しい同期実装が入ったらこのテストを削除し、
+            // 元の BuildStageItems_LockedStage_IsUnlockedFalse を復活させる。
             var stages = new List<SurvivorStageMaster>
             {
                 new() { Id = 2, Name = "Stage2" }
@@ -142,7 +146,7 @@ namespace Game.Tests.MVP
 
             var result = _viewModel.BuildStageItems(stages, _saveData);
 
-            Assert.That(result[0].IsUnlocked, Is.False);
+            Assert.That(result[0].IsUnlocked, Is.True);
         }
 
         [Test]
@@ -217,8 +221,9 @@ namespace Game.Tests.MVP
             Assert.That(result[1].IsUnlocked, Is.True);
             Assert.That(result[1].IsCleared, Is.False);
 
-            // Stage 3: locked, not cleared
-            Assert.That(result[2].IsUnlocked, Is.False);
+            // Stage 3: アンロック機構の技術的負債一時対応により常に IsUnlocked=true
+            // (本来は UnlockedStageIds に含まれないため false が期待値)
+            Assert.That(result[2].IsUnlocked, Is.True);
             Assert.That(result[2].IsCleared, Is.False);
         }
 

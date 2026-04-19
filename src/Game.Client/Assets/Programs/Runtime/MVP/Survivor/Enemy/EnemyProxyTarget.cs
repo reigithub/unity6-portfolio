@@ -10,10 +10,10 @@ namespace Game.MVP.Survivor.Enemy
     /// </summary>
     public class EnemyProxyTarget : MonoBehaviour, ICombatTarget
     {
-        public SurvivorEnemyView OwnerView { get; set; }
+        public IEnemyDeathQuery DeathQuery { get; set; }
         public int NetworkId { get; set; }
         public Vector3 CenterPosition => transform.position + Vector3.up;
-        public bool IsDead => OwnerView != null && OwnerView.IsProxyDead(NetworkId);
+        public bool IsDead => DeathQuery != null && DeathQuery.IsProxyDead(NetworkId);
         public void TakeDamage(int damage) { }
         public void ApplyKnockback(Vector3 knockback) { }
     }

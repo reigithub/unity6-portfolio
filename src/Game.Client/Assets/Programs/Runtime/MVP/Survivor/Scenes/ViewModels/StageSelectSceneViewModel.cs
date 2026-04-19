@@ -24,7 +24,11 @@ namespace Game.MVP.Survivor.Scenes.ViewModels
                     Description = stage.Description,
                     Difficulty = stage.Difficulty,
                     TimeLimit = stage.TimeLimit,
-                    IsUnlocked = saveData.UnlockedStageIds.Contains(stage.Id),
+                    // TODO(アンロック機構の再設計): アンロック状態はサーバー (PostgreSQL) で管理すべきだが、
+                    // 現状ローカルセーブデータが源泉になっており、クライアント起点の不正操作で状態が壊れる
+                    // 構造的不具合がある。現状のアンロック機構は障害でしかないため、サーバー側と同期する
+                    // 正しい実装が入るまで全ステージを常にアンロック扱いとする。
+                    IsUnlocked = true,
                     Record = saveData.StageRecords.GetValueOrDefault(stage.Id)
                 })
                 .ToList();

@@ -11,7 +11,10 @@
         "MessagePipe",
         "VContainer",
         "Game.Library.Shared",
-        "Game.Client.MasterData"
+        "Game.Client.MasterData",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [
         "Editor"

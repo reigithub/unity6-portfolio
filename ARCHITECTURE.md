@@ -2285,6 +2285,18 @@ Unity6Portfolio/
 | **影響** | 高頻度イベント（衝突等）は直接呼び出しに変更済み |
 | **状態** | 採用済み・改善完了 |
 
+#### ADR-005: ECS (DOTS) 本番稼働の将来延期
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | DOTS (Entities + Burst Job) を用いた敵 AI / 移動 / ステアリング基盤は整備するが、本番稼働は将来スケール時まで延期。現行ゲームは MonoBehaviour ベースの MVP 実装で運用する |
+| **背景** | サバイバーゲームの将来的な敵数スケール（N=2000+ 想定）に備え、ECS + Burst Job による並列化の実装可能性を検証する必要があった。一方、現行の本番ステージは敵数が数十〜百数十体規模で、既存の C# + MonoBehaviour 実装でも alloc/CPU ともに安定している |
+| **選択肢** | A) ECS 本格稼働（全敵を Entity 化、MonoBehaviour 廃止） B) MVP 継続 + 最適化パターン徹底（Object Pool / NonAlloc 物理 / struct 値型 / Hash キャッシュ 等） C) ハイブリッド構成（ECS システム整備 + MVP 本番稼働 + `HybridSyncSystem` で切替経路を保持） |
+| **判断理由** | 現行の敵数規模では MVP 本番の最適化蓄積で十分（GC Alloc < 50 KB/frame を計測確認）。ECS を本番導入すると VContainer DI 統合 / Fusion サーバー権威モデルとの橋渡し / Editor デバッグフローの適応コストが大きく、**実装コストに対する性能改善の期待値が低い**。C 案のハイブリッドで ECS レイヤーを「整備済・非稼働」として保持し、将来の N スケール時に切替可能な経路を温存する |
+| **影響** | `EnemyMovementSystem` / `EnemySteeringSystem` / `EnemyAIStateSystem` / `EnemyDamageSystem` 等のシステムと `EnemyData` / `EnemyAIState` / `ChaseTarget` 等の `IComponentData` struct（9 個）を実装済み。`HybridSyncSystem` で MVP 側 `SurvivorEnemyController` との橋渡し経路を用意。DI 登録は無効化状態で dead code 扱い |
+| **再評価トリガー** | 本番ステージで敵同時数が 1,000 体を超える、または MVP 実装で Profiler 計測上 GC spike / Main Thread 飽和が継続的に観測された場合 |
+| **状態** | 整備済み・非稼働（将来スケール対応として温存） |
+
 #### ADR-006: MagicOnion選定（リアルタイム通信）
 
 | 項目 | 内容 |
@@ -2380,14 +2392,14 @@ Unity6Portfolio/
 | **決定** | UnityApiClient に RetryPolicy + CircuitBreakerPolicy + キャッシュフォールバックを統合 |
 | **背景** | モバイル環境での不安定なネットワーク接続に対する耐障害性が必要。障害時にもユーザー体験を維持したい |
 | **選択肢** | A) UnityWebRequest の単純リトライ B) Polly（.NET標準）移植 C) 自作ポリシー層 |
-| **判断理由** | Unity環境ではPollyが使えないため自作。RetryPolicy（指数バックオフ）+ CircuitBreakerPolicy（Closed/Open/HalfOpen 3状態遷移）+ RequestOptions（ビルダーパターン）の3層構成で関心を分離。サーキットOpen時のキャッシュフォールバック（期限切れ許容）でオフライン耐性を確保 |
+| **判断理由** | UPM 外の NuGet 依存追加コストと UniTask ベース async との統合コスト、IL2CPP AOT での動作検証コストを避け、プロジェクト固有要件（UniTask / UnityWebRequest / 診断ログ統合）に密着した薄い自作レイヤーを選択。RetryPolicy（指数バックオフ）+ CircuitBreakerPolicy（Closed/Open/HalfOpen 3状態遷移）+ RequestOptions（ビルダーパターン）の3層構成で関心を分離。サーキットOpen時のキャッシュフォールバック（期限切れ許容）でオフライン耐性を確保 |
 | **影響** | 全API呼び出しが統一されたエラーハンドリングを持つ。プリセット（Default/Aggressive/Sensitive等）で呼び出し元の設定負担を最小化 |
 | **状態** | 採用済み |
 
 ### 11.2 既知の技術的負債
 
-| 項目 | 内容 | 優先度 | 状態 |
-|-----|------|-------|------|
+| 項目                | 内容 | 優先度 | 状態 |
+|-------------------|------|-------|------|
 | ~~MessageBroker過剰使用~~ | ~~OnTriggerEnter等でのPublish~~ | ~~中~~ | ✅ 改善完了 |
 | ~~テストカバレッジ~~ | ~~現状約20%~~ | ~~高~~ | ✅ 1148テスト達成 |
 | ~~XMLドキュメント~~ | ~~一部未記載~~ | ~~低~~ | ✅ 主要IF完了 |
@@ -2395,7 +2407,6 @@ Unity6Portfolio/
 | ~~ネットワーク機能~~ | ~~サーバー通信未実装~~ | ~~高~~ | ✅ ランキング・認証完了 |
 | ~~マルチプレイ~~ | ~~マルチプレイ未実装~~ | ~~高~~ | ✅ ロビー・マッチメイキング完了 |
 | ~~サーバー権威~~ | ~~クライアント権威のゲームロジック~~ | ~~高~~ | ✅ Fusion FSM + [Networked] 移行完了 |
-| P3機能追加 | ローカライズ、課金システム等 | 低 | 未着手（オプション） |
 
 **改善完了項目**:
 - MessageBroker: IPlayerCollisionHandlerによる直接呼び出しに変更

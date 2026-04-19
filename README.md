@@ -6,12 +6,12 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 * **Unity × サーバー × インフラをモノレポで一括実装** — Unity 6 クライアント / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
 * **Photon Fusion 2 サーバー権威モデル + Dedicated Server運用** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Linuxヘッドレスビルド自己登録＋HMAC認証＋Docker化
-* **LiveOps配信基盤の自力構築** — GitHub Actions セルフホストランナー + Unity Accelerator + Cloudflare R2 CDN、Addressables 4環境切替・index.json差分同期・エディタ自動同期
+* **LiveOps配信基盤** — GitHub Actions セルフホストランナー + Unity Accelerator + Cloudflare R2 CDN、Addressables 4環境切替・index.json差分同期・エディタ自動同期
 * **Protobufスキーマ駆動のマスターデータ基盤** — CLIツール自作（6サブコマンド）、Client/Server/Realtime同一スキーマからデプロイターゲット別バイナリ生成
 * **8アセンブリ分割のモジュラー設計** — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
 * **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339・Testcontainers採用）、CI/CD 7ワークフロー
 
-> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 14件）
+> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 15件）
 
 ---
 
@@ -77,7 +77,7 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 1. リポジトリをクローン
    ```bash
-   git clone https://github.com/your-username/unity6-portfolio.git
+   git clone https://github.com/reigithub/unity6-portfolio.git
    ```
 2. Unity Hub で `src/Game.Client/` フォルダを開く
 3. 初回起動時、パッケージの復元に数分かかる場合があります
@@ -839,15 +839,24 @@ Unity6Portfolio/
 
 ## パフォーマンス改善・検証サンプル
 
+大量エネミーの状態管理 + 弾・VFX・ダメージイベント高頻度発生というサバイバーゲームの性質上、GC.Alloc を hot path から排除することを全レイヤーで徹底。
+
 | 対象 | 施策 | 改善結果 |
 |------|------|---------|
-| シーン遷移 | Task → UniTask 移行 | CPU実行時間 40%削減、ゼロアロケーション化 |
-| ステートマシン | HashSet → Dictionary、LINQ排除、インライン化 | 遷移速度 2.05x、メモリ 2.14x改善 |
-| 敵描画 | 距離ベース3段階LOD + フレーム分散再分類 | 512体同時管理でフレームレート維持 |
-| 弾・エリア生成 | WeaponObjectPool&lt;T&gt; ジェネリックプール | GCスパイク排除 |
-| UI Canvas | 動的/静的Canvas分離、CanvasGroup.alpha制御 | 不要なCanvasリビルド回避 |
+| シーン遷移 | Task → UniTask 移行 | CPU 実行時間 40% 削減、ゼロアロケーション化（EditMode ベンチマーク実測） |
+| ステートマシン | HashSet → Dictionary、LINQ 排除、`[MethodImpl(AggressiveInlining)]` 適用 | 遷移速度 2.05x、メモリ 2.14x 改善（EditMode ベンチマーク実測） |
+| Dead Reckoning 補間 | `struct EnemyProxyInterpolation` + Vector3 値型演算のみ | per-entity 0.065-0.069μs、N=500 規模で ~35μs/frame、alloc 0B（EditMode ベンチマーク実測） |
+| ネットワーク同期 | `SurvivorNetworkEnemyStateSnapshot[512]` 事前確保バッファで 10Hz sync の `new[]` を排除 | サーバー敵状態同期の GC Alloc **99.9% 削減**（EditMode ベンチマーク実測） |
+| 敵描画の LOD | 距離ベース 3 段階 LOD（Near / Mid / Far）+ フレーム分散再分類 | N=500 規模で `EnemyView.Update` Self Time **60% 削減**（PlayMode 統合テスト実測） |
+| 弾・VFX・敵・アイテム生成 | `WeaponObjectPool<T>` ジェネリック Pool + 型別 `Dictionary<int, Queue<T>>` Pool | `Instantiate`/`Destroy` spike 排除、弾 100 発級でも GC 安定 |
+| 物理クエリ | `OverlapSphere` / `SphereCast` NonAlloc API + `readonly Collider[]` / `RaycastHit[]` バッファ再利用（10 箇所） | 武器ターゲティング・弾衝突・ロックオン等が毎フレ alloc 0 |
+| Shader / Animator パラメータ | `Shader.PropertyToID` 27 個 + `Animator.StringToHash` 10 個を `static readonly int` キャッシュ | `SetFloat` / `SetTrigger` 呼出ごとの string lookup alloc 排除 |
+| 距離判定 | `sqrMagnitude < threshold * threshold` で sqrt 省略（21 箇所） | 武器最近傍探索・LOD 分類・補間補正判定を高速化 |
+| イベント配信 | MessagePipe (`IPublisher` / `ISubscriber`) + R3 `Observable<T>` / `Subject<T>` + 16 個の `readonly struct` シグナル | publish 時 heap alloc ゼロ、Pub/Sub 30+ 箇所で統一 |
+| 非同期処理 | UniTask 全面採用（`async void` ゼロ）、コルーチン不使用（`new WaitForSeconds` ゼロ） | Task / Coroutine 由来の state machine alloc 排除 |
+| GetComponent キャッシュ | Initialize 時に `TryGetComponent(out _field)` + `GetComponentsInChildren` を field cache 化 | Update 内階層探索ゼロ |
 
-**計測インフラ:** カスタムProfilerMarker 23箇所（Enemy, Weapon, Pool, VFX等）を埋め込み、Unity Profiler Timeline上でボトルネックを可視化
+**計測インフラ:** カスタム `ProfilerMarker` 19 箇所（Enemy / Weapon / Pool / VFX / Player 等）を埋め込み、Unity Profiler Timeline 上でボトルネックを可視化。さらに EditMode micro-benchmark（805 テスト）と PlayMode 統合テスト（88 テスト）の 2 段で定量検証。
 
 <details><summary>シーン遷移機能</summary>
 
@@ -883,6 +892,104 @@ Unity6Portfolio/
   | 項目 | 旧StateMachine | 新StateMachine | 改善率 |
   |:-----|---------------:|---------------:|-------:|
   | メモリ (bytes) | 2,760,704 | 1,290,240 | 2.14x |
+
+</details>
+
+<details><summary>Dead Reckoning 補間（struct + Vector3 値型）</summary>
+
+* `EnemyProxyInterpolation` 構造体による補間状態管理（`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/EnemyProxyInterpolation.cs`）
+  - 4 フィールド（`LastSyncPosition` / `Velocity` / `TimeSinceSync` / `CorrectionOffset`）を値型で保持
+  - `OnSyncReceived` / `GetPosition` は Vector3 と float の演算のみで alloc 0B
+  - ボックス化を防ぐため class ではなく struct で設計
+
+* 実測値（`EnemyProxyInterpolationPerformanceTests`）:
+
+  | n | GetPosition (ms/1000iter) | OnSyncReceived (ms/1000iter) | per-entity | GC Alloc |
+  |---|-------------------------:|----------------------------:|:----------:|:--------:|
+  | 100 | 6.61 | 6.79 | 0.066-0.068 μs | 0 |
+  | 256 | 16.93 | 17.46 | 0.066-0.068 μs | 0-4 KB* |
+  | 500 | 33.07 | 34.73 | 0.066-0.069 μs | 0 |
+  | 512 | 33.40 | 34.74 | 0.065-0.068 μs | 0-16 KB* |
+
+  *一部サイズで Vector3.Lerp 内部の一時オブジェクト検出あり、本番相当の Release ビルドでは除去される想定
+
+* N=500 規模で補間総コスト ~35μs / frame を実現
+
+</details>
+
+<details><summary>ネットワーク同期 alloc 削減</summary>
+
+* 課題: `SurvivorEnemySpawner.SyncEnemyStatesToNetwork` が 10Hz で `new SurvivorNetworkEnemyStateSnapshot[count]` を毎回 heap alloc
+* 改善: `_syncSnapshotBuffer` を `InitializeAsync` 時に 512 枠事前確保、以降は buffer に直接書込 + count 引数で有効範囲指定
+* 実装: `SurvivorFusionEnemyBatchSync.WriteEnemyStates(snapshots, count=-1)` オーバーロード
+
+* 実測値（`SyncEnemyStatesAllocationPerformanceTests`）:
+
+  | 項目 | Before（new[]） | After（buffer 再利用） | 改善率 |
+  |------|---------------:|--------------------:|-------:|
+  | GC Alloc / 呼出（N=500 規模） | ~20 KB | 0 B | -100% |
+
+* 対象コード: `src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemySpawner.cs` + `src/Game.Client/Assets/Programs/Runtime/Shared/Network/Survivor/SurvivorFusionEnemyBatchSync.cs`
+
+</details>
+
+<details><summary>敵描画 LOD + フレーム分散再分類</summary>
+
+* `SurvivorEnemyView.Update` での敵プロキシ更新を距離ベース 3 段階で間引く（`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Enemy/SurvivorEnemyView.cs`）
+
+  | ティア | 距離² 閾値 | 更新間隔 |
+  |-------|----------|--------|
+  | Near | < 400 (20m²) | 毎フレーム |
+  | Mid | < 1600 (40m²) | 2 フレーム毎 |
+  | Far | ≥ 1600 | 5 フレーム毎 |
+
+* フレーム分散: プロキシごとに `FrameOffset = NetworkId % FarUpdateInterval` を割当、LOD 再分類タイミングを分散させて同一フレの再分類 spike を回避
+
+* 実測値（`LodEffectivenessTests`、PlayMode 統合テスト）:
+
+  | 敵数 | LOD OFF（Before） | LOD ON（After） | 削減率 |
+  |------|-----------------:|-----------------:|-------:|
+  | 300 | 実測値 | 実測値 | **59.1%** |
+  | 500 | 実測値 | 実測値 | **60.1%** |
+
+  `SurvivorEnemyView.Update` Self Time が敵数に応じてほぼ線形に削減
+
+</details>
+
+<details><summary>NonAlloc 物理クエリと buffer 再利用</summary>
+
+hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAlloc` を、固定サイズ配列 `readonly` フィールドに統一して毎フレ alloc を排除。
+
+| 箇所 | バッファ | サイズ | 用途 |
+|------|---------|------|------|
+| `SurvivorAutoFireWeapon` | `_hitBuffer` | `Collider[50]` | 武器最近傍敵探索 |
+| `SurvivorProjectile` | `_sphereCastHits` | `RaycastHit[10]` | 弾衝突検出 |
+| `SurvivorGroundDamageArea` | `s_overlapBuffer` | `Collider[32]`（static） | ダメージエリア内敵検出 |
+| `SurvivorPlayerController` | `_itemHitBuffer` | `Collider[50]` | アイテム吸引検出 |
+| `SurvivorNetworkWeaponManager` | `s_pierceHitBuffer` | `RaycastHit[32]`（static） | サーバー側貫通処理 |
+| `LockOnService` | `_hitBuffer` | `Collider[50]` | ロックオン候補収集 |
+| `EcsEnemyProxy` | `s_overlapBuffer` | `Collider[8]`（static） | ECS 敵攻撃範囲 |
+| `ScoreTimeAttackEnemyController` | `_raycastHits` / `_overlapResults` | `RaycastHit[1]` + `Collider[10]` | 視線判定・プレイヤー検知 |
+
+合計 10 箇所、いずれも `readonly` フィールドでインスタンスに保持し、毎呼出で再利用。
+
+</details>
+
+<details><summary>オブジェクトプール（弾・VFX・敵・アイテム）</summary>
+
+サバイバーゲームは毎秒数十〜数百の弾 / VFX spawn が発生する。全 spawn を Pool 化。
+
+`WeaponObjectPool<T>` ジェネリック実装（`src/Game.Client/Assets/Programs/Runtime/MVP/Survivor/Weapon/WeaponObjectPool.cs`）:
+* `Queue<T> _pool` で待機アイテム管理、`Get()` / `TryReturn()` は O(1)
+* `HashSet<T> _activeItems` でアクティブ追跡、二重 Return を防止
+* 初期化時に initialSize 分を pre-instantiate
+
+適用箇所:
+* 弾 (`SurvivorProjectile`) / 地面設置武器 (`SurvivorGroundWeapon`) - `WeaponObjectPool<T>`
+* 敵 (`SurvivorEnemyController`) - `Dictionary<int, Queue<T>>`（敵 ID 毎）
+* アイテム (`SurvivorItem`) - 同様
+* VFX (`ParticleSystem`) - `Dictionary<string, Queue<T>>`（アセット名 key）
+* ECS 敵プロキシ (`EcsEnemyProxy`) - 同様
 
 </details>
 
