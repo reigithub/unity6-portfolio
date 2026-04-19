@@ -5,7 +5,7 @@
 #   docker compose -f docker/game-server/docker-compose.yml build
 
 # === Build Stage ===
-FROM mcr.microsoft.com/dotnet/sdk:9.0.311 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.313 AS build
 WORKDIR /src
 
 # Copy project files for restore cache
@@ -24,7 +24,7 @@ COPY src/Game.Server/ src/Game.Server/
 RUN dotnet publish src/Game.Server/Game.Server.csproj -c Release -o /app/publish
 
 # === Runtime Stage ===
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.13 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.15 AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
