@@ -15,9 +15,9 @@
     <!-- Database -->
     <PackageVersion Include="Dapper" Version="2.1.72" />
     <PackageVersion Include="Npgsql" Version="9.0.5" />
-    <PackageVersion Include="FluentMigrator" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator" Version="8.0.1" />
     <PackageVersion Include="FluentMigrator.Runner" Version="6.2.0" />
-    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="8.0.1" />
 
     <!-- Redis / Distributed Lock -->
     <PackageVersion Include="StackExchange.Redis" Version="2.12.14" />
