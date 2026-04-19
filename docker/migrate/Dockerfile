@@ -1,7 +1,7 @@
 # Migration Job Dockerfile
 # Cloud Run Job でマイグレーションを実行するためのイメージ
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0.311 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.313 AS build
 WORKDIR /src
 
 # プロジェクトファイルをコピーして依存関係を復元
