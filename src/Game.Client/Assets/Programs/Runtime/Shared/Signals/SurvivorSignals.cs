@@ -5,10 +5,10 @@ using UnityEngine;
 namespace Game.Shared.Signals.Survivor
 {
     /// <summary>
-    /// Survivor ゲームイベントシグナル定義（統一版）。
-    /// SP: ゲームロジックが直接 Publish → SubscribeSignals で受信。
-    /// MP Server: ゲームロジックが Publish → SubscribeSignals + Bridge → ClientRpc。
-    /// MP Client: ClientRpc → NetworkSurvivorGameManager が Publish → SubscribeSignals で受信。
+    /// Survivor ゲームイベントシグナル定義。
+    /// Server: ゲームロジックが Publish → SubscribeSignals + Bridge → ClientRpc。
+    /// Client: ClientRpc → SurvivorFusionGameState が Publish → SubscribeSignals で受信。
+    /// SP/MP の違いは接続先のみで、シグナル経路（Server / Client）は共通。
     /// </summary>
     public static class SurvivorSignals
     {
@@ -227,8 +227,8 @@ namespace Game.Shared.Signals.Survivor
             }
 
             /// <summary>
-            /// SP/Server: WaveClearScore=0（消費者がローカル計算）
-            /// MP Client: WaveClearScore=サーバー計算済み値
+            /// Server: WaveClearScore=0（消費者がローカル計算）
+            /// Client: WaveClearScore=サーバー計算済み値
             /// </summary>
             public readonly struct Completed
             {

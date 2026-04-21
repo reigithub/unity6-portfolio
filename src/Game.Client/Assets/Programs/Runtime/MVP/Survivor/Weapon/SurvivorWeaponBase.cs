@@ -158,7 +158,7 @@ namespace Game.MVP.Survivor.Weapon
 
         /// <summary>
         /// ヒットコールバック (hitCollider, weaponId)。
-        /// Scene側でモードに応じた処理を行う（SP: ローカルダメージ, MP: RPC送信）。
+        /// Scene 側がヒット情報をサーバーに RPC 送信する（サーバー権威）。
         /// </summary>
         public Action<Collider, int> OnHitCallback;
 

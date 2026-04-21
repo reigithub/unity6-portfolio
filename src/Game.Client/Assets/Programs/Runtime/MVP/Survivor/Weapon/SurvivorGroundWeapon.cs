@@ -127,12 +127,14 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
-        /// エリアダメージ命中処理（SP/MP統一）
-        /// VFX表示を行い、ダメージ処理はScene側のコールバックに委譲する。
+        /// エリアダメージ命中処理。
+        /// VFX 表示を行い、ダメージ処理は Scene 側コールバックに委譲する
+        /// （Scene 側がサーバーに RPC 送信 = サーバー権威）。
         /// </summary>
         private void OnAreaHit(SurvivorGroundDamageArea area, Collider other)
         {
-            // ヒット対象チェック（SP: ICombatTarget, MP: EnemyProxyTarget）
+            // ヒット対象チェック: サーバー側実敵 (ICombatTarget) と
+            // クライアント側敵プロキシ (EnemyProxyTarget) の両方に対応
             if (other.GetComponentInParent<ICombatTarget>() == null
                 && other.GetComponentInParent<EnemyProxyTarget>() == null)
                 return;

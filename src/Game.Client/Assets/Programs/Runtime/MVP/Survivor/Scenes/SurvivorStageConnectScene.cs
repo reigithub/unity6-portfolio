@@ -112,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 else if (_runnerService.IsHostMode)
                 {
-                    // Editor Host mode: Server + ローカルClient
+                    // Editor MPPM Host モード（本番未使用、開発時テスト用）: Server + ローカル Client
                     await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();

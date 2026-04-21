@@ -27,10 +27,11 @@ using VContainer.Unity;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// Survivorメインステージシーン（クライアント/SP Presenter）
-    /// StateMachineでゲームループを管理。
-    /// SP: ローカルサーバー＋クライアント（ゲームロジック＋ビジュアル）
-    /// MP Client: サーバー権威のクライアント（ビジュアル＋サーバー同期）
+    /// Survivor メインステージシーンのクライアント Presenter。
+    /// ゲームロジックはサーバー (<see cref="SurvivorNetworkStageScene"/>) 側で実行され、
+    /// 本クラスはサーバーから受信した状態を表示する View 側の責務を担う。
+    /// SP/MP の違いはロビー経由の有無とプレイヤー人数のみで、接続先は SP 時はローカル別プロセスの
+    /// Headless Server、MP 時はリモートサーバーであり、いずれも GameMode.Client で接続する。
     /// </summary>
     public partial class SurvivorStageScene : GamePrefabScene<SurvivorStageScene, SurvivorStageSceneComponent>, IGameSceneScope
     {
@@ -236,8 +237,11 @@ namespace Game.MVP.Survivor.Scenes
                 })
                 .AddTo(Disposables);
 
-            // ヒットコールバック設定（武器サブクラスから Collider + WeaponId を受け取り、サーバーに委譲）
-            // SP: SurvivorEnemyController（直接参照）、MP: EnemyProxyTarget（クライアント敵プロキシ）
+            // ヒットコールバック設定: 武器サブクラスから Collider + WeaponId を受け取り、
+            // NetworkId を取得してサーバーに RPC 送信する（ローカルダメージは適用しない = サーバー権威）。
+            // Collider から NetworkId を引く経路は 2 系統:
+            //   - SurvivorEnemyController: サーバー側実敵コンポーネント（MPPM 等で同一プロセスに混在する場合）
+            //   - EnemyProxyTarget: クライアント側敵プロキシ（通常のクライアント経路）
             SceneComponent.WeaponManager.SetHitCallback((other, weaponId) =>
             {
                 if (!_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer)) return;
@@ -269,8 +273,8 @@ namespace Game.MVP.Survivor.Scenes
 
         /// <summary>
         /// SurvivorSignals 購読。
-        /// SP: ゲームロジックが直接 Publish。
-        /// MP Client: ClientRpc → NetworkSurvivorGameManager が Publish。
+        /// サーバー側のゲームロジックが RPC でブロードキャスト → SurvivorFusionGameState が
+        /// MessagePipe Publish → 本 Presenter で受信。SP/MP ともにクライアント経路は同一。
         /// </summary>
         private void SubscribeSignals()
         {
