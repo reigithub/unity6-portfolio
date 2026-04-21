@@ -17,10 +17,10 @@ public interface IUnityServerAuthService
     /// <param name="userId">トークン発行対象のユーザーID。</param>
     /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合は自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
-    /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す。</param>
+    /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す。</param>
     /// <returns>発行されたトークンとセッション名を含むレスポンス。</returns>
     Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string sessionName = null, int stageId = 0, int expectedPlayers = 1);
+        string userId, string sessionName = null, int stageId = 0, int playerCount = 1);
 
     /// <summary>
     /// セッショントークンを検証し、ペイロードを返す。

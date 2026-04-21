@@ -12,8 +12,8 @@ public interface IUnityServerSessionService
     /// </summary>
     /// <param name="sessionName">Fusion セッション名（SessionName）。</param>
     /// <param name="stageId">ステージID。</param>
-    /// <param name="expectedPlayers">期待プレイヤー数。</param>
+    /// <param name="playerCount">プレイヤー数。</param>
     /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    Task<DsInfo> AssignSessionAsync(string sessionName, int stageId, int expectedPlayers);
+    Task<DsInfo> AssignSessionAsync(string sessionName, int stageId, int playerCount);
 }

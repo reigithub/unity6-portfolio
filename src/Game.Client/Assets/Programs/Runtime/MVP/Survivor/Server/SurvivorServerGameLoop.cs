@@ -61,7 +61,7 @@ namespace Game.MVP.Survivor.Server
                 // try の外に置き、cancellation 時はループを抜ける（正常終了経路）
                 var request = await WaitForSessionRequestAsync(cancellation);
 
-                Debug.Log($"[SurvivorServerGameLoop] Session request received: sessionName={request.SessionName}, stageId={request.StageId}, players={request.ExpectedPlayers}");
+                Debug.Log($"[SurvivorServerGameLoop] Session request received: sessionName={request.SessionName}, stageId={request.StageId}, players={request.PlayerCount}");
 
                 // 事前バリデーション（try の外・Fusion/Listener 未操作）: DS 自身のマスターに stageId が存在するか
                 // 不正な stageId は Fusion セッションを作らずに即座に拒否し、次のリクエスト待機に戻る
@@ -79,7 +79,7 @@ namespace Game.MVP.Survivor.Server
                 try
                 {
                     // Step 2: 接続パラメータを動的設定（セッションレベルの sessionName のみ更新）
-                    _sessionConfig.UpdateConfigure(sessionName: request.SessionName, playerCount: request.ExpectedPlayers);
+                    _sessionConfig.UpdateConfigure(sessionName: request.SessionName, playerCount: request.PlayerCount);
 
                     // ServerHttpListener のステータスを active に更新
                     _listener.SetSessionActive(request.SessionName);

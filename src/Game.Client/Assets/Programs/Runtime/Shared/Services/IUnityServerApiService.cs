@@ -14,6 +14,6 @@ namespace Game.Shared.Services
         /// 認証済みユーザーに対して HMAC 署名付きセッショントークンを発行する。
         /// </summary>
         /// <returns>成功時はトークンとセッション名を含むレスポンス、失敗時はエラー情報。</returns>
-        UniTask<ApiResponse<UnityServerAuthResponse>> IssueTokenAsync(int stageId = 0, int expectedPlayers = 1);
+        UniTask<ApiResponse<UnityServerAuthResponse>> IssueTokenAsync(int stageId = 0, int playerCount = 1);
     }
 }

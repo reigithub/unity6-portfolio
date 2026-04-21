@@ -22,9 +22,9 @@ namespace Game.Library.Shared.Dto
         public int StageId { get; set; }
 
         /// <summary>
-        /// このセッションの期待プレイヤー数。
+        /// このセッションのプレイヤー数。
         /// </summary>
         [Key(2)]
-        public int ExpectedPlayers { get; set; }
+        public int PlayerCount { get; set; }
     }
 }

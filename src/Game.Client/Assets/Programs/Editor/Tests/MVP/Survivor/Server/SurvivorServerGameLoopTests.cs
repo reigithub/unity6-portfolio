@@ -420,13 +420,13 @@ namespace Game.Tests.MVP.Survivor.Server
         /// <summary>
         /// テスト用のセッションリクエストを作成する。
         /// </summary>
-        private static UnityServerSessionRequest CreateSessionRequest(string sessionName, int stageId, int expectedPlayers = 1)
+        private static UnityServerSessionRequest CreateSessionRequest(string sessionName, int stageId, int playerCount = 1)
         {
             return new UnityServerSessionRequest
             {
                 SessionName = sessionName,
                 StageId = stageId,
-                ExpectedPlayers = expectedPlayers,
+                PlayerCount = playerCount,
             };
         }
 

@@ -37,7 +37,7 @@ public class UnityServerController : ControllerBase
     /// </summary>
     /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合はサーバーが自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ（SP 用）。</param>
-    /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
+    /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
     [HttpPost("issue-token")]
     [Authorize]
@@ -47,13 +47,13 @@ public class UnityServerController : ControllerBase
     public async Task<IActionResult> IssueToken(
         [FromQuery] string sessionName = null,
         [FromQuery] int stageId = 0,
-        [FromQuery] int expectedPlayers = 1)
+        [FromQuery] int playerCount = 1)
     {
         var userId = User.GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var response = await _serverAuthService.IssueTokenAsync(userId, sessionName, stageId, expectedPlayers);
+        var response = await _serverAuthService.IssueTokenAsync(userId, sessionName, stageId, playerCount);
 
         _logger.LogInformation(
             "Unity server token issued for user {UserId}, session {SessionName}, stageId={StageId}",

@@ -23,7 +23,7 @@ namespace Game.Shared.Network.Survivor
         string SessionToken { get; }
 
         /// <summary>期待プレイヤー数。SP=1、MP=ロビー設定値。</summary>
-        int MaxPlayerCount { get; }
+        int PlayerCount { get; }
 
         /// <summary>
         /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。

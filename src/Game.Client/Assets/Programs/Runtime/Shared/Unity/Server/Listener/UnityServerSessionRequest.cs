@@ -14,8 +14,8 @@ namespace Game.Shared.Unity.Server
         /// <summary>ステージID。</summary>
         public int StageId;
 
-        /// <summary>期待プレイヤー数。</summary>
-        public int ExpectedPlayers;
+        /// <summary>プレイヤー数。</summary>
+        public int PlayerCount;
 
         /// <summary>
         /// メインスレッドが処理完了後に SetResult を呼ぶことで HTTP レスポンスを返す。
