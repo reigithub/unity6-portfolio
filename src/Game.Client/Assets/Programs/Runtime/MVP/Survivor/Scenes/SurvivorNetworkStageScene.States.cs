@@ -47,7 +47,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
-            protected SurvivorStageSceneComponent View => Context.SceneComponent;
+            protected SurvivorNetworkStageSceneComponent View => Context.SceneComponent;
             protected Weapon.SurvivorNetworkWeaponManager WeaponManager => Context._weaponManager;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);

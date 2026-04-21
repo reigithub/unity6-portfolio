@@ -28,7 +28,7 @@ namespace Game.MVP.Survivor.Scenes
     /// ゲームロジック（ウェーブ管理・ダメージ・勝敗判定）のみを担当し、
     /// HUD/UI/ビジュアルは一切扱わない。
     /// </summary>
-    public partial class SurvivorNetworkStageScene : GamePrefabScene<SurvivorNetworkStageScene, SurvivorStageSceneComponent>, IGameSceneScope
+    public partial class SurvivorNetworkStageScene : GamePrefabScene<SurvivorNetworkStageScene, SurvivorNetworkStageSceneComponent>, IGameSceneScope
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly ISurvivorSaveService _saveService;
@@ -51,7 +51,7 @@ namespace Game.MVP.Survivor.Scenes
         private SurvivorFusionGameState _gameState;
         private SceneInstance? _stageSceneInstance;
 
-        protected override string AssetPathOrAddress => "SurvivorStageScene";
+        protected override string AssetPathOrAddress => "SurvivorNetworkStageScene";
 
         #region IGameSceneScope
 

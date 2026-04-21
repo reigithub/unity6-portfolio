@@ -11,7 +11,6 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
-using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -21,9 +20,11 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// Survivorステージシーンのルートコンポーネント
+    /// Survivorステージシーンのクライアント専用コンポーネント
     /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
-    /// HUD表示とゲームプレイUIを管理
+    /// HUD表示とゲームプレイUIを管理。
+    /// サーバー側は <see cref="SurvivorNetworkStageSceneComponent"/> を使用するため、
+    /// このクラスはクライアント経路からのみ呼ばれる。
     /// </summary>
     public class SurvivorStageSceneComponent : GameSceneComponent
     {
@@ -157,9 +158,6 @@ namespace Game.MVP.Survivor.Scenes
 
         private void Awake()
         {
-            // サーバーでは UIDocument が無効なため UI 初期化をスキップ
-            if (UnityPlaymodeHelper.IsServer()) return;
-
             QueryUIElements();
             SetupEventHandlers();
         }
