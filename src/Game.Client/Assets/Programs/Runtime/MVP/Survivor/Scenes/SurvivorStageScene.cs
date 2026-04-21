@@ -58,6 +58,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
 
         private SurvivorStageModel _stageModel;
+        private SurvivorNetworkStageModel _networkStageModel;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
@@ -70,6 +71,7 @@ namespace Game.MVP.Survivor.Scenes
         public void ConfigureScope(IContainerBuilder builder)
         {
             builder.Register<SurvivorStageModel>(Lifetime.Scoped);
+            builder.Register<SurvivorNetworkStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
         }
 
@@ -90,8 +92,11 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // IGameSceneScopeのスコープから取得して初期化
+            _networkStageModel = ScopedResolver.Resolve<SurvivorNetworkStageModel>();
+            _networkStageModel.Initialize(session.StageId);
+
             _stageModel = ScopedResolver.Resolve<SurvivorStageModel>();
-            _stageModel.Initialize(session.PlayerId, session.StageId);
+            _stageModel.Initialize(session.PlayerId);
 
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
@@ -123,7 +128,7 @@ namespace Game.MVP.Survivor.Scenes
             SubscribeSignals();
             BindModelToView();
 
-            SceneComponent.Initialize(_stageModel, _waveManager.TotalWaves);
+            SceneComponent.Initialize(_stageModel, _networkStageModel, _waveManager.TotalWaves);
 
             // ReadyState開始前に暗転状態にしておく（ステージ裏側が見えないように）
             GameRootController?.SetFadeImmediate(1f);
@@ -136,7 +141,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTask LoadUnitySceneAsync()
         {
             // ステージ環境シーンをAdditiveでロード
-            var stageAssetName = _stageModel.StageMaster?.AssetName;
+            var stageAssetName = _networkStageModel.StageMaster?.AssetName;
             if (!string.IsNullOrEmpty(stageAssetName))
             {
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
@@ -285,11 +290,11 @@ namespace Game.MVP.Survivor.Scenes
 
             _waveStartedSub.Subscribe(s =>
             {
-                _stageModel.CurrentWave.Value = s.WaveNumber;
+                _networkStageModel.CurrentWave.Value = s.WaveNumber;
                 SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
                 _waveManager.UpdateClientWaveDisplay(s.TargetKillCount, s.EnemyCount);
 
-                if (s.WaveNumber > 0 && _stageModel.GameTime.Value > 0)
+                if (s.WaveNumber > 0 && _networkStageModel.GameTime.Value > 0)
                 {
                     SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
                 }
@@ -309,7 +314,7 @@ namespace Game.MVP.Survivor.Scenes
                     _stageModel.TotalKills.Value = s.Result.TotalKills;
                 }
                 Debug.Log($"[SurvivorStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
-                _stageModel.SetNetworkResult(s.Result);
+                _networkStageModel.SetNetworkResult(s.Result);
             }).AddTo(Disposables);
 
             _enemyKilledSub.Subscribe(s =>
@@ -376,7 +381,7 @@ namespace Game.MVP.Survivor.Scenes
 
             _saveService.UpdateSession(
                 currentWave: _waveManager.CurrentWave.CurrentValue,
-                elapsedTime: _stageModel.GameTime.Value,
+                elapsedTime: _networkStageModel.GameTime.Value,
                 currentHp: _stageModel.CurrentHp.Value,
                 experience: _stageModel.Experience.Value,
                 level: _stageModel.Level.Value,
@@ -476,7 +481,7 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
 
                 // プレイ時間だけ加算
-                _saveService.AddPlayTime(_stageModel.GameTime.Value);
+                _saveService.AddPlayTime(_networkStageModel.GameTime.Value);
             }
             else if (!_retryOrQuit)
             {

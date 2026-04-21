@@ -47,6 +47,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
+            protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
             protected SurvivorNetworkStageSceneComponent View => Context.SceneComponent;
             protected Weapon.SurvivorNetworkWeaponManager WeaponManager => Context._weaponManager;
 
@@ -189,11 +190,11 @@ namespace Game.MVP.Survivor.Scenes
                     var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
                         ? Context._runnerService.Runner.DeltaTime
                         : Time.deltaTime;
-                    StageModel.GameTime.Value += dt;
+                    NetworkStageModel.GameTime.Value += dt;
                 }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
-                if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
+                if (NetworkStageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
                 {
                     Transition(StageEvent.Victory);
                     return;
@@ -303,8 +304,8 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
-                var isTimeUp = StageModel.IsTimeUp;
+                var clearTime = NetworkStageModel.GameTime.Value;
+                var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
                 Debug.Log($"[SurvivorNetworkStageScene.VictoryState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
@@ -347,7 +348,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
+                var clearTime = NetworkStageModel.GameTime.Value;
 
                 Debug.Log($"[SurvivorNetworkStageScene.GameOverState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 

@@ -2,7 +2,6 @@ using System;
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Item;
 using Game.Shared.Extensions;
-using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -11,9 +10,11 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes.Models
 {
     /// <summary>
-    /// Survivorステージモデル
-    /// 1ステージ分のプレイヤー状態を管理
-    /// ライフサイクル: SurvivorStageSceneが所有、ステージ終了で破棄
+    /// Survivor ステージの 1 プレイヤー分のモデル。
+    /// HP/EXP/Level/Stamina/Score/TotalKills 等のプレイヤー個別状態を管理する。
+    /// セッション共有状態 (GameTime / CurrentWave / StageMaster / 勝敗結果) は
+    /// <see cref="SurvivorNetworkStageModel"/> が保持する。
+    /// ライフサイクル: SurvivorStageScene/SurvivorNetworkStageScene が所有、ステージ終了で破棄。
     /// </summary>
     public class SurvivorStageModel : IDisposable
     {
@@ -28,7 +29,6 @@ namespace Game.MVP.Survivor.Scenes.Models
         }
 
         private SurvivorPlayerMaster _playerMaster;
-        private SurvivorStageMaster _stageMaster;
         private SurvivorPlayerLevelMaster _currentLevelMaster;
         private int _playerId;
 
@@ -43,31 +43,15 @@ namespace Game.MVP.Survivor.Scenes.Models
         public ReactiveProperty<int> DamageBonus { get; } = new(0);
         public ReactiveProperty<int> WeaponChoiceCount { get; } = new(3);
 
-        // スコア
+        // プレイヤー貢献度（per-player のスコア / キル）
         public ReactiveProperty<int> TotalKills { get; } = new(0);
         public ReactiveProperty<int> Score { get; } = new(0);
 
-        // ゲーム進行
-        public ReactiveProperty<float> GameTime { get; } = new(0f);
-        public ReactiveProperty<int> CurrentWave { get; } = new(1);
-
-        // ネットワーク結果（サーバーから受信）
-        private SurvivorNetworkGameResult? _networkResult;
-        public bool HasNetworkResult => _networkResult.HasValue;
-        public SurvivorNetworkGameResult NetworkResult => _networkResult.Value;
-
         public SurvivorPlayerMaster PlayerMaster => _playerMaster;
-        public SurvivorStageMaster StageMaster => _stageMaster;
         public SurvivorPlayerLevelMaster CurrentLevelMaster => _currentLevelMaster;
         public bool IsDead => CurrentHp.Value <= 0;
 
-        /// <summary>制限時間（秒）。0以下は無制限</summary>
-        public float TimeLimit => _stageMaster?.TimeLimit ?? 0;
-
-        /// <summary>制限時間に到達したかどうか</summary>
-        public bool IsTimeUp => TimeLimit > 0 && GameTime.Value >= TimeLimit;
-
-        public void Initialize(int playerId, int stageId)
+        public void Initialize(int playerId)
         {
             var memoryDb = _masterDataService.MemoryDatabase;
             _playerId = playerId;
@@ -75,11 +59,6 @@ namespace Game.MVP.Survivor.Scenes.Models
             if (!memoryDb.SurvivorPlayerMasterTable.TryFindById(playerId, out _playerMaster))
             {
                 throw new InvalidOperationException($"Player master not found: {playerId}");
-            }
-
-            if (!memoryDb.SurvivorStageMasterTable.TryFindById(stageId, out _stageMaster))
-            {
-                throw new InvalidOperationException($"Stage master not found: {stageId}");
             }
 
             // レベル1のステータスを取得
@@ -186,9 +165,6 @@ namespace Game.MVP.Survivor.Scenes.Models
             }
         }
 
-        /// <summary>サーバーからゲーム結果を設定（クライアントモード用）</summary>
-        public void SetNetworkResult(SurvivorNetworkGameResult result) => _networkResult = result;
-
         /// <summary>サーバーから直接 HP を設定（クライアントモード用）</summary>
         public void ForceSetHp(int hp) => CurrentHp.Value = hp;
 
@@ -239,8 +215,6 @@ namespace Game.MVP.Survivor.Scenes.Models
             WeaponChoiceCount.Dispose();
             TotalKills.Dispose();
             Score.Dispose();
-            GameTime.Dispose();
-            CurrentWave.Dispose();
         }
     }
 }

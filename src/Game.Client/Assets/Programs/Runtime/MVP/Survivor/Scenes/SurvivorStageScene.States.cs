@@ -73,6 +73,7 @@ namespace Game.MVP.Survivor.Scenes
             protected IGameRootController GameRootController => Context.GameRootController;
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
+            protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
@@ -267,15 +268,15 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // サーバー権威の勝敗結果
-                if (StageModel.HasNetworkResult)
+                if (NetworkStageModel.HasNetworkResult)
                 {
-                    Transition(StageModel.NetworkResult.IsVictory
+                    Transition(NetworkStageModel.NetworkResult.IsVictory
                         ? StageEvent.Victory : StageEvent.GameOver);
                     return;
                 }
 
-                StageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(StageModel.GameTime.Value);
+                NetworkStageModel.GameTime.Value += Time.deltaTime;
+                View.UpdateTime(NetworkStageModel.GameTime.Value);
 
                 // 安全ネット: HP=0 で GameOver（サーバー Game.Ended が遅延した場合）
                 if (StageModel.IsDead)
@@ -552,8 +553,8 @@ namespace Game.MVP.Survivor.Scenes
                 var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
-                var clearTime = StageModel.GameTime.Value;
-                var isTimeUp = StageModel.IsTimeUp;
+                var clearTime = NetworkStageModel.GameTime.Value;
+                var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
                 Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
@@ -609,7 +610,7 @@ namespace Game.MVP.Survivor.Scenes
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
+                var clearTime = NetworkStageModel.GameTime.Value;
                 var hpRatio = 0f; // ゲームオーバーなのでHP=0
 
                 Debug.Log($"[GameOverState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, hpRatio={hpRatio:P0}");

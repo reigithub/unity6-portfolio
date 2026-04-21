@@ -46,6 +46,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsFieldSceneLoaded> _allClientsFieldSceneLoadedSub;
 
         private SurvivorStageModel _stageModel;
+        private SurvivorNetworkStageModel _networkStageModel;
         private SurvivorStageWaveManager _waveManager;
         private SurvivorNetworkWeaponManager _weaponManager;
         private SurvivorFusionGameState _gameState;
@@ -60,6 +61,7 @@ namespace Game.MVP.Survivor.Scenes
         public void ConfigureScope(IContainerBuilder builder)
         {
             builder.Register<SurvivorStageModel>(Lifetime.Scoped);
+            builder.Register<SurvivorNetworkStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
             builder.Register<SurvivorNetworkWeaponManager>(Lifetime.Scoped);
         }
@@ -79,8 +81,11 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
+            _networkStageModel = ScopedResolver.Resolve<SurvivorNetworkStageModel>();
+            _networkStageModel.Initialize(session.StageId);
+
             _stageModel = ScopedResolver.Resolve<SurvivorStageModel>();
-            _stageModel.Initialize(session.PlayerId, session.StageId);
+            _stageModel.Initialize(session.PlayerId);
 
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
@@ -113,7 +118,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask LoadUnitySceneAsync()
         {
-            var stageAssetName = _stageModel.StageMaster?.AssetName;
+            var stageAssetName = _networkStageModel.StageMaster?.AssetName;
             if (!string.IsNullOrEmpty(stageAssetName))
             {
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
@@ -252,13 +257,13 @@ namespace Game.MVP.Survivor.Scenes
             _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
 
             _waveManager.OnWaveStarted
-                .Subscribe(s => _stageModel.CurrentWave.Value = s.WaveNumber)
+                .Subscribe(s => _networkStageModel.CurrentWave.Value = s.WaveNumber)
                 .AddTo(Disposables);
 
             _waveManager.OnWaveCompleted
                 .Subscribe(s =>
                 {
-                    var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
+                    var remainingTime = _networkStageModel.TimeLimit - _networkStageModel.GameTime.Value;
                     var spawnInfo = _waveManager.GetSpawnInfo();
                     _stageModel.AddWaveClearScore(
                         s.WaveNumber, remainingTime, spawnInfo.ScoreMultiplier,
@@ -293,7 +298,7 @@ namespace Game.MVP.Survivor.Scenes
 
             _waveManager.OnWaveCompleted.Subscribe(s =>
             {
-                var remainingTime = _stageModel.TimeLimit - _stageModel.GameTime.Value;
+                var remainingTime = _networkStageModel.TimeLimit - _networkStageModel.GameTime.Value;
                 var spawnInfo = _waveManager.GetSpawnInfo();
                 var hpRatio = _stageModel.MaxHp.Value > 0
                     ? (float)_stageModel.CurrentHp.Value / _stageModel.MaxHp.Value : 1f;

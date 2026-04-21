@@ -203,7 +203,7 @@ namespace Game.MVP.Survivor.Scenes
                 _onPauseClicked.OnNext(Unit.Default));
         }
 
-        public void Initialize(SurvivorStageModel model, int totalWaves)
+        public void Initialize(SurvivorStageModel model, SurvivorNetworkStageModel networkStageModel, int totalWaves)
         {
             // Hide result panels
             _gameOverPanel?.AddToClassList("result-overlay--hidden");
@@ -213,14 +213,14 @@ namespace Game.MVP.Survivor.Scenes
             // Initial values
             _maxHp = model.MaxHp.Value;
             _maxExp = model.ExperienceToNextLevel.Value;
-            _timeLimit = model.TimeLimit;
+            _timeLimit = networkStageModel.TimeLimit;
             _totalWaves = totalWaves;
 
             UpdateHp(model.CurrentHp.Value, model.MaxHp.Value);
             UpdateExperience(model.Experience.Value, model.ExperienceToNextLevel.Value);
             UpdateLevel(model.Level.Value);
             UpdateKills(model.TotalKills.Value);
-            UpdateWave(model.CurrentWave.Value, totalWaves);
+            UpdateWave(networkStageModel.CurrentWave.Value, totalWaves);
             UpdateTime(0f);
             UpdateEnemies(0, 0);
         }
