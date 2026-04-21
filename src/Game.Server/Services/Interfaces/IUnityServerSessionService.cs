@@ -10,10 +10,10 @@ public interface IUnityServerSessionService
     /// 空き DS を選択し、セッション作成を指示する。
     /// DS に POST /session/start を送信し、ステータスを active に更新する。
     /// </summary>
-    /// <param name="matchId">割り当てるマッチID。</param>
+    /// <param name="sessionName">Fusion セッション名（SessionName）。</param>
     /// <param name="stageId">ステージID。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。</param>
     /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    Task<DsInfo> AssignSessionAsync(string matchId, int stageId, int expectedPlayers);
+    Task<DsInfo> AssignSessionAsync(string sessionName, int stageId, int expectedPlayers);
 }

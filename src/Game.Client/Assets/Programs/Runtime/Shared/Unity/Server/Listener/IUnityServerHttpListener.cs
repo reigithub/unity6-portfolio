@@ -11,8 +11,8 @@ namespace Game.Shared.Unity.Server
         /// <summary>現在の DS ステータス。"idle" または "active"。</summary>
         string Status { get; }
 
-        /// <summary>現在実行中のマッチID。idle 時は null。</summary>
-        string CurrentMatchId { get; }
+        /// <summary>現在実行中の Fusion セッション名（SessionName）。idle 時は null。</summary>
+        string CurrentSessionName { get; }
 
         /// <summary>起動からの経過秒数。</summary>
         long UptimeSeconds { get; }
@@ -34,8 +34,8 @@ namespace Game.Shared.Unity.Server
         /// セッション状態を active に更新する。
         /// メインスレッドから呼ぶ。
         /// </summary>
-        /// <param name="matchId">開始したセッションのマッチID。</param>
-        void SetSessionActive(string matchId);
+        /// <param name="sessionName">開始した Fusion セッション名（SessionName）。</param>
+        void SetSessionActive(string sessionName);
 
         /// <summary>
         /// セッション状態を idle に戻す。

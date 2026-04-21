@@ -10,14 +10,14 @@ namespace Game.Library.Shared.RequestSigning
     public class SessionTokenParseResult
     {
         public string UserId { get; init; } = string.Empty;
-        public string MatchId { get; init; } = string.Empty;
+        public string SessionName { get; init; } = string.Empty;
         public DateTimeOffset IssuedAt { get; init; }
     }
 
     /// <summary>
     /// HMAC 署名付きセッショントークンの生成・検証ユーティリティ。
     /// Game.Server (トークン発行) と Dedicated Server (トークン検証) の両方から使用。
-    /// トークン形式: MessagePack バイナリ（array(3): userId, matchId, unixTimestamp） + HMAC-SHA256 32B
+    /// トークン形式: MessagePack バイナリ（array(3): userId, sessionName, unixTimestamp） + HMAC-SHA256 32B
     /// Base64 文字列として HTTP レスポンスに格納し、Fusion ConnectionToken では直接バイナリを使用する。
     /// トークンサイズ: ~117B（Fusion ConnectionToken 128B 上限に収まる）
     /// </summary>
@@ -33,12 +33,12 @@ namespace Game.Library.Shared.RequestSigning
         /// </summary>
         /// <param name="secretKey">HMAC シークレットキー</param>
         /// <param name="userId">ユーザーID</param>
-        /// <param name="matchId">マッチID</param>
+        /// <param name="sessionName">Fusion セッション名（SessionName）</param>
         /// <returns>署名付きトークンのバイト列</returns>
-        public static byte[] CreateTokenBytes(byte[] secretKey, string userId, string matchId)
+        public static byte[] CreateTokenBytes(byte[] secretKey, string userId, string sessionName)
         {
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var payloadBytes = PackPayload(userId, matchId, timestamp);
+            var payloadBytes = PackPayload(userId, sessionName, timestamp);
             var signature = HmacRequestSigner.ComputeSignatureBytes(secretKey, payloadBytes);
 
             var token = new byte[payloadBytes.Length + SignatureSize];
@@ -58,10 +58,10 @@ namespace Game.Library.Shared.RequestSigning
         /// </summary>
         /// <param name="secretKey">HMAC シークレットキー</param>
         /// <param name="userId">ユーザーID</param>
-        /// <param name="matchId">マッチID</param>
+        /// <param name="sessionName">Fusion セッション名（SessionName）</param>
         /// <returns>Base64 エンコードされた署名付きトークン文字列</returns>
-        public static string CreateToken(byte[] secretKey, string userId, string matchId)
-            => Convert.ToBase64String(CreateTokenBytes(secretKey, userId, matchId));
+        public static string CreateToken(byte[] secretKey, string userId, string sessionName)
+            => Convert.ToBase64String(CreateTokenBytes(secretKey, userId, sessionName));
 
         /// <summary>
         /// バイナリトークンの HMAC 署名を検証し、ペイロードを返す。
@@ -89,7 +89,7 @@ namespace Game.Library.Shared.RequestSigning
                 return null;
             }
 
-            var (userId, matchId, timestamp) = UnpackPayload(payloadBytes);
+            var (userId, sessionName, timestamp) = UnpackPayload(payloadBytes);
             if (userId == null)
             {
                 return null;
@@ -104,7 +104,7 @@ namespace Game.Library.Shared.RequestSigning
             return new SessionTokenParseResult
             {
                 UserId = userId!,
-                MatchId = matchId!,
+                SessionName = sessionName!,
                 IssuedAt = issuedAt,
             };
         }
@@ -140,13 +140,13 @@ namespace Game.Library.Shared.RequestSigning
         /// <summary>
         /// ペイロードを MessagePack array(3) 形式でパックする。
         /// </summary>
-        private static byte[] PackPayload(string userId, string matchId, long timestamp)
+        private static byte[] PackPayload(string userId, string sessionName, long timestamp)
         {
             var buffer = new ArrayBufferWriter<byte>(128);
             var writer = new MessagePackWriter(buffer);
             writer.WriteArrayHeader(3);
             writer.Write(userId);
-            writer.Write(matchId);
+            writer.Write(sessionName);
             writer.Write(timestamp);
             writer.Flush();
             return buffer.WrittenMemory.ToArray();
@@ -154,9 +154,9 @@ namespace Game.Library.Shared.RequestSigning
 
         /// <summary>
         /// MessagePack array(3) 形式のペイロードをアンパックする。
-        /// パース失敗時は userId / matchId が null のタプルを返す。
+        /// パース失敗時は userId / sessionName が null のタプルを返す。
         /// </summary>
-        private static (string? userId, string? matchId, long timestamp) UnpackPayload(byte[] data)
+        private static (string? userId, string? sessionName, long timestamp) UnpackPayload(byte[] data)
         {
             try
             {
@@ -168,9 +168,9 @@ namespace Game.Library.Shared.RequestSigning
                 }
 
                 var userId = reader.ReadString();
-                var matchId = reader.ReadString();
+                var sessionName = reader.ReadString();
                 var timestamp = reader.ReadInt64();
-                return (userId, matchId, timestamp);
+                return (userId, sessionName, timestamp);
             }
             catch
             {

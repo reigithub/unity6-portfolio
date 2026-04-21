@@ -61,7 +61,7 @@ namespace Game.MVP.Survivor.Server
                 // try の外に置き、cancellation 時はループを抜ける（正常終了経路）
                 var request = await WaitForSessionRequestAsync(cancellation);
 
-                Debug.Log($"[SurvivorServerGameLoop] Session request received: matchId={request.MatchId}, stageId={request.StageId}, players={request.ExpectedPlayers}");
+                Debug.Log($"[SurvivorServerGameLoop] Session request received: sessionName={request.SessionName}, stageId={request.StageId}, players={request.ExpectedPlayers}");
 
                 // 事前バリデーション（try の外・Fusion/Listener 未操作）: DS 自身のマスターに stageId が存在するか
                 // 不正な stageId は Fusion セッションを作らずに即座に拒否し、次のリクエスト待機に戻る
@@ -78,11 +78,11 @@ namespace Game.MVP.Survivor.Server
                 var sessionAcceptedByServer = false;
                 try
                 {
-                    // Step 2: 接続パラメータを動的設定（セッションレベルの matchId のみ更新）
-                    _sessionConfig.UpdateConfigure(sessionName: request.MatchId, playerCount: request.ExpectedPlayers);
+                    // Step 2: 接続パラメータを動的設定（セッションレベルの sessionName のみ更新）
+                    _sessionConfig.UpdateConfigure(sessionName: request.SessionName, playerCount: request.ExpectedPlayers);
 
                     // ServerHttpListener のステータスを active に更新
-                    _listener.SetSessionActive(request.MatchId);
+                    _listener.SetSessionActive(request.SessionName);
 
                     // Step 3: Fusion Server セッション開始
                     await _networkConnector.StartServerAsync(request.StageId);
@@ -169,7 +169,7 @@ namespace Game.MVP.Survivor.Server
                     // try に入った時点（Step 2 以降）に到達していれば、
                     // Fusion/Listener に対する操作の巻き戻しが必要。
                     // 事前バリデーション失敗経路は try 外の continue で抜けるのでここには来ない。
-                    await SafeCleanupAsync(request.MatchId, sessionAcceptedByServer);
+                    await SafeCleanupAsync(request.SessionName, sessionAcceptedByServer);
                 }
 
                 Debug.Log("[SurvivorServerGameLoop] Session cleanup done, ready for next session");
@@ -181,9 +181,9 @@ namespace Game.MVP.Survivor.Server
         /// 各ステップが独立した try/catch で囲まれており、1 つの失敗が次のステップを阻害しない。
         /// 順序: Fusion shutdown → Listener idle → (wasAccepted なら) NotifySessionEnded
         /// </summary>
-        /// <param name="matchId">終了したセッションのマッチID。</param>
+        /// <param name="sessionName">終了した Fusion セッション名（SessionName）。</param>
         /// <param name="wasAccepted">CompletionSource に true を返した（Step 4 以降）か。</param>
-        private async UniTask SafeCleanupAsync(string matchId, bool wasAccepted)
+        private async UniTask SafeCleanupAsync(string sessionName, bool wasAccepted)
         {
             // 1. Fusion shutdown（Photon Cloud 上のセッションを確実に消す。最優先）
             try
@@ -212,7 +212,7 @@ namespace Game.MVP.Survivor.Server
             {
                 try
                 {
-                    await _registry.NotifySessionEndedAsync(matchId, CancellationToken.None);
+                    await _registry.NotifySessionEndedAsync(sessionName, CancellationToken.None);
                 }
                 catch (Exception ex)
                 {

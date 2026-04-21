@@ -51,7 +51,7 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                     GamePort = request.GamePort,
                     HealthPort = request.HealthPort,
                     Status = "idle",
-                    CurrentMatchId = string.Empty,
+                    CurrentSessionName = string.Empty,
                     RegisteredAt = DateTimeOffset.UtcNow,
                 };
 
@@ -175,8 +175,8 @@ public class UnityServerRegistryService : IUnityServerRegistryService
     /// </summary>
     /// <param name="dsId">対象の DS 識別子。</param>
     /// <param name="status">"idle" または "active"。</param>
-    /// <param name="matchId">アクティブセッションのマッチID。idle 時は null。</param>
-    public Task SetStatusAsync(string dsId, string status, string matchId = null)
+    /// <param name="sessionName">アクティブセッションの Fusion セッション名（SessionName）。idle 時は null。</param>
+    public Task SetStatusAsync(string dsId, string status, string sessionName = null)
     {
         return ValkeyExecutor.ExecuteAsync(
             async () =>
@@ -193,14 +193,14 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                 if (info == null) return;
 
                 info.Status = status;
-                info.CurrentMatchId = matchId ?? string.Empty;
+                info.CurrentSessionName = sessionName ?? string.Empty;
 
                 var json = JsonHelper.Serialize(info);
                 await db.HashSetAsync(RegistryKey, dsId, json);
 
                 _logger.LogInformation(
-                    "DS status updated: dsId={DsId}, status={Status}, matchId={MatchId}",
-                    dsId, status, matchId ?? "(none)");
+                    "DS status updated: dsId={DsId}, status={Status}, sessionName={SessionName}",
+                    dsId, status, sessionName ?? "(none)");
             },
             _logger,
             nameof(SetStatusAsync));
@@ -210,8 +210,8 @@ public class UnityServerRegistryService : IUnityServerRegistryService
     /// DS のセッション終了を受け取り、ステータスを idle に戻す。
     /// </summary>
     /// <param name="dsId">セッションが終了した DS の識別子。</param>
-    /// <param name="matchId">終了したセッションのマッチID。</param>
-    public Task SessionEndedAsync(string dsId, string matchId)
+    /// <param name="sessionName">終了した Fusion セッション名（SessionName）。</param>
+    public Task SessionEndedAsync(string dsId, string sessionName)
     {
         return ValkeyExecutor.ExecuteAsync(
             async () =>
@@ -221,8 +221,8 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                 if (raw.IsNullOrEmpty)
                 {
                     _logger.LogWarning(
-                        "DS not found in registry for session-ended: dsId={DsId}, matchId={MatchId}",
-                        dsId, matchId);
+                        "DS not found in registry for session-ended: dsId={DsId}, sessionName={SessionName}",
+                        dsId, sessionName);
                     return;
                 }
 
@@ -230,14 +230,14 @@ public class UnityServerRegistryService : IUnityServerRegistryService
                 if (info == null) return;
 
                 info.Status = "idle";
-                info.CurrentMatchId = string.Empty;
+                info.CurrentSessionName = string.Empty;
 
                 var json = JsonHelper.Serialize(info);
                 await db.HashSetAsync(RegistryKey, dsId, json);
 
                 _logger.LogInformation(
-                    "DS session ended, status reset to idle: dsId={DsId}, matchId={MatchId}",
-                    dsId, matchId);
+                    "DS session ended, status reset to idle: dsId={DsId}, sessionName={SessionName}",
+                    dsId, sessionName);
             },
             _logger,
             nameof(SessionEndedAsync));

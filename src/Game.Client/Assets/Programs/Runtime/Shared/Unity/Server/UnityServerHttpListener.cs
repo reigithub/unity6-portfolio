@@ -40,7 +40,7 @@ namespace Game.Shared.Unity.Server
             = new ConcurrentQueue<UnityServerSessionRequest>();
 
         // 現在のセッション状態
-        private volatile string _currentMatchId;
+        private volatile string _currentSessionName;
         private volatile string _currentStatus = "idle";
 
         // ---------------------------------------------------------------
@@ -51,7 +51,7 @@ namespace Game.Shared.Unity.Server
         public string Status => _currentStatus;
 
         /// <inheritdoc/>
-        public string CurrentMatchId => _currentMatchId;
+        public string CurrentSessionName => _currentSessionName;
 
         /// <inheritdoc/>
         public long UptimeSeconds => (long)(DateTime.UtcNow - _startTime).TotalSeconds;
@@ -105,17 +105,17 @@ namespace Game.Shared.Unity.Server
         }
 
         /// <inheritdoc/>
-        public void SetSessionActive(string matchId)
+        public void SetSessionActive(string sessionName)
         {
-            _currentMatchId = matchId;
+            _currentSessionName = sessionName;
             _currentStatus = "active";
-            Debug.Log($"[ServerHttpListener] Session active: matchId={matchId}");
+            Debug.Log($"[ServerHttpListener] Session active: sessionName={sessionName}");
         }
 
         /// <inheritdoc/>
         public void SetSessionIdle()
         {
-            _currentMatchId = null;
+            _currentSessionName = null;
             _currentStatus = "idle";
             Debug.Log("[ServerHttpListener] Session idle (waiting for next session)");
         }
@@ -227,10 +227,10 @@ namespace Game.Shared.Unity.Server
         private void HandleHealth(NetworkStream stream)
         {
             var dsId = _configProvider.Current.DsId;
-            var matchIdJson = _currentMatchId == null ? "null" : $"\"{EscapeJson(_currentMatchId)}\"";
+            var sessionNameJson = _currentSessionName == null ? "null" : $"\"{EscapeJson(_currentSessionName)}\"";
             var json = $"{{\"dsId\":\"{EscapeJson(dsId)}\","
                        + $"\"status\":\"{EscapeJson(_currentStatus)}\","
-                       + $"\"currentMatchId\":{matchIdJson},"
+                       + $"\"currentSessionName\":{sessionNameJson},"
                        + $"\"uptimeSeconds\":{UptimeSeconds}}}";
             WriteResponse(stream, 200, json);
         }
@@ -244,7 +244,7 @@ namespace Game.Shared.Unity.Server
         private void HandleSessionStart(NetworkStream stream, string body)
         {
             // JSON を手動パース（JsonUtility は static フィールドなし DTO に対応しにくいため）
-            if (!TryParseSessionStartBody(body, out var matchId, out var stageId, out var expectedPlayers))
+            if (!TryParseSessionStartBody(body, out var sessionName, out var stageId, out var expectedPlayers))
             {
                 WriteResponse(stream, 400, "{\"error\":\"Invalid request body\"}");
                 return;
@@ -260,14 +260,14 @@ namespace Game.Shared.Unity.Server
             // ConcurrentQueue にエンキュー → メインスレッドで処理
             var request = new UnityServerSessionRequest
             {
-                MatchId = matchId,
+                SessionName = sessionName,
                 StageId = stageId,
                 ExpectedPlayers = expectedPlayers,
                 CompletionSource = new TaskCompletionSource<bool>(),
             };
             _pendingRequests.Enqueue(request);
 
-            Debug.Log($"[ServerHttpListener] Session start request enqueued: matchId={matchId}, stageId={stageId}, players={expectedPlayers}");
+            Debug.Log($"[ServerHttpListener] Session start request enqueued: sessionName={sessionName}, stageId={stageId}, players={expectedPlayers}");
 
             // メインスレッドの処理完了を待機（最大 30 秒、Fusion の Photon Cloud 接続に数秒かかる）
             bool completed = request.CompletionSource.Task.Wait(TimeSpan.FromSeconds(30));
@@ -280,8 +280,7 @@ namespace Game.Shared.Unity.Server
             bool success = request.CompletionSource.Task.Result;
             if (success)
             {
-                var responseJson = $"{{\"matchId\":\"{EscapeJson(matchId)}\","
-                                   + $"\"sessionName\":\"{EscapeJson(matchId)}\","
+                var responseJson = $"{{\"sessionName\":\"{EscapeJson(sessionName)}\","
                                    + $"\"success\":true,"
                                    + $"\"errorMessage\":\"\"}}";
                 WriteResponse(stream, 200, responseJson);
@@ -410,11 +409,11 @@ namespace Game.Shared.Unity.Server
 
         /// <summary>
         /// POST /session/start のボディを手動パースする。
-        /// 期待フォーマット: {"matchId":"...","stageId":1,"expectedPlayers":2}
+        /// 期待フォーマット: {"sessionName":"...","stageId":1,"expectedPlayers":2}
         /// </summary>
-        private static bool TryParseSessionStartBody(string body, out string matchId, out int stageId, out int expectedPlayers)
+        private static bool TryParseSessionStartBody(string body, out string sessionName, out int stageId, out int expectedPlayers)
         {
-            matchId = null;
+            sessionName = null;
             stageId = 0;
             expectedPlayers = 0;
 
@@ -423,10 +422,10 @@ namespace Game.Shared.Unity.Server
 
             try
             {
-                matchId = ExtractJsonString(body, "matchId");
+                sessionName = ExtractJsonString(body, "sessionName");
                 stageId = ExtractJsonInt(body, "stageId");
                 expectedPlayers = ExtractJsonInt(body, "expectedPlayers");
-                return !string.IsNullOrEmpty(matchId);
+                return !string.IsNullOrEmpty(sessionName);
             }
             catch
             {

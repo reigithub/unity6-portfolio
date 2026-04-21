@@ -22,10 +22,10 @@ namespace Game.Library.Shared.Dto
         public string Status { get; set; } = string.Empty;
 
         /// <summary>
-        /// 現在実行中のマッチID。<see cref="Status"/> が "idle" の場合は空文字列。
+        /// 現在実行中の Fusion セッション名（SessionName）。<see cref="Status"/> が "idle" の場合は空文字列。
         /// </summary>
         [Key(2)]
-        public string CurrentMatchId { get; set; } = string.Empty;
+        public string CurrentSessionName { get; set; } = string.Empty;
 
         /// <summary>
         /// DS の起動からの経過秒数。

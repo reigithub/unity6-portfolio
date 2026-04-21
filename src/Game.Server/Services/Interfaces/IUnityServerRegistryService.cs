@@ -38,15 +38,15 @@ public interface IUnityServerRegistryService
     /// </summary>
     /// <param name="dsId">対象の DS 識別子。</param>
     /// <param name="status">"idle" または "active"。</param>
-    /// <param name="matchId">アクティブセッションのマッチID。idle 時は null。</param>
-    Task SetStatusAsync(string dsId, string status, string matchId = null);
+    /// <param name="sessionName">アクティブセッションの Fusion セッション名（SessionName）。idle 時は null。</param>
+    Task SetStatusAsync(string dsId, string status, string sessionName = null);
 
     /// <summary>
     /// DS のセッション終了を受け取り、ステータスを idle に戻す。
     /// </summary>
     /// <param name="dsId">セッションが終了した DS の識別子。</param>
-    /// <param name="matchId">終了したセッションのマッチID。</param>
-    Task SessionEndedAsync(string dsId, string matchId);
+    /// <param name="sessionName">終了した Fusion セッション名（SessionName）。</param>
+    Task SessionEndedAsync(string dsId, string sessionName);
 }
 
 /// <summary>
@@ -86,9 +86,9 @@ public class DsInfo
     public string Status { get; set; } = "idle";
 
     /// <summary>
-    /// 現在実行中のマッチID。idle 時は空文字列。
+    /// 現在実行中の Fusion セッション名（SessionName）。idle 時は空文字列。
     /// </summary>
-    public string CurrentMatchId { get; set; } = string.Empty;
+    public string CurrentSessionName { get; set; } = string.Empty;
 
     /// <summary>
     /// DS の登録日時（UTC）。

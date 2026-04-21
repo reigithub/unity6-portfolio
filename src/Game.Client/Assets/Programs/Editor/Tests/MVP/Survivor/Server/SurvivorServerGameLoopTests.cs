@@ -101,7 +101,7 @@ namespace Game.Tests.MVP.Survivor.Server
 
             // 1 回目: 不正 stageId=9001 → 拒否
             // 2 回目: キャンセル → ループ終了
-            var request1 = CreateSessionRequest(matchId: "match-1", stageId: 9001);
+            var request1 = CreateSessionRequest(sessionName: "match-1", stageId: 9001);
             using var cts = new CancellationTokenSource();
             int callCount = 0;
             _listener.TryDequeueSessionRequest(out Arg.Any<UnityServerSessionRequest>()).Returns(ci =>
@@ -153,7 +153,7 @@ namespace Game.Tests.MVP.Survivor.Server
             var memoryDb = BuildMemoryDatabase(validStageId: 1);
             _masterDataService.MemoryDatabase.Returns(memoryDb);
 
-            var request1 = CreateSessionRequest(matchId: "match-1", stageId: 1);
+            var request1 = CreateSessionRequest(sessionName: "match-1", stageId: 1);
             _networkConnector.StartServerAsync(Arg.Any<int>())
                 .Returns(UniTask.FromException(new InvalidOperationException("Fusion 起動失敗")));
 
@@ -211,7 +211,7 @@ namespace Game.Tests.MVP.Survivor.Server
             var memoryDb = BuildMemoryDatabase(validStageId: 1);
             _masterDataService.MemoryDatabase.Returns(memoryDb);
 
-            var request1 = CreateSessionRequest(matchId: "match-1", stageId: 1);
+            var request1 = CreateSessionRequest(sessionName: "match-1", stageId: 1);
 
             // AllPlayersReady を即座に発火するように Subscribe を設定
             _allPlayersReadySub.Subscribe(Arg.Any<IMessageHandler<SurvivorSignals.Session.AllPlayersReady>>())
@@ -281,7 +281,7 @@ namespace Game.Tests.MVP.Survivor.Server
             var memoryDb = BuildMemoryDatabase(validStageId: 1);
             _masterDataService.MemoryDatabase.Returns(memoryDb);
 
-            var request1 = CreateSessionRequest(matchId: "match-1", stageId: 1);
+            var request1 = CreateSessionRequest(sessionName: "match-1", stageId: 1);
 
             // AllPlayersReady を即座に発火
             _allPlayersReadySub.Subscribe(Arg.Any<IMessageHandler<SurvivorSignals.Session.AllPlayersReady>>())
@@ -420,11 +420,11 @@ namespace Game.Tests.MVP.Survivor.Server
         /// <summary>
         /// テスト用のセッションリクエストを作成する。
         /// </summary>
-        private static UnityServerSessionRequest CreateSessionRequest(string matchId, int stageId, int expectedPlayers = 1)
+        private static UnityServerSessionRequest CreateSessionRequest(string sessionName, int stageId, int expectedPlayers = 1)
         {
             return new UnityServerSessionRequest
             {
-                MatchId = matchId,
+                SessionName = sessionName,
                 StageId = stageId,
                 ExpectedPlayers = expectedPlayers,
             };

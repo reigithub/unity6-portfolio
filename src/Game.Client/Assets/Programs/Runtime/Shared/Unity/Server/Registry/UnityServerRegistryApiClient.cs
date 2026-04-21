@@ -113,7 +113,7 @@ namespace Game.Shared.Unity.Server
         }
 
         /// <inheritdoc/>
-        public async Task<bool> NotifySessionEndedAsync(string matchId, CancellationToken ct)
+        public async Task<bool> NotifySessionEndedAsync(string sessionName, CancellationToken ct)
         {
             var config = _configProvider.Current;
             if (string.IsNullOrEmpty(config.GameServerUrl))
@@ -124,11 +124,11 @@ namespace Game.Shared.Unity.Server
                 var request = new UnityServerSessionEndedRequest
                 {
                     DsId = config.DsId,
-                    MatchId = matchId ?? string.Empty,
+                    SessionName = sessionName ?? string.Empty,
                 };
                 var url = $"{config.GameServerUrl}/api/unity-server/session-ended";
                 var status = await PostMessagePackAsync(url, request, config.AuthSecretKey, ct);
-                Debug.Log($"[UnityServerRegistryApiClient] セッション終了通知送信: matchId={matchId}, status={status}");
+                Debug.Log($"[UnityServerRegistryApiClient] セッション終了通知送信: sessionName={sessionName}, status={status}");
                 return true;
             }
             catch (Exception ex)

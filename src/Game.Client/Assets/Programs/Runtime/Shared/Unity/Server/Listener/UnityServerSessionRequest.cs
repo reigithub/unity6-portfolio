@@ -8,8 +8,8 @@ namespace Game.Shared.Unity.Server
     /// </summary>
     public sealed class UnityServerSessionRequest
     {
-        /// <summary>マッチID（Fusion セッション識別子）。</summary>
-        public string MatchId;
+        /// <summary>Fusion セッション名（SessionName）。</summary>
+        public string SessionName;
 
         /// <summary>ステージID。</summary>
         public int StageId;

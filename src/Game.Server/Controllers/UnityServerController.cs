@@ -35,7 +35,7 @@ public class UnityServerController : ControllerBase
     /// クライアントはこのトークンを Fusion ConnectionToken に設定して接続する。
     /// stageId が 0 より大きい場合は DS へのセッション割り当ても実行する。
     /// </summary>
-    /// <param name="matchId">マッチID。null の場合はサーバーが自動生成（SP 用）。</param>
+    /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合はサーバーが自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ（SP 用）。</param>
     /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
@@ -45,7 +45,7 @@ public class UnityServerController : ControllerBase
     [ProducesResponseType(typeof(UnityServerAuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> IssueToken(
-        [FromQuery] string matchId = null,
+        [FromQuery] string sessionName = null,
         [FromQuery] int stageId = 0,
         [FromQuery] int expectedPlayers = 1)
     {
@@ -53,7 +53,7 @@ public class UnityServerController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var response = await _serverAuthService.IssueTokenAsync(userId, matchId, stageId, expectedPlayers);
+        var response = await _serverAuthService.IssueTokenAsync(userId, sessionName, stageId, expectedPlayers);
 
         _logger.LogInformation(
             "Unity server token issued for user {UserId}, session {SessionName}, stageId={StageId}",
@@ -127,7 +127,7 @@ public class UnityServerController : ControllerBase
     /// DS がセッション完了後に呼び出し、DS ステータスを idle に戻す。
     /// 認証は RequestSigningMiddleware で処理済み。
     /// </summary>
-    /// <param name="request">セッションが終了した DS の識別子とマッチIDを含むリクエスト。</param>
+    /// <param name="request">セッションが終了した DS の識別子と Fusion セッション名を含むリクエスト。</param>
     /// <returns>セッション終了通知受信成功時は 200 OK。</returns>
     [HttpPost("session-ended")]
     [UnityServerSignature]
@@ -135,10 +135,10 @@ public class UnityServerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SessionEnded([FromBody] UnityServerSessionEndedRequest request)
     {
-        await _registryService.SessionEndedAsync(request.DsId, request.MatchId);
+        await _registryService.SessionEndedAsync(request.DsId, request.SessionName);
 
         _logger.LogInformation(
-            "DS session ended: dsId={DsId}, matchId={MatchId}", request.DsId, request.MatchId);
+            "DS session ended: dsId={DsId}, sessionName={SessionName}", request.DsId, request.SessionName);
 
         return Ok();
     }

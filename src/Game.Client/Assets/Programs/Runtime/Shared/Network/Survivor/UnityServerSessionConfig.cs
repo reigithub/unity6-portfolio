@@ -101,7 +101,7 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
-        /// Dedicated Server のセッション開始時に matchId のみ更新する用途で使用する。
+        /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
         /// </summary>
         /// <param name="address">接続先アドレス。null で既存値を維持。</param>
         /// <param name="port">接続先ポート番号。null で既存値を維持。</param>

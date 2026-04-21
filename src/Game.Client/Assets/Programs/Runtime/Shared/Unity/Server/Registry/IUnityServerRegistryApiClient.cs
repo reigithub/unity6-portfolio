@@ -37,9 +37,9 @@ namespace Game.Shared.Unity.Server
         /// <summary>
         /// セッション終了を Game.Server に通知する。
         /// </summary>
-        /// <param name="matchId">終了したセッションのマッチID。</param>
+        /// <param name="sessionName">終了した Fusion セッション名（SessionName）。</param>
         /// <param name="ct">キャンセルトークン。</param>
         /// <returns>成功した場合は true。</returns>
-        Task<bool> NotifySessionEndedAsync(string matchId, CancellationToken ct);
+        Task<bool> NotifySessionEndedAsync(string sessionName, CancellationToken ct);
     }
 }
