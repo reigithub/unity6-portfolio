@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Fusion;
 using Game.MVP.Core.Scenes;
@@ -51,6 +53,37 @@ namespace Game.MVP.Survivor.Scenes
         private SurvivorNetworkWeaponManager _weaponManager;
         private SurvivorFusionGameState _gameState;
         private SceneInstance? _stageSceneInstance;
+
+        /// <summary>
+        /// サーバーサイドの per-player コンテキスト Dictionary。
+        /// PR2 時点では 1 エントリのみ運用、PR3 以降で複数プレイヤー対応。
+        /// </summary>
+        private readonly Dictionary<PlayerRef, SurvivorNetworkPlayerContext> _players = new();
+
+        /// <summary>
+        /// 唯一の Context を取得するショートカット (PR2 暫定)。
+        /// PR3 で発信者 PlayerRef 経由の索引に置き換える。
+        /// </summary>
+        private SurvivorNetworkPlayerContext PrimaryContext => _players.Values.FirstOrDefault();
+
+        /// <summary>
+        /// PR2 暫定: 現状シグナルに PlayerRef が含まれないため、唯一のエントリを取得する。
+        /// PR3 で各シグナルに PlayerRef/UserId を付与した時点でこのヘルパーは廃止する。
+        /// </summary>
+        private bool TryGetSoleContext(out SurvivorNetworkPlayerContext context)
+        {
+            if (_players.Count == 1)
+            {
+                context = _players.Values.First();
+                return true;
+            }
+            context = null;
+            if (_players.Count > 1)
+            {
+                Debug.LogWarning("[SurvivorNetworkStageScene] Multiple players not supported in PR2, signal dropped");
+            }
+            return false;
+        }
 
         protected override string AssetPathOrAddress => "SurvivorNetworkStageScene";
 
@@ -192,6 +225,21 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     firstController = ctrl;
                 }
+
+                // PR2: per-player コンテキストを生成して Dictionary に登録
+                // PR2 時点では 1 エントリ前提、PR3 で per-player モデル生成に変更
+                if (!_players.ContainsKey(player))
+                {
+                    var context = new SurvivorNetworkPlayerContext(
+                        player,
+                        userId: string.Empty, // UserId 付与は PR3
+                        _stageModel,
+                        _weaponManager);
+                    context.Controller = ctrl;
+                    context.FusionPlayer = ctrl != null ? ctrl.FusionPlayer : null;
+                    _players[player] = context;
+                }
+
                 Debug.Log($"[SurvivorNetworkStageScene] Player initialized: {player}");
             }
 
@@ -231,10 +279,13 @@ namespace Game.MVP.Survivor.Scenes
                     .AddTo(Disposables);
             }
 
-            // ローカルレベルアップ検知
+            // ローカルレベルアップ検知 (per-player Context に記録)
             _stageModel.Level
                 .Skip(1)
-                .Subscribe(_ => _pendingLevelUpCount++)
+                .Subscribe(_ =>
+                {
+                    if (PrimaryContext != null) PrimaryContext.PendingLevelUpCount++;
+                })
                 .AddTo(Disposables);
 
             // StateMachine更新
@@ -435,6 +486,13 @@ namespace Game.MVP.Survivor.Scenes
         public override async UniTask Terminate()
         {
             ApplicationEvents.ResumeTime();
+
+            // per-player コンテキストを Dispose (内部モデルの Dispose は VContainer Scope 管理に委譲)
+            foreach (var context in _players.Values)
+            {
+                context.Dispose();
+            }
+            _players.Clear();
 
             // ステージ環境シーンをアンロード
             if (_stageSceneInstance.HasValue)

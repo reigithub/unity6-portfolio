@@ -27,7 +27,8 @@
         "NSubstitute.dll",
         "R3.dll",
         "MasterMemory.dll",
-        "MessagePack.dll"
+        "MessagePack.dll",
+        "Fusion.Runtime.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

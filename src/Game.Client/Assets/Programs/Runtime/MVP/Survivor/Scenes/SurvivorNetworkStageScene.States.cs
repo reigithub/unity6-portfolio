@@ -24,7 +24,6 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         private StateMachine<SurvivorNetworkStageScene, StageEvent> _stateMachine;
-        private int _pendingLevelUpCount;
 
         private void BuildStateMachine()
         {
@@ -175,10 +174,11 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
-                // レベルアップ処理
-                if (Context._pendingLevelUpCount > 0)
+                // レベルアップ処理 (per-player Context から取得)
+                var primaryCtx = Context.PrimaryContext;
+                if (primaryCtx != null && primaryCtx.PendingLevelUpCount > 0)
                 {
-                    Context._pendingLevelUpCount--;
+                    primaryCtx.PendingLevelUpCount--;
                     Transition(StageEvent.LevelUp);
                     return;
                 }
