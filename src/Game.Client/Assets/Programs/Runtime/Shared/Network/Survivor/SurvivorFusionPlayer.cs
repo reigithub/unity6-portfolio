@@ -114,7 +114,7 @@ namespace Game.Shared.Network.Survivor
             }
             if (TryGetGameState(out var gs))
             {
-                gs.NotifyPlayerDamaged(damage, Health);
+                gs.NotifyPlayerDamaged(Object.InputAuthority, damage, Health);
             }
             else
             {
@@ -480,30 +480,30 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientHitReported(int enemyNetworkId, int weaponId)
+        public void RpcClientHitReported(int enemyNetworkId, int weaponId, RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientHitReported(enemyNetworkId, weaponId);
+                gs.OnClientHitReported(info.Source, enemyNetworkId, weaponId);
             }
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientItemCollected(int networkId)
+        public void RpcClientItemCollected(int networkId, RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientItemCollected(networkId);
+                gs.OnClientItemCollected(info.Source, networkId);
             }
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientPlayerDied()
+        public void RpcClientPlayerDied(RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.NotifyPlayerDied();
-                gs.OnPlayerDied("");
+                gs.NotifyPlayerDied(info.Source);
+                gs.OnPlayerDied(info.Source);
             }
         }
 

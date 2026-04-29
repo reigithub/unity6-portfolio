@@ -49,6 +49,11 @@ namespace Game.MVP.Survivor.Enemy
         private bool _isDead;
         private int _networkId = -1;
         private IFusionRunnerService _runnerService;
+        private SurvivorEnemySpawner _enemySpawner;
+
+        // PR4: ターゲット動的切替 (1 秒毎に最も近い生存プレイヤーへ再評価)
+        private float _targetReevaluationTimer;
+        private const float TargetReevaluationInterval = 1f;
 
         // Events
         private readonly Subject<SurvivorEnemyController> _onDeath = new();
@@ -105,6 +110,47 @@ namespace Game.MVP.Survivor.Enemy
 
         /// <summary>NavMeshAgentの現在速度ベクトル（ネットワーク同期用）</summary>
         public Vector3 Velocity => _navAgent != null ? _navAgent.velocity : Vector3.zero;
+
+        /// <summary>
+        /// PR4: 敵スポナー参照を設定 (ターゲット動的切替に使用)。
+        /// SpawnEnemy で Initialize 直後に呼び出される。
+        /// </summary>
+        public void SetEnemySpawner(SurvivorEnemySpawner spawner)
+        {
+            _enemySpawner = spawner;
+        }
+
+        /// <summary>
+        /// PR4: 「最も近い生存プレイヤー」へターゲットを再評価する。
+        /// 通常は 1 秒毎のタイマーで再評価するが、現ターゲットが死亡している場合は
+        /// タイマー無視で即時再評価し、生存プレイヤーがいなければターゲットを null にする
+        /// （呼び出し元の State がそれを検知して LostTarget 遷移する）。
+        /// </summary>
+        internal void ReevaluateTargetIfNeeded(float deltaTime)
+        {
+            if (_enemySpawner == null) return;
+
+            // 現ターゲットが死亡している場合はタイマー無視で即時再評価（AttackState ループ抜け用）
+            bool currentTargetDead = _damageableTarget != null && _damageableTarget.IsDead;
+
+            _targetReevaluationTimer -= deltaTime;
+            if (!currentTargetDead && _targetReevaluationTimer > 0f) return;
+            _targetReevaluationTimer = TargetReevaluationInterval;
+
+            var newTarget = _enemySpawner.GetClosestAlivePlayerTransform(transform.position);
+            if (newTarget == null)
+            {
+                // 生存プレイヤーがいない → ターゲットをクリアし、呼び出し側で LostTarget 遷移させる
+                _target = null;
+                _damageableTarget = null;
+                return;
+            }
+            if (newTarget != _target)
+            {
+                _target = newTarget;
+                _damageableTarget = newTarget.GetComponent<IDamageable>();
+            }
+        }
 
         /// <summary>
         /// クライアントプロキシ用にサーバー専用コンポーネントを破棄する。
@@ -289,6 +335,8 @@ namespace Game.MVP.Survivor.Enemy
             _hasPendingDamage = false;
             _pendingDamageAmount = 0;
             _target = null;
+            _enemySpawner = null;
+            _targetReevaluationTimer = 0f;
             // _stateMachine は再利用（遷移テーブルは不変のため InitializeStateMachine で再構築しない）
             _damageableTarget = null;
 

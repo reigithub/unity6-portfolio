@@ -182,6 +182,9 @@ namespace Game.MVP.Survivor.Enemy
 
                 var ctx = Context;
 
+                // PR4: 1 秒毎に「最も近い生存プレイヤー」へターゲット再評価
+                ctx.ReevaluateTargetIfNeeded(Time.deltaTime);
+
                 if (ctx._target == null)
                 {
                     StateMachine.Transition(EnemyEvent.LostTarget);
@@ -226,6 +229,9 @@ namespace Game.MVP.Survivor.Enemy
                 if (CheckDamageAndTransition()) return;
 
                 var ctx = Context;
+
+                // PR4: 攻撃中もターゲット再評価 (特にターゲット死亡時に即時切替して無限攻撃ループを防ぐ)
+                ctx.ReevaluateTargetIfNeeded(Time.deltaTime);
 
                 if (ctx._target == null)
                 {

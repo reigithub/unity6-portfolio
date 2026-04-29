@@ -49,12 +49,13 @@ namespace Game.MVP.Survivor.Scenes.Models
         }
 
         /// <summary>
-        /// Context 参照をクリアする。
-        /// PR2 時点では <see cref="StageModel"/> / <see cref="WeaponManager"/> は VContainer Scoped で管理されるため、
-        /// モデル自体の Dispose は呼ばない (二重 Dispose 防止)。PR3 で Transient 化した際に所有者となる。
+        /// Context が所有するリソースを解放する。
+        /// PR3 で VContainer Transient 化済みのため、Context が <see cref="StageModel"/> の所有者となり、
+        /// Dispose で ReactiveProperty を解放する。
         /// </summary>
         public void Dispose()
         {
+            StageModel?.Dispose();
             Controller = null;
             FusionPlayer = null;
         }

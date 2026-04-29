@@ -85,15 +85,16 @@ namespace Game.Tests.MVP
         }
 
         [Test]
-        public void Dispose_DoesNotDisposeStageModel()
+        public void Dispose_DoesNotThrowAndClearsReferences()
         {
-            // PR2 時点: Scoped モデルの Dispose 責任は VContainer に委譲し、Context は触らない
-            var ctx = new SurvivorNetworkPlayerContext(default, string.Empty, _stageModel, _weaponManager);
+            // PR3b: Context が StageModel の所有者、Dispose で ReactiveProperty を解放
+            var stageModel = new SurvivorStageModel();
+            var weaponManager = new SurvivorNetworkWeaponManager();
+            var ctx = new SurvivorNetworkPlayerContext(default, string.Empty, stageModel, weaponManager);
 
-            ctx.Dispose();
-
-            // StageModel が生きていれば Level.Value にアクセスできる (Dispose 済みなら ObjectDisposedException)
-            Assert.DoesNotThrow(() => { var _ = _stageModel.Level.Value; });
+            Assert.DoesNotThrow(() => ctx.Dispose());
+            Assert.That(ctx.Controller, Is.Null);
+            Assert.That(ctx.FusionPlayer, Is.Null);
         }
     }
 }

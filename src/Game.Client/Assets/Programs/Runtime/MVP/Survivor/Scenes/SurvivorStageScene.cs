@@ -45,6 +45,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Wave.Started> _waveStartedSub;
@@ -56,9 +57,13 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Item.Despawned> _itemDespawnedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.LeveledUp> _leveledUpSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Player.Revived> _revivedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
+
+        /// <summary>自分の UserId（シグナル受信時のフィルタに使用）</summary>
+        private string MyUserId => _authSessionService?.UserId ?? string.Empty;
         private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
@@ -70,7 +75,9 @@ namespace Game.MVP.Survivor.Scenes
 
         public void ConfigureScope(IContainerBuilder builder)
         {
-            builder.Register<SurvivorStageModel>(Lifetime.Scoped);
+            // per-player モデル（クライアントは自分 1 人分のみ Resolve するため動作等価）
+            builder.Register<SurvivorStageModel>(Lifetime.Transient);
+            // セッション共有モデル
             builder.Register<SurvivorNetworkStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
         }
@@ -111,6 +118,12 @@ namespace Game.MVP.Survivor.Scenes
             // サーバーはこの通知を受けてからプレイヤーをスポーンする（アクティブシーン = 物理シーン保証）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
+                // 自分の UserId をサーバーに登録 (per-player シグナル識別に必要)
+                var myUserId = _authSessionService?.UserId ?? string.Empty;
+                if (!string.IsNullOrEmpty(myUserId))
+                {
+                    gs.RpcRegisterPlayerUserId(myUserId);
+                }
                 gs.RpcNotifyFieldSceneLoaded();
             }
 
@@ -283,10 +296,18 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeSignals()
         {
-            // サーバー権威の残HPで同期（常にサーバーが正）
-            _damageReceivedSub.Subscribe(s => _stageModel.ForceSetHp(s.RemainingHp)).AddTo(Disposables);
+            // サーバー権威の残HPで同期（自分宛てのみ、他プレイヤーの HP 変動は HUD に影響させない）
+            _damageReceivedSub.Subscribe(s =>
+            {
+                if (s.UserId != MyUserId) return;
+                _stageModel.ForceSetHp(s.RemainingHp);
+            }).AddTo(Disposables);
 
-            _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
+            _playerDiedSub.Subscribe(s =>
+            {
+                if (s.UserId != MyUserId) return;
+                _stageModel.ForceSetHp(0);
+            }).AddTo(Disposables);
 
             _waveStartedSub.Subscribe(s =>
             {
@@ -319,8 +340,13 @@ namespace Game.MVP.Survivor.Scenes
 
             _enemyKilledSub.Subscribe(s =>
             {
-                _stageModel.AddScore(s.ScoreGained);
-                _stageModel.AddKill();
+                // Score と Kill は「自分が倒したキル」のみ個別加算
+                if (s.KillerUserId == MyUserId)
+                {
+                    _stageModel.AddScore(s.ScoreGained);
+                    _stageModel.AddKill();
+                }
+                // TotalKills はセッション集計（全員合計）として HUD 表示のみ更新
                 SceneComponent.UpdateKills(s.TotalKills);
             }).AddTo(Disposables);
 
@@ -343,6 +369,7 @@ namespace Game.MVP.Survivor.Scenes
 
             _leveledUpSub.Subscribe(s =>
             {
+                if (s.UserId != MyUserId) return; // 自分のレベルアップのみ処理
                 _stageModel.SetLevelFromServer(s.Level, s.Experience, s.ExperienceToNextLevel);
                 _pendingLevelUps.Enqueue(s);
                 _pendingLevelUpCount++;
@@ -350,11 +377,19 @@ namespace Game.MVP.Survivor.Scenes
 
             _itemCollectedSub.Subscribe(s =>
             {
+                if (s.UserId != MyUserId) return; // 自分の収集のみ処理
                 _stageModel.SetExperienceFromServer(s.CurrentExperience, s.ExperienceToNextLevel);
                 if (s.ItemType == (int)SurvivorItemType.Recovery)
                 {
                     _stageModel.Heal(s.EffectValue);
                 }
+            }).AddTo(Disposables);
+
+            // 復活シグナル受信 (PR4 時点ではサーバーからの発火経路なし、将来 PR で接続)
+            _revivedSub.Subscribe(s =>
+            {
+                if (s.UserId != MyUserId) return;
+                _stateMachine?.Transition(StageEvent.Revived);
             }).AddTo(Disposables);
         }
 

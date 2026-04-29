@@ -29,6 +29,9 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
     public async UnaryResult<CreateLobbyResponse> CreateLobbyAsync(CreateLobbyRequest request)
     {
         var userId = Context.GetUserId();
+        _logger.LogInformation("[DIAG] CreateLobbyAsync request: userId={UserId}, playerName={PlayerName}, lobbyName={LobbyName}, gameMode={GameMode}, maxPlayers={MaxPlayers}, isPublic={IsPublic}, stageId={StageId}",
+            userId, request.PlayerName, request.LobbyName, request.GameMode, request.MaxPlayers, request.IsPublic, request.StageId);
+
         if (string.IsNullOrEmpty(userId))
         {
             return new CreateLobbyResponse
@@ -78,6 +81,9 @@ public class LobbyService : ServiceBase<ILobbyService>, ILobbyService
     public async UnaryResult<LobbyInfo> JoinLobbyAsync(string lobbyId, string playerName)
     {
         var userId = Context.GetUserId();
+        _logger.LogInformation("[DIAG] JoinLobbyAsync request: lobbyId={LobbyId}, userId={UserId}, playerName={PlayerName}",
+            lobbyId, userId, playerName);
+
         if (string.IsNullOrEmpty(userId))
         {
             throw new ReturnStatusException(Grpc.Core.StatusCode.Unauthenticated, "User not authenticated");

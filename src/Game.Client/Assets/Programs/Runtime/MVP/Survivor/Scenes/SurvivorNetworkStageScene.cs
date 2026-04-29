@@ -36,6 +36,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAddressableAssetService _addressableService;
         [Inject] private readonly IFusionRunnerService _runnerService;
+        [Inject] private readonly IMasterDataService _masterDataService;
 
         // Server signals
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
@@ -47,41 +48,30 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsSceneReady> _allClientsSceneReadySub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllClientsFieldSceneLoaded> _allClientsFieldSceneLoadedSub;
 
-        private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
         private SurvivorStageWaveManager _waveManager;
-        private SurvivorNetworkWeaponManager _weaponManager;
         private SurvivorFusionGameState _gameState;
         private SceneInstance? _stageSceneInstance;
 
-        /// <summary>
-        /// サーバーサイドの per-player コンテキスト Dictionary。
-        /// PR2 時点では 1 エントリのみ運用、PR3 以降で複数プレイヤー対応。
-        /// </summary>
-        private readonly Dictionary<PlayerRef, SurvivorNetworkPlayerContext> _players = new();
+        /// <summary>サーバーサイドの per-player コンテキスト Dictionary</summary>
+        internal readonly Dictionary<PlayerRef, SurvivorNetworkPlayerContext> _players = new();
 
-        /// <summary>
-        /// 唯一の Context を取得するショートカット (PR2 暫定)。
-        /// PR3 で発信者 PlayerRef 経由の索引に置き換える。
-        /// </summary>
-        private SurvivorNetworkPlayerContext PrimaryContext => _players.Values.FirstOrDefault();
+        /// <summary>直近でヒット報告をしたプレイヤー (Kill/Item 帰属の暫定解決)</summary>
+        private SurvivorNetworkPlayerContext _lastHittingContext;
 
-        /// <summary>
-        /// PR2 暫定: 現状シグナルに PlayerRef が含まれないため、唯一のエントリを取得する。
-        /// PR3 で各シグナルに PlayerRef/UserId を付与した時点でこのヘルパーは廃止する。
-        /// </summary>
-        private bool TryGetSoleContext(out SurvivorNetworkPlayerContext context)
+        /// <summary>現在 LevelUp 処理中のプレイヤー (State Machine が参照)</summary>
+        internal SurvivorNetworkPlayerContext _currentLevelingContext;
+
+        /// <summary>UserId から Context を索引する</summary>
+        private bool TryGetContextByUserId(string userId, out SurvivorNetworkPlayerContext context)
         {
-            if (_players.Count == 1)
+            if (!string.IsNullOrEmpty(userId) && _gameState != null
+                && _gameState.TryGetPlayerRef(userId, out var pref)
+                && _players.TryGetValue(pref, out context))
             {
-                context = _players.Values.First();
                 return true;
             }
             context = null;
-            if (_players.Count > 1)
-            {
-                Debug.LogWarning("[SurvivorNetworkStageScene] Multiple players not supported in PR2, signal dropped");
-            }
             return false;
         }
 
@@ -93,10 +83,12 @@ namespace Game.MVP.Survivor.Scenes
 
         public void ConfigureScope(IContainerBuilder builder)
         {
-            builder.Register<SurvivorStageModel>(Lifetime.Scoped);
+            // per-player モデルは Transient で、Context 毎に独立インスタンスを保証
+            builder.Register<SurvivorStageModel>(Lifetime.Transient);
+            builder.Register<SurvivorNetworkWeaponManager>(Lifetime.Transient);
+            // セッション共有モデルは Scoped
             builder.Register<SurvivorNetworkStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
-            builder.Register<SurvivorNetworkWeaponManager>(Lifetime.Scoped);
         }
 
         #endregion
@@ -117,16 +109,10 @@ namespace Game.MVP.Survivor.Scenes
             _networkStageModel = ScopedResolver.Resolve<SurvivorNetworkStageModel>();
             _networkStageModel.Initialize(session.StageId);
 
-            _stageModel = ScopedResolver.Resolve<SurvivorStageModel>();
-            _stageModel.Initialize(session.PlayerId);
-
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
 
-            _weaponManager = ScopedResolver.Resolve<SurvivorNetworkWeaponManager>();
-            _weaponManager.Initialize(
-                _stageModel.GetStartingWeaponId(),
-                _stageModel.GetDamageMultiplier());
+            // PR3b: StageModel / WeaponManager は per-player Context で生成 (SpawnPlayerAsync 内)
 
             // スポーン完了後にアクティブシーンを復元するため事前に保存
             var rootScene = SceneManager.GetActiveScene();
@@ -206,13 +192,21 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.LogWarning("[SurvivorNetworkStageScene] FusionRunner not found, spawn skipped!");
             }
 
-            var playerMaster = _stageModel.PlayerMaster;
-            var levelMaster = _stageModel.CurrentLevelMaster;
+            // PR3b: playerMaster / levelMaster は MasterData から共有取得（全員同じキャラクター前提）
+            var session = _saveService.CurrentSession;
+            if (session == null) return;
+            var memoryDb = _masterDataService.MemoryDatabase;
+            memoryDb.SurvivorPlayerMasterTable.TryFindById(session.PlayerId, out var playerMaster);
+            memoryDb.SurvivorPlayerLevelMasterTable.TryFindByPlayerIdAndLevel(
+                (session.PlayerId, 1), out var levelMaster);
             if (playerMaster == null || levelMaster == null)
             {
                 Debug.LogError("[SurvivorNetworkStageScene] PlayerMaster or LevelMaster is null!");
                 return;
             }
+
+            // GameState を早期取得 (UserId 参照のため)
+            _runnerService.TryGet(out _gameState);
 
             SurvivorPlayerController firstController = null;
             foreach (var player in _runnerService.Runner.ActivePlayers)
@@ -226,18 +220,30 @@ namespace Game.MVP.Survivor.Scenes
                     firstController = ctrl;
                 }
 
-                // PR2: per-player コンテキストを生成して Dictionary に登録
-                // PR2 時点では 1 エントリ前提、PR3 で per-player モデル生成に変更
+                // PR3b: per-player で StageModel / WeaponManager を新規 Resolve (Transient)
+                // ※ ScopedResolver を使う (Resolver は親コンテナで SurvivorStageModel が未登録)
                 if (!_players.ContainsKey(player))
                 {
-                    var context = new SurvivorNetworkPlayerContext(
-                        player,
-                        userId: string.Empty, // UserId 付与は PR3
-                        _stageModel,
-                        _weaponManager);
+                    var stageModel = ScopedResolver.Resolve<SurvivorStageModel>();
+                    stageModel.Initialize(session.PlayerId);
+                    var weaponManager = ScopedResolver.Resolve<SurvivorNetworkWeaponManager>();
+                    weaponManager.Initialize(
+                        stageModel.GetStartingWeaponId(),
+                        stageModel.GetDamageMultiplier());
+
+                    string userId = (_gameState != null && _gameState.TryGetUserId(player, out var uid))
+                        ? uid : string.Empty;
+
+                    var context = new SurvivorNetworkPlayerContext(player, userId, stageModel, weaponManager);
                     context.Controller = ctrl;
                     context.FusionPlayer = ctrl != null ? ctrl.FusionPlayer : null;
                     _players[player] = context;
+
+                    // PR4: 敵スポナーに各プレイヤー Transform を登録 (複数プレイヤーへの分散ターゲティング)
+                    if (ctrl != null && SceneComponent.EnemySpawner != null)
+                    {
+                        SceneComponent.EnemySpawner.AddPlayer(ctrl.transform);
+                    }
                 }
 
                 Debug.Log($"[SurvivorNetworkStageScene] Player initialized: {player}");
@@ -254,39 +260,42 @@ namespace Game.MVP.Survivor.Scenes
 
         private void SubscribeEvents()
         {
-            // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
+            // キル帰属: 直近ヒット Context に加算 (暫定: Kill アトリビュートの正確化は将来 PR)
             _waveManager.OnKillCounted
-                .Subscribe(_ => _stageModel.AddKill())
+                .Subscribe(_ => _lastHittingContext?.StageModel.AddKill())
                 .AddTo(Disposables);
 
-            // アイテム収集 → ClientRpc/RPC通知
+            // アイテム収集 (サーバーローカル吸引経路): 直近ヒット Context にフォールバック帰属
             if (SceneComponent.SurvivorItemSpawner != null)
             {
                 SceneComponent.SurvivorItemSpawner.OnItemCollected
                     .Subscribe(item =>
                     {
-                        _stageModel.CollectItem(item);
+                        var ctx = _lastHittingContext;
+                        if (ctx == null) return;
+                        ctx.StageModel.CollectItem(item);
 
                         if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                             gs.NotifyItemCollected(
-                                "",
+                                ctx.UserId,
                                 item.ItemId,
                                 (int)item.ItemType,
                                 item.EffectValue,
-                                _stageModel.Experience.Value,
-                                _stageModel.ExperienceToNextLevel.Value);
+                                ctx.StageModel.Experience.Value,
+                                ctx.StageModel.ExperienceToNextLevel.Value);
                     })
                     .AddTo(Disposables);
             }
 
-            // ローカルレベルアップ検知 (per-player Context に記録)
-            _stageModel.Level
-                .Skip(1)
-                .Subscribe(_ =>
-                {
-                    if (PrimaryContext != null) PrimaryContext.PendingLevelUpCount++;
-                })
-                .AddTo(Disposables);
+            // per-player レベルアップ検知 (各 Context の StageModel.Level を個別 Subscribe)
+            foreach (var context in _players.Values)
+            {
+                var ctxLocal = context;
+                ctxLocal.StageModel.Level
+                    .Skip(1)
+                    .Subscribe(_ => ctxLocal.PendingLevelUpCount++)
+                    .AddTo(Disposables);
+            }
 
             // StateMachine更新
             SceneComponent.UpdateAsObservable()
@@ -302,10 +311,21 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SubscribeSignals()
         {
-            // サーバー権威の残HPで同期（RPC → MessagePipe 経由。SurvivorStageScene と同じパス）
-            _damageReceivedSub.Subscribe(s => _stageModel.ForceSetHp(s.RemainingHp)).AddTo(Disposables);
+            // サーバー権威の残HPで同期 (per-player: UserId → Context 索引)
+            _damageReceivedSub.Subscribe(s =>
+            {
+                if (TryGetContextByUserId(s.UserId, out var ctx))
+                    ctx.StageModel.ForceSetHp(s.RemainingHp);
+            }).AddTo(Disposables);
 
-            _playerDiedSub.Subscribe(_ => _stageModel.ForceSetHp(0)).AddTo(Disposables);
+            _playerDiedSub.Subscribe(s =>
+            {
+                if (TryGetContextByUserId(s.UserId, out var ctx))
+                {
+                    ctx.StageModel.ForceSetHp(0);
+                    ctx.IsDead = true;
+                }
+            }).AddTo(Disposables);
 
             _waveManager.OnWaveStarted
                 .Subscribe(s => _networkStageModel.CurrentWave.Value = s.WaveNumber)
@@ -316,9 +336,13 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     var remainingTime = _networkStageModel.TimeLimit - _networkStageModel.GameTime.Value;
                     var spawnInfo = _waveManager.GetSpawnInfo();
-                    _stageModel.AddWaveClearScore(
-                        s.WaveNumber, remainingTime, spawnInfo.ScoreMultiplier,
-                        _stageModel.CurrentHp.Value, _stageModel.MaxHp.Value);
+                    // 全プレイヤーにクリアスコア加算 (全員に同じスコア)
+                    foreach (var ctx in _players.Values)
+                    {
+                        ctx.StageModel.AddWaveClearScore(
+                            s.WaveNumber, remainingTime, spawnInfo.ScoreMultiplier,
+                            ctx.StageModel.CurrentHp.Value, ctx.StageModel.MaxHp.Value);
+                    }
                 }).AddTo(Disposables);
         }
 
@@ -327,10 +351,31 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         private void SetupServerNetworking()
         {
-            // 武器適用・ヒット報告・アイテム収集報告シグナル購読
-            _weaponApplySub.Subscribe(s => OnServerWeaponApply(s.Request)).AddTo(Disposables);
-            _hitReportedSub.Subscribe(s => OnServerHitReported(s.EnemyNetworkId, s.WeaponId)).AddTo(Disposables);
-            _itemCollectReportedSub.Subscribe(s => OnServerItemCollectReported(s.NetworkId)).AddTo(Disposables);
+            // 武器適用 (暫定: 現在 LevelUp 中の Context に適用。LevelUpState でセット済み)
+            _weaponApplySub.Subscribe(s =>
+            {
+                var ctx = _currentLevelingContext ?? _lastHittingContext;
+                if (ctx != null) OnServerWeaponApply(ctx, s.Request);
+            }).AddTo(Disposables);
+
+            // ヒット報告 (UserId → Context 索引)
+            _hitReportedSub.Subscribe(s =>
+            {
+                if (TryGetContextByUserId(s.UserId, out var ctx))
+                {
+                    _lastHittingContext = ctx;
+                    OnServerHitReported(ctx, s.EnemyNetworkId, s.WeaponId);
+                }
+            }).AddTo(Disposables);
+
+            // アイテム収集報告 (UserId → Context 索引)
+            _itemCollectReportedSub.Subscribe(s =>
+            {
+                if (TryGetContextByUserId(s.UserId, out var ctx))
+                {
+                    OnServerItemCollectReported(ctx, s.NetworkId);
+                }
+            }).AddTo(Disposables);
 
             // シグナル→ClientRpcブリッジ
             SubscribeNetworkSignals();
@@ -351,10 +396,21 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var remainingTime = _networkStageModel.TimeLimit - _networkStageModel.GameTime.Value;
                 var spawnInfo = _waveManager.GetSpawnInfo();
-                var hpRatio = _stageModel.MaxHp.Value > 0
-                    ? (float)_stageModel.CurrentHp.Value / _stageModel.MaxHp.Value : 1f;
+                // 通知用 WaveClearScore は代表値 (生存プレイヤーの平均 HP 比) で計算。
+                // 実際の per-player スコア加算は SubscribeSignals の OnWaveCompleted で実施。
+                float avgHpRatio = 1f;
+                if (_players.Count > 0)
+                {
+                    float totalRatio = 0f;
+                    foreach (var ctx in _players.Values)
+                    {
+                        var maxHp = ctx.StageModel.MaxHp.Value;
+                        totalRatio += maxHp > 0 ? (float)ctx.StageModel.CurrentHp.Value / maxHp : 1f;
+                    }
+                    avgHpRatio = totalRatio / _players.Count;
+                }
                 var waveClearScore = remainingTime > 0
-                    ? (int)(remainingTime * spawnInfo.ScoreMultiplier * hpRatio) : 0;
+                    ? (int)(remainingTime * spawnInfo.ScoreMultiplier * avgHpRatio) : 0;
 
                 if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                     gs.NotifyWaveCompleted(s.WaveNumber, _waveManager.CurrentWave.CurrentValue, waveClearScore);
@@ -379,14 +435,14 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>プレイヤーと敵の最大許容距離（武器射程 + ネットワーク遅延マージン）</summary>
         private const float MaxHitValidationDistance = 30f;
 
-        private void OnServerHitReported(int enemyNetworkId, int weaponId)
+        private void OnServerHitReported(SurvivorNetworkPlayerContext ctx, int enemyNetworkId, int weaponId)
         {
             if (!SceneComponent.EnemySpawner.TryGetEnemyByNetworkId(enemyNetworkId, out var enemy))
                 return;
             if (enemy.IsDead) return;
 
-            Vector3 playerPos = SceneComponent.PlayerController != null
-                ? SceneComponent.PlayerController.transform.position
+            Vector3 playerPos = ctx.Controller != null
+                ? ctx.Controller.transform.position
                 : enemy.transform.position;
 
             // サーバー側距離検証: プレイヤーと敵の距離が許容範囲内か
@@ -398,17 +454,17 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // 武器発射レート検証: バースト攻撃や不正な高頻度ヒットを排除
-            if (!_weaponManager.ValidateHitRate(weaponId, Time.time))
+            if (!ctx.WeaponManager.ValidateHitRate(weaponId, Time.time))
                 return;
 
-            _weaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
+            ctx.WeaponManager.ProcessHitAuthority(enemy, weaponId, playerPos);
         }
 
         /// <summary>
         /// サーバー: クライアントからのアイテム収集報告を処理。
         /// networkId で個体を取得してマスターデータからアイテム効果を取得し、モデルに適用後、結果を全クライアントに通知。
         /// </summary>
-        private void OnServerItemCollectReported(int networkId)
+        private void OnServerItemCollectReported(SurvivorNetworkPlayerContext ctx, int networkId)
         {
             var itemSpawner = SceneComponent.SurvivorItemSpawner;
             if (itemSpawner == null) return;
@@ -423,14 +479,14 @@ namespace Game.MVP.Survivor.Scenes
             var itemType = (SurvivorItemType)master.ItemType;
             var effectValue = master.EffectValue;
 
-            // サーバー側モデルにアイテム効果を適用
+            // 該当プレイヤーのモデルにアイテム効果を適用
             switch (itemType)
             {
                 case SurvivorItemType.Experience:
-                    _stageModel.AddExperience(effectValue);
+                    ctx.StageModel.AddExperience(effectValue);
                     break;
                 case SurvivorItemType.Recovery:
-                    _stageModel.Heal(effectValue);
+                    ctx.StageModel.Heal(effectValue);
                     break;
             }
 
@@ -438,36 +494,36 @@ namespace Game.MVP.Survivor.Scenes
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
                 gs.NotifyItemCollected(
-                    "", itemId, (int)itemType, effectValue,
-                    _stageModel.Experience.Value,
-                    _stageModel.ExperienceToNextLevel.Value);
+                    ctx.UserId, itemId, (int)itemType, effectValue,
+                    ctx.StageModel.Experience.Value,
+                    ctx.StageModel.ExperienceToNextLevel.Value);
                 gs.NotifyItemDespawned(networkId);
             }
         }
 
-        private void OnServerWeaponApply(SurvivorWeaponApplyRequest request)
+        private void OnServerWeaponApply(SurvivorNetworkPlayerContext ctx, SurvivorWeaponApplyRequest request)
         {
             bool success = false;
             switch (request.Type)
             {
                 case SurvivorWeaponApplyType.AddOrUpgrade:
                     success = request.IsNewWeapon
-                        ? _weaponManager.AddWeapon(request.WeaponId)
-                        : _weaponManager.UpgradeWeapon(request.WeaponId);
+                        ? ctx.WeaponManager.AddWeapon(request.WeaponId)
+                        : ctx.WeaponManager.UpgradeWeapon(request.WeaponId);
                     break;
 
                 case SurvivorWeaponApplyType.Replace:
-                    success = _weaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
+                    success = ctx.WeaponManager.ReplaceWeapon(request.RemoveWeaponId, request.WeaponId);
                     break;
             }
 
-            _weaponManager.UpdateDamageMultiplier(_stageModel.GetDamageMultiplier());
+            ctx.WeaponManager.UpdateDamageMultiplier(ctx.StageModel.GetDamageMultiplier());
 
             // 武器変更をクライアントに通知（整合性確認用）
-            if (success && _gameState != null && _weaponManager.TryGetWeaponById(request.WeaponId, out var slot))
+            if (success && _gameState != null && ctx.WeaponManager.TryGetWeaponById(request.WeaponId, out var slot))
             {
                 _gameState.NotifyWeaponChanged(
-                    "",
+                    ctx.UserId,
                     request.WeaponId,
                     slot.Level,
                     request.IsNewWeapon || request.Type == SurvivorWeaponApplyType.Replace);
@@ -506,20 +562,38 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         /// <summary>
-        /// HP割合を計算（0.0 ~ 1.0）
+        /// 全プレイヤーの平均 HP 割合（0.0 ~ 1.0）
         /// </summary>
-        private float GetHpRatio()
+        internal float GetHpRatio()
         {
-            var maxHp = _stageModel.MaxHp.Value;
-            return maxHp > 0 ? (float)_stageModel.CurrentHp.Value / maxHp : 0f;
+            if (_players.Count == 0) return 0f;
+            float total = 0f;
+            foreach (var ctx in _players.Values)
+            {
+                var maxHp = ctx.StageModel.MaxHp.Value;
+                total += maxHp > 0 ? (float)ctx.StageModel.CurrentHp.Value / maxHp : 0f;
+            }
+            return total / _players.Count;
         }
 
         /// <summary>
-        /// キル数をキャップして取得
+        /// 全プレイヤー合計キル数をキャップして取得
         /// </summary>
-        private int GetCappedKills()
+        internal int GetCappedKills()
         {
-            return Math.Min(_stageModel.TotalKills.Value, _waveManager.TotalTargetKills);
+            int total = 0;
+            foreach (var ctx in _players.Values) total += ctx.StageModel.TotalKills.Value;
+            return Math.Min(total, _waveManager.TotalTargetKills);
+        }
+
+        /// <summary>
+        /// 全プレイヤー合計スコア
+        /// </summary>
+        internal int GetTotalScore()
+        {
+            int total = 0;
+            foreach (var ctx in _players.Values) total += ctx.StageModel.Score.Value;
+            return total;
         }
     }
 }
