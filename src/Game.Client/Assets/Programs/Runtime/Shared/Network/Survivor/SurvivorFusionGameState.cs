@@ -77,6 +77,7 @@ namespace Game.Shared.Network.Survivor
         // --- サーバー側状態 ---
 
         private readonly HashSet<string> _deadPlayerIds = new();
+        private readonly Dictionary<PlayerRef, string> _userIdByPlayerRef = new();
         private int _totalPlayerCount;
         private bool _isLevelUpPaused;
         private float _levelUpPauseStartTime;
@@ -212,31 +213,33 @@ namespace Game.Shared.Network.Survivor
         // =====================================================================
 
         /// <summary>サーバー側: プレイヤーダメージを通知</summary>
-        public void NotifyPlayerDamaged(int damage, int currentHp)
+        public void NotifyPlayerDamaged(PlayerRef target, int damage, int currentHp)
         {
             if (!HasStateAuthority) return;
-            RpcNotifyPlayerDamaged(damage, currentHp);
+            string userId = TryGetUserId(target, out var uid) ? uid : string.Empty;
+            RpcNotifyPlayerDamaged(userId, damage, currentHp);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyPlayerDamaged(int damage, int currentHp)
+        public void RpcNotifyPlayerDamaged(NetworkString<_64> userId, int damage, int currentHp)
         {
             _playerDamagedPub?.Publish(
-                new SurvivorSignals.Player.DamageReceived(damage, currentHp));
+                new SurvivorSignals.Player.DamageReceived(userId.ToString(), damage, currentHp));
         }
 
         /// <summary>サーバー側: プレイヤー死亡を通知</summary>
-        public void NotifyPlayerDied()
+        public void NotifyPlayerDied(PlayerRef target)
         {
             if (!HasStateAuthority) return;
-            RpcNotifyPlayerDied();
+            string userId = TryGetUserId(target, out var uid) ? uid : string.Empty;
+            RpcNotifyPlayerDied(userId);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcNotifyPlayerDied()
+        public void RpcNotifyPlayerDied(NetworkString<_64> userId)
         {
-            Debug.Log("[SurvivorFusionGameState] PlayerDied");
-            _playerDiedPub?.Publish(new SurvivorSignals.Player.Died());
+            Debug.Log($"[SurvivorFusionGameState] PlayerDied: {userId}");
+            _playerDiedPub?.Publish(new SurvivorSignals.Player.Died(userId.ToString()));
         }
 
         /// <summary>サーバー側: アイテム収集を通知</summary>
@@ -402,11 +405,56 @@ namespace Game.Shared.Network.Survivor
         //  サーバー側ロジック: 全滅判定
         // =====================================================================
 
+        // =====================================================================
+        //  PlayerRef ↔ UserId マッピング
+        // =====================================================================
+
+        /// <summary>サーバー側: PlayerRef と UserId の対応を登録する</summary>
+        public void RegisterPlayerUserId(PlayerRef player, string userId)
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+            _userIdByPlayerRef[player] = userId;
+            Debug.Log($"[SurvivorFusionGameState] RegisterPlayerUserId: {player} → {userId}");
+        }
+
+        public bool TryGetUserId(PlayerRef player, out string userId)
+        {
+            return _userIdByPlayerRef.TryGetValue(player, out userId);
+        }
+
+        public bool TryGetPlayerRef(string userId, out PlayerRef player)
+        {
+            foreach (var kvp in _userIdByPlayerRef)
+            {
+                if (kvp.Value == userId)
+                {
+                    player = kvp.Key;
+                    return true;
+                }
+            }
+            player = default;
+            return false;
+        }
+
+        /// <summary>クライアント→サーバー: 自分の UserId を登録する RPC。
+        /// <para>
+        /// GameState は singleton NetworkBehaviour で InputAuthority を持たない (PlayerRef.None) ため、
+        /// <see cref="RpcSources.InputAuthority"/> を指定すると「Local simulation は送信不可」で拒否される。
+        /// <see cref="RpcSources.All"/> にして任意クライアントから送信可能にし、<c>info.Source</c> で発信者 PlayerRef を取得する。
+        /// </para>
+        /// </summary>
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        public void RpcRegisterPlayerUserId(NetworkString<_64> userId, RpcInfo info = default)
+        {
+            RegisterPlayerUserId(info.Source, userId.ToString());
+        }
+
         /// <summary>期待プレイヤー数を設定する。全滅判定の分母として使用。</summary>
         public void SetTotalPlayerCount(int count)
         {
             _totalPlayerCount = count;
             _deadPlayerIds.Clear();
+            _userIdByPlayerRef.Clear();
             _sceneReadyPlayers.Clear();
             _fieldSceneReadyPlayers.Clear();
             _isLevelUpPaused = false;
@@ -438,6 +486,33 @@ namespace Game.Shared.Network.Survivor
             {
                 Debug.Log("[SurvivorFusionGameState] All players dead, sending GameOver");
                 NotifyGameEnded(false, Time.time);
+            }
+        }
+
+        /// <summary>PlayerRef オーバーロード: UserId を解決して既存ロジックに委譲する</summary>
+        public void OnPlayerDied(PlayerRef source)
+        {
+            if (TryGetUserId(source, out var userId))
+            {
+                OnPlayerDied(userId);
+            }
+            else
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnPlayerDied: UserId not found for {source}");
+            }
+        }
+
+        /// <summary>
+        /// 将来の復活プロセス実装用フック (PR4 では受け皿のみ)。
+        /// 呼ばれたプレイヤーを <see cref="_deadPlayerIds"/> から除外するだけで、
+        /// 復活 RPC / トリガー (時間自動/蘇生行動) は将来 PR で実装する。
+        /// </summary>
+        public void OnPlayerRevived(string userId)
+        {
+            if (!HasStateAuthority) return;
+            if (_deadPlayerIds.Remove(userId))
+            {
+                Debug.Log($"[SurvivorFusionGameState] Player revived (placeholder): {userId}");
             }
         }
 
@@ -494,16 +569,18 @@ namespace Game.Shared.Network.Survivor
             _weaponApplyPub?.Publish(new SurvivorSignals.Weapon.ApplyRequested(request));
         }
 
-        /// <summary>サーバー側: クライアントからのヒット報告</summary>
-        public void OnClientHitReported(int enemyNetworkId, int weaponId)
+        /// <summary>サーバー側: クライアントからのヒット報告（発信者 PlayerRef 経由）</summary>
+        public void OnClientHitReported(PlayerRef source, int enemyNetworkId, int weaponId)
         {
-            _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(enemyNetworkId, weaponId));
+            string userId = TryGetUserId(source, out var uid) ? uid : string.Empty;
+            _hitReportedPub?.Publish(new SurvivorSignals.Weapon.HitReported(userId, enemyNetworkId, weaponId));
         }
 
-        /// <summary>サーバー側: クライアントからのアイテム収集報告（networkId で個体識別）</summary>
-        public void OnClientItemCollected(int networkId)
+        /// <summary>サーバー側: クライアントからのアイテム収集報告（networkId で個体識別、発信者 PlayerRef 経由）</summary>
+        public void OnClientItemCollected(PlayerRef source, int networkId)
         {
-            _itemCollectReportedPub?.Publish(new SurvivorSignals.Item.CollectReported(networkId));
+            string userId = TryGetUserId(source, out var uid) ? uid : string.Empty;
+            _itemCollectReportedPub?.Publish(new SurvivorSignals.Item.CollectReported(userId, networkId));
         }
 
         // =====================================================================

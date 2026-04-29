@@ -285,7 +285,7 @@ public class MatchmakingProcessor : BackgroundService
 
         // 2 人目以降は DS 割り当てなし（stageId=0）で並列発行
         var followerTasks = playerIds.Skip(1)
-            .Select(playerId => _unityServerApi.IssueTokenAsync(playerId, matchId, stageId: 0, expectedPlayers: playerIds.Length))
+            .Select(playerId => _unityServerApi.IssueTokenAsync(playerId, matchId, stageId: 0, playerCount: playerIds.Length))
             .ToArray();
 
         await Task.WhenAll([leaderAuthTask, .. followerTasks]);

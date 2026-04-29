@@ -44,9 +44,9 @@ namespace Game.Library.Shared.Dto
         public string DsId { get; set; } = string.Empty;
 
         /// <summary>
-        /// 終了したセッションのマッチID。
+        /// 終了した Fusion セッション名（SessionName）。
         /// </summary>
         [Key(1)]
-        public string MatchId { get; set; } = string.Empty;
+        public string SessionName { get; set; } = string.Empty;
     }
 }

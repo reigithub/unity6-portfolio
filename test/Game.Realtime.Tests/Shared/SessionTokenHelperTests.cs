@@ -77,7 +77,7 @@ public class SessionTokenHelperTests
 
         Assert.NotNull(result);
         Assert.Equal("user1", result!.UserId);
-        Assert.Equal("match1", result.MatchId);
+        Assert.Equal("match1", result.SessionName);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class SessionTokenHelperTests
 
         Assert.NotNull(result);
         Assert.Equal("user1", result!.UserId);
-        Assert.Equal("match1", result.MatchId);
+        Assert.Equal("match1", result.SessionName);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class SessionTokenHelperTests
         Assert.NotNull(result1);
         Assert.NotNull(result2);
         Assert.Equal(result1!.UserId, result2!.UserId);
-        Assert.Equal(result1.MatchId, result2.MatchId);
+        Assert.Equal(result1.SessionName, result2.SessionName);
     }
 
     #endregion

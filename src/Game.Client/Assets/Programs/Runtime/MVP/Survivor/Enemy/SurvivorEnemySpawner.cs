@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Client.MasterData;
 using Game.Library.Shared.Dto;
 using Game.MVP.Survivor.Services;
+using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
@@ -143,6 +144,33 @@ namespace Game.MVP.Survivor.Enemy
             if (_playerTransforms.Count > 0)
                 return _playerTransforms[NextRange(0, _playerTransforms.Count)];
             return _playerTransform;
+        }
+
+        /// <summary>
+        /// 指定座標から最も近い「生存している」プレイヤーの Transform を返す。
+        /// 死亡 (<see cref="IDamageable.IsDead"/>) のプレイヤーは候補から除外する。
+        /// 生存プレイヤーが 1 人もいない場合は null を返す。
+        /// 敵 (SurvivorEnemyController) のターゲット動的切替に使用する (PR4)。
+        /// </summary>
+        public Transform GetClosestAlivePlayerTransform(Vector3 from)
+        {
+            Transform closest = null;
+            float closestSqr = float.MaxValue;
+            for (int i = 0; i < _playerTransforms.Count; i++)
+            {
+                var t = _playerTransforms[i];
+                if (t == null) continue;
+                var damageable = t.GetComponent<IDamageable>();
+                if (damageable != null && damageable.IsDead) continue;
+
+                var sqr = (t.position - from).sqrMagnitude;
+                if (sqr < closestSqr)
+                {
+                    closestSqr = sqr;
+                    closest = t;
+                }
+            }
+            return closest;
         }
 
         public async UniTask InitializeAsync(SurvivorStageWaveManager waveManager)
@@ -470,6 +498,8 @@ namespace Game.MVP.Survivor.Enemy
                     spawnInfo.ItemDropGroupId,
                     spawnInfo.ExpDropGroupId
                 );
+                // PR4: ターゲット動的切替のため Spawner 参照を渡す
+                enemy.SetEnemySpawner(this);
                 Debug.Log($"[SurvivorEnemySpawner] Spawned {enemyMaster.Name} at {spawnPosition}");
 
                 var networkId = _nextNetworkId++;

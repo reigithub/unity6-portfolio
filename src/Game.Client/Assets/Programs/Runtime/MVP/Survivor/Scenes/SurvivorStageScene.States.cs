@@ -32,6 +32,8 @@ namespace Game.MVP.Survivor.Scenes
             Resume,
             LevelUp,
             LevelUpComplete,
+            ApparentDeath,   // 仮死状態 (HP=0 だがサーバーの GameEnded まで観戦継続)
+            Revived,          // 仮死からの復活 (PR4 では発火経路なし、将来 PR で接続)
             Victory,
             GameOver,
             Retry,
@@ -52,12 +54,18 @@ namespace Game.MVP.Survivor.Scenes
             _stateMachine.AddTransition<ReadyState, PlayingState>(StageEvent.StartGame);
             _stateMachine.AddTransition<PlayingState, PausedState>(StageEvent.Pause);
             _stateMachine.AddTransition<PlayingState, LevelUpState>(StageEvent.LevelUp);
+            _stateMachine.AddTransition<PlayingState, ApparentDeathState>(StageEvent.ApparentDeath);
             _stateMachine.AddTransition<PlayingState, VictoryState>(StageEvent.Victory);
             _stateMachine.AddTransition<PlayingState, GameOverState>(StageEvent.GameOver);
             _stateMachine.AddTransition<PausedState, PlayingState>(StageEvent.Resume);
             _stateMachine.AddTransition<PausedState, RetryState>(StageEvent.Retry);
             _stateMachine.AddTransition<PausedState, QuitToTitleState>(StageEvent.QuitToTitle);
             _stateMachine.AddTransition<LevelUpState, PlayingState>(StageEvent.LevelUpComplete);
+
+            // 仮死状態遷移
+            _stateMachine.AddTransition<ApparentDeathState, PlayingState>(StageEvent.Revived);
+            _stateMachine.AddTransition<ApparentDeathState, VictoryState>(StageEvent.Victory);
+            _stateMachine.AddTransition<ApparentDeathState, GameOverState>(StageEvent.GameOver);
 
             _stateMachine.SetInitState<ReadyState>();
         }
@@ -73,6 +81,7 @@ namespace Game.MVP.Survivor.Scenes
             protected IGameRootController GameRootController => Context.GameRootController;
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
+            protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
             protected SurvivorStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
@@ -267,20 +276,21 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // サーバー権威の勝敗結果
-                if (StageModel.HasNetworkResult)
+                if (NetworkStageModel.HasNetworkResult)
                 {
-                    Transition(StageModel.NetworkResult.IsVictory
+                    Transition(NetworkStageModel.NetworkResult.IsVictory
                         ? StageEvent.Victory : StageEvent.GameOver);
                     return;
                 }
 
-                StageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(StageModel.GameTime.Value);
+                NetworkStageModel.GameTime.Value += Time.deltaTime;
+                View.UpdateTime(NetworkStageModel.GameTime.Value);
 
-                // 安全ネット: HP=0 で GameOver（サーバー Game.Ended が遅延した場合）
+                // 自プレイヤーが死亡 → 仮死状態 (ApparentDeath) へ遷移。
+                // 観戦状態で Wave/Time 表示を継続し、全員死亡時のみサーバーから NotifyGameEnded が届く。
                 if (StageModel.IsDead)
                 {
-                    Transition(StageEvent.GameOver);
+                    Transition(StageEvent.ApparentDeath);
                     return;
                 }
             }
@@ -295,6 +305,46 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.LogWarning("[PlayingState] Server disconnected");
                 _disconnected = true;
+            }
+        }
+
+        #endregion
+
+        #region ApparentDeathState
+
+        /// <summary>
+        /// 仮死状態 (HP=0) のクライアントステート。
+        /// 自プレイヤーは入力無効化 + 観戦状態で Wave/Time 表示を維持しつつ、
+        /// サーバーの <c>NotifyGameEnded</c> (全員死亡 or 時間切れ or 全 Wave クリア) を待つ。
+        /// 復活 (<see cref="StageEvent.Revived"/>) は PR4 では発火経路なし、将来 PR で接続。
+        /// </summary>
+        private class ApparentDeathState : StageStateBase
+        {
+            public override void Enter()
+            {
+                Debug.Log("[ApparentDeathState] Enter — player is in apparent death (awaiting revive or session end)");
+                Context._inputService.DisablePlayer();
+            }
+
+            public override void Update()
+            {
+                // サーバー権威の勝敗結果 (全員死亡 / 時間切れ / 全 Wave クリア) を監視
+                if (NetworkStageModel.HasNetworkResult)
+                {
+                    Transition(NetworkStageModel.NetworkResult.IsVictory
+                        ? StageEvent.Victory : StageEvent.GameOver);
+                    return;
+                }
+
+                // Wave/Time 表示更新は継続 (観戦状態)
+                NetworkStageModel.GameTime.Value += Time.deltaTime;
+                View.UpdateTime(NetworkStageModel.GameTime.Value);
+            }
+
+            public override void Exit()
+            {
+                Debug.Log("[ApparentDeathState] Exit");
+                Context._inputService.EnablePlayer();
             }
         }
 
@@ -552,8 +602,8 @@ namespace Game.MVP.Survivor.Scenes
                 var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
-                var clearTime = StageModel.GameTime.Value;
-                var isTimeUp = StageModel.IsTimeUp;
+                var clearTime = NetworkStageModel.GameTime.Value;
+                var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
                 Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
@@ -609,7 +659,7 @@ namespace Game.MVP.Survivor.Scenes
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
+                var clearTime = NetworkStageModel.GameTime.Value;
                 var hpRatio = 0f; // ゲームオーバーなのでHP=0
 
                 Debug.Log($"[GameOverState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, hpRatio={hpRatio:P0}");

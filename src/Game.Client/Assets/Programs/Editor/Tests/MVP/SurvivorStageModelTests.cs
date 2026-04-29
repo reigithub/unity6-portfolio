@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using Game.Client.MasterData;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.Shared.Services;
@@ -29,7 +28,6 @@ namespace Game.Tests.MVP
             _model.DamageBonus.Value = 0;
             _model.TotalKills.Value = 0;
             _model.Score.Value = 0;
-            _model.GameTime.Value = 0f;
         }
 
         [TearDown]
@@ -393,66 +391,6 @@ namespace Game.Tests.MVP
 
         #endregion
 
-        #region IsTimeUp Tests
-
-        [Test]
-        public void IsTimeUp_WhenNoTimeLimit_ReturnsFalse()
-        {
-            // Arrange - _stageMaster is null, so TimeLimit is 0
-            _model.GameTime.Value = 1000f;
-
-            // Assert
-            Assert.That(_model.IsTimeUp, Is.False);
-        }
-
-        [Test]
-        public void IsTimeUp_WithTimeLimit_WhenTimeReached_ReturnsTrue()
-        {
-            // Arrange
-            SetStageMasterTimeLimit(60f);
-            _model.GameTime.Value = 60f;
-
-            // Assert
-            Assert.That(_model.IsTimeUp, Is.True);
-        }
-
-        [Test]
-        public void IsTimeUp_WithTimeLimit_WhenTimeExceeded_ReturnsTrue()
-        {
-            // Arrange
-            SetStageMasterTimeLimit(60f);
-            _model.GameTime.Value = 70f;
-
-            // Assert
-            Assert.That(_model.IsTimeUp, Is.True);
-        }
-
-        [Test]
-        public void IsTimeUp_WithTimeLimit_WhenTimeNotReached_ReturnsFalse()
-        {
-            // Arrange
-            SetStageMasterTimeLimit(60f);
-            _model.GameTime.Value = 30f;
-
-            // Assert
-            Assert.That(_model.IsTimeUp, Is.False);
-        }
-
-        private void SetStageMasterTimeLimit(float timeLimit)
-        {
-            // SurvivorStageMasterはreadonly structなのでリフレクションで設定
-            var stageMaster = new SurvivorStageMaster
-            {
-                Id = 1,
-                TimeLimit = (int)timeLimit
-            };
-
-            var field = typeof(SurvivorStageModel).GetField("_stageMaster", BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(_model, stageMaster);
-        }
-
-        #endregion
-
         #region AddExperience Tests (without MasterData)
 
         [Test]
@@ -510,7 +448,7 @@ namespace Game.Tests.MVP
         {
             // Arrange
             var model = CreateModelWithMasterData();
-            model.Initialize(1, 1);
+            model.Initialize(1);
             // Initialize sets Level=1 from master (RequiredExp=100, MaxHp=100)
 
             // Act
@@ -530,7 +468,7 @@ namespace Game.Tests.MVP
         {
             // Arrange
             var model = CreateModelWithMasterData();
-            model.Initialize(1, 1);
+            model.Initialize(1);
             // Level 1: RequiredExp=100, Level 2: RequiredExp=150
 
             // Act - 250 exp = Level1(100) + Level2(150) → Level 3
@@ -549,7 +487,7 @@ namespace Game.Tests.MVP
         {
             // Arrange
             var model = CreateModelWithMasterData();
-            model.Initialize(1, 1);
+            model.Initialize(1);
             // After Initialize: MaxHp=100, CurrentHp=100
             model.TakeDamage(30); // CurrentHp=70
 

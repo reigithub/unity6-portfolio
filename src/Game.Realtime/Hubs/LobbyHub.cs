@@ -180,7 +180,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             var authResponse = await _unityServerApi.IssueTokenAsync(
                 player.UserId, matchId,
                 stageId: isFirst ? stageId : 0,
-                expectedPlayers: players.Length);
+                playerCount: players.Length);
             isFirst = false;
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))

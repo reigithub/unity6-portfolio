@@ -76,9 +76,11 @@ namespace Game.Shared.Services
             _data = await _storage.LoadAsync<SessionSaveData>(SaveKey);
             if (_data == null || string.IsNullOrEmpty(_data.AuthToken))
             {
+                Debug.Log($"[DIAG] RestoreSessionAsync: no session found (data null={_data == null}, path={_storage.BasePath})");
                 _data ??= new SessionSaveData();
                 return false;
             }
+            Debug.Log($"[DIAG] RestoreSessionAsync: restored userId={_data.UserId}, userName={_data.UserName}, fingerprint={_data.DeviceFingerprint}, path={_storage.BasePath}");
             return true;
         }
 
@@ -95,8 +97,12 @@ namespace Game.Shared.Services
         {
             _data ??= new SessionSaveData();
             if (!string.IsNullOrEmpty(_data.DeviceFingerprint))
+            {
+                Debug.Log($"[DIAG] GetOrCreateDeviceFingerprintAsync: reused existing fingerprint={_data.DeviceFingerprint}, path={_storage.BasePath}");
                 return _data.DeviceFingerprint;
+            }
             _data.DeviceFingerprint = GenerateDeviceFingerprint();
+            Debug.Log($"[DIAG] GetOrCreateDeviceFingerprintAsync: generated new fingerprint={_data.DeviceFingerprint}, path={_storage.BasePath}");
             await _storage.SaveAsync(SaveKey, _data);
             return _data.DeviceFingerprint;
         }

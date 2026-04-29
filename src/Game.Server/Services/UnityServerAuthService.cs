@@ -39,44 +39,44 @@ public class UnityServerAuthService : IUnityServerAuthService
 
     /// <summary>
     /// 指定ユーザーに対してセッショントークンを発行する。
-    /// SP クライアント用に一意の matchId を UUID ベースで生成する。
+    /// SP クライアント用に一意の sessionName を UUID ベースで生成する。
     /// stageId が 0 より大きい場合は DS へのセッション割り当てを実行する。
     /// </summary>
     /// <param name="userId">トークン発行対象のユーザーID。</param>
-    /// <param name="matchId">マッチID。null の場合は自動生成（SP 用）。</param>
+    /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合は自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
-    /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す。</param>
+    /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す。</param>
     /// <returns>発行されたトークンとセッション名を含むレスポンス。</returns>
-    public async Task<UnityServerAuthResponse> IssueTokenAsync(string userId, string matchId, int stageId = 0, int expectedPlayers = 1)
+    public async Task<UnityServerAuthResponse> IssueTokenAsync(string userId, string sessionName, int stageId = 0, int playerCount = 1)
     {
-        matchId ??= $"sp-{Guid.NewGuid():N}";
+        sessionName ??= $"sp-{Guid.NewGuid():N}";
         var tokenExpiry = SessionTokenHelper.DefaultExpiry;
         var expiresAt = DateTimeOffset.UtcNow.Add(tokenExpiry);
 
         // HMAC 署名付きトークン生成
-        var token = SessionTokenHelper.CreateToken(_secretKey, userId, matchId);
+        var token = SessionTokenHelper.CreateToken(_secretKey, userId, sessionName);
 
         // Valkey にも保存（失効管理・追跡用）
         var info = new SessionTokenInfo
         {
             UserId = userId,
-            MatchId = matchId,
+            SessionName = sessionName,
             ExpiresAt = expiresAt,
         };
 
         var db = _redis.GetDatabase();
         var serialized = JsonHelper.Serialize(info);
-        await db.StringSetAsync($"{KeyPrefix}{userId}:{matchId}", serialized, tokenExpiry);
+        await db.StringSetAsync($"{KeyPrefix}{userId}:{sessionName}", serialized, tokenExpiry);
 
         _logger.LogInformation(
-            "Issued HMAC session token for user {UserId}, match {MatchId}", userId, matchId);
+            "Issued HMAC session token for user {UserId}, session {SessionName}", userId, sessionName);
 
         // DS セッション割り当て（stageId が指定された場合のみ実行）
         string serverAddress = string.Empty;
         int serverPort = 0;
         if (stageId > 0)
         {
-            var dsInfo = await _unityServerSession.AssignSessionAsync(matchId, stageId, expectedPlayers);
+            var dsInfo = await _unityServerSession.AssignSessionAsync(sessionName, stageId, playerCount);
             serverAddress = dsInfo.Address;
             serverPort = dsInfo.GamePort;
         }
@@ -84,7 +84,7 @@ public class UnityServerAuthService : IUnityServerAuthService
         return new UnityServerAuthResponse
         {
             Token = token,
-            SessionName = matchId,
+            SessionName = sessionName,
             ServerAddress = serverAddress,
             ServerPort = serverPort,
         };
@@ -108,7 +108,7 @@ public class UnityServerAuthService : IUnityServerAuthService
 
         // Step 2: Valkey で失効チェック（revoke 済み or 期限切れ → null）
         var db = _redis.GetDatabase();
-        var value = await db.StringGetAsync($"{KeyPrefix}{parsed.UserId}:{parsed.MatchId}");
+        var value = await db.StringGetAsync($"{KeyPrefix}{parsed.UserId}:{parsed.SessionName}");
         if (value.IsNullOrEmpty)
         {
             _logger.LogDebug("Token revoked or expired in Valkey");
@@ -125,7 +125,7 @@ public class UnityServerAuthService : IUnityServerAuthService
     {
         public string UserId { get; init; } = string.Empty;
 
-        public string MatchId { get; init; } = string.Empty;
+        public string SessionName { get; init; } = string.Empty;
 
         public DateTimeOffset ExpiresAt { get; init; }
     }

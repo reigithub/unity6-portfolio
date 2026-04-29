@@ -30,6 +30,7 @@ namespace Game.Shared.Services
         public async UniTask<ApiResponse<LoginResponse>> GuestLoginAsync()
         {
             var fingerprint = await _authSessionService.GetOrCreateDeviceFingerprintAsync();
+            UnityEngine.Debug.Log($"[DIAG] GuestLoginAsync: fingerprint={fingerprint}");
             var request = new GuestLoginRequest { DeviceFingerprint = fingerprint };
 
             var response = await _apiClient.PostAsync<GuestLoginRequest, LoginResponse>(
@@ -37,6 +38,7 @@ namespace Game.Shared.Services
 
             if (response.IsSuccess)
             {
+                UnityEngine.Debug.Log($"[DIAG] GuestLoginAsync success: userId={response.Data?.UserId}, userName={response.Data?.UserName}");
                 await OnLoginSuccessAsync(response.Data, "guest");
             }
 

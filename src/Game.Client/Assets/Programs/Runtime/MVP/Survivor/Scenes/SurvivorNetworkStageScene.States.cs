@@ -24,7 +24,6 @@ namespace Game.MVP.Survivor.Scenes
         }
 
         private StateMachine<SurvivorNetworkStageScene, StageEvent> _stateMachine;
-        private int _pendingLevelUpCount;
 
         private void BuildStateMachine()
         {
@@ -46,9 +45,8 @@ namespace Game.MVP.Survivor.Scenes
         private abstract class StageStateBase : State<SurvivorNetworkStageScene, StageEvent>
         {
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
-            protected Models.SurvivorStageModel StageModel => Context._stageModel;
-            protected SurvivorStageSceneComponent View => Context.SceneComponent;
-            protected Weapon.SurvivorNetworkWeaponManager WeaponManager => Context._weaponManager;
+            protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
+            protected SurvivorNetworkStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
         }
@@ -66,8 +64,11 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[SurvivorNetworkStageScene.ReadyState] Enter");
                 _startComplete = false;
 
-                // プレイヤー初期化（サーバーではカメラなし）
-                View.InitializePlayer(StageModel.CurrentLevelMaster, null);
+                // プレイヤー初期化 (全 Context に対して実施、サーバーではカメラなし)
+                foreach (var ctx in Context._players.Values)
+                {
+                    View.InitializePlayer(ctx.StageModel.CurrentLevelMaster, null);
+                }
 
                 InitializeAndStartAsync().Forget();
             }
@@ -174,12 +175,16 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
-                // レベルアップ処理
-                if (Context._pendingLevelUpCount > 0)
+                // レベルアップ処理 (全 Context を走査、PendingLevelUpCount > 0 のプレイヤーを順番に処理)
+                foreach (var ctx in Context._players.Values)
                 {
-                    Context._pendingLevelUpCount--;
-                    Transition(StageEvent.LevelUp);
-                    return;
+                    if (ctx.PendingLevelUpCount > 0)
+                    {
+                        ctx.PendingLevelUpCount--;
+                        Context._currentLevelingContext = ctx;
+                        Transition(StageEvent.LevelUp);
+                        return;
+                    }
                 }
 
                 // ゲームタイマー更新（ポーズ中はスキップ）
@@ -189,18 +194,23 @@ namespace Game.MVP.Survivor.Scenes
                     var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
                         ? Context._runnerService.Runner.DeltaTime
                         : Time.deltaTime;
-                    StageModel.GameTime.Value += dt;
+                    NetworkStageModel.GameTime.Value += dt;
                 }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
-                if (StageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
+                if (NetworkStageModel.IsTimeUp || WaveManager.IsAllWavesCleared.CurrentValue)
                 {
                     Transition(StageEvent.Victory);
                     return;
                 }
 
-                // 敗北条件: HP0
-                if (StageModel.IsDead)
+                // 敗北条件: 全プレイヤーが死亡
+                bool allDead = Context._players.Count > 0;
+                foreach (var ctx in Context._players.Values)
+                {
+                    if (!ctx.StageModel.IsDead) { allDead = false; break; }
+                }
+                if (allDead)
                 {
                     Transition(StageEvent.GameOver);
                     return;
@@ -218,34 +228,38 @@ namespace Game.MVP.Survivor.Scenes
         {
             public override void Enter()
             {
-                Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Enter - Level {StageModel.Level.Value}");
+                var ctx = Context._currentLevelingContext;
+                if (ctx == null)
+                {
+                    Debug.LogWarning("[SurvivorNetworkStageScene.LevelUpState] _currentLevelingContext is null, skipping");
+                    Transition(StageEvent.LevelUpComplete);
+                    return;
+                }
+
+                Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Enter - player={ctx.Player}, level={ctx.StageModel.Level.Value}");
                 ApplicationEvents.PauseTime();
 
-                // プレイヤーステータス更新
-                if (View.PlayerController != null && StageModel.CurrentLevelMaster != null)
+                // プレイヤーステータス更新 (該当 Context の Controller)
+                if (ctx.Controller != null && ctx.StageModel.CurrentLevelMaster != null)
                 {
-                    View.PlayerController.UpdateLevelStats(StageModel.CurrentLevelMaster);
+                    ctx.Controller.UpdateLevelStats(ctx.StageModel.CurrentLevelMaster);
                 }
 
                 // ダメージ倍率更新
-                WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
+                ctx.WeaponManager.UpdateDamageMultiplier(ctx.StageModel.GetDamageMultiplier());
 
-                // 武器選択肢を生成してクライアントに送信
+                // 武器選択肢を生成して該当クライアントに送信 (InputAuthority ターゲット RPC)
                 {
-                    var serverOptions = WeaponManager.GetUpgradeOptions(StageModel.WeaponChoiceCount.Value);
-                    if (serverOptions.Count > 0)
+                    var serverOptions = ctx.WeaponManager.GetUpgradeOptions(ctx.StageModel.WeaponChoiceCount.Value);
+                    if (serverOptions.Count > 0 && ctx.FusionPlayer != null)
                     {
                         var networkOptions = ConvertToNetworkOptions(serverOptions);
-                        var fusionPlayer = View.PlayerController?.FusionPlayer;
-                        if (fusionPlayer != null)
-                        {
-                            fusionPlayer.NotifyPlayerLevelUp(
-                                StageModel.Level.Value,
-                                StageModel.Experience.Value,
-                                StageModel.ExperienceToNextLevel.Value,
-                                networkOptions);
-                            Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Sent LevelUp with {networkOptions.Length} options");
-                        }
+                        ctx.FusionPlayer.NotifyPlayerLevelUp(
+                            ctx.StageModel.Level.Value,
+                            ctx.StageModel.Experience.Value,
+                            ctx.StageModel.ExperienceToNextLevel.Value,
+                            networkOptions);
+                        Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Sent LevelUp to {ctx.UserId} with {networkOptions.Length} options");
                     }
                 }
 
@@ -301,10 +315,10 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid SaveAndNotifyAsync()
             {
-                var score = StageModel.Score.Value;
+                var score = Context.GetTotalScore();
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
-                var isTimeUp = StageModel.IsTimeUp;
+                var clearTime = NetworkStageModel.GameTime.Value;
+                var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
                 Debug.Log($"[SurvivorNetworkStageScene.VictoryState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
@@ -345,9 +359,9 @@ namespace Game.MVP.Survivor.Scenes
 
             private async UniTaskVoid SaveAndNotifyAsync()
             {
-                var score = StageModel.Score.Value;
+                var score = Context.GetTotalScore();
                 var kills = Context.GetCappedKills();
-                var clearTime = StageModel.GameTime.Value;
+                var clearTime = NetworkStageModel.GameTime.Value;
 
                 Debug.Log($"[SurvivorNetworkStageScene.GameOverState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 

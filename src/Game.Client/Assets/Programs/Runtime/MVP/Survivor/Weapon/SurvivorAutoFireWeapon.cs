@@ -160,8 +160,9 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
-        /// プロジェクタイル命中処理（SP/MP統一）
-        /// ヒット検出とVFX表示を行い、ダメージ処理はScene側のコールバックに委譲する。
+        /// プロジェクタイル命中処理。
+        /// ヒット検出と VFX 表示を行い、ダメージ処理は Scene 側コールバックに委譲する
+        /// （Scene 側がサーバーに RPC 送信 = サーバー権威）。
         /// </summary>
         private void OnProjectileHit(SurvivorProjectile projectile, Collider other)
         {
@@ -170,7 +171,8 @@ namespace Game.MVP.Survivor.Weapon
                 // プライマリヒット処理済み → 後続のOnTriggerEnterを無視
                 if (projectile.HasPrimaryHitProcessed) return;
 
-                // ヒット対象チェック（SP: ICombatTarget, MP: EnemyProxyTarget）
+                // ヒット対象チェック: サーバー側実敵 (ICombatTarget) と
+                // クライアント側敵プロキシ (EnemyProxyTarget) の両方に対応
                 if (other.GetComponentInParent<ICombatTarget>() == null
                     && other.GetComponentInParent<EnemyProxyTarget>() == null)
                     return;
@@ -193,7 +195,7 @@ namespace Game.MVP.Survivor.Weapon
                     _vfxSpawner.SpawnEffect(_hitEffectAssetName, hitPosition, _hitEffectScale);
                 }
 
-                // ダメージ処理をSceneに委譲（SP: ローカルダメージ, MP: RPC送信）
+                // ダメージ処理を Scene に委譲（Scene 側がサーバーに RPC 送信）
                 OnHitCallback?.Invoke(other, WeaponId);
 
                 ReturnToPool(projectile);

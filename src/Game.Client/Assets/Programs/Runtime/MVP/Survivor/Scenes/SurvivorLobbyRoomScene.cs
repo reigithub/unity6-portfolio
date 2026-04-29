@@ -106,7 +106,8 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
                 SceneComponent.SetStageInfo(_stageId);
 
-                // ホストのみステージ変更ボタンを表示
+                // ロビーホスト（部屋主）のみステージ変更ボタンを表示
+                // ※ ここでの「ホスト」は MagicOnion ロビーのオーナー概念であり、Fusion GameMode.Host とは別
                 var myUserId = _authSessionService.UserId;
                 SceneComponent.SetStageChangeVisible(_hostUserId == myUserId);
 

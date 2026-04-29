@@ -5,10 +5,10 @@ using UnityEngine;
 namespace Game.Shared.Signals.Survivor
 {
     /// <summary>
-    /// Survivor ゲームイベントシグナル定義（統一版）。
-    /// SP: ゲームロジックが直接 Publish → SubscribeSignals で受信。
-    /// MP Server: ゲームロジックが Publish → SubscribeSignals + Bridge → ClientRpc。
-    /// MP Client: ClientRpc → NetworkSurvivorGameManager が Publish → SubscribeSignals で受信。
+    /// Survivor ゲームイベントシグナル定義。
+    /// Server: ゲームロジックが Publish → SubscribeSignals + Bridge → ClientRpc。
+    /// Client: ClientRpc → SurvivorFusionGameState が Publish → SubscribeSignals で受信。
+    /// SP/MP の違いは接続先のみで、シグナル経路（Server / Client）は共通。
     /// </summary>
     public static class SurvivorSignals
     {
@@ -106,17 +106,27 @@ namespace Game.Shared.Signals.Survivor
 
             public readonly struct DamageReceived
             {
+                public readonly string UserId;
                 public readonly int Damage;
                 public readonly int RemainingHp;
 
-                public DamageReceived(int damage, int remainingHp)
+                public DamageReceived(string userId, int damage, int remainingHp)
                 {
+                    UserId = userId;
                     Damage = damage;
                     RemainingHp = remainingHp;
                 }
             }
 
-            public readonly struct Died { }
+            public readonly struct Died
+            {
+                public readonly string UserId;
+
+                public Died(string userId)
+                {
+                    UserId = userId;
+                }
+            }
 
             public readonly struct ItemCollected
             {
@@ -173,6 +183,17 @@ namespace Game.Shared.Signals.Survivor
                     IsNew = isNew;
                 }
             }
+
+            /// <summary>仮死状態からの復活通知 (PR4 では受け皿のみ、発火経路は将来 PR で実装)</summary>
+            public readonly struct Revived
+            {
+                public readonly string UserId;
+
+                public Revived(string userId)
+                {
+                    UserId = userId;
+                }
+            }
         }
 
         // --- Enemy ---
@@ -227,8 +248,8 @@ namespace Game.Shared.Signals.Survivor
             }
 
             /// <summary>
-            /// SP/Server: WaveClearScore=0（消費者がローカル計算）
-            /// MP Client: WaveClearScore=サーバー計算済み値
+            /// Server: WaveClearScore=0（消費者がローカル計算）
+            /// Client: WaveClearScore=サーバー計算済み値
             /// </summary>
             public readonly struct Completed
             {
@@ -315,10 +336,12 @@ namespace Game.Shared.Signals.Survivor
             /// <summary>クライアント→サーバー: アイテム収集報告</summary>
             public readonly struct CollectReported
             {
+                public readonly string UserId;
                 public readonly int NetworkId;
 
-                public CollectReported(int networkId)
+                public CollectReported(string userId, int networkId)
                 {
+                    UserId = userId;
                     NetworkId = networkId;
                 }
             }
@@ -330,11 +353,13 @@ namespace Game.Shared.Signals.Survivor
         {
             public readonly struct HitReported
             {
+                public readonly string UserId;
                 public readonly int EnemyNetworkId;
                 public readonly int WeaponId;
 
-                public HitReported(int enemyNetworkId, int weaponId)
+                public HitReported(string userId, int enemyNetworkId, int weaponId)
                 {
+                    UserId = userId;
                     EnemyNetworkId = enemyNetworkId;
                     WeaponId = weaponId;
                 }

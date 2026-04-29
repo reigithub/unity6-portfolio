@@ -54,11 +54,11 @@ namespace Game.Shared.Network.Survivor
             {
                 _gameMode = GameMode.Host;
                 var sessionName = _sessionConfig.SessionName;
-                var expectedPlayers = _sessionConfig.MaxPlayerCount;
+                var playerCount = _sessionConfig.PlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
-                CreateSession(expectedPlayers);
+                CreateSession(playerCount);
 
                 var config = new FusionConnectionConfig
                 {
@@ -140,11 +140,11 @@ namespace Game.Shared.Network.Survivor
             {
                 _gameMode = GameMode.Server;
                 var sessionName = _sessionConfig.SessionName;
-                var expectedPlayers = _sessionConfig.MaxPlayerCount;
+                var playerCount = _sessionConfig.PlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
-                CreateSession(expectedPlayers);
+                CreateSession(playerCount);
 
                 var serverPort = _sessionConfig.ServerPort;
 

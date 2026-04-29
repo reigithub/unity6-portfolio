@@ -11,8 +11,10 @@ using VContainer;
 namespace Game.Shared.Network.Survivor
 {
     /// <summary>
-    /// Fusion 2 NetworkRunner のホスト MonoBehaviour。
+    /// Fusion 2 NetworkRunner を保持する MonoBehaviour コンテナ。
     /// INetworkRunnerCallbacks を実装し、セッション管理へ委譲する。
+    /// （ここでいう「保持」は GameObject に NetworkRunner を同居させる意味で、
+    /// Fusion GameMode.Host とは別概念）
     /// </summary>
     public class SurvivorFusionRunner : MonoBehaviour, INetworkRunnerCallbacks
     {

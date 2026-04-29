@@ -71,35 +71,55 @@ public class LobbyDataService : ILobbyDataService
 
     public async Task<bool> AddPlayerAsync(string lobbyId, string userId, string playerName)
     {
+        _logger.LogInformation("[DIAG] AddPlayerAsync request: lobbyId={LobbyId}, userId={UserId}, playerName={PlayerName}",
+            lobbyId, userId, playerName);
+
         await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
         {
             var db = _redis.GetDatabase();
 
             // ロビー存在チェック
             var exists = await db.KeyExistsAsync($"lobby:{lobbyId}");
-            if (!exists) return false;
+            if (!exists)
+            {
+                _logger.LogWarning("[DIAG] AddPlayerAsync rejected: lobby {LobbyId} does not exist (userId={UserId})",
+                    lobbyId, userId);
+                return false;
+            }
 
             // 最大人数チェック
             var maxPlayersValue = await db.HashGetAsync($"lobby:{lobbyId}", "maxPlayers");
             if (!maxPlayersValue.HasValue)
             {
-                _logger.LogWarning("maxPlayers field missing for lobby {LobbyId}", lobbyId);
+                _logger.LogWarning("[DIAG] AddPlayerAsync rejected: maxPlayers field missing for lobby {LobbyId} (userId={UserId})",
+                    lobbyId, userId);
                 return false;
             }
 
             var maxPlayers = maxPlayersValue.ToInt();
             var currentCount = await db.HashLengthAsync($"lobby:{lobbyId}:players");
-            if (currentCount >= maxPlayers) return false;
+            if (currentCount >= maxPlayers)
+            {
+                _logger.LogWarning("[DIAG] AddPlayerAsync rejected: lobby {LobbyId} is full ({Current}/{Max}, userId={UserId})",
+                    lobbyId, currentCount, maxPlayers, userId);
+                return false;
+            }
 
             // 多重参加防止
             var currentLobby = await db.StringGetAsync($"lobby:player:{userId}");
-            if (currentLobby.HasValue) return false;
+            if (currentLobby.HasValue)
+            {
+                _logger.LogWarning("[DIAG] AddPlayerAsync rejected: userId={UserId} already in lobby {OtherLobbyId} (target={LobbyId})",
+                    userId, (string)currentLobby, lobbyId);
+                return false;
+            }
 
             var playerData = JsonHelper.Serialize(new { playerName, isReady = false, joinedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
             await db.HashSetAsync($"lobby:{lobbyId}:players", userId, playerData);
             await db.StringSetAsync($"lobby:player:{userId}", lobbyId);
 
-            _logger.LogDebug("Player {UserId} added to lobby {LobbyId}", userId, lobbyId);
+            _logger.LogInformation("[DIAG] AddPlayerAsync success: userId={UserId} added to lobby {LobbyId} (count={Count}/{Max})",
+                userId, lobbyId, currentCount + 1, maxPlayers);
             return true;
         }
     }

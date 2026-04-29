@@ -11,7 +11,6 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Weapon;
-using Game.Shared.Playmode;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -21,9 +20,11 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// Survivorステージシーンのルートコンポーネント
+    /// Survivorステージシーンのクライアント専用コンポーネント
     /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
-    /// HUD表示とゲームプレイUIを管理
+    /// HUD表示とゲームプレイUIを管理。
+    /// サーバー側は <see cref="SurvivorNetworkStageSceneComponent"/> を使用するため、
+    /// このクラスはクライアント経路からのみ呼ばれる。
     /// </summary>
     public class SurvivorStageSceneComponent : GameSceneComponent
     {
@@ -157,9 +158,6 @@ namespace Game.MVP.Survivor.Scenes
 
         private void Awake()
         {
-            // サーバーでは UIDocument が無効なため UI 初期化をスキップ
-            if (UnityPlaymodeHelper.IsServer()) return;
-
             QueryUIElements();
             SetupEventHandlers();
         }
@@ -205,7 +203,7 @@ namespace Game.MVP.Survivor.Scenes
                 _onPauseClicked.OnNext(Unit.Default));
         }
 
-        public void Initialize(SurvivorStageModel model, int totalWaves)
+        public void Initialize(SurvivorStageModel model, SurvivorNetworkStageModel networkStageModel, int totalWaves)
         {
             // Hide result panels
             _gameOverPanel?.AddToClassList("result-overlay--hidden");
@@ -215,14 +213,14 @@ namespace Game.MVP.Survivor.Scenes
             // Initial values
             _maxHp = model.MaxHp.Value;
             _maxExp = model.ExperienceToNextLevel.Value;
-            _timeLimit = model.TimeLimit;
+            _timeLimit = networkStageModel.TimeLimit;
             _totalWaves = totalWaves;
 
             UpdateHp(model.CurrentHp.Value, model.MaxHp.Value);
             UpdateExperience(model.Experience.Value, model.ExperienceToNextLevel.Value);
             UpdateLevel(model.Level.Value);
             UpdateKills(model.TotalKills.Value);
-            UpdateWave(model.CurrentWave.Value, totalWaves);
+            UpdateWave(networkStageModel.CurrentWave.Value, totalWaves);
             UpdateTime(0f);
             UpdateEnemies(0, 0);
         }

@@ -112,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 else if (_runnerService.IsHostMode)
                 {
-                    // Editor Host mode: Server + ローカルClient
+                    // Editor MPPM Host モード（本番未使用、開発時テスト用）: Server + ローカル Client
                     await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
@@ -209,9 +209,9 @@ namespace Game.MVP.Survivor.Scenes
         /// 取得失敗時は null を返す。
         /// </summary>
         /// <returns>取得成功時はトークンレスポンス、失敗時は null。</returns>
-        private async UniTask<UnityServerAuthResponse> IssueTokenAsync(int stageId = 0, int expectedPlayers = 1)
+        private async UniTask<UnityServerAuthResponse> IssueTokenAsync(int stageId = 0, int playerCount = 1)
         {
-            var response = await _unityServerApiService.IssueTokenAsync(stageId, expectedPlayers);
+            var response = await _unityServerApiService.IssueTokenAsync(stageId, playerCount);
             if (response.IsSuccess && response.Data != null)
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

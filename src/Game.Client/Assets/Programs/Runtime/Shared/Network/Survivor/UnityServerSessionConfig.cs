@@ -60,7 +60,7 @@ namespace Game.Shared.Network.Survivor
         /// 期待プレイヤー数。SP=1、MP=ロビー設定値。
         /// タイトル画面のモード選択時またはロビー開始時にセットされる。
         /// </summary>
-        public int MaxPlayerCount { get; private set; } = 1;
+        public int PlayerCount { get; private set; } = 1;
 
         /// <summary>接続パラメータが設定済みかどうか。</summary>
         public bool HasConnection => Source != ConnectionSource.None;
@@ -87,7 +87,7 @@ namespace Game.Shared.Network.Survivor
             ServerPort = port ?? DefaultPort;
             SessionName = sessionName ?? (source is ConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
             SessionToken = sessionToken ?? string.Empty;
-            MaxPlayerCount = playerCount ?? 1;
+            PlayerCount = playerCount ?? 1;
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
-        /// Dedicated Server のセッション開始時に matchId のみ更新する用途で使用する。
+        /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
         /// </summary>
         /// <param name="address">接続先アドレス。null で既存値を維持。</param>
         /// <param name="port">接続先ポート番号。null で既存値を維持。</param>
@@ -114,7 +114,7 @@ namespace Game.Shared.Network.Survivor
             if (port.HasValue) ServerPort = port.Value;
             if (sessionName != null) SessionName = sessionName;
             if (sessionToken != null) SessionToken = sessionToken;
-            if (playerCount.HasValue) MaxPlayerCount = playerCount.Value;
+            if (playerCount.HasValue) PlayerCount = playerCount.Value;
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Game.Shared.Network.Survivor
             ServerPort = 0;
             SessionName = null;
             SessionToken = null;
-            MaxPlayerCount = 1;
+            PlayerCount = 1;
         }
 
         public bool IsLocalAddress(string address)

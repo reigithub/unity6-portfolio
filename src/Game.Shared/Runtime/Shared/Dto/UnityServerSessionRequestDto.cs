@@ -10,10 +10,10 @@ namespace Game.Library.Shared.Dto
     public class UnityServerSessionRequest
     {
         /// <summary>
-        /// マッチID（セッション識別子）。
+        /// Fusion セッション名（SessionName）。セッション識別子として使用する。
         /// </summary>
         [Key(0)]
-        public string MatchId { get; set; } = string.Empty;
+        public string SessionName { get; set; } = string.Empty;
 
         /// <summary>
         /// ステージID。
@@ -22,9 +22,9 @@ namespace Game.Library.Shared.Dto
         public int StageId { get; set; }
 
         /// <summary>
-        /// このセッションの期待プレイヤー数。
+        /// このセッションのプレイヤー数。
         /// </summary>
         [Key(2)]
-        public int ExpectedPlayers { get; set; }
+        public int PlayerCount { get; set; }
     }
 }

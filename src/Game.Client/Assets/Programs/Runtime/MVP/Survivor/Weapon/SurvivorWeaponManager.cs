@@ -139,7 +139,8 @@ namespace Game.MVP.Survivor.Weapon
         }
 
         /// <summary>
-        /// ヒットコールバックを設定（SP: ローカルダメージ, MP: RPC送信）
+        /// ヒットコールバックを設定。Scene 側でヒット情報をサーバーに RPC 送信する
+        /// （サーバー権威のため、クライアント側はローカルダメージを適用しない）。
         /// </summary>
         public void SetHitCallback(Action<Collider, int> callback)
         {

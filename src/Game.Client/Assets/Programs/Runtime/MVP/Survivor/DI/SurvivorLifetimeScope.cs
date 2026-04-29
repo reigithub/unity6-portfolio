@@ -246,6 +246,7 @@ namespace Game.MVP.Survivor
             builder.RegisterMessageBroker<SurvivorSignals.Player.ItemCollected>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Player.LeveledUp>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Player.WeaponChanged>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Player.Revived>(options);
 
             // Enemy
             builder.RegisterMessageBroker<SurvivorSignals.Enemy.Killed>(options);

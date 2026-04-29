@@ -23,7 +23,7 @@ namespace Game.Shared.Network.Survivor
         string SessionToken { get; }
 
         /// <summary>期待プレイヤー数。SP=1、MP=ロビー設定値。</summary>
-        int MaxPlayerCount { get; }
+        int PlayerCount { get; }
 
         /// <summary>
         /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。
@@ -39,7 +39,7 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
-        /// Dedicated Server のセッション開始時に matchId のみ更新する用途で使用する。
+        /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
         /// </summary>
         void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
 

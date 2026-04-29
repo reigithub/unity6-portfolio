@@ -73,6 +73,8 @@ namespace Game.App.Bootstrap
             Debug.Log("[GameBootstrap] Initializing...");
 
 #if UNITY_EDITOR
+            // DIAG: MPPM 環境の実コマンドライン引数と CurrentPlayer API 値を出力
+            MppmDiagnostic.LogOnce();
             // MPPMクローンのデータパス分離（PersistentDataPath を使う全処理より前に実行）
             InitializeMppmClonePathIfNeeded();
 #endif

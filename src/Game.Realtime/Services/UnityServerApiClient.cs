@@ -20,12 +20,12 @@ public interface IUnityServerApiClient
     /// Unity Dedicated Server 接続用トークンを取得する。
     /// </summary>
     /// <param name="userId">トークン発行対象のユーザーID。</param>
-    /// <param name="matchId">マッチID。null の場合はサーバーが自動生成（SP 用）。</param>
+    /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合はサーバーが自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
-    /// <param name="expectedPlayers">期待プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
+    /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
     Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string matchId = null, int stageId = 0, int expectedPlayers = 1);
+        string userId, string sessionName = null, int stageId = 0, int playerCount = 1);
 }
 
 /// <summary>
@@ -59,7 +59,7 @@ public class UnityServerApiClient : IUnityServerApiClient
 
     /// <inheritdoc/>
     public async Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string matchId = null, int stageId = 0, int expectedPlayers = 1)
+        string userId, string sessionName = null, int stageId = 0, int playerCount = 1)
     {
         var serviceToken = CreateServiceToken(userId);
         var client = _httpClientFactory.CreateClient(HttpClientName);
@@ -67,12 +67,12 @@ public class UnityServerApiClient : IUnityServerApiClient
 
         // クエリパラメータを組み立てる
         var queryParams = new List<string>();
-        if (!string.IsNullOrEmpty(matchId))
-            queryParams.Add($"matchId={Uri.EscapeDataString(matchId)}");
+        if (!string.IsNullOrEmpty(sessionName))
+            queryParams.Add($"sessionName={Uri.EscapeDataString(sessionName)}");
         if (stageId > 0)
             queryParams.Add($"stageId={stageId}");
-        if (expectedPlayers != 1)
-            queryParams.Add($"expectedPlayers={expectedPlayers}");
+        if (playerCount != 1)
+            queryParams.Add($"playerCount={playerCount}");
 
         var endpoint = queryParams.Count > 0
             ? $"{IssueTokenEndpoint}?{string.Join("&", queryParams)}"

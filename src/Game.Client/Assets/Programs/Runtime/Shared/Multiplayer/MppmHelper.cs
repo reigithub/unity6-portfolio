@@ -7,6 +7,50 @@ using UnityEngine;
 namespace Game.Shared.Multiplayer
 {
     /// <summary>
+    /// MPPM 実行時に渡されているコマンドライン引数と CurrentPlayer API の値を診断出力する。
+    /// 原因調査用、恒久ではないため使い終わったら削除する。
+    /// </summary>
+    public static class MppmDiagnostic
+    {
+        private static bool _logged;
+
+        public static void LogOnce()
+        {
+            if (_logged) return;
+            _logged = true;
+
+            var args = System.Environment.GetCommandLineArgs();
+            Debug.Log($"[DIAG][MPPM] CommandLineArgs.Count={args.Length}");
+            for (int i = 0; i < args.Length; i++)
+            {
+                Debug.Log($"[DIAG][MPPM] arg[{i}]={args[i]}");
+            }
+
+            try
+            {
+                var tags = global::Unity.Multiplayer.PlayMode.CurrentPlayer.Tags;
+                Debug.Log($"[DIAG][MPPM] CurrentPlayer.Tags=[{string.Join(",", tags)}]");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DIAG][MPPM] CurrentPlayer.Tags access failed: {ex.Message}");
+            }
+
+            // IsMainEditor は MPPM 1.4.3 以降に追加（CHANGELOG 記載）。
+            // 未定義の場合はコンパイルエラーになる → コンパイル成否で API 存在を検証。
+            try
+            {
+                bool isMainEditor = global::Unity.Multiplayer.PlayMode.CurrentPlayer.IsMainEditor;
+                Debug.Log($"[DIAG][MPPM] CurrentPlayer.IsMainEditor={isMainEditor}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DIAG][MPPM] CurrentPlayer.IsMainEditor access failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
     /// MPPM (Multiplayer Play Mode) クローンインスタンスの検出とセーブデータ分離ヘルパー
     /// クローンごとに固有のデータパスを割り当て、セッション・セーブデータの競合を防ぐ
     /// </summary>
