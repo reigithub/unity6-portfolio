@@ -1082,6 +1082,11 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 
 ## 今後の予定
 
+**ゲームアップデート:**
+* サバイバーゲームの拡張(新しい武器やアイテムの追加等)
+* ゲームモード追加(ターン制ゲーム等)
+* ネットワーク通信モード追加(P2P)
+
 **パフォーマンス・描画:**
 * Unity Profiler / Memory Profilerによる計測結果のドキュメント化（CPU Timeline、GC Allocスナップショット）
 * URP Renderer Featureによるカスタムポストエフェクト（アウトライン後処理等）
@@ -1096,6 +1101,7 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 
 **機能:**
 * 課金システム・ガチャ・プレゼントBOXなど
+* アプリ外課金Webサイト(Next.js)
 
 ---
 
@@ -1124,7 +1130,10 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 
 ### ダウンロード
 * 実行形式: [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨
-  - GameStartボタンを押下するとリモートアセットをダウンロードします(約400MB)
+  - GameStartボタンを押下するとリモートアセットをダウンロードします(約500MB)
+  - 稼働コスト削減のため、Unityサーバーが稼働していない場合があります。以下の動画をご覧ください
+
+[![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo")
 
 ---
 

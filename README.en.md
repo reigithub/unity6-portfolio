@@ -1076,6 +1076,11 @@ Applied to:
 
 ## Future Plans
 
+**Game Updates:**
+* Survivor game expansion (new weapons, items, etc.)
+* Additional game modes (turn-based, etc.)
+* Additional network mode (P2P)
+
 **Performance & Rendering:**
 * Document Unity Profiler / Memory Profiler measurement results (CPU Timeline, GC Alloc snapshots)
 * URP Renderer Feature for custom post-effects (outline post-processing, etc.)
@@ -1090,6 +1095,7 @@ Applied to:
 
 **Features:**
 * In-app purchase system, gacha, present box, etc.
+* Out-app purchase web site. (Next.js)
 
 ---
 
@@ -1118,7 +1124,9 @@ Applied to:
 
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended
-  - Pressing the GameStart button will download remote assets (~400MB)
+  - Pressing the GameStart button will download remote assets (~500MB)
+
+[![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo")
 
 ---
 
