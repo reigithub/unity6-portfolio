@@ -58,6 +58,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.LeveledUp> _leveledUpSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.ItemCollected> _itemCollectedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Revived> _revivedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.Paused> _gamePausedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.Resumed> _gameResumedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
@@ -390,6 +392,19 @@ namespace Game.MVP.Survivor.Scenes
             {
                 if (s.UserId != MyUserId) return;
                 _stateMachine?.Transition(StageEvent.Revived);
+            }).AddTo(Disposables);
+
+            // サーバー権威の Pause を全クライアントで受け取り、自プレイヤーの入力を完全停止する。
+            // VS Co-op 仕様: 武器選択中は全プレイヤーの入力が一時停止される。
+            // 自分が LevelUp 中でなくても、他プレイヤーが LevelUp 中ならここで入力が止まる。
+            _gamePausedSub.Subscribe(_ =>
+            {
+                _inputService.DisablePlayer();
+            }).AddTo(Disposables);
+
+            _gameResumedSub.Subscribe(_ =>
+            {
+                _inputService.EnablePlayer();
             }).AddTo(Disposables);
         }
 

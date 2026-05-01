@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Fusion;
-using Game.Shared.Bootstrap;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -79,7 +78,8 @@ namespace Game.Shared.Network.Survivor
         private readonly HashSet<string> _deadPlayerIds = new();
         private readonly Dictionary<PlayerRef, string> _userIdByPlayerRef = new();
         private int _totalPlayerCount;
-        private bool _isLevelUpPaused;
+        private readonly HashSet<PlayerRef> _levelUpPausingPlayers = new();
+        private bool _isManualPaused;
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
         private readonly HashSet<PlayerRef> _sceneReadyPlayers = new();
@@ -106,13 +106,13 @@ namespace Game.Shared.Network.Survivor
 
         private void Update()
         {
-            if (!HasStateAuthority || !_isLevelUpPaused) return;
+            if (!HasStateAuthority || _levelUpPausingPlayers.Count == 0) return;
 
             if (Time.realtimeSinceStartup - _levelUpPauseStartTime > LevelUpPauseTimeout)
             {
-                Debug.LogWarning("[SurvivorFusionGameState] LevelUp pause timeout, force resuming");
-                _isLevelUpPaused = false;
-                ApplicationEvents.ResumeTime();
+                Debug.LogWarning("[SurvivorFusionGameState] LevelUp pause timeout, force clearing");
+                _levelUpPausingPlayers.Clear();
+                RecomputeIsPaused();
             }
         }
 
@@ -457,7 +457,8 @@ namespace Game.Shared.Network.Survivor
             _userIdByPlayerRef.Clear();
             _sceneReadyPlayers.Clear();
             _fieldSceneReadyPlayers.Clear();
-            _isLevelUpPaused = false;
+            _levelUpPausingPlayers.Clear();
+            _isManualPaused = false;
 
             // [Networked] ゲーム状態をリセット（リトライ時に ChangeDetector が正しく変化を検知するため）
             CurrentWave = 0;
@@ -517,28 +518,74 @@ namespace Game.Shared.Network.Survivor
         }
 
         // =====================================================================
-        //  サーバー側ロジック: レベルアップポーズ管理
+        //  サーバー側ロジック: ポーズ管理（参照カウント方式）
+        //  IsPaused = (LevelUp 中の Player が 1 人以上) || ManualPause
         // =====================================================================
 
-        /// <summary>サーバー側: レベルアップポーズ要求</summary>
-        public void OnClientRequestPause()
+        /// <summary>
+        /// LevelUp ポーズ開始（サーバー LevelUpState から即時呼出）。
+        /// HashSet に追加し、IsPaused を再計算する。RPC 往復を待たないため遅延ゼロ。
+        /// </summary>
+        public void BeginLevelUpPause(PlayerRef player)
         {
-            if (_isLevelUpPaused) return;
-            _isLevelUpPaused = true;
-            _levelUpPauseStartTime = Time.realtimeSinceStartup;
-            IsPaused = true;
-            ApplicationEvents.PauseTime();
-            Debug.Log("[SurvivorFusionGameState] LevelUp pause requested");
+            if (!HasStateAuthority) return;
+            if (_levelUpPausingPlayers.Add(player))
+            {
+                if (_levelUpPausingPlayers.Count == 1)
+                {
+                    _levelUpPauseStartTime = Time.realtimeSinceStartup;
+                }
+                RecomputeIsPaused();
+                Debug.Log($"[SurvivorFusionGameState] BeginLevelUpPause: {player} (count={_levelUpPausingPlayers.Count})");
+            }
         }
 
-        /// <summary>サーバー側: レベルアップ再開要求</summary>
+        /// <summary>
+        /// LevelUp ポーズ終了（武器選択受信時に呼ばれる）。
+        /// HashSet から除去し、空かつマニュアル Pause も無ければ IsPaused=false。
+        /// </summary>
+        public void EndLevelUpPause(PlayerRef player)
+        {
+            if (!HasStateAuthority) return;
+            if (_levelUpPausingPlayers.Remove(player))
+            {
+                RecomputeIsPaused();
+                Debug.Log($"[SurvivorFusionGameState] EndLevelUpPause: {player} (count={_levelUpPausingPlayers.Count})");
+            }
+        }
+
+        /// <summary>切断時のクリーンアップ。残留 LevelUp ポーズで全体停止が永続化するのを防ぐ。</summary>
+        public void OnPlayerDisconnectedCleanup(PlayerRef player)
+        {
+            if (!HasStateAuthority) return;
+            if (_levelUpPausingPlayers.Remove(player))
+            {
+                RecomputeIsPaused();
+                Debug.Log($"[SurvivorFusionGameState] Cleanup on disconnect: {player} (count={_levelUpPausingPlayers.Count})");
+            }
+        }
+
+        private void RecomputeIsPaused()
+        {
+            IsPaused = _levelUpPausingPlayers.Count > 0 || _isManualPaused;
+        }
+
+        /// <summary>サーバー側: マニュアルポーズ要求（ESC ダイアログ）</summary>
+        public void OnClientRequestPause()
+        {
+            if (!HasStateAuthority || _isManualPaused) return;
+            _isManualPaused = true;
+            RecomputeIsPaused();
+            Debug.Log("[SurvivorFusionGameState] Manual pause requested");
+        }
+
+        /// <summary>サーバー側: マニュアルポーズ解除</summary>
         public void OnClientRequestResume()
         {
-            if (!_isLevelUpPaused) return;
-            _isLevelUpPaused = false;
-            IsPaused = false;
-            ApplicationEvents.ResumeTime();
-            Debug.Log("[SurvivorFusionGameState] LevelUp resumed");
+            if (!HasStateAuthority || !_isManualPaused) return;
+            _isManualPaused = false;
+            RecomputeIsPaused();
+            Debug.Log("[SurvivorFusionGameState] Manual pause released");
         }
 
         // =====================================================================
@@ -546,8 +593,10 @@ namespace Game.Shared.Network.Survivor
         // =====================================================================
 
         /// <summary>サーバー側: クライアントからの武器選択を適用（検証は SurvivorFusionPlayer で実施済み）</summary>
-        public void OnClientWeaponChoice(int weaponId, bool isNewWeapon)
+        public void OnClientWeaponChoice(PlayerRef source, int weaponId, bool isNewWeapon)
         {
+            EndLevelUpPause(source);
+
             var request = new SurvivorWeaponApplyRequest
             {
                 WeaponId = weaponId,

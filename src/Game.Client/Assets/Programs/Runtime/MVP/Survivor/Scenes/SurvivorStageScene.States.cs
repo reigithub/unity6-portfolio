@@ -413,10 +413,8 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
                 ApplicationEvents.ShowCursor();
 
-                if (TryGetLocalPlayer(out var localPlayer))
-                {
-                    localPlayer.RpcClientRequestPause();
-                }
+                // サーバー権威の Pause はサーバー側 LevelUpState.Enter で BeginLevelUpPause により即時開始される。
+                // クライアント側の Pause RPC は不要 (Resume はサーバーが OnClientWeaponChoice 受信で自動解除)。
 
                 ShowLevelUpDialogAsync().Forget();
             }
@@ -504,10 +502,8 @@ namespace Game.MVP.Survivor.Scenes
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
 
-                if (TryGetLocalPlayer(out var resumePlayer))
-                {
-                    resumePlayer.RpcClientRequestResume();
-                }
+                // Resume はサーバー側で OnClientWeaponChoice → EndLevelUpPause により自動的に行われる。
+                // クライアントは ApplyUpgradeOptionAsync 経由で RpcClientWeaponChoice を送信済みのため明示的 Resume RPC は不要。
 
                 Transition(StageEvent.LevelUpComplete);
             }
@@ -524,6 +520,13 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[LevelUpState] Exit");
                 ApplicationEvents.ResumeTime();
+
+                // MP で他プレイヤーがまだ LevelUp 中（IsPaused=true 維持）なら入力を有効化しない。
+                // 解除は Game.Resumed シグナル経由で行う（VS Co-op 準拠：全員選択完了まで全員入力停止）。
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused)
+                {
+                    return;
+                }
                 Context._inputService.EnablePlayer();
             }
 

@@ -162,7 +162,6 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[SurvivorNetworkStageScene.PlayingState] Enter");
-                ApplicationEvents.ResumeTime();
 
                 // 初回のみWave開始（LevelUpからの復帰時は不要）
                 if (_isFirstEntry)
@@ -237,7 +236,9 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 Debug.Log($"[SurvivorNetworkStageScene.LevelUpState] Enter - player={ctx.Player}, level={ctx.StageModel.Level.Value}");
-                ApplicationEvents.PauseTime();
+
+                // サーバー権威の Pause を即時開始 (RPC 往復遅延ゼロ)
+                Context._gameState?.BeginLevelUpPause(ctx.Player);
 
                 // プレイヤーステータス更新 (該当 Context の Controller)
                 if (ctx.Controller != null && ctx.StageModel.CurrentLevelMaster != null)
@@ -269,9 +270,8 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Exit()
             {
-                // サーバーはここでResumeTimeしない。
-                // PlayingState.EnterがResumeTimeし、その後クライアントのRequestPauseServerRpcが
-                // GameManager経由で再度PauseTimeする（クライアントの武器選択中）。
+                // IsPaused 解除はサーバー側 OnClientWeaponChoice 受信時の EndLevelUpPause で行う。
+                // サーバー LevelUpState は即時 Transition で抜けるが、IsPaused は HashSet 参照カウントで維持される。
                 Debug.Log("[SurvivorNetworkStageScene.LevelUpState] Exit");
             }
 
