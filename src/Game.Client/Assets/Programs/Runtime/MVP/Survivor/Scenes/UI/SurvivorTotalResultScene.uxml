@@ -49,6 +49,7 @@
             <ui:Button text="RETRY" name="retry-button" class="action-button action-button--primary"/>
             <ui:Button text="STAGE SELECT" name="stage-select-button" class="action-button action-button--secondary"/>
             <ui:Button text="RETURN TO TITLE" name="return-button" class="action-button action-button--secondary"/>
+            <ui:Button text="RETURN TO LOBBY" name="return-to-lobby-button" class="action-button action-button--primary" style="display: none;"/>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

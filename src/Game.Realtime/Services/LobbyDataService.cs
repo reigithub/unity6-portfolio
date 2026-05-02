@@ -315,6 +315,28 @@ public class LobbyDataService : ILobbyDataService
         return hash.Length > 0;
     }
 
+    /// <summary>
+    /// ロビー内全プレイヤーの Ready 状態を false にリセットする。
+    /// ゲーム開始時に呼び出して、リザルト後に LobbyRoomScene へ戻った際に Ready が残っているのを防ぐ。
+    /// </summary>
+    public async Task ResetAllReadyAsync(string lobbyId)
+    {
+        await using (await _lockProvider.AcquireLockAsync($"lock:lobby:{lobbyId}"))
+        {
+            var db = _redis.GetDatabase();
+            var hash = await db.HashGetAllAsync($"lobby:{lobbyId}:players");
+
+            foreach (var entry in hash)
+            {
+                var data = JsonHelper.TryDeserialize<PlayerData>(entry.Value.ToString(), _logger, "player data");
+                if (data == null || !data.isReady) continue;
+
+                data.isReady = false;
+                await db.HashSetAsync($"lobby:{lobbyId}:players", entry.Name, JsonHelper.Serialize(data));
+            }
+        }
+    }
+
     public async Task SetStageAsync(string lobbyId, int stageId)
     {
         var db = _redis.GetDatabase();

@@ -86,7 +86,8 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
             // ホスト退出時はロビーを閉じる
             var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
-            if (lobby != null && lobby.HostUserId == _userId)
+            bool isHost = lobby != null && lobby.HostUserId == _userId;
+            if (isHost)
             {
                 _currentGroup.All.OnLobbyClosed("Host left");
             }
@@ -98,7 +99,18 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             {
                 if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
                     lobbyMap.TryRemove(_userId, out _);
-                await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
+
+                if (isHost)
+                {
+                    // ホスト退出時はロビーごと削除 (残プレイヤー有無に関わらず)。
+                    // RemovePlayerAsync は残プレイヤー 0 のときだけ削除するため、
+                    // ホスト退出を検知したら明示的に DeleteAsync を呼ぶ必要がある。
+                    await _lobbyDataService.DeleteAsync(_lobbyId);
+                }
+                else
+                {
+                    await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
+                }
             }
         }
     }
@@ -196,6 +208,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         _logger.LogInformation(
             "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
             _lobbyId, matchId, players.Length);
+
+        // ゲーム開始時に Ready 状態を全員 false にリセット
+        // (リザルト後に LobbyRoomScene へ戻った際、Ready が残らないようにする)
+        await _lobbyDataService.ResetAllReadyAsync(_lobbyId);
+        foreach (var player in players)
+        {
+            _currentGroup.All.OnPlayerReadyChanged(player.UserId, false);
+        }
     }
 
     protected override async ValueTask OnDisconnected()
@@ -208,13 +228,16 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             return;
         }
 
+        bool isHost = false;
+
         if (_currentGroup != null)
         {
             _currentGroup.All.OnPlayerLeft(_userId, _playerName);
 
             // ホスト退出時はロビーを閉じる
             var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
-            if (lobby != null && lobby.HostUserId == _userId)
+            isHost = lobby != null && lobby.HostUserId == _userId;
+            if (isHost)
             {
                 _currentGroup.All.OnLobbyClosed("Host disconnected");
             }
@@ -227,7 +250,16 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         {
             if (LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap))
                 lobbyMap.TryRemove(_userId, out _);
-            await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
+
+            if (isHost)
+            {
+                // ホスト切断時はロビーごと削除 (残プレイヤー有無に関わらず)
+                await _lobbyDataService.DeleteAsync(_lobbyId);
+            }
+            else
+            {
+                await _lobbyDataService.RemovePlayerAsync(_lobbyId, _userId);
+            }
         }
 
         _logger.LogInformation(

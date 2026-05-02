@@ -27,10 +27,12 @@ namespace Game.MVP.Survivor.Scenes
         private readonly Subject<Unit> _onRetryClicked = new();
         private readonly Subject<Unit> _onStageSelectClicked = new();
         private readonly Subject<Unit> _onReturnToTitleClicked = new();
+        private readonly Subject<Unit> _onReturnToLobbyClicked = new();
 
         public Observable<Unit> OnRetryClicked => _onRetryClicked;
         public Observable<Unit> OnStageSelectClicked => _onStageSelectClicked;
         public Observable<Unit> OnReturnToTitleClicked => _onReturnToTitleClicked;
+        public Observable<Unit> OnReturnToLobbyClicked => _onReturnToLobbyClicked;
 
         // UI Element References
         private VisualElement _root;
@@ -43,6 +45,7 @@ namespace Game.MVP.Survivor.Scenes
         private Button _retryButton;
         private Button _stageSelectButton;
         private Button _returnButton;
+        private Button _returnToLobbyButton;
         private Label _scoreSubmissionStatusLabel;
         private Label _scoreQueuedNoticeLabel;
 
@@ -51,6 +54,7 @@ namespace Game.MVP.Survivor.Scenes
             _onRetryClicked.Dispose();
             _onStageSelectClicked.Dispose();
             _onReturnToTitleClicked.Dispose();
+            _onReturnToLobbyClicked.Dispose();
             base.OnDestroy();
         }
 
@@ -73,6 +77,7 @@ namespace Game.MVP.Survivor.Scenes
             _retryButton = _root.Q<Button>("retry-button");
             _stageSelectButton = _root.Q<Button>("stage-select-button");
             _returnButton = _root.Q<Button>("return-button");
+            _returnToLobbyButton = _root.Q<Button>("return-to-lobby-button");
             _scoreSubmissionStatusLabel = _root.Q<Label>("score-submission-status");
             _scoreQueuedNoticeLabel = _root.Q<Label>("score-queued-notice");
         }
@@ -87,6 +92,25 @@ namespace Game.MVP.Survivor.Scenes
 
             _returnButton?.RegisterCallback<ClickEvent>(_ =>
                 _onReturnToTitleClicked.OnNext(Unit.Default));
+
+            _returnToLobbyButton?.RegisterCallback<ClickEvent>(_ =>
+                _onReturnToLobbyClicked.OnNext(Unit.Default));
+        }
+
+        /// <summary>
+        /// SP/MP に応じてボタン表示を切り替える。
+        /// MP: RETURN TO LOBBY のみ表示（RETRY/STAGE SELECT/RETURN TO TITLE は非表示）。
+        /// SP: 既存ボタン (RETRY/STAGE SELECT/RETURN TO TITLE) を表示、RETURN TO LOBBY は非表示。
+        /// </summary>
+        public void SetDisplayButtons(bool isMultiplayer)
+        {
+            var spDisplay = isMultiplayer ? DisplayStyle.None : DisplayStyle.Flex;
+            var mpDisplay = isMultiplayer ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (_retryButton != null) _retryButton.style.display = spDisplay;
+            if (_stageSelectButton != null) _stageSelectButton.style.display = spDisplay;
+            if (_returnButton != null) _returnButton.style.display = spDisplay;
+            if (_returnToLobbyButton != null) _returnToLobbyButton.style.display = mpDisplay;
         }
 
         /// <summary>

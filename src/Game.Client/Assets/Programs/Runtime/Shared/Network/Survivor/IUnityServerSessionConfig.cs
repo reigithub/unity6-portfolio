@@ -10,6 +10,11 @@ namespace Game.Shared.Network.Survivor
     /// </summary>
     public interface IUnityServerSessionConfig
     {
+        /// <summary>接続ソース</summary>
+        ConnectionSource ConnectionSource { get; }
+
+        ConnectionSource LastConnectionSource { get; }
+
         /// <summary>接続先サーバーアドレス。</summary>
         string ServerAddress { get; }
 

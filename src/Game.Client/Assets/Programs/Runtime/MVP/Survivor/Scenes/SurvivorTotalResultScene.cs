@@ -4,6 +4,8 @@ using Game.Library.Shared.Enums;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Scenes.ViewModels;
+using Game.Shared.Network.Survivor;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Services.Network;
 using Game.Shared.Services.Network.Queue;
@@ -27,6 +29,9 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
         [Inject] private readonly IRequestQueue _requestQueue;
+        [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
+        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly ILobbyClient _lobbyClient;
 
         private readonly TotalResultSceneViewModel _viewModel = new();
 
@@ -61,7 +66,10 @@ namespace Game.MVP.Survivor.Scenes
                 isVictory: _isVictory
             );
 
-            // Viewイベントを購読
+            bool isMultiplayer = _sessionConfig.LastConnectionSource is ConnectionSource.Matchmaking;
+            SceneComponent.SetDisplayButtons(isMultiplayer);
+
+            // Viewイベントを購読 (SP 用ボタン)
             SceneComponent.OnRetryClicked
                 .Subscribe(_ => OnRetry().Forget())
                 .AddTo(Disposables);
@@ -72,6 +80,10 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.OnReturnToTitleClicked
                 .Subscribe(_ => OnReturnToTitle().Forget())
+                .AddTo(Disposables);
+
+            SceneComponent.OnReturnToLobbyClicked
+                .Subscribe(_ => OnReturnToLobby().Forget())
                 .AddTo(Disposables);
 
             // キュー通知を購読
@@ -206,6 +218,69 @@ namespace Game.MVP.Survivor.Scenes
             await _saveService.SaveIfDirtyAsync();
 
             await _sceneService.TransitionAsync<SurvivorTitleScene>();
+        }
+
+        /// <summary>
+        /// MP 用: Fusion DS 接続を切断してロビーに戻る。
+        /// 直前に参加していたロビーが存続していれば LobbyRoomScene へ直接戻り、
+        /// そうでなければロビーリスト (LobbyScene) にフォールバックする。
+        /// </summary>
+        private async UniTaskVoid OnReturnToLobby()
+        {
+            SceneComponent.SetInteractables(false);
+
+            // ゲームセッション終了
+            _saveService.EndSession();
+            await _saveService.SaveIfDirtyAsync();
+
+            // Fusion DS 接続を明示的に切断（Runner.Shutdown + IFusionRunnerService.Clear）
+            try
+            {
+                await _networkConnector.DisconnectAsync();
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning(
+                    $"[SurvivorTotalResultScene] Failed to disconnect Fusion runner: {ex.Message}");
+            }
+
+            // ロビー存続確認 (server-side: GetMyLobbyAsync は NotFound 時 null を返す実装)
+            Game.Library.Shared.Dto.LobbyInfo lobby = null;
+            try
+            {
+                lobby = await _lobbyClient.GetMyLobbyAsync();
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning(
+                    $"[SurvivorTotalResultScene] GetMyLobby failed: {ex.Message}");
+            }
+
+            if (lobby != null && !string.IsNullOrEmpty(lobby.LobbyId))
+            {
+                // ロビー存続。StreamingHub が切断されていれば再接続してから LobbyRoomScene へ
+                if (string.IsNullOrEmpty(_lobbyClient.CurrentLobbyId))
+                {
+                    try
+                    {
+                        var playerName = _authSessionService.UserName ?? "Player";
+                        await _lobbyClient.ConnectToLobbyAsync(lobby.LobbyId, playerName);
+                    }
+                    catch (Exception ex)
+                    {
+                        UnityEngine.Debug.LogWarning(
+                            $"[SurvivorTotalResultScene] Failed to reconnect lobby hub: {ex.Message}. Falling back to lobby list.");
+                        await _sceneService.TransitionAsync<SurvivorLobbyScene>();
+                        return;
+                    }
+                }
+
+                await _sceneService.TransitionAsync<SurvivorLobbyRoomScene>();
+                return;
+            }
+
+            // ロビー不在 (閉鎖済み or 自分が外された) → ロビーリストへフォールバック
+            await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
     }
 }
