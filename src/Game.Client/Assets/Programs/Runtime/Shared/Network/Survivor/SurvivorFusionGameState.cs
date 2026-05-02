@@ -79,7 +79,7 @@ namespace Game.Shared.Network.Survivor
         private readonly Dictionary<PlayerRef, string> _userIdByPlayerRef = new();
         private int _totalPlayerCount;
         private readonly HashSet<PlayerRef> _levelUpPausingPlayers = new();
-        private bool _isManualPaused;
+        private readonly HashSet<PlayerRef> _manualPausingPlayers = new();
         private float _levelUpPauseStartTime;
         private const float LevelUpPauseTimeout = 45f;
         private readonly HashSet<PlayerRef> _sceneReadyPlayers = new();
@@ -458,7 +458,7 @@ namespace Game.Shared.Network.Survivor
             _sceneReadyPlayers.Clear();
             _fieldSceneReadyPlayers.Clear();
             _levelUpPausingPlayers.Clear();
-            _isManualPaused = false;
+            _manualPausingPlayers.Clear();
 
             // [Networked] ゲーム状態をリセット（リトライ時に ChangeDetector が正しく変化を検知するため）
             CurrentWave = 0;
@@ -554,38 +554,48 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        /// <summary>切断時のクリーンアップ。残留 LevelUp ポーズで全体停止が永続化するのを防ぐ。</summary>
+        /// <summary>切断時のクリーンアップ。LevelUp / マニュアル両方の HashSet から除去し、残留 Pause で全体停止が永続化するのを防ぐ。</summary>
         public void OnPlayerDisconnectedCleanup(PlayerRef player)
         {
             if (!HasStateAuthority) return;
-            if (_levelUpPausingPlayers.Remove(player))
+            bool changed = _levelUpPausingPlayers.Remove(player);
+            changed |= _manualPausingPlayers.Remove(player);
+            if (changed)
             {
                 RecomputeIsPaused();
-                Debug.Log($"[SurvivorFusionGameState] Cleanup on disconnect: {player} (count={_levelUpPausingPlayers.Count})");
+                Debug.Log($"[SurvivorFusionGameState] Cleanup on disconnect: {player} (levelUp={_levelUpPausingPlayers.Count}, manual={_manualPausingPlayers.Count})");
             }
         }
 
         private void RecomputeIsPaused()
         {
-            IsPaused = _levelUpPausingPlayers.Count > 0 || _isManualPaused;
+            IsPaused = _levelUpPausingPlayers.Count > 0 || _manualPausingPlayers.Count > 0;
         }
 
-        /// <summary>サーバー側: マニュアルポーズ要求（ESC ダイアログ）</summary>
-        public void OnClientRequestPause()
+        /// <summary>
+        /// サーバー側: マニュアルポーズ要求（ESC ダイアログ）。
+        /// HashSet 参照カウント方式: 複数プレイヤーが同時に ESC を押しても、
+        /// 全員が個別に Resume するまで Pause を維持する。
+        /// </summary>
+        public void OnClientRequestPause(PlayerRef source)
         {
-            if (!HasStateAuthority || _isManualPaused) return;
-            _isManualPaused = true;
-            RecomputeIsPaused();
-            Debug.Log("[SurvivorFusionGameState] Manual pause requested");
+            if (!HasStateAuthority) return;
+            if (_manualPausingPlayers.Add(source))
+            {
+                RecomputeIsPaused();
+                Debug.Log($"[SurvivorFusionGameState] Manual pause: {source} (count={_manualPausingPlayers.Count})");
+            }
         }
 
         /// <summary>サーバー側: マニュアルポーズ解除</summary>
-        public void OnClientRequestResume()
+        public void OnClientRequestResume(PlayerRef source)
         {
-            if (!HasStateAuthority || !_isManualPaused) return;
-            _isManualPaused = false;
-            RecomputeIsPaused();
-            Debug.Log("[SurvivorFusionGameState] Manual pause released");
+            if (!HasStateAuthority) return;
+            if (_manualPausingPlayers.Remove(source))
+            {
+                RecomputeIsPaused();
+                Debug.Log($"[SurvivorFusionGameState] Manual resume: {source} (count={_manualPausingPlayers.Count})");
+            }
         }
 
         // =====================================================================

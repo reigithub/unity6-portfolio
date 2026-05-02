@@ -283,8 +283,16 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                NetworkStageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(NetworkStageModel.GameTime.Value);
+                // ポーズ中（自分の LevelUp/ESC、または他プレイヤーの LevelUp/ESC で停止中）は時計を進めない。
+                // 自分が PausedState/LevelUpState 中は Time.timeScale=0 で deltaTime=0 になるが、
+                // 他プレイヤーが Pause 中に自分が PlayingState のままだと Time.timeScale=1 のままになるため、
+                // Networked IsPaused を必ずチェックする必要がある。
+                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
+                if (!isPaused)
+                {
+                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                }
 
                 // 自プレイヤーが死亡 → 仮死状態 (ApparentDeath) へ遷移。
                 // 観戦状態で Wave/Time 表示を継続し、全員死亡時のみサーバーから NotifyGameEnded が届く。
@@ -337,8 +345,13 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Wave/Time 表示更新は継続 (観戦状態)
-                NetworkStageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(NetworkStageModel.GameTime.Value);
+                // ただし他プレイヤーの LevelUp/ESC で全体ポーズ中は時計を止める（サーバー側と整合）
+                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
+                if (!isPaused)
+                {
+                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                }
             }
 
             public override void Exit()

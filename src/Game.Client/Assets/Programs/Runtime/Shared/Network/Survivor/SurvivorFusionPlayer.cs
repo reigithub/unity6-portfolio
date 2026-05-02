@@ -443,17 +443,17 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientRequestPause()
+        public void RpcClientRequestPause(RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
-                gs.OnClientRequestPause();
+                gs.OnClientRequestPause(info.Source);
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientRequestResume()
+        public void RpcClientRequestResume(RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
-                gs.OnClientRequestResume();
+                gs.OnClientRequestResume(info.Source);
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
