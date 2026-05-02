@@ -3,10 +3,9 @@
 #
 # 使用方法（Cloud Shell または gcloud CLI）:
 #   cd Unity6Portfolio
-#   gcloud builds submit --config=docker/game-realtime/prod/cloudbuild.yml \
-#     --substitutions=_VALKEY_HOST=10.0.0.3
+#   gcloud builds submit --config=docker/game-realtime/prod/cloudbuild.yml
 #
-# 機密情報は Google Cloud Secret Manager で管理
+# 機密情報（Jwt__Secret, ConnectionStrings__Valkey）は Google Cloud Secret Manager で管理
 
 steps:
   # ===== Docker イメージをビルド =====
@@ -59,10 +58,9 @@ steps:
           --subnet=${_VPC_SUBNET} \
           --vpc-egress=private-ranges-only \
           --set-env-vars="ASPNETCORE_ENVIRONMENT=Production" \
-          --set-env-vars="ConnectionStrings__Valkey=${_VALKEY_HOST}:${_VALKEY_PORT},abortConnect=false,connectTimeout=5000" \
           --set-env-vars="Jwt__Issuer=${_JWT_ISSUER}" \
           --set-env-vars="Jwt__Audience=${_JWT_AUDIENCE}" \
-          --set-secrets="Jwt__Secret=${_SECRET_JWT}:latest,UnityServerAuth__SecretKey=${_SECRET_UNITY_SERVER_AUTH}:latest" \
+          --set-secrets="Jwt__Secret=${_SECRET_JWT}:latest,ConnectionStrings__Valkey=${_SECRET_VALKEY_CONNECTION}:latest" \
           --memory=512Mi \
           --cpu=1 \
           --min-instances=1 \
@@ -79,13 +77,10 @@ substitutions:
   _SERVICE_NAME: game-realtime
   # Secret Manager シークレット名
   _SECRET_JWT: game-jwt-secret
-  _SECRET_UNITY_SERVER_AUTH: unity-server-auth-session-secret
+  _SECRET_VALKEY_CONNECTION: game-valkey-connection
   # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client
-  # Memorystore for Valkey 設定
-  _VALKEY_HOST: ''
-  _VALKEY_PORT: '6379'
   # Direct VPC Egress（Memorystore / 内部通信に必要）
   _VPC_NETWORK: default
   _VPC_SUBNET: game-direct-vpc-subnet

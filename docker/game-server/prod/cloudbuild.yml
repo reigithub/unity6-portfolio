@@ -60,7 +60,7 @@ steps:
       - '-c'
       - |
         CONNECTION_NAME=$(cat /workspace/connection_name.txt)
-        SECRETS="ConnectionStrings__Default=${_SECRET_DB_CONNECTION}:latest,Jwt__Secret=${_SECRET_JWT}:latest,RequestSigning__SecretKey=${_SECRET_REQUEST_SIGNING}:latest,ConnectionStrings__Valkey=${_SECRET_VALKEY_CONNECTION}:latest"
+        SECRETS="ConnectionStrings__Default=${_SECRET_DB_CONNECTION}:latest,Jwt__Secret=${_SECRET_JWT}:latest,RequestSigning__SecretKey=${_SECRET_REQUEST_SIGNING}:latest,ConnectionStrings__Valkey=${_SECRET_VALKEY_CONNECTION}:latest,UnityServerAuth__SecretKey=${_SECRET_UNITY_SERVER_AUTH}:latest"
         if [ -n "${_SECRET_RESEND}" ]; then
           SECRETS="$${SECRETS},Resend__ApiKey=${_SECRET_RESEND}:latest"
         fi
@@ -97,6 +97,7 @@ substitutions:
   _SECRET_REQUEST_SIGNING: game-request-signing-secret
   _SECRET_RESEND: ''
   _SECRET_VALKEY_CONNECTION: game-valkey-connection
+  _SECRET_UNITY_SERVER_AUTH: unity-server-auth-session-secret
   # 非機密設定
   _JWT_ISSUER: Game.Server
   _JWT_AUDIENCE: Game.Client

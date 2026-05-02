@@ -4,14 +4,15 @@
 # 使用方法:
 #   cd Unity6Portfolio
 #   gcloud builds submit --config=docker/unity-server/prod/cloudbuild.yml \
-#     --substitutions=_ZONE=asia-northeast1-b
+#     --substitutions=_ZONE=asia-northeast1-b,_GAME_SERVER_URL=https://game-server-xxxxxx-an.a.run.app
 #
 # 前提条件:
 #   - Artifact Registry リポジトリが作成済み
 #   - GCE ファイアウォールルール (UDP 7777, TCP 7778) が作成済み
 #   - GCE TCP ヘルスチェックが作成済み
-#   - Secret Manager にシークレットが登録済み
-#   - Cloud Build サービスアカウントに Compute Admin 権限が付与済み
+#   - Secret Manager にシークレット (unity-server-auth-session-secret) が登録済み
+#   - Cloud Build サービスアカウントに Compute Admin + Secret Manager Accessor 権限が付与済み
+#   - _GAME_SERVER_URL の指定が必須（Unity DS が Game.Server へ自己登録するため）
 #
 # 注意: Cloud Run ではなく GCE (Container-Optimized OS) にデプロイ
 # Unity Server は UDP を使用するため Cloud Run は使用不可
@@ -44,6 +45,25 @@ steps:
       - 'push'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:latest'
 
+  # ===== Secret Manager から Unity Server 認証シークレットを取得 =====
+  # GCE は Secret Manager を直接マウントできないため、ビルド時に取得して container-env に焼き込む
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'get-unity-secret'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ -z "${_GAME_SERVER_URL}" ]; then
+          echo "ERROR: _GAME_SERVER_URL substitution is required."
+          exit 1
+        fi
+        gcloud secrets versions access latest \
+          --secret="${_SECRET_UNITY_SERVER_AUTH}" > /workspace/unity_secret.txt
+        if [ ! -s /workspace/unity_secret.txt ]; then
+          echo "ERROR: Failed to fetch ${_SECRET_UNITY_SERVER_AUTH} from Secret Manager."
+          exit 1
+        fi
+
   # ===== GCE インスタンステンプレートを作成 =====
   # Container-Optimized OS + Docker コンテナ指定
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -54,11 +74,16 @@ steps:
       - |
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/unity-server:${SHORT_SHA}"
         TEMPLATE_NAME="${_INSTANCE_TEMPLATE_NAME}-${SHORT_SHA}"
+        UNITY_SECRET=$(cat /workspace/unity_secret.txt)
 
         gcloud compute instance-templates create-with-container "$${TEMPLATE_NAME}" \
           --machine-type=${_MACHINE_TYPE} \
           --tags=${_NETWORK_TAG} \
           --container-image="$${IMAGE}" \
+          --container-env="UNITY_SERVER_AUTH_SESSION_SECRET=$${UNITY_SECRET}" \
+          --container-env="GAME_SERVER_URL=${_GAME_SERVER_URL}" \
+          --container-env="UNITY_SERVER_PORT=${_UNITY_SERVER_PORT}" \
+          --container-env="UNITY_SERVER_HEALTH_PORT=${_UNITY_SERVER_HEALTH_PORT}" \
           --container-arg="--port" \
           --container-arg="${_UNITY_SERVER_PORT}" \
           --container-arg="--health-port" \
@@ -129,6 +154,10 @@ substitutions:
   _INITIAL_DELAY: '180'
   # Unity Server ビルド成果物のパス（Cloud Build ワークスペース内）
   _BUILD_CONTEXT: 'server-build/'
+  # Secret Manager シークレット名（GCE 起動時に container-env へ焼き込む）
+  _SECRET_UNITY_SERVER_AUTH: unity-server-auth-session-secret
+  # Game.Server URL（Unity DS が自己登録・ハートビートを送る宛先、必須指定）
+  _GAME_SERVER_URL: ''
 
 # ===== ビルドオプション =====
 options:
