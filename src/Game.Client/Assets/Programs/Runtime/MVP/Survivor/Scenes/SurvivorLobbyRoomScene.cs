@@ -177,16 +177,23 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnReady()
         {
+            // 楽観的 UI 更新: 先にローカル UI を切替えて RPC 往復遅延（最後の Ready は
+            // 全員 Ready 判定 + マッチメイキング処理を含むため数秒かかる）でボタンが
+            // NOT READY のまま見える問題を回避する。
+            bool nextReady = !_isReady;
+            _isReady = nextReady;
+            SceneComponent.SetReadyButtonState(_isReady);
+
             try
             {
-                _isReady = !_isReady;
-                await _lobbyClient.SetReadyAsync(_isReady);
-                SceneComponent.SetReadyButtonState(_isReady);
+                await _lobbyClient.SetReadyAsync(nextReady);
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"[SurvivorLobbyRoomScene] Failed to set ready: {ex.Message}");
-                _isReady = !_isReady; // revert
+                // エラー時はロールバック (UI も元に戻す)
+                _isReady = !nextReady;
+                SceneComponent.SetReadyButtonState(_isReady);
             }
         }
 

@@ -15,6 +15,7 @@ public interface ILobbyDataService
     Task<LobbyInfo[]> SearchPublicAsync(string gameMode, int maxResults);
     Task<bool> SetReadyAsync(string lobbyId, string userId, bool isReady);
     Task<bool> AreAllReadyAsync(string lobbyId);
+    Task ResetAllReadyAsync(string lobbyId);
     Task SetStageAsync(string lobbyId, int stageId);
     Task DeleteAsync(string lobbyId);
     Task<string?> GetPlayerLobbyAsync(string userId);

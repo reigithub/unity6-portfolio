@@ -79,7 +79,22 @@ namespace Game.MVP.Survivor.Enemy
         public bool IsDead => _isDead;
 
         private bool _isPaused;
-        public void SetPaused(bool paused) => _isPaused = paused;
+        public void SetPaused(bool paused)
+        {
+            if (_isPaused == paused) return;
+            _isPaused = paused;
+
+            // NavMeshAgent / Animator を即座に停止/再開（フラグ立てだけでは到達まで進み続けるため）
+            if (_navAgent != null && _navAgent.enabled && _navAgent.isOnNavMesh)
+            {
+                _navAgent.isStopped = paused;
+                if (paused) _navAgent.velocity = Vector3.zero;
+            }
+            if (_animator != null && _animator.enabled)
+            {
+                _animator.speed = paused ? 0f : 1f;
+            }
+        }
 
         /// <summary>ネットワーク同期用ID（SurvivorEnemySpawnerが設定）</summary>
         public int NetworkId => _networkId;

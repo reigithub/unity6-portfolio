@@ -80,6 +80,12 @@ namespace Game.Shared.Network.Survivor
 
         public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
         {
+            // 切断時の Pause クリーンアップ (LevelUp 中切断で全体停止が永続化するのを防ぐ)
+            if (_runnerService != null && _runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            {
+                gs.OnPlayerDisconnectedCleanup(player);
+            }
+
             // プレイヤー NetworkObject をデスポーン
             var playerObj = runner.GetPlayerObject(player);
             if (playerObj != null)

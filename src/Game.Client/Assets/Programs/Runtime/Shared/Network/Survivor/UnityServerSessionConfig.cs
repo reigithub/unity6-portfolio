@@ -42,7 +42,7 @@ namespace Game.Shared.Network.Survivor
         private const ushort DefaultPort = 7777;
 
         /// <summary>現在の接続元種別。</summary>
-        public ConnectionSource Source { get; private set; }
+        public ConnectionSource ConnectionSource { get; private set; }
 
         /// <summary>接続先サーバーアドレス。</summary>
         public string ServerAddress { get; private set; }
@@ -63,13 +63,18 @@ namespace Game.Shared.Network.Survivor
         public int PlayerCount { get; private set; } = 1;
 
         /// <summary>接続パラメータが設定済みかどうか。</summary>
-        public bool HasConnection => Source != ConnectionSource.None;
+        public bool HasConnection => ConnectionSource != ConnectionSource.None;
 
         /// <summary>
         /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
         /// </summary>
-        public bool IsClientConfigured => Source is ConnectionSource.Local or ConnectionSource.Remote or ConnectionSource.Matchmaking;
+        public bool IsClientConfigured => ConnectionSource is ConnectionSource.Local or ConnectionSource.Remote or ConnectionSource.Matchmaking;
+
+        /// <summary>
+        /// Configure 後の最後の接続種別
+        /// </summary>
+        public ConnectionSource LastConnectionSource { get; private set; } = ConnectionSource.None;
 
         /// <summary>
         /// 全パラメータを初期化する。未指定はデフォルト値で補完。
@@ -82,12 +87,13 @@ namespace Game.Shared.Network.Survivor
         /// <param name="playerCount">期待プレイヤー数。</param>
         public void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null)
         {
-            Source = source;
+            ConnectionSource = source;
             ServerAddress = address ?? DefaultLocalAddress;
             ServerPort = port ?? DefaultPort;
             SessionName = sessionName ?? (source is ConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
             SessionToken = sessionToken ?? string.Empty;
             PlayerCount = playerCount ?? 1;
+            if (source != ConnectionSource.None) LastConnectionSource = source;
         }
 
         /// <summary>
@@ -122,7 +128,7 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         public void Clear()
         {
-            Source = ConnectionSource.None;
+            ConnectionSource = ConnectionSource.None;
             ServerAddress = null;
             ServerPort = 0;
             SessionName = null;

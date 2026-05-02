@@ -283,8 +283,16 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                NetworkStageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(NetworkStageModel.GameTime.Value);
+                // ポーズ中（自分の LevelUp/ESC、または他プレイヤーの LevelUp/ESC で停止中）は時計を進めない。
+                // 自分が PausedState/LevelUpState 中は Time.timeScale=0 で deltaTime=0 になるが、
+                // 他プレイヤーが Pause 中に自分が PlayingState のままだと Time.timeScale=1 のままになるため、
+                // Networked IsPaused を必ずチェックする必要がある。
+                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
+                if (!isPaused)
+                {
+                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                }
 
                 // 自プレイヤーが死亡 → 仮死状態 (ApparentDeath) へ遷移。
                 // 観戦状態で Wave/Time 表示を継続し、全員死亡時のみサーバーから NotifyGameEnded が届く。
@@ -337,8 +345,13 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Wave/Time 表示更新は継続 (観戦状態)
-                NetworkStageModel.GameTime.Value += Time.deltaTime;
-                View.UpdateTime(NetworkStageModel.GameTime.Value);
+                // ただし他プレイヤーの LevelUp/ESC で全体ポーズ中は時計を止める（サーバー側と整合）
+                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
+                if (!isPaused)
+                {
+                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                }
             }
 
             public override void Exit()
@@ -413,10 +426,8 @@ namespace Game.MVP.Survivor.Scenes
                 Context._inputService.DisablePlayer();
                 ApplicationEvents.ShowCursor();
 
-                if (TryGetLocalPlayer(out var localPlayer))
-                {
-                    localPlayer.RpcClientRequestPause();
-                }
+                // サーバー権威の Pause はサーバー側 LevelUpState.Enter で BeginLevelUpPause により即時開始される。
+                // クライアント側の Pause RPC は不要 (Resume はサーバーが OnClientWeaponChoice 受信で自動解除)。
 
                 ShowLevelUpDialogAsync().Forget();
             }
@@ -504,10 +515,8 @@ namespace Game.MVP.Survivor.Scenes
 
                 View.WeaponManager.UpdateDamageMultiplier(StageModel.GetDamageMultiplier());
 
-                if (TryGetLocalPlayer(out var resumePlayer))
-                {
-                    resumePlayer.RpcClientRequestResume();
-                }
+                // Resume はサーバー側で OnClientWeaponChoice → EndLevelUpPause により自動的に行われる。
+                // クライアントは ApplyUpgradeOptionAsync 経由で RpcClientWeaponChoice を送信済みのため明示的 Resume RPC は不要。
 
                 Transition(StageEvent.LevelUpComplete);
             }
@@ -524,6 +533,13 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[LevelUpState] Exit");
                 ApplicationEvents.ResumeTime();
+
+                // MP で他プレイヤーがまだ LevelUp 中（IsPaused=true 維持）なら入力を有効化しない。
+                // 解除は Game.Resumed シグナル経由で行う（VS Co-op 準拠：全員選択完了まで全員入力停止）。
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused)
+                {
+                    return;
+                }
                 Context._inputService.EnablePlayer();
             }
 

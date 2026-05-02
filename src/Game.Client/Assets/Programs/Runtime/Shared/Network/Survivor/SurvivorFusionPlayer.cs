@@ -443,21 +443,21 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientRequestPause()
+        public void RpcClientRequestPause(RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
-                gs.OnClientRequestPause();
+                gs.OnClientRequestPause(info.Source);
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientRequestResume()
+        public void RpcClientRequestResume(RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
-                gs.OnClientRequestResume();
+                gs.OnClientRequestResume(info.Source);
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientWeaponChoice(int weaponId, NetworkBool isNewWeapon)
+        public void RpcClientWeaponChoice(int weaponId, NetworkBool isNewWeapon, RpcInfo info = default)
         {
             if (!ValidateAndClearWeaponChoice(weaponId))
             {
@@ -466,7 +466,7 @@ namespace Game.Shared.Network.Survivor
             }
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientWeaponChoice(weaponId, isNewWeapon);
+                gs.OnClientWeaponChoice(info.Source, weaponId, isNewWeapon);
             }
         }
 
@@ -518,16 +518,21 @@ namespace Game.Shared.Network.Survivor
             int experienceToNextLevel, SurvivorNetworkWeaponUpgradeOption[] options)
         {
             _lastSentWeaponOptions = options;
-            RpcNotifyPlayerLevelUp(level, experience, experienceToNextLevel, options);
+            string userId = string.Empty;
+            if (TryGetGameState(out var gs))
+            {
+                gs.TryGetUserId(Object.InputAuthority, out userId);
+            }
+            RpcNotifyPlayerLevelUp(userId ?? string.Empty, level, experience, experienceToNextLevel, options);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-        public void RpcNotifyPlayerLevelUp(int level, int experience,
+        public void RpcNotifyPlayerLevelUp(NetworkString<_64> userId, int level, int experience,
             int experienceToNextLevel, SurvivorNetworkWeaponUpgradeOption[] options)
         {
             _playerLeveledUpPub?.Publish(
                 new SurvivorSignals.Player.LeveledUp(
-                    "", level, experience, experienceToNextLevel, options));
+                    userId.ToString(), level, experience, experienceToNextLevel, options));
         }
 
         /// <summary>
