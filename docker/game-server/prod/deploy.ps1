@@ -11,7 +11,9 @@ param(
     [string]$Tag = "latest"
 )
 
-$ErrorActionPreference = "Stop"
+# gcloud / docker は warning を stderr に書いて exit 0 で返すため、Stop だと NativeCommandError で中断する。
+# Continue にして native コマンドの失敗判定は $LASTEXITCODE チェックに委ねる。
+$ErrorActionPreference = "Continue"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path "$ScriptDir\..\..\..\"
 

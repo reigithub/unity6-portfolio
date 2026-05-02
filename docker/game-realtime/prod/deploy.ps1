@@ -17,7 +17,9 @@ param(
     [string]$Tag = "latest"
 )
 
-$ErrorActionPreference = "Stop"
+# gcloud / docker は warning を stderr に書いて exit 0 で返すため、Stop だと NativeCommandError で中断する。
+# Continue にして native コマンドの失敗判定は $LASTEXITCODE チェックに委ねる。
+$ErrorActionPreference = "Continue"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path "$ScriptDir\..\..\..\"
 
@@ -40,28 +42,12 @@ if (Test-Path $EnvFile) {
 }
 
 # Check required variables (no Cloud SQL needed)
-$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME")
+$RequiredVars = @("PROJECT_ID", "REGION", "REPO_NAME", "SERVICE_NAME", "SECRET_JWT", "SECRET_VALKEY_CONNECTION")
 foreach ($var in $RequiredVars) {
     if (-not (Get-Item -Path "Env:$var" -ErrorAction SilentlyContinue)) {
         Write-Host "[ERROR] Required variable $var is not set in .env" -ForegroundColor Red
         exit 1
     }
-}
-
-# Check JWT settings (warning only)
-if (-not $env:Jwt__Secret) {
-    Write-Host "[WARN] Jwt__Secret is not set. JWT authentication may fail." -ForegroundColor Yellow
-}
-
-# Check Valkey settings (critical for Game.Realtime)
-$ValkeyEnabled = $false
-if ($env:VALKEY_HOST -and $env:VPC_NETWORK -and $env:VPC_SUBNET) {
-    $ValkeyEnabled = $true
-} elseif ($env:VALKEY_HOST) {
-    Write-Host "[WARN] Valkey requires VALKEY_HOST, VPC_NETWORK, and VPC_SUBNET to be set." -ForegroundColor Yellow
-}
-if (-not $ValkeyEnabled) {
-    Write-Host "[WARN] Valkey is not configured. Redis backplane for MagicOnion will not work." -ForegroundColor Yellow
 }
 
 # Check Direct VPC Egress (required for internal communication)
@@ -78,11 +64,8 @@ Write-Host "PROJECT_ID:      $env:PROJECT_ID"
 Write-Host "REGION:          $env:REGION"
 Write-Host "SERVICE_NAME:    $env:SERVICE_NAME"
 Write-Host "IMAGE:           ${IMAGE}:${Tag}"
-if ($ValkeyEnabled) {
-    Write-Host "VALKEY:          $env:VALKEY_HOST`:$env:VALKEY_PORT"
-} else {
-    Write-Host "VALKEY:          (not configured)"
-}
+Write-Host "JWT_SECRET:      $env:SECRET_JWT"
+Write-Host "VALKEY_SECRET:   $env:SECRET_VALKEY_CONNECTION"
 if ($VpcEgressEnabled) {
     Write-Host "VPC_NETWORK:     $env:VPC_NETWORK"
     Write-Host "VPC_SUBNET:      $env:VPC_SUBNET"
@@ -119,27 +102,25 @@ if (-not $BuildOnly) {
     # Cloud Run deployment
     Write-Host "[4/4] Deploying to Cloud Run..." -ForegroundColor Yellow
 
-    # Build environment variables
+    # Build environment variables (non-sensitive only)
     $EnvVars = @(
         "ASPNETCORE_ENVIRONMENT=Production"
     )
 
-    # Add JWT settings if configured
-    if ($env:Jwt__Secret) { $EnvVars += "Jwt__Secret=$env:Jwt__Secret" }
     if ($env:Jwt__Issuer) { $EnvVars += "Jwt__Issuer=$env:Jwt__Issuer" }
     if ($env:Jwt__Audience) { $EnvVars += "Jwt__Audience=$env:Jwt__Audience" }
 
-    # Add Unity Server settings if configured
     if ($env:UNITY_SERVER_ADDRESS) { $EnvVars += "UnityServer__ServerAddress=$env:UNITY_SERVER_ADDRESS" }
     if ($env:UNITY_SERVER_PORT) { $EnvVars += "UnityServer__ServerPort=$env:UNITY_SERVER_PORT" }
 
-    # Add Valkey settings if configured
-    if ($ValkeyEnabled) {
-        $ValkeyPort = if ($env:VALKEY_PORT) { $env:VALKEY_PORT } else { "6379" }
-        $EnvVars += "ConnectionStrings__Valkey=$env:VALKEY_HOST`:${ValkeyPort},abortConnect=false,connectTimeout=5000"
-    }
-
     $EnvVarsString = $EnvVars -join ","
+
+    # Build Secret Manager secrets
+    $Secrets = @(
+        "Jwt__Secret=$env:SECRET_JWT`:latest",
+        "ConnectionStrings__Valkey=$env:SECRET_VALKEY_CONNECTION`:latest"
+    )
+    $SecretsString = $Secrets -join ","
 
     # Build deploy command
     # Differences from Game.Server:
@@ -156,6 +137,7 @@ if (-not $BuildOnly) {
         "--platform=managed",
         "--allow-unauthenticated",
         "--set-env-vars=$EnvVarsString",
+        "--set-secrets=$SecretsString",
         "--memory=512Mi",
         "--cpu=1",
         "--min-instances=1",

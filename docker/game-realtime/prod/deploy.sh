@@ -45,29 +45,13 @@ else
 fi
 
 # 必須変数の確認（Cloud SQL は不要）
-REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME")
+REQUIRED_VARS=("PROJECT_ID" "REGION" "REPO_NAME" "SERVICE_NAME" "SECRET_JWT" "SECRET_VALKEY_CONNECTION")
 for var in "${REQUIRED_VARS[@]}"; do
     if [[ -z "${!var}" ]]; then
         echo "[ERROR] Required variable $var is not set in .env"
         exit 1
     fi
 done
-
-# JWT 設定の確認（警告のみ）
-if [[ -z "$Jwt__Secret" ]]; then
-    echo "[WARN] Jwt__Secret is not set. JWT authentication may fail."
-fi
-
-# Valkey 設定の確認（Game.Realtime では必須レベル）
-VALKEY_ENABLED=false
-if [[ -n "$VALKEY_HOST" && -n "$VPC_NETWORK" && -n "$VPC_SUBNET" ]]; then
-    VALKEY_ENABLED=true
-elif [[ -n "$VALKEY_HOST" ]]; then
-    echo "[WARN] Valkey requires VALKEY_HOST, VPC_NETWORK, and VPC_SUBNET to be set."
-fi
-if [[ "$VALKEY_ENABLED" != "true" ]]; then
-    echo "[WARN] Valkey is not configured. Redis backplane for MagicOnion will not work."
-fi
 
 # Direct VPC Egress の確認（内部通信に必要）
 VPC_EGRESS_ENABLED=false
@@ -83,11 +67,8 @@ echo "PROJECT_ID:      $PROJECT_ID"
 echo "REGION:          $REGION"
 echo "SERVICE_NAME:    $SERVICE_NAME"
 echo "IMAGE:           ${IMAGE}:${TAG}"
-if [[ "$VALKEY_ENABLED" == "true" ]]; then
-    echo "VALKEY:          ${VALKEY_HOST}:${VALKEY_PORT:-6379}"
-else
-    echo "VALKEY:          (not configured)"
-fi
+echo "JWT_SECRET:      $SECRET_JWT"
+echo "VALKEY_SECRET:   $SECRET_VALKEY_CONNECTION"
 if [[ "$VPC_EGRESS_ENABLED" == "true" ]]; then
     echo "VPC_NETWORK:     $VPC_NETWORK"
     echo "VPC_SUBNET:      $VPC_SUBNET"
@@ -120,23 +101,16 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
     # Cloud Run デプロイ
     echo "[4/4] Deploying to Cloud Run..."
 
-    # 環境変数を構築
+    # 環境変数（非機密のみ）
     ENV_VARS="ASPNETCORE_ENVIRONMENT=Production"
-
-    # JWT 設定を追加
-    [[ -n "$Jwt__Secret" ]] && ENV_VARS="$ENV_VARS,Jwt__Secret=$Jwt__Secret"
     [[ -n "$Jwt__Issuer" ]] && ENV_VARS="$ENV_VARS,Jwt__Issuer=$Jwt__Issuer"
     [[ -n "$Jwt__Audience" ]] && ENV_VARS="$ENV_VARS,Jwt__Audience=$Jwt__Audience"
-
-    # Unity Server 接続設定
     [[ -n "$UNITY_SERVER_ADDRESS" ]] && ENV_VARS="$ENV_VARS,UnityServer__ServerAddress=$UNITY_SERVER_ADDRESS"
     [[ -n "$UNITY_SERVER_PORT" ]] && ENV_VARS="$ENV_VARS,UnityServer__ServerPort=$UNITY_SERVER_PORT"
 
-    # Valkey 設定を追加
-    if [[ "$VALKEY_ENABLED" == "true" ]]; then
-        VALKEY_PORT="${VALKEY_PORT:-6379}"
-        ENV_VARS="$ENV_VARS,ConnectionStrings__Valkey=${VALKEY_HOST}:${VALKEY_PORT},abortConnect=false,connectTimeout=5000"
-    fi
+    # Secret Manager シークレットを構築
+    SECRETS="Jwt__Secret=${SECRET_JWT}:latest"
+    SECRETS="$SECRETS,ConnectionStrings__Valkey=${SECRET_VALKEY_CONNECTION}:latest"
 
     # デプロイコマンドを構築
     # Game.Server との違い:
@@ -153,6 +127,7 @@ if [[ "$BUILD_ONLY" != "true" ]]; then
         "--platform=managed"
         "--allow-unauthenticated"
         "--set-env-vars=$ENV_VARS"
+        "--set-secrets=$SECRETS"
         "--memory=512Mi"
         "--cpu=1"
         "--min-instances=1"
