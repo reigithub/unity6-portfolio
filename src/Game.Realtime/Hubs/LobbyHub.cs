@@ -221,7 +221,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             {
                 var info = new MatchStartInfo
                 {
-                    Topology = NetworkTopology.Dedicated,
+                    Topology = NetworkTopology.DedicatedServer,
                     SessionName = matchId,
                     ServerAddress = _unityServerConfig.ServerAddress,
                     ServerPort = _unityServerConfig.ServerPort,

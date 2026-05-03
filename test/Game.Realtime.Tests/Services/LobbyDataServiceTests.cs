@@ -232,7 +232,7 @@ public class LobbyDataServiceTests
         Assert.True(result.IsPublic);
 
         // フィールド欠落時は default = Dedicated にフォールバック
-        Assert.Equal(NetworkTopology.Dedicated, result.NetworkTopology);
+        Assert.Equal(NetworkTopology.DedicatedServer, result.NetworkTopology);
     }
 
     [Fact]

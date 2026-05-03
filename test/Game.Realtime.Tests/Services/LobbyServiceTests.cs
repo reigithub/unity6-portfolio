@@ -38,7 +38,7 @@ public class LobbyServiceTests
     {
         // Arrange
         var lobbyId = "test-lobby-id";
-        _lobbyDataServiceMock.Setup(x => x.CreateAsync("host1", It.IsAny<string>(), "Test Lobby", "survival", 4, true, 1, NetworkTopology.Dedicated))
+        _lobbyDataServiceMock.Setup(x => x.CreateAsync("host1", It.IsAny<string>(), "Test Lobby", "survival", 4, true, 1, NetworkTopology.DedicatedServer))
             .ReturnsAsync(lobbyId);
 
         var expectedLobby = new LobbyInfo

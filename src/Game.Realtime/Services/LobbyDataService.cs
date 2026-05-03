@@ -26,7 +26,7 @@ public class LobbyDataService : ILobbyDataService
     }
 
     public async Task<string?> CreateAsync(
-        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic, int stageId = 1, NetworkTopology networkTopology = NetworkTopology.Dedicated)
+        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic, int stageId = 1, NetworkTopology networkTopology = NetworkTopology.DedicatedServer)
     {
         var db = _redis.GetDatabase();
         var lobbyId = Guid.NewGuid().ToString("N");
@@ -182,7 +182,7 @@ public class LobbyDataService : ILobbyDataService
         // 古いロビー (フィールド欠落) や不正値は Dedicated にフォールバック
         return Enum.TryParse<NetworkTopology>(value, out var topology)
             ? topology
-            : NetworkTopology.Dedicated;
+            : NetworkTopology.DedicatedServer;
     }
 
     public async Task<LobbyPlayerInfo[]> GetPlayersAsync(string lobbyId)
