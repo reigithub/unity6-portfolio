@@ -21,6 +21,12 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>Dedicated Server 自身のバインド設定。</summary>
         DedicatedServer,
+
+        /// <summary>P2P 自身がホスト (GameMode.Host) として起動。</summary>
+        P2PHost,
+
+        /// <summary>P2P 他人のホストにクライアント (GameMode.Client) として接続。</summary>
+        P2PClient,
     }
 
     /// <summary>
@@ -66,15 +72,26 @@ namespace Game.Shared.Network.Survivor
         public bool HasConnection => ConnectionSource != ConnectionSource.None;
 
         /// <summary>
-        /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。
+        /// クライアント接続経路（Local / Remote / Matchmaking / P2PClient）が設定済みかどうかを返す。
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
+        /// P2PHost は Host モード起動 (= IsHostMode 経路) のためここには含めない。
         /// </summary>
-        public bool IsClientConfigured => ConnectionSource is ConnectionSource.Local or ConnectionSource.Remote or ConnectionSource.Matchmaking;
+        public bool IsClientConfigured => ConnectionSource is ConnectionSource.Local
+                             or ConnectionSource.Remote
+                             or ConnectionSource.Matchmaking
+                             or ConnectionSource.P2PClient;
 
         /// <summary>
         /// Configure 後の最後の接続種別
         /// </summary>
         public ConnectionSource LastConnectionSource { get; private set; } = ConnectionSource.None;
+
+        /// <summary>
+        /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp", "us", "eu")。
+        /// null の場合は <c>PhotonAppSettings.asset</c> の <c>FixedRegion</c> にフォールバック。
+        /// 本フィールドは PR1 で先行追加 (dormant)、PR3 で StartHostAsync が参照する。
+        /// </summary>
+        public string PhotonRegion { get; private set; }
 
         /// <summary>
         /// 全パラメータを初期化する。未指定はデフォルト値で補完。
@@ -125,6 +142,8 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// 接続パラメータと期待プレイヤー数をリセットする。
+        /// LastConnectionSource は履歴目的のため意図的に保持する (リザルト画面等で参照する)。
+        /// PhotonRegion は「次回接続用設定値」のため reset する (SP/DS モード切替時に古い値が残らないように)。
         /// </summary>
         public void Clear()
         {
@@ -134,6 +153,7 @@ namespace Game.Shared.Network.Survivor
             SessionName = null;
             SessionToken = null;
             PlayerCount = 1;
+            PhotonRegion = null;
         }
 
         public bool IsLocalAddress(string address)

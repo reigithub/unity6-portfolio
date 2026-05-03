@@ -31,10 +31,16 @@ namespace Game.Shared.Network.Survivor
         int PlayerCount { get; }
 
         /// <summary>
-        /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。
+        /// クライアント接続経路（Local / Remote / Matchmaking / P2PClient）が設定済みかどうかを返す。
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
         /// </summary>
         bool IsClientConfigured { get; }
+
+        /// <summary>
+        /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp", "us", "eu")。
+        /// null 時は PhotonAppSettings.FixedRegion にフォールバック。
+        /// </summary>
+        string PhotonRegion { get; }
 
         /// <summary>全パラメータを初期化する。未指定はデフォルト値で補完。</summary>
         void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
