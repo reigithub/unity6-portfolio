@@ -234,8 +234,9 @@ namespace Game.MVP.Survivor.Enemy
 
             InitializeStateMachine();
 
-            // サーバー時は Renderer/Animator を明示的に無効化（不要な描画計算を防止）
-            if (_runnerService != null && _runnerService.IsServer)
+            // ヘッドレス DS でのみ Renderer/Animator を明示的に無効化（不要な描画計算を防止）。
+            // Host モード (= サーバー兼クライアント) では敵を表示する必要があるため除外。
+            if (_runnerService != null && _runnerService.IsDedicatedServer)
             {
                 if (_animator != null) _animator.enabled = false;
                 if (_renderers != null)

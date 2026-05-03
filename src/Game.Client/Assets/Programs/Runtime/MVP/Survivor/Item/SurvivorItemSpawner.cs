@@ -185,8 +185,9 @@ namespace Game.MVP.Survivor.Item
 
             item.OnCollected += OnItemCollectedHandler;
 
-            // サーバー側では Renderer を無効化（描画コスト削減）
-            if (_runnerService.IsServer)
+            // ヘッドレス DS でのみ Renderer を無効化（描画コスト削減）。
+            // Host モードでは表示が必要なため除外。
+            if (_runnerService.IsDedicatedServer)
             {
                 foreach (var r in instance.GetComponentsInChildren<Renderer>())
                     r.enabled = false;
