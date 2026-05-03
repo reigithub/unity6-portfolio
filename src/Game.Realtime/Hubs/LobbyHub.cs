@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading;
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
 using Game.Realtime.Validation;
@@ -174,18 +175,39 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
     private async ValueTask StartGameAsync()
     {
         var players = await _lobbyDataService.GetPlayersAsync(_lobbyId);
-        if (players.Length == 0 || _currentGroup == null)
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        if (players.Length == 0 || lobby == null || _currentGroup == null)
         {
-            _logger.LogWarning("StartGameAsync aborted: lobby {LobbyId} has no players or group is null", _lobbyId);
+            _logger.LogWarning("StartGameAsync aborted: lobby {LobbyId} has no players or group/lobby is null", _lobbyId);
             return;
         }
 
+        LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
+
+        if (lobby.NetworkTopology == NetworkTopology.PeerToPeer)
+        {
+            StartP2PGameAsync(players, lobby, lobbyMap);
+        }
+        else
+        {
+            await StartDsGameAsync(players, lobby, lobbyMap);
+        }
+
+        // ゲーム開始時に Ready 状態を全員 false にリセット
+        // (リザルト後に LobbyRoomScene へ戻った際、Ready が残らないようにする)
+        await _lobbyDataService.ResetAllReadyAsync(_lobbyId);
+        foreach (var player in players)
+        {
+            _currentGroup.All.OnPlayerReadyChanged(player.UserId, false);
+        }
+    }
+
+    private async Task StartDsGameAsync(LobbyPlayerInfo[] players, LobbyInfo lobby, ConcurrentDictionary<string, Guid>? lobbyMap)
+    {
         var matchId = $"mp-{Guid.NewGuid():N}";
-        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
-        var stageId = lobby?.StageId ?? 0;
+        var stageId = lobby.StageId;
 
         // リーダー（先頭プレイヤー）のトークン発行時に DS セッション割り当てを実行
-        LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
         var isFirst = true;
         foreach (var player in players)
         {
@@ -197,25 +219,55 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {
-                _currentGroup.Only(new[] { connId }).OnGameStarting(
-                    matchId,
-                    _unityServerConfig.ServerAddress,
-                    _unityServerConfig.ServerPort,
-                    authResponse.Token);
+                var info = new MatchStartInfo
+                {
+                    Topology = NetworkTopology.Dedicated,
+                    SessionName = matchId,
+                    ServerAddress = _unityServerConfig.ServerAddress,
+                    ServerPort = _unityServerConfig.ServerPort,
+                    SessionToken = authResponse.Token,
+                };
+                _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
             }
         }
 
         _logger.LogInformation(
-            "Game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
+            "DS game starting from lobby {LobbyId}: match {MatchId} with {PlayerCount} players",
             _lobbyId, matchId, players.Length);
+    }
 
-        // ゲーム開始時に Ready 状態を全員 false にリセット
-        // (リザルト後に LobbyRoomScene へ戻った際、Ready が残らないようにする)
-        await _lobbyDataService.ResetAllReadyAsync(_lobbyId);
+    private void StartP2PGameAsync(LobbyPlayerInfo[] players, LobbyInfo lobby, ConcurrentDictionary<string, Guid>? lobbyMap)
+    {
+        // [Photon 制約] 1 セッションに Host は 1 名のみ。本実装ではロビーホスト = Photon Host で固定。
+        // Host migration (Host 切断後の再昇格) は将来 PR で別途対応する。
+        var hostUserId = lobby.HostUserId;
+        if (string.IsNullOrEmpty(hostUserId))
+        {
+            _logger.LogWarning("StartP2PGameAsync aborted: lobby {LobbyId} has empty HostUserId", _lobbyId);
+            return;
+        }
+
+        var sessionName = $"p2p-{Guid.NewGuid():N}";  // 36 文字、Photon SessionName 制限 64 内
+        var photonRegion = "jp";  // PR2 では固定。PR3 で LobbyInfo.PhotonRegion フィールド追加 + UI 選択
+
         foreach (var player in players)
         {
-            _currentGroup.All.OnPlayerReadyChanged(player.UserId, false);
+            if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
+            {
+                var info = new MatchStartInfo
+                {
+                    Topology = NetworkTopology.PeerToPeer,
+                    SessionName = sessionName,
+                    PhotonRegion = photonRegion,
+                    HostUserId = hostUserId,
+                };
+                _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
+            }
         }
+
+        _logger.LogInformation(
+            "P2P game starting from lobby {LobbyId}: session {SessionName}, host {HostUserId}, region {Region}, players {Count}",
+            _lobbyId, sessionName, hostUserId, photonRegion, players.Length);
     }
 
     protected override async ValueTask OnDisconnected()

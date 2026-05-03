@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
@@ -110,6 +111,7 @@ namespace Game.Shared.Network.Survivor
             SessionName = sessionName ?? (source is ConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
             SessionToken = sessionToken ?? string.Empty;
             PlayerCount = playerCount ?? 1;
+            PhotonRegion = null;  // PhotonRegion は MatchStartInfo overload 経由でのみ更新するため、対称性のため reset
             if (source != ConnectionSource.None) LastConnectionSource = source;
         }
 
@@ -123,8 +125,41 @@ namespace Game.Shared.Network.Survivor
             => Configure(source, result.ServerAddress, (ushort)result.ServerPort, result.MatchId, result.SessionToken, playerCount);
 
         /// <summary>
+        /// MatchStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
+        /// LobbyHub.OnGameStarting 経由のゲーム開始フローで使用する。
+        /// </summary>
+        /// <param name="source">接続元の種別 (P2PHost / P2PClient / Matchmaking 等、呼出側で host/client 判定して指定)。</param>
+        /// <param name="info">サーバーから受信した <see cref="MatchStartInfo"/>。</param>
+        /// <param name="playerCount">期待プレイヤー数。</param>
+        public void Configure(ConnectionSource source, MatchStartInfo info, int playerCount)
+        {
+            ConnectionSource = source;
+            SessionName = info.SessionName;
+            PlayerCount = playerCount;
+            if (source != ConnectionSource.None) LastConnectionSource = source;
+
+            if (info.Topology == NetworkTopology.PeerToPeer)
+            {
+                // P2P: ServerAddress/Port/Token は不使用、PhotonRegion を使用
+                ServerAddress = null;
+                ServerPort = 0;
+                SessionToken = string.Empty;
+                PhotonRegion = info.PhotonRegion;
+            }
+            else
+            {
+                // Dedicated: ServerAddress/Port/Token を populate、PhotonRegion は null
+                ServerAddress = info.ServerAddress;
+                ServerPort = (ushort)info.ServerPort;
+                SessionToken = info.SessionToken ?? string.Empty;
+                PhotonRegion = null;
+            }
+        }
+
+        /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
         /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
+        /// NOTE: PhotonRegion は本メソッドでは更新しない (Configure(source, MatchStartInfo, playerCount) overload 経由でのみ更新)。
         /// </summary>
         /// <param name="address">接続先アドレス。null で既存値を維持。</param>
         /// <param name="port">接続先ポート番号。null で既存値を維持。</param>

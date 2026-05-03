@@ -141,9 +141,9 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.UpdatePlayerReady(userId, isReady);
         }
 
-        private void HandleGameStarting(string matchId, string serverAddress, int port, string sessionToken)
+        private void HandleGameStarting(MatchStartInfo info)
         {
-            OnGameStarting(matchId, serverAddress, port, sessionToken).Forget();
+            OnGameStarting(info).Forget();
         }
 
         private void HandleLobbyClosed(string reason)
@@ -226,29 +226,43 @@ namespace Game.MVP.Survivor.Scenes
             await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
 
-        private async UniTaskVoid OnGameStarting(string matchId, string serverAddress, int port, string sessionToken)
+        private async UniTaskVoid OnGameStarting(MatchStartInfo info)
         {
-            Debug.Log($"[SurvivorLobbyRoomScene] Game starting! MatchId: {matchId}, Server: {serverAddress}:{port}");
+            Debug.Log($"[SurvivorLobbyRoomScene] Game starting! Topology: {info.Topology}, Session: {info.SessionName}");
             SceneComponent.SetInteractables(false);
-            SceneComponent.ShowNotification("Game starting...");
+            SceneComponent.ShowNotification($"Game starting ({info.Topology})...");
 
-            var matchResult = new MatchResult
+            // Topology に応じて ConnectionSource を決定
+            ConnectionSource source;
+            if (info.Topology == NetworkTopology.PeerToPeer)
             {
-                MatchId = matchId,
-                PlayerIds = System.Array.Empty<string>(),
-                ServerAddress = serverAddress,
-                ServerPort = port,
-                SessionToken = sessionToken,
-                StageId = _stageId,
-            };
+                var myUserId = _authSessionService.UserId;
+                var isHost = myUserId == info.HostUserId;
+                source = isHost ? ConnectionSource.P2PHost : ConnectionSource.P2PClient;
+            }
+            else
+            {
+                source = ConnectionSource.Matchmaking;
+            }
 
-            // マッチメイキング結果をトークン含めて設定
-            _sessionConfig.Configure(ConnectionSource.Matchmaking, matchResult, _maxPlayers);
+            // 統一 Configure overload で MatchStartInfo を設定
+            _sessionConfig.Configure(source, info, _maxPlayers);
 
             // セッション開始（stageId はロビー情報から取得）
             var playerId = _saveService.Data.SelectedPlayerId;
             _saveService.StartSession(_stageId, playerId);
             await _saveService.SaveIfDirtyAsync();
+
+            // [PR2 制約] SurvivorStageConnectScene は P2P (P2PHost / P2PClient) に未対応 (PR3 で実装)。
+            // P2P 経路のみ遷移ブロック、DS は既存通り遷移。
+            if (info.Topology == NetworkTopology.PeerToPeer)
+            {
+                Debug.LogWarning(
+                    $"[SurvivorLobbyRoomScene] P2P configured (source={source}, session={info.SessionName}, region={info.PhotonRegion}). " +
+                    "Scene transition disabled until PR3 (SurvivorStageConnectScene P2P support).");
+                SceneComponent.SetInteractables(true);
+                return;
+            }
 
             await _sceneService.TransitionAsync<SurvivorStageConnectScene>();
         }

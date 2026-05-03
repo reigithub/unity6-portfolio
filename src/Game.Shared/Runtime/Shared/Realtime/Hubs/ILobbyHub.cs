@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Game.Library.Shared.Dto;
 using MagicOnion;
 
 namespace Game.Library.Shared.Realtime.Hubs
@@ -34,9 +35,9 @@ namespace Game.Library.Shared.Realtime.Hubs
         void OnPlayerReadyChanged(string userId, bool isReady);
 
         /// <summary>
-        /// ゲーム開始通知
+        /// ゲーム開始通知。Topology に応じて DS フィールドまたは P2P フィールドが populate される。
         /// </summary>
-        void OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken);
+        void OnGameStarting(MatchStartInfo info);
 
         /// <summary>
         /// ステージ変更通知

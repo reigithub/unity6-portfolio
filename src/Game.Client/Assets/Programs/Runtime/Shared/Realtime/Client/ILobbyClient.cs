@@ -100,9 +100,9 @@ namespace Game.Shared.Realtime.Client
         event Action<string, bool> OnPlayerReadyChanged;
 
         /// <summary>
-        /// ゲーム開始イベント (matchId, serverAddress, serverPort, sessionToken)
+        /// ゲーム開始イベント (DS / P2P 統一、Topology で受信側が分岐)
         /// </summary>
-        event Action<string, string, int, string> OnGameStarting;
+        event Action<MatchStartInfo> OnGameStarting;
 
         /// <summary>
         /// ロビー閉鎖イベント (reason)

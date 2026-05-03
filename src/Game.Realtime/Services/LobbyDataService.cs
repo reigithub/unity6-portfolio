@@ -26,7 +26,7 @@ public class LobbyDataService : ILobbyDataService
     }
 
     public async Task<string?> CreateAsync(
-        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic, int stageId = 1)
+        string hostUserId, string playerName, string lobbyName, string gameMode, int maxPlayers, bool isPublic, int stageId = 1, NetworkTopology networkTopology = NetworkTopology.Dedicated)
     {
         var db = _redis.GetDatabase();
         var lobbyId = Guid.NewGuid().ToString("N");
@@ -48,6 +48,7 @@ public class LobbyDataService : ILobbyDataService
             new("maxPlayers", maxPlayers),
             new("isPublic", isPublic ? "1" : "0"),
             new("stageId", stageId),
+            new("networkTopology", networkTopology.ToString()),
             new("createdAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
         };
         await db.HashSetAsync(lobbyKey, entries);
@@ -172,7 +173,16 @@ public class LobbyDataService : ILobbyDataService
             MaxPlayers = dict.GetInt("maxPlayers", 4),
             IsPublic = dict.GetBool("isPublic"),
             StageId = dict.GetInt("stageId", 1),
+            NetworkTopology = ParseNetworkTopology(dict.GetString("networkTopology")),
         };
+    }
+
+    private static NetworkTopology ParseNetworkTopology(string? value)
+    {
+        // 古いロビー (フィールド欠落) や不正値は Dedicated にフォールバック
+        return Enum.TryParse<NetworkTopology>(value, out var topology)
+            ? topology
+            : NetworkTopology.Dedicated;
     }
 
     public async Task<LobbyPlayerInfo[]> GetPlayersAsync(string lobbyId)
@@ -244,6 +254,7 @@ public class LobbyDataService : ILobbyDataService
                     MaxPlayers = mp,
                     IsPublic = dict.GetBool("isPublic"),
                     StageId = dict.GetInt("stageId", 1),
+                    NetworkTopology = ParseNetworkTopology(dict.GetString("networkTopology")),
                 });
             }
         }

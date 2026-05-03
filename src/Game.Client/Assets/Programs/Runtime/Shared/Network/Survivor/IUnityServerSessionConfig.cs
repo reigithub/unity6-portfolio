@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
@@ -47,6 +48,12 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>マッチメイキング結果から全パラメータを一括設定する。</summary>
         void Configure(ConnectionSource source, MatchResult result, int playerCount);
+
+        /// <summary>
+        /// MatchStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
+        /// LobbyHub.OnGameStarting 経由のゲーム開始フローで使用する。
+        /// </summary>
+        void Configure(ConnectionSource source, MatchStartInfo info, int playerCount);
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
