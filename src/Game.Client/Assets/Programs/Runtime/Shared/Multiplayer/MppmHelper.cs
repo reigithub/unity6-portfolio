@@ -50,6 +50,8 @@ namespace Game.Shared.Multiplayer
         }
     }
 
+    public enum MppmTag { None, Host, Client, Server }
+
     /// <summary>
     /// MPPM (Multiplayer Play Mode) クローンインスタンスの検出とセーブデータ分離ヘルパー
     /// クローンごとに固有のデータパスを割り当て、セッション・セーブデータの競合を防ぐ
@@ -61,8 +63,6 @@ namespace Game.Shared.Multiplayer
 
         private static bool? _isClone;
         private static string _cloneId;
-
-        public enum MppmTag { None, Host, Client, Server }
 
         public static IReadOnlyList<string> GetCurrentPlayerTags()
             => global::Unity.Multiplayer.PlayMode.CurrentPlayer.Tags;

@@ -26,5 +26,12 @@ namespace Game.Shared.Network.Fusion
         /// Client: セッショントークンの UTF-8 バイト列。Server: null。
         /// </summary>
         public byte[] ConnectionToken;
+
+        /// <summary>
+        /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp" / "us" / "eu")。
+        /// null/空 の場合は <c>PhotonAppSettings.Instance.AppSettings.FixedRegion</c> にフォールバック。
+        /// SurvivorFusionRunner.StartAsync が non-null 時に AppSettings.GetCopy() + FixedRegion 上書きを実施。
+        /// </summary>
+        public string PhotonRegion;
     }
 }

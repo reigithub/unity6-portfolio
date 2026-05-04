@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.Physics;
+using Fusion.Photon.Realtime;
 using Fusion.Sockets;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Unity.Server;
@@ -91,7 +92,7 @@ namespace Game.Shared.Network.Survivor
             var objectProvider = gameObject.AddComponent<VContainerNetworkObjectProvider>();
             objectProvider.SetResolver(Resolver);
 
-            var result = await Runner.StartGame(new StartGameArgs
+            var startGameArgs = new StartGameArgs
             {
                 GameMode = config.GameMode,
                 SessionName = config.SessionName,
@@ -100,7 +101,28 @@ namespace Game.Shared.Network.Survivor
                 ConnectionToken = config.ConnectionToken,
                 SceneManager = sceneManager,
                 ObjectProvider = objectProvider,
-            });
+            };
+
+            // P2P 用 region 動的指定: PhotonAppSettings.Global.AppSettings.GetCopy() + FixedRegion 上書き
+            // 公式パターン (https://doc.photonengine.com/fusion/current/manual/connection-and-matchmaking/regions)。
+            // null/空 の場合は CustomPhotonAppSettings 未指定 → PhotonAppSettings.asset の FixedRegion へフォールバック。
+            if (!string.IsNullOrEmpty(config.PhotonRegion))
+            {
+                var appSettings = PhotonAppSettings.Global.AppSettings;
+                if (appSettings != null)
+                {
+                    var customAppSettings = appSettings.GetCopy();
+                    customAppSettings.FixedRegion = config.PhotonRegion.ToLowerInvariant();
+                    startGameArgs.CustomPhotonAppSettings = customAppSettings;
+                    Debug.Log($"[SurvivorFusionRunner] Custom region set: {customAppSettings.FixedRegion}");
+                }
+                else
+                {
+                    Debug.LogWarning("[SurvivorFusionRunner] PhotonAppSettings.Global.AppSettings is null, falling back to default region");
+                }
+            }
+
+            var result = await Runner.StartGame(startGameArgs);
 
             if (result.Ok)
             {

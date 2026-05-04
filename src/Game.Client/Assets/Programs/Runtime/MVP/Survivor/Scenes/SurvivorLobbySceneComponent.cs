@@ -12,14 +12,14 @@ namespace Game.MVP.Survivor.Scenes
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;
 
-        private readonly Subject<(string lobbyName, int maxPlayers, int stageId)> _onCreateClicked = new();
+        private readonly Subject<CreateLobbyArgs> _onCreateClicked = new();
         private readonly Subject<string> _onJoinClicked = new();
         private readonly Subject<Unit> _onRefreshClicked = new();
         private readonly Subject<(int stageId, int matchSize)> _onQuickMatchClicked = new();
         private readonly Subject<Unit> _onCancelMatchmakingClicked = new();
         private readonly Subject<Unit> _onBackClicked = new();
 
-        public Observable<(string lobbyName, int maxPlayers, int stageId)> OnCreateClicked => _onCreateClicked;
+        public Observable<CreateLobbyArgs> OnCreateClicked => _onCreateClicked;
         public Observable<string> OnJoinClicked => _onJoinClicked;
         public Observable<Unit> OnRefreshClicked => _onRefreshClicked;
         public Observable<(int stageId, int matchSize)> OnQuickMatchClicked => _onQuickMatchClicked;
@@ -36,6 +36,7 @@ namespace Game.MVP.Survivor.Scenes
         private TextField _lobbyNameInput;
         private SliderInt _maxPlayersSlider;
         private SliderInt _stageIdSlider;
+        private RadioButtonGroup _topologyGroup;
         private SliderInt _quickMatchStageSlider;
         private SliderInt _matchSizeSlider;
         private ScrollView _lobbyList;
@@ -74,6 +75,7 @@ namespace Game.MVP.Survivor.Scenes
             _lobbyNameInput = _root.Q<TextField>("lobby-name-input");
             _maxPlayersSlider = _root.Q<SliderInt>("max-players-slider");
             _stageIdSlider = _root.Q<SliderInt>("stage-id-slider");
+            _topologyGroup = _root.Q<RadioButtonGroup>("topology-group");
             _quickMatchStageSlider = _root.Q<SliderInt>("quick-match-stage-slider");
             _matchSizeSlider = _root.Q<SliderInt>("match-size-slider");
             _lobbyList = _root.Q<ScrollView>("lobby-list");
@@ -97,7 +99,8 @@ namespace Game.MVP.Survivor.Scenes
                 var lobbyName = _lobbyNameInput?.value ?? "My Lobby";
                 var maxPlayers = _maxPlayersSlider?.value ?? 4;
                 var stageId = _stageIdSlider?.value ?? 1;
-                _onCreateClicked.OnNext((lobbyName, maxPlayers, stageId));
+                var topology = GetNetworkTopologyFromRadioIndex(_topologyGroup?.value ?? 0);
+                _onCreateClicked.OnNext(new CreateLobbyArgs(lobbyName, maxPlayers, stageId, topology));
             });
 
             _quickMatchButton?.RegisterCallback<ClickEvent>(_ =>
@@ -153,7 +156,7 @@ namespace Game.MVP.Survivor.Scenes
             var nameLabel = new Label(lobby.LobbyName);
             nameLabel.AddToClassList("lobby-item__name");
 
-            var detailsLabel = new Label($"{lobby.GameMode} | {lobby.CurrentPlayers}/{lobby.MaxPlayers} players");
+            var detailsLabel = new Label($"{GetNetworkTopologyShortName(lobby.NetworkTopology)} | {lobby.GameMode} | {lobby.CurrentPlayers}/{lobby.MaxPlayers} players");
             detailsLabel.AddToClassList("lobby-item__details");
 
             info.Add(nameLabel);
@@ -221,5 +224,20 @@ namespace Game.MVP.Survivor.Scenes
                 _errorLabel.style.display = DisplayStyle.None;
             }
         }
+
+        // uxml の choices 順序を enum 値に明示マップ。順序ずれが発生してもフォールバックで silent bug 化させない。
+        private static NetworkTopology GetNetworkTopologyFromRadioIndex(int index) => index switch
+        {
+            0 => NetworkTopology.DedicatedServer,
+            1 => NetworkTopology.PeerToPeer,
+            _ => NetworkTopology.DedicatedServer,
+        };
+
+        private static string GetNetworkTopologyShortName(NetworkTopology topology)=> topology switch
+        {
+            NetworkTopology.DedicatedServer => "DS",
+            NetworkTopology.PeerToPeer => "P2P",
+            _ => ""
+        };
     }
 }

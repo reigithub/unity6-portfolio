@@ -14,6 +14,9 @@ using R3;
 using UnityEngine;
 using VContainer;
 using Game.Library.Shared.Dto;
+#if UNITY_EDITOR
+using Game.Shared.Multiplayer;
+#endif
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -76,28 +79,39 @@ namespace Game.MVP.Survivor.Scenes
                 // Phase 1: ネットワーク初期化（モード別）
                 if (!UnityPlaymodeHelper.IsServer())
                 {
-#if UNITY_EDITOR
-                    var role = Game.Shared.Multiplayer.MppmHelper.ResolveTag();
-                    if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Host)
+                    // 本番 P2P Host (Lobby 経由で Configure 済) は MPPM tag より優先判定。
+                    // P2PHost が Lobby 経由で確定しているケースでは MPPM tag を見ない。
+                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
                     {
-                        Debug.Log("[SurvivorStageConnectScene] MPPM Host mode");
-                        SceneComponent.SetStatus("Starting host...");
+                        Debug.Log("[SurvivorStageConnectScene] P2P Host mode");
+                        SceneComponent.SetStatus("Starting P2P host...");
                         await _networkConnector.StartHostAsync(stageId);
-                    }
-                    else if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Server)
-                    {
-                        Debug.Log("[SurvivorStageConnectScene] MPPM Server mode");
-                        SceneComponent.SetStatus("Starting server...");
-                        await _networkConnector.StartServerAsync(stageId);
                     }
                     else
                     {
-                        // Client / None → 起動済みサーバーに接続
-                        await PrepareClientConnectionAsync(stageId);
-                    }
+#if UNITY_EDITOR
+                        var role = MppmHelper.ResolveTag();
+                        if (role == MppmTag.Host)
+                        {
+                            Debug.Log("[SurvivorStageConnectScene] MPPM Host mode");
+                            SceneComponent.SetStatus("Starting host...");
+                            await _networkConnector.StartHostAsync(stageId);
+                        }
+                        else if (role == MppmTag.Server)
+                        {
+                            Debug.Log("[SurvivorStageConnectScene] MPPM Server mode");
+                            SceneComponent.SetStatus("Starting server...");
+                            await _networkConnector.StartServerAsync(stageId);
+                        }
+                        else
+                        {
+                            // Client / None → 起動済みサーバーに接続
+                            await PrepareClientConnectionAsync(stageId);
+                        }
 #else
-                    await PrepareClientConnectionAsync(stageId);
+                        await PrepareClientConnectionAsync(stageId);
 #endif
+                    }
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
@@ -112,7 +126,9 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 else if (_runnerService.IsHostMode)
                 {
-                    // Editor MPPM Host モード（本番未使用、開発時テスト用）: Server + ローカル Client
+                    // Host モード (Editor MPPM の Host tag、または本番 P2PHost)
+                    // 本番 P2PHost では Phase 1 で StartHostAsync 完了後にここに到達し、
+                    // 自身も Client として扱うため NotifySession + WaitForReady を実行。
                     await NotifySessionInfoToServer(stageId, playerId);
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
@@ -226,11 +242,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask ConnectToServerAsync(int stageId)
         {
-            var address = _sessionConfig.ServerAddress;
-            var port = _sessionConfig.ServerPort;
-            var sessionToken = _sessionConfig.SessionToken;
-            Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
-            await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
+            var source = _sessionConfig.ConnectionSource;
+            Debug.Log($"[SurvivorStageConnectScene] Connecting via Fusion (source={source}, session={_sessionConfig.SessionName}, stageId={stageId})");
+            await _networkConnector.ConnectAsync(stageId);
         }
 
         /// <summary>

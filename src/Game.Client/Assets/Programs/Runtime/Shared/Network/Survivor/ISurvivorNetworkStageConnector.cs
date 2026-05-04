@@ -10,7 +10,7 @@ namespace Game.Shared.Network.Survivor
     public interface ISurvivorNetworkStageConnector : IDisposable
     {
         bool IsConnected { get; }
-        UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "");
+        UniTask ConnectAsync(int stageId);
         UniTask StartHostAsync(int stageId);
         UniTask StartServerAsync(int stageId);
         void Disconnect();

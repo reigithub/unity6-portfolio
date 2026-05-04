@@ -253,17 +253,7 @@ namespace Game.MVP.Survivor.Scenes
             _saveService.StartSession(_stageId, playerId);
             await _saveService.SaveIfDirtyAsync();
 
-            // [PR2 制約] SurvivorStageConnectScene は P2P (P2PHost / P2PClient) に未対応 (PR3 で実装)。
-            // P2P 経路のみ遷移ブロック、DS は既存通り遷移。
-            if (info.Topology == NetworkTopology.PeerToPeer)
-            {
-                Debug.LogWarning(
-                    $"[SurvivorLobbyRoomScene] P2P configured (source={source}, session={info.SessionName}, region={info.PhotonRegion}). " +
-                    "Scene transition disabled until PR3 (SurvivorStageConnectScene P2P support).");
-                SceneComponent.SetInteractables(true);
-                return;
-            }
-
+            Debug.Log($"[SurvivorLobbyRoomScene] Transitioning to StageConnectScene (topology={info.Topology}, source={source}, session={info.SessionName}, region={info.PhotonRegion})");
             await _sceneService.TransitionAsync<SurvivorStageConnectScene>();
         }
 

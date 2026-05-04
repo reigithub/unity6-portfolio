@@ -29,6 +29,7 @@
                     <ui:TextField name="lobby-name-input" label="Lobby Name" value="My Lobby" class="text-field" />
                     <ui:SliderInt name="max-players-slider" label="Max Players" low-value="2" high-value="8" value="4" show-input-field="true" class="slider-field" />
                     <ui:SliderInt name="stage-id-slider" label="Stage" low-value="1" high-value="10" value="1" show-input-field="true" class="slider-field" />
+                    <ui:RadioButtonGroup name="topology-group" label="Mode" value="0" choices="Dedicated,P2P" class="slider-field" />
                     <ui:Button text="CREATE" name="create-button" class="menu-button menu-button--primary" />
                 </ui:VisualElement>
 
