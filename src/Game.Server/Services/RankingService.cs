@@ -12,17 +12,20 @@ public class RankingService : IRankingService
     private readonly ISurvivorRankingCacheService _cacheService;
     private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<RankingService> _logger;
+    private readonly IUserRepository _userRepository;
 
     public RankingService(
         IRankingRepository rankingRepository,
         ISurvivorRankingCacheService cacheService,
         IDistributedLockProvider lockProvider,
-        ILogger<RankingService> logger)
+        ILogger<RankingService> logger,
+        IUserRepository userRepository)
     {
         _rankingRepository = rankingRepository;
         _cacheService = cacheService;
         _lockProvider = lockProvider;
         _logger = logger;
+        _userRepository = userRepository;
     }
 
     public async Task<RankingResponse> GetRankingAsync(
@@ -82,16 +85,21 @@ public class RankingService : IRankingService
         }
     }
 
-    public async Task<RankingEntryDto?> GetUserRankAsync(
-        int stageId, Guid userId)
+    public async Task<RankingEntryDto?> GetUserRankAsync(int stageId, string userId)
     {
-        var bestScore = await _rankingRepository.GetUserBestScoreAsync(stageId, userId);
+        var user = await _userRepository.GetByUserIdAsync(userId);
+        if (user == null)
+        {
+            return null;
+        }
+
+        var bestScore = await _rankingRepository.GetUserBestScoreAsync(stageId, user.Id);
         if (bestScore == null)
         {
             return null;
         }
 
-        // キャッシュから順位を取得を試みる
+        // キャッシュから順位を取得を試みる (Cache メンバーキーは公開識別子 user.UserId を使用)
         var cachedRank = await _cacheService.GetPlayerRankAsync(stageId, userId);
         int rank;
 
@@ -102,7 +110,7 @@ public class RankingService : IRankingService
         else
         {
             // キャッシュミス: DBから取得
-            rank = await _rankingRepository.GetUserRankAsync(stageId, userId);
+            rank = await _rankingRepository.GetUserRankAsync(stageId, user.Id);
         }
 
         return new RankingEntryDto

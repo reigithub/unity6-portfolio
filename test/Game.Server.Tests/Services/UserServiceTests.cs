@@ -23,18 +23,18 @@ public class UserServiceTests
     public async Task UpdateUserAsync_ReturnsConflict_WhenUniqueViolation()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = "test-user-001";
         var existingUser = new UserInfo
         {
-            Id = userId,
-            UserId = "test-user-001",
+            Id = Guid.NewGuid(),
+            UserId = userId,
             UserName = "OldName",
             Level = 1,
             RegisteredAt = DateTime.UtcNow,
             AuthType = "Guest",
         };
 
-        _mockUserRepo.Setup(r => r.GetByIdAsync(userId))
+        _mockUserRepo.Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(existingUser);
         _mockUserRepo.Setup(r => r.GetByUserNameAsync("TakenName"))
             .ReturnsAsync((UserInfo?)null); // CHECK passes (race window)
@@ -58,18 +58,18 @@ public class UserServiceTests
     public async Task UpdateUserAsync_ReturnsSuccess_WhenNoConflict()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = "test-user-002";
         var existingUser = new UserInfo
         {
-            Id = userId,
-            UserId = "test-user-002",
+            Id = Guid.NewGuid(),
+            UserId = userId,
             UserName = "OldName",
             Level = 1,
             RegisteredAt = DateTime.UtcNow,
             AuthType = "Guest",
         };
 
-        _mockUserRepo.Setup(r => r.GetByIdAsync(userId))
+        _mockUserRepo.Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(existingUser);
         _mockUserRepo.Setup(r => r.GetByUserNameAsync("NewName"))
             .ReturnsAsync((UserInfo?)null);

@@ -140,7 +140,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserId, request);
+        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserIdString, request);
 
         // Assert
         AccountLinkResponse? response = ExtractSuccess(result);
@@ -163,7 +163,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync(TestDataFixture.User1Id, request);
+        var result = await service.LinkEmailAsync(TestDataFixture.User1IdString, request);
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -185,7 +185,7 @@ public class AuthServiceTests : IAsyncLifetime
         };
 
         // Act
-        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserId, request);
+        var result = await service.LinkEmailAsync(TestDataFixture.GuestUserIdString, request);
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -202,7 +202,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.UnlinkEmailAsync(TestDataFixture.EmailUserId, "device-fingerprint-0123456789abcdef");
+        var result = await service.UnlinkEmailAsync(TestDataFixture.EmailUserIdString, "device-fingerprint-0123456789abcdef");
 
         // Assert
         AccountLinkResponse? response = ExtractSuccess(result);
@@ -220,7 +220,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.UnlinkEmailAsync(TestDataFixture.GuestUserId, "device-fingerprint-0123456789abcdef");
+        var result = await service.UnlinkEmailAsync(TestDataFixture.GuestUserIdString, "device-fingerprint-0123456789abcdef");
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -237,7 +237,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserId);
+        var result = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserIdString);
 
         // Assert
         TransferPasswordResponse? response = ExtractSuccess(result);
@@ -255,7 +255,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act
-        var result = await service.IssueTransferPasswordAsync(TestDataFixture.EmailUserId);
+        var result = await service.IssueTransferPasswordAsync(TestDataFixture.EmailUserIdString);
 
         // Assert
         ApiError? error = ExtractError(result);
@@ -272,7 +272,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Act: Issue transfer password
-        var issueResult = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserId);
+        var issueResult = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserIdString);
         var transferPassword = ExtractSuccess(issueResult);
         Assert.NotNull(transferPassword);
 
@@ -299,7 +299,7 @@ public class AuthServiceTests : IAsyncLifetime
         var service = CreateAuthService();
 
         // Issue transfer password
-        var issueResult = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserId);
+        var issueResult = await service.IssueTransferPasswordAsync(TestDataFixture.GuestUserIdString);
         var transferPassword = ExtractSuccess(issueResult);
         Assert.NotNull(transferPassword);
 

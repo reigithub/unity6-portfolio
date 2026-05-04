@@ -7,7 +7,7 @@ public interface IRankingService
 {
     Task<RankingResponse> GetRankingAsync(int stageId, int limit, int offset);
 
-    Task<RankingEntryDto?> GetUserRankAsync(int stageId, Guid userId);
+    Task<RankingEntryDto?> GetUserRankAsync(int stageId, string userId);
 
     /// <summary>
     /// スコア送信後にキャッシュを無効化

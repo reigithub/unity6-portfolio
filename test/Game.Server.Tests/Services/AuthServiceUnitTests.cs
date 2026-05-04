@@ -55,18 +55,18 @@ public class AuthServiceUnitTests
     public async Task LinkEmailAsync_Returns409_WhenUniqueViolationOnRace()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = "test-user-001";
         var guestUser = new UserInfo
         {
-            Id = userId,
-            UserId = "test-user-001",
+            Id = Guid.NewGuid(),
+            UserId = userId,
             UserName = "Guest_123",
             AuthType = AuthType.Guest,
             Level = 1,
             RegisteredAt = DateTime.UtcNow,
         };
 
-        _mockAuthRepo.Setup(r => r.GetByIdAsync(userId))
+        _mockAuthRepo.Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(guestUser);
         _mockAuthRepo.Setup(r => r.ExistsByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(false); // CHECK passes — email appears available
@@ -100,18 +100,18 @@ public class AuthServiceUnitTests
     public async Task LinkEmailAsync_ThrowsException_WhenNonUniqueViolationPostgresError()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = "test-user-002";
         var guestUser = new UserInfo
         {
-            Id = userId,
-            UserId = "test-user-002",
+            Id = Guid.NewGuid(),
+            UserId = userId,
             UserName = "Guest_456",
             AuthType = AuthType.Guest,
             Level = 1,
             RegisteredAt = DateTime.UtcNow,
         };
 
-        _mockAuthRepo.Setup(r => r.GetByIdAsync(userId))
+        _mockAuthRepo.Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(guestUser);
         _mockAuthRepo.Setup(r => r.ExistsByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(false);

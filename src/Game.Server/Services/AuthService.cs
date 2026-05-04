@@ -48,7 +48,7 @@ public class AuthService : IAuthService
 
     public async Task<Result<LoginResponse, ApiError>> LoginAsync(LoginRequest request)
     {
-        var user = await _authRepository.GetByUserIdStringAsync(request.UserId);
+        var user = await _authRepository.GetByUserIdAsync(request.UserId);
 
         if (user == null)
         {
@@ -327,9 +327,9 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public async Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(Guid id, LinkEmailRequest request)
+    public async Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(string userId, LinkEmailRequest request)
     {
-        var user = await _authRepository.GetByIdAsync(id);
+        var user = await _authRepository.GetByUserIdAsync(userId);
 
         if (user == null)
         {
@@ -359,7 +359,7 @@ public class AuthService : IAuthService
         try
         {
             await _authRepository.LinkEmailAsync(
-                id, request.Email, passwordHash,
+                user.Id, request.Email, passwordHash,
                 verificationToken, verificationExpiry);
         }
         catch (PostgresException ex) when (ex.SqlState == "23505")
@@ -371,12 +371,12 @@ public class AuthService : IAuthService
         if (emailResult.IsError)
         {
             _logger.LogWarning("Failed to send verification email to {Email} for user {UserId}, account was linked but email undelivered",
-                request.Email, id);
+                request.Email, user.UserId);
         }
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"User {id} not found after update");
+        var updatedUser = await _authRepository.GetByIdAsync(user.Id)
+            ?? throw new InvalidOperationException($"User {user.UserId} not found after update");
         var (token, refresh, key) = await IssueTokenPairAsync(updatedUser);
 
         return new AccountLinkResponse
@@ -391,9 +391,9 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(Guid id, string deviceFingerprint)
+    public async Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(string userId, string deviceFingerprint)
     {
-        var user = await _authRepository.GetByIdAsync(id);
+        var user = await _authRepository.GetByUserIdAsync(userId);
 
         if (user == null)
         {
@@ -410,11 +410,11 @@ public class AuthService : IAuthService
             return new ApiError("Invalid device fingerprint", "INVALID_FINGERPRINT", StatusCodes.Status400BadRequest);
         }
 
-        await _authRepository.UnlinkEmailAsync(id, deviceFingerprint);
+        await _authRepository.UnlinkEmailAsync(user.Id, deviceFingerprint);
 
         // Re-fetch user to get updated state for JWT
-        var updatedUser = await _authRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"User {id} not found after update");
+        var updatedUser = await _authRepository.GetByIdAsync(user.Id)
+            ?? throw new InvalidOperationException($"User {user.UserId} not found after update");
         var (token, refresh, key) = await IssueTokenPairAsync(updatedUser);
 
         return new AccountLinkResponse
@@ -442,7 +442,7 @@ public class AuthService : IAuthService
 
         await _authRepository.UpdateRefreshTokenAsync(user.Id, refreshTokenHash, refreshExpiry);
 
-        return (accessToken, refreshToken, DeriveUserSigningKey(user.Id));
+        return (accessToken, refreshToken, DeriveUserSigningKey(user.UserId));
     }
 
     private static string GenerateRefreshToken()
@@ -457,10 +457,15 @@ public class AuthService : IAuthService
         return Convert.ToHexStringLower(bytes);
     }
 
-    private string DeriveUserSigningKey(Guid userId)
+    /// <summary>
+    /// ユーザー固有の署名鍵を導出する。
+    /// 入力には公開識別子 (user.UserId、12 桁数字) を使用 — DB 主キー (user.Id) を使うと JWT sub と齟齬が生じ漏えい源となるため。
+    /// HMAC の second preimage resistance は serverSecret に依存するため、入力を公開値にしても鍵秘匿性は維持される。
+    /// </summary>
+    private string DeriveUserSigningKey(string userId)
     {
         var serverSecret = Encoding.UTF8.GetBytes(_signingSettings.SecretKey);
-        var userIdBytes = Encoding.UTF8.GetBytes(userId.ToString());
+        var userIdBytes = Encoding.UTF8.GetBytes(userId);
         using var hmac = new HMACSHA256Crypto(serverSecret);
         var derived = hmac.ComputeHash(userIdBytes);
         return Convert.ToBase64String(derived);
@@ -468,9 +473,11 @@ public class AuthService : IAuthService
 
     private string GenerateJwtToken(UserInfo user)
     {
+        // JWT sub クレームには公開識別子 (user.UserId) を使用。
+        // user.Id (DB 主キー Guid) を sub に入れると、Hub broadcast / Unary レスポンス経由で全 Client に主キーが漏えいするため。
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, user.UserId),
             new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
             new Claim("level", user.Level.ToString()),
             new Claim("authType", user.AuthType),
@@ -495,9 +502,9 @@ public class AuthService : IAuthService
         return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
     }
 
-    public async Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(Guid id)
+    public async Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(string userId)
     {
-        var user = await _authRepository.GetByIdAsync(id);
+        var user = await _authRepository.GetByUserIdAsync(userId);
 
         if (user == null)
         {
@@ -512,7 +519,7 @@ public class AuthService : IAuthService
 
         var transferPassword = GenerateTransferPassword();
         var hash = BCrypt.Net.BCrypt.HashPassword(transferPassword);
-        await _authRepository.UpdateTransferPasswordHashAsync(id, hash);
+        await _authRepository.UpdateTransferPasswordHashAsync(user.Id, hash);
 
         return new TransferPasswordResponse
         {

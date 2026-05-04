@@ -14,7 +14,7 @@ public class RankingsControllerTests
     private readonly Mock<IRankingService> _rankingServiceMock;
     private readonly Mock<ISurvivorValidator> _validatorMock;
     private readonly RankingsController _controller;
-    private readonly Guid _testUserId = Guid.NewGuid();
+    private readonly string _testUserIdString = "111122223333";
 
     public RankingsControllerTests()
     {
@@ -25,7 +25,7 @@ public class RankingsControllerTests
             _rankingServiceMock.Object,
             _validatorMock.Object);
 
-        var claims = new[] { new Claim("sub", _testUserId.ToString()) };
+        var claims = new[] { new Claim("sub", _testUserIdString) };
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
         _controller.ControllerContext = new ControllerContext
@@ -41,11 +41,11 @@ public class RankingsControllerTests
         var entry = new RankingEntryDto
         {
             Rank = 5,
-            UserId = _testUserId.ToString(),
+            UserId = _testUserIdString,
             UserName = "TestUser",
             Score = 10000,
         };
-        _rankingServiceMock.Setup(x => x.GetUserRankAsync(1, _testUserId))
+        _rankingServiceMock.Setup(x => x.GetUserRankAsync(1, _testUserIdString))
             .ReturnsAsync(entry);
 
         // Act
@@ -61,7 +61,7 @@ public class RankingsControllerTests
     public async Task GetMyRank_ReturnsNotFound_WhenNoRankData()
     {
         // Arrange
-        _rankingServiceMock.Setup(x => x.GetUserRankAsync(1, _testUserId))
+        _rankingServiceMock.Setup(x => x.GetUserRankAsync(1, _testUserIdString))
             .ReturnsAsync((RankingEntryDto?)null);
 
         // Act

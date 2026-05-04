@@ -16,7 +16,7 @@ public interface IAuthRepository
 
     Task<UserInfo?> GetByUserNameAsync(string displayName);
 
-    Task<UserInfo?> GetByUserIdStringAsync(string userId);
+    Task<UserInfo?> GetByUserIdAsync(string userId);
 
     Task<UserInfo?> GetByIdAsync(Guid id);
 

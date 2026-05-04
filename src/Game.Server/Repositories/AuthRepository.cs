@@ -83,7 +83,7 @@ public class AuthRepository : IAuthRepository
             transaction: _dbSession.Transaction);
     }
 
-    public async Task<UserInfo?> GetByUserIdStringAsync(string userId)
+    public async Task<UserInfo?> GetByUserIdAsync(string userId)
     {
         return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
             $@"SELECT {SelectColumns}

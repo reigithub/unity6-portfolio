@@ -19,9 +19,9 @@ public interface IAuthService
 
     Task<Result<bool, ApiError>> ResetPasswordAsync(ResetPasswordRequest request);
 
-    Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(Guid id, LinkEmailRequest request);
+    Task<Result<AccountLinkResponse, ApiError>> LinkEmailAsync(string userId, LinkEmailRequest request);
 
-    Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(Guid id, string deviceFingerprint);
+    Task<Result<AccountLinkResponse, ApiError>> UnlinkEmailAsync(string userId, string deviceFingerprint);
 
-    Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(Guid id);
+    Task<Result<TransferPasswordResponse, ApiError>> IssueTransferPasswordAsync(string userId);
 }

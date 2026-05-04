@@ -14,7 +14,7 @@ public class SurvivorScoresControllerTests
     private readonly Mock<ISurvivorScoreService> _scoreServiceMock;
     private readonly Mock<ISurvivorValidator> _validatorMock;
     private readonly SurvivorScoresController _controller;
-    private readonly Guid _testUserId = Guid.NewGuid();
+    private readonly string _testUserIdString = "111122223333";
 
     public SurvivorScoresControllerTests()
     {
@@ -25,7 +25,7 @@ public class SurvivorScoresControllerTests
             _scoreServiceMock.Object,
             _validatorMock.Object);
 
-        var claims = new[] { new Claim("sub", _testUserId.ToString()) };
+        var claims = new[] { new Claim("sub", _testUserIdString) };
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
         _controller.ControllerContext = new ControllerContext
@@ -43,7 +43,7 @@ public class SurvivorScoresControllerTests
             new() { Score = 5000, ClearTime = 60f, WaveReached = 2 },
             new() { Score = 8000, ClearTime = 90f, WaveReached = 3 },
         };
-        _scoreServiceMock.Setup(x => x.GetUserScoresAsync(_testUserId, 1, 50))
+        _scoreServiceMock.Setup(x => x.GetUserScoresAsync(_testUserIdString, 1, 50))
             .ReturnsAsync(scores);
 
         // Act
@@ -59,7 +59,7 @@ public class SurvivorScoresControllerTests
     public async Task GetMyScores_ReturnsOk_WithNoStageFilter()
     {
         // Arrange
-        _scoreServiceMock.Setup(x => x.GetUserScoresAsync(_testUserId, null, 50))
+        _scoreServiceMock.Setup(x => x.GetUserScoresAsync(_testUserIdString, null, 50))
             .ReturnsAsync(new List<SurvivorScoreHistoryEntry>());
 
         // Act

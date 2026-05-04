@@ -12,11 +12,13 @@ namespace Game.Server.Tests.Services;
 public class SurvivorScoreServiceTests
 {
     private static readonly Guid TestUserId = TestDataFixture.User1Id;
+    private const string TestUserIdString = TestDataFixture.User1IdString;
 
     private readonly Mock<ISurvivorScoreRepository> _mockScoreRepo;
     private readonly Mock<IRankingRepository> _mockRankingRepo;
     private readonly Mock<IRankingService> _mockRankingService;
     private readonly Mock<ISurvivorValidator> _mockScoreValidator;
+    private readonly Mock<IUserRepository> _mockUserRepo;
     private readonly SurvivorScoreService _service;
 
     public SurvivorScoreServiceTests()
@@ -25,12 +27,26 @@ public class SurvivorScoreServiceTests
         _mockRankingRepo = new Mock<IRankingRepository>();
         _mockRankingService = new Mock<IRankingService>();
         _mockScoreValidator = new Mock<ISurvivorValidator>();
+        _mockUserRepo = new Mock<IUserRepository>();
+
+        var testUser = new UserInfo
+        {
+            Id = TestUserId,
+            UserId = TestUserIdString,
+            UserName = "TestPlayer",
+            Level = 1,
+            RegisteredAt = DateTime.UtcNow,
+            AuthType = "Email",
+        };
+        _mockUserRepo.Setup(r => r.GetByUserIdAsync(TestUserIdString))
+            .ReturnsAsync(testUser);
 
         _service = new SurvivorScoreService(
             _mockScoreRepo.Object,
             _mockRankingRepo.Object,
             _mockRankingService.Object,
-            _mockScoreValidator.Object);
+            _mockScoreValidator.Object,
+            _mockUserRepo.Object);
     }
 
     [Fact]
@@ -54,7 +70,7 @@ public class SurvivorScoreServiceTests
             .ReturnsAsync(1);
 
         // Act
-        var result = await _service.SubmitScoreAsync(TestUserId, request);
+        var result = await _service.SubmitScoreAsync(TestUserIdString, request);
 
         // Assert
         SurvivorScoreSubmitResponse? success = null;
@@ -86,7 +102,7 @@ public class SurvivorScoreServiceTests
             .ReturnsAsync(3);
 
         // Act
-        var result = await _service.SubmitScoreAsync(TestUserId, request);
+        var result = await _service.SubmitScoreAsync(TestUserIdString, request);
 
         // Assert
         SurvivorScoreSubmitResponse? success = null;
@@ -111,7 +127,7 @@ public class SurvivorScoreServiceTests
             .ReturnsAsync(scores);
 
         // Act
-        var result = await _service.GetUserScoresAsync(TestUserId, 1, 50);
+        var result = await _service.GetUserScoresAsync(TestUserIdString, 1, 50);
 
         // Assert
         Assert.Equal(2, result.Count);

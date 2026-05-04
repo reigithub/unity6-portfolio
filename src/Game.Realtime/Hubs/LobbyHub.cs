@@ -248,7 +248,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         }
 
         var sessionName = $"p2p-{Guid.NewGuid():N}";  // 36 文字、Photon SessionName 制限 64 内
-        var photonRegion = "jp";  // PR2 では固定。PR3 で LobbyInfo.PhotonRegion フィールド追加 + UI 選択
+        var photonRegion = "jp";  // 将来的にLobbyInfo.PhotonRegion フィールド追加 + UI 選択
 
         foreach (var player in players)
         {
