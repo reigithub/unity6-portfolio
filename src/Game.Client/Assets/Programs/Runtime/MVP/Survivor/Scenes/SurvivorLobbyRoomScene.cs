@@ -24,6 +24,7 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
         private bool _isReady;
+        private bool _isExitingLobby;
         private string _currentLobbyId;
         private int _maxPlayers = 4;
         private int _stageId = 1;
@@ -178,6 +179,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnLeave()
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             SceneComponent.SetInteractables(false);
 
             try
@@ -195,6 +199,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnGameStarting(MatchStartInfo info)
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             Debug.Log($"[SurvivorLobbyRoomScene] Game starting! Topology: {info.Topology}, Session: {info.SessionName}");
             SceneComponent.SetInteractables(false);
             SceneComponent.ShowNotification($"Game starting ({info.Topology})...");
@@ -226,6 +233,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnLobbyClosed(string reason)
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             Debug.Log($"[SurvivorLobbyRoomScene] Lobby closed: {reason}");
             SceneComponent.ShowNotification($"Lobby closed: {reason}");
             SceneComponent.SetInteractables(false);
@@ -237,6 +247,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnDisconnectedFromLobby(string reason)
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             Debug.LogWarning($"[SurvivorLobbyRoomScene] Disconnected: {reason}");
             SceneComponent.ShowNotification($"Disconnected: {reason}");
             SceneComponent.SetInteractables(false);
