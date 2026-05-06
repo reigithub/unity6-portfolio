@@ -209,12 +209,12 @@ namespace Game.MVP.Survivor.Scenes
                     Context._addressableService,
                     itemViewGameState);
 
-                // アイテムプロキシ収集時にサーバーへ RPC 送信（networkId で個体識別）
+                // アイテムプロキシ収集時にサーバーへ通知 (Host-safe ラッパー経由)。
                 itemView.OnProxyItemCollected += networkId =>
                 {
                     if (TryGetLocalPlayer(out var localPlayer))
                     {
-                        localPlayer.RpcClientItemCollected(networkId);
+                        localPlayer.SendClientItemCollected(networkId);
                     }
                 };
             }
@@ -290,7 +290,11 @@ namespace Game.MVP.Survivor.Scenes
                 bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
                 if (!isPaused)
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    // Host では ServerPlayingState.Update が GameTime を進めるため、Client SM 側では二重加算しない。
+                    if (!Context._runnerService.IsServer)
+                    {
+                        NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    }
                     View.UpdateTime(NetworkStageModel.GameTime.Value);
                 }
 
@@ -349,7 +353,11 @@ namespace Game.MVP.Survivor.Scenes
                 bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
                 if (!isPaused)
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    // Host では ServerPlayingState.Update が GameTime を進めるため、Client SM 側では二重加算しない。
+                    if (!Context._runnerService.IsServer)
+                    {
+                        NetworkStageModel.GameTime.Value += Time.deltaTime;
+                    }
                     View.UpdateTime(NetworkStageModel.GameTime.Value);
                 }
             }
@@ -375,7 +383,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 if (TryGetLocalPlayer(out var localPlayer))
                 {
-                    localPlayer.RpcClientRequestPause();
+                    localPlayer.SendClientRequestPause();
                 }
 
                 ShowPauseDialogAsync().Forget();
@@ -406,7 +414,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 if (TryGetLocalPlayer(out var localPlayer))
                 {
-                    localPlayer.RpcClientRequestResume();
+                    localPlayer.SendClientRequestResume();
                 }
 
                 ApplicationEvents.ResumeTime();
@@ -494,7 +502,7 @@ namespace Game.MVP.Survivor.Scenes
                                 result.WeaponId);
                             if (TryGetLocalPlayer(out var rp))
                             {
-                                rp.RpcClientWeaponReplace(removeWeaponId.Value, result.WeaponId);
+                                rp.SendClientWeaponReplace(removeWeaponId.Value, result.WeaponId);
                             }
                             break;
                         }
@@ -507,7 +515,7 @@ namespace Game.MVP.Survivor.Scenes
                         await View.WeaponManager.ApplyUpgradeOptionAsync(result);
                         if (TryGetLocalPlayer(out var cp))
                         {
-                            cp.RpcClientWeaponChoice(result.WeaponId, result.IsNewWeapon);
+                            cp.SendClientWeaponChoice(result.WeaponId, result.IsNewWeapon);
                         }
                         break;
                     }
@@ -618,7 +626,12 @@ namespace Game.MVP.Survivor.Scenes
                 var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
-                var clearTime = NetworkStageModel.GameTime.Value;
+                // サーバー権威 ClearTime を優先 (NotifyGameEnded RPC で broadcast 済み)。
+                // ローカル GameTime はサーバー側 Victory 検知から RPC 到達までのラグで進んでいるため、
+                // NetworkResult.ClearTime を使うと Host / Client 間で時間値が一致する。
+                var clearTime = NetworkStageModel.HasNetworkResult
+                    ? NetworkStageModel.NetworkResult.ClearTime
+                    : NetworkStageModel.GameTime.Value;
                 var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatio();
 
@@ -675,7 +688,10 @@ namespace Game.MVP.Survivor.Scenes
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
                 var kills = Context.GetCappedKills();
-                var clearTime = NetworkStageModel.GameTime.Value;
+                // サーバー権威 ClearTime を優先 (Victory と同じ理由でラグ排除)。
+                var clearTime = NetworkStageModel.HasNetworkResult
+                    ? NetworkStageModel.NetworkResult.ClearTime
+                    : NetworkStageModel.GameTime.Value;
                 var hpRatio = 0f; // ゲームオーバーなのでHP=0
 
                 Debug.Log($"[GameOverState] Saving result: score={score}, kills={kills}, clearTime={clearTime:F2}s, hpRatio={hpRatio:P0}");

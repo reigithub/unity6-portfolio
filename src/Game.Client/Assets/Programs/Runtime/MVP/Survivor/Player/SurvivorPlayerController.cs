@@ -314,7 +314,12 @@ namespace Game.MVP.Survivor.Player
             }
 
             // カメラフォロー用シグナル発行（KCC が RenderData で滑らかに補間するためルート transform）
-            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+            // P2P Host では Server.cs のループが全プレイヤー分 InitializeVisualAsync を呼ぶため、
+            // 自機 (HasInputAuthority) のみ発火させないと Camera.Follow が他プレイヤー対象に上書きされる。
+            if (_fusionPlayer != null && _fusionPlayer.HasInputAuthority)
+            {
+                _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+            }
         }
 
         #endregion

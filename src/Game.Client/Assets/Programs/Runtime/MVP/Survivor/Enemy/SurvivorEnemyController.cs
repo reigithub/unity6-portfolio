@@ -234,9 +234,10 @@ namespace Game.MVP.Survivor.Enemy
 
             InitializeStateMachine();
 
-            // ヘッドレス DS でのみ Renderer/Animator を明示的に無効化（不要な描画計算を防止）。
-            // Host モード (= サーバー兼クライアント) では敵を表示する必要があるため除外。
-            if (_runnerService != null && _runnerService.IsDedicatedServer)
+            // Server (DS / Host 両方) では Server-spawn された Enemy の Renderer/Animator を無効化。
+            // Host モードでは Client-side SurvivorEnemyView が enemy proxy を生成して描画するため、
+            // Server 側も描画すると同じ敵が二重に表示される (二重レンダリング)。
+            if (_runnerService != null && _runnerService.IsServer)
             {
                 if (_animator != null) _animator.enabled = false;
                 if (_renderers != null)

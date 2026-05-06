@@ -192,13 +192,16 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // ゲームタイマー更新（ポーズ中はスキップ）
+                // ServerPlayingState.Update は SubscribeEvents の UpdateAsObservable から per-frame で呼ばれるため
+                // Time.deltaTime を使う必要がある。Runner.DeltaTime は per-tick 値なので、
+                // tick rate < frame rate のとき per-frame で加算すると時間が早く進む。
                 bool isPaused = Context._gameState != null && Context._gameState.IsEffectivelyPaused;
                 if (!isPaused)
                 {
-                    var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
-                        ? Context._runnerService.Runner.DeltaTime
-                        : Time.deltaTime;
-                    NetworkStageModel.GameTime.Value += dt;
+                    // var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
+                    //     ? Context._runnerService.Runner.DeltaTime
+                    //     : Time.deltaTime;
+                    NetworkStageModel.GameTime.Value += Time.deltaTime;
                 }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア
@@ -328,8 +331,12 @@ namespace Game.MVP.Survivor.Scenes
 
                 Debug.Log($"[SurvivorGameStageScene.ServerVictoryState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 
-                Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
-                await Context._saveService.SaveAsync();
+                // DS 専用 save (Host では Client SM の VictoryState が同じ save を行うため二重保存になる)。
+                if (Context._runnerService.IsDedicatedServer)
+                {
+                    Context._saveService.CompleteCurrentStage(score, kills, clearTime, true, isTimeUp, hpRatio);
+                    await Context._saveService.SaveAsync();
+                }
 
                 // クライアントに勝利を通知（確定キル数を含め、バッチ同期遅延による不整合を防止）
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
@@ -370,8 +377,12 @@ namespace Game.MVP.Survivor.Scenes
 
                 Debug.Log($"[SurvivorGameStageScene.ServerGameOverState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 
-                Context._saveService.CompleteCurrentStage(score, kills, clearTime, false, false, 0f);
-                await Context._saveService.SaveAsync();
+                // DS 専用 save (Host では Client SM の GameOverState が同じ save を行うため二重保存になる)。
+                if (Context._runnerService.IsDedicatedServer)
+                {
+                    Context._saveService.CompleteCurrentStage(score, kills, clearTime, false, false, 0f);
+                    await Context._saveService.SaveAsync();
+                }
 
                 // クライアントに敗北を通知（確定キル数を含め、バッチ同期遅延による不整合を防止）
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))

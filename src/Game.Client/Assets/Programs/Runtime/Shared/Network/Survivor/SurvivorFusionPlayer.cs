@@ -471,11 +471,11 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId, RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientWeaponReplace(removeWeaponId, newWeaponId);
+                gs.OnClientWeaponReplace(info.Source, removeWeaponId, newWeaponId);
             }
         }
 
@@ -505,6 +505,98 @@ namespace Game.Shared.Network.Survivor
                 gs.NotifyPlayerDied(info.Source);
                 gs.OnPlayerDied(info.Source);
             }
+        }
+
+        // =====================================================================
+        //  Host-safe ラッパー (Fusion 2 対策)
+        // =====================================================================
+        // Fusion 2 では [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)] を Host
+        // (InputAuthority == StateAuthority のケース) が呼んでも RPC handler がローカル実行されない。
+        // 代わりに Server 経路では GameState メソッドを直接呼び、Client 経路では従来通り RPC を送信する。
+        // =====================================================================
+
+        public void SendClientItemCollected(int networkId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientItemCollected(_runnerService.Runner.LocalPlayer, networkId);
+            else
+                RpcClientItemCollected(networkId);
+        }
+
+        public void SendClientHitReported(int enemyNetworkId, int weaponId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientHitReported(_runnerService.Runner.LocalPlayer, enemyNetworkId, weaponId);
+            else
+                RpcClientHitReported(enemyNetworkId, weaponId);
+        }
+
+        public void SendClientWeaponChoice(int weaponId, NetworkBool isNewWeapon)
+        {
+            if (IsHostInputAuthority(out var gs))
+            {
+                if (!ValidateAndClearWeaponChoice(weaponId))
+                {
+                    Debug.LogWarning($"[SurvivorFusionPlayer] Rejected invalid weapon choice (host): {weaponId}");
+                    return;
+                }
+                gs.OnClientWeaponChoice(_runnerService.Runner.LocalPlayer, weaponId, isNewWeapon);
+            }
+            else
+            {
+                RpcClientWeaponChoice(weaponId, isNewWeapon);
+            }
+        }
+
+        public void SendClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientWeaponReplace(_runnerService.Runner.LocalPlayer, removeWeaponId, newWeaponId);
+            else
+                RpcClientWeaponReplace(removeWeaponId, newWeaponId);
+        }
+
+        public void SendClientRequestPause()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestPause(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestPause();
+        }
+
+        public void SendClientRequestResume()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestResume(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestResume();
+        }
+
+        public void SendClientPlayerDied()
+        {
+            if (IsHostInputAuthority(out var gs))
+            {
+                var localPlayer = _runnerService.Runner.LocalPlayer;
+                gs.NotifyPlayerDied(localPlayer);
+                gs.OnPlayerDied(localPlayer);
+            }
+            else
+            {
+                RpcClientPlayerDied();
+            }
+        }
+
+        /// <summary>
+        /// Host (Server 兼 InputAuthority) かつ GameState 取得可能か判定。
+        /// true の場合は RPC 経由ではなく直接 GameState メソッドを呼ぶ必要がある。
+        /// </summary>
+        private bool IsHostInputAuthority(out SurvivorFusionGameState gs)
+        {
+            gs = null;
+            return _runnerService != null
+                && _runnerService.IsServer
+                && Object.HasInputAuthority
+                && TryGetGameState(out gs);
         }
 
         // =====================================================================

@@ -66,7 +66,12 @@ namespace Game.MVP.Survivor.Scenes
                 isVictory: _isVictory
             );
 
-            bool isMultiplayer = _sessionConfig.LastConnectionSource is ConnectionSource.Matchmaking;
+            // P2P (Host / Client) も Matchmaking と同じくマルチプレイヤー扱いにし、
+            // RETURN TO LOBBY ボタン表示でロビーに戻れるようにする。
+            bool isMultiplayer = _sessionConfig.LastConnectionSource
+                is ConnectionSource.Matchmaking
+                or ConnectionSource.P2PHost
+                or ConnectionSource.P2PClient;
             SceneComponent.SetDisplayButtons(isMultiplayer);
 
             // Viewイベントを購読 (SP 用ボタン)

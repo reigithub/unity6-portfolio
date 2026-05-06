@@ -84,6 +84,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             // per-player モデル（クライアントは自分 1 人分のみ Resolve するため動作等価）
             builder.Register<SurvivorStageModel>(Lifetime.Transient);
+            builder.Register<SurvivorNetworkWeaponManager>(Lifetime.Transient);
             // セッション共有モデル
             builder.Register<SurvivorNetworkStageModel>(Lifetime.Scoped);
             builder.Register<SurvivorStageWaveManager>(Lifetime.Scoped);
@@ -124,9 +125,18 @@ namespace Game.MVP.Survivor.Scenes
             // Server / Client 経路で異なるプレイヤースポーン処理
             if (_runnerService.IsServer)
             {
-                // Server (Host) 経路: per-player Context 構築 + Fusion SpawnConnectedPlayers
-                // RpcRegisterPlayerUserId は Server 自身が GameState を持つため不要
-                // (UserId 登録は SpawnPlayersOnServerAsync 内で TryGetUserId 経由で取得)
+                // P2P Host: Host 自身の UserId を直接 _userIdByPlayerRef に登録する。
+                // RPC 不要 (StateAuthority を持つため)。これを行わないと
+                // OnClientItemCollected/OnClientHitReported で Host の RPC が空 UserId にマップされ、
+                // Path A (TryGetContextByUserId) が失敗して item/hit attribution がドロップする。
+                // 結果として Path B (_lastHittingContext) のフォールバックが発動し、
+                // Host のレベルアップが Client の Context に誤帰属する。
+                var localPlayer = _runnerService.Runner.LocalPlayer;
+                if (localPlayer.IsRealPlayer
+                    && _runnerService.TryGet<SurvivorFusionGameState>(out var hostGs))
+                {
+                    hostGs.RegisterPlayerUserId(localPlayer, MyUserId);
+                }
                 await SpawnPlayersOnServerAsync();
             }
             else
@@ -134,11 +144,7 @@ namespace Game.MVP.Survivor.Scenes
                 // Client 経路: サーバーにフィールドシーンロード完了を通知してからローカル PlayerController 生成
                 if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                 {
-                    var myUserId = _authSessionService?.UserId ?? string.Empty;
-                    if (!string.IsNullOrEmpty(myUserId))
-                    {
-                        gs.RpcRegisterPlayerUserId(myUserId);
-                    }
+                    gs.RpcRegisterPlayerUserId(MyUserId);
                     gs.RpcNotifyFieldSceneLoaded();
                 }
                 await SpawnPlayerAsync();
@@ -310,7 +316,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 if (networkId >= 0)
                 {
-                    localPlayer.RpcClientHitReported(networkId, weaponId);
+                    localPlayer.SendClientHitReported(networkId, weaponId);
                 }
             });
 

@@ -123,16 +123,26 @@ namespace Game.MVP.Survivor.Scenes
             // GameState を早期取得 (UserId 参照のため)
             _runnerService.TryGet(out _gameState);
 
-            SurvivorPlayerController firstController = null;
+            // SceneComponent.PlayerController は Host の自機 (LocalPlayer) を割り当てる。
+            // ActivePlayers の反復順は保証されないため、firstController ではなく LocalPlayer 一致で判定。
+            SurvivorPlayerController localController = null;
             foreach (var player in _runnerService.Runner.ActivePlayers)
             {
                 if (!_runnerService.Runner.TryGetPlayerObject(player, out _))
                     continue;
 
-                var ctrl = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster, targetPlayer: player);
-                if (ctrl != null && firstController == null)
+                // Host の自機 (LocalPlayer) は Client と同じく SceneComponent 配下 (GameRootScene)
+                // に reparent する。Fusion Spawn 時の active scene は stage scene なので、
+                // reparent しないと UpdateItemAttraction の OverlapSphere が GameRootScene 内の
+                // ItemProxyCollectible / SurvivorItem を検出できない (multi-physics シーン分離)。
+                bool isLocalPlayer = (player == _runnerService.Runner.LocalPlayer);
+                var ctrl = await playerStart.LoadPlayerAsync(
+                    Resolver, playerMaster, levelMaster,
+                    sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
+                    targetPlayer: player);
+                if (ctrl != null && isLocalPlayer)
                 {
-                    firstController = ctrl;
+                    localController = ctrl;
                 }
 
                 // per-player で StageModel / WeaponManager を新規 Resolve (Transient)
@@ -163,11 +173,12 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log($"[SurvivorGameStageScene.Server] Player initialized: {player}");
             }
 
-            // SetPlayerController は最初のプレイヤーで設定（SceneComponent の互換性維持）
-            if (firstController != null)
+            // SetPlayerController は Host の自機 (LocalPlayer) のコントローラーを設定。
+            // DS モードでは LocalPlayer が無いため null のまま (Server 側で HUD 不要)。
+            if (localController != null)
             {
-                SceneComponent.SetPlayerController(firstController);
-                Debug.Log("[SurvivorGameStageScene.Server] Player spawned");
+                SceneComponent.SetPlayerController(localController);
+                Debug.Log("[SurvivorGameStageScene.Server] Local player spawned and assigned to SceneComponent");
             }
         }
 
@@ -181,27 +192,32 @@ namespace Game.MVP.Survivor.Scenes
                 .Subscribe(_ => _lastHittingContext?.StageModel.AddKill())
                 .AddTo(Disposables);
 
-            // アイテム収集 (サーバーローカル吸引経路): 直近ヒット Context にフォールバック帰属
-            if (SceneComponent.SurvivorItemSpawner != null)
-            {
-                SceneComponent.SurvivorItemSpawner.OnItemCollected
-                    .Subscribe(item =>
-                    {
-                        var ctx = _lastHittingContext;
-                        if (ctx == null) return;
-                        ctx.StageModel.CollectItem(item);
+            // Path B (旧サーバーローカル吸引フォールバック) は廃止。
+            // Path A (Client RPC: RpcClientItemCollected → OnServerItemCollectReported) が
+            // 唯一の attribute 経路。SurvivorItem.Collect() が Host のローカル UpdateItemAttraction で
+            // 発火しても、それは despawn 連鎖（NotifyItemDespawned）のみを担当し XP 帰属はしない。
 
-                        if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
-                            gs.NotifyItemCollected(
-                                ctx.UserId,
-                                item.ItemId,
-                                (int)item.ItemType,
-                                item.EffectValue,
-                                ctx.StageModel.Experience.Value,
-                                ctx.StageModel.ExperienceToNextLevel.Value);
-                    })
-                    .AddTo(Disposables);
-            }
+            // アイテム収集 (サーバーローカル吸引経路): 直近ヒット Context にフォールバック帰属
+            // if (SceneComponent.SurvivorItemSpawner != null)
+            // {
+            //     SceneComponent.SurvivorItemSpawner.OnItemCollected
+            //         .Subscribe(item =>
+            //         {
+            //             var ctx = _lastHittingContext;
+            //             if (ctx == null) return;
+            //             ctx.StageModel.CollectItem(item);
+            //
+            //             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+            //                 gs.NotifyItemCollected(
+            //                     ctx.UserId,
+            //                     item.ItemId,
+            //                     (int)item.ItemType,
+            //                     item.EffectValue,
+            //                     ctx.StageModel.Experience.Value,
+            //                     ctx.StageModel.ExperienceToNextLevel.Value);
+            //         })
+            //         .AddTo(Disposables);
+            // }
 
             // per-player レベルアップ検知 (各 Context の StageModel.Level を個別 Subscribe)
             foreach (var context in _players.Values)
@@ -282,9 +298,15 @@ namespace Game.MVP.Survivor.Scenes
             // アイテム収集報告 (UserId → Context 索引)
             _itemCollectReportedSub.Subscribe(s =>
             {
+                Debug.Log($"[DIAG-PathA] Item.CollectReported received: userId='{s.UserId}', networkId={s.NetworkId}");
                 if (TryGetContextByUserId(s.UserId, out var ctx))
                 {
+                    Debug.Log($"[DIAG-PathA] Routed to Context: player={ctx.Player}, ctxUserId='{ctx.UserId}'");
                     OnServerItemCollectReported(ctx, s.NetworkId);
+                }
+                else
+                {
+                    Debug.LogWarning($"[DIAG-PathA] Context lookup FAILED for userId='{s.UserId}' - collection dropped!");
                 }
             }).AddTo(Disposables);
 
@@ -408,8 +430,13 @@ namespace Game.MVP.Survivor.Scenes
                     ctx.UserId, itemId, (int)itemType, effectValue,
                     ctx.StageModel.Experience.Value,
                     ctx.StageModel.ExperienceToNextLevel.Value);
-                gs.NotifyItemDespawned(networkId);
             }
+
+            // Server-spawn された SurvivorItem GameObject を Collect させる。
+            // これにより SurvivorItemSpawner.OnItemCollectedHandler が走り、NotifyItemDespawned + プール返却が連鎖する。
+            // これを行わないと Host 上で SurvivorItem が visible のまま残り、
+            // Client が回収済みのアイテムが Host で削除されないバグになる。
+            item.Collect();
         }
 
         private void OnServerWeaponApply(SurvivorNetworkPlayerContext ctx, SurvivorWeaponApplyRequest request)

@@ -81,6 +81,12 @@ namespace Game.MVP.Survivor.Services
         /// <summary>サーバーから通知された Wave 情報でクライアント状態を更新</summary>
         public void SetWaveFromServer(int waveNumber, int nextWaveNumber)
         {
+            // Server (DS / Host) は StartWave() でローカルに Wave を管理するため、自身からのブロードキャストで
+            // _currentWave を上書きしてはいけない。Host で実行すると、Spawner の CurrentWave 購読が
+            // 古い _currentSpawnInfo (前 Wave のデータ) で OnWaveChanged を発火し、その後 StartWave() が
+            // 正しいデータをセットしても _currentWave 値が同値のため Subscribe が発火せず、
+            // Spawner が前 Wave のスポーンリストのまま動作 (ボス未スポーンの原因)。
+            if (IsServer) return;
             _currentWave.Value = nextWaveNumber;
         }
 

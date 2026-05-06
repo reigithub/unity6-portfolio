@@ -617,8 +617,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         /// <summary>サーバー側: クライアントからの武器入れ替えを適用</summary>
-        public void OnClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        public void OnClientWeaponReplace(PlayerRef source, int removeWeaponId, int newWeaponId)
         {
+            // LevelUp Pause を解除 (Choice と同様、Replace も LevelUp 完了の合図)。
+            // これを呼ばないと IsEffectivelyPaused が true のままになり、
+            // 全プレイヤーの移動・敵・武器エフェクトが停止する。
+            EndLevelUpPause(source);
+
             var request = new SurvivorWeaponApplyRequest
             {
                 WeaponId = newWeaponId,
