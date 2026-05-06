@@ -10,7 +10,6 @@ using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
-using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
@@ -22,7 +21,6 @@ using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -244,6 +242,11 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnPauseClicked
                 .Subscribe(_ => _pauseRequested = true)
                 .AddTo(Disposables);
+
+            // ネットワーク切断 (P2P Host Quit / DS クラッシュ / 自身の Disconnect) をシーン全体で監視。
+            // どのステート中でも検知できるように Scene レベルで購読し、Update 経路で QuitToTitle 遷移する。
+            _runnerService.OnClientDisconnected += OnNetworkDisconnected;
+            Disposables.Add(Disposable.Create(() => _runnerService.OnClientDisconnected -= OnNetworkDisconnected));
 
             // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
             _waveManager.OnKillCounted
@@ -605,6 +608,12 @@ namespace Game.MVP.Survivor.Scenes
             _networkConnector?.Disconnect();
             _sessionConfig.Clear();
             await UniTask.Yield();
+        }
+
+        private void OnNetworkDisconnected()
+        {
+            Debug.LogWarning("[SurvivorGameStageScene] Network disconnected — forcing transition to title");
+            _disconnected = true;
         }
 
         /// <summary>

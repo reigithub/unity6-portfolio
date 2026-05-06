@@ -33,7 +33,7 @@ namespace Game.MVP.Survivor.Scenes
             LevelUp,
             LevelUpComplete,
             ApparentDeath,   // 仮死状態 (HP=0 だがサーバーの GameEnded まで観戦継続)
-            Revived,          // 仮死からの復活 (PR4 では発火経路なし、将来 PR で接続)
+            Revived,          // 仮死からの復活 (現在は発火経路なし、将来 PR で接続)
             Victory,
             GameOver,
             Retry,
@@ -44,6 +44,7 @@ namespace Game.MVP.Survivor.Scenes
         private bool _isResultSaved;
         private bool _retryOrQuit;
         private bool _pauseRequested;
+        private bool _disconnected;
         private int _pendingLevelUpCount;
         private readonly Queue<SurvivorSignals.Player.LeveledUp> _pendingLevelUps = new();
 
@@ -67,6 +68,12 @@ namespace Game.MVP.Survivor.Scenes
             _stateMachine.AddTransition<ApparentDeathState, VictoryState>(StageEvent.Victory);
             _stateMachine.AddTransition<ApparentDeathState, GameOverState>(StageEvent.GameOver);
 
+            // ネットワーク切断 (主に P2P Host の Quit) による強制 Title 戻り。Result/Retry/Quit 自身からは遷移不要。
+            _stateMachine.AddTransition<ReadyState, QuitToTitleState>(StageEvent.QuitToTitle);
+            _stateMachine.AddTransition<PlayingState, QuitToTitleState>(StageEvent.QuitToTitle);
+            _stateMachine.AddTransition<LevelUpState, QuitToTitleState>(StageEvent.QuitToTitle);
+            _stateMachine.AddTransition<ApparentDeathState, QuitToTitleState>(StageEvent.QuitToTitle);
+
             _stateMachine.SetInitState<ReadyState>();
         }
 
@@ -89,6 +96,26 @@ namespace Game.MVP.Survivor.Scenes
             protected bool TryGetLocalPlayer(out SurvivorFusionPlayer player)
             {
                 return Context._runnerService.TryGetLocalPlayerComponent(out player);
+            }
+
+            protected bool TryHandleDisconnect()
+            {
+                if (!Context._disconnected) return false;
+                Context._disconnected = false;
+                Transition(StageEvent.QuitToTitle);
+                return true;
+            }
+
+            /// <summary>Fusion Tick が走っていない時のみローカル Time を止める。</summary>
+            protected void TryPauseLocalTime()
+            {
+                if (!Context._runnerService.IsActive) ApplicationEvents.PauseTime();
+            }
+
+            /// <summary>Fusion Tick が走っていない時のみローカル Time を戻す (Tick 駆動下では timeScale は終始 1)。</summary>
+            protected void TryResumeLocalTime()
+            {
+                if (!Context._runnerService.IsActive) ApplicationEvents.ResumeTime();
             }
         }
 
@@ -149,8 +176,10 @@ namespace Game.MVP.Survivor.Scenes
 
                 Debug.Log("[ReadyState] Showing countdown");
 
-                // カウントダウン中は時間を停止（敵スポーンやゲーム進行を防ぐ）
-                ApplicationEvents.PauseTime();
+                // カウントダウン中は時間を停止（敵スポーンやゲーム進行を防ぐ）。
+                // MP では Networked IsPaused 機構で Spawner 等を抑制するため timeScale は触らない
+                // (Fusion の Tick を止めると同期破綻)。本 State 時点では実際には未スタートのため無害。
+                TryPauseLocalTime();
 
                 // カウントダウンダイアログを表示（3, 2, 1, GO!）
                 await SceneService.TransitionDialogAsync<
@@ -174,6 +203,8 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                if (TryHandleDisconnect()) return;
+
                 if (_countdownComplete)
                 {
                     Transition(StageEvent.StartGame);
@@ -227,17 +258,12 @@ namespace Game.MVP.Survivor.Scenes
         private class PlayingState : StageStateBase
         {
             private bool _isFirstEntry = true;
-            private bool _disconnected;
 
             public override void Enter()
             {
                 Debug.Log($"[PlayingState] Enter ({Context._runnerService.GetDebugStatus()})");
-                ApplicationEvents.ResumeTime();
+                TryResumeLocalTime();
                 ApplicationEvents.ShowCursor();
-
-                _disconnected = false;
-
-                Context._runnerService.OnClientDisconnected += OnDisconnected;
 
                 if (_isFirstEntry)
                 {
@@ -252,13 +278,7 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
-                // 切断検知 → タイトルに戻る
-                if (_disconnected)
-                {
-                    _disconnected = false;
-                    Transition(StageEvent.QuitToTitle);
-                    return;
-                }
+                if (TryHandleDisconnect()) return;
 
                 // ポーズ・レベルアップはクライアントでもローカル処理
                 if (Context._pauseRequested)
@@ -310,13 +330,6 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                Context._runnerService.OnClientDisconnected -= OnDisconnected;
-            }
-
-            private void OnDisconnected()
-            {
-                Debug.LogWarning("[PlayingState] Server disconnected");
-                _disconnected = true;
             }
         }
 
@@ -340,6 +353,8 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                if (TryHandleDisconnect()) return;
+
                 // サーバー権威の勝敗結果 (全員死亡 / 時間切れ / 全 Wave クリア) を監視
                 if (NetworkStageModel.HasNetworkResult)
                 {
@@ -378,7 +393,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log("[PausedState] Enter");
-                ApplicationEvents.PauseTime();
+                TryPauseLocalTime();
                 ApplicationEvents.ShowCursor();
 
                 if (TryGetLocalPlayer(out var localPlayer))
@@ -387,6 +402,12 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 ShowPauseDialogAsync().Forget();
+            }
+
+            public override void Update()
+            {
+                // Dialog 表示中でもネットワーク切断は最優先で拾い、Title へ強制遷移する。
+                TryHandleDisconnect();
             }
 
             private async UniTaskVoid ShowPauseDialogAsync()
@@ -417,7 +438,7 @@ namespace Game.MVP.Survivor.Scenes
                     localPlayer.SendClientRequestResume();
                 }
 
-                ApplicationEvents.ResumeTime();
+                TryResumeLocalTime();
             }
         }
 
@@ -430,7 +451,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log($"[LevelUpState] Enter - Level {StageModel.Level.Value}");
-                ApplicationEvents.PauseTime();
+                TryPauseLocalTime();
                 Context._inputService.DisablePlayer();
                 ApplicationEvents.ShowCursor();
 
@@ -438,6 +459,12 @@ namespace Game.MVP.Survivor.Scenes
                 // クライアント側の Pause RPC は不要 (Resume はサーバーが OnClientWeaponChoice 受信で自動解除)。
 
                 ShowLevelUpDialogAsync().Forget();
+            }
+
+            public override void Update()
+            {
+                // Dialog 表示中でもネットワーク切断は最優先で拾い、Title へ強制遷移する。
+                TryHandleDisconnect();
             }
 
             private async UniTaskVoid ShowLevelUpDialogAsync()
@@ -540,7 +567,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[LevelUpState] Exit");
-                ApplicationEvents.ResumeTime();
+                TryResumeLocalTime();
 
                 // MP で他プレイヤーがまだ LevelUp 中（IsPaused=true 維持）なら入力を有効化しない。
                 // 解除は Game.Resumed シグナル経由で行う（VS Co-op 準拠：全員選択完了まで全員入力停止）。
@@ -602,8 +629,9 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[VictoryState] Enter");
 
-                // ゲーム状態をフリーズ（スコア稼ぎ防止）
-                ApplicationEvents.PauseTime();
+                // ゲーム状態をフリーズ（スコア稼ぎ防止）。MP ではサーバー側 Tick を止めないよう
+                // timeScale を触らず、IsPaused / 入力無効化で代替。
+                TryPauseLocalTime();
                 Context._inputService.DisablePlayer();
 
                 // 残存敵を全クリア＆スポーン停止
@@ -666,8 +694,9 @@ namespace Game.MVP.Survivor.Scenes
             {
                 Debug.Log("[GameOverState] Enter");
 
-                // ゲーム状態をフリーズ
-                ApplicationEvents.PauseTime();
+                // ゲーム状態をフリーズ。MP ではサーバー側 Tick を止めないよう
+                // timeScale を触らず、IsPaused / 入力無効化で代替。
+                TryPauseLocalTime();
                 Context._inputService.DisablePlayer();
 
                 // 残存敵を全クリア＆スポーン停止
