@@ -27,7 +27,6 @@ namespace Game.MVP.Survivor.Scenes
         private string _currentLobbyId;
         private int _maxPlayers = 4;
         private int _stageId = 1;
-        private string _hostUserId;
 
         public override async UniTask Startup()
         {
@@ -44,10 +43,6 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.OnLeaveClicked
                 .Subscribe(_ => OnLeave().Forget())
-                .AddTo(Disposables);
-
-            SceneComponent.OnStageChangeClicked
-                .Subscribe(stageId => OnStageChange(stageId).Forget())
                 .AddTo(Disposables);
 
             // LobbyClient イベント購読
@@ -71,7 +66,6 @@ namespace Game.MVP.Survivor.Scenes
             _lobbyClient.OnPlayerReadyChanged += HandlePlayerReadyChanged;
             _lobbyClient.OnGameStarting += HandleGameStarting;
             _lobbyClient.OnLobbyClosed += HandleLobbyClosed;
-            _lobbyClient.OnStageChanged += HandleStageChanged;
             _lobbyClient.OnDisconnected += HandleDisconnected;
         }
 
@@ -83,7 +77,6 @@ namespace Game.MVP.Survivor.Scenes
             _lobbyClient.OnPlayerReadyChanged -= HandlePlayerReadyChanged;
             _lobbyClient.OnGameStarting -= HandleGameStarting;
             _lobbyClient.OnLobbyClosed -= HandleLobbyClosed;
-            _lobbyClient.OnStageChanged -= HandleStageChanged;
             _lobbyClient.OnDisconnected -= HandleDisconnected;
         }
 
@@ -102,14 +95,7 @@ namespace Game.MVP.Survivor.Scenes
                 var lobbyInfo = await _lobbyClient.GetLobbyInfoAsync(_currentLobbyId);
                 _maxPlayers = lobbyInfo.MaxPlayers;
                 _stageId = lobbyInfo.StageId;
-                _hostUserId = lobbyInfo.HostUserId;
                 SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
-                SceneComponent.SetStageInfo(_stageId);
-
-                // ロビーホスト（部屋主）のみステージ変更ボタンを表示
-                // ※ ここでの「ホスト」は MagicOnion ロビーのオーナー概念であり、Fusion GameMode.Host とは別
-                var myUserId = _authSessionService.UserId;
-                SceneComponent.SetStageChangeVisible(_hostUserId == myUserId);
 
                 var playerList = await _lobbyClient.GetLobbyPlayersAsync(_currentLobbyId);
                 SceneComponent.InitializePlayers(playerList);
@@ -151,28 +137,9 @@ namespace Game.MVP.Survivor.Scenes
             OnLobbyClosed(reason).Forget();
         }
 
-        private void HandleStageChanged(int stageId, string changedByUserId)
-        {
-            _stageId = stageId;
-            SceneComponent.SetStageInfo(stageId);
-            SceneComponent.AddChatMessage("System", $"Stage changed to {stageId}");
-        }
-
         private void HandleDisconnected(string reason)
         {
             OnDisconnectedFromLobby(reason).Forget();
-        }
-
-        private async UniTaskVoid OnStageChange(int stageId)
-        {
-            try
-            {
-                await _lobbyClient.SetStageAsync(stageId);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[SurvivorLobbyRoomScene] Failed to change stage: {ex.Message}");
-            }
         }
 
         private async UniTaskVoid OnReady()
