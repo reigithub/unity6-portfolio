@@ -198,8 +198,6 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask SpawnPlayerAsync()
         {
-            Debug.Log("[DIAG-Client SpawnPlayerAsync] enter");
-
             if (!_stageSceneInstance.HasValue)
             {
                 Debug.LogWarning("[SurvivorGameStageScene] Stage scene not loaded, skipping player spawn");
@@ -221,39 +219,24 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            // ===== 診断ログ: ループに入る前の状態 =====
-            int activePlayerCount = 0;
-            foreach (var p in _runnerService.Runner.ActivePlayers) activePlayerCount++;
-            Debug.Log($"[DIAG-Client SpawnPlayerAsync] LocalPlayer={_runnerService.Runner.LocalPlayer}, ActivePlayers count={activePlayerCount}");
-
             SurvivorPlayerController localController = null;
-            int loadCallCount = 0;
             foreach (var player in _runnerService.Runner.ActivePlayers)
             {
                 bool isLocalPlayer = (player == _runnerService.Runner.LocalPlayer);
-                Debug.Log($"[DIAG-Client SpawnPlayerAsync] calling LoadPlayerAsync for {player}, isLocalPlayer={isLocalPlayer}");
-                loadCallCount++;
                 var ctrl = await playerStart.LoadPlayerAsync(
                     Resolver, playerMaster, levelMaster,
                     sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
                     targetPlayer: player);
-                Debug.Log($"[DIAG-Client SpawnPlayerAsync] LoadPlayerAsync returned for {player}, ctrl={(ctrl != null ? "non-null" : "<null>")}");
                 if (ctrl != null && isLocalPlayer)
                 {
                     localController = ctrl;
                 }
             }
-            Debug.Log($"[DIAG-Client SpawnPlayerAsync] loop done: loadCallCount={loadCallCount}, localController={(localController != null ? "non-null" : "<null>")}");
 
             if (localController != null)
             {
                 SceneComponent.SetPlayerController(localController);
-                Debug.Log("[SurvivorGameStageScene] Local player spawned and assigned to SceneComponent");
                 _inputService.DisablePlayer();
-            }
-            else
-            {
-                Debug.LogWarning("[DIAG-Client SpawnPlayerAsync] localController is null at end");
             }
         }
 
