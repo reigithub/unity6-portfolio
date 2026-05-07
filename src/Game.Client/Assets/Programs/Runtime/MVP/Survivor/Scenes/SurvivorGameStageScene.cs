@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Item;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
@@ -26,8 +27,7 @@ namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
     /// Survivor メインステージシーン Presenter (P2P Host/Client 共有版)。
-    /// PR3.5 で導入。Fusion Photon Host モード対応のため、権威ロジック (Server) と View ロジック (Client) の
-    /// 両方を 1 シーンで担当する統合シーン。
+    /// Fusion Photon Host モード対応のため、権威ロジック (Server) と View ロジック (Client) の 両方を 1 シーンで担当する統合シーン。
     ///
     /// 構成:
     /// - Client State Machine (本ファイル + .States.cs): 全モード起動。HUD/Input/PlayerController/Pause/LevelUp/Victory/GameOver
@@ -124,11 +124,7 @@ namespace Game.MVP.Survivor.Scenes
             if (_runnerService.IsServer)
             {
                 // P2P Host: Host 自身の UserId を直接 _userIdByPlayerRef に登録する。
-                // RPC 不要 (StateAuthority を持つため)。これを行わないと
-                // OnClientItemCollected/OnClientHitReported で Host の RPC が空 UserId にマップされ、
-                // Path A (TryGetContextByUserId) が失敗して item/hit attribution がドロップする。
-                // 結果として Path B (_lastHittingContext) のフォールバックが発動し、
-                // Host のレベルアップが Client の Context に誤帰属する。
+                // RPC 不要 (StateAuthority を持つため)。
                 var localPlayer = _runnerService.Runner.LocalPlayer;
                 if (localPlayer.IsRealPlayer
                     && _runnerService.TryGet<SurvivorFusionGameState>(out var hostGs))
@@ -202,13 +198,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask SpawnPlayerAsync()
         {
+            Debug.Log("[DIAG-Client SpawnPlayerAsync] enter");
+
             if (!_stageSceneInstance.HasValue)
             {
                 Debug.LogWarning("[SurvivorGameStageScene] Stage scene not loaded, skipping player spawn");
                 return;
             }
 
-            // ステージシーン内のPlayerStartを検索
             var playerStart = SurvivorStageSceneHelper.GetPlayerStart(Resolver, _stageSceneInstance.Value.Scene);
             if (playerStart == null)
             {
@@ -216,7 +213,6 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            // プレイヤー生成
             var playerMaster = _stageModel.PlayerMaster;
             var levelMaster = _stageModel.CurrentLevelMaster;
             if (playerMaster == null || levelMaster == null)
@@ -225,15 +221,39 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            var playerController = await playerStart.LoadPlayerAsync(Resolver, playerMaster, levelMaster, SceneComponent.transform);
-            if (playerController != null)
-            {
-                // SceneComponentにプレイヤーを設定
-                SceneComponent.SetPlayerController(playerController);
-                Debug.Log($"[SurvivorGameStageScene] Player spawned and assigned to SceneComponent");
+            // ===== 診断ログ: ループに入る前の状態 =====
+            int activePlayerCount = 0;
+            foreach (var p in _runnerService.Runner.ActivePlayers) activePlayerCount++;
+            Debug.Log($"[DIAG-Client SpawnPlayerAsync] LocalPlayer={_runnerService.Runner.LocalPlayer}, ActivePlayers count={activePlayerCount}");
 
-                // プレイヤー入力を一時的に無効化
+            SurvivorPlayerController localController = null;
+            int loadCallCount = 0;
+            foreach (var player in _runnerService.Runner.ActivePlayers)
+            {
+                bool isLocalPlayer = (player == _runnerService.Runner.LocalPlayer);
+                Debug.Log($"[DIAG-Client SpawnPlayerAsync] calling LoadPlayerAsync for {player}, isLocalPlayer={isLocalPlayer}");
+                loadCallCount++;
+                var ctrl = await playerStart.LoadPlayerAsync(
+                    Resolver, playerMaster, levelMaster,
+                    sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
+                    targetPlayer: player);
+                Debug.Log($"[DIAG-Client SpawnPlayerAsync] LoadPlayerAsync returned for {player}, ctrl={(ctrl != null ? "non-null" : "<null>")}");
+                if (ctrl != null && isLocalPlayer)
+                {
+                    localController = ctrl;
+                }
+            }
+            Debug.Log($"[DIAG-Client SpawnPlayerAsync] loop done: loadCallCount={loadCallCount}, localController={(localController != null ? "non-null" : "<null>")}");
+
+            if (localController != null)
+            {
+                SceneComponent.SetPlayerController(localController);
+                Debug.Log("[SurvivorGameStageScene] Local player spawned and assigned to SceneComponent");
                 _inputService.DisablePlayer();
+            }
+            else
+            {
+                Debug.LogWarning("[DIAG-Client SpawnPlayerAsync] localController is null at end");
             }
         }
 

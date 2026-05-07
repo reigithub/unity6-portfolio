@@ -193,15 +193,19 @@ namespace Game.MVP.Survivor.Player
         /// <param name="spawnPosition">スポーン位置（null の場合は KCC 設定をスキップ）</param>
         public void Initialize(SurvivorPlayerLevelMaster levelMaster, Vector3? spawnPosition)
         {
-            if (spawnPosition.HasValue)
+            // P2P Host モード: Client (Host を含むサーバー以外) は StateAuthority を持たない
+            bool hasStateAuthority = _fusionPlayer != null && _fusionPlayer.HasStateAuthority;
+
+            if (hasStateAuthority && spawnPosition.HasValue)
                 ConfigureKCC(spawnPosition.Value);
 
             _runnerService.TryGet(out _gameState);
 
+            // ローカル MovementParams (jog/run speed 等のキャッシュ) はどの機でも事前計算しておく。
             ApplyMovementParams(levelMaster);
 
-            // ゲームロジック関連（FusionPlayer が [Networked] で管理）
-            if (_fusionPlayer != null)
+            // ゲームロジック関連（FusionPlayer が [Networked] で管理）。StateAuthority のみ書き込み可。
+            if (hasStateAuthority)
             {
                 _fusionPlayer.Health = levelMaster.MaxHp;
                 _fusionPlayer.MaxHealth = levelMaster.MaxHp;
@@ -216,15 +220,20 @@ namespace Game.MVP.Survivor.Player
                 _fusionPlayer.StaminaAccumulator = 0f;
                 _fusionPlayer.InvincibilityTimer = 0f;
             }
-            else
+            else if (_fusionPlayer == null)
             {
                 Debug.LogWarning("[SurvivorPlayerController] Initialize: _fusionPlayer is NULL, [Networked] values not set");
             }
 
-            // ReactiveProperty 初期値（UI 用ミラー）
-            _currentHp.Value = levelMaster.MaxHp;
-            _currentStamina.Value = levelMaster.MaxStamina;
-            _isInvincible.Value = false;
+            // ReactiveProperty 初期値（自機 HUD 用ミラー）。リモート機では UI に流れないため不要。
+            // 自機 (HasInputAuthority) は ChangeDetector 経由の Networked 同期で随時更新されるが、
+            // 初期値は Server からの最初の同期到着までのフォールバックとして設定する。
+            if (_fusionPlayer != null && _fusionPlayer.HasInputAuthority)
+            {
+                _currentHp.Value = levelMaster.MaxHp;
+                _currentStamina.Value = levelMaster.MaxStamina;
+                _isInvincible.Value = false;
+            }
 
             // メインカメラを自動取得（サーバーでは _gameRootController が null）
             if (_mainCamera == null)
