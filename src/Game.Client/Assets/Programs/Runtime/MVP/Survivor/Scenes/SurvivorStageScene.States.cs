@@ -283,15 +283,12 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // ポーズ中（自分の LevelUp/ESC、または他プレイヤーの LevelUp/ESC で停止中）は時計を進めない。
-                // 自分が PausedState/LevelUpState 中は Time.timeScale=0 で deltaTime=0 になるが、
-                // 他プレイヤーが Pause 中に自分が PlayingState のままだと Time.timeScale=1 のままになるため、
-                // Networked IsPaused を必ずチェックする必要がある。
-                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
-                if (!isPaused)
+                // GameTime は Server 権威 Networked プロパティ (SurvivorFusionGameState.GameTime) を Reactive Property にミラーするのみ。
+                // 各 Client での自走加算は禁止 (時計ずれ防止のため)。Pause 判定は Server 側 FixedUpdateNetwork で実施済み。
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
-                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                    NetworkStageModel.GameTime.Value = gs.GameTime;
+                    View.UpdateTime(gs.GameTime);
                 }
 
                 // 自プレイヤーが死亡 → 仮死状態 (ApparentDeath) へ遷移。
@@ -344,13 +341,11 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // Wave/Time 表示更新は継続 (観戦状態)
-                // ただし他プレイヤーの LevelUp/ESC で全体ポーズ中は時計を止める（サーバー側と整合）
-                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
-                if (!isPaused)
+                // サーバー権威のゲーム経過時間
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
-                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                    NetworkStageModel.GameTime.Value = gs.GameTime;
+                    View.UpdateTime(gs.GameTime);
                 }
             }
 

@@ -167,6 +167,7 @@ namespace Game.MVP.Survivor.Scenes
                 if (_isFirstEntry)
                 {
                     _isFirstEntry = false;
+                    Context._gameState.NotifyGameStarted();
                     Debug.Log("[SurvivorNetworkStageScene.PlayingState] Starting first wave");
                     WaveManager.StartWave();
                 }
@@ -184,16 +185,6 @@ namespace Game.MVP.Survivor.Scenes
                         Transition(StageEvent.LevelUp);
                         return;
                     }
-                }
-
-                // ゲームタイマー更新（ポーズ中はスキップ）
-                bool isPaused = Context._gameState != null && Context._gameState.IsEffectivelyPaused;
-                if (!isPaused)
-                {
-                    var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
-                        ? Context._runnerService.Runner.DeltaTime
-                        : Time.deltaTime;
-                    NetworkStageModel.GameTime.Value += dt;
                 }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア

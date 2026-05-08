@@ -180,6 +180,7 @@ namespace Game.MVP.Survivor.Scenes
                 if (_isFirstEntry)
                 {
                     _isFirstEntry = false;
+                    Context._gameState.NotifyGameStarted();
                     Debug.Log("[SurvivorGameStageScene.ServerPlayingState] Starting first wave");
                     WaveManager.StartWave();
                 }
@@ -197,19 +198,6 @@ namespace Game.MVP.Survivor.Scenes
                         Transition(ServerStageEvent.LevelUp);
                         return;
                     }
-                }
-
-                // ゲームタイマー更新（ポーズ中はスキップ）
-                // ServerPlayingState.Update は SubscribeEvents の UpdateAsObservable から per-frame で呼ばれるため
-                // Time.deltaTime を使う必要がある。Runner.DeltaTime は per-tick 値なので、
-                // tick rate < frame rate のとき per-frame で加算すると時間が早く進む。
-                bool isPaused = Context._gameState != null && Context._gameState.IsEffectivelyPaused;
-                if (!isPaused)
-                {
-                    // var dt = Context._runnerService.IsActive && Context._runnerService.Runner != null
-                    //     ? Context._runnerService.Runner.DeltaTime
-                    //     : Time.deltaTime;
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
                 }
 
                 // 勝利条件: 時間制限到達 or 全ウェーブクリア

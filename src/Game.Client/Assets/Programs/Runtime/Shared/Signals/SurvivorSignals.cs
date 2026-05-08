@@ -278,6 +278,8 @@ namespace Game.Shared.Signals.Survivor
 
         public static class Game
         {
+            public readonly struct Started { }
+
             public readonly struct Ended
             {
                 public readonly SurvivorNetworkGameResult Result;

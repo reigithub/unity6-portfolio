@@ -317,7 +317,7 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
                 _waveManager.UpdateClientWaveDisplay(s.TargetKillCount, s.EnemyCount);
 
-                if (s.WaveNumber > 0 && _networkStageModel.GameTime.Value > 0)
+                if (s.WaveNumber > 0)
                 {
                     SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
                 }
