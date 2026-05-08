@@ -43,5 +43,13 @@ namespace Game.Library.Shared.Dto
         /// <summary>Photon Host を担当するプレイヤー UserId (Topology == PeerToPeer 時に使用)。</summary>
         [Key(6)]
         public string? HostUserId { get; init; }
+
+        /// <summary>
+        /// セッション開始時の実プレイヤー数。Server (Host) の <c>_expectedPlayerCount</c>
+        /// として使用。ロビー定員 (<c>LobbyInfo.MaxPlayers</c>) ではなく、Ready 完了時の
+        /// 実接続プレイヤー数を渡すこと。
+        /// </summary>
+        [Key(7)]
+        public int PlayerCount { get; init; }
     }
 }

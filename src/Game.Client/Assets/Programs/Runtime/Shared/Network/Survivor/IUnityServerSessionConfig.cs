@@ -28,7 +28,9 @@ namespace Game.Shared.Network.Survivor
         /// <summary>セッショントークン（HMAC 認証用）。</summary>
         string SessionToken { get; }
 
-        /// <summary>期待プレイヤー数。SP=1、MP=ロビー設定値。</summary>
+        /// <summary>
+        /// ゲーム開始時点の実接続プレイヤー数
+        /// </summary>
         int PlayerCount { get; }
 
         /// <summary>

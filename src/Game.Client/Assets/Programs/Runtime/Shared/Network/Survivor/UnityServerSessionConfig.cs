@@ -64,7 +64,7 @@ namespace Game.Shared.Network.Survivor
         public string SessionToken { get; private set; }
 
         /// <summary>
-        /// 期待プレイヤー数。SP=1、MP=ロビー設定値。
+        /// ゲーム開始時点の実接続プレイヤー数
         /// タイトル画面のモード選択時またはロビー開始時にセットされる。
         /// </summary>
         public int PlayerCount { get; private set; } = 1;
@@ -102,7 +102,7 @@ namespace Game.Shared.Network.Survivor
         /// <param name="port">接続先ポート番号。null 時は <see cref="DefaultPort"/>。</param>
         /// <param name="sessionName">セッション名。null 時は <see cref="DefaultLocalSessionName"/>。</param>
         /// <param name="sessionToken">セッショントークン。null 時は空文字。</param>
-        /// <param name="playerCount">期待プレイヤー数。</param>
+        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。</param>
         public void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null)
         {
             ConnectionSource = source;
@@ -120,7 +120,7 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         /// <param name="source">接続元の種別。</param>
         /// <param name="result">マッチメイキングサーバーから受け取った <see cref="MatchResult"/>。</param>
-        /// <param name="playerCount">期待プレイヤー数。</param>
+        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。</param>
         public void Configure(ConnectionSource source, MatchResult result, int playerCount)
             => Configure(source, result.ServerAddress, (ushort)result.ServerPort, result.MatchId, result.SessionToken, playerCount);
 
@@ -130,7 +130,7 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         /// <param name="source">接続元の種別 (P2PHost / P2PClient / Matchmaking 等、呼出側で host/client 判定して指定)。</param>
         /// <param name="info">サーバーから受信した <see cref="MatchStartInfo"/>。</param>
-        /// <param name="playerCount">期待プレイヤー数。</param>
+        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。<see cref="MatchStartInfo.PlayerCount"/> から取得すること。</param>
         public void Configure(ConnectionSource source, MatchStartInfo info, int playerCount)
         {
             ConnectionSource = source;

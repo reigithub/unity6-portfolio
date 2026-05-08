@@ -257,6 +257,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
                     ServerAddress = _unityServerConfig.ServerAddress,
                     ServerPort = _unityServerConfig.ServerPort,
                     SessionToken = authResponse.Token,
+                    PlayerCount = players.Length,
                 };
                 _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
             }
@@ -297,6 +298,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             SessionName = sessionName,
             PhotonRegion = photonRegion,
             HostUserId = hostUserId,
+            PlayerCount = players.Length,
         };
 
         // ① Host にだけ先に broadcast。

@@ -26,7 +26,6 @@ namespace Game.MVP.Survivor.Scenes
         private bool _isReady;
         private bool _isExitingLobby;
         private string _currentLobbyId;
-        private int _maxPlayers = 4;
         private int _stageId = 1;
 
         public override async UniTask Startup()
@@ -94,7 +93,6 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 var lobbyInfo = await _lobbyClient.GetLobbyInfoAsync(_currentLobbyId);
-                _maxPlayers = lobbyInfo.MaxPlayers;
                 _stageId = lobbyInfo.StageId;
                 SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
 
@@ -219,8 +217,7 @@ namespace Game.MVP.Survivor.Scenes
                 source = ConnectionSource.Matchmaking;
             }
 
-            // 統一 Configure overload で MatchStartInfo を設定
-            _sessionConfig.Configure(source, info, _maxPlayers);
+            _sessionConfig.Configure(source, info, info.PlayerCount);
 
             // セッション開始（stageId はロビー情報から取得）
             var playerId = _saveService.Data.SelectedPlayerId;
