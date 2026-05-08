@@ -134,6 +134,10 @@ namespace Game.MVP.Survivor.Services
 
         public void StartWave()
         {
+            // 症状切り分け診断 (観察期間限定): Wave 開始呼出のフレームを記録。
+            // 真因確定後の次 PR で削除すること。
+            Debug.Log($"[DIAG-WaveStart] StartWave called, IsServer={IsServer}, frame={Time.frameCount}");
+
             // Client-only: Wave進行はサーバーが駆動
             if (!IsServer) return;
 

@@ -235,6 +235,21 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task NotifyHostReadyAsync()
+        {
+            try
+            {
+                if (_hub != null)
+                {
+                    await _hub.NotifyHostReadyAsync();
+                }
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogWarning($"[LobbyClient] RPC error in NotifyHostReady: {ex.StatusCode}");
+            }
+        }
+
         // ILobbyHubReceiver implementations
         void ILobbyHubReceiver.OnPlayerJoined(string userId, string playerName)
         {

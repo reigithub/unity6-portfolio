@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Services;
@@ -26,6 +28,16 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
     // lobby ごとの userId → ConnectionId マッピング（Hub はリクエストごとにインスタンス生成のため static）
     private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Guid>> LobbyConnections = new();
+
+    // P2P 開始フロー: lobbyId → Host の準備完了を待つ TCS。
+    // StartP2PGameAsync が Host 先行 broadcast 後にこの TCS を await し、
+    // NotifyHostReadyAsync (Host 側 RPC) または Host disconnect / タイムアウトで完了する。
+    private static readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _pendingHostReady = new();
+
+    // P2P 開始フロー: lobbyId → 既に Lobby 閉鎖系 broadcast を発火済みかのフラグ。
+    // OnDisconnected 経路 (OnLobbyClosed("Host disconnected")) と StartP2PGameAsync タイムアウト経路
+    // (OnLobbyClosed("Host failed...")) の二重 broadcast を防ぐ。
+    private static readonly ConcurrentDictionary<string, byte> _lobbyClosedBroadcasted = new();
 
     private IGroup<ILobbyHubReceiver>? _currentGroup;
     private string _userId = string.Empty;
@@ -90,6 +102,13 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             bool isHost = lobby != null && lobby.HostUserId == _userId;
             if (isHost)
             {
+                // P2P 開始フローの Host 待機 TCS を取り消す + 二重 broadcast 防止フラグを立てる。
+                if (_pendingHostReady.TryRemove(_lobbyId, out var tcsOnLeave))
+                {
+                    tcsOnLeave.TrySetResult(false);
+                }
+                _lobbyClosedBroadcasted.TryAdd(_lobbyId, 1);
+
                 _currentGroup.All.OnLobbyClosed("Host left");
             }
 
@@ -184,21 +203,33 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         LobbyConnections.TryGetValue(_lobbyId, out var lobbyMap);
 
+        // ゲーム開始時の Ready 状態リセット: P2P 経路では StartP2PGameAsync 内で Host 完了を最大 20s
+        // 待機する可能性があるため、Ready リセットは Host 先行 broadcast の前に完了させて UI ジッタを避ける。
+        await _lobbyDataService.ResetAllReadyAsync(_lobbyId);
+        foreach (var player in players)
+        {
+            _currentGroup.All.OnPlayerReadyChanged(player.UserId, false);
+        }
+
         if (lobby.NetworkTopology == NetworkTopology.PeerToPeer)
         {
-            StartP2PGameAsync(players, lobby, lobbyMap);
+            _ = ExecuteP2PStartAsync(players, lobby, lobbyMap);
         }
         else
         {
             await StartDsGameAsync(players, lobby, lobbyMap);
         }
+    }
 
-        // ゲーム開始時に Ready 状態を全員 false にリセット
-        // (リザルト後に LobbyRoomScene へ戻った際、Ready が残らないようにする)
-        await _lobbyDataService.ResetAllReadyAsync(_lobbyId);
-        foreach (var player in players)
+    private async Task ExecuteP2PStartAsync(LobbyPlayerInfo[] players, LobbyInfo lobby, ConcurrentDictionary<string, Guid>? lobbyMap)
+    {
+        try
         {
-            _currentGroup.All.OnPlayerReadyChanged(player.UserId, false);
+            await StartP2PGameAsync(players, lobby, lobbyMap);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "StartP2PGameAsync failed for lobby {LobbyId}", _lobbyId);
         }
     }
 
@@ -236,10 +267,15 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             _lobbyId, matchId, players.Length);
     }
 
-    private void StartP2PGameAsync(LobbyPlayerInfo[] players, LobbyInfo lobby, ConcurrentDictionary<string, Guid>? lobbyMap)
+    /// <summary>
+    /// P2P モードのゲーム開始フロー。Host 先行起動方式で Photon Cloud のセッション作成競合
+    /// (Client が Host より先に StartClientAsync を呼んで GameNotFound になる) を防ぐ。
+    /// 順序: ① Host にだけ OnGameStarting → ② Host の NotifyHostReadyAsync を await (timeout 20s)
+    ///       → ③ 残りクライアントに OnGameStarting broadcast。
+    /// </summary>
+    private async Task StartP2PGameAsync(LobbyPlayerInfo[] players, LobbyInfo lobby, ConcurrentDictionary<string, Guid>? lobbyMap)
     {
         // [Photon 制約] 1 セッションに Host は 1 名のみ。本実装ではロビーホスト = Photon Host で固定。
-        // Host migration (Host 切断後の再昇格) は将来 PR で別途対応する。
         var hostUserId = lobby.HostUserId;
         if (string.IsNullOrEmpty(hostUserId))
         {
@@ -247,27 +283,101 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             return;
         }
 
-        var sessionName = $"p2p-{Guid.NewGuid():N}";  // 36 文字、Photon SessionName 制限 64 内
-        var photonRegion = "jp";  // 将来的にLobbyInfo.PhotonRegion フィールド追加 + UI 選択
+        if (lobbyMap == null || !lobbyMap.TryGetValue(hostUserId, out var hostConnId))
+        {
+            _logger.LogWarning("StartP2PGameAsync aborted: host connection not found in lobby {LobbyId}", _lobbyId);
+            return;
+        }
 
+        var sessionName = $"p2p-{Guid.NewGuid():N}";  // 36 文字、Photon SessionName 制限 64 内
+        var photonRegion = "jp";                      // 将来的に LobbyInfo.PhotonRegion フィールド追加 + UI 選択
+        var info = new MatchStartInfo
+        {
+            Topology = NetworkTopology.PeerToPeer,
+            SessionName = sessionName,
+            PhotonRegion = photonRegion,
+            HostUserId = hostUserId,
+        };
+
+        // ① Host にだけ先に broadcast。
+        if (_currentGroup == null) return;
+        _currentGroup.Only(new[] { hostConnId }).OnGameStarting(info);
+
+        // ② Host の準備完了 (NotifyHostReadyAsync) を待つ。
+        // タイムアウト 20s: 正常系では Photon Cloud StartGame + GameState Spawn まで数秒で完了するため
+        // 異常系の上限として十分。これを超える場合はフロー異常と見なす。
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingHostReady[_lobbyId] = tcs;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var ctsRegistration = cts.Token.Register(() => tcs.TrySetResult(false));
+
+        bool hostReady;
+        try
+        {
+            hostReady = await tcs.Task;
+        }
+        finally
+        {
+            _pendingHostReady.TryRemove(_lobbyId, out _);
+        }
+
+        if (!hostReady)
+        {
+            _logger.LogWarning(
+                "P2P host {HostUserId} failed to be ready within timeout, lobby {LobbyId}",
+                hostUserId, _lobbyId);
+
+            // OnDisconnected 経路 (OnLobbyClosed("Host disconnected")) で既に broadcast 済みの場合は二重発火回避。
+            if (_lobbyClosedBroadcasted.TryAdd(_lobbyId, 1) && _currentGroup != null)
+            {
+                _currentGroup.All.OnLobbyClosed("Host failed to start the session");
+            }
+
+            // Lobby 物理削除: Host が生存したまま起動失敗するケースで Redis にロビーが残るのを防ぐ。
+            try
+            {
+                await _lobbyDataService.DeleteAsync(_lobbyId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete lobby {LobbyId} after host startup timeout", _lobbyId);
+            }
+            return;
+        }
+
+        // ③ 残りクライアントに broadcast (Host を除外)。
+        if (_currentGroup == null) return;
         foreach (var player in players)
         {
-            if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
+            if (player.UserId == hostUserId) continue;
+            if (lobbyMap.TryGetValue(player.UserId, out var connId))
             {
-                var info = new MatchStartInfo
-                {
-                    Topology = NetworkTopology.PeerToPeer,
-                    SessionName = sessionName,
-                    PhotonRegion = photonRegion,
-                    HostUserId = hostUserId,
-                };
-                _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
+                _currentGroup.Only(new[] { connId }).OnGameStarting(info);
             }
         }
 
         _logger.LogInformation(
             "P2P game starting from lobby {LobbyId}: session {SessionName}, host {HostUserId}, region {Region}, players {Count}",
             _lobbyId, sessionName, hostUserId, photonRegion, players.Length);
+    }
+
+    public async ValueTask NotifyHostReadyAsync()
+    {
+        if (string.IsNullOrEmpty(_lobbyId)) return;
+
+        // ホスト権限チェック: 呼出者が Lobby Host でなければ拒否。
+        var lobby = await _lobbyDataService.GetLobbyAsync(_lobbyId);
+        if (lobby == null || lobby.HostUserId != _userId)
+        {
+            throw new ReturnStatusException(StatusCode.PermissionDenied,
+                "Only the host can call NotifyHostReadyAsync");
+        }
+
+        if (_pendingHostReady.TryGetValue(_lobbyId, out var tcs))
+        {
+            tcs.TrySetResult(true);
+            _logger.LogDebug("Host {HostUserId} signalled ready for lobby {LobbyId}", _userId, _lobbyId);
+        }
     }
 
     protected override async ValueTask OnDisconnected()
@@ -291,6 +401,13 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
             isHost = lobby != null && lobby.HostUserId == _userId;
             if (isHost)
             {
+                // P2P 開始フローの Host 待機 TCS を取り消す + 二重 broadcast 防止フラグを立てる。
+                if (_pendingHostReady.TryRemove(_lobbyId, out var tcsOnDisconnect))
+                {
+                    tcsOnDisconnect.TrySetResult(false);
+                }
+                _lobbyClosedBroadcasted.TryAdd(_lobbyId, 1);
+
                 _currentGroup.All.OnLobbyClosed("Host disconnected");
             }
 

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Fusion;
+using Game.Client.MasterData;
 using Game.Library.Shared.Dto;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Item;
@@ -198,6 +201,8 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask SpawnPlayerAsync()
         {
+            var totalSw = System.Diagnostics.Stopwatch.StartNew();
+
             if (!_stageSceneInstance.HasValue)
             {
                 Debug.LogWarning("[SurvivorGameStageScene] Stage scene not loaded, skipping player spawn");
@@ -219,25 +224,55 @@ namespace Game.MVP.Survivor.Scenes
                 return;
             }
 
-            SurvivorPlayerController localController = null;
+            // 各 ActivePlayer の Visual を並列に attach する。
+            // 順次 await すると各リモート機の InitializeVisualAsync (Addressables 非同期ロード) が直列化し、
+            // Client 側 ReadyState 突入 → RpcClientSceneReady 送信が遅延し、
+            // Server 側 WaitForAllClientsSceneReadyAsync (30s タイムアウト) を圧迫する。
+            // LoadPlayerAsync 内部の WaitUntil(TryGetPlayerComponent(targetPlayer)) は per-player 独立で待機するため
+            // 並列化に副作用なし。LocalPlayer 検出は WhenAll 完了後にまとめて行う。
+            var localPlayerRef = _runnerService.Runner.LocalPlayer;
+            var loadTasks = new List<UniTask<(PlayerRef Player, SurvivorPlayerController Ctrl)>>();
             foreach (var player in _runnerService.Runner.ActivePlayers)
             {
-                bool isLocalPlayer = (player == _runnerService.Runner.LocalPlayer);
-                var ctrl = await playerStart.LoadPlayerAsync(
-                    Resolver, playerMaster, levelMaster,
-                    sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
-                    targetPlayer: player);
-                if (ctrl != null && isLocalPlayer)
+                bool isLocalPlayer = (player == localPlayerRef);
+                loadTasks.Add(LoadPlayerWithRefAsync(playerStart, playerMaster, levelMaster, player, isLocalPlayer));
+            }
+            var results = await UniTask.WhenAll(loadTasks);
+
+            SurvivorPlayerController localController = null;
+            foreach (var (player, ctrl) in results)
+            {
+                if (ctrl != null && player == localPlayerRef)
                 {
                     localController = ctrl;
                 }
             }
+
+            totalSw.Stop();
+            Debug.Log($"[DIAG-Spawn] SpawnPlayerAsync total elapsed={totalSw.ElapsedMilliseconds}ms, playerCount={results.Length}");
 
             if (localController != null)
             {
                 SceneComponent.SetPlayerController(localController);
                 _inputService.DisablePlayer();
             }
+        }
+
+        private async UniTask<(PlayerRef, SurvivorPlayerController)> LoadPlayerWithRefAsync(
+            SurvivorPlayerStart playerStart,
+            SurvivorPlayerMaster playerMaster,
+            SurvivorPlayerLevelMaster levelMaster,
+            PlayerRef player,
+            bool isLocalPlayer)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var ctrl = await playerStart.LoadPlayerAsync(
+                Resolver, playerMaster, levelMaster,
+                sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
+                targetPlayer: player);
+            sw.Stop();
+            Debug.Log($"[DIAG-Spawn] LoadPlayerAsync target={player}, isLocal={isLocalPlayer}, elapsed={sw.ElapsedMilliseconds}ms");
+            return (player, ctrl);
         }
 
         private void SubscribeEvents()

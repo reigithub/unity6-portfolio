@@ -14,6 +14,7 @@ using R3;
 using UnityEngine;
 using VContainer;
 using Game.Library.Shared.Dto;
+using Game.Shared.Realtime.Client;
 #if UNITY_EDITOR
 using Game.Shared.Multiplayer;
 #endif
@@ -36,6 +37,10 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IUnityServerApiService _unityServerApiService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
+        [Inject] private readonly ILobbyClient _lobbyClient;
+
+        // Hub から OnLobbyClosed を受け取った場合や Cancel 経由で複数の遷移を発火しないためのガード。
+        private bool _isExitingScene;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -50,6 +55,44 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnCancelClicked
                 .Subscribe(_ => OnCancelAsync().Forget())
                 .AddTo(Disposables);
+
+            // P2P Host 起動失敗 / タイムアウトで Hub から OnLobbyClosed が来た場合に Title へ戻すフォールバック。
+            _lobbyClient.OnLobbyClosed += HandleLobbyClosed;
+        }
+
+        public override async UniTask Terminate()
+        {
+            _lobbyClient.OnLobbyClosed -= HandleLobbyClosed;
+            await base.Terminate();
+        }
+
+        private void HandleLobbyClosed(string reason)
+        {
+            if (_isExitingScene) return;
+            Debug.LogWarning($"[SurvivorStageConnectScene] Lobby closed during connect: {reason}");
+            OnLobbyClosedFallbackAsync(reason).Forget();
+        }
+
+        private async UniTaskVoid OnLobbyClosedFallbackAsync(string reason)
+        {
+            if (_isExitingScene) return;
+            _isExitingScene = true;
+
+            SceneComponent.SetInteractables(false);
+            SceneComponent.ShowError($"Connection aborted: {reason}");
+
+            // 進行中の Fusion 接続をキャンセルしてセッション設定を破棄。
+            try
+            {
+                _networkConnector.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[SurvivorStageConnectScene] Disconnect during fallback failed: {ex.Message}");
+            }
+            _sessionConfig.Clear();
+
+            await _sceneService.TransitionAsync<SurvivorTitleScene>();
         }
 
         public override async UniTask Ready()
@@ -60,6 +103,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid ConnectAndTransitionAsync()
         {
+            // 症状 1 診断 (観察期間限定): Phase 別所要時間を計測して 20 秒遅延の所在を切り分ける。
+            // 症状 1 真因確定後の次 PR で削除すること。
+            var totalSw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 SceneComponent.SetInteractables(false);
@@ -77,6 +123,7 @@ namespace Game.MVP.Survivor.Scenes
                 var playerId = session.PlayerId;
 
                 // Phase 1: ネットワーク初期化（モード別）
+                var sw1 = System.Diagnostics.Stopwatch.StartNew();
                 if (!UnityPlaymodeHelper.IsServer())
                 {
                     // 本番 P2P Host (Lobby 経由で Configure 済) は MPPM tag より優先判定。
@@ -113,9 +160,12 @@ namespace Game.MVP.Survivor.Scenes
 #endif
                     }
                 }
+                sw1.Stop();
+                Debug.Log($"[DIAG-Phase1] elapsed={sw1.ElapsedMilliseconds}ms, source={_sessionConfig.ConnectionSource}");
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
                 Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={_sessionConfig.IsClientConfigured}, {_runnerService.GetDebugStatus()}");
+                var sw2 = System.Diagnostics.Stopwatch.StartNew();
                 if (_sessionConfig.IsClientConfigured)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
@@ -130,6 +180,16 @@ namespace Game.MVP.Survivor.Scenes
                     // 本番 P2PHost では Phase 1 で StartHostAsync 完了後にここに到達し、
                     // 自身も Client として扱うため NotifySession + WaitForReady を実行。
                     await NotifySessionInfoToServer(stageId, playerId);
+
+                    // P2P Host モードのみ Lobby Hub に「ホスト準備完了」を通知。
+                    // Lobby Hub はこの通知を受けて他クライアントへ OnGameStarting を broadcast し、
+                    // Photon セッション作成競合 (GameNotFound) を防ぐ。
+                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
+                    {
+                        Debug.Log("[SurvivorStageConnectScene] Notifying lobby hub: host is ready");
+                        await _lobbyClient.NotifyHostReadyAsync();
+                    }
+
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
@@ -139,11 +199,15 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.SetStatus("Waiting for clients...");
                     await WaitForAllPlayersReadyAsync();
                 }
+                sw2.Stop();
+                Debug.Log($"[DIAG-Phase2] elapsed={sw2.ElapsedMilliseconds}ms");
 
                 // Phase 3: StageScene へ遷移 (ConnectionSource で分岐)
                 // P2P Host/Client → SurvivorGameStageScene (PR3.5 で導入した統合シーン)
                 // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorStageScene 継続
                 var source = _sessionConfig.ConnectionSource;
+                Debug.Log($"[DIAG-Phase3-Pre] starting transition, source={source}");
+                var sw3 = System.Diagnostics.Stopwatch.StartNew();
                 if (source is ConnectionSource.P2PHost or ConnectionSource.P2PClient)
                 {
                     Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorGameStageScene");
@@ -154,6 +218,8 @@ namespace Game.MVP.Survivor.Scenes
                     Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorStageScene");
                     await _sceneService.TransitionAsync<SurvivorStageScene>();
                 }
+                sw3.Stop();
+                Debug.Log($"[DIAG-Phase3] total elapsed={sw3.ElapsedMilliseconds}ms");
             }
             catch (OperationCanceledException)
             {
@@ -164,6 +230,11 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.LogError($"[SurvivorStageConnectScene] Connection failed: {ex.Message}");
                 SceneComponent.ShowError(ex.Message);
                 SceneComponent.SetInteractables(true);
+            }
+            finally
+            {
+                totalSw.Stop();
+                Debug.Log($"[DIAG-Connect] total elapsed={totalSw.ElapsedMilliseconds}ms");
             }
         }
 
@@ -287,6 +358,9 @@ namespace Game.MVP.Survivor.Scenes
                 tcs.TrySetResult();
             });
 
+            // 症状 1 診断 (観察期間限定): 完了経路 (TCS / TIMEOUT) と所要時間を可視化。
+            // 症状 1 真因確定後の次 PR で削除すること。
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 // Realtime で待機（Time.timeScale に依存しない）
@@ -294,7 +368,15 @@ namespace Game.MVP.Survivor.Scenes
                     tcs.Task,
                     UniTask.Delay(TimeSpan.FromSeconds(10), DelayType.Realtime)
                 );
-                Debug.Log($"[SurvivorStageConnectScene] WaitForAllPlayersReady completed (index={winIndex})");
+                sw.Stop();
+                if (winIndex == 0)
+                {
+                    Debug.Log($"[DIAG-AllPlayersReady] completed via TCS, elapsed={sw.ElapsedMilliseconds}ms");
+                }
+                else
+                {
+                    Debug.LogWarning($"[DIAG-AllPlayersReady] completed via TIMEOUT (10s), elapsed={sw.ElapsedMilliseconds}ms");
+                }
             }
             finally
             {

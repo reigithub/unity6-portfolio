@@ -8,6 +8,7 @@ using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;
+using Game.MVP.Survivor.Player;
 using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
 using Game.Shared;
@@ -262,6 +263,7 @@ namespace Game.MVP.Survivor.Scenes
             public override void Enter()
             {
                 Debug.Log($"[PlayingState] Enter ({Context._runnerService.GetDebugStatus()})");
+                DiagDumpPlayingEnter();
                 TryResumeLocalTime();
                 ApplicationEvents.ShowCursor();
 
@@ -330,6 +332,68 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
+            }
+
+            /// <summary>
+            /// 症状切り分け診断 (観察期間限定): PlayingState Enter 時点で初期化されているべき
+            /// プレイヤー / GameState / Wave 関連の状態を一括ダンプする。
+            /// 真因確定後の次 PR で削除すること。
+            /// </summary>
+            private void DiagDumpPlayingEnter()
+            {
+                int localPid = Context._runnerService.Runner != null
+                    ? Context._runnerService.Runner.LocalPlayer.PlayerId : -1;
+                int frame = Time.frameCount;
+
+                Debug.Log($"[DIAG-PlayingEnter][LocalPid={localPid}] frame={frame}");
+
+                // 各 ActivePlayer の状態を全ダンプ
+                foreach (var p in Context._runnerService.Runner.ActivePlayers)
+                {
+                    if (Context._runnerService.TryGetPlayerComponent<SurvivorFusionPlayer>(p, out var fp) && fp != null)
+                    {
+                        var pc = fp.GetComponent<SurvivorPlayerController>();
+                        var pos = fp.transform.position;
+                        Animator anim = pc != null ? pc.GetComponentInChildren<Animator>(true) : null;
+                        bool animValid = anim != null;
+                        bool animEnabled = animValid && anim.enabled;
+                        bool animActive = animValid && anim.gameObject.activeInHierarchy;
+                        bool animHasController = animValid && anim.runtimeAnimatorController != null;
+
+                        Debug.Log($"[DIAG-PlayingEnter-Player][LocalPid={localPid}] target={p}, " +
+                                  $"hasInputAuth={fp.HasInputAuthority}, hasStateAuth={fp.HasStateAuthority}, " +
+                                  $"Health={fp.Health}/{fp.MaxHealth}, Stamina={fp.Stamina}/{fp.MaxStamina}, " +
+                                  $"Speed={fp.Speed}, IsInvincible={fp.IsInvincible}, " +
+                                  $"pos={pos}, " +
+                                  $"animator={animValid}, animatorEnabled={animEnabled}, " +
+                                  $"animatorActive={animActive}, hasController={animHasController}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[DIAG-PlayingEnter-Player][LocalPid={localPid}] target={p} has NO SurvivorFusionPlayer component");
+                    }
+                }
+
+                // GameState の Networked 状態
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
+                {
+                    Debug.Log($"[DIAG-PlayingEnter-GameState][LocalPid={localPid}] " +
+                              $"CurrentWave={gs.CurrentWave}, IsPaused={gs.IsPaused}, " +
+                              $"IsAllWavesCleared={gs.IsAllWavesCleared}, " +
+                              $"WaveTargetKills={gs.WaveTargetKills}, WaveTotalEnemies={gs.WaveTotalEnemies}, " +
+                              $"StageId={gs.StageId}, PlayerId={gs.PlayerId}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[DIAG-PlayingEnter-GameState][LocalPid={localPid}] GameState not found");
+                }
+
+                // WaveManager / NetworkStageModel (ReadOnlyReactiveProperty は CurrentValue で読む)
+                Debug.Log($"[DIAG-PlayingEnter-Wave][LocalPid={localPid}] " +
+                          $"WaveManager.CurrentWave={Context._waveManager.CurrentWave.CurrentValue}, " +
+                          $"NetworkStageModel.CurrentWave={Context._networkStageModel.CurrentWave.CurrentValue}, " +
+                          $"GameTime={Context._networkStageModel.GameTime.Value:F2}, " +
+                          $"HasNetworkResult={Context._networkStageModel.HasNetworkResult}");
             }
         }
 

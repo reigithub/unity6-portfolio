@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Fusion;
 using Fusion.Addons.FSM;
 using Fusion.Addons.KCC;
@@ -185,6 +186,19 @@ namespace Game.Shared.Network.Survivor
             {
                 handler.BindFusionPlayer(this);
             }
+
+            // 症状 2 診断: Spawned から 10 秒経過時点での ChangeDetector 発火回数を出力。
+            // 0 回ならケース A (Networked 同期未到達) 確定。観察期間限定、症状 2 真因確定後の次 PR で削除。
+            DiagReportChangeDetectAfterDelay(this).Forget();
+        }
+
+        private static async UniTaskVoid DiagReportChangeDetectAfterDelay(SurvivorFusionPlayer self)
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(10), DelayType.Realtime);
+            if (self == null || self.Object == null || !self.Object.IsValid) return;
+            int localPid = self._runnerService?.Runner != null ? self._runnerService.Runner.LocalPlayer.PlayerId : -1;
+            Debug.Log($"[DIAG-ChangeDetect][LocalPid={localPid}] target={self.Object.InputAuthority}, " +
+                      $"fireCount={self._diagChangeDetectFireCount}, lastFrame={self._diagLastChangeFrame}");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -414,6 +428,8 @@ namespace Game.Shared.Network.Survivor
 
             foreach (var change in _changeDetector.DetectChanges(this))
             {
+                _diagChangeDetectFireCount++;
+                _diagLastChangeFrame = Time.frameCount;
                 switch (change)
                 {
                     case nameof(Health):
@@ -425,6 +441,12 @@ namespace Game.Shared.Network.Survivor
                 }
             }
         }
+
+        // 症状 2 診断用 (観察期間限定): ChangeDetector の発火回数と最終フレームを記録する。
+        // ケース A (Spawn 後 N 秒経過しても 0 回発火 = Networked 同期未到達) の検出に使用。
+        // 症状 2 真因確定後の次 PR で削除すること。
+        private int _diagChangeDetectFireCount;
+        private int _diagLastChangeFrame = -1;
 
         // =====================================================================
         //  Client→Server RPC（InputAuthority のみ送信可能）

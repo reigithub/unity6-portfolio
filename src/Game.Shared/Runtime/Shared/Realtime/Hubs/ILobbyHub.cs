@@ -75,5 +75,12 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// ステージを変更（ホストのみ）
         /// </summary>
         ValueTask SetStageAsync(int stageId);
+
+        /// <summary>
+        /// P2P Host が Photon セッション作成 + GameState Spawn 完了を Hub に通知する。
+        /// Hub はこの通知を受けてから残りクライアントに OnGameStarting を broadcast する。
+        /// Host 以外が呼び出すと PermissionDenied。
+        /// </summary>
+        ValueTask NotifyHostReadyAsync();
     }
 }

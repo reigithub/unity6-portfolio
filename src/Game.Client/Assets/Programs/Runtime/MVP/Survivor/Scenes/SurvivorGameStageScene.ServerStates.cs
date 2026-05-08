@@ -139,14 +139,22 @@ namespace Game.MVP.Survivor.Scenes
                 var tcs = new UniTaskCompletionSource();
                 var subscription = Context._allClientsSceneReadySub.Subscribe(_ => tcs.TrySetResult());
 
+                // 症状 1 診断 (観察期間限定): 完了経路 (TCS / TIMEOUT) と所要時間を可視化。
+                // 症状 1 真因確定後の次 PR で削除すること。
+                var sw = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
                     var winIndex = await UniTask.WhenAny(
                         tcs.Task,
                         UniTask.Delay(TimeSpan.FromSeconds(30), DelayType.Realtime));
-                    if (winIndex == 1)
+                    sw.Stop();
+                    if (winIndex == 0)
                     {
-                        Debug.LogWarning("[SurvivorGameStageScene.ServerReadyState] Timeout waiting for clients, proceeding");
+                        Debug.Log($"[DIAG-AllClientsReady] completed via TCS (all clients ready), elapsed={sw.ElapsedMilliseconds}ms");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[DIAG-AllClientsReady] completed via TIMEOUT (30s), elapsed={sw.ElapsedMilliseconds}ms");
                     }
                 }
                 finally
