@@ -66,6 +66,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Revived> _revivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Paused> _gamePausedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Resumed> _gameResumedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.CountdownStarted> _countdownStartedSub;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;

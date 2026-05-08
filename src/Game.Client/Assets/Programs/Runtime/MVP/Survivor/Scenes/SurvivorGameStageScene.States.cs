@@ -127,11 +127,20 @@ namespace Game.MVP.Survivor.Scenes
         private class ReadyState : StageStateBase
         {
             private bool _countdownComplete;
+            private UniTaskCompletionSource _countdownStartTcs;
+            private IDisposable _countdownStartedSubscription;
 
             public override void Enter()
             {
                 Debug.Log("[ReadyState] Enter");
                 _countdownComplete = false;
+                _countdownStartTcs = new UniTaskCompletionSource();
+
+                // Server からの Countdown 開始命令 (RpcNotifyCountdownStart) を購読。
+                // Initialize 完了通知 (RpcClientSceneReady) より前に登録することで、Server 側の RPC が
+                // 即座に届いても取りこぼさない。
+                _countdownStartedSubscription = Context._countdownStartedSub.Subscribe(_ =>
+                    _countdownStartTcs.TrySetResult());
 
                 // 暗転状態を維持（ステージ裏側が見えないように）
                 GameRootController?.SetFadeImmediate(1f);
@@ -146,7 +155,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var readyAudioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
 
-                // ゲームコンポーネントの初期化
+                // === Phase 1: リソースロード ===
                 await View.InitializeWeaponManagerAsync(
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
@@ -175,8 +184,18 @@ namespace Game.MVP.Survivor.Scenes
                     await fadeTweener.ToUniTask();
                 }
 
-                Debug.Log("[ReadyState] Showing countdown");
+                // === Phase 2: Loaded 通知 (Server へ) ===
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientSceneReady();
+                    Debug.Log("[ReadyState] Loaded notification sent to server");
+                }
 
+                // === Phase 3: Server からの Countdown 開始命令を待機 ===
+                await _countdownStartTcs.Task;
+                Debug.Log("[ReadyState] Countdown start signal received from server");
+
+                // === Phase 4: Countdown 実行 (3.5s 固定、Realtime) ===
                 // カウントダウン中は時間を停止（敵スポーンやゲーム進行を防ぐ）。
                 // MP では Networked IsPaused 機構で Spawner 等を抑制するため timeScale は触らない
                 // (Fusion の Tick を止めると同期破綻)。本 State 時点では実際には未スタートのため無害。
@@ -192,13 +211,6 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[ReadyState] Countdown complete");
                 AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
 
-                // サーバーに準備完了を通知（サーバーはこれを受けてゲーム開始）
-                if (TryGetLocalPlayer(out var localPlayer))
-                {
-                    localPlayer.RpcClientSceneReady();
-                }
-                Debug.Log("[ReadyState] Scene ready notification sent to server");
-
                 _countdownComplete = true;
             }
 
@@ -212,7 +224,11 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            public override void Exit() => Debug.Log("[ReadyState] Exit");
+            public override void Exit()
+            {
+                _countdownStartedSubscription?.Dispose();
+                Debug.Log("[ReadyState] Exit");
+            }
 
             /// <summary>
             /// MP Client: ネットワークオブジェクトの初期化。

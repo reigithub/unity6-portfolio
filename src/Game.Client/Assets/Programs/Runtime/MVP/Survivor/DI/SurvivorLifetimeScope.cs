@@ -259,6 +259,7 @@ namespace Game.MVP.Survivor
             builder.RegisterMessageBroker<SurvivorSignals.Wave.TimeUp>(options);
 
             // Game
+            builder.RegisterMessageBroker<SurvivorSignals.Game.CountdownStarted>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Started>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Ended>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Paused>(options);

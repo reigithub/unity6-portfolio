@@ -37,6 +37,7 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Wave.AllCleared> _allWavesClearedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Started> _gameStartedSignalPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.CountdownStarted> _countdownStartedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
@@ -185,6 +186,25 @@ namespace Game.Shared.Network.Survivor
             if (!HasStateAuthority) return;
             IsRunning = true;
             // ChangeDetector (Render) が IsGameRunning 変更を検知して _gameStartedSignalPub に Publish
+        }
+
+        /// <summary>
+        /// サーバー側: カウントダウン開始命令を全クライアントに通知。
+        /// RPC ブロードキャスト方式 (NotifyGameEnded と同パターン)。
+        /// カウントダウン開始は一時的なイベントのため、[Networked] プロパティではなく RPC を使う。
+        /// 全 Client (Host 含む) が RPC 受信直後から Realtime 3.5 秒のカウントダウン Dialog を実行する。
+        /// </summary>
+        public void NotifyCountdownStart()
+        {
+            if (!HasStateAuthority) return;
+            RpcNotifyCountdownStart();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcNotifyCountdownStart()
+        {
+            Debug.Log("[SurvivorFusionGameState] RpcNotifyCountdownStart received");
+            _countdownStartedPub?.Publish(new SurvivorSignals.Game.CountdownStarted());
         }
 
         // =====================================================================

@@ -83,12 +83,24 @@ namespace Game.MVP.Survivor.Scenes
                 // サーバー側プレイヤーコントローラーにNetworkPlayerStateをバインド
                 InitializeServerViews();
 
-                Debug.Log("[SurvivorNetworkStageScene.ReadyState] Initialization complete, waiting for all clients scene ready...");
+                Debug.Log("[SurvivorNetworkStageScene.ReadyState] Initialization complete, waiting for all clients loaded...");
 
-                // 全クライアントのシーン準備完了を待機
+                // === 全 Client Loaded 待機 ===
+                // 各 Client の RpcClientSceneReady (= リソースロード完了通知) を集約。
                 await WaitForAllClientsSceneReadyAsync();
 
-                Debug.Log("[SurvivorNetworkStageScene.ReadyState] All clients ready, starting game");
+                Debug.Log("[SurvivorNetworkStageScene.ReadyState] All clients loaded, sending countdown start signal");
+
+                // === Countdown 開始命令 (RPC ブロードキャスト) ===
+                // 全 Client に同時にカウントダウン開始を通知する。
+                // これにより各 Client の Initialize 時間ばらつきに関係なく、Countdown が同期する。
+                Context._gameState.NotifyCountdownStart();
+
+                // === Countdown 完了待ち (Server も Client と同じ Realtime 3.5s) ===
+                // SurvivorCountdownDialog.RunCountdownAsync の 3.5 秒固定動作と同期。
+                await UniTask.Delay(TimeSpan.FromMilliseconds(3500), DelayType.Realtime);
+
+                Debug.Log("[SurvivorNetworkStageScene.ReadyState] Countdown complete, starting game");
                 _startComplete = true;
             }
 

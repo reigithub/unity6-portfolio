@@ -278,6 +278,8 @@ namespace Game.Shared.Signals.Survivor
 
         public static class Game
         {
+            public readonly struct CountdownStarted { }
+
             public readonly struct Started { }
 
             public readonly struct Ended
