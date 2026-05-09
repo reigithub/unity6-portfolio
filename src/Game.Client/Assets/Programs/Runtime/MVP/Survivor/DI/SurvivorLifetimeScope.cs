@@ -264,6 +264,7 @@ namespace Game.MVP.Survivor
             builder.RegisterMessageBroker<SurvivorSignals.Game.Ended>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Paused>(options);
             builder.RegisterMessageBroker<SurvivorSignals.Game.Resumed>(options);
+            builder.RegisterMessageBroker<SurvivorSignals.Game.ReturnToLobby>(options);
 
             // Session
             builder.RegisterMessageBroker<SurvivorSignals.Session.AllPlayersReady>(options);

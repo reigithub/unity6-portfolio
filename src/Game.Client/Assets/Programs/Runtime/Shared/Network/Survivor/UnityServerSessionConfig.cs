@@ -85,11 +85,6 @@ namespace Game.Shared.Network.Survivor
                              or ConnectionSource.P2PClient;
 
         /// <summary>
-        /// Configure 後の最後の接続種別
-        /// </summary>
-        public ConnectionSource LastConnectionSource { get; private set; } = ConnectionSource.None;
-
-        /// <summary>
         /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp", "us", "eu")。
         /// null の場合は <c>PhotonAppSettings.asset</c> の <c>FixedRegion</c> にフォールバック。
         /// 本フィールドは PR1 で先行追加 (dormant)、PR3 で StartHostAsync が参照する。
@@ -113,8 +108,7 @@ namespace Game.Shared.Network.Survivor
             SessionName = sessionName ?? (source is ConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
             SessionToken = sessionToken ?? string.Empty;
             PlayerCount = playerCount ?? 1;
-            PhotonRegion = null;  // PhotonRegion は MatchStartInfo overload 経由でのみ更新するため、対称性のため reset
-            if (source != ConnectionSource.None) LastConnectionSource = source;
+            PhotonRegion = null;
         }
 
         /// <summary>
@@ -139,7 +133,6 @@ namespace Game.Shared.Network.Survivor
             SessionName = info.SessionName;
             PlayerCount = playerCount;
             HostUserId = info.HostUserId;
-            if (source != ConnectionSource.None) LastConnectionSource = source;
 
             if (info.Topology == NetworkTopology.PeerToPeer)
             {
@@ -205,6 +198,12 @@ namespace Game.Shared.Network.Survivor
             if (PlayerCount == 1) return true;
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(HostUserId)) return false;
             return userId == HostUserId;
+        }
+
+        public bool IsMultiPlayer()
+        {
+            return ConnectionSource is ConnectionSource.Matchmaking or ConnectionSource.P2PHost or ConnectionSource.P2PClient
+                   && PlayerCount > 1;
         }
     }
 }

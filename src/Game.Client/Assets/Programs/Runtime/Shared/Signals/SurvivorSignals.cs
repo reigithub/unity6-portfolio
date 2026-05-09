@@ -303,6 +303,8 @@ namespace Game.Shared.Signals.Survivor
             }
 
             public readonly struct Resumed { }
+
+            public readonly struct ReturnToLobby { }
         }
 
         // --- Item ---

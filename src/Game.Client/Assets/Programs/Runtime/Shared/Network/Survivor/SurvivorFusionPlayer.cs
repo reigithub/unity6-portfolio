@@ -479,6 +479,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientRequestReturnToLobby(RpcInfo info = default)
+        {
+            if (TryGetGameState(out var gs))
+                gs.OnClientRequestReturnToLobby(info.Source);
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientWeaponChoice(int weaponId, NetworkBool isNewWeapon, RpcInfo info = default)
         {
             if (!ValidateAndClearWeaponChoice(weaponId))
@@ -592,6 +599,14 @@ namespace Game.Shared.Network.Survivor
                 gs.OnClientRequestResume(_runnerService.Runner.LocalPlayer);
             else
                 RpcClientRequestResume();
+        }
+
+        public void SendClientRequestReturnToLobby()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestReturnToLobby(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestReturnToLobby();
         }
 
         public void SendClientPlayerDied()

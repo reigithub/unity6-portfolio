@@ -14,8 +14,6 @@ namespace Game.Shared.Network.Survivor
         /// <summary>接続ソース</summary>
         ConnectionSource ConnectionSource { get; }
 
-        ConnectionSource LastConnectionSource { get; }
-
         /// <summary>接続先サーバーアドレス。</summary>
         string ServerAddress { get; }
 
@@ -76,5 +74,8 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>ロビーホストか判定する。</summary>
         bool IsHostUserId(string userId);
+
+        /// <summary>マルチプレイか</summary>
+        bool IsMultiPlayer();
     }
 }

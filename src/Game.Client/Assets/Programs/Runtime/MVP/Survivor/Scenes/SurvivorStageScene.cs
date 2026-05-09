@@ -11,6 +11,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -58,6 +59,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Paused> _gamePausedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Resumed> _gameResumedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.CountdownStarted> _countdownStartedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.ReturnToLobby> _returnToLobbySub;
+        [Inject] private readonly ILobbyClient _lobbyClient;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
@@ -396,8 +399,6 @@ namespace Game.MVP.Survivor.Scenes
             }).AddTo(Disposables);
 
             // サーバー権威の Pause を全クライアントで受け取り、自プレイヤーの入力を完全停止する。
-            // VS Co-op 仕様: 武器選択中は全プレイヤーの入力が一時停止される。
-            // 自分が LevelUp 中でなくても、他プレイヤーが LevelUp 中ならここで入力が止まる。
             _gamePausedSub.Subscribe(_ =>
             {
                 _inputService.DisablePlayer();
@@ -407,6 +408,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _inputService.EnablePlayer();
             }).AddTo(Disposables);
+
+            _returnToLobbySub
+                .Subscribe(_ => _returnToLobbyRequested = true)
+                .AddTo(Disposables);
         }
 
         private void SetupAutoSave()

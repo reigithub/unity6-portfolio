@@ -16,6 +16,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -67,6 +68,8 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Paused> _gamePausedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Resumed> _gameResumedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.CountdownStarted> _countdownStartedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.ReturnToLobby> _returnToLobbySub;
+        [Inject] private readonly ILobbyClient _lobbyClient;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
@@ -226,11 +229,6 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // 各 ActivePlayer の Visual を並列に attach する。
-            // 順次 await すると各リモート機の InitializeVisualAsync (Addressables 非同期ロード) が直列化し、
-            // Client 側 ReadyState 突入 → RpcClientSceneReady 送信が遅延し、
-            // Server 側 WaitForAllClientsSceneReadyAsync (30s タイムアウト) を圧迫する。
-            // LoadPlayerAsync 内部の WaitUntil(TryGetPlayerComponent(targetPlayer)) は per-player 独立で待機するため
-            // 並列化に副作用なし。LocalPlayer 検出は WhenAll 完了後にまとめて行う。
             var localPlayerRef = _runnerService.Runner.LocalPlayer;
             var loadTasks = new List<UniTask<(PlayerRef Player, SurvivorPlayerController Ctrl)>>();
             foreach (var player in _runnerService.Runner.ActivePlayers)
@@ -266,29 +264,26 @@ namespace Game.MVP.Survivor.Scenes
             PlayerRef player,
             bool isLocalPlayer)
         {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             var ctrl = await playerStart.LoadPlayerAsync(
                 Resolver, playerMaster, levelMaster,
                 sceneComponentRoot: isLocalPlayer ? SceneComponent.transform : null,
                 targetPlayer: player);
-            sw.Stop();
-            Debug.Log($"[DIAG-Spawn] LoadPlayerAsync target={player}, isLocal={isLocalPlayer}, elapsed={sw.ElapsedMilliseconds}ms");
             return (player, ctrl);
         }
 
         private void SubscribeEvents()
         {
+            // ネットワーク切断 (P2P Host Quit / DS クラッシュ / 自身の Disconnect) をシーン全体で監視。
+            // どのステート中でも検知できるように Scene レベルで購読し、Update 経路で QuitToTitle 遷移する。
+            _runnerService.OnClientDisconnected += OnRequestQuit;
+            Disposables.Add(Disposable.Create(() => _runnerService.OnClientDisconnected -= OnRequestQuit));
+
             SceneComponent.OnPauseClicked
                 .Subscribe(_ =>
                 {
                     if (_sessionConfig.IsHostUserId(MyUserId)) _pauseRequested = true;
                 })
                 .AddTo(Disposables);
-
-            // ネットワーク切断 (P2P Host Quit / DS クラッシュ / 自身の Disconnect) をシーン全体で監視。
-            // どのステート中でも検知できるように Scene レベルで購読し、Update 経路で QuitToTitle 遷移する。
-            _runnerService.OnClientDisconnected += OnNetworkDisconnected;
-            Disposables.Add(Disposable.Create(() => _runnerService.OnClientDisconnected -= OnNetworkDisconnected));
 
             // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
             _waveManager.OnKillCounted
@@ -484,6 +479,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _inputService.EnablePlayer();
             }).AddTo(Disposables);
+
+            _returnToLobbySub
+                .Subscribe(_ => _returnToLobbyRequested = true)
+                .AddTo(Disposables);
         }
 
         private void SetupAutoSave()
@@ -652,10 +651,19 @@ namespace Game.MVP.Survivor.Scenes
             await UniTask.Yield();
         }
 
-        private void OnNetworkDisconnected()
+        private void OnRequestQuit()
         {
-            Debug.LogWarning("[SurvivorGameStageScene] Network disconnected — forcing transition to title");
-            _disconnected = true;
+            if (_sessionConfig.IsMultiPlayer())
+            {
+                if (_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer))
+                    localPlayer.SendClientRequestReturnToLobby();
+
+                _returnToLobbyRequested = true;
+            }
+            else
+            {
+                _returnToTitleRequested = true;
+            }
         }
 
         /// <summary>

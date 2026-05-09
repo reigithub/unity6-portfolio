@@ -37,11 +37,12 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveClearedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.AllCleared> _allWavesClearedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
-        [Inject] private IPublisher<SurvivorSignals.Game.Started> _gameStartedSignalPub;
         [Inject] private IPublisher<SurvivorSignals.Game.CountdownStarted> _countdownStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Started> _gameStartedSignalPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.ReturnToLobby> _returnToLobbyPub;
 
         // Connection / Session
         [Inject] private IPublisher<SurvivorSignals.Connection.PlayerConnected> _playerConnectedPub;
@@ -671,6 +672,43 @@ namespace Game.Shared.Network.Survivor
                 RecomputeIsPaused();
                 Debug.Log($"[SurvivorFusionGameState] Manual resume: {source} (count={_manualPausingPlayers.Count})");
             }
+        }
+
+        /// <summary>
+        /// サーバー側: Client から「ロビーへ戻る」リクエスト受信。
+        /// ロビーホスト Client のみ受け入れ (Pause と同じ判定)。
+        /// 受け入れた場合、NotifyReturnToLobby() で全 Client (ホスト含む) に RPC ブロードキャスト。
+        /// </summary>
+        public void OnClientRequestReturnToLobby(PlayerRef source)
+        {
+            if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestReturnToLobby rejected: non-host source={source}");
+                return;
+            }
+
+            Debug.Log($"[SurvivorFusionGameState] OnClientRequestReturnToLobby accepted from host source={source}");
+            NotifyReturnToLobby();
+        }
+
+        /// <summary>
+        /// サーバー側: ロビー戻り命令を全クライアントに通知。
+        /// RPC ブロードキャスト方式 (NotifyGameEnded と同パターン)。
+        /// 呼出後、全 Client (ホスト含む) が Photon Disconnect → Lobby 遷移を実行する。
+        /// </summary>
+        public void NotifyReturnToLobby()
+        {
+            if (!HasStateAuthority) return;
+            RpcNotifyReturnToLobby();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcNotifyReturnToLobby()
+        {
+            Debug.Log("[SurvivorFusionGameState] RpcNotifyReturnToLobby received");
+            _returnToLobbyPub?.Publish(new SurvivorSignals.Game.ReturnToLobby());
         }
 
         /// <summary>

@@ -112,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager = ScopedResolver.Resolve<SurvivorStageWaveManager>();
             _waveManager.Initialize(session.StageId);
 
-            // PR3b: StageModel / WeaponManager は per-player Context で生成 (SpawnPlayerAsync 内)
+            // StageModel / WeaponManager は per-player Context で生成 (SpawnPlayerAsync 内)
 
             // スポーン完了後にアクティブシーンを復元するため事前に保存
             var rootScene = SceneManager.GetActiveScene();
@@ -192,14 +192,11 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.LogWarning("[SurvivorNetworkStageScene] FusionRunner not found, spawn skipped!");
             }
 
-            // PR3b: playerMaster / levelMaster は MasterData から共有取得（全員同じキャラクター前提）
             var session = _saveService.CurrentSession;
             if (session == null) return;
-            var memoryDb = _masterDataService.MemoryDatabase;
-            memoryDb.SurvivorPlayerMasterTable.TryFindById(session.PlayerId, out var playerMaster);
-            memoryDb.SurvivorPlayerLevelMasterTable.TryFindByPlayerIdAndLevel(
-                (session.PlayerId, 1), out var levelMaster);
-            if (playerMaster == null || levelMaster == null)
+            var memoryDatabase = _masterDataService.MemoryDatabase;
+            if (!memoryDatabase.SurvivorPlayerMasterTable.TryFindById(session.PlayerId, out var playerMaster)
+                || !memoryDatabase.SurvivorPlayerLevelMasterTable.TryFindByPlayerIdAndLevel((session.PlayerId, 1), out var levelMaster))
             {
                 Debug.LogError("[SurvivorNetworkStageScene] PlayerMaster or LevelMaster is null!");
                 return;
@@ -564,7 +561,7 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// 全プレイヤーの平均 HP 割合（0.0 ~ 1.0）
         /// </summary>
-        internal float GetHpRatio()
+        private float GetHpRatio()
         {
             if (_players.Count == 0) return 0f;
             float total = 0f;
@@ -579,7 +576,7 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// 全プレイヤー合計キル数をキャップして取得
         /// </summary>
-        internal int GetCappedKills()
+        private int GetCappedKills()
         {
             int total = 0;
             foreach (var ctx in _players.Values) total += ctx.StageModel.TotalKills.Value;
@@ -589,7 +586,7 @@ namespace Game.MVP.Survivor.Scenes
         /// <summary>
         /// 全プレイヤー合計スコア
         /// </summary>
-        internal int GetTotalScore()
+        private int GetTotalScore()
         {
             int total = 0;
             foreach (var ctx in _players.Values) total += ctx.StageModel.Score.Value;
