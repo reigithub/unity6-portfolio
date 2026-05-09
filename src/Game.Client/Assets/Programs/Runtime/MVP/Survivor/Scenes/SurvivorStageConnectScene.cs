@@ -103,9 +103,6 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid ConnectAndTransitionAsync()
         {
-            // 症状 1 診断 (観察期間限定): Phase 別所要時間を計測して 20 秒遅延の所在を切り分ける。
-            // 症状 1 真因確定後の次 PR で削除すること。
-            var totalSw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 SceneComponent.SetInteractables(false);
@@ -123,7 +120,6 @@ namespace Game.MVP.Survivor.Scenes
                 var playerId = session.PlayerId;
 
                 // Phase 1: ネットワーク初期化（モード別）
-                var sw1 = System.Diagnostics.Stopwatch.StartNew();
                 if (!UnityPlaymodeHelper.IsServer())
                 {
                     // 本番 P2P Host (Lobby 経由で Configure 済) は MPPM tag より優先判定。
@@ -160,12 +156,9 @@ namespace Game.MVP.Survivor.Scenes
 #endif
                     }
                 }
-                sw1.Stop();
-                Debug.Log($"[DIAG-Phase1] elapsed={sw1.ElapsedMilliseconds}ms, source={_sessionConfig.ConnectionSource}");
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
                 Debug.Log($"[SurvivorStageConnectScene] Phase 2: HasMatchResult={_sessionConfig.IsClientConfigured}, {_runnerService.GetDebugStatus()}");
-                var sw2 = System.Diagnostics.Stopwatch.StartNew();
                 if (_sessionConfig.IsClientConfigured)
                 {
                     SceneComponent.SetStatus("Connecting to server...");
@@ -199,15 +192,12 @@ namespace Game.MVP.Survivor.Scenes
                     SceneComponent.SetStatus("Waiting for clients...");
                     await WaitForAllPlayersReadyAsync();
                 }
-                sw2.Stop();
-                Debug.Log($"[DIAG-Phase2] elapsed={sw2.ElapsedMilliseconds}ms");
 
                 // Phase 3: StageScene へ遷移 (ConnectionSource で分岐)
                 // P2P Host/Client → SurvivorGameStageScene (PR3.5 で導入した統合シーン)
                 // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorStageScene 継続
                 var source = _sessionConfig.ConnectionSource;
                 Debug.Log($"[DIAG-Phase3-Pre] starting transition, source={source}");
-                var sw3 = System.Diagnostics.Stopwatch.StartNew();
                 if (source is ConnectionSource.P2PHost or ConnectionSource.P2PClient)
                 {
                     Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorGameStageScene");
@@ -218,8 +208,6 @@ namespace Game.MVP.Survivor.Scenes
                     Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorStageScene");
                     await _sceneService.TransitionAsync<SurvivorStageScene>();
                 }
-                sw3.Stop();
-                Debug.Log($"[DIAG-Phase3] total elapsed={sw3.ElapsedMilliseconds}ms");
             }
             catch (OperationCanceledException)
             {
@@ -230,11 +218,6 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.LogError($"[SurvivorStageConnectScene] Connection failed: {ex.Message}");
                 SceneComponent.ShowError(ex.Message);
                 SceneComponent.SetInteractables(true);
-            }
-            finally
-            {
-                totalSw.Stop();
-                Debug.Log($"[DIAG-Connect] total elapsed={totalSw.ElapsedMilliseconds}ms");
             }
         }
 
@@ -358,9 +341,6 @@ namespace Game.MVP.Survivor.Scenes
                 tcs.TrySetResult();
             });
 
-            // 症状 1 診断 (観察期間限定): 完了経路 (TCS / TIMEOUT) と所要時間を可視化。
-            // 症状 1 真因確定後の次 PR で削除すること。
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 // Realtime で待機（Time.timeScale に依存しない）
@@ -368,15 +348,7 @@ namespace Game.MVP.Survivor.Scenes
                     tcs.Task,
                     UniTask.Delay(TimeSpan.FromSeconds(10), DelayType.Realtime)
                 );
-                sw.Stop();
-                if (winIndex == 0)
-                {
-                    Debug.Log($"[DIAG-AllPlayersReady] completed via TCS, elapsed={sw.ElapsedMilliseconds}ms");
-                }
-                else
-                {
-                    Debug.LogWarning($"[DIAG-AllPlayersReady] completed via TIMEOUT (10s), elapsed={sw.ElapsedMilliseconds}ms");
-                }
+                Debug.Log($"[SurvivorStageConnectScene] WaitForAllPlayersReady completed (index={winIndex})");
             }
             finally
             {
