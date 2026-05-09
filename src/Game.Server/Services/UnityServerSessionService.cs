@@ -37,9 +37,10 @@ public class UnityServerSessionService : IUnityServerSessionService
     /// <param name="sessionName">割り当てる Fusion セッション名（SessionName）。</param>
     /// <param name="stageId">ステージID。</param>
     /// <param name="playerCount">プレイヤー数。</param>
+    /// <param name="hostUserId">ロビーホストの UserId。DS 側で「手動ポーズ操作の権限を持つ Client」の判定に使用。MP 以外 (SP) では空文字。</param>
     /// <returns>割り当てた DS の情報。クライアントへの接続先通知に使用する。</returns>
     /// <exception cref="InvalidOperationException">空き DS が存在しない場合。</exception>
-    public async Task<DsInfo> AssignSessionAsync(string sessionName, int stageId, int playerCount)
+    public async Task<DsInfo> AssignSessionAsync(string sessionName, int stageId, int playerCount, string hostUserId = "")
     {
         // 1. DS 一覧取得（ハートビート確認済み + 死亡 DS 自動削除）
         var servers = await _registryService.GetAvailableServersAsync();
@@ -68,7 +69,7 @@ public class UnityServerSessionService : IUnityServerSessionService
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
 
-        var requestBody = $"{{\"sessionName\":\"{sessionName}\",\"stageId\":{stageId},\"playerCount\":{playerCount}}}";
+        var requestBody = $"{{\"sessionName\":\"{sessionName}\",\"stageId\":{stageId},\"playerCount\":{playerCount},\"hostUserId\":\"{hostUserId}\"}}";
         var url = $"http://{dsHost}:{target.HealthPort}{SessionStartPath}";
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -79,8 +80,8 @@ public class UnityServerSessionService : IUnityServerSessionService
             request.Headers.Add("X-DS-Auth", _settings.SecretKey);
 
         _logger.LogDebug(
-            "DS へセッション開始リクエスト送信: url={Url}, sessionName={SessionName}, stageId={StageId}, playerCount={PlayerCount}",
-            url, sessionName, stageId, playerCount);
+            "DS へセッション開始リクエスト送信: url={Url}, sessionName={SessionName}, stageId={StageId}, playerCount={PlayerCount}, hostUserId={HostUserId}",
+            url, sessionName, stageId, playerCount, hostUserId);
 
         using var response = await client.SendAsync(request);
         response.EnsureSuccessStatusCode();

@@ -17,6 +17,9 @@ namespace Game.Shared.Unity.Server
         /// <summary>プレイヤー数。</summary>
         public int PlayerCount;
 
+        /// <summary> ロビーホストの UserId </summary>
+        public string HostUserId = string.Empty;
+
         /// <summary>
         /// メインスレッドが処理完了後に SetResult を呼ぶことで HTTP レスポンスを返す。
         /// </summary>

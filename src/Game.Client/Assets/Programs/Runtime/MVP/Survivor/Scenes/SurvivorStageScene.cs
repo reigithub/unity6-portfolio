@@ -7,10 +7,8 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Enemy;
-using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
-using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
@@ -22,7 +20,6 @@ using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -215,7 +212,10 @@ namespace Game.MVP.Survivor.Scenes
         private void SubscribeEvents()
         {
             SceneComponent.OnPauseClicked
-                .Subscribe(_ => _pauseRequested = true)
+                .Subscribe(_ =>
+                {
+                    if (_sessionConfig.IsHostUserId(MyUserId)) _pauseRequested = true;
+                })
                 .AddTo(Disposables);
 
             // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
@@ -239,7 +239,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Where(_ => Application.isPlaying)
                 .Subscribe(_ =>
                 {
-                    if (_inputService.UI.Escape.WasPressedThisFrame())
+                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Escape.WasPressedThisFrame())
                         _pauseRequested = true;
 
                     if (_pauseRequested) return;

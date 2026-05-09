@@ -100,7 +100,7 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart);
-            _sessionConfig.UpdateConfigure(playerCount: 1);
+            _sessionConfig.Clear();
             await _sceneService.TransitionAsync<SurvivorStageSelectScene>();
         }
 

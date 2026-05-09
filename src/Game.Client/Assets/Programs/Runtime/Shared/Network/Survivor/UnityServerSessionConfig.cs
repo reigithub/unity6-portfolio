@@ -69,8 +69,10 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         public int PlayerCount { get; private set; } = 1;
 
-        /// <summary>接続パラメータが設定済みかどうか。</summary>
-        public bool HasConnection => ConnectionSource != ConnectionSource.None;
+        /// <summary>
+        /// ロビーホストの UserId
+        /// </summary>
+        public string HostUserId { get; private set; } = string.Empty;
 
         /// <summary>
         /// クライアント接続経路（Local / Remote / Matchmaking / P2PClient）が設定済みかどうかを返す。
@@ -136,6 +138,7 @@ namespace Game.Shared.Network.Survivor
             ConnectionSource = source;
             SessionName = info.SessionName;
             PlayerCount = playerCount;
+            HostUserId = info.HostUserId;
             if (source != ConnectionSource.None) LastConnectionSource = source;
 
             if (info.Topology == NetworkTopology.PeerToPeer)
@@ -151,7 +154,7 @@ namespace Game.Shared.Network.Survivor
                 // Dedicated: ServerAddress/Port/Token を populate、PhotonRegion は null
                 ServerAddress = info.ServerAddress;
                 ServerPort = (ushort)info.ServerPort;
-                SessionToken = info.SessionToken ?? string.Empty;
+                SessionToken = info.SessionToken;
                 PhotonRegion = null;
             }
         }
@@ -166,13 +169,15 @@ namespace Game.Shared.Network.Survivor
         /// <param name="sessionName">セッション名。null で既存値を維持。</param>
         /// <param name="sessionToken">セッショントークン。null で既存値を維持。</param>
         /// <param name="playerCount">期待プレイヤー数。</param>
-        public void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null)
+        /// <param name="hostUserId">ロビーホストの UserId。null で既存値を維持。DS Server 側で手動ポーズ操作の権限判定に使用。</param>
+        public void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null, string hostUserId = null)
         {
             if (address != null) ServerAddress = address;
             if (port.HasValue) ServerPort = port.Value;
             if (sessionName != null) SessionName = sessionName;
             if (sessionToken != null) SessionToken = sessionToken;
             if (playerCount.HasValue) PlayerCount = playerCount.Value;
+            if (hostUserId != null) HostUserId = hostUserId;
         }
 
         /// <summary>
@@ -188,10 +193,18 @@ namespace Game.Shared.Network.Survivor
             SessionName = null;
             SessionToken = null;
             PlayerCount = 1;
+            HostUserId = string.Empty;
             PhotonRegion = null;
         }
 
         public bool IsLocalAddress(string address)
             => string.IsNullOrEmpty(address) || address == "localhost" || address == DefaultLocalAddress;
+
+        public bool IsHostUserId(string userId)
+        {
+            if (PlayerCount == 1) return true;
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(HostUserId)) return false;
+            return userId == HostUserId;
+        }
     }
 }

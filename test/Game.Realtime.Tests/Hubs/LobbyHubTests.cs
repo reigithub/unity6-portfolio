@@ -298,7 +298,7 @@ public class LobbyHubTests
 
         // Game.Server API は呼ばれない（StartGameAsync が abort のため）
         _mockUnityServerApi.Verify(
-            s => s.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            s => s.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()),
             Times.Never);
     }
 

@@ -36,18 +36,17 @@ namespace Game.Library.Shared.Dto
 
         // --- P2P 専用 (Topology == PeerToPeer 時に使用、DS では null) ---
 
-        /// <summary>Photon Cloud リージョン (Topology == PeerToPeer 時に使用)。</summary>
+        /// <summary>Photon Cloud リージョン</summary>
         [Key(5)]
         public string? PhotonRegion { get; init; }
 
-        /// <summary>Photon Host を担当するプレイヤー UserId (Topology == PeerToPeer 時に使用)。</summary>
+        /// <summary>Photon Host を担当するプレイヤー UserId</summary>
         [Key(6)]
         public string? HostUserId { get; init; }
 
         /// <summary>
-        /// セッション開始時の実プレイヤー数。Server (Host) の <c>_expectedPlayerCount</c>
-        /// として使用。ロビー定員 (<c>LobbyInfo.MaxPlayers</c>) ではなく、Ready 完了時の
-        /// 実接続プレイヤー数を渡すこと。
+        /// セッション開始時の実プレイヤー数
+        /// Ready 完了時の 実接続プレイヤー数を渡すこと
         /// </summary>
         [Key(7)]
         public int PlayerCount { get; init; }

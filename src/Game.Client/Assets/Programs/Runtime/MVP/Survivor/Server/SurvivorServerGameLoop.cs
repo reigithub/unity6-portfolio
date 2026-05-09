@@ -78,8 +78,12 @@ namespace Game.MVP.Survivor.Server
                 var sessionAcceptedByServer = false;
                 try
                 {
-                    // Step 2: 接続パラメータを動的設定（セッションレベルの sessionName のみ更新）
-                    _sessionConfig.UpdateConfigure(sessionName: request.SessionName, playerCount: request.PlayerCount);
+                    // Step 2: 接続パラメータを動的設定（sessionName / playerCount / hostUserId）
+                    // hostUserId は DS Server 側で「手動ポーズ操作の権限を持つ Client」の判定に使用。
+                    _sessionConfig.UpdateConfigure(
+                        sessionName: request.SessionName,
+                        playerCount: request.PlayerCount,
+                        hostUserId: request.HostUserId);
 
                     // ServerHttpListener のステータスを active に更新
                     _listener.SetSessionActive(request.SessionName);

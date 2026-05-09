@@ -17,6 +17,7 @@ namespace Game.Shared.Network.Survivor
     public class SurvivorFusionGameState : NetworkBehaviour
     {
         [Inject] private IFusionRunnerService _runnerService;
+        [Inject] private IUnityServerSessionConfig _sessionConfig;
 
         // --- MessagePipe Publishers ---
         // VContainer InjectGameObject で解決される。
@@ -632,12 +633,21 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// サーバー側: マニュアルポーズ要求（ESC ダイアログ）。
+        /// ロビーホスト Client (= _sessionConfig.HostUserId と一致する UserId) のみ受け入れる。
+        /// 非ホスト Client からの要求は拒否 (Client 側 UX 抑制をすり抜けた改造 Client への防御)。
         /// HashSet 参照カウント方式: 複数プレイヤーが同時に ESC を押しても、
-        /// 全員が個別に Resume するまで Pause を維持する。
+        /// 全員が個別に Resume するまで Pause を維持する (現在はロビーホストのみ加わる前提)。
         /// </summary>
         public void OnClientRequestPause(PlayerRef source)
         {
             if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestPause rejected: non-host source={source}");
+                return;
+            }
+
             if (_manualPausingPlayers.Add(source))
             {
                 RecomputeIsPaused();
@@ -645,16 +655,29 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        /// <summary>サーバー側: マニュアルポーズ解除</summary>
+        /// <summary>サーバー側: マニュアルポーズ解除 (ロビーホスト Client のみ受け入れ)</summary>
         public void OnClientRequestResume(PlayerRef source)
         {
             if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestResume rejected: non-host source={source}");
+                return;
+            }
+
             if (_manualPausingPlayers.Remove(source))
             {
                 RecomputeIsPaused();
                 Debug.Log($"[SurvivorFusionGameState] Manual resume: {source} (count={_manualPausingPlayers.Count})");
             }
         }
+
+        /// <summary>
+        /// 指定 PlayerRef がロビーホスト Client か判定
+        /// </summary>
+        private bool IsLobbyHostPlayer(PlayerRef source)
+            => TryGetUserId(source, out var sourceUserId) && _sessionConfig.IsHostUserId(sourceUserId);
 
         // =====================================================================
         //  サーバー側ロジック: 武器選択検証

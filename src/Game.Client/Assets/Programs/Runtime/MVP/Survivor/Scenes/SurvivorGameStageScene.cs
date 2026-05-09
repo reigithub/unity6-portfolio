@@ -279,7 +279,10 @@ namespace Game.MVP.Survivor.Scenes
         private void SubscribeEvents()
         {
             SceneComponent.OnPauseClicked
-                .Subscribe(_ => _pauseRequested = true)
+                .Subscribe(_ =>
+                {
+                    if (_sessionConfig.IsHostUserId(MyUserId)) _pauseRequested = true;
+                })
                 .AddTo(Disposables);
 
             // ネットワーク切断 (P2P Host Quit / DS クラッシュ / 自身の Disconnect) をシーン全体で監視。
@@ -313,7 +316,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Where(_ => Application.isPlaying)
                 .Subscribe(_ =>
                 {
-                    if (_inputService.UI.Escape.WasPressedThisFrame())
+                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Escape.WasPressedThisFrame())
                         _pauseRequested = true;
 
                     if (_pauseRequested) return;

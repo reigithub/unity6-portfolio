@@ -34,6 +34,11 @@ namespace Game.Shared.Network.Survivor
         int PlayerCount { get; }
 
         /// <summary>
+        /// ロビーホストの UserId
+        /// </summary>
+        string HostUserId { get; }
+
+        /// <summary>
         /// クライアント接続経路（Local / Remote / Matchmaking / P2PClient）が設定済みかどうかを返す。
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
         /// </summary>
@@ -59,14 +64,17 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
-        /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
+        /// Dedicated Server のセッション開始時に sessionName / playerCount / hostUserId を更新する用途で使用する。
         /// </summary>
-        void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
+        void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null, string hostUserId = null);
 
         /// <summary>接続パラメータと期待プレイヤー数をリセットする。</summary>
         void Clear();
 
         /// <summary>指定アドレスがローカル（空文字 / localhost / 127.0.0.1）かどうかを判定する。</summary>
         bool IsLocalAddress(string address);
+
+        /// <summary>ロビーホストか判定する。</summary>
+        bool IsHostUserId(string userId);
     }
 }

@@ -243,9 +243,11 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
         foreach (var player in players)
         {
             var authResponse = await _unityServerApi.IssueTokenAsync(
-                player.UserId, matchId,
+                player.UserId,
+                sessionName: matchId,
                 stageId: isFirst ? stageId : 0,
-                playerCount: players.Length);
+                playerCount: players.Length,
+                hostUserId: lobby.HostUserId);
             isFirst = false;
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
@@ -258,6 +260,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
                     ServerPort = _unityServerConfig.ServerPort,
                     SessionToken = authResponse.Token,
                     PlayerCount = players.Length,
+                    HostUserId = lobby.HostUserId,
                 };
                 _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
             }

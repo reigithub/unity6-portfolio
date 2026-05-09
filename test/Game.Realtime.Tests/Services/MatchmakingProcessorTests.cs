@@ -74,7 +74,7 @@ public class MatchmakingProcessorTests
 
         // Assert: Game.Server API が呼ばれないことを確認
         _unityServerApiMock.Verify(
-            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -107,7 +107,7 @@ public class MatchmakingProcessorTests
             .ReturnsAsync(new[] { "p2" });
 
         _unityServerApiMock
-            .Setup(x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Setup(x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(new UnityServerAuthResponse { Token = "token", SessionName = "session-001" });
 
         _subscriberMock.Setup(x => x.PublishAsync(
@@ -126,7 +126,7 @@ public class MatchmakingProcessorTests
 
         // Assert: 2人分のトークンが発行されたことを確認
         _unityServerApiMock.Verify(
-            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()),
             Times.Exactly(2));
     }
 
@@ -173,7 +173,7 @@ public class MatchmakingProcessorTests
 
         // Assert: マッチ不成立（Game.Server API 未呼び出し）
         _unityServerApiMock.Verify(
-            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()),
             Times.Never);
 
         // Assert: プレイヤーが再エンキューされたことを確認
@@ -234,7 +234,7 @@ public class MatchmakingProcessorTests
             .ReturnsAsync(new[] { "p_any" });
 
         _unityServerApiMock
-            .Setup(x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Setup(x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(new UnityServerAuthResponse { Token = "token", SessionName = "session-002" });
 
         _subscriberMock.Setup(x => x.PublishAsync(
@@ -253,7 +253,7 @@ public class MatchmakingProcessorTests
 
         // Assert: 2人分のトークンが発行（stageキュー1人 + anyキュー1人）
         _unityServerApiMock.Verify(
-            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()),
+            x => x.IssueTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()),
             Times.Exactly(2));
     }
 }
