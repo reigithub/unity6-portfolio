@@ -76,8 +76,7 @@ namespace Game.Tests.PlayMode
             // Arrange
             var button = CreateButton("DisabledButton");
             button.interactable = false;
-            bool clicked = false;
-            button.onClick.AddListener(() => clicked = true);
+            button.onClick.AddListener(() => _ = true);
             yield return null;
 
             // Assert - interactable が false

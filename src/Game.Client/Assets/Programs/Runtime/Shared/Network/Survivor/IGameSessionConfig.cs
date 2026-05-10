@@ -1,5 +1,4 @@
 using Game.Library.Shared.Dto;
-using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -9,10 +8,10 @@ namespace Game.Shared.Network.Survivor
     /// Configure（全パラメータ初期化）と UpdateConfigure（部分更新）に分離し、
     /// ライフサイクルの異なるサーバーレベルパラメータとセッションレベルパラメータを明示的に管理する。
     /// </summary>
-    public interface IUnityServerSessionConfig
+    public interface IGameSessionConfig
     {
         /// <summary>接続ソース</summary>
-        ConnectionSource ConnectionSource { get; }
+        GameConnectionSource ConnectionSource { get; }
 
         /// <summary>接続先サーバーアドレス。</summary>
         string ServerAddress { get; }
@@ -49,16 +48,13 @@ namespace Game.Shared.Network.Survivor
         string PhotonRegion { get; }
 
         /// <summary>全パラメータを初期化する。未指定はデフォルト値で補完。</summary>
-        void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
-
-        /// <summary>マッチメイキング結果から全パラメータを一括設定する。</summary>
-        void Configure(ConnectionSource source, MatchResult result, int playerCount);
+        void Configure(GameConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
 
         /// <summary>
-        /// MatchStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
-        /// LobbyHub.OnGameStarting 経由のゲーム開始フローで使用する。
+        /// GameSessionStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
+        /// LobbyHub.OnGameStarting および MatchmakingHub.OnMatchFound 経由のゲーム開始フローで使用する。
         /// </summary>
-        void Configure(ConnectionSource source, MatchStartInfo info, int playerCount);
+        void Configure(GameConnectionSource source, GameSessionStartInfo info, int playerCount);
 
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。

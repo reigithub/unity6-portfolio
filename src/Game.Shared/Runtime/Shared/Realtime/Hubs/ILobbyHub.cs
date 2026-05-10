@@ -37,7 +37,7 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// <summary>
         /// ゲーム開始通知。Topology に応じて DS フィールドまたは P2P フィールドが populate される。
         /// </summary>
-        void OnGameStarting(MatchStartInfo info);
+        void OnGameStarting(GameSessionStartInfo info);
 
         /// <summary>
         /// ステージ変更通知

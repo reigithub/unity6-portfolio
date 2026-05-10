@@ -51,7 +51,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILockOnService _lockOnService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
         [Inject] private readonly IFusionRunnerService _runnerService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.DamageReceived> _damageReceivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Died> _playerDiedSub;

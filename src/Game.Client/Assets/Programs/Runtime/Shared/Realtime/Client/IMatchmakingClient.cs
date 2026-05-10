@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Game.Library.Shared.Dto;
-using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Realtime.Client
 {
@@ -38,7 +37,7 @@ namespace Game.Shared.Realtime.Client
         /// <summary>
         /// マッチ成立イベント
         /// </summary>
-        event Action<MatchResult> OnMatchFound;
+        event Action<GameSessionStartInfo> OnMatchFound;
 
         /// <summary>
         /// キュー人数更新イベント

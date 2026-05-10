@@ -41,7 +41,7 @@ namespace Game.Tests.MVP.Survivor.Server
         private IMasterDataService _masterDataService;
         private IFusionRunnerService _runnerService;
         private ISurvivorNetworkStageConnector _networkConnector;
-        private IUnityServerSessionConfig _sessionConfig;
+        private IGameSessionConfig _sessionConfig;
         private IUnityServerHttpListener _listener;
         private IUnityServerRegistryApiClient _registry;
         private UnityServerBootstrap _bootstrap;
@@ -60,7 +60,7 @@ namespace Game.Tests.MVP.Survivor.Server
             _masterDataService = Substitute.For<IMasterDataService>();
             _runnerService = Substitute.For<IFusionRunnerService>();
             _networkConnector = Substitute.For<ISurvivorNetworkStageConnector>();
-            _sessionConfig = Substitute.For<IUnityServerSessionConfig>();
+            _sessionConfig = Substitute.For<IGameSessionConfig>();
             _listener = Substitute.For<IUnityServerHttpListener>();
             _registry = Substitute.For<IUnityServerRegistryApiClient>();
             _bootstrap = CreateBootstrapMock();
@@ -442,7 +442,7 @@ namespace Game.Tests.MVP.Survivor.Server
             var configProvider = new UnityServerConfigProvider();
             var listenerMock = Substitute.For<IUnityServerHttpListener>();
             var registryMock = Substitute.For<IUnityServerRegistryApiClient>();
-            var sessionConfigMock = Substitute.For<IUnityServerSessionConfig>();
+            var sessionConfigMock = Substitute.For<IGameSessionConfig>();
 
             var bootstrap = new UnityServerBootstrap(configProvider, listenerMock, registryMock, sessionConfigMock);
 

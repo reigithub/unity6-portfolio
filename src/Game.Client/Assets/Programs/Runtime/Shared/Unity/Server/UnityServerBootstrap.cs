@@ -27,7 +27,7 @@ namespace Game.Shared.Unity.Server
         private readonly UnityServerConfigProvider _configProvider;
         private readonly IUnityServerHttpListener _listener;
         private readonly IUnityServerRegistryApiClient _registry;
-        private readonly IUnityServerSessionConfig _sessionConfig;
+        private readonly IGameSessionConfig _sessionConfig;
 
         private CancellationTokenSource _heartbeatCts;
         private Task _heartbeatTask;
@@ -47,7 +47,7 @@ namespace Game.Shared.Unity.Server
             UnityServerConfigProvider configProvider,
             IUnityServerHttpListener listener,
             IUnityServerRegistryApiClient registry,
-            IUnityServerSessionConfig sessionConfig)
+            IGameSessionConfig sessionConfig)
         {
             _configProvider = configProvider;
             _listener = listener;
@@ -100,7 +100,7 @@ namespace Game.Shared.Unity.Server
             _listener.Start();
 
             // 4. Fusion ポート設定（SessionName / MaxPlayerCount はセッションリクエスト受信時に設定）
-            _sessionConfig.Configure(ConnectionSource.DedicatedServer, port: config.GamePort);
+            _sessionConfig.Configure(GameConnectionSource.DedicatedServer, port: config.GamePort);
 
             // 5. Application.quitting ハンドラー登録
             Application.quitting += OnApplicationQuitting;

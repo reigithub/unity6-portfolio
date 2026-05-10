@@ -1,7 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Dto;
-using Game.Library.Shared.Realtime.Hubs;
 using Game.MVP.Core.Scenes;
 using Game.MVP.Survivor.SaveData;
 using Game.Shared.Network.Survivor;
@@ -21,7 +20,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly ISurvivorSaveService _saveService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyScene";
 
@@ -85,9 +84,9 @@ namespace Game.MVP.Survivor.Scenes
             _matchmakingClient.OnMatchmakingCancelled -= HandleMatchmakingCancelled;
         }
 
-        private void HandleMatchFound(MatchResult result)
+        private void HandleMatchFound(GameSessionStartInfo info)
         {
-            OnMatchFound(result).Forget();
+            OnMatchFound(info).Forget();
         }
 
         private void HandleQueueStatusUpdated(int count)
@@ -215,18 +214,17 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnMatchFound(MatchResult result)
+        private async UniTaskVoid OnMatchFound(GameSessionStartInfo info)
         {
-            Debug.Log($"[SurvivorLobbyScene] Match found: {result.MatchId}");
-            int playerCount = result.PlayerIds?.Length > 0 ? result.PlayerIds.Length : 1;
-            _sessionConfig.Configure(ConnectionSource.Matchmaking, result, playerCount);
+            Debug.Log($"[SurvivorLobbyScene] Match found: {info.SessionName}");
+            _sessionConfig.Configure(GameConnectionSource.Matchmaking, info, info.PlayerCount);
             SceneComponent.SetInteractables(false);
 
             try
             {
-                // セッション開始（stageId は MatchResult から取得）
+                // セッション開始（stageId はサーバー送信の GameSessionStartInfo から取得）
                 var playerId = _saveService.Data.SelectedPlayerId;
-                _saveService.StartSession(result.StageId, playerId);
+                _saveService.StartSession(info.StageId, playerId);
                 await _saveService.SaveIfDirtyAsync();
 
                 await _matchmakingClient.DisconnectAsync();

@@ -280,11 +280,10 @@ namespace Game.Tests.MVC
         {
             // Arrange
             const int key = 700;
-            var received = false;
             var subscription = _service.SubscribeAsync(key, async ct =>
             {
                 await UniTask.Delay(10, cancellationToken: ct);
-                received = true;
+                _ = true;
             });
 
             // Act - Should return immediately

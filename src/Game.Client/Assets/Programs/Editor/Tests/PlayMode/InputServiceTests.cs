@@ -135,9 +135,8 @@ namespace Game.Tests.PlayMode
             _inputService.EnablePlayer();
             yield return null;
 
-            bool moveDetected = false;
             var moveAction = _inputService.Player.Move;
-            moveAction.performed += ctx => moveDetected = true;
+            moveAction.performed += ctx => _ = true;
 
             // Act - WASDキー押下をシミュレート
             Press(_keyboard.wKey);

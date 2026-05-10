@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Server.Shared.Extensions;
 using Microsoft.Extensions.Options;
@@ -290,24 +291,27 @@ public class MatchmakingProcessor : BackgroundService
 
         await Task.WhenAll([leaderAuthTask, .. followerTasks]);
 
-        // 全トークンが揃ったら MatchResult を配信
+        // 全トークンが揃ったら GameSessionStartInfo を配信
         await Task.WhenAll(playerIds.Select(async (playerId, index) =>
         {
             var authResponse = index == 0
                 ? await leaderAuthTask
                 : await followerTasks[index - 1];
 
-            var matchResult = new MatchResult
+            var info = new GameSessionStartInfo
             {
-                MatchId = matchId,
-                PlayerIds = playerIds,
+                Topology = NetworkTopology.DedicatedServer,
+                SessionName = matchId,
                 ServerAddress = _unityServerConfig.ServerAddress,
                 ServerPort = _unityServerConfig.ServerPort,
                 SessionToken = authResponse.Token,
+                PlayerCount = playerIds.Length,
                 StageId = stageId,
+                // 先頭プレイヤーを暫定 Host として populate（現状ホスト概念なし、将来の P2P Quick Match 対応の拡張余地）
+                HostUserId = playerIds[0],
             };
 
-            var json = JsonHelper.Serialize(matchResult);
+            var json = JsonHelper.Serialize(info);
             var channel = RedisChannel.Literal($"matchmaking:notify:{playerId}");
             await subscriber.PublishAsync(channel, json);
 

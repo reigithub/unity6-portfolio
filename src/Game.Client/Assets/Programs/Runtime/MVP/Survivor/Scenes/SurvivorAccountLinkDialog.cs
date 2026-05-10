@@ -54,7 +54,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // イベント購読
             SceneComponent.OnCloseClicked
-                .Subscribe(_ => OnClose().Forget())
+                .Subscribe(_ => OnClose())
                 .AddTo(Disposables);
 
             SceneComponent.OnLinkEmailClicked
@@ -116,7 +116,7 @@ namespace Game.MVP.Survivor.Scenes
             Observable.EveryValueChanged(_inputService, x => x.UI.Escape.WasPressedThisFrame(), UnityFrameProvider.Update)
                 .Subscribe(escape =>
                 {
-                    if (escape) OnClose().Forget();
+                    if (escape) OnClose();
                 })
                 .AddTo(Disposables);
         }
@@ -164,7 +164,7 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnClose()
+        private void OnClose()
         {
             SceneComponent.SetInteractables(false);
             TrySetResult(Unit.Default);

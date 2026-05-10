@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Game.Editor.Shaders
 {
@@ -191,24 +192,24 @@ namespace Game.Editor.Shaders
             var savedFloats = new Dictionary<string, float>();
 
             var oldShader = material.shader;
-            int propertyCount = ShaderUtil.GetPropertyCount(oldShader);
+            int propertyCount = oldShader.GetPropertyCount();
 
             for (int i = 0; i < propertyCount; i++)
             {
-                string propName = ShaderUtil.GetPropertyName(oldShader, i);
-                var propType = ShaderUtil.GetPropertyType(oldShader, i);
+                string propName = oldShader.GetPropertyName(i);
+                var propType = oldShader.GetPropertyType(i);
 
                 switch (propType)
                 {
-                    case ShaderUtil.ShaderPropertyType.TexEnv:
+                    case ShaderPropertyType.Texture:
                         var tex = material.GetTexture(propName);
                         if (tex != null) savedTextures[propName] = tex;
                         break;
-                    case ShaderUtil.ShaderPropertyType.Color:
+                    case ShaderPropertyType.Color:
                         savedColors[propName] = material.GetColor(propName);
                         break;
-                    case ShaderUtil.ShaderPropertyType.Float:
-                    case ShaderUtil.ShaderPropertyType.Range:
+                    case ShaderPropertyType.Float:
+                    case ShaderPropertyType.Range:
                         savedFloats[propName] = material.GetFloat(propName);
                         break;
                 }

@@ -109,7 +109,7 @@ namespace Game.Shared.Realtime.Client
         /// <summary>
         /// ゲーム開始イベント (DS / P2P 統一、Topology で受信側が分岐)
         /// </summary>
-        event Action<MatchStartInfo> OnGameStarting;
+        event Action<GameSessionStartInfo> OnGameStarting;
 
         /// <summary>
         /// ロビー閉鎖イベント (reason)

@@ -268,7 +268,7 @@ namespace Game.Tests.Shared.Network
         #region ProcessQueueAsync Tests
 
         [Test]
-        public async Task ProcessQueueAsync_WhenEmpty_DoesNotThrow()
+        public void ProcessQueueAsync_WhenEmpty_DoesNotThrow()
         {
             // Act & Assert
             Assert.DoesNotThrowAsync(async () => await _queue.ProcessQueueAsync());

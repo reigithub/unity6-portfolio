@@ -19,7 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAuthSessionService _authSessionService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
@@ -126,7 +126,7 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.UpdatePlayerReady(userId, isReady);
         }
 
-        private void HandleGameStarting(MatchStartInfo info)
+        private void HandleGameStarting(GameSessionStartInfo info)
         {
             OnGameStarting(info).Forget();
         }
@@ -195,7 +195,7 @@ namespace Game.MVP.Survivor.Scenes
             await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
 
-        private async UniTaskVoid OnGameStarting(MatchStartInfo info)
+        private async UniTaskVoid OnGameStarting(GameSessionStartInfo info)
         {
             if (_isExitingLobby) return;
             _isExitingLobby = true;
@@ -205,23 +205,23 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ShowNotification($"Game starting ({info.Topology})...");
 
             // Topology に応じて ConnectionSource を決定
-            ConnectionSource source;
+            GameConnectionSource source;
             if (info.Topology == NetworkTopology.PeerToPeer)
             {
                 var myUserId = _authSessionService.UserId;
                 var isHost = myUserId == info.HostUserId;
-                source = isHost ? ConnectionSource.P2PHost : ConnectionSource.P2PClient;
+                source = isHost ? GameConnectionSource.P2PHost : GameConnectionSource.P2PClient;
             }
             else
             {
-                source = ConnectionSource.Matchmaking;
+                source = GameConnectionSource.Matchmaking;
             }
 
             _sessionConfig.Configure(source, info, info.PlayerCount);
 
-            // セッション開始（stageId はロビー情報から取得）
+            // セッション開始
             var playerId = _saveService.Data.SelectedPlayerId;
-            _saveService.StartSession(_stageId, playerId);
+            _saveService.StartSession(info.StageId, playerId);
             await _saveService.SaveIfDirtyAsync();
 
             Debug.Log($"[SurvivorLobbyRoomScene] Transitioning to StageConnectScene (topology={info.Topology}, source={source}, session={info.SessionName}, region={info.PhotonRegion})");

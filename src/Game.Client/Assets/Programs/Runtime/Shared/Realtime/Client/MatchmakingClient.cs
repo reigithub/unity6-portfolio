@@ -26,7 +26,7 @@ namespace Game.Shared.Realtime.Client
 
         public bool IsSearching { get; private set; }
 
-        public event Action<MatchResult> OnMatchFound;
+        public event Action<GameSessionStartInfo> OnMatchFound;
         public event Action<int> OnQueueStatusUpdated;
         public event Action<string> OnMatchmakingCancelled;
         public event Action<string> OnDisconnected;
@@ -142,11 +142,11 @@ namespace Game.Shared.Realtime.Client
             Debug.Log($"[MatchmakingClient] Matchmaking started. Estimated wait: {estimatedWaitSeconds}s");
         }
 
-        void IMatchmakingHubReceiver.OnMatchFound(MatchResult result)
+        void IMatchmakingHubReceiver.OnMatchFound(GameSessionStartInfo info)
         {
             IsSearching = false;
-            Debug.Log($"[MatchmakingClient] Match found: {result.MatchId}");
-            OnMatchFound?.Invoke(result);
+            Debug.Log($"[MatchmakingClient] Match found: {info.SessionName}");
+            OnMatchFound?.Invoke(info);
         }
 
         void IMatchmakingHubReceiver.OnMatchmakingCancelled(string reason)

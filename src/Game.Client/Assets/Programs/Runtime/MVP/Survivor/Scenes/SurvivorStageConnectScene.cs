@@ -35,7 +35,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadySub;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerApiService _unityServerApiService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly ILobbyClient _lobbyClient;
 
@@ -124,7 +124,7 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     // 本番 P2P Host (Lobby 経由で Configure 済) は MPPM tag より優先判定。
                     // P2PHost が Lobby 経由で確定しているケースでは MPPM tag を見ない。
-                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
+                    if (_sessionConfig.ConnectionSource == GameConnectionSource.P2PHost)
                     {
                         Debug.Log("[SurvivorStageConnectScene] P2P Host mode");
                         SceneComponent.SetStatus("Starting P2P host...");
@@ -177,7 +177,7 @@ namespace Game.MVP.Survivor.Scenes
                     // P2P Host モードのみ Lobby Hub に「ホスト準備完了」を通知。
                     // Lobby Hub はこの通知を受けて他クライアントへ OnGameStarting を broadcast し、
                     // Photon セッション作成競合 (GameNotFound) を防ぐ。
-                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
+                    if (_sessionConfig.ConnectionSource == GameConnectionSource.P2PHost)
                     {
                         Debug.Log("[SurvivorStageConnectScene] Notifying lobby hub: host is ready");
                         await _lobbyClient.NotifyHostReadyAsync();
@@ -198,7 +198,7 @@ namespace Game.MVP.Survivor.Scenes
                 // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorStageScene 継続
                 var source = _sessionConfig.ConnectionSource;
                 Debug.Log($"[DIAG-Phase3-Pre] starting transition, source={source}");
-                if (source is ConnectionSource.P2PHost or ConnectionSource.P2PClient)
+                if (source is GameConnectionSource.P2PHost or GameConnectionSource.P2PClient)
                 {
                     Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorGameStageScene");
                     await _sceneService.TransitionAsync<SurvivorGameStageScene>();
@@ -243,7 +243,7 @@ namespace Game.MVP.Survivor.Scenes
                 await _localServerOrchestrator.StartAsync(SceneComponent.destroyCancellationToken);
 
                 var localTokenResult = await IssueTokenAsync(stageId);
-                _sessionConfig.Configure(ConnectionSource.Local,
+                _sessionConfig.Configure(GameConnectionSource.Local,
                     port: _localServerOrchestrator.HeadlessServerPort,
                     sessionName: localTokenResult.SessionName,
                     sessionToken: localTokenResult.Token);
@@ -260,7 +260,7 @@ namespace Game.MVP.Survivor.Scenes
             if (!string.IsNullOrEmpty(tokenResult?.ServerAddress) && tokenResult.ServerPort > 0)
             {
                 // DS 割り当て済み: レスポンスに含まれる DS アドレスへ直接接続
-                _sessionConfig.Configure(ConnectionSource.Remote,
+                _sessionConfig.Configure(GameConnectionSource.Remote,
                     address: tokenResult.ServerAddress,
                     port: (ushort)tokenResult.ServerPort,
                     sessionName: tokenResult.SessionName,
@@ -270,7 +270,7 @@ namespace Game.MVP.Survivor.Scenes
             else if (envConfig != null && !_sessionConfig.IsLocalAddress(envConfig.UnityServerAddress))
             {
                 // envConfig にリモートアドレスが設定されている場合のフォールバック（ローカル開発用）
-                _sessionConfig.Configure(ConnectionSource.Remote,
+                _sessionConfig.Configure(GameConnectionSource.Remote,
                     address: envConfig.UnityServerAddress,
                     port: envConfig.UnityServerPort,
                     sessionName: tokenResult?.SessionName,
@@ -280,7 +280,7 @@ namespace Game.MVP.Survivor.Scenes
             else
             {
                 // ローカル接続（127.0.0.1）
-                _sessionConfig.Configure(ConnectionSource.Local, sessionName: tokenResult?.SessionName, sessionToken: tokenResult?.Token);
+                _sessionConfig.Configure(GameConnectionSource.Local, sessionName: tokenResult?.SessionName, sessionToken: tokenResult?.Token);
                 Debug.Log($"[SurvivorStageConnectScene] ローカルサーバーへ接続 ({_sessionConfig.SessionName})...");
             }
         }

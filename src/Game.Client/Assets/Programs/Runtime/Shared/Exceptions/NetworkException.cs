@@ -69,16 +69,10 @@ namespace Game.Shared.Exceptions
     /// </summary>
     public class NetworkTimeoutException : NetworkException
     {
-        private const string ErrorCode = "NETWORK_TIMEOUT";
-        private const int ErrorLevel = 2;
-
-        /// <summary>
-        /// タイムアウト秒数
-        /// </summary>
         public int TimeoutSeconds { get; }
 
         public NetworkTimeoutException(string endpoint, int timeoutSeconds, int retryCount = 0)
-            : base($"リクエストがタイムアウトしました（{timeoutSeconds}秒）", ErrorCode, ErrorLevel, endpoint, null, retryCount)
+            : base($"リクエストがタイムアウトしました（{timeoutSeconds}秒）", "NETWORK_TIMEOUT", 2, endpoint, null, retryCount)
         {
             TimeoutSeconds = timeoutSeconds;
         }
@@ -94,21 +88,18 @@ namespace Game.Shared.Exceptions
     /// </summary>
     public class NetworkConnectionException : NetworkException
     {
-        private const string ErrorCode = "NETWORK_CONNECTION_FAILED";
-        private const int ErrorLevel = 2;
-
         public NetworkConnectionException(string endpoint, int retryCount = 0)
-            : base("サーバーに接続できません", ErrorCode, ErrorLevel, endpoint, null, retryCount)
+            : base("サーバーに接続できません", "NETWORK_CONNECTION_FAILED", 2, endpoint, null, retryCount)
         {
         }
 
         public NetworkConnectionException(string message, string endpoint, int retryCount = 0)
-            : base(message, ErrorCode, ErrorLevel, endpoint, null, retryCount)
+            : base(message, "NETWORK_CONNECTION_FAILED", 2, endpoint, null, retryCount)
         {
         }
 
         public NetworkConnectionException(string message, Exception innerException, string endpoint, int retryCount = 0)
-            : base(message, innerException, ErrorCode, ErrorLevel, endpoint, null, retryCount)
+            : base(message, innerException, "NETWORK_CONNECTION_FAILED", 2, endpoint, null, retryCount)
         {
         }
     }
@@ -118,16 +109,10 @@ namespace Game.Shared.Exceptions
     /// </summary>
     public class NetworkServerException : NetworkException
     {
-        private const string ErrorCode = "NETWORK_SERVER_ERROR";
-        private const int ErrorLevel = 2;
-
-        /// <summary>
-        /// サーバーからのエラーメッセージ
-        /// </summary>
         public string ServerMessage { get; }
 
         public NetworkServerException(string endpoint, int statusCode, string serverMessage = null, int retryCount = 0)
-            : base($"サーバーエラーが発生しました（{statusCode}）", ErrorCode, ErrorLevel, endpoint, statusCode, retryCount)
+            : base($"サーバーエラーが発生しました（{statusCode}）", "NETWORK_SERVER_ERROR", 2, endpoint, statusCode, retryCount)
         {
             ServerMessage = serverMessage;
         }
@@ -144,16 +129,10 @@ namespace Game.Shared.Exceptions
     /// </summary>
     public class NetworkClientException : NetworkException
     {
-        private const string ErrorCode = "NETWORK_CLIENT_ERROR";
-        private const int ErrorLevel = 1; // Warning（クライアント側の問題のため）
-
-        /// <summary>
-        /// サーバーからのエラーメッセージ
-        /// </summary>
         public string ServerMessage { get; }
 
         public NetworkClientException(string endpoint, int statusCode, string serverMessage = null, int retryCount = 0)
-            : base($"クライアントエラーが発生しました（{statusCode}）", ErrorCode, ErrorLevel, endpoint, statusCode, retryCount)
+            : base($"クライアントエラーが発生しました（{statusCode}）", "NETWORK_CLIENT_ERROR", 1, endpoint, statusCode, retryCount)
         {
             ServerMessage = serverMessage;
         }
@@ -170,16 +149,10 @@ namespace Game.Shared.Exceptions
     /// </summary>
     public class NetworkRetryExhaustedException : NetworkException
     {
-        private const string ErrorCode = "NETWORK_RETRY_EXHAUSTED";
-        private const int ErrorLevel = 2;
-
-        /// <summary>
-        /// 最後に発生したエラー
-        /// </summary>
         public Exception LastError { get; }
 
         public NetworkRetryExhaustedException(string endpoint, int maxRetries, Exception lastError = null)
-            : base($"リトライ上限（{maxRetries}回）に達しました", lastError, ErrorCode, ErrorLevel, endpoint, null, maxRetries)
+            : base($"リトライ上限（{maxRetries}回）に達しました", lastError, "NETWORK_RETRY_EXHAUSTED", 2, endpoint, null, maxRetries)
         {
             LastError = lastError;
         }
