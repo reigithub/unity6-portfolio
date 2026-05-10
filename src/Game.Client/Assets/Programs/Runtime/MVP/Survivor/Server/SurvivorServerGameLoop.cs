@@ -30,7 +30,7 @@ namespace Game.MVP.Survivor.Server
         [Inject] private readonly IMasterDataService _masterDataService;
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
         [Inject] private readonly IUnityServerHttpListener _listener;
         [Inject] private readonly IUnityServerRegistryApiClient _registry;
         [Inject] private readonly UnityServerBootstrap _bootstrap;

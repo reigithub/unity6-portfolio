@@ -17,7 +17,7 @@ namespace Game.Shared.Network.Survivor
     public class SurvivorFusionGameState : NetworkBehaviour
     {
         [Inject] private IFusionRunnerService _runnerService;
-        [Inject] private IUnityServerSessionConfig _sessionConfig;
+        [Inject] private IGameSessionConfig _sessionConfig;
 
         // --- MessagePipe Publishers ---
         // VContainer InjectGameObject で解決される。

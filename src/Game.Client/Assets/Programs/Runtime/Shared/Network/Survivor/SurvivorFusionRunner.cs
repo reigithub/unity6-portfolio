@@ -39,7 +39,7 @@ namespace Game.Shared.Network.Survivor
         // --- VContainer フィールドインジェクション ---
         [Inject] private IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         [Inject] private IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
-        [Inject] private IUnityServerSessionConfig _sessionConfig;
+        [Inject] private IGameSessionConfig _sessionConfig;
         [Inject] private IFusionRunnerService _runnerService;
 
         // --- セッション管理フィールド（Host/Server 時のみ使用） ---

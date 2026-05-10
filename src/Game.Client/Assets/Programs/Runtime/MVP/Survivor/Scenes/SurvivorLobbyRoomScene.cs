@@ -19,7 +19,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ILobbyClient _lobbyClient;
         [Inject] private readonly ISurvivorSaveService _saveService;
         [Inject] private readonly IAuthSessionService _authSessionService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
@@ -205,16 +205,16 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.ShowNotification($"Game starting ({info.Topology})...");
 
             // Topology に応じて ConnectionSource を決定
-            ConnectionSource source;
+            GameConnectionSource source;
             if (info.Topology == NetworkTopology.PeerToPeer)
             {
                 var myUserId = _authSessionService.UserId;
                 var isHost = myUserId == info.HostUserId;
-                source = isHost ? ConnectionSource.P2PHost : ConnectionSource.P2PClient;
+                source = isHost ? GameConnectionSource.P2PHost : GameConnectionSource.P2PClient;
             }
             else
             {
-                source = ConnectionSource.Matchmaking;
+                source = GameConnectionSource.Matchmaking;
             }
 
             _sessionConfig.Configure(source, info, info.PlayerCount);

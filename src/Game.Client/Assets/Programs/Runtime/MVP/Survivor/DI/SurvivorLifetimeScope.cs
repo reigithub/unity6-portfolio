@@ -53,7 +53,7 @@ namespace Game.MVP.Survivor
             builder.Register<GameSceneService>(Lifetime.Singleton).As<IGameSceneService>();
             builder.Register<MasterDataService>(Lifetime.Singleton).As<IMasterDataService>();
             builder.Register<FusionRunnerService>(Lifetime.Singleton).As<IFusionRunnerService>();
-            builder.Register<UnityServerSessionConfig>(Lifetime.Singleton).As<IUnityServerSessionConfig>();
+            builder.Register<GameSessionConfig>(Lifetime.Singleton).As<IGameSessionConfig>();
 
             if (UnityPlaymodeHelper.IsServer())
             {

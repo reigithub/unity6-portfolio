@@ -20,7 +20,7 @@ namespace Game.Shared.Network.Survivor
         [Inject] private readonly IObjectResolver _resolver;
         [Inject] private readonly IAddressableAssetService _assetService;
         [Inject] private readonly IFusionRunnerService _runnerService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
         [Inject] private readonly IUnityServerAuthProviderFactory _authProviderFactory;
 
         private const string GameStateAddress = "SurvivorFusionGameState";
@@ -77,7 +77,7 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// Client モードで Fusion セッションへ接続する。
-        /// 接続パラメータ (SessionName / Address / Port / SessionToken) は <c>IUnityServerSessionConfig</c> から取得する。
+        /// 接続パラメータ (SessionName / Address / Port / SessionToken) は <c>IGameSessionConfig</c> から取得する。
         /// DS 経路 (Local/Remote/Matchmaking) と P2P 経路 (P2PClient) を <c>ConnectionSource</c> で内部分岐。
         /// </summary>
         public async UniTask ConnectAsync(int stageId)
@@ -89,7 +89,7 @@ namespace Game.Shared.Network.Survivor
             {
                 var sessionName = _sessionConfig.SessionName;
                 var source = _sessionConfig.ConnectionSource;
-                var isP2PClient = source == ConnectionSource.P2PClient;
+                var isP2PClient = source == GameConnectionSource.P2PClient;
 
                 EnsureRunner();
 

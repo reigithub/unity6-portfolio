@@ -26,7 +26,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly INetworkService _networkService;
         [Inject] private readonly ILobbyClient _lobbyClient;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorTitleScene";
 

@@ -5,7 +5,7 @@ namespace Game.Shared.Network.Survivor
     /// <summary>
     /// ネットワーク接続の接続元を表す列挙型。
     /// </summary>
-    public enum ConnectionSource
+    public enum GameConnectionSource
     {
         /// <summary>未設定（初期値）。</summary>
         None,
@@ -30,10 +30,10 @@ namespace Game.Shared.Network.Survivor
     }
 
     /// <summary>
-    /// <see cref="IUnityServerSessionConfig"/> の実装。
+    /// <see cref="IGameSessionConfig"/> の実装。
     /// VContainer で Singleton 登録して使用する。
     /// </summary>
-    public class UnityServerSessionConfig : IUnityServerSessionConfig
+    public class GameSessionConfig : IGameSessionConfig
     {
         /// <summary>SP ローカルセッションのデフォルト名。</summary>
         private const string DefaultLocalSessionName = "sp-local";
@@ -48,7 +48,7 @@ namespace Game.Shared.Network.Survivor
         private const ushort DefaultPort = 7777;
 
         /// <summary>現在の接続元種別。</summary>
-        public ConnectionSource ConnectionSource { get; private set; }
+        public GameConnectionSource ConnectionSource { get; private set; }
 
         /// <summary>接続先サーバーアドレス。</summary>
         public string ServerAddress { get; private set; }
@@ -78,10 +78,10 @@ namespace Game.Shared.Network.Survivor
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
         /// P2PHost は Host モード起動 (= IsHostMode 経路) のためここには含めない。
         /// </summary>
-        public bool IsClientConfigured => ConnectionSource is ConnectionSource.Local
-                             or ConnectionSource.Remote
-                             or ConnectionSource.Matchmaking
-                             or ConnectionSource.P2PClient;
+        public bool IsClientConfigured => ConnectionSource is GameConnectionSource.Local
+                             or GameConnectionSource.Remote
+                             or GameConnectionSource.Matchmaking
+                             or GameConnectionSource.P2PClient;
 
         /// <summary>
         /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp", "us", "eu")。
@@ -99,12 +99,12 @@ namespace Game.Shared.Network.Survivor
         /// <param name="sessionName">セッション名。null 時は <see cref="DefaultLocalSessionName"/>。</param>
         /// <param name="sessionToken">セッショントークン。null 時は空文字。</param>
         /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。</param>
-        public void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null)
+        public void Configure(GameConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null)
         {
             ConnectionSource = source;
             ServerAddress = address ?? DefaultLocalAddress;
             ServerPort = port ?? DefaultPort;
-            SessionName = sessionName ?? (source is ConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
+            SessionName = sessionName ?? (source is GameConnectionSource.Remote ? DefaultRemoteSessionName : DefaultLocalSessionName);
             SessionToken = sessionToken ?? string.Empty;
             PlayerCount = playerCount ?? 1;
             PhotonRegion = null;
@@ -117,7 +117,7 @@ namespace Game.Shared.Network.Survivor
         /// <param name="source">接続元の種別 (P2PHost / P2PClient / Matchmaking 等、呼出側で host/client 判定して指定)。</param>
         /// <param name="info">サーバーから受信した <see cref="GameSessionStartInfo"/>。</param>
         /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。<see cref="GameSessionStartInfo.PlayerCount"/> から取得すること。</param>
-        public void Configure(ConnectionSource source, GameSessionStartInfo info, int playerCount)
+        public void Configure(GameConnectionSource source, GameSessionStartInfo info, int playerCount)
         {
             ConnectionSource = source;
             SessionName = info.SessionName;
@@ -170,7 +170,7 @@ namespace Game.Shared.Network.Survivor
         /// </summary>
         public void Clear()
         {
-            ConnectionSource = ConnectionSource.None;
+            ConnectionSource = GameConnectionSource.None;
             ServerAddress = null;
             ServerPort = 0;
             SessionName = null;
@@ -192,7 +192,7 @@ namespace Game.Shared.Network.Survivor
 
         public bool IsMultiPlayer()
         {
-            return ConnectionSource is ConnectionSource.Matchmaking or ConnectionSource.P2PHost or ConnectionSource.P2PClient
+            return ConnectionSource is GameConnectionSource.Matchmaking or GameConnectionSource.P2PHost or GameConnectionSource.P2PClient
                    && PlayerCount > 1;
         }
     }

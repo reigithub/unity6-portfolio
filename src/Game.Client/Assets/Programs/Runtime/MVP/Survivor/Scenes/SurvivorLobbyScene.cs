@@ -20,7 +20,7 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IAuthSessionService _authSessionService;
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
         [Inject] private readonly ISurvivorSaveService _saveService;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
+        [Inject] private readonly IGameSessionConfig _sessionConfig;
 
         protected override string AssetPathOrAddress => "SurvivorLobbyScene";
 
@@ -217,7 +217,7 @@ namespace Game.MVP.Survivor.Scenes
         private async UniTaskVoid OnMatchFound(GameSessionStartInfo info)
         {
             Debug.Log($"[SurvivorLobbyScene] Match found: {info.SessionName}");
-            _sessionConfig.Configure(ConnectionSource.Matchmaking, info, info.PlayerCount);
+            _sessionConfig.Configure(GameConnectionSource.Matchmaking, info, info.PlayerCount);
             SceneComponent.SetInteractables(false);
 
             try
