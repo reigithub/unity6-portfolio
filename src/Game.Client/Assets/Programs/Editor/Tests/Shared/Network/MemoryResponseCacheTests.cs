@@ -75,7 +75,7 @@ namespace Game.Tests.Shared.Network
         }
 
         [Test]
-        public async Task SetAsync_WithNullKey_DoesNotThrow()
+        public void SetAsync_WithNullKey_DoesNotThrow()
         {
             // Act & Assert
             Assert.DoesNotThrowAsync(async () =>
@@ -167,7 +167,7 @@ namespace Game.Tests.Shared.Network
         }
 
         [Test]
-        public async Task RemoveAsync_NonexistentKey_DoesNotThrow()
+        public void RemoveAsync_NonexistentKey_DoesNotThrow()
         {
             // Act & Assert
             Assert.DoesNotThrowAsync(async () =>

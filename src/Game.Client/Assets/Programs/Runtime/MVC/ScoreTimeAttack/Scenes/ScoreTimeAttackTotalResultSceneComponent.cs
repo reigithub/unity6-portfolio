@@ -16,9 +16,6 @@ namespace Game.ScoreTimeAttack.Scenes
 {
     public class ScoreTimeAttackTotalResultSceneComponent : GameSceneComponent
     {
-        private AudioService _audioService;
-        private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
-
         private GameSceneService _sceneService;
         private GameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
 

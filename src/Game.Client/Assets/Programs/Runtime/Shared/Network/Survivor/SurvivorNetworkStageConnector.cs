@@ -34,7 +34,6 @@ namespace Game.Shared.Network.Survivor
 
         private SurvivorFusionRunner _runner;
         private SurvivorUnityServerSession _session;
-        private GameMode _gameMode;
         private bool _isConnecting;
 
         // Addressables で読み込んだプレハブ（解放用に保持）
@@ -51,7 +50,6 @@ namespace Game.Shared.Network.Survivor
 
             try
             {
-                _gameMode = GameMode.Host;
                 var sessionName = _sessionConfig.SessionName;
                 var playerCount = _sessionConfig.PlayerCount;
 
@@ -95,7 +93,6 @@ namespace Game.Shared.Network.Survivor
 
             try
             {
-                _gameMode = GameMode.Client;
                 var sessionName = _sessionConfig.SessionName;
                 var source = _sessionConfig.ConnectionSource;
                 var isP2PClient = source == ConnectionSource.P2PClient;
@@ -150,7 +147,6 @@ namespace Game.Shared.Network.Survivor
 
             try
             {
-                _gameMode = GameMode.Server;
                 var sessionName = _sessionConfig.SessionName;
                 var playerCount = _sessionConfig.PlayerCount;
 
