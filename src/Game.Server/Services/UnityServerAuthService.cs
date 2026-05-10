@@ -46,8 +46,9 @@ public class UnityServerAuthService : IUnityServerAuthService
     /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合は自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
     /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す。</param>
+    /// <param name="hostUserId">ロビーホストの UserId。DS 側で「手動ポーズ操作の権限を持つ Client」の判定に使用。MP 以外 (SP) では空文字。</param>
     /// <returns>発行されたトークンとセッション名を含むレスポンス。</returns>
-    public async Task<UnityServerAuthResponse> IssueTokenAsync(string userId, string sessionName, int stageId = 0, int playerCount = 1)
+    public async Task<UnityServerAuthResponse> IssueTokenAsync(string userId, string sessionName, int stageId = 0, int playerCount = 1, string hostUserId = "")
     {
         sessionName ??= $"sp-{Guid.NewGuid():N}";
         var tokenExpiry = SessionTokenHelper.DefaultExpiry;
@@ -76,7 +77,7 @@ public class UnityServerAuthService : IUnityServerAuthService
         int serverPort = 0;
         if (stageId > 0)
         {
-            var dsInfo = await _unityServerSession.AssignSessionAsync(sessionName, stageId, playerCount);
+            var dsInfo = await _unityServerSession.AssignSessionAsync(sessionName, stageId, playerCount, hostUserId);
             serverAddress = dsInfo.Address;
             serverPort = dsInfo.GamePort;
         }

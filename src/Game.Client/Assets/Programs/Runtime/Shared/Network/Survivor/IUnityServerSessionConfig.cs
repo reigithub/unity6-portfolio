@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
@@ -13,8 +14,6 @@ namespace Game.Shared.Network.Survivor
         /// <summary>接続ソース</summary>
         ConnectionSource ConnectionSource { get; }
 
-        ConnectionSource LastConnectionSource { get; }
-
         /// <summary>接続先サーバーアドレス。</summary>
         string ServerAddress { get; }
 
@@ -27,14 +26,27 @@ namespace Game.Shared.Network.Survivor
         /// <summary>セッショントークン（HMAC 認証用）。</summary>
         string SessionToken { get; }
 
-        /// <summary>期待プレイヤー数。SP=1、MP=ロビー設定値。</summary>
+        /// <summary>
+        /// ゲーム開始時点の実接続プレイヤー数
+        /// </summary>
         int PlayerCount { get; }
 
         /// <summary>
-        /// クライアント接続経路（Local / Remote / Matchmaking）が設定済みかどうかを返す。
+        /// ロビーホストの UserId
+        /// </summary>
+        string HostUserId { get; }
+
+        /// <summary>
+        /// クライアント接続経路（Local / Remote / Matchmaking / P2PClient）が設定済みかどうかを返す。
         /// SurvivorStageConnectScene の Phase 2 判定で使用する。
         /// </summary>
         bool IsClientConfigured { get; }
+
+        /// <summary>
+        /// Photon Cloud のリージョン識別子 (P2P 用、例: "jp", "us", "eu")。
+        /// null 時は PhotonAppSettings.FixedRegion にフォールバック。
+        /// </summary>
+        string PhotonRegion { get; }
 
         /// <summary>全パラメータを初期化する。未指定はデフォルト値で補完。</summary>
         void Configure(ConnectionSource source, string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
@@ -43,15 +55,27 @@ namespace Game.Shared.Network.Survivor
         void Configure(ConnectionSource source, MatchResult result, int playerCount);
 
         /// <summary>
-        /// 指定パラメータのみ上書きする。null は既存値を維持。
-        /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
+        /// MatchStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
+        /// LobbyHub.OnGameStarting 経由のゲーム開始フローで使用する。
         /// </summary>
-        void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null);
+        void Configure(ConnectionSource source, MatchStartInfo info, int playerCount);
+
+        /// <summary>
+        /// 指定パラメータのみ上書きする。null は既存値を維持。
+        /// Dedicated Server のセッション開始時に sessionName / playerCount / hostUserId を更新する用途で使用する。
+        /// </summary>
+        void UpdateConfigure(string address = null, ushort? port = null, string sessionName = null, string sessionToken = null, int? playerCount = null, string hostUserId = null);
 
         /// <summary>接続パラメータと期待プレイヤー数をリセットする。</summary>
         void Clear();
 
         /// <summary>指定アドレスがローカル（空文字 / localhost / 127.0.0.1）かどうかを判定する。</summary>
         bool IsLocalAddress(string address);
+
+        /// <summary>ロビーホストか判定する。</summary>
+        bool IsHostUserId(string userId);
+
+        /// <summary>マルチプレイか</summary>
+        bool IsMultiPlayer();
     }
 }

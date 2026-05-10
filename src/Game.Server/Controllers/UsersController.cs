@@ -26,7 +26,8 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMe()
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
@@ -40,7 +41,8 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateUserRequest request)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }

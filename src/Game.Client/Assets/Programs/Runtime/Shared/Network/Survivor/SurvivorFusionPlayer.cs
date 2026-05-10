@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Fusion;
 using Fusion.Addons.FSM;
 using Fusion.Addons.KCC;
@@ -185,6 +186,19 @@ namespace Game.Shared.Network.Survivor
             {
                 handler.BindFusionPlayer(this);
             }
+
+            // 症状 2 診断: Spawned から 10 秒経過時点での ChangeDetector 発火回数を出力。
+            // 0 回ならケース A (Networked 同期未到達) 確定。観察期間限定、症状 2 真因確定後の次 PR で削除。
+            DiagReportChangeDetectAfterDelay(this).Forget();
+        }
+
+        private static async UniTaskVoid DiagReportChangeDetectAfterDelay(SurvivorFusionPlayer self)
+        {
+            await UniTask.Delay(TimeSpan.FromSeconds(10), DelayType.Realtime);
+            if (self == null || self.Object == null || !self.Object.IsValid) return;
+            int localPid = self._runnerService?.Runner != null ? self._runnerService.Runner.LocalPlayer.PlayerId : -1;
+            Debug.Log($"[DIAG-ChangeDetect][LocalPid={localPid}] target={self.Object.InputAuthority}, " +
+                      $"fireCount={self._diagChangeDetectFireCount}, lastFrame={self._diagLastChangeFrame}");
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -414,6 +428,8 @@ namespace Game.Shared.Network.Survivor
 
             foreach (var change in _changeDetector.DetectChanges(this))
             {
+                _diagChangeDetectFireCount++;
+                _diagLastChangeFrame = Time.frameCount;
                 switch (change)
                 {
                     case nameof(Health):
@@ -425,6 +441,12 @@ namespace Game.Shared.Network.Survivor
                 }
             }
         }
+
+        // 症状 2 診断用 (観察期間限定): ChangeDetector の発火回数と最終フレームを記録する。
+        // ケース A (Spawn 後 N 秒経過しても 0 回発火 = Networked 同期未到達) の検出に使用。
+        // 症状 2 真因確定後の次 PR で削除すること。
+        private int _diagChangeDetectFireCount;
+        private int _diagLastChangeFrame = -1;
 
         // =====================================================================
         //  Client→Server RPC（InputAuthority のみ送信可能）
@@ -457,6 +479,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RpcClientRequestReturnToLobby(RpcInfo info = default)
+        {
+            if (TryGetGameState(out var gs))
+                gs.OnClientRequestReturnToLobby(info.Source);
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
         public void RpcClientWeaponChoice(int weaponId, NetworkBool isNewWeapon, RpcInfo info = default)
         {
             if (!ValidateAndClearWeaponChoice(weaponId))
@@ -471,11 +500,11 @@ namespace Game.Shared.Network.Survivor
         }
 
         [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        public void RpcClientWeaponReplace(int removeWeaponId, int newWeaponId, RpcInfo info = default)
         {
             if (TryGetGameState(out var gs))
             {
-                gs.OnClientWeaponReplace(removeWeaponId, newWeaponId);
+                gs.OnClientWeaponReplace(info.Source, removeWeaponId, newWeaponId);
             }
         }
 
@@ -505,6 +534,106 @@ namespace Game.Shared.Network.Survivor
                 gs.NotifyPlayerDied(info.Source);
                 gs.OnPlayerDied(info.Source);
             }
+        }
+
+        // =====================================================================
+        //  Host-safe ラッパー (Fusion 2 対策)
+        // =====================================================================
+        // Fusion 2 では [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)] を Host
+        // (InputAuthority == StateAuthority のケース) が呼んでも RPC handler がローカル実行されない。
+        // 代わりに Server 経路では GameState メソッドを直接呼び、Client 経路では従来通り RPC を送信する。
+        // =====================================================================
+
+        public void SendClientItemCollected(int networkId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientItemCollected(_runnerService.Runner.LocalPlayer, networkId);
+            else
+                RpcClientItemCollected(networkId);
+        }
+
+        public void SendClientHitReported(int enemyNetworkId, int weaponId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientHitReported(_runnerService.Runner.LocalPlayer, enemyNetworkId, weaponId);
+            else
+                RpcClientHitReported(enemyNetworkId, weaponId);
+        }
+
+        public void SendClientWeaponChoice(int weaponId, NetworkBool isNewWeapon)
+        {
+            if (IsHostInputAuthority(out var gs))
+            {
+                if (!ValidateAndClearWeaponChoice(weaponId))
+                {
+                    Debug.LogWarning($"[SurvivorFusionPlayer] Rejected invalid weapon choice (host): {weaponId}");
+                    return;
+                }
+                gs.OnClientWeaponChoice(_runnerService.Runner.LocalPlayer, weaponId, isNewWeapon);
+            }
+            else
+            {
+                RpcClientWeaponChoice(weaponId, isNewWeapon);
+            }
+        }
+
+        public void SendClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientWeaponReplace(_runnerService.Runner.LocalPlayer, removeWeaponId, newWeaponId);
+            else
+                RpcClientWeaponReplace(removeWeaponId, newWeaponId);
+        }
+
+        public void SendClientRequestPause()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestPause(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestPause();
+        }
+
+        public void SendClientRequestResume()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestResume(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestResume();
+        }
+
+        public void SendClientRequestReturnToLobby()
+        {
+            if (IsHostInputAuthority(out var gs))
+                gs.OnClientRequestReturnToLobby(_runnerService.Runner.LocalPlayer);
+            else
+                RpcClientRequestReturnToLobby();
+        }
+
+        public void SendClientPlayerDied()
+        {
+            if (IsHostInputAuthority(out var gs))
+            {
+                var localPlayer = _runnerService.Runner.LocalPlayer;
+                gs.NotifyPlayerDied(localPlayer);
+                gs.OnPlayerDied(localPlayer);
+            }
+            else
+            {
+                RpcClientPlayerDied();
+            }
+        }
+
+        /// <summary>
+        /// Host (Server 兼 InputAuthority) かつ GameState 取得可能か判定。
+        /// true の場合は RPC 経由ではなく直接 GameState メソッドを呼ぶ必要がある。
+        /// </summary>
+        private bool IsHostInputAuthority(out SurvivorFusionGameState gs)
+        {
+            gs = null;
+            return _runnerService != null
+                && _runnerService.IsServer
+                && Object.HasInputAuthority
+                && TryGetGameState(out gs);
         }
 
         // =====================================================================

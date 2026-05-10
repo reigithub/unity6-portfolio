@@ -10,7 +10,6 @@ using Game.Shared.Unity.Server;
 using MessagePipe;
 using UnityEngine;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -66,6 +65,7 @@ namespace Game.Shared.Network.Survivor
                     SessionName = sessionName,
                     Address = NetAddress.Any(),
                     ConnectionToken = null,
+                    PhotonRegion = _sessionConfig.PhotonRegion,
                 };
 
                 var result = await _runner.StartAsync(config);
@@ -83,7 +83,12 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        public async UniTask ConnectAsync(string address, ushort port, int stageId, string sessionToken = "")
+        /// <summary>
+        /// Client モードで Fusion セッションへ接続する。
+        /// 接続パラメータ (SessionName / Address / Port / SessionToken) は <c>IUnityServerSessionConfig</c> から取得する。
+        /// DS 経路 (Local/Remote/Matchmaking) と P2P 経路 (P2PClient) を <c>ConnectionSource</c> で内部分岐。
+        /// </summary>
+        public async UniTask ConnectAsync(int stageId)
         {
             if (_isConnecting || IsConnected) return;
             _isConnecting = true;
@@ -92,18 +97,24 @@ namespace Game.Shared.Network.Survivor
             {
                 _gameMode = GameMode.Client;
                 var sessionName = _sessionConfig.SessionName;
+                var source = _sessionConfig.ConnectionSource;
+                var isP2PClient = source == ConnectionSource.P2PClient;
 
                 EnsureRunner();
 
-                // セッショントークン（Base64 文字列）をバイナリに変換して ConnectionToken として送信
-                // サーバー側は MessagePack + HMAC-SHA256 バイナリ形式（~117B、128B 上限以内）
+                // P2PClient: ConnectionToken / PhotonRegion を使用、DS 用 SessionToken は不要
+                // DS (Local/Remote/Matchmaking): SessionToken (Base64) → MessagePack + HMAC-SHA256 バイナリへ変換
                 byte[] connectionToken = null;
-                if (!string.IsNullOrEmpty(sessionToken))
+                if (!isP2PClient)
                 {
-                    connectionToken = Convert.FromBase64String(sessionToken);
-                    if (connectionToken.Length > 128)
+                    var sessionToken = _sessionConfig.SessionToken;
+                    if (!string.IsNullOrEmpty(sessionToken))
                     {
-                        Debug.LogWarning($"[SurvivorFusionStageConnector] ConnectionToken {connectionToken.Length}B が 128B を超えています。トークンが Fusion に無視される可能性があります。");
+                        connectionToken = Convert.FromBase64String(sessionToken);
+                        if (connectionToken.Length > 128)
+                        {
+                            Debug.LogWarning($"[SurvivorFusionStageConnector] ConnectionToken {connectionToken.Length}B が 128B を超えています。トークンが Fusion に無視される可能性があります。");
+                        }
                     }
                 }
 
@@ -116,6 +127,7 @@ namespace Game.Shared.Network.Survivor
                     SessionName = sessionName,
                     Address = NetAddress.Any(),
                     ConnectionToken = connectionToken,
+                    PhotonRegion = isP2PClient ? _sessionConfig.PhotonRegion : null,
                 };
 
                 var result = await _runner.StartAsync(config);
@@ -123,7 +135,7 @@ namespace Game.Shared.Network.Survivor
                     throw new InvalidOperationException($"Fusion Client connect failed: {result.ShutdownReason}");
 
                 _runnerService.Initialize(_runner.Runner, _resolver);
-                Debug.Log($"[SurvivorFusionStageConnector] Connected to session: {sessionName}");
+                Debug.Log($"[SurvivorFusionStageConnector] Connected to session: {sessionName} (source={source})");
             }
             finally
             {
@@ -206,10 +218,6 @@ namespace Game.Shared.Network.Survivor
 
         public void Dispose() => DisconnectAsync().Forget();
 
-        // =====================================================================
-        //  プレハブ読み込み（Addressables）
-        // =====================================================================
-
         private async UniTask PreloadPrefabsAsync()
         {
             _gameStatePrefabAsset = await LoadPrefabIfNeededAsync(GameStateAddress, _gameStatePrefabAsset);
@@ -244,10 +252,6 @@ namespace Game.Shared.Network.Survivor
                 _enemyBatchSyncPrefabAsset = null;
             }
         }
-
-        // =====================================================================
-        //  内部
-        // =====================================================================
 
         private void EnsureRunner()
         {
@@ -287,8 +291,8 @@ namespace Game.Shared.Network.Survivor
         {
             if (_gameStatePrefabAsset == null) return;
 
-            var prefab = _gameStatePrefabAsset.GetComponent<NetworkObject>();
-            if (prefab == null) return;
+            if (!_gameStatePrefabAsset.TryGetComponent<NetworkObject>(out var prefab))
+                return;
 
             runner.Spawn(prefab);
             Debug.Log("[SurvivorFusionStageConnector] GameState spawned");
@@ -298,8 +302,8 @@ namespace Game.Shared.Network.Survivor
         {
             if (_enemyBatchSyncPrefabAsset == null) return;
 
-            var prefab = _enemyBatchSyncPrefabAsset.GetComponent<NetworkObject>();
-            if (prefab == null) return;
+            if (!_enemyBatchSyncPrefabAsset.TryGetComponent<NetworkObject>(out var prefab))
+                return;
 
             runner.Spawn(prefab);
             Debug.Log("[SurvivorFusionStageConnector] EnemyBatchSync spawned");

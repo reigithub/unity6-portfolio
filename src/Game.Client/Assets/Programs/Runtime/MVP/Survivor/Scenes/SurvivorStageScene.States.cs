@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using DG.Tweening;
-using Game.Client.MasterData;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
@@ -10,14 +8,12 @@ using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
-using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
-using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -37,13 +33,16 @@ namespace Game.MVP.Survivor.Scenes
             Victory,
             GameOver,
             Retry,
-            QuitToTitle
+            QuitToTitle,
+            ReturnToLobby,    // ホスト主導の Lobby 戻り (QuitToTitle と並列)
         }
 
         private StateMachine<SurvivorStageScene, StageEvent> _stateMachine;
         private bool _isResultSaved;
         private bool _retryOrQuit;
         private bool _pauseRequested;
+        private bool _returnToTitleRequested;
+        private bool _returnToLobbyRequested;
         private int _pendingLevelUpCount;
         private readonly Queue<SurvivorSignals.Player.LeveledUp> _pendingLevelUps = new();
 
@@ -67,6 +66,12 @@ namespace Game.MVP.Survivor.Scenes
             _stateMachine.AddTransition<ApparentDeathState, VictoryState>(StageEvent.Victory);
             _stateMachine.AddTransition<ApparentDeathState, GameOverState>(StageEvent.GameOver);
 
+            // ホスト主導の Lobby 戻り (QuitToTitle と並列)。
+            _stateMachine.AddTransition<PlayingState, ReturnToLobbyState>(StageEvent.ReturnToLobby);
+            _stateMachine.AddTransition<PausedState, ReturnToLobbyState>(StageEvent.ReturnToLobby);
+            _stateMachine.AddTransition<LevelUpState, ReturnToLobbyState>(StageEvent.ReturnToLobby);
+            _stateMachine.AddTransition<ApparentDeathState, ReturnToLobbyState>(StageEvent.ReturnToLobby);
+
             _stateMachine.SetInitState<ReadyState>();
         }
 
@@ -87,8 +92,26 @@ namespace Game.MVP.Survivor.Scenes
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
 
             protected bool TryGetLocalPlayer(out SurvivorFusionPlayer player)
+                => Context._runnerService.TryGetLocalPlayerComponent(out player);
+
+            /// <summary>ホスト主導 Lobby 戻り命令の判定。立っていれば ReturnToLobbyState に遷移する。</summary>
+            protected bool TryHandleQuit()
             {
-                return Context._runnerService.TryGetLocalPlayerComponent(out player);
+                if (Context._returnToLobbyRequested)
+                {
+                    Context._returnToLobbyRequested = false;
+                    Transition(StageEvent.ReturnToLobby);
+                    return true;
+                }
+
+                if (Context._returnToTitleRequested)
+                {
+                    Context._returnToTitleRequested = false;
+                    Transition(StageEvent.QuitToTitle);
+                    return true;
+                }
+
+                return false;
             }
         }
 
@@ -99,11 +122,20 @@ namespace Game.MVP.Survivor.Scenes
         private class ReadyState : StageStateBase
         {
             private bool _countdownComplete;
+            private UniTaskCompletionSource _countdownStartTcs;
+            private IDisposable _countdownStartedSubscription;
 
             public override void Enter()
             {
                 Debug.Log("[ReadyState] Enter");
                 _countdownComplete = false;
+                _countdownStartTcs = new UniTaskCompletionSource();
+
+                // Server からの Countdown 開始命令 (RpcNotifyCountdownStart) を購読。
+                // Initialize 完了通知 (RpcClientSceneReady) より前に登録することで、Server 側の RPC が
+                // 即座に届いても取りこぼさない。
+                _countdownStartedSubscription = Context._countdownStartedSub.Subscribe(_ =>
+                    _countdownStartTcs.TrySetResult());
 
                 // 暗転状態を維持（ステージ裏側が見えないように）
                 GameRootController?.SetFadeImmediate(1f);
@@ -118,7 +150,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 var readyAudioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
 
-                // ゲームコンポーネントの初期化
+                // === Phase 1: リソースロード ===
                 await View.InitializeWeaponManagerAsync(
                     StageModel.GetStartingWeaponId(),
                     StageModel.GetDamageMultiplier()
@@ -147,8 +179,23 @@ namespace Game.MVP.Survivor.Scenes
                     await fadeTweener.ToUniTask();
                 }
 
-                Debug.Log("[ReadyState] Showing countdown");
+                // === Phase 2: Loaded 通知 (Server へ) ===
+                // 本来の RpcClientSceneReady の責務 = リソースロード完了通知。
+                // 旧来は countdown 完了後に送信していたが、それでは Server がカウントダウン開始タイミングを
+                // 制御できないため、countdown 前に送信する形に変更。
+                if (TryGetLocalPlayer(out var localPlayer))
+                {
+                    localPlayer.RpcClientSceneReady();
+                    Debug.Log("[ReadyState] Loaded notification sent to server");
+                }
 
+                // === Phase 3: Server からの Countdown 開始命令を待機 ===
+                // Server は全 Client Loaded を確認してから NotifyCountdownStart を発火する。
+                // これにより全 Client (Host 含む) で同じタイミングで Countdown が開始される。
+                await _countdownStartTcs.Task;
+                Debug.Log("[ReadyState] Countdown start signal received from server");
+
+                // === Phase 4: Countdown 実行 (3.5s 固定、Realtime) ===
                 // カウントダウン中は時間を停止（敵スポーンやゲーム進行を防ぐ）
                 ApplicationEvents.PauseTime();
 
@@ -162,25 +209,24 @@ namespace Game.MVP.Survivor.Scenes
                 Debug.Log("[ReadyState] Countdown complete");
                 AudioService.PlayRandomOneAsync(AudioPlayTag.StageStart).Forget();
 
-                // サーバーに準備完了を通知（サーバーはこれを受けてゲーム開始）
-                if (TryGetLocalPlayer(out var localPlayer))
-                {
-                    localPlayer.RpcClientSceneReady();
-                }
-                Debug.Log("[ReadyState] Scene ready notification sent to server");
-
                 _countdownComplete = true;
             }
 
             public override void Update()
             {
+                if (TryHandleQuit()) return;
+
                 if (_countdownComplete)
                 {
                     Transition(StageEvent.StartGame);
                 }
             }
 
-            public override void Exit() => Debug.Log("[ReadyState] Exit");
+            public override void Exit()
+            {
+                _countdownStartedSubscription?.Dispose();
+                Debug.Log("[ReadyState] Exit");
+            }
 
             /// <summary>
             /// MP Client: ネットワークオブジェクトの初期化。
@@ -227,17 +273,12 @@ namespace Game.MVP.Survivor.Scenes
         private class PlayingState : StageStateBase
         {
             private bool _isFirstEntry = true;
-            private bool _disconnected;
 
             public override void Enter()
             {
                 Debug.Log($"[PlayingState] Enter ({Context._runnerService.GetDebugStatus()})");
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
-
-                _disconnected = false;
-
-                Context._runnerService.OnClientDisconnected += OnDisconnected;
 
                 if (_isFirstEntry)
                 {
@@ -252,13 +293,7 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
-                // 切断検知 → タイトルに戻る
-                if (_disconnected)
-                {
-                    _disconnected = false;
-                    Transition(StageEvent.QuitToTitle);
-                    return;
-                }
+                if (TryHandleQuit()) return;
 
                 // ポーズ・レベルアップはクライアントでもローカル処理
                 if (Context._pauseRequested)
@@ -283,15 +318,12 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // ポーズ中（自分の LevelUp/ESC、または他プレイヤーの LevelUp/ESC で停止中）は時計を進めない。
-                // 自分が PausedState/LevelUpState 中は Time.timeScale=0 で deltaTime=0 になるが、
-                // 他プレイヤーが Pause 中に自分が PlayingState のままだと Time.timeScale=1 のままになるため、
-                // Networked IsPaused を必ずチェックする必要がある。
-                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
-                if (!isPaused)
+                // GameTime は Server 権威 Networked プロパティ (SurvivorFusionGameState.GameTime) を Reactive Property にミラーするのみ。
+                // 各 Client での自走加算は禁止 (時計ずれ防止のため)。Pause 判定は Server 側 FixedUpdateNetwork で実施済み。
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
-                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                    NetworkStageModel.GameTime.Value = gs.GameTime;
+                    View.UpdateTime(gs.GameTime);
                 }
 
                 // 自プレイヤーが死亡 → 仮死状態 (ApparentDeath) へ遷移。
@@ -306,13 +338,6 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                Context._runnerService.OnClientDisconnected -= OnDisconnected;
-            }
-
-            private void OnDisconnected()
-            {
-                Debug.LogWarning("[PlayingState] Server disconnected");
-                _disconnected = true;
             }
         }
 
@@ -336,6 +361,8 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                if (TryHandleQuit()) return;
+
                 // サーバー権威の勝敗結果 (全員死亡 / 時間切れ / 全 Wave クリア) を監視
                 if (NetworkStageModel.HasNetworkResult)
                 {
@@ -344,13 +371,11 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // Wave/Time 表示更新は継続 (観戦状態)
-                // ただし他プレイヤーの LevelUp/ESC で全体ポーズ中は時計を止める（サーバー側と整合）
-                bool isPaused = Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs) && gs.IsEffectivelyPaused;
-                if (!isPaused)
+                // サーバー権威のゲーム経過時間
+                if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                 {
-                    NetworkStageModel.GameTime.Value += Time.deltaTime;
-                    View.UpdateTime(NetworkStageModel.GameTime.Value);
+                    NetworkStageModel.GameTime.Value = gs.GameTime;
+                    View.UpdateTime(gs.GameTime);
                 }
             }
 
@@ -381,6 +406,12 @@ namespace Game.MVP.Survivor.Scenes
                 ShowPauseDialogAsync().Forget();
             }
 
+            public override void Update()
+            {
+                // ダイアログ表示中もホスト主導 Lobby 戻り命令を拾う。
+                TryHandleQuit();
+            }
+
             private async UniTaskVoid ShowPauseDialogAsync()
             {
                 // ポーズダイアログを表示（Optionsはダイアログ内で処理される）
@@ -395,7 +426,7 @@ namespace Game.MVP.Survivor.Scenes
                         Transition(StageEvent.Retry);
                         break;
                     case SurvivorPauseResult.Quit:
-                        Transition(StageEvent.QuitToTitle);
+                        Context.OnRequestQuit();
                         break;
                 }
             }
@@ -430,6 +461,12 @@ namespace Game.MVP.Survivor.Scenes
                 // クライアント側の Pause RPC は不要 (Resume はサーバーが OnClientWeaponChoice 受信で自動解除)。
 
                 ShowLevelUpDialogAsync().Forget();
+            }
+
+            public override void Update()
+            {
+                // ダイアログ表示中もホスト主導 Lobby 戻り命令を拾う。
+                TryHandleQuit();
             }
 
             private async UniTaskVoid ShowLevelUpDialogAsync()
@@ -615,12 +652,12 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // クリア記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
+                var kills = StageModel.GetCappedKills(totalTargetKills);
                 var clearTime = NetworkStageModel.GameTime.Value;
                 var isTimeUp = NetworkStageModel.IsTimeUp;
-                var hpRatio = Context.GetHpRatio();
+                var hpRatio = StageModel.GetHpRatio();
 
                 Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
 
@@ -635,7 +672,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 // 遷移前に時間を再開
                 ApplicationEvents.ResumeTime();
-                await SceneService.TransitionAsync<SurvivorTotalResultScene>();
+                await SceneService.TransitionAsync<SurvivorTotalResultScene, bool>(Context._sessionConfig.IsMultiPlayer());
             }
 
             public override void Exit() => Debug.Log("[VictoryState] Exit");
@@ -674,7 +711,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
+                var kills = StageModel.GetCappedKills(Context._waveManager.TotalTargetKills);
                 var clearTime = NetworkStageModel.GameTime.Value;
                 var hpRatio = 0f; // ゲームオーバーなのでHP=0
 
@@ -692,7 +729,7 @@ namespace Game.MVP.Survivor.Scenes
 
                 // 遷移前に時間を再開
                 ApplicationEvents.ResumeTime();
-                await SceneService.TransitionAsync<SurvivorTotalResultScene>();
+                await SceneService.TransitionAsync<SurvivorTotalResultScene, bool>(Context._sessionConfig.IsMultiPlayer());
             }
 
             public override void Exit() => Debug.Log("[GameOverState] Exit");
@@ -772,6 +809,83 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             public override void Exit() => Debug.Log("[QuitToTitleState] Exit");
+        }
+
+        #endregion
+
+        #region ReturnToLobbyState
+
+        /// <summary>
+        /// ホスト主導の Lobby 戻り State。<see cref="QuitToTitleState"/> と対称的に Title ではなく
+        /// Lobby (LobbyRoomScene / LobbyScene) へ遷移する。
+        /// </summary>
+        private class ReturnToLobbyState : StageStateBase
+        {
+            public override void Enter()
+            {
+                Debug.Log("[ReturnToLobbyState] Enter");
+
+                Context._retryOrQuit = true;
+                Context._saveService.EndSession();
+                ApplicationEvents.ResumeTime();
+                ApplicationEvents.ShowCursor();
+                TransitionToLobbyAsync().Forget();
+            }
+
+            private async UniTaskVoid TransitionToLobbyAsync()
+            {
+                try
+                {
+                    await Context._saveService.SaveIfDirtyAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[ReturnToLobbyState] SaveIfDirty failed: {ex.Message}");
+                }
+
+                try
+                {
+                    await Context._networkConnector.DisconnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[ReturnToLobbyState] Disconnect failed: {ex.Message}");
+                }
+
+                Game.Library.Shared.Dto.LobbyInfo lobby = null;
+                try
+                {
+                    lobby = await Context._lobbyClient.GetMyLobbyAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[ReturnToLobbyState] GetMyLobby failed: {ex.Message}");
+                }
+
+                if (lobby != null && !string.IsNullOrEmpty(lobby.LobbyId))
+                {
+                    if (string.IsNullOrEmpty(Context._lobbyClient.CurrentLobbyId))
+                    {
+                        try
+                        {
+                            var playerName = Context._authSessionService.UserName ?? "Player";
+                            await Context._lobbyClient.ConnectToLobbyAsync(lobby.LobbyId, playerName);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[ReturnToLobbyState] Hub reconnect failed: {ex.Message}. Falling back to lobby list.");
+                            await SceneService.TransitionAsync<SurvivorLobbyScene>();
+                            return;
+                        }
+                    }
+                    await SceneService.TransitionAsync<SurvivorLobbyRoomScene>();
+                    return;
+                }
+
+                await SceneService.TransitionAsync<SurvivorLobbyScene>();
+            }
+
+            public override void Exit() => Debug.Log("[ReturnToLobbyState] Exit");
         }
 
         #endregion

@@ -75,6 +75,13 @@ namespace Game.Shared.Realtime.Client
         Task SetStageAsync(int stageId);
 
         /// <summary>
+        /// P2P Host が Photon セッション作成 + GameState Spawn 完了を Hub に通知する。
+        /// この通知後に Hub が残りクライアントへ OnGameStarting を broadcast する。
+        /// Host 以外が呼んだ場合 PermissionDenied (server 側で拒否)。
+        /// </summary>
+        Task NotifyHostReadyAsync();
+
+        /// <summary>
         /// 自分が参加中のロビーを取得（未参加時は null）
         /// </summary>
         Task<LobbyInfo> GetMyLobbyAsync();
@@ -100,9 +107,9 @@ namespace Game.Shared.Realtime.Client
         event Action<string, bool> OnPlayerReadyChanged;
 
         /// <summary>
-        /// ゲーム開始イベント (matchId, serverAddress, serverPort, sessionToken)
+        /// ゲーム開始イベント (DS / P2P 統一、Topology で受信側が分岐)
         /// </summary>
-        event Action<string, string, int, string> OnGameStarting;
+        event Action<MatchStartInfo> OnGameStarting;
 
         /// <summary>
         /// ロビー閉鎖イベント (reason)

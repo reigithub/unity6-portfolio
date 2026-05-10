@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Realtime.Services;
 using Medallion.Threading;
 using Microsoft.Extensions.Logging;
@@ -229,6 +230,76 @@ public class LobbyDataServiceTests
         Assert.Equal(2, result.CurrentPlayers);
         Assert.Equal(4, result.MaxPlayers);
         Assert.True(result.IsPublic);
+
+        // フィールド欠落時は default = Dedicated にフォールバック
+        Assert.Equal(NetworkTopology.DedicatedServer, result.NetworkTopology);
+    }
+
+    [Fact]
+    public async Task CreateAsync_StoresNetworkTopology_AsString()
+    {
+        // Arrange
+        HashEntry[]? capturedEntries = null;
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.Is<RedisKey>(k => k.ToString().StartsWith("lobby:") && !k.ToString().Contains(":players")),
+                It.IsAny<HashEntry[]>(),
+                It.IsAny<CommandFlags>()))
+            .Callback<RedisKey, HashEntry[], CommandFlags>((_, entries, _) => capturedEntries = entries)
+            .Returns(Task.CompletedTask);
+
+        _dbMock.Setup(x => x.HashSetAsync(
+                It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<RedisValue>(),
+                It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _dbMock.Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<Expiration>(),
+                It.IsAny<ValueCondition>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        _dbMock.Setup(x => x.SetAddAsync(
+                It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        // Act
+        await _service.CreateAsync("host1", "HostPlayer", "Test Lobby", "survival", 4, true, 1, NetworkTopology.PeerToPeer);
+
+        // Assert
+        Assert.NotNull(capturedEntries);
+        var topologyEntry = capturedEntries!.FirstOrDefault(e => e.Name.ToString() == "networkTopology");
+        Assert.Equal("PeerToPeer", topologyEntry.Value.ToString());
+    }
+
+    [Fact]
+    public async Task GetLobbyAsync_ParsesNetworkTopology_FromHash()
+    {
+        // Arrange
+        var hash = new HashEntry[]
+        {
+            new("name", "P2P Lobby"),
+            new("hostUserId", "host1"),
+            new("gameMode", "survival"),
+            new("maxPlayers", "4"),
+            new("isPublic", "1"),
+            new("networkTopology", "PeerToPeer"),
+        };
+
+        _batchMock.Setup(x => x.HashGetAllAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:p2plobby"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(hash);
+
+        _batchMock.Setup(x => x.HashLengthAsync(
+                It.Is<RedisKey>(k => k.ToString() == "lobby:p2plobby:players"),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.GetLobbyAsync("p2plobby");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(NetworkTopology.PeerToPeer, result!.NetworkTopology);
     }
 
     [Fact]

@@ -185,11 +185,18 @@ namespace Game.MVP.Survivor.Item
 
             item.OnCollected += OnItemCollectedHandler;
 
-            // サーバー側では Renderer を無効化（描画コスト削減）
+            // Server (DS / Host 両方) では Server-spawn された SurvivorItem の Renderer / Collider を無効化。
+            // - Renderer: Host では Client-side SurvivorItemView が ItemProxyCollectible を描画するため二重描画を防止
+            // - Collider: Host の UpdateItemAttraction OverlapSphere が SurvivorItem と Proxy の両方を検出すると、
+            //   先に検出された SurvivorItem.Collect() が _itemsByNetworkId から即削除し、
+            //   後続の Proxy 経由 Path A (RpcClientItemCollected) で TryGetItemByNetworkId が失敗して
+            //   Host の XP attribute が完全に失われる。Collider 無効化で Proxy のみを検出させる。
             if (_runnerService.IsServer)
             {
                 foreach (var r in instance.GetComponentsInChildren<Renderer>())
                     r.enabled = false;
+                foreach (var c in instance.GetComponentsInChildren<Collider>())
+                    c.enabled = false;
             }
 
             return item;

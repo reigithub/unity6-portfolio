@@ -276,6 +276,10 @@ namespace Game.MVP.Survivor.Enemy
 
         private void OnWaveChanged()
         {
+            // 症状切り分け診断 (観察期間限定): Wave 切替を EnemySpawner が検知したフレーム。
+            // 真因確定後の次 PR で削除すること。
+            Debug.Log($"[DIAG-EnemySpawnerWaveChanged] frame={Time.frameCount}, currentWave={_waveManager.CurrentWave.CurrentValue}");
+
             _currentSpawnInfo = _waveManager.GetSpawnInfo();
             _enemySpawnList = new List<WaveEnemySpawnInfo>(_waveManager.GetEnemySpawnList());
             _currentSpawnIndex = 0;

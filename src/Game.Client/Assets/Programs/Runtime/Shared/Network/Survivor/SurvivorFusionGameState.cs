@@ -17,6 +17,7 @@ namespace Game.Shared.Network.Survivor
     public class SurvivorFusionGameState : NetworkBehaviour
     {
         [Inject] private IFusionRunnerService _runnerService;
+        [Inject] private IUnityServerSessionConfig _sessionConfig;
 
         // --- MessagePipe Publishers ---
         // VContainer InjectGameObject で解決される。
@@ -36,9 +37,12 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Wave.Completed> _waveClearedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.AllCleared> _allWavesClearedPub;
         [Inject] private IPublisher<SurvivorSignals.Wave.TimeUp> _timeUpPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.CountdownStarted> _countdownStartedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.Started> _gameStartedSignalPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Ended> _gameEndedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Paused> _gamePausedPub;
         [Inject] private IPublisher<SurvivorSignals.Game.Resumed> _gameResumedPub;
+        [Inject] private IPublisher<SurvivorSignals.Game.ReturnToLobby> _returnToLobbyPub;
 
         // Connection / Session
         [Inject] private IPublisher<SurvivorSignals.Connection.PlayerConnected> _playerConnectedPub;
@@ -56,25 +60,25 @@ namespace Game.Shared.Network.Survivor
         [Inject] private IPublisher<SurvivorSignals.Item.CollectReported> _itemCollectReportedPub;
 
         // --- [Networked] 永続状態（遅延参加クライアント用） ---
+        [Networked] public float GameTime { get; set; }
+        [Networked] public NetworkBool IsRunning { get; set; }
+        [Networked] public NetworkBool IsPaused { get; set; }
 
         [Networked] public int CurrentWave { get; set; }
         [Networked] public int WaveTargetKills { get; set; }
         [Networked] public int WaveTotalEnemies { get; set; }
-        [Networked] public NetworkBool IsPaused { get; set; }
-
-        /// <summary>Despawn後も安全にアクセス可能なポーズ状態。Object未生存時はfalseを返す。</summary>
-        public bool IsEffectivelyPaused => Object != null && Object.IsValid && IsPaused;
 
         [Networked] public NetworkBool IsAllWavesCleared { get; set; }
         [Networked] public int StageId { get; set; }
         [Networked] public int PlayerId { get; set; }
 
-        // --- ChangeDetector（遅延参加クライアント向け状態同期） ---
+        /// <summary>Despawn後も安全にアクセス可能なポーズ状態。Object未生存時はfalseを返す。</summary>
+        public bool IsEffectivelyPaused => Object != null && Object.IsValid && IsPaused;
 
+        // --- ChangeDetector（遅延参加クライアント向け状態同期） ---
         private ChangeDetector _changeDetector;
 
         // --- サーバー側状態 ---
-
         private readonly HashSet<string> _deadPlayerIds = new();
         private readonly Dictionary<PlayerRef, string> _userIdByPlayerRef = new();
         private int _totalPlayerCount;
@@ -86,16 +90,30 @@ namespace Game.Shared.Network.Survivor
         private readonly HashSet<PlayerRef> _fieldSceneReadyPlayers = new();
 
         // =====================================================================
-        //  ライフサイクル
+        //  Fusion NetworkBehaviour ライフサイクル
         // =====================================================================
-
         public override void Spawned()
         {
             DontDestroyOnLoad(gameObject);
 
             _runnerService?.Register(this);
             _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+
+            if (HasStateAuthority)
+            {
+                GameTime = 0f;
+                IsRunning = false;
+            }
+
             Debug.Log($"[SurvivorFusionGameState] Spawned (StateAuth={HasStateAuthority}, DI={_waveStartedPub != null})");
+        }
+
+        public override void FixedUpdateNetwork()
+        {
+            if (HasStateAuthority && IsRunning && !IsPaused)
+            {
+                GameTime += Runner.DeltaTime;
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -104,7 +122,7 @@ namespace Game.Shared.Network.Survivor
             Destroy(gameObject);
         }
 
-        private void Update()
+        protected void Update()
         {
             if (!HasStateAuthority || _levelUpPausingPlayers.Count == 0) return;
 
@@ -140,6 +158,12 @@ namespace Game.Shared.Network.Survivor
                         else
                             _gameResumedPub?.Publish(new SurvivorSignals.Game.Resumed());
                         break;
+                    case nameof(IsRunning):
+                        Debug.Log($"[SurvivorFusionGameState] ChangeDetector: IsGameRunning={IsRunning}");
+                        if (IsRunning)
+                            _gameStartedSignalPub?.Publish(new SurvivorSignals.Game.Started());
+                        // false 時は Game.Ended で別途通知済みのため Publish 不要
+                        break;
                     case nameof(IsAllWavesCleared):
                         Debug.Log($"[SurvivorFusionGameState] ChangeDetector: IsAllWavesCleared={IsAllWavesCleared}");
                         if (IsAllWavesCleared)
@@ -147,6 +171,42 @@ namespace Game.Shared.Network.Survivor
                         break;
                 }
             }
+        }
+
+        // =====================================================================
+        //  ゲームライフサイクルイベント
+        // =====================================================================
+
+        /// <summary>
+        /// サーバー側: ゲーム実行開始 (= ServerPlayingState 入り) を全クライアントに通知。
+        /// <see cref="IsRunning"/> を true に更新し、ChangeDetector (Render) で検知・Publish する方式。
+        /// このメソッド経由でのみ <see cref="IsRunning"/> を更新すること (外部からの直接代入は禁止)。
+        /// 呼出後、<see cref="FixedUpdateNetwork"/> で <see cref="GameTime"/> の per-tick 加算が開始される。
+        /// </summary>
+        public void NotifyGameStarted()
+        {
+            if (!HasStateAuthority) return;
+            IsRunning = true;
+            // ChangeDetector (Render) が IsGameRunning 変更を検知して _gameStartedSignalPub に Publish
+        }
+
+        /// <summary>
+        /// サーバー側: カウントダウン開始命令を全クライアントに通知。
+        /// RPC ブロードキャスト方式 (NotifyGameEnded と同パターン)。
+        /// カウントダウン開始は一時的なイベントのため、[Networked] プロパティではなく RPC を使う。
+        /// 全 Client (Host 含む) が RPC 受信直後から Realtime 3.5 秒のカウントダウン Dialog を実行する。
+        /// </summary>
+        public void NotifyCountdownStart()
+        {
+            if (!HasStateAuthority) return;
+            RpcNotifyCountdownStart();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcNotifyCountdownStart()
+        {
+            Debug.Log("[SurvivorFusionGameState] RpcNotifyCountdownStart received");
+            _countdownStartedPub?.Publish(new SurvivorSignals.Game.CountdownStarted());
         }
 
         // =====================================================================
@@ -574,12 +634,21 @@ namespace Game.Shared.Network.Survivor
 
         /// <summary>
         /// サーバー側: マニュアルポーズ要求（ESC ダイアログ）。
+        /// ロビーホスト Client (= _sessionConfig.HostUserId と一致する UserId) のみ受け入れる。
+        /// 非ホスト Client からの要求は拒否 (Client 側 UX 抑制をすり抜けた改造 Client への防御)。
         /// HashSet 参照カウント方式: 複数プレイヤーが同時に ESC を押しても、
-        /// 全員が個別に Resume するまで Pause を維持する。
+        /// 全員が個別に Resume するまで Pause を維持する (現在はロビーホストのみ加わる前提)。
         /// </summary>
         public void OnClientRequestPause(PlayerRef source)
         {
             if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestPause rejected: non-host source={source}");
+                return;
+            }
+
             if (_manualPausingPlayers.Add(source))
             {
                 RecomputeIsPaused();
@@ -587,16 +656,66 @@ namespace Game.Shared.Network.Survivor
             }
         }
 
-        /// <summary>サーバー側: マニュアルポーズ解除</summary>
+        /// <summary>サーバー側: マニュアルポーズ解除 (ロビーホスト Client のみ受け入れ)</summary>
         public void OnClientRequestResume(PlayerRef source)
         {
             if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestResume rejected: non-host source={source}");
+                return;
+            }
+
             if (_manualPausingPlayers.Remove(source))
             {
                 RecomputeIsPaused();
                 Debug.Log($"[SurvivorFusionGameState] Manual resume: {source} (count={_manualPausingPlayers.Count})");
             }
         }
+
+        /// <summary>
+        /// サーバー側: Client から「ロビーへ戻る」リクエスト受信。
+        /// ロビーホスト Client のみ受け入れ (Pause と同じ判定)。
+        /// 受け入れた場合、NotifyReturnToLobby() で全 Client (ホスト含む) に RPC ブロードキャスト。
+        /// </summary>
+        public void OnClientRequestReturnToLobby(PlayerRef source)
+        {
+            if (!HasStateAuthority) return;
+
+            if (!IsLobbyHostPlayer(source))
+            {
+                Debug.LogWarning($"[SurvivorFusionGameState] OnClientRequestReturnToLobby rejected: non-host source={source}");
+                return;
+            }
+
+            Debug.Log($"[SurvivorFusionGameState] OnClientRequestReturnToLobby accepted from host source={source}");
+            NotifyReturnToLobby();
+        }
+
+        /// <summary>
+        /// サーバー側: ロビー戻り命令を全クライアントに通知。
+        /// RPC ブロードキャスト方式 (NotifyGameEnded と同パターン)。
+        /// 呼出後、全 Client (ホスト含む) が Photon Disconnect → Lobby 遷移を実行する。
+        /// </summary>
+        public void NotifyReturnToLobby()
+        {
+            if (!HasStateAuthority) return;
+            RpcNotifyReturnToLobby();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcNotifyReturnToLobby()
+        {
+            Debug.Log("[SurvivorFusionGameState] RpcNotifyReturnToLobby received");
+            _returnToLobbyPub?.Publish(new SurvivorSignals.Game.ReturnToLobby());
+        }
+
+        /// <summary>
+        /// 指定 PlayerRef がロビーホスト Client か判定
+        /// </summary>
+        private bool IsLobbyHostPlayer(PlayerRef source)
+            => TryGetUserId(source, out var sourceUserId) && _sessionConfig.IsHostUserId(sourceUserId);
 
         // =====================================================================
         //  サーバー側ロジック: 武器選択検証
@@ -617,8 +736,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         /// <summary>サーバー側: クライアントからの武器入れ替えを適用</summary>
-        public void OnClientWeaponReplace(int removeWeaponId, int newWeaponId)
+        public void OnClientWeaponReplace(PlayerRef source, int removeWeaponId, int newWeaponId)
         {
+            // LevelUp Pause を解除 (Choice と同様、Replace も LevelUp 完了の合図)。
+            // これを呼ばないと IsEffectivelyPaused が true のままになり、
+            // 全プレイヤーの移動・敵・武器エフェクトが停止する。
+            EndLevelUpPause(source);
+
             var request = new SurvivorWeaponApplyRequest
             {
                 WeaponId = newWeaponId,

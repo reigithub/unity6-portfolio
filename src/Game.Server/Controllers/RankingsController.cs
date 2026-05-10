@@ -44,7 +44,8 @@ public class RankingsController : ControllerBase
     {
         _survivorValidator.ValidateStageId(stageId);
 
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }

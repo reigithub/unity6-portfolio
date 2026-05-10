@@ -24,10 +24,9 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorLobbyRoomScene";
 
         private bool _isReady;
+        private bool _isExitingLobby;
         private string _currentLobbyId;
-        private int _maxPlayers = 4;
         private int _stageId = 1;
-        private string _hostUserId;
 
         public override async UniTask Startup()
         {
@@ -44,10 +43,6 @@ namespace Game.MVP.Survivor.Scenes
 
             SceneComponent.OnLeaveClicked
                 .Subscribe(_ => OnLeave().Forget())
-                .AddTo(Disposables);
-
-            SceneComponent.OnStageChangeClicked
-                .Subscribe(stageId => OnStageChange(stageId).Forget())
                 .AddTo(Disposables);
 
             // LobbyClient イベント購読
@@ -71,7 +66,6 @@ namespace Game.MVP.Survivor.Scenes
             _lobbyClient.OnPlayerReadyChanged += HandlePlayerReadyChanged;
             _lobbyClient.OnGameStarting += HandleGameStarting;
             _lobbyClient.OnLobbyClosed += HandleLobbyClosed;
-            _lobbyClient.OnStageChanged += HandleStageChanged;
             _lobbyClient.OnDisconnected += HandleDisconnected;
         }
 
@@ -83,7 +77,6 @@ namespace Game.MVP.Survivor.Scenes
             _lobbyClient.OnPlayerReadyChanged -= HandlePlayerReadyChanged;
             _lobbyClient.OnGameStarting -= HandleGameStarting;
             _lobbyClient.OnLobbyClosed -= HandleLobbyClosed;
-            _lobbyClient.OnStageChanged -= HandleStageChanged;
             _lobbyClient.OnDisconnected -= HandleDisconnected;
         }
 
@@ -100,16 +93,8 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 var lobbyInfo = await _lobbyClient.GetLobbyInfoAsync(_currentLobbyId);
-                _maxPlayers = lobbyInfo.MaxPlayers;
                 _stageId = lobbyInfo.StageId;
-                _hostUserId = lobbyInfo.HostUserId;
                 SceneComponent.SetLobbyInfo(lobbyInfo.LobbyName, lobbyInfo.MaxPlayers);
-                SceneComponent.SetStageInfo(_stageId);
-
-                // ロビーホスト（部屋主）のみステージ変更ボタンを表示
-                // ※ ここでの「ホスト」は MagicOnion ロビーのオーナー概念であり、Fusion GameMode.Host とは別
-                var myUserId = _authSessionService.UserId;
-                SceneComponent.SetStageChangeVisible(_hostUserId == myUserId);
 
                 var playerList = await _lobbyClient.GetLobbyPlayersAsync(_currentLobbyId);
                 SceneComponent.InitializePlayers(playerList);
@@ -141,9 +126,9 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.UpdatePlayerReady(userId, isReady);
         }
 
-        private void HandleGameStarting(string matchId, string serverAddress, int port, string sessionToken)
+        private void HandleGameStarting(MatchStartInfo info)
         {
-            OnGameStarting(matchId, serverAddress, port, sessionToken).Forget();
+            OnGameStarting(info).Forget();
         }
 
         private void HandleLobbyClosed(string reason)
@@ -151,28 +136,9 @@ namespace Game.MVP.Survivor.Scenes
             OnLobbyClosed(reason).Forget();
         }
 
-        private void HandleStageChanged(int stageId, string changedByUserId)
-        {
-            _stageId = stageId;
-            SceneComponent.SetStageInfo(stageId);
-            SceneComponent.AddChatMessage("System", $"Stage changed to {stageId}");
-        }
-
         private void HandleDisconnected(string reason)
         {
             OnDisconnectedFromLobby(reason).Forget();
-        }
-
-        private async UniTaskVoid OnStageChange(int stageId)
-        {
-            try
-            {
-                await _lobbyClient.SetStageAsync(stageId);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[SurvivorLobbyRoomScene] Failed to change stage: {ex.Message}");
-            }
         }
 
         private async UniTaskVoid OnReady()
@@ -211,6 +177,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnLeave()
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             SceneComponent.SetInteractables(false);
 
             try
@@ -226,35 +195,44 @@ namespace Game.MVP.Survivor.Scenes
             await _sceneService.TransitionAsync<SurvivorLobbyScene>();
         }
 
-        private async UniTaskVoid OnGameStarting(string matchId, string serverAddress, int port, string sessionToken)
+        private async UniTaskVoid OnGameStarting(MatchStartInfo info)
         {
-            Debug.Log($"[SurvivorLobbyRoomScene] Game starting! MatchId: {matchId}, Server: {serverAddress}:{port}");
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
+            Debug.Log($"[SurvivorLobbyRoomScene] Game starting! Topology: {info.Topology}, Session: {info.SessionName}");
             SceneComponent.SetInteractables(false);
-            SceneComponent.ShowNotification("Game starting...");
+            SceneComponent.ShowNotification($"Game starting ({info.Topology})...");
 
-            var matchResult = new MatchResult
+            // Topology に応じて ConnectionSource を決定
+            ConnectionSource source;
+            if (info.Topology == NetworkTopology.PeerToPeer)
             {
-                MatchId = matchId,
-                PlayerIds = System.Array.Empty<string>(),
-                ServerAddress = serverAddress,
-                ServerPort = port,
-                SessionToken = sessionToken,
-                StageId = _stageId,
-            };
+                var myUserId = _authSessionService.UserId;
+                var isHost = myUserId == info.HostUserId;
+                source = isHost ? ConnectionSource.P2PHost : ConnectionSource.P2PClient;
+            }
+            else
+            {
+                source = ConnectionSource.Matchmaking;
+            }
 
-            // マッチメイキング結果をトークン含めて設定
-            _sessionConfig.Configure(ConnectionSource.Matchmaking, matchResult, _maxPlayers);
+            _sessionConfig.Configure(source, info, info.PlayerCount);
 
             // セッション開始（stageId はロビー情報から取得）
             var playerId = _saveService.Data.SelectedPlayerId;
             _saveService.StartSession(_stageId, playerId);
             await _saveService.SaveIfDirtyAsync();
 
+            Debug.Log($"[SurvivorLobbyRoomScene] Transitioning to StageConnectScene (topology={info.Topology}, source={source}, session={info.SessionName}, region={info.PhotonRegion})");
             await _sceneService.TransitionAsync<SurvivorStageConnectScene>();
         }
 
         private async UniTaskVoid OnLobbyClosed(string reason)
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             Debug.Log($"[SurvivorLobbyRoomScene] Lobby closed: {reason}");
             SceneComponent.ShowNotification($"Lobby closed: {reason}");
             SceneComponent.SetInteractables(false);
@@ -266,6 +244,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTaskVoid OnDisconnectedFromLobby(string reason)
         {
+            if (_isExitingLobby) return;
+            _isExitingLobby = true;
+
             Debug.LogWarning($"[SurvivorLobbyRoomScene] Disconnected: {reason}");
             SceneComponent.ShowNotification($"Disconnected: {reason}");
             SceneComponent.SetInteractables(false);

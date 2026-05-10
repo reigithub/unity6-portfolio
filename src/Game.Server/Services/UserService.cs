@@ -15,9 +15,9 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
-    public async Task<UserResponse?> GetUserAsync(Guid id)
+    public async Task<UserResponse?> GetUserAsync(string userId)
     {
-        var user = await _userRepository.GetByIdAsync(id);
+        var user = await _userRepository.GetByUserIdAsync(userId);
         if (user == null)
         {
             return null;
@@ -36,9 +36,9 @@ public class UserService : IUserService
     }
 
     public async Task<Result<UserResponse, ApiError>> UpdateUserAsync(
-        Guid id, UpdateUserRequest request)
+        string userId, UpdateUserRequest request)
     {
-        var user = await _userRepository.GetByIdAsync(id);
+        var user = await _userRepository.GetByUserIdAsync(userId);
         if (user == null)
         {
             return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
@@ -47,7 +47,7 @@ public class UserService : IUserService
         if (!string.IsNullOrEmpty(request.UserName))
         {
             var existing = await _userRepository.GetByUserNameAsync(request.UserName);
-            if (existing != null && existing.Id != id)
+            if (existing != null && existing.Id != user.Id)
             {
                 return new ApiError("UserName already exists", "DUPLICATE_NAME", StatusCodes.Status409Conflict);
             }

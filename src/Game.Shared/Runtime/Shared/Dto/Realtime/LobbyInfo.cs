@@ -28,5 +28,12 @@ namespace Game.Library.Shared.Dto
 
         [Key(7)]
         public int StageId { get; set; }
+
+        /// <summary>
+        /// ネットワークトポロジ (DS / P2P)。デフォルトは Dedicated。
+        /// 既存ロビー (フィールド欠落) は default(NetworkTopology) = Dedicated として復元。
+        /// </summary>
+        [Key(8)]
+        public NetworkTopology NetworkTopology { get; set; } = NetworkTopology.DedicatedServer;
     }
 }

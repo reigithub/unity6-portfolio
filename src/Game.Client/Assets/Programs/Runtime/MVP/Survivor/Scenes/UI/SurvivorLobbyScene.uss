@@ -202,8 +202,8 @@
    =========================================== */
 
 .action-panel {
-    width: 380px;
-    min-width: 340px;
+    width: 456px;
+    min-width: 408px;
 }
 
 .action-section {
@@ -211,16 +211,16 @@
     border-radius: 16px;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.15);
-    padding: 24px;
-    margin-bottom: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
 }
 
 .section-title {
-    font-size: 18px;
+    font-size: 22px;
     color: rgba(255, 255, 255, 0.7);
     -unity-font-style: bold;
     letter-spacing: 3px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 /* ===========================================
@@ -228,13 +228,13 @@
    =========================================== */
 
 .text-field {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 .text-field > Label {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
-    min-width: 100px;
+    font-size: 17px;
+    min-width: 120px;
 }
 
 .text-field > .unity-text-field__input {
@@ -242,8 +242,8 @@
     border-color: rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     color: rgb(255, 255, 255);
-    font-size: 16px;
-    padding: 8px 12px;
+    font-size: 19px;
+    padding: 10px 14px;
 }
 
 .text-field > .unity-text-field__input:focus {
@@ -251,13 +251,21 @@
 }
 
 .slider-field {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .slider-field > Label {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
-    min-width: 100px;
+    font-size: 17px;
+    min-width: 120px;
+}
+
+/* RadioButtonGroup (Mode) の選択肢ラベルが Unity デフォルトで黒文字 → 白文字に上書き */
+.slider-field RadioButton Label,
+.slider-field .unity-radio-button__text,
+.slider-field .unity-radio-button-group__container Label {
+    color: rgb(255, 255, 255);
+    font-size: 16px;
 }
 
 /* ===========================================
@@ -265,8 +273,8 @@
    =========================================== */
 
 .menu-button {
-    height: 56px;
-    font-size: 22px;
+    height: 67px;
+    font-size: 26px;
     color: rgb(255, 255, 255);
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: 14px;

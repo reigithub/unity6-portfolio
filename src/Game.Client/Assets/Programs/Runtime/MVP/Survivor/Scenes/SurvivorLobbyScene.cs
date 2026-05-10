@@ -35,7 +35,7 @@ namespace Game.MVP.Survivor.Scenes
 
             // View イベント購読
             SceneComponent.OnCreateClicked
-                .Subscribe(args => OnCreate(args.lobbyName, args.maxPlayers, args.stageId).Forget())
+                .Subscribe(args => OnCreate(args).Forget())
                 .AddTo(Disposables);
 
             SceneComponent.OnJoinClicked
@@ -118,7 +118,7 @@ namespace Game.MVP.Survivor.Scenes
             }
         }
 
-        private async UniTaskVoid OnCreate(string lobbyName, int maxPlayers, int stageId)
+        private async UniTaskVoid OnCreate(CreateLobbyArgs args)
         {
             SceneComponent.SetInteractables(false);
             SceneComponent.ClearError();
@@ -128,12 +128,13 @@ namespace Game.MVP.Survivor.Scenes
                 var playerName = _authSessionService.UserName ?? "Player";
                 var request = new CreateLobbyRequest
                 {
-                    LobbyName = lobbyName,
+                    LobbyName = args.LobbyName,
                     GameMode = "survival",
-                    MaxPlayers = maxPlayers,
+                    MaxPlayers = args.MaxPlayers,
                     IsPublic = true,
                     PlayerName = playerName,
-                    StageId = stageId
+                    StageId = args.StageId,
+                    NetworkTopology = args.Topology,
                 };
 
                 var response = await _lobbyClient.CreateLobbyAsync(request);
@@ -144,7 +145,7 @@ namespace Game.MVP.Survivor.Scenes
                     return;
                 }
 
-                // Hub 接続前に refresh を保証 (Scenario D 補完対策、主防御は Periodic loop)
+                // Hub 接続前に refresh を保証 (補完対策、主防御は Periodic loop)
                 await _authSessionRefresher.EnsureFreshAsync();
 
                 // Hub 接続してロビールームへ遷移

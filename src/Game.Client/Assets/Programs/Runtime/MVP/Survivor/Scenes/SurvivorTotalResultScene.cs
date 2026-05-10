@@ -18,7 +18,7 @@ namespace Game.MVP.Survivor.Scenes
     /// Survivor総合リザルトシーン（Presenter）
     /// 全ステージの結果を表示し、ゲームセッションを終了する
     /// </summary>
-    public class SurvivorTotalResultScene : GamePrefabScene<SurvivorTotalResultScene, SurvivorTotalResultSceneComponent>
+    public class SurvivorTotalResultScene : GamePrefabScene<SurvivorTotalResultScene, SurvivorTotalResultSceneComponent>, IGameSceneArg<bool>
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IAudioService _audioService;
@@ -30,7 +30,6 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IQueueNotificationService _queueNotificationService;
         [Inject] private readonly IRequestQueue _requestQueue;
         [Inject] private readonly ISurvivorNetworkStageConnector _networkConnector;
-        [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly ILobbyClient _lobbyClient;
 
         private readonly TotalResultSceneViewModel _viewModel = new();
@@ -38,6 +37,13 @@ namespace Game.MVP.Survivor.Scenes
         protected override string AssetPathOrAddress => "SurvivorTotalResultScene";
 
         private bool _isVictory;
+        private bool _isMultiPlayer;
+
+        public UniTask ArgHandle(bool isMultiPlayer)
+        {
+            _isMultiPlayer = isMultiPlayer;
+            return UniTask.CompletedTask;
+        }
 
         public override async UniTask Startup()
         {
@@ -66,8 +72,9 @@ namespace Game.MVP.Survivor.Scenes
                 isVictory: _isVictory
             );
 
-            bool isMultiplayer = _sessionConfig.LastConnectionSource is ConnectionSource.Matchmaking;
-            SceneComponent.SetDisplayButtons(isMultiplayer);
+            // P2P (Host / Client) も Matchmaking と同じくマルチプレイヤー扱いにし、
+            // RETURN TO LOBBY ボタン表示でロビーに戻れるようにする。
+            SceneComponent.SetDisplayButtons(_isMultiPlayer);
 
             // Viewイベントを購読 (SP 用ボタン)
             SceneComponent.OnRetryClicked

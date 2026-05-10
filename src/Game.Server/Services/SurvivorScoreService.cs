@@ -13,31 +13,40 @@ public class SurvivorScoreService : ISurvivorScoreService
     private readonly IRankingRepository _rankingRepository;
     private readonly IRankingService _rankingService;
     private readonly ISurvivorValidator _survivorValidator;
+    private readonly IUserRepository _userRepository;
 
     public SurvivorScoreService(
         ISurvivorScoreRepository scoreRepository,
         IRankingRepository rankingRepository,
         IRankingService rankingService,
-        ISurvivorValidator survivorValidator)
+        ISurvivorValidator survivorValidator,
+        IUserRepository userRepository)
     {
         _scoreRepository = scoreRepository;
         _rankingRepository = rankingRepository;
         _rankingService = rankingService;
         _survivorValidator = survivorValidator;
+        _userRepository = userRepository;
     }
 
     public async Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(
-        Guid userId, ScoreSubmitDto request)
+        string userId, ScoreSubmitDto request)
     {
         _survivorValidator.ValidateScoreSubmit(request);
         // ErrorException("INVALID_SCORE") は ExceptionHandlingMiddleware が処理
 
+        var user = await _userRepository.GetByUserIdAsync(userId);
+        if (user == null)
+        {
+            return new ApiError("User not found", "USER_NOT_FOUND", StatusCodes.Status404NotFound);
+        }
+
         var previousBest = await _rankingRepository.GetUserBestScoreAsync(
-            request.StageId, userId);
+            request.StageId, user.Id);
 
         var score = new SurvivorScore
         {
-            UserId = userId,
+            UserId = user.Id,
             StageId = request.StageId,
             Score = request.Score,
             ClearTime = request.ClearTime,
@@ -56,7 +65,7 @@ public class SurvivorScoreService : ISurvivorScoreService
         }
 
         int currentRank = await _rankingRepository.GetUserRankAsync(
-            request.StageId, userId);
+            request.StageId, user.Id);
 
         return new SurvivorScoreSubmitResponse
         {
@@ -67,9 +76,14 @@ public class SurvivorScoreService : ISurvivorScoreService
     }
 
     public async Task<List<SurvivorScoreHistoryEntry>> GetUserScoresAsync(
-        Guid userId, int? stageId, int limit)
+        string userId, int? stageId, int limit)
     {
-        var scores = await _scoreRepository.GetUserScoresAsync(userId, stageId, limit);
+        var user = await _userRepository.GetByUserIdAsync(userId);
+        if (user == null)
+        {
+            return new List<SurvivorScoreHistoryEntry>();
+        }
+        var scores = await _scoreRepository.GetUserScoresAsync(user.Id, stageId, limit);
 
         return scores.Select(s => new SurvivorScoreHistoryEntry
         {

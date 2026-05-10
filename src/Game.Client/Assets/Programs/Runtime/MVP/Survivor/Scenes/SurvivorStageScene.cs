@@ -7,12 +7,11 @@ using Game.MVP.Survivor.Scenes.Models;
 using Game.MVP.Survivor.SaveData;
 using Game.MVP.Survivor.Services;
 using Game.MVP.Survivor.Enemy;
-using Game.MVP.Survivor.Weapon;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
-using Game.Shared.Extensions;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Network.Survivor;
+using Game.Shared.Realtime.Client;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
@@ -22,7 +21,6 @@ using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
-using VContainer.Unity;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -60,13 +58,16 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly ISubscriber<SurvivorSignals.Player.Revived> _revivedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Paused> _gamePausedSub;
         [Inject] private readonly ISubscriber<SurvivorSignals.Game.Resumed> _gameResumedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.CountdownStarted> _countdownStartedSub;
+        [Inject] private readonly ISubscriber<SurvivorSignals.Game.ReturnToLobby> _returnToLobbySub;
+        [Inject] private readonly ILobbyClient _lobbyClient;
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
+        private SurvivorStageWaveManager _waveManager;
 
         /// <summary>自分の UserId（シグナル受信時のフィルタに使用）</summary>
         private string MyUserId => _authSessionService?.UserId ?? string.Empty;
-        private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
@@ -120,12 +121,11 @@ namespace Game.MVP.Survivor.Scenes
             // サーバーはこの通知を受けてからプレイヤーをスポーンする（アクティブシーン = 物理シーン保証）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
+                var localPlayer = _runnerService.Runner.LocalPlayer;
+                if (localPlayer.IsRealPlayer) gs.RegisterPlayerUserId(localPlayer, MyUserId);
+
                 // 自分の UserId をサーバーに登録 (per-player シグナル識別に必要)
-                var myUserId = _authSessionService?.UserId ?? string.Empty;
-                if (!string.IsNullOrEmpty(myUserId))
-                {
-                    gs.RpcRegisterPlayerUserId(myUserId);
-                }
+                gs.RpcRegisterPlayerUserId(MyUserId);
                 gs.RpcNotifyFieldSceneLoaded();
             }
 
@@ -213,8 +213,14 @@ namespace Game.MVP.Survivor.Scenes
 
         private void SubscribeEvents()
         {
+            _runnerService.OnClientDisconnected += OnRequestQuit;
+            Disposables.Add(Disposable.Create(() => _runnerService.OnClientDisconnected -= OnRequestQuit));
+
             SceneComponent.OnPauseClicked
-                .Subscribe(_ => _pauseRequested = true)
+                .Subscribe(_ =>
+                {
+                    if (_sessionConfig.IsHostUserId(MyUserId)) _pauseRequested = true;
+                })
                 .AddTo(Disposables);
 
             // キルカウントはWaveManagerのOnKillCountedを使用（目標数を超える加算を防ぐ）
@@ -238,7 +244,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Where(_ => Application.isPlaying)
                 .Subscribe(_ =>
                 {
-                    if (_inputService.UI.Escape.WasPressedThisFrame())
+                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Escape.WasPressedThisFrame())
                         _pauseRequested = true;
 
                     if (_pauseRequested) return;
@@ -317,7 +323,7 @@ namespace Game.MVP.Survivor.Scenes
                 SceneComponent.UpdateWave(s.WaveNumber, _waveManager.TotalWaves);
                 _waveManager.UpdateClientWaveDisplay(s.TargetKillCount, s.EnemyCount);
 
-                if (s.WaveNumber > 0 && _networkStageModel.GameTime.Value > 0)
+                if (s.WaveNumber > 0)
                 {
                     SceneComponent.ShowWaveBanner(s.WaveNumber, _waveManager.TotalWaves, s.TargetKillCount);
                 }
@@ -395,8 +401,6 @@ namespace Game.MVP.Survivor.Scenes
             }).AddTo(Disposables);
 
             // サーバー権威の Pause を全クライアントで受け取り、自プレイヤーの入力を完全停止する。
-            // VS Co-op 仕様: 武器選択中は全プレイヤーの入力が一時停止される。
-            // 自分が LevelUp 中でなくても、他プレイヤーが LevelUp 中ならここで入力が止まる。
             _gamePausedSub.Subscribe(_ =>
             {
                 _inputService.DisablePlayer();
@@ -406,6 +410,10 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _inputService.EnablePlayer();
             }).AddTo(Disposables);
+
+            _returnToLobbySub
+                .Subscribe(_ => _returnToLobbyRequested = true)
+                .AddTo(Disposables);
         }
 
         private void SetupAutoSave()
@@ -564,21 +572,20 @@ namespace Game.MVP.Survivor.Scenes
             await UniTask.Yield();
         }
 
-        /// <summary>
-        /// HP割合を計算（0.0 ~ 1.0）
-        /// </summary>
-        private float GetHpRatio()
+        private void OnRequestQuit()
         {
-            var maxHp = _stageModel.MaxHp.Value;
-            return maxHp > 0 ? (float)_stageModel.CurrentHp.Value / maxHp : 0f;
-        }
+            if (_sessionConfig.IsMultiPlayer())
+            {
+                // TODO: DSがサーバー権限をもつため、ロビーホスト(クライアント)が他のプレイヤーへロビー帰還を送信できない(将来対応)
+                if (_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer))
+                    localPlayer.SendClientRequestReturnToLobby();
 
-        /// <summary>
-        /// キル数をキャップして取得
-        /// </summary>
-        private int GetCappedKills()
-        {
-            return Math.Min(_stageModel.TotalKills.Value, _waveManager.TotalTargetKills);
+                _returnToLobbyRequested = true;
+            }
+            else
+            {
+                _returnToTitleRequested = true;
+            }
         }
     }
 }

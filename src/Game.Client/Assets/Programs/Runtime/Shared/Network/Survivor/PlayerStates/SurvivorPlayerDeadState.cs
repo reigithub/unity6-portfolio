@@ -19,10 +19,11 @@ namespace Game.Shared.Network.Survivor
         {
             Debug.Log("[SurvivorPlayerDeadState] Player died");
 
-            // InputAuthority が死亡 RPC を送信 → サーバーが全クライアントにブロードキャスト
+            // InputAuthority が死亡通知を送信 → サーバーが全クライアントにブロードキャスト
+            // (Host-safe: Server 経路では直接 GameState を呼び、Client 経路では RPC を送信)
             if (_player.HasInputAuthority)
             {
-                _player.RpcClientPlayerDied();
+                _player.SendClientPlayerDied();
             }
         }
     }

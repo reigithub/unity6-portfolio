@@ -18,6 +18,14 @@ public static class TestDataFixture
     public static readonly Guid EmailUserId = Guid.Parse("00000000-0000-0000-0000-000000000005");
     public static readonly Guid GuestWithTransferPasswordId = Guid.Parse("00000000-0000-0000-0000-000000000006");
 
+    // Public string identifiers (user.UserId — JWT sub と同値、外部公開チャネルで使用)
+    public const string User1IdString = "000000000001";
+    public const string User2IdString = "000000000002";
+    public const string User3IdString = "000000000003";
+    public const string GuestUserIdString = "000000000004";
+    public const string EmailUserIdString = "000000000005";
+    public const string GuestWithTransferPasswordIdString = "000000000006";
+
     public static readonly JwtSettings TestJwtSettings = new()
     {
         Secret = "test-secret-key-must-be-at-least-32-characters-long!",

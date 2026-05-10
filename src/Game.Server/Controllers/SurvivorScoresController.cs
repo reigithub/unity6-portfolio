@@ -29,7 +29,8 @@ public class SurvivorScoresController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SubmitScore([FromBody] ScoreSubmitDto request)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
@@ -53,7 +54,8 @@ public class SurvivorScoresController : ControllerBase
         }
         _survivorValidator.ValidateLimit(limit);
 
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }

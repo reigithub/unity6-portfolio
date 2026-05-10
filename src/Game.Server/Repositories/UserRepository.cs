@@ -24,6 +24,16 @@ public class UserRepository : IUserRepository
             transaction: _dbSession.Transaction);
     }
 
+    public async Task<UserInfo?> GetByUserIdAsync(string userId)
+    {
+        return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(
+            @"SELECT ""Id"", ""UserId"", ""UserName"", ""PasswordHash"", ""TransferPasswordHash"", ""Level"", ""RegisteredAt"", ""LastLoginAt"",
+                     ""Email"", ""AuthType"", ""CreatedAt"", ""UpdatedAt""
+              FROM ""User"".""UserInfo"" WHERE ""UserId"" = @UserId",
+            new { UserId = userId },
+            transaction: _dbSession.Transaction);
+    }
+
     public async Task<UserInfo?> GetByUserNameAsync(string displayName)
     {
         return await _dbSession.Connection.QueryFirstOrDefaultAsync<UserInfo>(

@@ -96,6 +96,9 @@ namespace Game.MVP.Survivor.Player
         private float _accumulatedMoveDirectionSize;
         private float _lastCameraRotationY;
 
+        // 症状 2 診断用 (観察期間限定): SyncFromNetworkedState の初回発火を検出してログ出力する
+        private bool _firstSyncLogged;
+
         #region MonoBehaviour Methods
 
         private void Awake()
@@ -164,6 +167,25 @@ namespace Game.MVP.Survivor.Player
                     return input;
                 };
             }
+
+            // 症状 2 真因切り分け用診断ログ: Spawned()→BindFusionPlayer 時点で
+            // Networked 初期値が同期済みか default 0 か可視化する。
+            // 観察期間限定。症状 2 真因確定後の次 PR で削除すること。
+            var localPid = _runnerService.Runner != null ? _runnerService.Runner.LocalPlayer.PlayerId : -1;
+            Debug.Log($"[DIAG-Bind][LocalPid={localPid}] target={fusionPlayer.Object.InputAuthority}, " +
+                      $"hasInputAuth={fusionPlayer.HasInputAuthority}, hasStateAuth={fusionPlayer.HasStateAuthority}, " +
+                      $"Health={fusionPlayer.Health}, Stamina={fusionPlayer.Stamina}, " +
+                      $"Speed={fusionPlayer.Speed}, IsInvincible={fusionPlayer.IsInvincible}, " +
+                      $"frame={Time.frameCount}");
+
+            // 症状 2 (ケース D) 対策:
+            // Fusion ChangeDetector は Spawned 直後に同期済みの値 (例: Host のリモート機の Health=100) を
+            // baseline として記録するため、その後 Server 側で値が変化するまで OnStateChanged が発火しない。
+            // Bind 時点で読める Networked 値を ReactiveProperty に強制反映して、Animator / UI を
+            // Server 側の最初の値変化を待たずに動作可能にする。
+            // Bind 時 default 0 ケース (例: Player:2/3) は ReactiveProperty 内蔵の EqualityComparer で
+            // 同値代入が抑制 (no-op) されるためリスクなし。1 frame 後の ChangeDetector 発火で正しい値に上書き。
+            SyncFromNetworkedState(fusionPlayer);
         }
 
         #endregion
@@ -198,9 +220,9 @@ namespace Game.MVP.Survivor.Player
 
             _runnerService.TryGet(out _gameState);
 
+            // ローカル MovementParams (jog/run speed 等のキャッシュ) を事前計算。
             ApplyMovementParams(levelMaster);
 
-            // ゲームロジック関連（FusionPlayer が [Networked] で管理）
             if (_fusionPlayer != null)
             {
                 _fusionPlayer.Health = levelMaster.MaxHp;
@@ -218,10 +240,10 @@ namespace Game.MVP.Survivor.Player
             }
             else
             {
-                Debug.LogWarning("[SurvivorPlayerController] Initialize: _fusionPlayer is NULL, [Networked] values not set");
+                Debug.LogWarning("[SurvivorPlayerController] Initialize: _fusionPlayer is NULL, values not set");
             }
 
-            // ReactiveProperty 初期値（UI 用ミラー）
+            // ReactiveProperty 初期値 (Server からの初回同期到達までのフォールバック)
             _currentHp.Value = levelMaster.MaxHp;
             _currentStamina.Value = levelMaster.MaxStamina;
             _isInvincible.Value = false;
@@ -314,7 +336,12 @@ namespace Game.MVP.Survivor.Player
             }
 
             // カメラフォロー用シグナル発行（KCC が RenderData で滑らかに補間するためルート transform）
-            _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+            // P2P Host では Server.cs のループが全プレイヤー分 InitializeVisualAsync を呼ぶため、
+            // 自機 (HasInputAuthority) のみ発火させないと Camera.Follow が他プレイヤー対象に上書きされる。
+            if (_fusionPlayer != null && _fusionPlayer.HasInputAuthority)
+            {
+                _spawnedPublisher?.Publish(new SurvivorSignals.Player.Spawned(transform));
+            }
         }
 
         #endregion
@@ -531,6 +558,16 @@ namespace Game.MVP.Survivor.Player
         /// </summary>
         private void SyncFromNetworkedState(SurvivorFusionPlayer fp)
         {
+            // 症状 2 診断: 初回の ChangeDetector 発火タイミングと値を可視化する。
+            // 観察期間限定。症状 2 真因確定後の次 PR で削除すること。
+            if (!_firstSyncLogged)
+            {
+                _firstSyncLogged = true;
+                var localPid = _runnerService.Runner != null ? _runnerService.Runner.LocalPlayer.PlayerId : -1;
+                Debug.Log($"[DIAG-FirstSync][LocalPid={localPid}] target={fp.Object.InputAuthority}, " +
+                          $"Health={fp.Health}, Speed={fp.Speed}, frame={Time.frameCount}");
+            }
+
             _currentHp.Value = fp.Health;
             _currentStamina.Value = fp.Stamina;
             _isInvincible.Value = fp.IsInvincible;

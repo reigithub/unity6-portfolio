@@ -5,7 +5,7 @@ namespace Game.Server.Services.Interfaces;
 
 public interface ISurvivorScoreService
 {
-    Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(Guid userId, ScoreSubmitDto request);
+    Task<Result<SurvivorScoreSubmitResponse, ApiError>> SubmitScoreAsync(string userId, ScoreSubmitDto request);
 
-    Task<List<SurvivorScoreHistoryEntry>> GetUserScoresAsync(Guid userId, int? stageId, int limit);
+    Task<List<SurvivorScoreHistoryEntry>> GetUserScoresAsync(string userId, int? stageId, int limit);
 }

@@ -85,6 +85,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: da0bb5ffbaed2364aba0594c02e5847a
+    m_Address: SurvivorGameStageScene
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eb7f8197432e0a94e9751c18dc6c399e
     m_Address: SurvivorTotalResultScene
     m_ReadOnly: 0

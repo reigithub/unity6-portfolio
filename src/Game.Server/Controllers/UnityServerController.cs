@@ -47,13 +47,14 @@ public class UnityServerController : ControllerBase
     public async Task<IActionResult> IssueToken(
         [FromQuery] string sessionName = null,
         [FromQuery] int stageId = 0,
-        [FromQuery] int playerCount = 1)
+        [FromQuery] int playerCount = 1,
+        [FromQuery] string hostUserId = "")
     {
         var userId = User.GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var response = await _serverAuthService.IssueTokenAsync(userId, sessionName, stageId, playerCount);
+        var response = await _serverAuthService.IssueTokenAsync(userId, sessionName, stageId, playerCount, hostUserId);
 
         _logger.LogInformation(
             "Unity server token issued for user {UserId}, session {SessionName}, stageId={StageId}",

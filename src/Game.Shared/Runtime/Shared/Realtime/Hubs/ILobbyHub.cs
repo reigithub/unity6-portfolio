@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Game.Library.Shared.Dto;
 using MagicOnion;
 
 namespace Game.Library.Shared.Realtime.Hubs
@@ -34,9 +35,9 @@ namespace Game.Library.Shared.Realtime.Hubs
         void OnPlayerReadyChanged(string userId, bool isReady);
 
         /// <summary>
-        /// ゲーム開始通知
+        /// ゲーム開始通知。Topology に応じて DS フィールドまたは P2P フィールドが populate される。
         /// </summary>
-        void OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken);
+        void OnGameStarting(MatchStartInfo info);
 
         /// <summary>
         /// ステージ変更通知
@@ -74,5 +75,12 @@ namespace Game.Library.Shared.Realtime.Hubs
         /// ステージを変更（ホストのみ）
         /// </summary>
         ValueTask SetStageAsync(int stageId);
+
+        /// <summary>
+        /// P2P Host が Photon セッション作成 + GameState Spawn 完了を Hub に通知する。
+        /// Hub はこの通知を受けてから残りクライアントに OnGameStarting を broadcast する。
+        /// Host 以外が呼び出すと PermissionDenied。
+        /// </summary>
+        ValueTask NotifyHostReadyAsync();
     }
 }

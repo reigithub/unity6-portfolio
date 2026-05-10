@@ -244,7 +244,7 @@ namespace Game.Shared.Unity.Server
         private void HandleSessionStart(NetworkStream stream, string body)
         {
             // JSON を手動パース（JsonUtility は static フィールドなし DTO に対応しにくいため）
-            if (!TryParseSessionStartBody(body, out var sessionName, out var stageId, out var playerCount))
+            if (!TryParseSessionStartBody(body, out var sessionName, out var stageId, out var playerCount, out var hostUserId))
             {
                 WriteResponse(stream, 400, "{\"error\":\"Invalid request body\"}");
                 return;
@@ -263,11 +263,12 @@ namespace Game.Shared.Unity.Server
                 SessionName = sessionName,
                 StageId = stageId,
                 PlayerCount = playerCount,
+                HostUserId = hostUserId,
                 CompletionSource = new TaskCompletionSource<bool>(),
             };
             _pendingRequests.Enqueue(request);
 
-            Debug.Log($"[ServerHttpListener] Session start request enqueued: sessionName={sessionName}, stageId={stageId}, players={playerCount}");
+            Debug.Log($"[ServerHttpListener] Session start request enqueued: sessionName={sessionName}, stageId={stageId}, players={playerCount}, hostUserId={hostUserId}");
 
             // メインスレッドの処理完了を待機（最大 30 秒、Fusion の Photon Cloud 接続に数秒かかる）
             bool completed = request.CompletionSource.Task.Wait(TimeSpan.FromSeconds(30));
@@ -409,13 +410,15 @@ namespace Game.Shared.Unity.Server
 
         /// <summary>
         /// POST /session/start のボディを手動パースする。
-        /// 期待フォーマット: {"sessionName":"...","stageId":1,"playerCount":2}
+        /// 期待フォーマット: {"sessionName":"...","stageId":1,"playerCount":2,"hostUserId":"..."}
+        /// hostUserId は MP セッションのみ非空 (SP では空文字)。
         /// </summary>
-        private static bool TryParseSessionStartBody(string body, out string sessionName, out int stageId, out int playerCount)
+        private static bool TryParseSessionStartBody(string body, out string sessionName, out int stageId, out int playerCount, out string hostUserId)
         {
             sessionName = null;
             stageId = 0;
             playerCount = 0;
+            hostUserId = string.Empty;
 
             if (string.IsNullOrEmpty(body))
                 return false;
@@ -425,6 +428,7 @@ namespace Game.Shared.Unity.Server
                 sessionName = ExtractJsonString(body, "sessionName");
                 stageId = ExtractJsonInt(body, "stageId");
                 playerCount = ExtractJsonInt(body, "playerCount");
+                hostUserId = ExtractJsonString(body, "hostUserId") ?? string.Empty;
                 return !string.IsNullOrEmpty(sessionName);
             }
             catch

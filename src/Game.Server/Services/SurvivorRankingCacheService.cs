@@ -122,7 +122,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
         nameof(SetRankingAsync));
     }
 
-    public Task<bool> AddScoreAsync(int stageId, Guid userId, int score)
+    public Task<bool> AddScoreAsync(int stageId, string userId, int score)
     {
         return ValkeyExecutor.ExecuteAsync(
         async () =>
@@ -132,8 +132,8 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
 
             await using (await _lockProvider.AcquireLockAsync($"lock:ranking:survivor:{stageId}"))
             {
-                // 現在のスコアを取得
-                var currentScore = await db.SortedSetScoreAsync(rankingKey, userId.ToString());
+                // 現在のスコアを取得 (Sorted Set メンバーキーは公開識別子 user.UserId)
+                var currentScore = await db.SortedSetScoreAsync(rankingKey, userId);
 
                 // 新しいスコアが既存のスコアより高い場合のみ更新
                 // スコアは負の値で保存されているため、比較を反転
@@ -143,7 +143,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
                 }
 
                 // スコアを更新（負の値として保存）
-                await db.SortedSetAddAsync(rankingKey, userId.ToString(), -score);
+                await db.SortedSetAddAsync(rankingKey, userId, -score);
             }
 
             return true;
@@ -153,7 +153,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
         nameof(AddScoreAsync));
     }
 
-    public Task<long?> GetPlayerRankAsync(int stageId, Guid userId)
+    public Task<long?> GetPlayerRankAsync(int stageId, string userId)
     {
         return ValkeyExecutor.ExecuteAsync(
         async () =>
@@ -161,7 +161,7 @@ public class SurvivorRankingCacheService : ISurvivorRankingCacheService
             var db = GetDatabase();
             var rankingKey = GetRankingKey(stageId);
 
-            var rank = await db.SortedSetRankAsync(rankingKey, userId.ToString());
+            var rank = await db.SortedSetRankAsync(rankingKey, userId);
             if (rank.HasValue)
             {
                 // 0始まりを1始まりに変換

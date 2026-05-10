@@ -5,7 +5,7 @@ namespace Game.Server.Services.Interfaces;
 
 public interface IUserService
 {
-    Task<UserResponse?> GetUserAsync(Guid id);
+    Task<UserResponse?> GetUserAsync(string userId);
 
-    Task<Result<UserResponse, ApiError>> UpdateUserAsync(Guid id, UpdateUserRequest request);
+    Task<Result<UserResponse, ApiError>> UpdateUserAsync(string userId, UpdateUserRequest request);
 }

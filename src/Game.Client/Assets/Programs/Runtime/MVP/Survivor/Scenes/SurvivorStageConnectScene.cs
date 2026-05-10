@@ -14,6 +14,10 @@ using R3;
 using UnityEngine;
 using VContainer;
 using Game.Library.Shared.Dto;
+using Game.Shared.Realtime.Client;
+#if UNITY_EDITOR
+using Game.Shared.Multiplayer;
+#endif
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -33,6 +37,10 @@ namespace Game.MVP.Survivor.Scenes
         [Inject] private readonly IUnityServerApiService _unityServerApiService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly IAuthSessionRefresher _authSessionRefresher;
+        [Inject] private readonly ILobbyClient _lobbyClient;
+
+        // Hub から OnLobbyClosed を受け取った場合や Cancel 経由で複数の遷移を発火しないためのガード。
+        private bool _isExitingScene;
 
         protected override string AssetPathOrAddress => "SurvivorStageConnectScene";
 
@@ -47,6 +55,44 @@ namespace Game.MVP.Survivor.Scenes
             SceneComponent.OnCancelClicked
                 .Subscribe(_ => OnCancelAsync().Forget())
                 .AddTo(Disposables);
+
+            // P2P Host 起動失敗 / タイムアウトで Hub から OnLobbyClosed が来た場合に Title へ戻すフォールバック。
+            _lobbyClient.OnLobbyClosed += HandleLobbyClosed;
+        }
+
+        public override async UniTask Terminate()
+        {
+            _lobbyClient.OnLobbyClosed -= HandleLobbyClosed;
+            await base.Terminate();
+        }
+
+        private void HandleLobbyClosed(string reason)
+        {
+            if (_isExitingScene) return;
+            Debug.LogWarning($"[SurvivorStageConnectScene] Lobby closed during connect: {reason}");
+            OnLobbyClosedFallbackAsync(reason).Forget();
+        }
+
+        private async UniTaskVoid OnLobbyClosedFallbackAsync(string reason)
+        {
+            if (_isExitingScene) return;
+            _isExitingScene = true;
+
+            SceneComponent.SetInteractables(false);
+            SceneComponent.ShowError($"Connection aborted: {reason}");
+
+            // 進行中の Fusion 接続をキャンセルしてセッション設定を破棄。
+            try
+            {
+                _networkConnector.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[SurvivorStageConnectScene] Disconnect during fallback failed: {ex.Message}");
+            }
+            _sessionConfig.Clear();
+
+            await _sceneService.TransitionAsync<SurvivorTitleScene>();
         }
 
         public override async UniTask Ready()
@@ -76,28 +122,39 @@ namespace Game.MVP.Survivor.Scenes
                 // Phase 1: ネットワーク初期化（モード別）
                 if (!UnityPlaymodeHelper.IsServer())
                 {
-#if UNITY_EDITOR
-                    var role = Game.Shared.Multiplayer.MppmHelper.ResolveTag();
-                    if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Host)
+                    // 本番 P2P Host (Lobby 経由で Configure 済) は MPPM tag より優先判定。
+                    // P2PHost が Lobby 経由で確定しているケースでは MPPM tag を見ない。
+                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
                     {
-                        Debug.Log("[SurvivorStageConnectScene] MPPM Host mode");
-                        SceneComponent.SetStatus("Starting host...");
+                        Debug.Log("[SurvivorStageConnectScene] P2P Host mode");
+                        SceneComponent.SetStatus("Starting P2P host...");
                         await _networkConnector.StartHostAsync(stageId);
-                    }
-                    else if (role == Game.Shared.Multiplayer.MppmHelper.MppmTag.Server)
-                    {
-                        Debug.Log("[SurvivorStageConnectScene] MPPM Server mode");
-                        SceneComponent.SetStatus("Starting server...");
-                        await _networkConnector.StartServerAsync(stageId);
                     }
                     else
                     {
-                        // Client / None → 起動済みサーバーに接続
-                        await PrepareClientConnectionAsync(stageId);
-                    }
+#if UNITY_EDITOR
+                        var role = MppmHelper.ResolveTag();
+                        if (role == MppmTag.Host)
+                        {
+                            Debug.Log("[SurvivorStageConnectScene] MPPM Host mode");
+                            SceneComponent.SetStatus("Starting host...");
+                            await _networkConnector.StartHostAsync(stageId);
+                        }
+                        else if (role == MppmTag.Server)
+                        {
+                            Debug.Log("[SurvivorStageConnectScene] MPPM Server mode");
+                            SceneComponent.SetStatus("Starting server...");
+                            await _networkConnector.StartServerAsync(stageId);
+                        }
+                        else
+                        {
+                            // Client / None → 起動済みサーバーに接続
+                            await PrepareClientConnectionAsync(stageId);
+                        }
 #else
-                    await PrepareClientConnectionAsync(stageId);
+                        await PrepareClientConnectionAsync(stageId);
 #endif
+                    }
                 }
 
                 // Phase 2: サーバー接続 + 全員 Ready 待機
@@ -112,8 +169,20 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 else if (_runnerService.IsHostMode)
                 {
-                    // Editor MPPM Host モード（本番未使用、開発時テスト用）: Server + ローカル Client
+                    // Host モード (Editor MPPM の Host tag、または本番 P2PHost)
+                    // 本番 P2PHost では Phase 1 で StartHostAsync 完了後にここに到達し、
+                    // 自身も Client として扱うため NotifySession + WaitForReady を実行。
                     await NotifySessionInfoToServer(stageId, playerId);
+
+                    // P2P Host モードのみ Lobby Hub に「ホスト準備完了」を通知。
+                    // Lobby Hub はこの通知を受けて他クライアントへ OnGameStarting を broadcast し、
+                    // Photon セッション作成競合 (GameNotFound) を防ぐ。
+                    if (_sessionConfig.ConnectionSource == ConnectionSource.P2PHost)
+                    {
+                        Debug.Log("[SurvivorStageConnectScene] Notifying lobby hub: host is ready");
+                        await _lobbyClient.NotifyHostReadyAsync();
+                    }
+
                     SceneComponent.SetStatus("Waiting for players...");
                     await WaitForAllPlayersReadyAsync();
                 }
@@ -124,9 +193,21 @@ namespace Game.MVP.Survivor.Scenes
                     await WaitForAllPlayersReadyAsync();
                 }
 
-                // Phase 3: StageScene へ遷移
-                Debug.Log("[SurvivorStageConnectScene] Connection established, transitioning to StageScene");
-                await _sceneService.TransitionAsync<SurvivorStageScene>();
+                // Phase 3: StageScene へ遷移 (ConnectionSource で分岐)
+                // P2P Host/Client → SurvivorGameStageScene (PR3.5 で導入した統合シーン)
+                // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorStageScene 継続
+                var source = _sessionConfig.ConnectionSource;
+                Debug.Log($"[DIAG-Phase3-Pre] starting transition, source={source}");
+                if (source is ConnectionSource.P2PHost or ConnectionSource.P2PClient)
+                {
+                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorGameStageScene");
+                    await _sceneService.TransitionAsync<SurvivorGameStageScene>();
+                }
+                else
+                {
+                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorStageScene");
+                    await _sceneService.TransitionAsync<SurvivorStageScene>();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -151,7 +232,7 @@ namespace Game.MVP.Survivor.Scenes
             if (_sessionConfig.IsClientConfigured)
                 return; // マッチメイキング経由 → Phase 2 で接続
 
-            // Scenario C 対策: IssueTokenAsync (signed POST) 前に refresh を保証。
+            // IssueTokenAsync (signed POST) 前に refresh を保証。
             // 以降 IssueTokenAsync が 3 経路で呼ばれるが、refresher 内部で dedup されるため 1 回で済む。
             await _authSessionRefresher.EnsureFreshAsync();
 
@@ -226,11 +307,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask ConnectToServerAsync(int stageId)
         {
-            var address = _sessionConfig.ServerAddress;
-            var port = _sessionConfig.ServerPort;
-            var sessionToken = _sessionConfig.SessionToken;
-            Debug.Log($"[SurvivorStageConnectScene] Connecting to Fusion server: {address}:{port} (stageId={stageId})");
-            await _networkConnector.ConnectAsync(address, port, stageId, sessionToken);
+            var source = _sessionConfig.ConnectionSource;
+            Debug.Log($"[SurvivorStageConnectScene] Connecting via Fusion (source={source}, session={_sessionConfig.SessionName}, stageId={stageId})");
+            await _networkConnector.ConnectAsync(stageId);
         }
 
         /// <summary>

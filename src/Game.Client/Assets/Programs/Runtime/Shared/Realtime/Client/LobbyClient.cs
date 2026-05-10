@@ -30,7 +30,7 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, string> OnPlayerLeft;
         public event Action<string, string, string> OnMessageReceived;
         public event Action<string, bool> OnPlayerReadyChanged;
-        public event Action<string, string, int, string> OnGameStarting;
+        public event Action<MatchStartInfo> OnGameStarting;
         public event Action<string> OnLobbyClosed;
         public event Action<int, string> OnStageChanged;
         public event Action<string> OnDisconnected;
@@ -235,6 +235,21 @@ namespace Game.Shared.Realtime.Client
             }
         }
 
+        public async Task NotifyHostReadyAsync()
+        {
+            try
+            {
+                if (_hub != null)
+                {
+                    await _hub.NotifyHostReadyAsync();
+                }
+            }
+            catch (RpcException ex)
+            {
+                Debug.LogWarning($"[LobbyClient] RPC error in NotifyHostReady: {ex.StatusCode}");
+            }
+        }
+
         // ILobbyHubReceiver implementations
         void ILobbyHubReceiver.OnPlayerJoined(string userId, string playerName)
         {
@@ -265,10 +280,10 @@ namespace Game.Shared.Realtime.Client
             OnPlayerReadyChanged?.Invoke(userId, isReady);
         }
 
-        void ILobbyHubReceiver.OnGameStarting(string matchId, string serverAddress, int serverPort, string sessionToken)
+        void ILobbyHubReceiver.OnGameStarting(MatchStartInfo info)
         {
-            Debug.Log($"[LobbyClient] Game starting: {matchId} @ {serverAddress}:{serverPort}");
-            OnGameStarting?.Invoke(matchId, serverAddress, serverPort, sessionToken);
+            Debug.Log($"[LobbyClient] Game starting: topology={info.Topology}, session={info.SessionName}");
+            OnGameStarting?.Invoke(info);
         }
 
         void ILobbyHubReceiver.OnStageChanged(int stageId, string changedByUserId)

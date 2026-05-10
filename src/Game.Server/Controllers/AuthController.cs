@@ -119,7 +119,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> LinkEmail([FromBody] LinkEmailRequest request)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
@@ -138,7 +139,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UnlinkEmail([FromQuery] string deviceFingerprint)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }
@@ -157,7 +159,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> IssueTransferPassword([FromBody] EmptyRequest _)
     {
-        if (!Guid.TryParse(User.GetUserId(), out var userId))
+        var userId = User.GetUserId();
+        if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized();
         }

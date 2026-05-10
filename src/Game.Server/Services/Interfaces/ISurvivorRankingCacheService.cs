@@ -29,18 +29,18 @@ public interface ISurvivorRankingCacheService
     /// スコアをSorted Setに追加
     /// </summary>
     /// <param name="stageId">ステージID</param>
-    /// <param name="userId">ユーザーID</param>
+    /// <param name="userId">ユーザー公開識別子 (user.UserId、12 桁数字)</param>
     /// <param name="score">スコア</param>
     /// <returns>追加成功した場合true</returns>
-    Task<bool> AddScoreAsync(int stageId, Guid userId, int score);
+    Task<bool> AddScoreAsync(int stageId, string userId, int score);
 
     /// <summary>
     /// プレイヤーの順位を取得
     /// </summary>
     /// <param name="stageId">ステージID</param>
-    /// <param name="userId">ユーザーID</param>
+    /// <param name="userId">ユーザー公開識別子 (user.UserId、12 桁数字)</param>
     /// <returns>順位（1始まり）、存在しない場合はnull</returns>
-    Task<long?> GetPlayerRankAsync(int stageId, Guid userId);
+    Task<long?> GetPlayerRankAsync(int stageId, string userId);
 
     /// <summary>
     /// 指定ステージのキャッシュを無効化

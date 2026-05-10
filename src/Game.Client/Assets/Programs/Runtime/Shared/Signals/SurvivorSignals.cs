@@ -278,6 +278,10 @@ namespace Game.Shared.Signals.Survivor
 
         public static class Game
         {
+            public readonly struct CountdownStarted { }
+
+            public readonly struct Started { }
+
             public readonly struct Ended
             {
                 public readonly SurvivorNetworkGameResult Result;
@@ -299,6 +303,8 @@ namespace Game.Shared.Signals.Survivor
             }
 
             public readonly struct Resumed { }
+
+            public readonly struct ReturnToLobby { }
         }
 
         // --- Item ---

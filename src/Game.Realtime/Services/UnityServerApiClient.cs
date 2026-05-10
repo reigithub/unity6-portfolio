@@ -23,9 +23,10 @@ public interface IUnityServerApiClient
     /// <param name="sessionName">Fusion セッション名（SessionName）。null の場合はサーバーが自動生成（SP 用）。</param>
     /// <param name="stageId">ステージID。0 の場合は DS 割り当てをスキップ。</param>
     /// <param name="playerCount">プレイヤー数。DS 割り当て時に渡す（デフォルト: 1）。</param>
+    /// <param name="hostUserId">ロビーホストの UserId。DS 側で「手動ポーズ操作の権限を持つ Client」の判定に使用。MP 以外 (SP) では空文字。</param>
     /// <returns>セッショントークンとセッション名を含むレスポンス。</returns>
     Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string sessionName = null, int stageId = 0, int playerCount = 1);
+        string userId, string sessionName = null, int stageId = 0, int playerCount = 1, string hostUserId = "");
 }
 
 /// <summary>
@@ -59,7 +60,7 @@ public class UnityServerApiClient : IUnityServerApiClient
 
     /// <inheritdoc/>
     public async Task<UnityServerAuthResponse> IssueTokenAsync(
-        string userId, string sessionName = null, int stageId = 0, int playerCount = 1)
+        string userId, string sessionName = null, int stageId = 0, int playerCount = 1, string hostUserId = "")
     {
         var serviceToken = CreateServiceToken(userId);
         var client = _httpClientFactory.CreateClient(HttpClientName);
@@ -73,6 +74,8 @@ public class UnityServerApiClient : IUnityServerApiClient
             queryParams.Add($"stageId={stageId}");
         if (playerCount != 1)
             queryParams.Add($"playerCount={playerCount}");
+        if (!string.IsNullOrEmpty(hostUserId))
+            queryParams.Add($"hostUserId={Uri.EscapeDataString(hostUserId)}");
 
         var endpoint = queryParams.Count > 0
             ? $"{IssueTokenEndpoint}?{string.Join("&", queryParams)}"

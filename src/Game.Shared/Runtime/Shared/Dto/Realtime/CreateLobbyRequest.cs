@@ -31,5 +31,11 @@ namespace Game.Library.Shared.Dto
 
         [Key(5)]
         public int StageId { get; set; } = 1;
+
+        /// <summary>
+        /// ネットワークトポロジ (DS / P2P)。デフォルトは Dedicated。
+        /// </summary>
+        [Key(6)]
+        public NetworkTopology NetworkTopology { get; set; } = NetworkTopology.DedicatedServer;
     }
 }

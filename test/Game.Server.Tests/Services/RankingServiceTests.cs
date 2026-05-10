@@ -16,6 +16,7 @@ public class RankingServiceTests
     private readonly Mock<ISurvivorRankingCacheService> _mockCacheService;
     private readonly Mock<IDistributedLockProvider> _mockLockProvider;
     private readonly Mock<ILogger<RankingService>> _mockLogger;
+    private readonly Mock<IUserRepository> _mockUserRepo;
     private readonly RankingService _service;
 
     public RankingServiceTests()
@@ -24,6 +25,7 @@ public class RankingServiceTests
         _mockCacheService = new Mock<ISurvivorRankingCacheService>();
         _mockLockProvider = new Mock<IDistributedLockProvider>();
         _mockLogger = new Mock<ILogger<RankingService>>();
+        _mockUserRepo = new Mock<IUserRepository>();
 
         // ロックは常に成功（テスト環境ではレースコンディションなし）
         var lockMock = new Mock<IDistributedLock>();
@@ -36,7 +38,8 @@ public class RankingServiceTests
             _mockRepo.Object,
             _mockCacheService.Object,
             _mockLockProvider.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockUserRepo.Object);
     }
 
     [Fact]
@@ -81,18 +84,33 @@ public class RankingServiceTests
     public async Task GetUserRankAsync_ExistingUser_ReturnsCorrectRank()
     {
         // Arrange
-        var userId = TestDataFixture.User1Id;
+        var internalId = TestDataFixture.User1Id;
+        var userId = TestDataFixture.User1IdString;
+        var user = new UserInfo
+        {
+            Id = internalId,
+            UserId = userId,
+            UserName = "Player1",
+            Level = 1,
+            RegisteredAt = DateTime.UtcNow,
+            AuthType = "Email",
+        };
+        _mockUserRepo.Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(user);
+
         var bestScore = new SurvivorScore
         {
-            UserId = userId,
+            UserId = internalId,
             Score = 5000,
             ClearTime = 120f,
-            User = new() { UserId = "000000000001", UserName = "Player1" },
+            User = new() { UserId = userId, UserName = "Player1" },
         };
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync(1, userId))
+        _mockRepo.Setup(r => r.GetUserBestScoreAsync(1, internalId))
             .ReturnsAsync(bestScore);
-        _mockRepo.Setup(r => r.GetUserRankAsync(1, userId))
+        _mockRepo.Setup(r => r.GetUserRankAsync(1, internalId))
             .ReturnsAsync(2);
+        _mockCacheService.Setup(c => c.GetPlayerRankAsync(1, userId))
+            .ReturnsAsync((long?)null);
 
         // Act
         var result = await _service.GetUserRankAsync(1, userId);
@@ -108,9 +126,9 @@ public class RankingServiceTests
     public async Task GetUserRankAsync_NonExistentUser_ReturnsNull()
     {
         // Arrange
-        var noUserId = Guid.Empty;
-        _mockRepo.Setup(r => r.GetUserBestScoreAsync(1, noUserId))
-            .ReturnsAsync((SurvivorScore?)null);
+        var noUserId = "999999999999";
+        _mockUserRepo.Setup(r => r.GetByUserIdAsync(noUserId))
+            .ReturnsAsync((UserInfo?)null);
 
         // Act
         var result = await _service.GetUserRankAsync(1, noUserId);

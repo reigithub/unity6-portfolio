@@ -118,6 +118,15 @@ namespace Game.MVP.Survivor.Scenes.Models
         }
 
         /// <summary>
+        /// HP割合を計算（0.0 ~ 1.0）
+        /// </summary>
+        public float GetHpRatio()
+        {
+            var maxHp = MaxHp.Value;
+            return maxHp > 0 ? (float)CurrentHp.Value / maxHp : 0f;
+        }
+
+        /// <summary>
         /// アイテム収集処理
         /// ItemTypeに応じて効果を適用
         /// </summary>
@@ -144,6 +153,14 @@ namespace Game.MVP.Survivor.Scenes.Models
         {
             TotalKills.Value++;
             // スコアはWaveクリア時の残り時間で計算するため、ここでは加算しない
+        }
+
+        /// <summary>
+        /// キル数をキャップして取得
+        /// </summary>
+        public int GetCappedKills(int totalTargetKills)
+        {
+            return Math.Min(TotalKills.Value, totalTargetKills);
         }
 
         /// <summary>サーバーから経験値を同期（HUD表示のみ、レベルアップ判定なし）</summary>
