@@ -1,5 +1,4 @@
 using Game.Library.Shared.Dto;
-using Game.Library.Shared.Realtime.Hubs;
 
 namespace Game.Shared.Network.Survivor
 {
@@ -112,22 +111,13 @@ namespace Game.Shared.Network.Survivor
         }
 
         /// <summary>
-        /// マッチメイキング結果から全パラメータを一括設定する。
-        /// </summary>
-        /// <param name="source">接続元の種別。</param>
-        /// <param name="result">マッチメイキングサーバーから受け取った <see cref="MatchResult"/>。</param>
-        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。</param>
-        public void Configure(ConnectionSource source, MatchResult result, int playerCount)
-            => Configure(source, result.ServerAddress, (ushort)result.ServerPort, result.MatchId, result.SessionToken, playerCount);
-
-        /// <summary>
-        /// MatchStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
-        /// LobbyHub.OnGameStarting 経由のゲーム開始フローで使用する。
+        /// GameSessionStartInfo (DS / P2P 両用) から全パラメータを一括設定する。
+        /// LobbyHub.OnGameStarting および MatchmakingHub.OnMatchFound 経由のゲーム開始フローで使用する。
         /// </summary>
         /// <param name="source">接続元の種別 (P2PHost / P2PClient / Matchmaking 等、呼出側で host/client 判定して指定)。</param>
-        /// <param name="info">サーバーから受信した <see cref="MatchStartInfo"/>。</param>
-        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。<see cref="MatchStartInfo.PlayerCount"/> から取得すること。</param>
-        public void Configure(ConnectionSource source, MatchStartInfo info, int playerCount)
+        /// <param name="info">サーバーから受信した <see cref="GameSessionStartInfo"/>。</param>
+        /// <param name="playerCount">ゲーム開始時点の実接続プレイヤー数 (全滅判定の分母)。<see cref="GameSessionStartInfo.PlayerCount"/> から取得すること。</param>
+        public void Configure(ConnectionSource source, GameSessionStartInfo info, int playerCount)
         {
             ConnectionSource = source;
             SessionName = info.SessionName;
@@ -155,7 +145,7 @@ namespace Game.Shared.Network.Survivor
         /// <summary>
         /// 指定パラメータのみ上書きする。null は既存値を維持。
         /// Dedicated Server のセッション開始時に sessionName のみ更新する用途で使用する。
-        /// NOTE: PhotonRegion は本メソッドでは更新しない (Configure(source, MatchStartInfo, playerCount) overload 経由でのみ更新)。
+        /// NOTE: PhotonRegion は本メソッドでは更新しない (Configure(source, GameSessionStartInfo, playerCount) overload 経由でのみ更新)。
         /// </summary>
         /// <param name="address">接続先アドレス。null で既存値を維持。</param>
         /// <param name="port">接続先ポート番号。null で既存値を維持。</param>

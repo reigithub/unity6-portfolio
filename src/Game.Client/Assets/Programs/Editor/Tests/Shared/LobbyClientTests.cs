@@ -107,7 +107,7 @@ namespace Game.Tests.Shared
             void OnPlayerLeft(string a, string b) => playerLeftCalled = true;
             void OnMessageReceived(string a, string b, string c) => messageReceivedCalled = true;
             void OnReadyChanged(string a, bool b) => readyChangedCalled = true;
-            void OnGameStarting(MatchStartInfo info) => gameStartingCalled = true;
+            void OnGameStarting(GameSessionStartInfo info) => gameStartingCalled = true;
             void OnLobbyClosed(string _) => lobbyClosedCalled = true;
             void OnDisconnected(string _) => disconnectedCalled = true;
 

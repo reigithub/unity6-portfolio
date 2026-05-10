@@ -1,3 +1,4 @@
+using Game.Library.Shared.Dto;
 using Game.Library.Shared.Realtime.Hubs;
 using Game.Realtime.Validation;
 using Game.Server.Shared.Extensions;
@@ -47,12 +48,12 @@ public class MatchmakingHub : StreamingHubBase<IMatchmakingHub, IMatchmakingHubR
         var channel = RedisChannel.Literal($"matchmaking:notify:{_userId}");
         await _subscriber.SubscribeAsync(channel, (_, message) =>
         {
-            var result = JsonHelper.TryDeserialize<MatchResult>(message.ToString(), _logger, $"match result for user {_userId}");
-            if (result != null)
+            var info = JsonHelper.TryDeserialize<GameSessionStartInfo>(message.ToString(), _logger, $"match start info for user {_userId}");
+            if (info != null)
             {
                 try
                 {
-                    Client.OnMatchFound(result);
+                    Client.OnMatchFound(info);
                 }
                 catch (Exception ex)
                 {

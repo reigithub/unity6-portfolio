@@ -252,7 +252,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
             if (lobbyMap != null && lobbyMap.TryGetValue(player.UserId, out var connId))
             {
-                var info = new MatchStartInfo
+                var info = new GameSessionStartInfo
                 {
                     Topology = NetworkTopology.DedicatedServer,
                     SessionName = matchId,
@@ -260,6 +260,7 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
                     ServerPort = _unityServerConfig.ServerPort,
                     SessionToken = authResponse.Token,
                     PlayerCount = players.Length,
+                    StageId = stageId,
                     HostUserId = lobby.HostUserId,
                 };
                 _currentGroup!.Only(new[] { connId }).OnGameStarting(info);
@@ -295,13 +296,14 @@ public class LobbyHub : StreamingHubBase<ILobbyHub, ILobbyHubReceiver>, ILobbyHu
 
         var sessionName = $"p2p-{Guid.NewGuid():N}";  // 36 文字、Photon SessionName 制限 64 内
         var photonRegion = "jp";                      // 将来的に LobbyInfo.PhotonRegion フィールド追加 + UI 選択
-        var info = new MatchStartInfo
+        var info = new GameSessionStartInfo
         {
             Topology = NetworkTopology.PeerToPeer,
             SessionName = sessionName,
             PhotonRegion = photonRegion,
             HostUserId = hostUserId,
             PlayerCount = players.Length,
+            StageId = lobby.StageId,
         };
 
         // ① Host にだけ先に broadcast。

@@ -96,7 +96,7 @@ namespace Game.Tests.Shared
             var cancelledCalled = false;
             var disconnectedCalled = false;
 
-            void OnMatchFound(Game.Library.Shared.Realtime.Hubs.MatchResult _) => matchFoundCalled = true;
+            void OnMatchFound(Game.Library.Shared.Dto.GameSessionStartInfo _) => matchFoundCalled = true;
             void OnQueueUpdated(int _) => queueUpdatedCalled = true;
             void OnCancelled(string _) => cancelledCalled = true;
             void OnDisconnected(string _) => disconnectedCalled = true;

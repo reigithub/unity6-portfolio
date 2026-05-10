@@ -30,7 +30,7 @@ namespace Game.Shared.Realtime.Client
         public event Action<string, string> OnPlayerLeft;
         public event Action<string, string, string> OnMessageReceived;
         public event Action<string, bool> OnPlayerReadyChanged;
-        public event Action<MatchStartInfo> OnGameStarting;
+        public event Action<GameSessionStartInfo> OnGameStarting;
         public event Action<string> OnLobbyClosed;
         public event Action<int, string> OnStageChanged;
         public event Action<string> OnDisconnected;
@@ -280,7 +280,7 @@ namespace Game.Shared.Realtime.Client
             OnPlayerReadyChanged?.Invoke(userId, isReady);
         }
 
-        void ILobbyHubReceiver.OnGameStarting(MatchStartInfo info)
+        void ILobbyHubReceiver.OnGameStarting(GameSessionStartInfo info)
         {
             Debug.Log($"[LobbyClient] Game starting: topology={info.Topology}, session={info.SessionName}");
             OnGameStarting?.Invoke(info);
