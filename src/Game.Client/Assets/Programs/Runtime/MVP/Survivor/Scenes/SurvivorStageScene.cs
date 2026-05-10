@@ -64,10 +64,10 @@ namespace Game.MVP.Survivor.Scenes
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
+        private SurvivorStageWaveManager _waveManager;
 
         /// <summary>自分の UserId（シグナル受信時のフィルタに使用）</summary>
         private string MyUserId => _authSessionService?.UserId ?? string.Empty;
-        private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
         protected override string AssetPathOrAddress => "SurvivorStageScene";
@@ -121,12 +121,11 @@ namespace Game.MVP.Survivor.Scenes
             // サーバーはこの通知を受けてからプレイヤーをスポーンする（アクティブシーン = 物理シーン保証）
             if (_runnerService.TryGet<SurvivorFusionGameState>(out var gs))
             {
+                var localPlayer = _runnerService.Runner.LocalPlayer;
+                if (localPlayer.IsRealPlayer) gs.RegisterPlayerUserId(localPlayer, MyUserId);
+
                 // 自分の UserId をサーバーに登録 (per-player シグナル識別に必要)
-                var myUserId = _authSessionService?.UserId ?? string.Empty;
-                if (!string.IsNullOrEmpty(myUserId))
-                {
-                    gs.RpcRegisterPlayerUserId(myUserId);
-                }
+                gs.RpcRegisterPlayerUserId(MyUserId);
                 gs.RpcNotifyFieldSceneLoaded();
             }
 
@@ -214,6 +213,9 @@ namespace Game.MVP.Survivor.Scenes
 
         private void SubscribeEvents()
         {
+            _runnerService.OnClientDisconnected += OnRequestQuit;
+            Disposables.Add(Disposable.Create(() => _runnerService.OnClientDisconnected -= OnRequestQuit));
+
             SceneComponent.OnPauseClicked
                 .Subscribe(_ =>
                 {
@@ -570,21 +572,20 @@ namespace Game.MVP.Survivor.Scenes
             await UniTask.Yield();
         }
 
-        /// <summary>
-        /// HP割合を計算（0.0 ~ 1.0）
-        /// </summary>
-        private float GetHpRatio()
+        private void OnRequestQuit()
         {
-            var maxHp = _stageModel.MaxHp.Value;
-            return maxHp > 0 ? (float)_stageModel.CurrentHp.Value / maxHp : 0f;
-        }
+            if (_sessionConfig.IsMultiPlayer())
+            {
+                // TODO: DSがサーバー権限をもつため、ロビーホスト(クライアント)が他のプレイヤーへロビー帰還を送信できない(将来対応)
+                if (_runnerService.TryGetLocalPlayerComponent<SurvivorFusionPlayer>(out var localPlayer))
+                    localPlayer.SendClientRequestReturnToLobby();
 
-        /// <summary>
-        /// キル数をキャップして取得
-        /// </summary>
-        private int GetCappedKills()
-        {
-            return Math.Min(_stageModel.TotalKills.Value, _waveManager.TotalTargetKills);
+                _returnToLobbyRequested = true;
+            }
+            else
+            {
+                _returnToTitleRequested = true;
+            }
         }
     }
 }

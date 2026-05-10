@@ -73,10 +73,10 @@ namespace Game.MVP.Survivor.Scenes
 
         private SurvivorStageModel _stageModel;
         private SurvivorNetworkStageModel _networkStageModel;
+        private SurvivorStageWaveManager _waveManager;
 
         /// <summary>自分の UserId（シグナル受信時のフィルタに使用）</summary>
         private string MyUserId => _authSessionService?.UserId ?? string.Empty;
-        private SurvivorStageWaveManager _waveManager;
         private SceneInstance? _stageSceneInstance;
 
         protected override string AssetPathOrAddress => "SurvivorGameStageScene";
@@ -133,8 +133,7 @@ namespace Game.MVP.Survivor.Scenes
                 // P2P Host: Host 自身の UserId を直接 _userIdByPlayerRef に登録する。
                 // RPC 不要 (StateAuthority を持つため)。
                 var localPlayer = _runnerService.Runner.LocalPlayer;
-                if (localPlayer.IsRealPlayer
-                    && _runnerService.TryGet<SurvivorFusionGameState>(out var hostGs))
+                if (localPlayer.IsRealPlayer && _runnerService.TryGet<SurvivorFusionGameState>(out var hostGs))
                 {
                     hostGs.RegisterPlayerUserId(localPlayer, MyUserId);
                 }
@@ -664,23 +663,6 @@ namespace Game.MVP.Survivor.Scenes
             {
                 _returnToTitleRequested = true;
             }
-        }
-
-        /// <summary>
-        /// HP割合を計算（0.0 ~ 1.0）
-        /// </summary>
-        private float GetHpRatio()
-        {
-            var maxHp = _stageModel.MaxHp.Value;
-            return maxHp > 0 ? (float)_stageModel.CurrentHp.Value / maxHp : 0f;
-        }
-
-        /// <summary>
-        /// キル数をキャップして取得
-        /// </summary>
-        private int GetCappedKills()
-        {
-            return Math.Min(_stageModel.TotalKills.Value, _waveManager.TotalTargetKills);
         }
     }
 }

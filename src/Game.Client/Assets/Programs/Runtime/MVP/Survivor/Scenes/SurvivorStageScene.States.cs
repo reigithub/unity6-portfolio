@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using DG.Tweening;
-using Game.Client.MasterData;
 using Game.Library.Shared.Enums;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Scenes;
@@ -10,14 +8,12 @@ using Game.MVP.Survivor.Enemy;
 using Game.MVP.Survivor.Item;
 using Game.MVP.Survivor.Weapon;
 using Game.Library.Shared;
-using Game.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Network.Survivor;
 using Game.Shared.Services;
 using Game.Shared.Signals.Survivor;
 using MessagePipe;
 using UnityEngine;
-using VContainer;
 
 namespace Game.MVP.Survivor.Scenes
 {
@@ -96,17 +92,26 @@ namespace Game.MVP.Survivor.Scenes
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
 
             protected bool TryGetLocalPlayer(out SurvivorFusionPlayer player)
-            {
-                return Context._runnerService.TryGetLocalPlayerComponent(out player);
-            }
+                => Context._runnerService.TryGetLocalPlayerComponent(out player);
 
             /// <summary>ホスト主導 Lobby 戻り命令の判定。立っていれば ReturnToLobbyState に遷移する。</summary>
             protected bool TryHandleQuit()
             {
-                if (!Context._returnToLobbyRequested) return false;
-                Context._returnToLobbyRequested = false;
-                Transition(StageEvent.ReturnToLobby);
-                return true;
+                if (Context._returnToLobbyRequested)
+                {
+                    Context._returnToLobbyRequested = false;
+                    Transition(StageEvent.ReturnToLobby);
+                    return true;
+                }
+
+                if (Context._returnToTitleRequested)
+                {
+                    Context._returnToTitleRequested = false;
+                    Transition(StageEvent.QuitToTitle);
+                    return true;
+                }
+
+                return false;
             }
         }
 
@@ -209,6 +214,8 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
+                if (TryHandleQuit()) return;
+
                 if (_countdownComplete)
                 {
                     Transition(StageEvent.StartGame);
@@ -273,9 +280,6 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.ResumeTime();
                 ApplicationEvents.ShowCursor();
 
-                Context._returnToTitleRequested = false;
-                Context._runnerService.OnClientDisconnected += OnDisconnected;
-
                 if (_isFirstEntry)
                 {
                     _isFirstEntry = false;
@@ -289,20 +293,7 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Update()
             {
-                if (Context._returnToLobbyRequested)
-                {
-                    Context._returnToLobbyRequested = false;
-                    Transition(StageEvent.ReturnToLobby);
-                    return;
-                }
-
-                // 切断検知 → タイトルに戻る
-                if (Context._returnToTitleRequested)
-                {
-                    Context._returnToTitleRequested = false;
-                    Transition(StageEvent.QuitToTitle);
-                    return;
-                }
+                if (TryHandleQuit()) return;
 
                 // ポーズ・レベルアップはクライアントでもローカル処理
                 if (Context._pauseRequested)
@@ -347,13 +338,6 @@ namespace Game.MVP.Survivor.Scenes
             public override void Exit()
             {
                 Debug.Log("[PlayingState] Exit");
-                Context._runnerService.OnClientDisconnected -= OnDisconnected;
-            }
-
-            private void OnDisconnected()
-            {
-                Debug.LogWarning("[PlayingState] Server disconnected");
-                Context._returnToTitleRequested = true;
             }
         }
 
@@ -442,11 +426,7 @@ namespace Game.MVP.Survivor.Scenes
                         Transition(StageEvent.Retry);
                         break;
                     case SurvivorPauseResult.Quit:
-                        if (TryGetLocalPlayer(out var localPlayer))
-                        {
-                            localPlayer.SendClientRequestReturnToLobby();
-                        }
-                        Context._returnToLobbyRequested = true;
+                        Context.OnRequestQuit();
                         break;
                 }
             }
@@ -672,12 +652,12 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // クリア記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
+                var kills = StageModel.GetCappedKills(totalTargetKills);
                 var clearTime = NetworkStageModel.GameTime.Value;
                 var isTimeUp = NetworkStageModel.IsTimeUp;
-                var hpRatio = Context.GetHpRatio();
+                var hpRatio = StageModel.GetHpRatio();
 
                 Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
 
@@ -731,7 +711,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
+                var kills = StageModel.GetCappedKills(Context._waveManager.TotalTargetKills);
                 var clearTime = NetworkStageModel.GameTime.Value;
                 var hpRatio = 0f; // ゲームオーバーなのでHP=0
 

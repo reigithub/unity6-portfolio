@@ -734,9 +734,9 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // クリア記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
                 var totalKillsRaw = StageModel.TotalKills.Value;
                 var totalTargetKills = Context._waveManager.TotalTargetKills;
+                var kills = StageModel.GetCappedKills(totalTargetKills);
                 // サーバー権威 ClearTime を優先 (NotifyGameEnded RPC で broadcast 済み)。
                 // ローカル GameTime はサーバー側 Victory 検知から RPC 到達までのラグで進んでいるため、
                 // NetworkResult.ClearTime を使うと Host / Client 間で時間値が一致する。
@@ -744,7 +744,7 @@ namespace Game.MVP.Survivor.Scenes
                     ? NetworkStageModel.NetworkResult.ClearTime
                     : NetworkStageModel.GameTime.Value;
                 var isTimeUp = NetworkStageModel.IsTimeUp;
-                var hpRatio = Context.GetHpRatio();
+                var hpRatio = StageModel.GetHpRatio();
 
                 Debug.Log($"[VictoryState] Saving result: score={score}, kills={kills} (raw={totalKillsRaw}, target={totalTargetKills}), clearTime={clearTime:F2}s, isTimeUp={isTimeUp}, hpRatio={hpRatio:P0}");
 
@@ -799,7 +799,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // ゲームオーバー記録を保存
                 var score = StageModel.Score.Value;
-                var kills = Context.GetCappedKills();
+                var kills = StageModel.GetCappedKills(Context._waveManager.TotalTargetKills);
                 // サーバー権威 ClearTime を優先 (Victory と同じ理由でラグ排除)。
                 var clearTime = NetworkStageModel.HasNetworkResult
                     ? NetworkStageModel.NetworkResult.ClearTime
