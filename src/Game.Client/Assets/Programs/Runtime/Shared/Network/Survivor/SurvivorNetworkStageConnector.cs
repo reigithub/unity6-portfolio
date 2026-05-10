@@ -5,9 +5,7 @@ using Fusion.Sockets;
 using Game.Shared.Environment;
 using Game.Shared.Network.Fusion;
 using Game.Shared.Services;
-using Game.Shared.Signals.Survivor;
 using Game.Shared.Unity.Server;
-using MessagePipe;
 using UnityEngine;
 using VContainer;
 
@@ -24,15 +22,12 @@ namespace Game.Shared.Network.Survivor
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly IUnityServerAuthProviderFactory _authProviderFactory;
-        [Inject] private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
-        [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
 
         private const string GameStateAddress = "SurvivorFusionGameState";
         private const string PlayerAddress = "SurvivorFusionPlayer";
         private const string EnemyBatchSyncAddress = "SurvivorFusionEnemyBatchSync";
 
         private SurvivorFusionRunner _runner;
-        private SurvivorFusionSession _session;
         private bool _isConnecting;
 
         // Addressables で読み込んだプレハブ（解放用に保持）
@@ -50,11 +45,11 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 var sessionName = _sessionConfig.SessionName;
-                var playerCount = _sessionConfig.PlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
-                CreateSession(playerCount);
+                 _playerPrefabAsset.TryGetComponent<NetworkObject>(out var playerPrefab);
+                _runner.Configure(playerPrefab);
 
                 var config = new FusionConnectionConfig
                 {
@@ -147,11 +142,12 @@ namespace Game.Shared.Network.Survivor
             try
             {
                 var sessionName = _sessionConfig.SessionName;
-                var playerCount = _sessionConfig.PlayerCount;
 
                 await PreloadPrefabsAsync();
                 EnsureRunner();
-                CreateSession(playerCount);
+
+                _playerPrefabAsset.TryGetComponent<NetworkObject>(out var playerPrefab);
+                _runner.Configure(playerPrefab);
 
                 var serverPort = _sessionConfig.ServerPort;
 
@@ -202,7 +198,6 @@ namespace Game.Shared.Network.Survivor
                 }
             }
 
-            _session = null;
             ReleasePrefabs();
             _runnerService.Clear();
             Debug.Log("[SurvivorFusionStageConnector] Disconnected");
@@ -255,30 +250,14 @@ namespace Game.Shared.Network.Survivor
             var go = new GameObject("[FusionRunner]");
             _runner = go.AddComponent<SurvivorFusionRunner>();
             _runner.Initialize();
+            _resolver.Inject(_runner);
             _runner.Resolver = _resolver;
-            _runner.RunnerService = _runnerService;
             _runner.OnShutdownCallback = OnRunnerShutdown;
 
             // 認証プロバイダを設定（Client 側は NullFactory が null を返すため認証スキップ）
             var authProvider = _authProviderFactory.Create();
             if (authProvider != null)
                 _runner.AuthProvider = authProvider;
-        }
-
-        private void CreateSession(int expectedPlayerCount)
-        {
-            NetworkObject playerPrefab = null;
-            if (_playerPrefabAsset != null)
-                playerPrefab = _playerPrefabAsset.GetComponent<NetworkObject>();
-
-            _session = new SurvivorFusionSession(
-                _runnerService,
-                _gameStartedPub,
-                _allPlayersDisconnectedPub,
-                expectedPlayerCount,
-                playerPrefab);
-
-            _runner.Session = _session;
         }
 
         private void SpawnGameState(NetworkRunner runner)
@@ -307,7 +286,6 @@ namespace Game.Shared.Network.Survivor
         {
             _runnerService.Clear();
             _runnerService.RaiseClientDisconnected();
-            _session = null;
         }
     }
 }
