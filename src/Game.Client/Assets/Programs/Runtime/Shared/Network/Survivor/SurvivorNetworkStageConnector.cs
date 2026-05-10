@@ -24,7 +24,6 @@ namespace Game.Shared.Network.Survivor
         [Inject] private readonly IFusionRunnerService _runnerService;
         [Inject] private readonly IUnityServerSessionConfig _sessionConfig;
         [Inject] private readonly IUnityServerAuthProviderFactory _authProviderFactory;
-        [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         [Inject] private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
 
@@ -33,7 +32,7 @@ namespace Game.Shared.Network.Survivor
         private const string EnemyBatchSyncAddress = "SurvivorFusionEnemyBatchSync";
 
         private SurvivorFusionRunner _runner;
-        private SurvivorUnityServerSession _session;
+        private SurvivorFusionSession _session;
         private bool _isConnecting;
 
         // Addressables で読み込んだプレハブ（解放用に保持）
@@ -272,9 +271,8 @@ namespace Game.Shared.Network.Survivor
             if (_playerPrefabAsset != null)
                 playerPrefab = _playerPrefabAsset.GetComponent<NetworkObject>();
 
-            _session = new SurvivorUnityServerSession(
+            _session = new SurvivorFusionSession(
                 _runnerService,
-                _allPlayersReadyPub,
                 _gameStartedPub,
                 _allPlayersDisconnectedPub,
                 expectedPlayerCount,

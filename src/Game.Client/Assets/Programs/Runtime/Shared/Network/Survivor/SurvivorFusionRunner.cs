@@ -22,7 +22,7 @@ namespace Game.Shared.Network.Survivor
         public NetworkRunner Runner { get; private set; }
 
         /// <summary>セッション管理（Host/Server 時に設定）</summary>
-        internal SurvivorUnityServerSession Session { get; set; }
+        internal SurvivorFusionSession Session { get; set; }
 
         /// <summary>Shutdown 時の通知</summary>
         internal Action<ShutdownReason> OnShutdownCallback { get; set; }

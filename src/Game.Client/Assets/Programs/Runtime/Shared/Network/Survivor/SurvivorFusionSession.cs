@@ -12,10 +12,9 @@ namespace Game.Shared.Network.Survivor
     /// Fusion セッション管理。プレイヤー接続追跡と AllPlayersReady 通知を担当。
     /// SurvivorNetworkStageConnector から生成され、SurvivorFusionRunner のコールバックを受ける。
     /// </summary>
-    public class SurvivorUnityServerSession
+    public class SurvivorFusionSession
     {
         private readonly IFusionRunnerService _runnerService;
-        private readonly IPublisher<SurvivorSignals.Session.AllPlayersReady> _allPlayersReadyPub;
         private readonly IPublisher<SurvivorSignals.Session.GameStarted> _gameStartedPub;
         private readonly IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> _allPlayersDisconnectedPub;
 
@@ -26,16 +25,14 @@ namespace Game.Shared.Network.Survivor
 
         public int ConnectedPlayerCount => _connectedPlayers.Count;
 
-        public SurvivorUnityServerSession(
+        public SurvivorFusionSession(
             IFusionRunnerService runnerService,
-            IPublisher<SurvivorSignals.Session.AllPlayersReady> allPlayersReadyPub,
             IPublisher<SurvivorSignals.Session.GameStarted> gameStartedPub,
             IPublisher<SurvivorSignals.Session.AllPlayersDisconnected> allPlayersDisconnectedPub,
             int expectedPlayerCount,
             NetworkObject playerPrefab)
         {
             _runnerService = runnerService;
-            _allPlayersReadyPub = allPlayersReadyPub;
             _gameStartedPub = gameStartedPub;
             _allPlayersDisconnectedPub = allPlayersDisconnectedPub;
             _expectedPlayerCount = expectedPlayerCount;
