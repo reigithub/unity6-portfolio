@@ -19,6 +19,15 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 ---
 
+## Demo
+| P2P MultiPlayer                                                                             |
+|-------------------------------------------------------------------------------------------|
+| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") |
+
+| SinglePlayer                                                                   |
+|---------------------------------------------------------------------------------------------|
+| [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
+
 ## Screenshots
 
 ### MVC: ScoreTimeAttack (Time Attack Game)
@@ -1125,8 +1134,6 @@ Applied to:
 ### Download
 * Executable: [Demo Game Download Link](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) *If extraction fails, 7Zip is recommended
   - Pressing the GameStart button will download remote assets (~500MB)
-
-[![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo")
 
 ---
 

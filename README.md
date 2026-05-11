@@ -19,6 +19,15 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 ---
 
+## デモ動画
+| P2Pマルチプレイ                                                                             |
+|-------------------------------------------------------------------------------------------|
+| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") |
+
+| シングルプレイ(サーバー権威型)                                                                   |
+|---------------------------------------------------------------------------------------------|
+| [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
+
 ## スクリーンショット
 
 ### MVC: ScoreTimeAttack（スコアアタックゲーム）
@@ -1131,9 +1140,7 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 ### ダウンロード
 * 実行形式: [デモゲームDLリンク](https://drive.google.com/file/d/1_9vWOvT8leUjd2jB5uTzziSyA5goPmJx/view?usp=drive_link) ※解凍できない場合は7Zipを推奨
   - GameStartボタンを押下するとリモートアセットをダウンロードします(約500MB)
-  - 稼働コスト削減のため、Unityサーバーが稼働していない場合があります。以下の動画をご覧ください
-
-[![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo")
+  - 稼働コスト削減のため、Unityサーバーが稼働していない場合があります。デモ動画をご覧ください
 
 ---
 
