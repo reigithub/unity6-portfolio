@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using Game.MVP.Core.Constants;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Enums;
 using Game.Shared.Extensions;
@@ -8,6 +9,8 @@ using Game.Shared.Scenes;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
 using VContainer;
 using VContainer.Unity;
 
@@ -218,6 +221,68 @@ namespace Game.MVP.Core.Scenes
         }
 
         #endregion
+    }
+
+    // コンポーネント付きのUnityScene
+    public abstract class GameUnityScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>, IGameSceneFader
+        where TGameScene : IGameScene
+        where TGameSceneComponent : IGameSceneComponent
+    {
+        [Inject] protected IAddressableAssetService AssetService { get; set; }
+        [Inject] protected IObjectResolver Resolver { get; set; }
+        [Inject] protected IGameRootController GameRootController { get; set; }
+
+        protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Single;
+
+        private SceneInstance _instance;
+
+        protected override async UniTask LoadScene()
+        {
+            _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
+            // SceneManager.SetActiveScene(_instance.Scene);
+        }
+
+        protected override async UniTask UnloadScene()
+        {
+            await AssetService.UnloadSceneAsync(_instance);
+            await SceneManager.LoadSceneAsync(GameSceneConstants.GameRootSceneName, LoadSceneMode.Single);
+        }
+
+        protected override TGameSceneComponent GetSceneComponent()
+        {
+            if (SceneComponent == null)
+            {
+                SceneComponent = GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance.Scene);
+                Resolver?.Inject(SceneComponent);
+            }
+
+            return SceneComponent;
+        }
+
+        public async UniTask FadeInAsync(float duration = 0.3f)
+        {
+            // グローバルフェードインは必ず実行
+            if (GameRootController != null)
+            {
+                var tweener = GameRootController.FadeIn(duration);
+                if (tweener != null)
+                {
+                    await tweener.ToUniTask();
+                }
+            }
+        }
+
+        public async UniTask FadeOutAsync(float duration = 0.3f)
+        {
+            if (GameRootController != null)
+            {
+                var tweener = GameRootController.FadeOut(duration);
+                if (tweener != null)
+                {
+                    await tweener.ToUniTask();
+                }
+            }
+        }
     }
 
     /// <summary>
