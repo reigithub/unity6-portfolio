@@ -1,23 +1,24 @@
-# Unity6Portfolio
+# Portfolio
 
-A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 (Monorepo)
-
-## Highlights
-
-* **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
-* **Photon Fusion 2 server authority model + Dedicated Server operations** — Dead Reckoning interpolation, enemy batch sync (NetworkArray<512>), Linux headless build with self-registration + HMAC auth + Docker deployment
-* **LiveOps delivery pipeline** — GitHub Actions self-hosted runners + Unity Accelerator + Cloudflare R2 CDN, Addressables with 4-environment switching, index.json differential sync, editor auto-sync
-* **Protobuf schema-driven master data** — custom CLI tool (6 subcommands), deploy-target-filtered binary generation from a single schema for Client/Server/Realtime
-* **8-assembly modular design** — MVC/MVP coexistence with structurally enforced circular reference prevention
-* **1,148 automated tests** (EditMode 746 + PlayMode 63 + Server 339 with Testcontainers) across 7 CI/CD workflows
-
-> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 15 ADRs)
-
----
+A game development portfolio (monorepo) consisting of a Unity 6 client + game backend infrastructure + online multiplayer infrastructure
 
 [日本語版はこちら](README.md)
 
----
+## Project Overview
+
+* **Unity × Server × Infrastructure in a single monorepo** — Unity 6 client / REST API backend (ASP.NET Core) / Database (PostgreSQL) / CI/CD (GitHub Actions)
+* **Photon Fusion 2 online multiplayer foundation** — Supports both P2P multiplayer and server-authoritative single/multiplayer
+* **LiveOps delivery pipeline** — Asset build pipeline on GitHub Actions self-hosted runners + auto upload to Cloudflare R2 CDN + Addressables assets loaded by dev/production app
+* **Master data foundation** — Custom CLI tool generating Protobuf schema-driven master data, producing deploy-target-specific binaries (for MasterMemory) for Client/Server/Realtime from a single schema
+* **Assembly separation** — Assembly Definitions enable building and verifying multiple game applications in a single project while structurally preventing circular references
+* **Automated testing infrastructure** — GitHub Actions workflows that automatically run tests, code quality checks, and vulnerability checks on PRs, etc.
+
+> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 15 ADRs)
+
+## Project Background & Goals
+* Build the development ecosystem that is essential on the job, to improve efficiency and deepen understanding
+* Catch up on real-world and the latest technologies by building with technologies actually used in the field and modern stacks
+* Understand the full picture of a game application by developing the full stack (client + backend + infrastructure)
 
 ## Demo
 | P2P MultiPlayer                                                                             |
@@ -30,12 +31,12 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 ## Screenshots
 
-### MVC: ScoreTimeAttack (Time Attack Game)
+### Score Attack Game (MVC Pattern)
 | Title | Gameplay | Result |
 |-------|----------|--------|
 | ![Title](src/Game.Client/Documentation/Screenshots/mvc_title.png) | ![Gameplay](src/Game.Client/Documentation/Screenshots/mvc_gameplay.png) | ![Result](src/Game.Client/Documentation/Screenshots/mvc_result.png) |
 
-### MVP: Survivor (Survivor Game)
+### Survivor Game (MVP Pattern)
 | Title | Gameplay | Level Up |
 |-------|----------|----------|
 | ![Title](src/Game.Client/Documentation/Screenshots/mvp_title.png) | ![Gameplay](src/Game.Client/Documentation/Screenshots/mvp_gameplay.png) | ![Level Up](src/Game.Client/Documentation/Screenshots/mvp_levelup.png) |
@@ -69,52 +70,6 @@ A game development portfolio built with Unity 6 + ASP.NET Core 9 + MagicOnion gR
 
 ### Editor Tools
 ![Editor Tool](src/Game.Client/Documentation/GIFs/editor_tool.gif)
-
-<details><summary>Setup</summary>
-
-### Requirements
-
-| Item | Version |
-|------|---------|
-| Unity | 6000.3.8f1 or later |
-| .NET SDK | 9.0 or later |
-| OS | Windows 10/11 |
-
-### Setup Steps
-
-#### Client (Unity)
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/reigithub/unity6-portfolio.git
-   ```
-2. Open the `src/Game.Client/` folder in Unity Hub
-3. Package restoration may take a few minutes on first launch
-4. Open `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` and press Play
-
-#### Server
-
-```bash
-cd src/Game.Server
-dotnet restore
-dotnet run
-```
-
-#### Running Tests
-
-```bash
-# Server tests
-dotnet test
-
-# Unity tests (in Unity Editor)
-# Window > General > Test Runner
-```
-
-### Notes
-* Some packages are installed via NuGetForUnity, so if errors occur on the first build, try building again
-* If Addressables build is required, run build from `Window > Asset Management > Addressables > Groups`
-
-</details>
 
 ---
 
@@ -176,7 +131,7 @@ dotnet test
 ### Client Architecture
 * **Assembly Separation**: 8 independent assemblies for MVC/MVP patterns with structurally enforced circular reference prevention
 * **Game Mode Selection**: Select different architecture game modes from the title screen
-* **DI / Event-Driven**: VContainer (MVP) + GameServiceManager (MVC), MessagePipe Pub/Sub, R3 reactive (DistinctUntilChanged / Merge / ThrottleFirst operator composition)
+* **DI / Event-Driven**: VContainer, MessagePipe Pub/Sub, R3 reactive
 * **Scene Transitions**: Async (UniTask) transitions with sleep/resume, arguments/return values, dialog stack
 * **State Machine**: Generic context, transition table, O(1) state lookup. Fusion FSM for network-synced states
 
@@ -203,10 +158,10 @@ dotnet test
 * **Request Signing Policy**: Declarative endpoint security (3 signing attributes), fail-fast startup validation
 
 ### Realtime Online Gameplay (Photon Fusion 2)
-* **Server Authority Model**: Server/Client mode, [Networked] properties, Fusion FSM player state sync
+* **Online multiplayer foundation**: P2P communication model and server-authoritative model (Server/Client mode)
 * **Enemy Batch Sync**: Server-controlled enemy AI, 10Hz batch sync (NetworkArray<512>), client Dead Reckoning interpolation
-* **Dedicated Server Orchestration**: Linux headless build, self-registration + heartbeat to Game.Server, HMAC auth, Docker deploy
-* **MPPM Support**: In-editor multiplayer testing, per-clone data path isolation
+* **Dedicated Server**: Linux headless build, self-registration + heartbeat to Game.Server, HMAC auth, Docker deploy
+* **MultiPlayer Playmode**: Multiplayer testing in editor with up to 4 instances simultaneously, per-clone user data path isolation
 
 ### Development Infrastructure
 * **Master Data**: Protobuf schema-driven, custom CLI tool (codegen/build/validate/scaffold/export/diff), deploy-target-filtered binary generation
@@ -480,7 +435,7 @@ Real-time multiplayer infrastructure using MagicOnion (gRPC StreamingHub) + Valk
 - Background matching processor
 - Session token issuance (match authentication)
 
-**MPPM (Multiplayer Play Mode) Support:**
+**MPPM (Multiplayer Playmode) Support:**
 - Launch multiple clone instances within the editor for multiplayer testing
 - Per-clone data path isolation (save data, session, audio settings)
 - Auto-detection and path switching at GameBootstrap startup
@@ -1072,14 +1027,14 @@ Applied to:
 
 | Item | Value |
 |------|-------|
-| Period | ~13 weeks (Jan 2026–) |
+| Period | ~14 weeks (Jan 2026–) |
 | C# Files | 447 files (50 test files) |
 | Tests | 1,148 tests (EditMode 746 + PlayMode 63 + Server 339) |
 | Documentation | 73 files |
 | CI/CD Workflows | 7 |
 | Custom Shaders | 5 shaders + 2 HLSL includes |
 | EditorWindows | 12 |
-| ADRs (Architecture Decision Records) | 14 |
+| ADRs (Architecture Decision Records) | 15 |
 
 ---
 
@@ -1088,7 +1043,6 @@ Applied to:
 **Game Updates:**
 * Survivor game expansion (new weapons, items, etc.)
 * Additional game modes (turn-based, etc.)
-* Additional network mode (P2P)
 
 **Performance & Rendering:**
 * Document Unity Profiler / Memory Profiler measurement results (CPU Timeline, GC Alloc snapshots)
@@ -1100,11 +1054,12 @@ Applied to:
 
 **Platform:**
 * Localization support (multi-language, Unity Localization)
-* Multi-resolution & multi-platform support (iOS / Android build & signing)
+* Multi-platform support (iOS / Android build & signing)
 
-**Features:**
+**Other Features:**
+* Additional in-game options (borderless, multi-resolution, mouse sensitivity, etc.)
 * In-app purchase system, gacha, present box, etc.
-* Out-app purchase web site. (Next.js)
+* Out-app purchase website demo (Next.js)
 
 ---
 
