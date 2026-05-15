@@ -1,4 +1,4 @@
-# Unity6Portfolio アーキテクチャ設計書
+# アーキテクチャ設計書
 
 [English version is here](ARCHITECTURE.en.md)
 

@@ -13,7 +13,7 @@ Unity6クライアント + ゲームバックエンド基盤 + オンライン�
 * **アセンブリ分割** — Assembly Difinitionで異なるゲームアプリを1プロジェクトで構築・検証可能にし、循環参照を構造的に防止
 * **自動テスト基盤** — PR時などに自動テスト実行、コード品質チェック、脆弱性チェックなどを自動実行するGithubActionsワークフローを構築
 
-> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 15件）
+> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 14件）
 
 ## プロジェクト背景・目的
 * 開発現場で欠かせないエコシステムを構築して効率化しつつ、理解を深めること
@@ -1040,7 +1040,7 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 | CI/CDワークフロー | 7本                                              |
 | カスタムシェーダー | 5シェーダー + 2 HLSLインクルード                           |
 | EditorWindow | 12個                                             |
-| ADR（設計判断記録）| 15件                                             |
+| ADR（設計判断記録）| 14件                                             |
 
 ---
 
