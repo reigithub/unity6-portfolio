@@ -29,7 +29,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public static UniTask<SurvivorPauseResult> RunAsync(IGameSceneService sceneService)
         {
-            return sceneService.TransitionDialogAsync<SurvivorPauseDialog, SurvivorPauseDialogComponent, SurvivorPauseResult>();
+            return sceneService.TransitionDialogAsync<SurvivorPauseDialog, SurvivorPauseResult>();
         }
 
         public override UniTask Startup()

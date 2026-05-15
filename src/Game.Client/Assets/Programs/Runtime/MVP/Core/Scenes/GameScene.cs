@@ -1,7 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using Game.MVP.Core.Constants;
 using Game.MVP.Core.DI;
 using Game.MVP.Core.Enums;
 using Game.Shared.Extensions;
@@ -125,7 +124,6 @@ namespace Game.MVP.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        // VContainer DI
         [Inject] protected IAddressableAssetService AssetService { get; set; }
         [Inject] protected IObjectResolver Resolver { get; set; }
         [Inject] protected IGameRootController GameRootController { get; set; }
@@ -137,7 +135,10 @@ namespace Game.MVP.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
 
             // GameObjectとその子にDIを注入
             Resolver?.InjectGameObject(_instance);
@@ -152,6 +153,7 @@ namespace Game.MVP.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
+                AssetService.ReleaseAsset(_asset);
                 _asset = null;
                 _canvasGroup = null;
             }
@@ -224,6 +226,8 @@ namespace Game.MVP.Core.Scenes
     }
 
     // コンポーネント付きのUnityScene
+    // Memo: Prefabシーンと併用した際の影響をすべて検討完了するまでは使用禁止
+    // GameRootScene(PrefabSceneロード) + UnityシーンAdditiveロード方式で賄えない要件が発生した際に改めて検討する
     public abstract class GameUnityScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>, IGameSceneFader
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
@@ -239,13 +243,15 @@ namespace Game.MVP.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
-            // SceneManager.SetActiveScene(_instance.Scene);
         }
 
         protected override async UniTask UnloadScene()
         {
             await AssetService.UnloadSceneAsync(_instance);
-            await SceneManager.LoadSceneAsync(GameSceneConstants.GameRootSceneName, LoadSceneMode.Single);
+            // Memo: どのタイミングでGameRootSceneを戻すか要検討 -> プレハブシーンに遷移する前にチェックするのが妥当?
+            // 1. プレハブ -> Unityシーン : 戻る時にプレハブシーン -> 事前に戻す必要あり
+            // 2. Unityシーン -> プレハブ : 遷移時にプレハブシーン -> 事前に戻す必要あり
+            // await SceneManager.LoadSceneAsync(AppConstants.GameRootScene, LoadSceneMode.Single);
         }
 
         protected override TGameSceneComponent GetSceneComponent()
@@ -294,7 +300,6 @@ namespace Game.MVP.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        // VContainer DI
         [Inject] protected IAddressableAssetService AssetService { get; set; }
         [Inject] protected IObjectResolver Resolver { get; set; }
 
@@ -306,7 +311,10 @@ namespace Game.MVP.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
 
             // GameObjectとその子にDIを注入
             Resolver?.InjectGameObject(_instance);
@@ -318,6 +326,7 @@ namespace Game.MVP.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
+                AssetService.ReleaseAsset(_asset);
                 _asset = null;
             }
 

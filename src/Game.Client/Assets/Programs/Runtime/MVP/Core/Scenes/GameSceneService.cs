@@ -99,9 +99,8 @@ namespace Game.MVP.Core.Scenes
             }
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>()
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログはプロセス中に再度要求されたら閉じる
             var type = typeof(TScene);
@@ -118,9 +117,8 @@ namespace Game.MVP.Core.Scenes
             return await ResultAsync(gameScene, tcs);
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TArg, TResult>(TArg arg)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, IGameSceneArg<TArg>, new()
-            where TComponent : IGameSceneComponent
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログはプロセス中に再度要求されたら閉じる
             var type = typeof(TScene);

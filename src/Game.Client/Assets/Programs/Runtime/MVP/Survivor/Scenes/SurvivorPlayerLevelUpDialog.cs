@@ -23,6 +23,11 @@ namespace Game.MVP.Survivor.Scenes
 
         private SurvivorPlayerLevelUpDialogArg _arg;
 
+        public static UniTask<SurvivorWeaponUpgradeOption> RunAsync(IGameSceneService sceneService, SurvivorPlayerLevelUpDialogArg arg)
+        {
+            return sceneService.TransitionDialogAsync<SurvivorPlayerLevelUpDialog, SurvivorPlayerLevelUpDialogArg, SurvivorWeaponUpgradeOption>(arg);
+        }
+
         public UniTask ArgHandle(SurvivorPlayerLevelUpDialogArg arg)
         {
             _arg = arg;

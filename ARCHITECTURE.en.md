@@ -1,4 +1,4 @@
-# Unity6Portfolio Architecture Design Document
+# Architecture Design Document
 
 [日本語版はこちら](ARCHITECTURE.md)
 

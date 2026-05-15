@@ -60,25 +60,21 @@ namespace Game.MVP.Core.Scenes
         /// ダイアログをオーバーレイ表示（引数なし）
         /// </summary>
         /// <typeparam name="TScene">ダイアログシーン型</typeparam>
-        /// <typeparam name="TComponent">UIコンポーネント型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>()
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent;
+        UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>
         /// ダイアログをオーバーレイ表示（引数あり）
         /// </summary>
         /// <typeparam name="TScene">ダイアログシーン型</typeparam>
-        /// <typeparam name="TComponent">UIコンポーネント型</typeparam>
         /// <typeparam name="TArg">引数の型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
         /// <param name="arg">ダイアログに渡す引数</param>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TArg, TResult>(TArg arg)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, IGameSceneArg<TArg>, new()
-            where TComponent : IGameSceneComponent;
+        UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>
         /// 指定した型のシーンが処理中かどうかを判定

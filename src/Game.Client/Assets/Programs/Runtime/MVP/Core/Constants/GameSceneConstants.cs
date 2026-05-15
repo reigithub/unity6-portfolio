@@ -4,8 +4,6 @@ namespace Game.MVP.Core.Constants
 {
     public static class GameSceneConstants
     {
-        public const string GameRootSceneName = "GameRootScene";
-
         public const GameSceneOperations DefaultOperations = GameSceneOperations.Terminate |
                                                              GameSceneOperations.ClearHistory;
     }

@@ -1,28 +1,23 @@
 using Cysharp.Threading.Tasks;
 using Game.MVP.Core.Scenes;
-using R3;
-using UnityEngine;
 
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// カウントダウンダイアログの結果
-    /// </summary>
-    public enum SurvivorCountdownResult
-    {
-        Completed
-    }
-
-    /// <summary>
     /// Survivorカウントダウンダイアログ（Presenter）
     /// ゲーム開始前のカウントダウン表示を管理
     /// </summary>
-    public class SurvivorCountdownDialog : GameDialogScene<SurvivorCountdownDialog, SurvivorCountdownDialogComponent, SurvivorCountdownResult>
+    public class SurvivorCountdownDialog : GameDialogScene<SurvivorCountdownDialog, SurvivorCountdownDialogComponent, bool>
     {
         protected override string AssetPathOrAddress => "SurvivorCountdownDialog";
 
         private const float CountdownInterval = 1f;
         private const int StartCount = 3;
+
+        public static UniTask<bool> RunAsync(IGameSceneService sceneService)
+        {
+            return sceneService.TransitionDialogAsync<SurvivorCountdownDialog, bool>();
+        }
 
         public override async UniTask Startup()
         {
@@ -46,7 +41,7 @@ namespace Game.MVP.Survivor.Scenes
             await UniTask.Delay(500, DelayType.Realtime);
 
             // 完了を通知
-            TrySetResult(SurvivorCountdownResult.Completed);
+            TrySetResult(true);
         }
     }
 }

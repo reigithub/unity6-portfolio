@@ -31,7 +31,7 @@ namespace Game.MVP.Survivor.Scenes
         /// </summary>
         public static UniTask RunAsync(IGameSceneService sceneService)
         {
-            return sceneService.TransitionDialogAsync<SurvivorRankingDialog, SurvivorRankingDialogComponent, Unit>();
+            return sceneService.TransitionDialogAsync<SurvivorRankingDialog, Unit>();
         }
 
         public override async UniTask Startup()

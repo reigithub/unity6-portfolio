@@ -13,7 +13,7 @@ A game development portfolio (monorepo) consisting of a Unity 6 client + game ba
 * **Assembly separation** — Assembly Definitions enable building and verifying multiple game applications in a single project while structurally preventing circular references
 * **Automated testing infrastructure** — GitHub Actions workflows that automatically run tests, code quality checks, and vulnerability checks on PRs, etc.
 
-> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 15 ADRs)
+> **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md) (11 chapters, 14 ADRs)
 
 ## Project Background & Goals
 * Build the development ecosystem that is essential on the job, to improve efficiency and deepen understanding
@@ -1025,16 +1025,16 @@ Applied to:
 
 ## Development Period & Scale
 
-| Item | Value |
-|------|-------|
-| Period | ~14 weeks (Jan 2026–) |
-| C# Files | 447 files (50 test files) |
+| Item | Value                                                 |
+|------|-------------------------------------------------------|
+| Period | ~14 weeks (Jan 2026–)                                 |
+| C# Files | 447 files (50 test files)                             |
 | Tests | 1,148 tests (EditMode 746 + PlayMode 63 + Server 339) |
-| Documentation | 73 files |
-| CI/CD Workflows | 7 |
-| Custom Shaders | 5 shaders + 2 HLSL includes |
-| EditorWindows | 12 |
-| ADRs (Architecture Decision Records) | 15 |
+| Documentation | 73 files                                              |
+| CI/CD Workflows | 7                                                     |
+| Custom Shaders | 5 shaders + 2 HLSL includes                           |
+| EditorWindows | 12                                                    |
+| ADRs (Architecture Decision Records) | 14                                                    |
 
 ---
 

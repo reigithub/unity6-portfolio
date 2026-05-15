@@ -37,7 +37,7 @@ namespace Game.MVP.Survivor.Scenes
         public static UniTask<bool> RunAsync(IGameSceneService sceneService, SurvivorConfirmDialogOptions options = null)
         {
             options ??= new SurvivorConfirmDialogOptions();
-            return sceneService.TransitionDialogAsync<SurvivorConfirmDialog, SurvivorConfirmDialogComponent, SurvivorConfirmDialogOptions, bool>(options);
+            return sceneService.TransitionDialogAsync<SurvivorConfirmDialog, SurvivorConfirmDialogOptions, bool>(options);
         }
 
         public UniTask ArgHandle(SurvivorConfirmDialogOptions arg)
