@@ -7,6 +7,11 @@ namespace Game.Shared.Scenes
 {
     public static class GameSceneHelper
     {
+        public static Scene GetGameRootScene()
+        {
+            return SceneManager.GetSceneByName(AppConstants.GameRootScene);
+        }
+
         public static void MoveToGameRootScene(GameObject scene)
         {
             var activeScene = SceneManager.GetActiveScene();
