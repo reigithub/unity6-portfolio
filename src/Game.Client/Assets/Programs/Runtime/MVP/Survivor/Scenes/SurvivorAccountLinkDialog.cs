@@ -30,7 +30,7 @@ namespace Game.MVP.Survivor.Scenes
 
         public static UniTask RunAsync(IGameSceneService sceneService)
         {
-            return sceneService.TransitionDialogAsync<SurvivorAccountLinkDialog, SurvivorAccountLinkDialogComponent, Unit>();
+            return sceneService.TransitionDialogAsync<SurvivorAccountLinkDialog, Unit>();
         }
 
         public override async UniTask Startup()

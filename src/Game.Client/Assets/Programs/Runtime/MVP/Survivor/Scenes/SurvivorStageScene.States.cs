@@ -200,10 +200,7 @@ namespace Game.MVP.Survivor.Scenes
                 ApplicationEvents.PauseTime();
 
                 // カウントダウンダイアログを表示（3, 2, 1, GO!）
-                await SceneService.TransitionDialogAsync<
-                    SurvivorCountdownDialog,
-                    SurvivorCountdownDialogComponent,
-                    SurvivorCountdownResult>();
+                await SurvivorCountdownDialog.RunAsync(SceneService);
 
                 await readyAudioTask;
                 Debug.Log("[ReadyState] Countdown complete");
@@ -503,12 +500,10 @@ namespace Game.MVP.Survivor.Scenes
                 // 武器選択ループ（入れ替えキャンセル時に戻れるように）
                 while (true)
                 {
-                    var result = await SceneService.TransitionDialogAsync<
-                        SurvivorPlayerLevelUpDialog,
-                        SurvivorPlayerLevelUpDialogComponent,
-                        SurvivorPlayerLevelUpDialogArg,
-                        SurvivorWeaponUpgradeOption
-                    >(new(options, StageModel.Level.Value));
+                    var result = await SurvivorPlayerLevelUpDialog.RunAsync(
+                        SceneService,
+                        new SurvivorPlayerLevelUpDialogArg(options, StageModel.Level.Value)
+                    );
 
                     // ×ボタンでキャンセル → 武器取得なしでゲーム続行
                     if (result == null)

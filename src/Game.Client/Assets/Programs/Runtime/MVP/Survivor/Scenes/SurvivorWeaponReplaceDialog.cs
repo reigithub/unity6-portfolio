@@ -38,7 +38,6 @@ namespace Game.MVP.Survivor.Scenes
         {
             return sceneService.TransitionDialogAsync<
                 SurvivorWeaponReplaceDialog,
-                SurvivorWeaponReplaceDialogComponent,
                 SurvivorWeaponReplaceDialogArg,
                 int?>(arg);
         }
