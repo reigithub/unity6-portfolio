@@ -122,7 +122,7 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager.Initialize(session.StageId);
 
             // スポーン完了後にアクティブシーンを復元するため事前に保存
-            var rootScene = SceneManager.GetActiveScene();
+            // var rootScene = SceneManager.GetActiveScene();
 
             // インゲームフィールドをロード（SetActiveScene で物理シーンがアクティブになる）
             await LoadUnitySceneAsync();
@@ -151,10 +151,8 @@ namespace Game.MVP.Survivor.Scenes
             }
 
             // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
-            if (rootScene.IsValid())
-            {
-                SceneManager.SetActiveScene(rootScene);
-            }
+            // if (rootScene.IsValid())
+            //     SceneManager.SetActiveScene(rootScene);
 
             // Client State Machine + Subscribe (両モード共通の View 駆動)
             BuildStateMachine();
@@ -188,8 +186,8 @@ namespace Game.MVP.Survivor.Scenes
             if (!string.IsNullOrEmpty(stageAssetName))
             {
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
-                SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
-                // LightProbes.TetrahedralizeAsync();
+                // SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
+                LightProbes.TetrahedralizeAsync();
                 Debug.Log($"[SurvivorGameStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用
@@ -204,8 +202,6 @@ namespace Game.MVP.Survivor.Scenes
 
         private async UniTask SpawnPlayerAsync()
         {
-            var totalSw = System.Diagnostics.Stopwatch.StartNew();
-
             if (!_stageSceneInstance.HasValue)
             {
                 Debug.LogWarning("[SurvivorGameStageScene] Stage scene not loaded, skipping player spawn");
@@ -245,9 +241,6 @@ namespace Game.MVP.Survivor.Scenes
                     localController = ctrl;
                 }
             }
-
-            totalSw.Stop();
-            Debug.Log($"[DIAG-Spawn] SpawnPlayerAsync total elapsed={totalSw.ElapsedMilliseconds}ms, playerCount={results.Length}");
 
             if (localController != null)
             {

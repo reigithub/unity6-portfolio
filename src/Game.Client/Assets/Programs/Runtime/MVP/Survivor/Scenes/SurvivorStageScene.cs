@@ -112,7 +112,7 @@ namespace Game.MVP.Survivor.Scenes
             _waveManager.Initialize(session.StageId);
 
             // スポーン完了後にアクティブシーンを復元するため事前に保存
-            var rootScene = SceneManager.GetActiveScene();
+            // var rootScene = SceneManager.GetActiveScene();
 
             // インゲームフィールドをロード（SetActiveScene で物理シーンがアクティブになる）
             await LoadUnitySceneAsync();
@@ -133,10 +133,8 @@ namespace Game.MVP.Survivor.Scenes
             await SpawnPlayerAsync();
 
             // アクティブシーンを GameRootScene に復元（ダイアログ等のシーン遷移はアクティブシーンで行われるため）
-            if (rootScene.IsValid())
-            {
-                SceneManager.SetActiveScene(rootScene);
-            }
+            // if (rootScene.IsValid())
+            //     SceneManager.SetActiveScene(rootScene);
 
             BuildStateMachine();
             SubscribeEvents();
@@ -160,8 +158,8 @@ namespace Game.MVP.Survivor.Scenes
             if (!string.IsNullOrEmpty(stageAssetName))
             {
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
-                SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
-                // LightProbes.TetrahedralizeAsync();
+                // SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
+                LightProbes.TetrahedralizeAsync();
                 Debug.Log($"[SurvivorStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用

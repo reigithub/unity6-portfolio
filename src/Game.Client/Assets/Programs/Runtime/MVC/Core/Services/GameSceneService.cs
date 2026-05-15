@@ -151,17 +151,17 @@ namespace Game.Core.Services
             // シーン遷移が起こる時はダイアログはすべて閉じる
             await TerminateAllDialogAsync();
 
-            if (operations.HasFlag(GameSceneOperations.CurrentSceneSleep))
+            if (operations.HasFlag(GameSceneOperations.Sleep))
             {
                 await SleepAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneRestart))
+            else if (operations.HasFlag(GameSceneOperations.Restart))
             {
                 await RestartAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneTerminate))
+            else if (operations.HasFlag(GameSceneOperations.Terminate))
             {
-                bool clearHistory = operations.HasFlag(GameSceneOperations.CurrentSceneClearHistory);
+                bool clearHistory = operations.HasFlag(GameSceneOperations.ClearHistory);
                 await TerminateLastAsync(clearHistory);
             }
         }

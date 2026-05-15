@@ -144,20 +144,20 @@ namespace Game.MVP.Core.Scenes
             // シーン遷移が起こる時はダイアログはすべて閉じる
             await TerminateAllDialogAsync();
 
-            if (operations.HasFlag(GameSceneOperations.CurrentSceneSleep))
+            if (operations.HasFlag(GameSceneOperations.Sleep))
             {
                 // 現在のシーンをスリープさせる
                 await SleepAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneRestart))
+            else if (operations.HasFlag(GameSceneOperations.Restart))
             {
                 // 現在のシーンをスリープ状態から再開する
                 await RestartAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneTerminate))
+            else if (operations.HasFlag(GameSceneOperations.Terminate))
             {
                 // 現在のシーンを終了させる
-                bool clearHistory = operations.HasFlag(GameSceneOperations.CurrentSceneClearHistory);
+                bool clearHistory = operations.HasFlag(GameSceneOperations.ClearHistory);
                 await TerminateLastAsync(clearHistory);
             }
         }

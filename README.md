@@ -1,23 +1,24 @@
-# Unity6Portfolio
+# ポートフォリオ
 
-Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム開発ポートフォリオ（モノレポ構成）
-
-## ハイライト
-
-* **Unity × サーバー × インフラをモノレポで一括実装** — Unity 6 クライアント / ASP.NET Core 9 + MagicOnion gRPC / PostgreSQL + Valkey / GitHub Actions CI/CD
-* **Photon Fusion 2 サーバー権威モデル + Dedicated Server運用** — Dead Reckoning補間、敵バッチ同期（NetworkArray<512>）、Linuxヘッドレスビルド自己登録＋HMAC認証＋Docker化
-* **LiveOps配信基盤** — GitHub Actions セルフホストランナー + Unity Accelerator + Cloudflare R2 CDN、Addressables 4環境切替・index.json差分同期・エディタ自動同期
-* **Protobufスキーマ駆動のマスターデータ基盤** — CLIツール自作（6サブコマンド）、Client/Server/Realtime同一スキーマからデプロイターゲット別バイナリ生成
-* **8アセンブリ分割のモジュラー設計** — MVC/MVP両パターンを共存させ、循環参照を構造的に防止
-* **1,148テスト**による自動品質保証（EditMode 746 + PlayMode 63 + サーバー 339・Testcontainers採用）、CI/CD 7ワークフロー
-
-> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 15件）
-
----
+Unity6クライアント + ゲームバックエンド基盤 + オンラインマルチプレイ基盤を含むゲーム開発ポートフォリオ（モノレポ構成）
 
 [English version is here](README.en.md)
 
----
+## プロジェクト概要
+
+* **Unity × サーバー × インフラをモノレポで一括実装** — Unity6クライアント / REST APIバックエンド(ASP.NET Core) / データベース(PostgreSQL) / CI/CD(GitHub Actions)
+* **Photon Fusion 2 オンラインマルチプレイ基盤** — P2Pマルチプレイ/サーバー権威型シングルプレイ・マルチプレイに対応
+* **LiveOps配信基盤** — GitHub Actionsセルフホストランナー上にアセットビルドパイプライン構築 + Cloudflare R2 CDNに自動アップロード + Addressablesアセットを開発/本番アプリからロード
+* **マスターデータ基盤** — 自作CLIツールでProtobufスキーマ駆動のマスタデータを生成、Client/Server/Realtimeなどを同一スキーマからデプロイターゲット別バイナリ生成(MasterMemory用)
+* **アセンブリ分割** — Assembly Difinitionで異なるゲームアプリを1プロジェクトで構築・検証可能にし、循環参照を構造的に防止
+* **自動テスト基盤** — PR時などに自動テスト実行、コード品質チェック、脆弱性チェックなどを自動実行するGithubActionsワークフローを構築
+
+> **アーキテクチャ詳細**: [ARCHITECTURE.md](ARCHITECTURE.md)（全11章、ADR 15件）
+
+## プロジェクト背景・目的
+* 開発現場で欠かせないエコシステムを構築して効率化しつつ、理解を深めること
+* 現場で使用される技術・モダン技術で構築することによる現場環境・最新へのキャッチアップ
+* クライアント+バックエンド+インフラを含めたフルスタックで開発することでゲームアプリ全体像を理解する
 
 ## デモ動画
 | P2Pマルチプレイ                                                                             |
@@ -30,12 +31,12 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 ## スクリーンショット
 
-### MVC: ScoreTimeAttack（スコアアタックゲーム）
+### スコアアタックゲーム(MVCパターン)
 | タイトル | ゲームプレイ | リザルト |
 |---------|------------|---------|
 | ![タイトル](src/Game.Client/Documentation/Screenshots/mvc_title.png) | ![ゲームプレイ](src/Game.Client/Documentation/Screenshots/mvc_gameplay.png) | ![リザルト](src/Game.Client/Documentation/Screenshots/mvc_result.png) |
 
-### MVP: Survivor（サバイバーゲーム）
+### サバイバーゲーム(MVPパターン)
 | タイトル | ゲームプレイ | レベルアップ |
 |---------|------------|-------------|
 | ![タイトル](src/Game.Client/Documentation/Screenshots/mvp_title.png) | ![ゲームプレイ](src/Game.Client/Documentation/Screenshots/mvp_gameplay.png) | ![レベルアップ](src/Game.Client/Documentation/Screenshots/mvp_levelup.png) |
@@ -69,52 +70,6 @@ Unity 6 + ASP.NET Core 9 + MagicOnion gRPC + Photon Fusion 2 によるゲーム�
 
 ### エディターツール
 ![エディターツール](src/Game.Client/Documentation/GIFs/editor_tool.gif)
-
-<details><summary>環境構築</summary>
-
-### 必要環境
-
-| 項目 | バージョン |
-|-----|-----------|
-| Unity | 6000.3.8f1 以上 |
-| .NET SDK | 9.0 以上 |
-| OS | Windows 10/11 |
-
-### セットアップ手順
-
-#### クライアント (Unity)
-
-1. リポジトリをクローン
-   ```bash
-   git clone https://github.com/reigithub/unity6-portfolio.git
-   ```
-2. Unity Hub で `src/Game.Client/` フォルダを開く
-3. 初回起動時、パッケージの復元に数分かかる場合があります
-4. `Assets/ProjectAssets/UnityScenes/GameRootScene.unity` を開いて再生
-
-#### サーバー
-
-```bash
-cd src/Game.Server
-dotnet restore
-dotnet run
-```
-
-#### テスト実行
-
-```bash
-# サーバーテスト
-dotnet test
-
-# Unity テスト（Unity Editor内）
-# Window > General > Test Runner
-```
-
-### 注意事項
-* NuGetForUnity経由でインストールされるパッケージがあるため、初回ビルド時にエラーが出る場合は再度ビルドしてください
-* Addressablesのビルドが必要な場合は `Window > Asset Management > Addressables > Groups` からビルドを実行
-
-</details>
 
 ---
 
@@ -176,7 +131,7 @@ dotnet test
 ### クライアント設計
 * **アセンブリ分割設計**: MVC/MVPパターンを独立した8アセンブリで管理、循環参照を構造的に防止
 * **ゲームモード選択**: 起動時のタイトル画面から異なるアーキテクチャのゲームモードを選択可能
-* **DI/イベント駆動**: VContainer（MVP）+ GameServiceManager（MVC）、MessagePipe Pub/Sub、R3リアクティブ（DistinctUntilChanged / Merge / ThrottleFirst等の演算子合成）
+* **DI/イベント駆動**: VContainer、MessagePipe Pub/Sub、R3リアクティブ
 * **シーン遷移**: async/await（UniTask）による非同期遷移、スリープ/復帰、引数・戻り値、ダイアログスタック
 * **ステートマシン**: ジェネリック型コンテキスト・遷移テーブル・O(1)ステート検索。ネットワーク同期にはFusion FSMを使い分け
 
@@ -203,10 +158,10 @@ dotnet test
 * **リクエスト署名ポリシー**: 宣言的エンドポイントセキュリティ（3種の署名属性）、起動時fail-fastバリデーション
 
 ### リアルタイムオンラインゲームプレイ（Photon Fusion 2）
-* **サーバー権威モデル**: Server/Clientモード、[Networked]プロパティ、Fusion FSMによるプレイヤーステート同期
+* **オンラインマルチプレイ基盤**: P2P通信モデル、サーバー権威モデル(Server/Clientモード)
 * **敵バッチ同期**: サーバーが敵AI制御、10Hzバッチ同期（NetworkArray<512>）、クライアントDead Reckoning補間
-* **Dedicated Serverオーケストレーション**: Linux ヘッドレスビルド、Game.Serverへの自己登録＋ハートビート、HMAC認証、Dockerデプロイ
-* **MPPM対応**: エディタ内マルチプレイテスト、クローン別データパス分離
+* **Dedicated Server**: Linux ヘッドレスビルド、Game.Serverへの自己登録＋ハートビート、HMAC認証、Dockerデプロイ
+* **MultiPlayer Playmode**: エディタで4人分まで同時マルチプレイテスト可能、クローン別ユーザーデータパス分離
 
 ### 開発基盤
 * **マスターデータ管理**: Protobufスキーマ駆動、CLIツール自作（codegen/build/validate/scaffold/export/diff）、デプロイターゲット別バイナリ生成
@@ -480,7 +435,7 @@ MagicOnion（gRPC StreamingHub）+ Valkey によるリアルタイムマルチ�
 - バックグラウンドマッチングプロセッサ
 - セッショントークン発行（マッチ参加認証）
 
-**MPPM（Multiplayer Play Mode）対応:**
+**MPPM（Multiplayer Playmode）対応:**
 - エディタ内で複数クローンインスタンスを起動しマルチプレイテスト
 - クローンごとのデータパス分離（セーブデータ・セッション・オーディオ設定）
 - GameBootstrap起動時に自動検出・パス切り替え
@@ -1076,16 +1031,16 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 
 ## 制作期間・規模
 
-| 項目 | 値 |
-|------|-----|
-| 制作期間 | 約13週間（2026年1月〜） |
-| C#ファイル数 | 447ファイル（うちテスト50） |
+| 項目 | 値                                               |
+|------|-------------------------------------------------|
+| 制作期間 | 約14週間（2026年1月〜）                                 |
+| C#ファイル数 | 447ファイル（うちテスト50）                                |
 | テスト | 1,148テスト（EditMode 746 + PlayMode 63 + サーバー 339） |
-| ドキュメント | 73ファイル |
-| CI/CDワークフロー | 7本 |
-| カスタムシェーダー | 5シェーダー + 2 HLSLインクルード |
-| EditorWindow | 12個 |
-| ADR（設計判断記録）| 13件 |
+| ドキュメント | 73ファイル                                          |
+| CI/CDワークフロー | 7本                                              |
+| カスタムシェーダー | 5シェーダー + 2 HLSLインクルード                           |
+| EditorWindow | 12個                                             |
+| ADR（設計判断記録）| 15件                                             |
 
 ---
 
@@ -1094,7 +1049,6 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 **ゲームアップデート:**
 * サバイバーゲームの拡張(新しい武器やアイテムの追加等)
 * ゲームモード追加(ターン制ゲーム等)
-* ネットワーク通信モード追加(P2P)
 
 **パフォーマンス・描画:**
 * Unity Profiler / Memory Profilerによる計測結果のドキュメント化（CPU Timeline、GC Allocスナップショット）
@@ -1106,11 +1060,12 @@ hot path で呼出す全 `Physics.OverlapSphere` / `SphereCast` / `RaycastNonAll
 
 **プラットフォーム:**
 * ローカライズ対応（多言語、Unity Localization）
-* マルチ解像度・マルチプラットフォーム対応（iOS / Androidビルド・署名）
+* マルチプラットフォーム対応（iOS / Androidビルド・署名）
 
-**機能:**
+**その他の機能:**
+* ゲーム内オプション項目追加(ボーダーレス、マルチ解像度、マウス感度など)
 * 課金システム・ガチャ・プレゼントBOXなど
-* アプリ外課金Webサイト(Next.js)
+* アプリ外課金Webサイトデモ(Next.js)
 
 ---
 

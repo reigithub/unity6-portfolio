@@ -87,7 +87,7 @@ namespace Game.Editor.Tests
 
         #endregion
 
-        public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory)
+        public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
             where TScene : IGameScene, new()
         {
             await CurrentSceneOperationAsync(operations);
@@ -97,7 +97,7 @@ namespace Game.Editor.Tests
             await TransitionCore(gameScene);
         }
 
-        public async UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory)
+        public async UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
             where TScene : IGameScene, new()
         {
             await CurrentSceneOperationAsync(operations);
@@ -108,7 +108,7 @@ namespace Game.Editor.Tests
             await TransitionCore(gameScene);
         }
 
-        public async UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory)
+        public async UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
             where TScene : IGameScene, new()
         {
             await CurrentSceneOperationAsync(operations);
@@ -120,7 +120,7 @@ namespace Game.Editor.Tests
             return await ResultAsync(gameScene, tcs);
         }
 
-        public async UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory)
+        public async UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
             where TScene : IGameScene, new()
         {
             await CurrentSceneOperationAsync(operations);
@@ -227,17 +227,17 @@ namespace Game.Editor.Tests
 
         private async UniTask CurrentSceneOperationAsync(GameSceneOperations operations)
         {
-            if (operations.HasFlag(GameSceneOperations.CurrentSceneSleep))
+            if (operations.HasFlag(GameSceneOperations.Sleep))
             {
                 await SleepAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneRestart))
+            else if (operations.HasFlag(GameSceneOperations.Restart))
             {
                 await RestartAsync();
             }
-            else if (operations.HasFlag(GameSceneOperations.CurrentSceneTerminate))
+            else if (operations.HasFlag(GameSceneOperations.Terminate))
             {
-                bool clearHistory = operations.HasFlag(GameSceneOperations.CurrentSceneClearHistory);
+                bool clearHistory = operations.HasFlag(GameSceneOperations.ClearHistory);
                 await TerminateLastAsync(clearHistory);
             }
         }

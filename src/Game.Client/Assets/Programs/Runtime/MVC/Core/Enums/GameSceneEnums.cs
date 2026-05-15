@@ -14,9 +14,9 @@ namespace Game.MVC.Core.Enums
     public enum GameSceneOperations
     {
         None = 0,
-        CurrentSceneSleep = 1 << 0,
-        CurrentSceneRestart = 1 << 1,
-        CurrentSceneTerminate = 1 << 2,
-        CurrentSceneClearHistory = 1 << 3,
+        Sleep = 1 << 0,
+        Restart = 1 << 1,
+        Terminate = 1 << 2,
+        ClearHistory = 1 << 3,
     }
 }

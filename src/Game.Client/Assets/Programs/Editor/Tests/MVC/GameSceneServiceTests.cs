@@ -830,7 +830,7 @@ namespace Game.Editor.Tests
             await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // 2番目の遷移でTerminate操作
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Terminate);
             var secondScene = new AnotherMockGameScene();
             _mockService.AddScene(secondScene);
             await _mockService.ExecuteTransitionCoreAsync(secondScene);
@@ -847,7 +847,7 @@ namespace Game.Editor.Tests
             await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // 2番目の遷移でSleep操作
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneSleep);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Sleep);
             var secondScene = new AnotherMockGameScene();
             _mockService.AddScene(secondScene);
             await _mockService.ExecuteTransitionCoreAsync(secondScene);
@@ -864,7 +864,7 @@ namespace Game.Editor.Tests
             await _mockService.ExecuteTransitionCoreAsync(firstScene);
 
             // Terminate + ClearHistory
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate | GameSceneOperations.CurrentSceneClearHistory);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Terminate | GameSceneOperations.ClearHistory);
             var secondScene = new AnotherMockGameScene();
             _mockService.AddScene(secondScene);
             await _mockService.ExecuteTransitionCoreAsync(secondScene);
@@ -1051,7 +1051,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameScene { State = GameSceneState.Processing };
             _mockService.AddScene(scene);
 
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneSleep);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Sleep);
 
             Assert.IsTrue(scene.SleepCalled);
             Assert.AreEqual(GameSceneState.Sleep, scene.State);
@@ -1063,7 +1063,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameScene { State = GameSceneState.Sleep };
             _mockService.AddScene(scene);
 
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneRestart);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Restart);
 
             Assert.IsTrue(scene.RestartCalled);
             Assert.AreEqual(GameSceneState.Processing, scene.State);
@@ -1075,7 +1075,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameScene { State = GameSceneState.Processing };
             _mockService.AddScene(scene);
 
-            await _mockService.ExecuteOperationAsync(GameSceneOperations.CurrentSceneTerminate);
+            await _mockService.ExecuteOperationAsync(GameSceneOperations.Terminate);
 
             Assert.IsTrue(scene.TerminateCalled);
             Assert.AreEqual(GameSceneState.Terminate, scene.State);
