@@ -38,7 +38,7 @@ namespace Game.MVP.Survivor.Scenes
     /// - Server State Machine (.ServerStates.cs): IsServer 経路のみ起動。per-player Wave/Damage/Item/勝敗判定/RPC ブリッジ
     ///
     /// Host モードでは両 SM が並列駆動、Client モードでは Client SM のみ駆動。
-    /// DS は当面 <see cref="SurvivorNetworkStageScene"/> を継続使用 (PR3.6+ で本シーンに統合予定)。
+    /// DS は当面 <see cref="SurvivorNetworkStageScene"/> を継続使用
     /// </summary>
     public partial class SurvivorGameStageScene : GamePrefabScene<SurvivorGameStageScene, SurvivorGameStageSceneComponent>, IGameSceneScope
     {
