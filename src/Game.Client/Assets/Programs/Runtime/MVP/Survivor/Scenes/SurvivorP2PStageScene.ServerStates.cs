@@ -11,11 +11,11 @@ using UnityEngine;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// SurvivorGameStageScene の Server State Machine 部分 (P2P Host または将来の DS で動作)。
+    /// SurvivorP2PStageScene の Server State Machine 部分 (P2P Host または将来の DS で動作)。
     /// Client State Machine (.States.cs) と並列駆動。Host モードでは両方動く。
     /// 元実装: SurvivorNetworkStageScene.States.cs。命名衝突回避のため Server プレフィックスを付与。
     /// </summary>
-    public partial class SurvivorGameStageScene
+    public partial class SurvivorP2PStageScene
     {
         #region Server StateMachine
 
@@ -28,11 +28,11 @@ namespace Game.MVP.Survivor.Scenes
             GameOver,
         }
 
-        private StateMachine<SurvivorGameStageScene, ServerStageEvent> _serverStateMachine;
+        private StateMachine<SurvivorP2PStageScene, ServerStageEvent> _serverStateMachine;
 
         private void BuildServerStateMachine()
         {
-            _serverStateMachine = new StateMachine<SurvivorGameStageScene, ServerStageEvent>(this);
+            _serverStateMachine = new StateMachine<SurvivorP2PStageScene, ServerStageEvent>(this);
 
             _serverStateMachine.AddTransition<ServerReadyState, ServerPlayingState>(ServerStageEvent.StartGame);
             _serverStateMachine.AddTransition<ServerPlayingState, ServerLevelUpState>(ServerStageEvent.LevelUp);
@@ -47,11 +47,11 @@ namespace Game.MVP.Survivor.Scenes
 
         #region ServerStageStateBase
 
-        private abstract class ServerStageStateBase : State<SurvivorGameStageScene, ServerStageEvent>
+        private abstract class ServerStageStateBase : State<SurvivorP2PStageScene, ServerStageEvent>
         {
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
-            protected SurvivorGameStageSceneComponent View => Context.SceneComponent;
+            protected SurvivorP2PStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(ServerStageEvent evt) => StateMachine.Transition(evt);
         }
@@ -66,7 +66,7 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Enter()
             {
-                Debug.Log("[SurvivorGameStageScene.ServerReadyState] Enter");
+                Debug.Log("[SurvivorP2PStageScene.ServerReadyState] Enter");
                 _startComplete = false;
 
                 // プレイヤー初期化 (全 Context に対して実施、サーバーではカメラなし)
@@ -88,13 +88,13 @@ namespace Game.MVP.Survivor.Scenes
                 // サーバー側プレイヤーコントローラーにNetworkPlayerStateをバインド
                 InitializeServerViews();
 
-                Debug.Log("[SurvivorGameStageScene.ServerReadyState] Initialization complete, waiting for all clients loaded...");
+                Debug.Log("[SurvivorP2PStageScene.ServerReadyState] Initialization complete, waiting for all clients loaded...");
 
                 // === 全 Client Loaded 待機 ===
                 // 各 Client の RpcClientSceneReady (= リソースロード完了通知) を集約。
                 await WaitForAllClientsSceneReadyAsync();
 
-                Debug.Log("[SurvivorGameStageScene.ServerReadyState] All clients loaded, sending countdown start signal");
+                Debug.Log("[SurvivorP2PStageScene.ServerReadyState] All clients loaded, sending countdown start signal");
 
                 // === Countdown 開始命令 (RPC ブロードキャスト) ===
                 // 全 Client (Host 含む) に同時にカウントダウン開始を通知する。
@@ -105,7 +105,7 @@ namespace Game.MVP.Survivor.Scenes
                 // SurvivorCountdownDialog.RunCountdownAsync の 3.5 秒固定動作と同期。
                 await UniTask.Delay(TimeSpan.FromMilliseconds(3500), DelayType.Realtime);
 
-                Debug.Log("[SurvivorGameStageScene.ServerReadyState] Countdown complete, starting game");
+                Debug.Log("[SurvivorP2PStageScene.ServerReadyState] Countdown complete, starting game");
                 _startComplete = true;
             }
 
@@ -117,7 +117,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            public override void Exit() => Debug.Log("[SurvivorGameStageScene.ServerReadyState] Exit");
+            public override void Exit() => Debug.Log("[SurvivorP2PStageScene.ServerReadyState] Exit");
 
             /// <summary>
             /// サーバー側: NetworkPlayerStateをPlayerControllerにバインドし、
@@ -131,7 +131,7 @@ namespace Game.MVP.Survivor.Scenes
                     View.EnemySpawner?.AddPlayer(playerController.transform);
                 }
 
-                Debug.Log("[SurvivorGameStageScene.ServerReadyState] Server: initialized");
+                Debug.Log("[SurvivorP2PStageScene.ServerReadyState] Server: initialized");
             }
 
             /// <summary>
@@ -143,7 +143,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 if (!Context._runnerService.TryGet<SurvivorFusionGameState>(out var fusionGs))
                 {
-                    Debug.LogWarning("[SurvivorGameStageScene.ServerReadyState] FusionGameState not found, skipping wait");
+                    Debug.LogWarning("[SurvivorP2PStageScene.ServerReadyState] FusionGameState not found, skipping wait");
                     return;
                 }
 
@@ -187,14 +187,14 @@ namespace Game.MVP.Survivor.Scenes
 
             public override void Enter()
             {
-                Debug.Log("[SurvivorGameStageScene.ServerPlayingState] Enter");
+                Debug.Log("[SurvivorP2PStageScene.ServerPlayingState] Enter");
 
                 // 初回のみWave開始（LevelUpからの復帰時は不要）
                 if (_isFirstEntry)
                 {
                     _isFirstEntry = false;
                     Context._gameState.NotifyGameStarted();
-                    Debug.Log("[SurvivorGameStageScene.ServerPlayingState] Starting first wave");
+                    Debug.Log("[SurvivorP2PStageScene.ServerPlayingState] Starting first wave");
                     WaveManager.StartWave();
                 }
             }
@@ -233,7 +233,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
             }
 
-            public override void Exit() => Debug.Log("[SurvivorGameStageScene.ServerPlayingState] Exit");
+            public override void Exit() => Debug.Log("[SurvivorP2PStageScene.ServerPlayingState] Exit");
         }
 
         #endregion
@@ -247,12 +247,12 @@ namespace Game.MVP.Survivor.Scenes
                 var ctx = Context._currentLevelingContext;
                 if (ctx == null)
                 {
-                    Debug.LogWarning("[SurvivorGameStageScene.ServerLevelUpState] _currentLevelingContext is null, skipping");
+                    Debug.LogWarning("[SurvivorP2PStageScene.ServerLevelUpState] _currentLevelingContext is null, skipping");
                     Transition(ServerStageEvent.LevelUpComplete);
                     return;
                 }
 
-                Debug.Log($"[SurvivorGameStageScene.ServerLevelUpState] Enter - player={ctx.Player}, level={ctx.StageModel.Level.Value}");
+                Debug.Log($"[SurvivorP2PStageScene.ServerLevelUpState] Enter - player={ctx.Player}, level={ctx.StageModel.Level.Value}");
 
                 // サーバー権威の Pause を即時開始 (RPC 往復遅延ゼロ)
                 Context._gameState?.BeginLevelUpPause(ctx.Player);
@@ -277,7 +277,7 @@ namespace Game.MVP.Survivor.Scenes
                             ctx.StageModel.Experience.Value,
                             ctx.StageModel.ExperienceToNextLevel.Value,
                             networkOptions);
-                        Debug.Log($"[SurvivorGameStageScene.ServerLevelUpState] Sent LevelUp to {ctx.UserId} with {networkOptions.Length} options");
+                        Debug.Log($"[SurvivorP2PStageScene.ServerLevelUpState] Sent LevelUp to {ctx.UserId} with {networkOptions.Length} options");
                     }
                 }
 
@@ -289,7 +289,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // IsPaused 解除はサーバー側 OnClientWeaponChoice 受信時の EndLevelUpPause で行う。
                 // サーバー LevelUpState は即時 Transition で抜けるが、IsPaused は HashSet 参照カウントで維持される。
-                Debug.Log("[SurvivorGameStageScene.ServerLevelUpState] Exit");
+                Debug.Log("[SurvivorP2PStageScene.ServerLevelUpState] Exit");
             }
 
             private static SurvivorNetworkWeaponUpgradeOption[] ConvertToNetworkOptions(
@@ -318,7 +318,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             public override void Enter()
             {
-                Debug.Log("[SurvivorGameStageScene.ServerVictoryState] Enter");
+                Debug.Log("[SurvivorP2PStageScene.ServerVictoryState] Enter");
                 ApplicationEvents.PauseTime();
 
                 // 未送信のDeath/Position をクライアントに即座に同期（GameEnded RPC より先に届ける）
@@ -338,7 +338,7 @@ namespace Game.MVP.Survivor.Scenes
                 var isTimeUp = NetworkStageModel.IsTimeUp;
                 var hpRatio = Context.GetHpRatioServer();
 
-                Debug.Log($"[SurvivorGameStageScene.ServerVictoryState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
+                Debug.Log($"[SurvivorP2PStageScene.ServerVictoryState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 
                 // DS 専用 save (Host では Client SM の VictoryState が同じ save を行うため二重保存になる)。
                 if (Context._runnerService.IsDedicatedServer)
@@ -351,11 +351,11 @@ namespace Game.MVP.Survivor.Scenes
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                     gs.NotifyGameEnded(true, clearTime, kills);
 
-                Debug.Log("[SurvivorGameStageScene.ServerVictoryState] Result saved, clients notified");
+                Debug.Log("[SurvivorP2PStageScene.ServerVictoryState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();
             }
 
-            public override void Exit() => Debug.Log("[SurvivorGameStageScene.ServerVictoryState] Exit");
+            public override void Exit() => Debug.Log("[SurvivorP2PStageScene.ServerVictoryState] Exit");
         }
 
         #endregion
@@ -366,7 +366,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             public override void Enter()
             {
-                Debug.Log("[SurvivorGameStageScene.ServerGameOverState] Enter");
+                Debug.Log("[SurvivorP2PStageScene.ServerGameOverState] Enter");
                 ApplicationEvents.PauseTime();
 
                 // 未送信のDeath/Position をクライアントに即座に同期（GameEnded RPC より先に届ける）
@@ -384,7 +384,7 @@ namespace Game.MVP.Survivor.Scenes
                 var kills = Context.GetCappedKillsServer();
                 var clearTime = NetworkStageModel.GameTime.Value;
 
-                Debug.Log($"[SurvivorGameStageScene.ServerGameOverState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
+                Debug.Log($"[SurvivorP2PStageScene.ServerGameOverState] Saving: score={score}, kills={kills}, time={clearTime:F2}s");
 
                 // DS 専用 save (Host では Client SM の GameOverState が同じ save を行うため二重保存になる)。
                 if (Context._runnerService.IsDedicatedServer)
@@ -397,11 +397,11 @@ namespace Game.MVP.Survivor.Scenes
                 if (Context._runnerService.TryGet<SurvivorFusionGameState>(out var gs))
                     gs.NotifyGameEnded(false, clearTime, kills);
 
-                Debug.Log("[SurvivorGameStageScene.ServerGameOverState] Result saved, clients notified");
+                Debug.Log("[SurvivorP2PStageScene.ServerGameOverState] Result saved, clients notified");
                 ApplicationEvents.ResumeTime();
             }
 
-            public override void Exit() => Debug.Log("[SurvivorGameStageScene.ServerGameOverState] Exit");
+            public override void Exit() => Debug.Log("[SurvivorP2PStageScene.ServerGameOverState] Exit");
         }
 
         #endregion

@@ -40,7 +40,7 @@ namespace Game.MVP.Survivor.Scenes
     /// Host モードでは両 SM が並列駆動、Client モードでは Client SM のみ駆動。
     /// DS は当面 <see cref="SurvivorNetworkStageScene"/> を継続使用
     /// </summary>
-    public partial class SurvivorGameStageScene : GamePrefabScene<SurvivorGameStageScene, SurvivorGameStageSceneComponent>, IGameSceneScope
+    public partial class SurvivorP2PStageScene : GamePrefabScene<SurvivorP2PStageScene, SurvivorP2PStageSceneComponent>, IGameSceneScope
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IMasterDataService _masterDataService;
@@ -79,7 +79,7 @@ namespace Game.MVP.Survivor.Scenes
         private string MyUserId => _authSessionService?.UserId ?? string.Empty;
         private SceneInstance? _stageSceneInstance;
 
-        protected override string AssetPathOrAddress => "SurvivorGameStageScene";
+        protected override string AssetPathOrAddress => "SurvivorP2PStageScene";
 
         #region IGameSceneScope
 
@@ -101,13 +101,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorGameStageScene] Startup: {_runnerService.GetDebugStatus()}");
+            Debug.Log($"[SurvivorP2PStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
             if (session == null)
             {
-                Debug.LogError("[SurvivorGameStageScene] No active session found!");
+                Debug.LogError("[SurvivorP2PStageScene] No active session found!");
                 return;
             }
 
@@ -188,14 +188,14 @@ namespace Game.MVP.Survivor.Scenes
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
                 // SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
                 LightProbes.TetrahedralizeAsync();
-                Debug.Log($"[SurvivorGameStageScene] Loaded stage environment: {stageAssetName}");
+                Debug.Log($"[SurvivorP2PStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用
                 var skybox = SurvivorStageSceneHelper.GetSkybox(_stageSceneInstance.Value.Scene);
                 if (skybox != null && skybox.material != null)
                 {
                     GameRootController?.SetSkyboxMaterial(skybox.material);
-                    Debug.Log($"[SurvivorGameStageScene] Applied stage skybox: {skybox.material.name}");
+                    Debug.Log($"[SurvivorP2PStageScene] Applied stage skybox: {skybox.material.name}");
                 }
             }
         }
@@ -204,14 +204,14 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (!_stageSceneInstance.HasValue)
             {
-                Debug.LogWarning("[SurvivorGameStageScene] Stage scene not loaded, skipping player spawn");
+                Debug.LogWarning("[SurvivorP2PStageScene] Stage scene not loaded, skipping player spawn");
                 return;
             }
 
             var playerStart = SurvivorStageSceneHelper.GetPlayerStart(Resolver, _stageSceneInstance.Value.Scene);
             if (playerStart == null)
             {
-                Debug.LogWarning("[SurvivorGameStageScene] PlayerStart not found in stage scene, player spawn skipped");
+                Debug.LogWarning("[SurvivorP2PStageScene] PlayerStart not found in stage scene, player spawn skipped");
                 return;
             }
 
@@ -219,7 +219,7 @@ namespace Game.MVP.Survivor.Scenes
             var levelMaster = _stageModel.CurrentLevelMaster;
             if (playerMaster == null || levelMaster == null)
             {
-                Debug.LogError("[SurvivorGameStageScene] PlayerMaster or LevelMaster is null!");
+                Debug.LogError("[SurvivorP2PStageScene] PlayerMaster or LevelMaster is null!");
                 return;
             }
 
@@ -401,7 +401,7 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     _stageModel.TotalKills.Value = s.Result.TotalKills;
                 }
-                Debug.Log($"[SurvivorGameStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
+                Debug.Log($"[SurvivorP2PStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
                 _networkStageModel.SetNetworkResult(s.Result);
             }).AddTo(Disposables);
 
@@ -430,7 +430,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 if (deathCount > 0)
                 {
-                    Debug.Log($"[SurvivorGameStageScene] BatchUpdated: deaths={deathCount}, clientKills={_stageModel.TotalKills.Value}");
+                    Debug.Log($"[SurvivorP2PStageScene] BatchUpdated: deaths={deathCount}, clientKills={_stageModel.TotalKills.Value}");
                 }
             }).AddTo(Disposables);
 
@@ -519,7 +519,7 @@ namespace Game.MVP.Survivor.Scenes
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SurvivorGameStageScene] Auto-save failed: {ex.Message}");
+                Debug.LogError($"[SurvivorP2PStageScene] Auto-save failed: {ex.Message}");
             }
         }
 
@@ -602,12 +602,12 @@ namespace Game.MVP.Survivor.Scenes
                 _players.Clear();
             }
 
-            Debug.Log($"[SurvivorGameStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
+            Debug.Log($"[SurvivorP2PStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
 
             // クリア記録保存済み or Retry/Quit時はスキップ
             if (_isResultSaved)
             {
-                Debug.Log("[SurvivorGameStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
+                Debug.Log("[SurvivorP2PStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
 
                 // プレイ時間だけ加算
                 _saveService.AddPlayTime(_networkStageModel.GameTime.Value);
@@ -615,13 +615,13 @@ namespace Game.MVP.Survivor.Scenes
             else if (!_retryOrQuit)
             {
                 // 中断データのみ保存（VictoryState/GameOverStateに到達していない場合）
-                Debug.Log("[SurvivorGameStageScene.Terminate] Saving interrupted session data");
+                Debug.Log("[SurvivorP2PStageScene.Terminate] Saving interrupted session data");
                 SaveCurrentSession();
                 await _saveService.SaveAsync();
             }
             else
             {
-                Debug.Log("[SurvivorGameStageScene.Terminate] Skipping save due to _retryOrQuit=true");
+                Debug.Log("[SurvivorP2PStageScene.Terminate] Skipping save due to _retryOrQuit=true");
             }
 
             // スカイボックスをデフォルトに戻す
@@ -632,7 +632,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 await _addressableService.UnloadSceneAsync(_stageSceneInstance.Value);
                 _stageSceneInstance = null;
-                Debug.Log("[SurvivorGameStageScene] Unloaded stage environment");
+                Debug.Log("[SurvivorP2PStageScene] Unloaded stage environment");
             }
 
             await base.Terminate();

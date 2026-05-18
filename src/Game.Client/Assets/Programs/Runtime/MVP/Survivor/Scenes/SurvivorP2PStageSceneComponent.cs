@@ -20,12 +20,12 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// SurvivorGameStageScene (P2P Host/Client 共有) のシーンコンポーネント。
+    /// SurvivorP2PStageScene (P2P Host/Client 共有) のシーンコンポーネント。
     /// NetworkStageSceneComponent (権威用) と StageSceneComponent (View 用) を統合した構成で、
     /// EnemySpawner / ItemSpawner / PlayerController / WeaponManager / HUD 全てを保持する。
     /// IsServer 経路では HUD 系の Update メソッドを呼ばないことで View 機能を抑制する。
     /// </summary>
-    public class SurvivorGameStageSceneComponent : GameSceneComponent
+    public class SurvivorP2PStageSceneComponent : GameSceneComponent
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;

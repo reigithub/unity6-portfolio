@@ -18,11 +18,11 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// SurvivorGameStageScene の Server 経路ロジック (P2P Host または将来の DS で動作)。
+    /// SurvivorP2PStageScene の Server 経路ロジック (P2P Host または将来の DS で動作)。
     /// 元実装: SurvivorNetworkStageScene.cs。
     /// per-player Context Dictionary、Server 用 RPC ブリッジ、勝敗集計、Hit/Item/WeaponApply 権威処理を担当。
     /// </summary>
-    public partial class SurvivorGameStageScene
+    public partial class SurvivorP2PStageScene
     {
         // === Server 専用 [Inject] (StageScene と重複しない Subscriber のみ) ===
         [Inject] private readonly ISubscriber<SurvivorSignals.Weapon.HitReported> _hitReportedSub;
@@ -65,21 +65,21 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (!_stageSceneInstance.HasValue)
             {
-                Debug.LogWarning("[SurvivorGameStageScene.Server] Stage scene not loaded, skipping player spawn");
+                Debug.LogWarning("[SurvivorP2PStageScene.Server] Stage scene not loaded, skipping player spawn");
                 return;
             }
 
             var playerStart = SurvivorStageSceneHelper.GetPlayerStart(Resolver, _stageSceneInstance.Value.Scene);
             if (playerStart == null)
             {
-                Debug.LogWarning("[SurvivorGameStageScene.Server] PlayerStart not found, player spawn skipped");
+                Debug.LogWarning("[SurvivorP2PStageScene.Server] PlayerStart not found, player spawn skipped");
                 return;
             }
 
             // クライアントのフィールドシーンロード完了を待機
             // クライアントの SetActiveScene が完了してからスポーンすることで、
             // レプリケーション時にクライアント側でも物理シーンに配置されることを保証する
-            Debug.Log("[SurvivorGameStageScene.Server] Waiting for client field scene loaded...");
+            Debug.Log("[SurvivorP2PStageScene.Server] Waiting for client field scene loaded...");
             var fieldSceneTcs = new UniTaskCompletionSource();
             var fieldSceneSub = _allClientsFieldSceneLoadedSub.Subscribe(_ => fieldSceneTcs.TrySetResult());
             try
@@ -92,19 +92,19 @@ namespace Game.MVP.Survivor.Scenes
             {
                 fieldSceneSub.Dispose();
             }
-            Debug.Log("[SurvivorGameStageScene.Server] Client field scene loaded (or timeout), spawning player");
+            Debug.Log("[SurvivorP2PStageScene.Server] Client field scene loaded (or timeout), spawning player");
 
             // Fusion プレイヤーオブジェクトを PlayerStart 位置にスポーン
-            Debug.Log($"[SurvivorGameStageScene.Server] SpawnPlayersOnServerAsync: PlayerStart pos={playerStart.transform.position}, Runner={_runnerService.Runner != null}");
+            Debug.Log($"[SurvivorP2PStageScene.Server] SpawnPlayersOnServerAsync: PlayerStart pos={playerStart.transform.position}, Runner={_runnerService.Runner != null}");
             if (_runnerService.Runner != null &&
                 _runnerService.Runner.TryGetComponent<SurvivorFusionRunner>(out var fusionRunner))
             {
                 fusionRunner.SpawnConnectedPlayers(playerStart.transform.position, Quaternion.identity);
-                Debug.Log("[SurvivorGameStageScene.Server] SpawnConnectedPlayers called");
+                Debug.Log("[SurvivorP2PStageScene.Server] SpawnConnectedPlayers called");
             }
             else
             {
-                Debug.LogWarning("[SurvivorGameStageScene.Server] FusionRunner not found, spawn skipped!");
+                Debug.LogWarning("[SurvivorP2PStageScene.Server] FusionRunner not found, spawn skipped!");
             }
 
             // playerMaster / levelMaster は MasterData から共有取得（全員同じキャラクター前提）
@@ -116,7 +116,7 @@ namespace Game.MVP.Survivor.Scenes
                 (session.PlayerId, 1), out var levelMaster);
             if (playerMaster == null || levelMaster == null)
             {
-                Debug.LogError("[SurvivorGameStageScene.Server] PlayerMaster or LevelMaster is null!");
+                Debug.LogError("[SurvivorP2PStageScene.Server] PlayerMaster or LevelMaster is null!");
                 return;
             }
 
@@ -170,7 +170,7 @@ namespace Game.MVP.Survivor.Scenes
                     }
                 }
 
-                Debug.Log($"[SurvivorGameStageScene.Server] Player initialized: {player}");
+                Debug.Log($"[SurvivorP2PStageScene.Server] Player initialized: {player}");
             }
 
             // SetPlayerController は Host の自機 (LocalPlayer) のコントローラーを設定。
@@ -178,7 +178,7 @@ namespace Game.MVP.Survivor.Scenes
             if (localController != null)
             {
                 SceneComponent.SetPlayerController(localController);
-                Debug.Log("[SurvivorGameStageScene.Server] Local player spawned and assigned to SceneComponent");
+                Debug.Log("[SurvivorP2PStageScene.Server] Local player spawned and assigned to SceneComponent");
             }
         }
 
@@ -361,7 +361,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private void HandleAllPlayersDisconnected()
         {
-            Debug.Log("[SurvivorGameStageScene.Server] All players disconnected, clearing enemies");
+            Debug.Log("[SurvivorP2PStageScene.Server] All players disconnected, clearing enemies");
             SceneComponent.EnemySpawner?.ClearAllEnemies();
         }
 
@@ -467,7 +467,7 @@ namespace Game.MVP.Survivor.Scenes
                     request.IsNewWeapon || request.Type == SurvivorWeaponApplyType.Replace);
             }
 
-            Debug.Log($"[SurvivorGameStageScene.Server] Server weapon applied: type={request.Type}, weaponId={request.WeaponId}");
+            Debug.Log($"[SurvivorP2PStageScene.Server] Server weapon applied: type={request.Type}, weaponId={request.WeaponId}");
         }
 
         // === Server SM 用の集計メソッド ===
