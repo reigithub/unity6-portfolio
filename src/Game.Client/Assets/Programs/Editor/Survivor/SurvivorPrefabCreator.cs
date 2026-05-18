@@ -216,10 +216,10 @@ namespace Game.Editor.Survivor
             EnsureDirectories();
             CreateDirectoryIfNotExists(BasePath + "/Scenes");
 
-            var sceneGo = new GameObject("SurvivorStageScene");
+            var sceneGo = new GameObject("SurvivorClientStageScene");
 
-            // SurvivorStageSceneComponent
-            var sceneComponent = sceneGo.AddComponent<SurvivorStageSceneComponent>();
+            // SurvivorClientStageSceneComponent
+            var sceneComponent = sceneGo.AddComponent<SurvivorClientStageSceneComponent>();
 
             // Canvas (HUD)
             var canvasGo = CreateCanvas("HUDCanvas", sceneGo.transform);
@@ -279,7 +279,7 @@ namespace Game.Editor.Survivor
             orbSpawnerGo.AddComponent<SurvivorItemSpawner>();
 
             // プレハブ保存
-            var prefabPath = $"{BasePath}/Scenes/SurvivorStageScene.prefab";
+            var prefabPath = $"{BasePath}/Scenes/SurvivorClientStageScene.prefab";
             PrefabUtility.SaveAsPrefabAsset(sceneGo, prefabPath);
             Object.DestroyImmediate(sceneGo);
 

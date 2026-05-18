@@ -68,7 +68,7 @@ namespace Game.MVP.Survivor.Player
 
             var playerGo = fusionPlayer.gameObject;
 
-            // 2. SceneComponent(SurvivorStageScene(Clone)) の子として配置
+            // 2. SceneComponent(SurvivorClientStageScene(Clone)) の子として配置
             // Fusion のオブジェクトプロバイダは GameRootScene にインスタンス化するため、
             // SceneComponent 配下に移動して他のゲームオブジェクト（アイテム、敵プロキシ等）と
             // 同じ階層・物理シーンに配置する。

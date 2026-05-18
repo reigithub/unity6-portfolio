@@ -2139,7 +2139,7 @@ GameObject:
   - component: {fileID: 5596932432694487054}
   - component: {fileID: 7574347991818699927}
   m_Layer: 0
-  m_Name: SurvivorStageScene
+  m_Name: SurvivorClientStageScene
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2190,7 +2190,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2c4a9d59525ea6f4bbde03920229d531, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorStageSceneComponent
+  m_EditorClassIdentifier: Game.MVP.Survivor::Game.MVP.Survivor.Scenes.SurvivorClientStageSceneComponent
   _uiDocument: {fileID: 3431945909624390800}
   _playerController: {fileID: 0}
   _enemySpawner: {fileID: 5021247689976069888}

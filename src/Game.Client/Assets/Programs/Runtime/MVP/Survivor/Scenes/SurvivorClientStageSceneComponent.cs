@@ -26,7 +26,7 @@ namespace Game.MVP.Survivor.Scenes
     /// サーバー側は <see cref="SurvivorNetworkStageSceneComponent"/> を使用するため、
     /// このクラスはクライアント経路からのみ呼ばれる。
     /// </summary>
-    public class SurvivorStageSceneComponent : GameSceneComponent
+    public class SurvivorClientStageSceneComponent : GameSceneComponent
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;

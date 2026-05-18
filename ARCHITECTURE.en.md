@@ -567,7 +567,7 @@ IGameScene (interface)
     │       │       │       └── ScoreTimeAttackTitleScene
     │       │       │       └── ScoreTimeAttackStageScene
     │       │       │       └── SurvivorTitleScene
-    │       │       │       └── SurvivorStageScene
+    │       │       │       └── SurvivorClientStageScene
     │       │       │
     │       │       ├── GameUnityScene<TScene, TComponent>
     │       │       │       └── (For stage backgrounds)

@@ -14,7 +14,7 @@ namespace Game.MVP.Survivor.Scenes.Models
     /// HP/EXP/Level/Stamina/Score/TotalKills 等のプレイヤー個別状態を管理する。
     /// セッション共有状態 (GameTime / CurrentWave / StageMaster / 勝敗結果) は
     /// <see cref="SurvivorNetworkStageModel"/> が保持する。
-    /// ライフサイクル: SurvivorStageScene/SurvivorNetworkStageScene が所有、ステージ終了で破棄。
+    /// ライフサイクル: SurvivorClientStageScene/SurvivorNetworkStageScene が所有、ステージ終了で破棄。
     /// </summary>
     public class SurvivorStageModel : IDisposable
     {
