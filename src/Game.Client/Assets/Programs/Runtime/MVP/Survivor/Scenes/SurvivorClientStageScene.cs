@@ -31,7 +31,7 @@ namespace Game.MVP.Survivor.Scenes
     /// SP/MP の違いはロビー経由の有無とプレイヤー人数のみで、接続先は SP 時はローカル別プロセスの
     /// Headless Server、MP 時はリモートサーバーであり、いずれも GameMode.Client で接続する。
     /// </summary>
-    public partial class SurvivorStageScene : GamePrefabScene<SurvivorStageScene, SurvivorStageSceneComponent>, IGameSceneScope
+    public partial class SurvivorClientStageScene : GamePrefabScene<SurvivorClientStageScene, SurvivorClientStageSceneComponent>, IGameSceneScope
     {
         [Inject] private readonly IGameSceneService _sceneService;
         [Inject] private readonly IMasterDataService _masterDataService;
@@ -70,7 +70,7 @@ namespace Game.MVP.Survivor.Scenes
         private string MyUserId => _authSessionService?.UserId ?? string.Empty;
         private SceneInstance? _stageSceneInstance;
 
-        protected override string AssetPathOrAddress => "SurvivorStageScene";
+        protected override string AssetPathOrAddress => "SurvivorClientStageScene";
 
         #region IGameSceneScope
 
@@ -91,13 +91,13 @@ namespace Game.MVP.Survivor.Scenes
         {
             await base.Startup();
 
-            Debug.Log($"[SurvivorStageScene] Startup: {_runnerService.GetDebugStatus()}");
+            Debug.Log($"[SurvivorClientStageScene] Startup: {_runnerService.GetDebugStatus()}");
 
             // セッションからステージ情報を取得
             var session = _saveService.CurrentSession;
             if (session == null)
             {
-                Debug.LogError("[SurvivorStageScene] No active session found!");
+                Debug.LogError("[SurvivorClientStageScene] No active session found!");
                 return;
             }
 
@@ -160,14 +160,14 @@ namespace Game.MVP.Survivor.Scenes
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
                 // SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
                 LightProbes.TetrahedralizeAsync();
-                Debug.Log($"[SurvivorStageScene] Loaded stage environment: {stageAssetName}");
+                Debug.Log($"[SurvivorClientStageScene] Loaded stage environment: {stageAssetName}");
 
                 // ステージシーンに固有のスカイボックスがあれば適用
                 var skybox = SurvivorStageSceneHelper.GetSkybox(_stageSceneInstance.Value.Scene);
                 if (skybox != null && skybox.material != null)
                 {
                     GameRootController?.SetSkyboxMaterial(skybox.material);
-                    Debug.Log($"[SurvivorStageScene] Applied stage skybox: {skybox.material.name}");
+                    Debug.Log($"[SurvivorClientStageScene] Applied stage skybox: {skybox.material.name}");
                 }
             }
         }
@@ -176,7 +176,7 @@ namespace Game.MVP.Survivor.Scenes
         {
             if (!_stageSceneInstance.HasValue)
             {
-                Debug.LogWarning("[SurvivorStageScene] Stage scene not loaded, skipping player spawn");
+                Debug.LogWarning("[SurvivorClientStageScene] Stage scene not loaded, skipping player spawn");
                 return;
             }
 
@@ -184,7 +184,7 @@ namespace Game.MVP.Survivor.Scenes
             var playerStart = SurvivorStageSceneHelper.GetPlayerStart(Resolver, _stageSceneInstance.Value.Scene);
             if (playerStart == null)
             {
-                Debug.LogWarning("[SurvivorStageScene] PlayerStart not found in stage scene, player spawn skipped");
+                Debug.LogWarning("[SurvivorClientStageScene] PlayerStart not found in stage scene, player spawn skipped");
                 return;
             }
 
@@ -193,7 +193,7 @@ namespace Game.MVP.Survivor.Scenes
             var levelMaster = _stageModel.CurrentLevelMaster;
             if (playerMaster == null || levelMaster == null)
             {
-                Debug.LogError("[SurvivorStageScene] PlayerMaster or LevelMaster is null!");
+                Debug.LogError("[SurvivorClientStageScene] PlayerMaster or LevelMaster is null!");
                 return;
             }
 
@@ -202,7 +202,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 // SceneComponentにプレイヤーを設定
                 SceneComponent.SetPlayerController(playerController);
-                Debug.Log($"[SurvivorStageScene] Player spawned and assigned to SceneComponent");
+                Debug.Log($"[SurvivorClientStageScene] Player spawned and assigned to SceneComponent");
 
                 // プレイヤー入力を一時的に無効化
                 _inputService.DisablePlayer();
@@ -340,7 +340,7 @@ namespace Game.MVP.Survivor.Scenes
                 {
                     _stageModel.TotalKills.Value = s.Result.TotalKills;
                 }
-                Debug.Log($"[SurvivorStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
+                Debug.Log($"[SurvivorClientStageScene] GameEnded received: result={s.Result.IsVictory}, kills={_stageModel.TotalKills.Value} (server={s.Result.TotalKills})");
                 _networkStageModel.SetNetworkResult(s.Result);
             }).AddTo(Disposables);
 
@@ -369,7 +369,7 @@ namespace Game.MVP.Survivor.Scenes
                 }
                 if (deathCount > 0)
                 {
-                    Debug.Log($"[SurvivorStageScene] BatchUpdated: deaths={deathCount}, clientKills={_stageModel.TotalKills.Value}");
+                    Debug.Log($"[SurvivorClientStageScene] BatchUpdated: deaths={deathCount}, clientKills={_stageModel.TotalKills.Value}");
                 }
             }).AddTo(Disposables);
 
@@ -456,7 +456,7 @@ namespace Game.MVP.Survivor.Scenes
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SurvivorStageScene] Auto-save failed: {ex.Message}");
+                Debug.LogError($"[SurvivorClientStageScene] Auto-save failed: {ex.Message}");
             }
         }
 
@@ -529,12 +529,12 @@ namespace Game.MVP.Survivor.Scenes
             // イベント解除は Disposables で自動処理
             ApplicationEvents.ResumeTime();
 
-            Debug.Log($"[SurvivorStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
+            Debug.Log($"[SurvivorClientStageScene.Terminate] _retryOrQuit={_retryOrQuit}, _isResultSaved={_isResultSaved}");
 
             // クリア記録保存済み or Retry/Quit時はスキップ
             if (_isResultSaved)
             {
-                Debug.Log("[SurvivorStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
+                Debug.Log("[SurvivorClientStageScene.Terminate] Skipping save - result already saved in VictoryState/GameOverState");
 
                 // プレイ時間だけ加算
                 _saveService.AddPlayTime(_networkStageModel.GameTime.Value);
@@ -542,13 +542,13 @@ namespace Game.MVP.Survivor.Scenes
             else if (!_retryOrQuit)
             {
                 // 中断データのみ保存（VictoryState/GameOverStateに到達していない場合）
-                Debug.Log("[SurvivorStageScene.Terminate] Saving interrupted session data");
+                Debug.Log("[SurvivorClientStageScene.Terminate] Saving interrupted session data");
                 SaveCurrentSession();
                 await _saveService.SaveAsync();
             }
             else
             {
-                Debug.Log("[SurvivorStageScene.Terminate] Skipping save due to _retryOrQuit=true");
+                Debug.Log("[SurvivorClientStageScene.Terminate] Skipping save due to _retryOrQuit=true");
             }
 
             // スカイボックスをデフォルトに戻す
@@ -559,7 +559,7 @@ namespace Game.MVP.Survivor.Scenes
             {
                 await _addressableService.UnloadSceneAsync(_stageSceneInstance.Value);
                 _stageSceneInstance = null;
-                Debug.Log("[SurvivorStageScene] Unloaded stage environment");
+                Debug.Log("[SurvivorClientStageScene] Unloaded stage environment");
             }
 
             await base.Terminate();

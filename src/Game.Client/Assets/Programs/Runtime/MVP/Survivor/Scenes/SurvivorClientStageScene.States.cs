@@ -17,7 +17,7 @@ using UnityEngine;
 
 namespace Game.MVP.Survivor.Scenes
 {
-    public partial class SurvivorStageScene
+    public partial class SurvivorClientStageScene
     {
         #region StateMachine
 
@@ -37,7 +37,7 @@ namespace Game.MVP.Survivor.Scenes
             ReturnToLobby,    // ホスト主導の Lobby 戻り (QuitToTitle と並列)
         }
 
-        private StateMachine<SurvivorStageScene, StageEvent> _stateMachine;
+        private StateMachine<SurvivorClientStageScene, StageEvent> _stateMachine;
         private bool _isResultSaved;
         private bool _retryOrQuit;
         private bool _pauseRequested;
@@ -48,7 +48,7 @@ namespace Game.MVP.Survivor.Scenes
 
         private void BuildStateMachine()
         {
-            _stateMachine = new StateMachine<SurvivorStageScene, StageEvent>(this);
+            _stateMachine = new StateMachine<SurvivorClientStageScene, StageEvent>(this);
 
             _stateMachine.AddTransition<ReadyState, PlayingState>(StageEvent.StartGame);
             _stateMachine.AddTransition<PlayingState, PausedState>(StageEvent.Pause);
@@ -79,7 +79,7 @@ namespace Game.MVP.Survivor.Scenes
 
         #region StageStateBase
 
-        private abstract class StageStateBase : State<SurvivorStageScene, StageEvent>
+        private abstract class StageStateBase : State<SurvivorClientStageScene, StageEvent>
         {
             protected IGameSceneService SceneService => Context._sceneService;
             protected IAudioService AudioService => Context._audioService;
@@ -87,7 +87,7 @@ namespace Game.MVP.Survivor.Scenes
             protected Services.SurvivorStageWaveManager WaveManager => Context._waveManager;
             protected Models.SurvivorStageModel StageModel => Context._stageModel;
             protected Models.SurvivorNetworkStageModel NetworkStageModel => Context._networkStageModel;
-            protected SurvivorStageSceneComponent View => Context.SceneComponent;
+            protected SurvivorClientStageSceneComponent View => Context.SceneComponent;
 
             protected void Transition(StageEvent evt) => StateMachine.Transition(evt);
 
@@ -140,7 +140,7 @@ namespace Game.MVP.Survivor.Scenes
                 // 暗転状態を維持（ステージ裏側が見えないように）
                 GameRootController?.SetFadeImmediate(1f);
 
-                // StageModel, WaveManagerはSurvivorStageScene.Startup()で初期化済み
+                // StageModel, WaveManagerはSurvivorClientStageScene.Startup()で初期化済み
                 View.InitializePlayer(StageModel.CurrentLevelMaster, GameRootController?.MainCamera);
 
                 InitializeAndCountdownAsync().Forget();

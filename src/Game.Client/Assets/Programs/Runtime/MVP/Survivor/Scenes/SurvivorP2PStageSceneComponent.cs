@@ -20,13 +20,12 @@ using VContainer;
 namespace Game.MVP.Survivor.Scenes
 {
     /// <summary>
-    /// Survivorステージシーンのクライアント専用コンポーネント
-    /// UI Toolkit（UXML/USS）使用、UI Builderで編集可能
-    /// HUD表示とゲームプレイUIを管理。
-    /// サーバー側は <see cref="SurvivorNetworkStageSceneComponent"/> を使用するため、
-    /// このクラスはクライアント経路からのみ呼ばれる。
+    /// SurvivorP2PStageScene (P2P Host/Client 共有) のシーンコンポーネント。
+    /// NetworkStageSceneComponent (権威用) と StageSceneComponent (View 用) を統合した構成で、
+    /// EnemySpawner / ItemSpawner / PlayerController / WeaponManager / HUD 全てを保持する。
+    /// IsServer 経路では HUD 系の Update メソッドを呼ばないことで View 機能を抑制する。
     /// </summary>
-    public class SurvivorStageSceneComponent : GameSceneComponent
+    public class SurvivorP2PStageSceneComponent : GameSceneComponent
     {
         [Header("UI Document")]
         [SerializeField] private UIDocument _uiDocument;

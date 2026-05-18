@@ -11,7 +11,7 @@ namespace Game.MVP.Survivor.Scenes.Models
     /// <summary>
     /// Survivor ステージのセッション共有状態モデル。
     /// Wave / GameTime / StageMaster / 勝敗結果 / プレイヤー貢献度コレクションを保持する。
-    /// SP/MP 問わず、サーバー (SurvivorNetworkStageScene) とクライアント (SurvivorStageScene) の両方で使用される。
+    /// SP/MP 問わず、サーバー (SurvivorNetworkStageScene) とクライアント (SurvivorClientStageScene) の両方で使用される。
     /// プレイヤー個別状態 (HP/EXP/Score 等) は <see cref="SurvivorStageModel"/> が担う。
     /// </summary>
     public class SurvivorNetworkStageModel : IDisposable

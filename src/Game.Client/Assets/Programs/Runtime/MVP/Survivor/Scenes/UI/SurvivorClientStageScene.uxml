@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
-    <Style src="SurvivorStageScene.uss" />
+    <Style src="SurvivorClientStageScene.uss" />
 
     <ui:VisualElement name="root" class="root">
         <!-- Top HUD Bar -->

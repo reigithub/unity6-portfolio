@@ -81,12 +81,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c5b1c93f4ca1d2b4d8565beb9d3291f1
-    m_Address: SurvivorStageScene
+    m_Address: SurvivorClientStageScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: da0bb5ffbaed2364aba0594c02e5847a
-    m_Address: SurvivorGameStageScene
+    m_Address: SurvivorP2PStageScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -194,19 +194,19 @@ namespace Game.MVP.Survivor.Scenes
                 }
 
                 // Phase 3: StageScene へ遷移 (ConnectionSource で分岐)
-                // P2P Host/Client → SurvivorGameStageScene (PR3.5 で導入した統合シーン)
-                // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorStageScene 継続
+                // P2P Host/Client → SurvivorP2PStageScene (PR3.5 で導入した統合シーン)
+                // DS 経路 (Local/Remote/Matchmaking) → 既存 SurvivorClientStageScene 継続
                 var source = _sessionConfig.ConnectionSource;
                 Debug.Log($"[DIAG-Phase3-Pre] starting transition, source={source}");
                 if (source is GameConnectionSource.P2PHost or GameConnectionSource.P2PClient)
                 {
-                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorGameStageScene");
-                    await _sceneService.TransitionAsync<SurvivorGameStageScene>();
+                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorP2PStageScene");
+                    await _sceneService.TransitionAsync<SurvivorP2PStageScene>();
                 }
                 else
                 {
-                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorStageScene");
-                    await _sceneService.TransitionAsync<SurvivorStageScene>();
+                    Debug.Log($"[SurvivorStageConnectScene] Connection established (source={source}), transitioning to SurvivorClientStageScene");
+                    await _sceneService.TransitionAsync<SurvivorClientStageScene>();
                 }
             }
             catch (OperationCanceledException)

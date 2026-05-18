@@ -15,7 +15,7 @@ namespace Game.MVP.Survivor.Services
     /// Survivorステージのウェーブ管理
     /// マスターデータ(SurvivorStageWaveMaster/SurvivorStageWaveEnemyMaster)を解釈し、
     /// 敵スポーン情報の提供とウェーブ進行を管理
-    /// ライフサイクル: SurvivorStageSceneが所有、ステージ終了で破棄
+    /// ライフサイクル: SurvivorClientStageSceneが所有、ステージ終了で破棄
     /// </summary>
     public class SurvivorStageWaveManager : IDisposable
     {
