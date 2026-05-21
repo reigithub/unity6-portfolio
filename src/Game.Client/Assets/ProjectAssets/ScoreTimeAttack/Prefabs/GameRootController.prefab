@@ -514,7 +514,7 @@ GameObject:
   - component: {fileID: 1196323003323977354}
   - component: {fileID: 2872971308034488110}
   m_Layer: 0
-  m_Name: GameResidentsManager
+  m_Name: GameRootController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

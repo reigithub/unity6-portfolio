@@ -16,9 +16,9 @@ namespace Game.Core
     /// <summary>
     /// ゲーム全体に関わるオブジェクトを管理する
     /// </summary>
-    public class GameResidentsManager : MonoBehaviour
+    public class GameRootController : MonoBehaviour
     {
-        private const string Address = "GameResidentsManager";
+        private const string Address = "GameRootController";
 
         private static GameObject _instance;
 
@@ -30,7 +30,7 @@ namespace Game.Core
                 throw new NullReferenceException($"Load Asset Failed. {Address}");
 
             var go = Instantiate(prefab);
-            if (go.TryGetComponent<GameResidentsManager>(out var commonObjects))
+            if (go.TryGetComponent<GameRootController>(out var commonObjects))
             {
                 _instance = go;
                 DontDestroyOnLoad(go);
@@ -39,7 +39,7 @@ namespace Game.Core
             else
             {
                 go.SafeDestroy();
-                throw new MissingComponentException($"{nameof(GameResidentsManager)} is missing.");
+                throw new MissingComponentException($"{nameof(GameRootController)} is missing.");
             }
         }
 
@@ -151,7 +151,7 @@ namespace Game.Core
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[GameResidentsManager] Fade animation failed: {ex.Message}");
+                Debug.LogWarning($"[GameRootController] Fade animation failed: {ex.Message}");
                 tcs.TrySetCanceled();
             }
         }
