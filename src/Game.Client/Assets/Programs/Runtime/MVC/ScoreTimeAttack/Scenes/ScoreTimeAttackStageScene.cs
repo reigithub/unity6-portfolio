@@ -58,6 +58,7 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             await base.LoadAsset();
 
+            Physics.simulationMode = SimulationMode.FixedUpdate;
             // 追加でStageMasterに対応したUnityシーン(3Dフィールド)をロードする
             _stageSceneInstance = await AssetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
 

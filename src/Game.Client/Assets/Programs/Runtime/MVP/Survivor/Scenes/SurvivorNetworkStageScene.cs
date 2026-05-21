@@ -140,6 +140,7 @@ namespace Game.MVP.Survivor.Scenes
             var stageAssetName = _networkStageModel.StageMaster?.AssetName;
             if (!string.IsNullOrEmpty(stageAssetName))
             {
+                Physics.simulationMode = SimulationMode.Script;
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
                 SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
                 Debug.Log($"[SurvivorNetworkStageScene] Loaded stage environment: {stageAssetName}");
