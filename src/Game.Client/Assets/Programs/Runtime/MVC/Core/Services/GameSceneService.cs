@@ -123,9 +123,25 @@ namespace Game.Core.Services
             }
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
+        {
+            var type = typeof(TScene);
+            if (IsProcessing(type))
+            {
+                await TerminateAsync(type, clearHistory: true);
+                return default;
+            }
+
+            var gameScene = new TScene();
+            var tcs = CreateResultTcs<TResult>(gameScene);
+            _gameScenes.Add(gameScene);
+            await TransitionCore(gameScene, isDialog: true);
+            return await ResultAsync(gameScene, tcs);
+        }
+
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログは複数開く事ができる
             // Memo: ダイアログはプロセス中に再度要求されたら閉じる挙動とする(ここは後でダイアログ毎に変えられるようにするかもしれない)
@@ -138,7 +154,7 @@ namespace Game.Core.Services
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
             var gameScene = new TScene();
-            gameScene.DialogInitializer = initializer;
+            CreateArgHandler(gameScene, arg);
             var tcs = CreateResultTcs<TResult>(gameScene);
             _gameScenes.Add(gameScene);
             await TransitionCore(gameScene, isDialog: true);
@@ -321,6 +337,7 @@ namespace Game.Core.Services
             {
                 gameScene.State = GameSceneState.Terminate;
                 await gameScene.Terminate();
+                gameScene.Disposables?.Dispose();
             }
         }
 

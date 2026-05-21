@@ -28,18 +28,14 @@ namespace Game.ScoreTimeAttack.UI
         public static UniTask<PauseDialogResult> RunAsync()
         {
             var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GamePauseUIDialog, GamePauseUI, PauseDialogResult>(
-                initializer: (component, result) =>
-                {
-                    component.Initialize(result);
-                    return UniTask.CompletedTask;
-                });
+            return sceneService.TransitionDialogAsync<GamePauseUIDialog, PauseDialogResult>();
         }
 
         public override UniTask Startup()
         {
             ApplicationEvents.PauseTime();
             ApplicationEvents.ShowCursor();
+            SceneComponent.Initialize(this);
             return base.Startup();
         }
 
@@ -85,28 +81,28 @@ namespace Game.ScoreTimeAttack.UI
                     SetInteractables(false);
                     result.TrySetResult(PauseDialogResult.Resume);
                 })
-                .AddTo(this);
+                .AddTo(Disposables);
             _retryButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
                     SetInteractables(false);
                     result.TrySetResult(PauseDialogResult.Retry);
                 })
-                .AddTo(this);
+                .AddTo(Disposables);
             _returnButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
                     SetInteractables(false);
                     result.TrySetResult(PauseDialogResult.ReturnToTitle);
                 })
-                .AddTo(this);
+                .AddTo(Disposables);
             _quitButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
                     SetInteractables(false);
                     result.TrySetResult(PauseDialogResult.Quit);
                 })
-                .AddTo(this);
+                .AddTo(Disposables);
 
             SetInteractables(true);
         }

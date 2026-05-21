@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameSceneComponent
+    public interface IGameSceneComponent : ICompositeDisposable
     {
         public UniTask Startup()
         {
@@ -49,15 +49,22 @@ namespace Game.MVC.Core.Scenes
 
         protected Button[] Buttons => _buttons ??= gameObject.GetComponentsInChildren<Button>();
 
-        private void Start()
+        public CompositeDisposable Disposables { get; } = new();
+
+        protected void Start()
         {
             if (Buttons.Length > 0)
             {
                 Buttons.Select(x => x.OnClickAsObservable())
                     .Merge()
                     .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
-                    .AddTo(this);
+                    .AddTo(Disposables);
             }
+        }
+
+        protected virtual void OnDestroy()
+        {
+            Disposables?.Dispose();
         }
 
         public virtual void SetInteractables(bool interactive)

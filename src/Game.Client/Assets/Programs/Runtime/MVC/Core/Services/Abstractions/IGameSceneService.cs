@@ -59,16 +59,24 @@ namespace Game.Core.Services
         UniTask TransitionPrevAsync();
 
         /// <summary>
-        /// ダイアログをオーバーレイ表示
+        /// ダイアログをオーバーレイ表示(引数なし)
         /// </summary>
         /// <typeparam name="TScene">ダイアログシーン型</typeparam>
-        /// <typeparam name="TComponent">UIコンポーネント型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
-        /// <param name="initializer">初期化コールバック（オプション）</param>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent;
+        UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
+
+        /// <summary>
+        /// ダイアログをオーバーレイ表示(引数あり)
+        /// </summary>
+        /// <typeparam name="TScene">ダイアログシーン型</typeparam>
+        /// <typeparam name="TArg">引数型</typeparam>
+        /// <typeparam name="TResult">戻り値の型</typeparam>
+        /// <param name="arg">引数</param>
+        /// <returns>ダイアログの結果</returns>
+        UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>
         /// 指定した型のシーンが処理中かどうかを判定

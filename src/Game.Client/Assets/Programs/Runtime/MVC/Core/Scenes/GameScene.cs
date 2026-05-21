@@ -4,13 +4,14 @@ using Game.Shared.Extensions;
 using Game.Shared.Scenes;
 using Game.Core.Services;
 using Game.MVC.Core.Enums;
+using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameScene : IGameSceneState, IGameSceneArgHandler
+    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, ICompositeDisposable
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
@@ -61,6 +62,8 @@ namespace Game.MVC.Core.Scenes
 
         public GameSceneState State { get; set; }
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
+
+        public CompositeDisposable Disposables { get; } = new();
 
         public virtual UniTask PreInitialize()
         {
@@ -132,6 +135,11 @@ namespace Game.MVC.Core.Scenes
         public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
 
         public bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
+    }
+
+    public interface ICompositeDisposable
+    {
+        CompositeDisposable Disposables { get; }
     }
 
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
@@ -291,22 +299,13 @@ namespace Game.MVC.Core.Scenes
         }
     }
 
-    // 任意パラメータを受け取りつつ処理を挟みたいとき
-    public interface IGameDialogSceneInitializer<TComponent, TResult>
-    {
-        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
-    }
-
     // 主にダイアログ用(オーバーレイ表示想定)
-    public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>,
-        IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
+    public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>, IGameSceneResult<TResult>
         where TScene : IGameScene
         where TComponent : IGameSceneComponent
     {
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
 
         public TResult Result { get; set; }
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
@@ -327,11 +326,6 @@ namespace Game.MVC.Core.Scenes
 
         public override UniTask Startup()
         {
-            if (DialogInitializer != null)
-            {
-                return DialogInitializer.Invoke(SceneComponent, this);
-            }
-
             return UniTask.CompletedTask;
         }
 
