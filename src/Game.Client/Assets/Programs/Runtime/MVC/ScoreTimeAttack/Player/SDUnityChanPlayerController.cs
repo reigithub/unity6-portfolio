@@ -7,11 +7,13 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
+using Game.Shared.Bootstrap;
 using Game.Shared.Input;
 using R3;
 using R3.Triggers;
 using UnityChan;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.ScoreTimeAttack.Player
 {
@@ -21,7 +23,7 @@ namespace Game.ScoreTimeAttack.Player
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(RaycastChecker))] // 着地判定に使用
-    public class SDUnityChanPlayerController : MonoBehaviour
+    public class SDUnityChanPlayerController : MonoBehaviour, ProjectDefaultInputSystem.IPlayerActions
     {
         [Header("歩く速度")]
         [SerializeField]
@@ -69,6 +71,8 @@ namespace Game.ScoreTimeAttack.Player
         private readonly ReactiveProperty<float> _speed = new();
         private Quaternion _lookRotation = Quaternion.identity;
         private bool _jumpTriggered;
+
+        private readonly ReactiveProperty<bool> _onPlayerInput = new();
 
         // アニメーター状態フラグ
         private bool _isJumpingAnim;
@@ -128,6 +132,15 @@ namespace Game.ScoreTimeAttack.Player
                 })
                 .AddTo(this);
 
+            // プレイヤー入力検知
+            _onPlayerInput
+                .DistinctUntilChanged()
+                .Subscribe(isPlayerInput =>
+                {
+                    if (isPlayerInput) ApplicationEvents.HideCursor();
+                })
+                .AddTo(this);
+
             // スタミナ変更の購読
             MessagePipeService.Subscribe<float>(MessageKey.Player.StaminaChanged, stamina => SetRunInput(stamina > 0f))
                 .AddTo(this);
@@ -140,9 +153,17 @@ namespace Game.ScoreTimeAttack.Player
 
         #region MonoBehaviour Methods
 
-        private void OnEnable() => InputService.EnablePlayer();
+        protected void OnEnable()
+        {
+            InputService.EnablePlayer();
+            InputService.Player.SetCallbacks(this);
+        }
 
-        private void OnDisable() => InputService.DisablePlayer();
+        protected void OnDisable()
+        {
+            InputService.DisablePlayer();
+            InputService.Player.RemoveCallbacks(this);
+        }
 
         protected void Update()
         {
@@ -591,6 +612,46 @@ namespace Game.ScoreTimeAttack.Player
                 _isGettingUpComplete = true;
             }
         }
+
+        #endregion
+
+        #region InputActions
+
+        private void OnInputVector2(InputAction.CallbackContext context, string inputName)
+        {
+            var value = context.ReadValue<Vector2>();
+            Debug.Log($"Player InputAction: {inputName} started={context.started}, performed={context.performed}, canceled={context.canceled}, value={value}" );
+            _onPlayerInput.Value = value.magnitude > PlayerPhysicsConstants.InputThreshold;
+        }
+
+        private void OnInputFloat(InputAction.CallbackContext context, string inputName)
+        {
+            var value = context.ReadValue<float>();
+            Debug.Log($"Player InputAction: {inputName} started={context.started}, performed={context.performed}, canceled={context.canceled}, value={value}" );
+            _onPlayerInput.Value = value > 0f;
+        }
+
+        public void OnMove(InputAction.CallbackContext context) => OnInputVector2(context, nameof(OnMove));
+
+        public void OnLook(InputAction.CallbackContext context) => OnInputVector2(context, nameof(OnLook));
+
+        public void OnAttack(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnAttack));
+
+        public void OnJump(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnJump));
+
+        public void OnPrevious(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnPrevious));
+
+        public void OnNext(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnNext));
+
+        public void OnReset(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnReset));
+
+        public void OnLeftAlt(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnLeftAlt));
+
+        public void OnLeftControl(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnLeftControl));
+
+        public void OnLeftShift(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnLeftShift));
+
+        public void OnMouseScrollY(InputAction.CallbackContext context) => OnInputFloat(context, nameof(OnMouseScrollY));
 
         #endregion
     }

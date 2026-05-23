@@ -6,9 +6,9 @@ using Game.Core.Services;
 using Game.ScoreTimeAttack.Player;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Input;
 using R3;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Game.Core
@@ -51,11 +51,15 @@ namespace Game.Core
 
         [SerializeField] private Camera _mainCamera;
         [SerializeField] private PlayerFollowCameraController _playerFollowCameraController;
+        [SerializeField] private PlayerInput _playerInput;
 
         [SerializeField] private Image _fadeImage;
 
         private IMessagePipeService _messagePipeService;
         private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         private void Initialize()
         {
@@ -65,6 +69,14 @@ namespace Game.Core
 
         private void SubscribeEvents()
         {
+            Observable.EveryValueChanged(_playerInput, playerInput => playerInput.currentControlScheme)
+                .Subscribe(device =>
+                {
+                    Debug.Log($"PlayerInput InputDevice: {device}");
+                    InputService.UpdateControlScheme(device);
+                })
+                .AddTo(this);
+
             // GameScene
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.TransitionEnter, async (_, _) =>
                 {
