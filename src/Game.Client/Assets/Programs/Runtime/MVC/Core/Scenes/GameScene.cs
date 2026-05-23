@@ -8,6 +8,7 @@ using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
@@ -159,31 +160,35 @@ namespace Game.MVC.Core.Scenes
             SceneComponent = GetSceneComponent();
         }
 
-        public override UniTask Startup()
+        public override async UniTask Startup()
         {
-            return base.Startup();
+            await SceneComponent.Startup();
+            await base.Startup();
         }
 
-        public override UniTask Ready()
+        public override async UniTask Ready()
         {
-            return base.Ready();
+            await SceneComponent.Ready();
+            await base.Ready();
         }
 
-        public override UniTask Sleep()
+        public override async UniTask Sleep()
         {
-            SceneComponent.Sleep();
-            return base.Sleep();
+            await SceneComponent.Sleep();
+            await base.Sleep();
         }
 
-        public override UniTask Restart()
+        public override async UniTask Restart()
         {
-            SceneComponent.Restart();
-            return Ready();
+            await SceneComponent.Restart();
+            await base.Restart();
         }
 
         public override async UniTask Terminate()
         {
+            await SceneComponent.Terminate();
             await UnloadScene();
+            await base.Terminate();
         }
 
         protected virtual UniTask LoadScene()
@@ -212,8 +217,10 @@ namespace Game.MVC.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
-            // GameSceneHelper.MoveToGameRootScene(_instance);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
         }
 
         protected override UniTask UnloadScene()
@@ -324,26 +331,19 @@ namespace Game.MVC.Core.Scenes
             SceneComponent = GetSceneComponent();
         }
 
-        public override UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public override UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
-
         public override UniTask Terminate()
         {
             TrySetCanceled();
-            return UnloadScene();
+            return base.Terminate();
         }
 
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
         }
 
         protected override UniTask UnloadScene()
