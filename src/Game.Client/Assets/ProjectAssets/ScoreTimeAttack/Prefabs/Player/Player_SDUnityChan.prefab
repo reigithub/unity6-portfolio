@@ -258,8 +258,12 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: a8b045ff-5c42-4504-9495-7a8b5be17bd3
     m_ActionName: 'UI/Pause[/Keyboard/escape]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: bead423f-07bd-453c-ac32-23a9ed2177cd
+    m_ActionName: 'UI/Tab[/Keyboard/tab]'
   m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: Keyboard&Mouse
+  m_DefaultControlScheme: 
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}

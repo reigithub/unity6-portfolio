@@ -541,15 +541,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "Tab",
-                    "type": "Button",
-                    "id": "bead423f-07bd-453c-ac32-23a9ed2177cd",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -984,12 +975,12 @@
                 },
                 {
                     "name": "",
-                    "id": "645f327f-6d50-4295-b98b-50a4350bbc2d",
-                    "path": "<Keyboard>/tab",
+                    "id": "056b6132-110a-47ce-bd9a-23d88c3c13f2",
+                    "path": "<Gamepad>/start",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
-                    "action": "Tab",
+                    "groups": ";Gamepad",
+                    "action": "Escape",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

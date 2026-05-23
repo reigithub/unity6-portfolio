@@ -629,15 +629,6 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""Tab"",
-                    ""type"": ""Button"",
-                    ""id"": ""bead423f-07bd-453c-ac32-23a9ed2177cd"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1072,12 +1063,12 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""645f327f-6d50-4295-b98b-50a4350bbc2d"",
-                    ""path"": ""<Keyboard>/tab"",
+                    ""id"": ""056b6132-110a-47ce-bd9a-23d88c3c13f2"",
+                    ""path"": ""<Gamepad>/start"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Tab"",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Escape"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1173,7 +1164,6 @@ namespace Game.Shared.Input
             m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
             m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
             m_UI_Escape = m_UI.FindAction("Escape", throwIfNotFound: true);
-            m_UI_Tab = m_UI.FindAction("Tab", throwIfNotFound: true);
         }
 
         ~@ProjectDefaultInputSystem()
@@ -1472,7 +1462,6 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_TrackedDevicePosition;
         private readonly InputAction m_UI_TrackedDeviceOrientation;
         private readonly InputAction m_UI_Escape;
-        private readonly InputAction m_UI_Tab;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1528,10 +1517,6 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "UI/Escape".
             /// </summary>
             public InputAction @Escape => m_Wrapper.m_UI_Escape;
-            /// <summary>
-            /// Provides access to the underlying input action "UI/Tab".
-            /// </summary>
-            public InputAction @Tab => m_Wrapper.m_UI_Tab;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1591,9 +1576,6 @@ namespace Game.Shared.Input
                 @Escape.started += instance.OnEscape;
                 @Escape.performed += instance.OnEscape;
                 @Escape.canceled += instance.OnEscape;
-                @Tab.started += instance.OnTab;
-                @Tab.performed += instance.OnTab;
-                @Tab.canceled += instance.OnTab;
             }
 
             /// <summary>
@@ -1638,9 +1620,6 @@ namespace Game.Shared.Input
                 @Escape.started -= instance.OnEscape;
                 @Escape.performed -= instance.OnEscape;
                 @Escape.canceled -= instance.OnEscape;
-                @Tab.started -= instance.OnTab;
-                @Tab.performed -= instance.OnTab;
-                @Tab.canceled -= instance.OnTab;
             }
 
             /// <summary>
@@ -1908,13 +1887,6 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnEscape(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "Tab" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnTab(InputAction.CallbackContext context);
         }
     }
 }
