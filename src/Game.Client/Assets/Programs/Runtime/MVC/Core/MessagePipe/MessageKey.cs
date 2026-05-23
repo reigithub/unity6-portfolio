@@ -8,16 +8,6 @@
             public const int GameScene = 200;
             public const int Player = 500;
             public const int UI = 600;
-            public const int InputSystem = 700;
-        }
-
-        public struct System
-        {
-            public const int TimeScale = Offset.System + 0;
-            public const int Cursor = Offset.System + 1;
-            public const int DirectionalLight = Offset.System + 2;
-            public const int Skybox = Offset.System + 3;
-            public const int DefaultSkybox = Offset.System + 4;
         }
 
         public struct GameScene
@@ -42,12 +32,6 @@
         {
             public const int Escape = Offset.UI + 0;
             public const int ScrollWheel = Offset.UI + 1;
-        }
-
-        public struct InputSystem
-        {
-            public const int Escape = Offset.InputSystem + 0;
-            public const int ScrollWheel = Offset.InputSystem + 1;
         }
     }
 }

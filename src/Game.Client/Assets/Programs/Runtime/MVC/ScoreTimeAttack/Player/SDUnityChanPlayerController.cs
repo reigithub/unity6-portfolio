@@ -49,8 +49,10 @@ namespace Game.ScoreTimeAttack.Player
         private MessagePipeService _messagePipeService;
         private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
-        private ProjectDefaultInputSystem _inputSystem;
-        private ProjectDefaultInputSystem.PlayerActions _player;
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
+        private ProjectDefaultInputSystem.PlayerActions Player => InputService.Player;
 
         private Animator _animator;
         private Rigidbody _rigidbody;
@@ -138,30 +140,11 @@ namespace Game.ScoreTimeAttack.Player
 
         #region MonoBehaviour Methods
 
-        private void Awake()
-        {
-            _inputSystem = new ProjectDefaultInputSystem();
-            _player = _inputSystem.Player;
-        }
+        private void OnEnable() => InputService.EnablePlayer();
 
-        private void OnEnable()
-        {
-            _inputSystem.Enable();
-            _player.Enable();
-        }
+        private void OnDisable() => InputService.DisablePlayer();
 
-        private void OnDisable()
-        {
-            _inputSystem.Disable();
-            _player.Disable();
-        }
-
-        private void OnDestroy()
-        {
-            _inputSystem.Dispose();
-        }
-
-        private void Update()
+        protected void Update()
         {
             UpdateInput();
             _stateMachine?.Update();
@@ -179,11 +162,11 @@ namespace Game.ScoreTimeAttack.Player
         private void UpdateInput()
         {
             // 移動入力受付
-            _moveValue = _player.Move.ReadValue<Vector2>();
+            _moveValue = Player.Move.ReadValue<Vector2>();
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新
-            _speed.Value = _moveVector.magnitude * (_player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
+            _speed.Value = _moveVector.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
 
             // 回転入力受付
             if (IsMoveInput())
@@ -192,7 +175,7 @@ namespace Game.ScoreTimeAttack.Player
             }
 
             // ジャンプ入力受付
-            if (_player.Jump.WasPressedThisFrame() && CanJump())
+            if (Player.Jump.WasPressedThisFrame() && CanJump())
             {
                 _jumpTriggered = true;
             }
@@ -243,9 +226,9 @@ namespace Game.ScoreTimeAttack.Player
         public void SetRunInput(bool canRun)
         {
             if (canRun)
-                _player.LeftShift.Enable();
+                Player.LeftShift.Enable();
             else
-                _player.LeftShift.Disable();
+                Player.LeftShift.Disable();
         }
 
         #endregion

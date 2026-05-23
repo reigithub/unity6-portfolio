@@ -61,6 +61,8 @@ namespace Game.Core.Services
             // UniTask型
             _builder.AddMessageBroker<int, UniTaskCompletionSource<int>>();
             _builder.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
+
+            // _builder.AddRequestHandler<TRequest, TResponse, THandler>();
         }
 
         private void Build()
@@ -179,6 +181,16 @@ namespace Game.Core.Services
         public IAsyncSubscriber<TKey, TMessage> GetAsyncSubscriber<TKey, TMessage>()
         {
             return GlobalMessagePipe.GetAsyncSubscriber<TKey, TMessage>();
+        }
+
+        public IRequestHandler<TRequest, TResponse> GetRequestHandler<TRequest, TResponse>()
+        {
+            return GlobalMessagePipe.GetRequestHandler<TRequest, TResponse>();
+        }
+
+        public IAsyncRequestHandler<TRequest, TResponse> GetAsyncRequestHandler<TRequest, TResponse>()
+        {
+            return GlobalMessagePipe.GetAsyncRequestHandler<TRequest, TResponse>();
         }
 
         #endregion

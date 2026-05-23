@@ -1,5 +1,4 @@
 using Cysharp.Threading.Tasks;
-using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -10,8 +9,8 @@ namespace Game.ScoreTimeAttack.Scenes
     {
         protected override string AssetPathOrAddress => "ScoreTimeAttackTitleScene";
 
-        private IMessagePipeService _messagePipeService;
-        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         public override UniTask Startup()
         {
@@ -44,16 +43,14 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             ApplicationEvents.ResumeTime();
             ApplicationEvents.ShowCursor();
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
-            MessagePipeService.Publish(MessageKey.InputSystem.Escape, false);
-            MessagePipeService.Publish(MessageKey.InputSystem.ScrollWheel, false);
+            InputService.UI.Escape.Disable();
+            InputService.UI.ScrollWheel.Disable();
         }
 
         private void OnDisable()
         {
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, true);
-            MessagePipeService.Publish(MessageKey.InputSystem.Escape, true);
-            MessagePipeService.Publish(MessageKey.InputSystem.ScrollWheel, true);
+            InputService.UI.Escape.Enable();
+            InputService.UI.ScrollWheel.Enable();
         }
     }
 }

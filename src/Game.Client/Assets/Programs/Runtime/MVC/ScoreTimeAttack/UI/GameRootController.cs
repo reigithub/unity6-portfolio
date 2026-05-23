@@ -30,11 +30,11 @@ namespace Game.Core
                 throw new NullReferenceException($"Load Asset Failed. {Address}");
 
             var go = Instantiate(prefab);
-            if (go.TryGetComponent<GameRootController>(out var commonObjects))
+            if (go.TryGetComponent<GameRootController>(out var gameRootController))
             {
                 _instance = go;
                 DontDestroyOnLoad(go);
-                commonObjects.Initialize();
+                gameRootController.Initialize();
             }
             else
             {
@@ -49,9 +49,7 @@ namespace Game.Core
             await UniTask.Yield();
         }
 
-        [SerializeField] private GameObject _mainCamera;
-        [SerializeField] private GameObject _directionalLight;
-        [SerializeField] private Skybox _skybox;
+        [SerializeField] private Camera _mainCamera;
         [SerializeField] private PlayerFollowCameraController _playerFollowCameraController;
 
         [SerializeField] private Image _fadeImage;
@@ -59,36 +57,14 @@ namespace Game.Core
         private IMessagePipeService _messagePipeService;
         private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
-        private ProjectDefaultInputSystem _inputSystem;
-        private ProjectDefaultInputSystem.UIActions _ui;
-
-        private Material _defaultSkyboxMaterial;
-
         private void Initialize()
         {
             _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, UIAnimationConstants.AlphaOpaque);
-            if (_skybox) _defaultSkyboxMaterial = _skybox.material;
             SubscribeEvents();
         }
 
         private void SubscribeEvents()
         {
-            MessagePipeService.Subscribe<bool>(MessageKey.System.DirectionalLight, status =>
-                {
-                    if (_directionalLight) _directionalLight.SetActive(status);
-                })
-                .AddTo(this);
-            MessagePipeService.Subscribe<Material>(MessageKey.System.Skybox, material =>
-                {
-                    if (_skybox) _skybox.material = material;
-                })
-                .AddTo(this);
-            MessagePipeService.Subscribe(MessageKey.System.DefaultSkybox, () =>
-                {
-                    if (_skybox) _skybox.material = _defaultSkyboxMaterial;
-                })
-                .AddTo(this);
-
             // GameScene
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.TransitionEnter, async (_, _) =>
                 {
@@ -114,25 +90,14 @@ namespace Game.Core
                         controller.SetMainCamera(_mainCamera.transform);
                     }
 
-                    _playerFollowCameraController.SetPlayer(player);
+                    SetFollowTarget(player.transform);
                 })
                 .AddTo(this);
 
             // InputSystem
-            MessagePipeService.Subscribe<bool>(MessageKey.InputSystem.Escape, status =>
+            MessagePipeService.Subscribe<Vector2>(MessageKey.UI.ScrollWheel, radius =>
                 {
-                    if (status)
-                        _ui.Escape.Enable();
-                    else
-                        _ui.Escape.Disable();
-                })
-                .AddTo(this);
-            MessagePipeService.Subscribe<bool>(MessageKey.InputSystem.ScrollWheel, status =>
-                {
-                    if (status)
-                        _ui.ScrollWheel.Enable();
-                    else
-                        _ui.ScrollWheel.Disable();
+                    SetCameraRadius(radius);
                 })
                 .AddTo(this);
         }
@@ -156,50 +121,22 @@ namespace Game.Core
             }
         }
 
-        #region InputSystem
-
-        private void Awake()
+        public void SetFollowTarget(Transform target)
         {
-            _inputSystem = new ProjectDefaultInputSystem();
-            _ui = _inputSystem.UI;
+            if (_playerFollowCameraController != null && target != null)
+                _playerFollowCameraController.SetFollowTarget(target);
         }
 
-        private void OnEnable()
+        public void ClearFollowTarget()
         {
-            _inputSystem.Enable();
-            _ui.Enable();
+            if (_playerFollowCameraController != null)
+                _playerFollowCameraController.ClearFollowTarget();
         }
 
-        private void OnDisable()
+        public void SetCameraRadius(Vector2 scrollWheel)
         {
-            _inputSystem.Disable();
-            _ui.Disable();
-        }
-
-        private void OnDestroy()
-        {
-            _inputSystem.Dispose();
-        }
-
-        private void Update()
-        {
-            // _ui.{InputAction}.IsPressed() //押す～離す間
-            // _ui.{InputAction}.WasPressedThisFrame() //押した瞬間
-            // _ui.{InputAction}.WasReleasedThisFrame() //離した瞬間
-
-            if (_ui.Escape.WasPressedThisFrame())
-            {
-                MessagePipeService.PublishForget(MessageKey.UI.Escape);
-            }
-
-            if (_ui.ScrollWheel.WasPressedThisFrame())
-            {
-                // 今はプレイヤーフォローカメラ操作用
-                var scrollWheel = _ui.ScrollWheel.ReadValue<Vector2>().normalized;
+            if (_playerFollowCameraController != null)
                 _playerFollowCameraController.SetCameraRadius(scrollWheel);
-            }
         }
-
-        #endregion
     }
 }

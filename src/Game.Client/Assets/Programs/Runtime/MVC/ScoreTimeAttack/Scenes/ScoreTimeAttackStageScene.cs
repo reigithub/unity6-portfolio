@@ -36,6 +36,9 @@ namespace Game.ScoreTimeAttack.Scenes
         private MessagePipeService _messagePipeService;
         private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
         public ScoreTimeAttackStageSceneModel SceneModel { get; set; }
 
         private int _stageId;
@@ -61,15 +64,6 @@ namespace Game.ScoreTimeAttack.Scenes
             Physics.simulationMode = SimulationMode.FixedUpdate;
             // 追加でStageMasterに対応したUnityシーン(3Dフィールド)をロードする
             _stageSceneInstance = await AssetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
-
-            // ステージアセットに設定されたSkyboxをメインカメラに反映
-            var skybox = ScoreTimeAttackStageSceneHelper.GetSkybox(_stageSceneInstance.Scene);
-            if (skybox)
-            {
-                MessagePipeService.Publish(MessageKey.System.Skybox, skybox.material);
-            }
-
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
         }
 
         public override async UniTask Startup()
@@ -96,6 +90,23 @@ namespace Game.ScoreTimeAttack.Scenes
 
             SceneComponent.Initialize(SceneModel);
 
+            Observable.EveryUpdate(UnityFrameProvider.Update)
+                .Where(_ => Application.isPlaying)
+                .Subscribe(_ =>
+                {
+                    if (InputService.UI.Escape.WasPressedThisFrame())
+                    {
+                        MessagePipeService.PublishForget(MessageKey.UI.Escape);
+                    }
+
+                    if (InputService.UI.ScrollWheel.WasPressedThisFrame())
+                    {
+                        var scrollWheel = InputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
+                        MessagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
+                    }
+                })
+                .AddTo(Disposables);
+
             await base.Startup();
         }
 
@@ -108,8 +119,8 @@ namespace Game.ScoreTimeAttack.Scenes
             var audioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
-            MessagePipeService.Publish(MessageKey.InputSystem.Escape, true);
-            MessagePipeService.Publish(MessageKey.InputSystem.ScrollWheel, true);
+            InputService.UI.Escape.Enable();
+            InputService.UI.ScrollWheel.Enable();
             ApplicationEvents.ResumeTime();
             ApplicationEvents.HideCursor();
             SceneModel.StageState = GameStageState.Start;
@@ -122,8 +133,6 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override async UniTask Terminate()
         {
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, true);
-            MessagePipeService.Publish(MessageKey.System.DefaultSkybox);
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
             AudioService.StopBgmAsync().Forget();
             await base.Terminate();
