@@ -1,3 +1,4 @@
+using System;
 using Game.Shared.Input;
 
 namespace Game.Core.Services
@@ -27,6 +28,16 @@ namespace Game.Core.Services
         /// プレイヤー入力を無効化する（メニュー表示中等）
         /// </summary>
         void DisablePlayer();
+
+        /// <summary>
+        /// プレイヤー入力を一時無効化するスコープ
+        /// </summary>
+        IDisposable BlockPlayer();
+
+        /// <summary>
+        /// UI入力を一時無効化するスコープ
+        /// </summary>
+        IDisposable BlockUI();
 
         /// <summary>
         /// UI入力を有効化する
