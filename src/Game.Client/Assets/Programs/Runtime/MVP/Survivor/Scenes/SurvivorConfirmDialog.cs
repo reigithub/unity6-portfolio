@@ -71,7 +71,7 @@ namespace Game.MVP.Survivor.Scenes
             await UniTask.Yield();
 
             // Escapeキーでキャンセル
-            Observable.EveryValueChanged(_inputService, x => x.UI.Escape.WasPressedThisFrame(), UnityFrameProvider.Update)
+            Observable.EveryValueChanged(_inputService, x => x.UI.Menu.WasPressedThisFrame(), UnityFrameProvider.Update)
                 .Subscribe(escape =>
                 {
                     if (escape) OnResultSelected(false);
