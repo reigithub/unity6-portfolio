@@ -6,6 +6,13 @@ namespace Game.Shared.Constants
         public const string GameRootScene = "GameRootScene";
     }
 
+    public static class InputConstants
+    {
+        public const string DefaultControlScheme = "Keyboard&Mouse";
+        public const string KeyboardAndMouse = DefaultControlScheme;
+        public const string Gamepad = "Gamepad";
+    }
+
     /// <summary>
     /// 時間関連の定数
     /// </summary>
