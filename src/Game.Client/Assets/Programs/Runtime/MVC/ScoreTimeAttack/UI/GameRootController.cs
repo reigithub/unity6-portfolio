@@ -58,25 +58,18 @@ namespace Game.Core
         private IMessagePipeService _messagePipeService;
         private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
-        private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         private void Initialize()
         {
             _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, UIAnimationConstants.AlphaOpaque);
+            InputService.SubscribeControlScheme(_playerInput);
             SubscribeEvents();
         }
 
         private void SubscribeEvents()
         {
-            Observable.EveryValueChanged(_playerInput, playerInput => playerInput.currentControlScheme)
-                .Subscribe(device =>
-                {
-                    Debug.Log($"PlayerInput InputDevice: {device}");
-                    InputService.UpdateControlScheme(device);
-                })
-                .AddTo(this);
-
             // GameScene
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.TransitionEnter, async (_, _) =>
                 {

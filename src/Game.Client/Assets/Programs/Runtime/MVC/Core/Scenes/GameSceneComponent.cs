@@ -1,7 +1,9 @@
+using System;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
+using Game.Shared.Input;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -23,7 +25,7 @@ namespace Game.MVC.Core.Scenes
         UniTask Terminate() => UniTask.CompletedTask;
 
         // ボタンなどのインタラクティブUI有効化を切り替える
-        void SetInteractables(bool interactable);
+        void SetInteractable(bool interactable);
     }
 
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
@@ -31,24 +33,26 @@ namespace Game.MVC.Core.Scenes
         private IAudioService _audioService;
         protected IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
         private Selectable[] _selectables;
-        private Selectable[] Selectables => _selectables ??= gameObject.GetComponentsInChildren<Selectable>();
+        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
+
+        private Button[] _buttons;
+        private Button[] Buttons => _buttons ??= GetComponentsInChildren<Button>();
 
         public CompositeDisposable Disposables { get; } = new();
 
         public virtual UniTask Startup()
         {
-            if (Selectables.Length > 0)
+            if (Buttons.Length > 0)
             {
-                Selectables
-                    .Select(x => x.TryGetComponent(out Button button) ? button : null)
-                    .Where(x => x != null)
+                Buttons
                     .Select(x => x.OnClickAsObservable())
                     .Merge()
                     .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
                     .AddTo(Disposables);
-
-                EventSystem.current.SetSelectedGameObject(_selectables[0].gameObject);
             }
 
             return UniTask.CompletedTask;
@@ -61,6 +65,7 @@ namespace Game.MVC.Core.Scenes
                 gameObject.SetActive(false);
             }
 
+            OnFocusExit();
             return UniTask.CompletedTask;
         }
 
@@ -69,29 +74,67 @@ namespace Game.MVC.Core.Scenes
             if (!gameObject.activeSelf)
             {
                 gameObject.SetActive(true);
-                SetInteractables(true);
+                SetInteractable(true);
             }
 
+            OnFocusEnter();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Ready()
         {
+            OnFocusEnter();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Terminate()
         {
+            OnFocusExit();
             Disposables?.Dispose();
             return UniTask.CompletedTask;
         }
 
-        public virtual void SetInteractables(bool interactive)
+        public virtual void SetInteractable(bool interactive)
         {
-            foreach (var selectable in Selectables)
+            if (Selectables.Length > 0)
             {
-                selectable.interactable = interactive;
+                foreach (var selectable in Selectables)
+                {
+                    selectable.interactable = interactive;
+                }
             }
+        }
+
+        protected IDisposable BlockInteractables()
+        {
+            SetInteractable(false);
+            return Disposable.Create(() => SetInteractable(true));
+        }
+
+        protected IDisposable BlockFocus()
+        {
+            OnFocusExit();
+            return Disposable.Create(() => OnFocusEnter());
+        }
+
+        public void OnFocusEnter()
+        {
+            if (Selectables.Length > 0)
+            {
+                InputService.SubscribeSelectable();
+                InputService.ResolveSelectable(Selectables);
+
+                foreach (var selectable in Selectables)
+                {
+                    Debug.Log("Selectable: " + selectable.gameObject.name);
+                }
+            }
+        }
+
+        public void OnFocusExit()
+        {
+            // InputService.SetSelectedGameObject(null);
+            InputService.DisposeSelectable();
         }
     }
 }

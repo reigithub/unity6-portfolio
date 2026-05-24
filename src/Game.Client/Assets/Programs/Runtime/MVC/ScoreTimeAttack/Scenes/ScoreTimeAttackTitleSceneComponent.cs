@@ -5,7 +5,9 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
+using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.ScoreTimeAttack.UI;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
@@ -37,43 +39,59 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             if (_startButton)
             {
-                _startButton.OnClickAsObservableThrottleFirst()
-                    .SubscribeAwait(async (_, token) =>
+                _startButton.OnClickAsObservableThrottleFirst(1)
+                    .SubscribeAwait(async (o, token) =>
                     {
-                        SetInteractables(false);
-                        AudioService.StopBgmAsync(token).Forget();
-                        await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
+                        // AudioService.StopBgmAsync(token).Forget();
+                        // await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
 
                         // 今のところプレイモードは１つなので
-                        var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
-                        await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
+                        // var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
+                        // await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
+
+                        using (BlockInteractables())
+                        using (BlockFocus())
+                        {
+                            await GamePauseUIDialog.RunAsync();
+                        }
                     })
                     .AddTo(this);
             }
 
             if (_gameModeButton != null)
             {
-                _gameModeButton.OnClickAsObservableThrottleFirst()
+                _gameModeButton.OnClickAsObservableThrottleFirst(1)
                     .SubscribeAwait(async (_, _) =>
                     {
-                        await SceneService.TerminateLastAsync();
-                        await ApplicationEvents.RequestReturnToTitleAsync();
+                        // await SceneService.TerminateLastAsync();
+                        // await ApplicationEvents.RequestReturnToTitleAsync();
+                        using (BlockInteractables())
+                        using (BlockFocus())
+                        {
+                            await GamePauseUIDialog.RunAsync();
+                        }
                     })
                     .AddTo(this);
             }
 
             if (_quitButton)
             {
-                _quitButton.OnClickAsObservableThrottleFirst()
-                    .Subscribe(_ =>
+                _quitButton.OnClickAsObservableThrottleFirst(1)
+                    .SubscribeAwait(async (_, _) =>
                     {
-                        SetInteractables(false);
-                        ApplicationEvents.RequestShutdown();
+                        // SetInteractable(false);
+                        // ApplicationEvents.RequestShutdown();
+
+                        using (BlockInteractables())
+                        using (BlockFocus())
+                        {
+                            await GamePauseUIDialog.RunAsync();
+                        }
                     })
                     .AddTo(this);
             }
 
-            SetInteractables(true);
+            SetInteractable(true);
         }
 
         public async UniTask ReadyAsync()
