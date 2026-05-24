@@ -15,7 +15,8 @@
         "Unity.ResourceManager",
         "Game.Library.Shared",
         "Unity.TextMeshPro",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
