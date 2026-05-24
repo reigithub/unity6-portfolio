@@ -81,8 +81,8 @@ namespace Game.ScoreTimeAttack.Scenes
             _returnButton.OnClickAsObservableThrottleFirst()
                 .SubscribeAwait(async (_, token) =>
                 {
-                    SetInteractables(false);
-                    AudioService.StopBgmAsync().Forget();
+                    SetInteractable(false);
+                    AudioService.StopBgmAsync(token).Forget();
                     await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
                     await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
                 })
@@ -98,7 +98,7 @@ namespace Game.ScoreTimeAttack.Scenes
                 MessagePipeService.Publish(MessageKey.Player.PlayAnimation, _totalResultMaster.AnimatorStateName);
             }
 
-            return UniTask.CompletedTask;
+            return base.Ready();
         }
     }
 }

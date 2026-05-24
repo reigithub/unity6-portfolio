@@ -90,23 +90,6 @@ namespace Game.ScoreTimeAttack.Scenes
 
             SceneComponent.Initialize(SceneModel);
 
-            Observable.EveryUpdate(UnityFrameProvider.Update)
-                .Where(_ => Application.isPlaying)
-                .Subscribe(_ =>
-                {
-                    if (InputService.UI.Escape.WasPressedThisFrame())
-                    {
-                        MessagePipeService.PublishForget(MessageKey.UI.Escape);
-                    }
-
-                    if (InputService.UI.ScrollWheel.WasPressedThisFrame())
-                    {
-                        var scrollWheel = InputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
-                        MessagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
-                    }
-                })
-                .AddTo(Disposables);
-
             await base.Startup();
         }
 
@@ -119,7 +102,7 @@ namespace Game.ScoreTimeAttack.Scenes
             var audioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
-            InputService.UI.Escape.Enable();
+            InputService.UI.Menu.Enable();
             InputService.UI.ScrollWheel.Enable();
             ApplicationEvents.ResumeTime();
             ApplicationEvents.HideCursor();
@@ -150,10 +133,25 @@ namespace Game.ScoreTimeAttack.Scenes
                     SceneModel.ProgressTime();
                     TryShowResultAsync().Forget();
                 })
-                .AddTo(SceneComponent);
+                .AddTo(Disposables);
 
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.UI.Escape, async (_, token) => { await ShowPauseAsync(token); })
-                .AddTo(SceneComponent);
+            // UIキー入力設定
+            Observable.EveryUpdate(UnityFrameProvider.Update)
+                .Where(_ => Application.isPlaying)
+                .Subscribe(_ =>
+                {
+                    if (InputService.UI.Menu.WasPressedThisFrame())
+                    {
+                        ShowPauseAsync().Forget();
+                    }
+
+                    if (InputService.UI.ScrollWheel.WasPressedThisFrame())
+                    {
+                        var scrollWheel = InputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
+                        MessagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
+                    }
+                })
+                .AddTo(Disposables);
         }
 
         #region IPlayerCollisionHandler Implementation

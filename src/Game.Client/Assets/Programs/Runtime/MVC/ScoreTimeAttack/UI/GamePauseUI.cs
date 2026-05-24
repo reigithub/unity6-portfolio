@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Extensions;
 using Game.Core.Services;
@@ -25,16 +26,21 @@ namespace Game.ScoreTimeAttack.UI
         private AudioService _audioService;
         private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
-        public static UniTask<PauseDialogResult> RunAsync()
+        public static async UniTask<PauseDialogResult> RunAsync()
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GamePauseUIDialog, PauseDialogResult>();
+            PauseDialogResult result;
+            var inputService = GameServiceManager.Get<InputSystemService>();
+            using (inputService.BlockPlayer())
+            {
+                var sceneService = GameServiceManager.Get<GameSceneService>();
+                result = await sceneService.TransitionDialogAsync<GamePauseUIDialog, PauseDialogResult>();
+            }
+            return result;
         }
 
         public override UniTask Startup()
         {
             ApplicationEvents.PauseTime();
-            ApplicationEvents.ShowCursor();
             SceneComponent.Initialize(this);
             return base.Startup();
         }
@@ -52,7 +58,6 @@ namespace Game.ScoreTimeAttack.UI
             if (Result != PauseDialogResult.ReturnToTitle)
             {
                 ApplicationEvents.ResumeTime();
-                ApplicationEvents.HideCursor();
             }
 
             return base.Terminate();
@@ -78,33 +83,33 @@ namespace Game.ScoreTimeAttack.UI
             _resumeButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
-                    SetInteractables(false);
+                    SetInteractable(false);
                     result.TrySetResult(PauseDialogResult.Resume);
                 })
                 .AddTo(Disposables);
             _retryButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
-                    SetInteractables(false);
+                    SetInteractable(false);
                     result.TrySetResult(PauseDialogResult.Retry);
                 })
                 .AddTo(Disposables);
             _returnButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
-                    SetInteractables(false);
+                    SetInteractable(false);
                     result.TrySetResult(PauseDialogResult.ReturnToTitle);
                 })
                 .AddTo(Disposables);
             _quitButton.OnClickAsObservableThrottleFirst()
                 .Subscribe(_ =>
                 {
-                    SetInteractables(false);
+                    SetInteractable(false);
                     result.TrySetResult(PauseDialogResult.Quit);
                 })
                 .AddTo(Disposables);
 
-            SetInteractables(true);
+            SetInteractable(true);
         }
     }
 }

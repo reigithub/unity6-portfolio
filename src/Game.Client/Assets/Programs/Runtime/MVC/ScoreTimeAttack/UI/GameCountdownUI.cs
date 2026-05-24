@@ -20,10 +20,16 @@ namespace Game.ScoreTimeAttack.UI
             return UniTask.CompletedTask;
         }
 
-        public static UniTask<bool> RunAsync(float countdown = 3f)
+        public static async UniTask<bool> RunAsync(float countdown = 3f)
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GameCountdownUIDialog, float, bool>(countdown);
+            bool result;
+            var inputService = GameServiceManager.Get<InputSystemService>();
+            using (inputService.BlockPlayer())
+            {
+                var sceneService = GameServiceManager.Get<GameSceneService>();
+                result = await sceneService.TransitionDialogAsync<GameCountdownUIDialog, float, bool>(countdown);
+            }
+            return result;
         }
 
         public override UniTask Startup()

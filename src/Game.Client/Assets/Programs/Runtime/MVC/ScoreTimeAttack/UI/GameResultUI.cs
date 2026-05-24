@@ -36,10 +36,16 @@ namespace Game.ScoreTimeAttack.UI
             return UniTask.CompletedTask;
         }
 
-        public static UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
+        public static async UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GameResultUIDialog, ScoreTimeAttackStageResultData, ResultDialogResult>(data);
+            ResultDialogResult result;
+            var inputService = GameServiceManager.Get<InputSystemService>();
+            using (inputService.BlockPlayer())
+            {
+                var sceneService = GameServiceManager.Get<GameSceneService>();
+                result = await sceneService.TransitionDialogAsync<GameResultUIDialog, ScoreTimeAttackStageResultData, ResultDialogResult>(data);
+            }
+            return result;
         }
 
         public override UniTask Startup()
