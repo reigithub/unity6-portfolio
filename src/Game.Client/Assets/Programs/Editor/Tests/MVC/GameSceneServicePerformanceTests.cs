@@ -1102,6 +1102,8 @@ namespace Game.Editor.Tests
         public UniTask Sleep() => UniTask.CompletedTask;
         public UniTask Restart() => UniTask.CompletedTask;
         public UniTask Terminate() => UniTask.CompletedTask;
+        public UniTask Focus() => UniTask.CompletedTask;
+        public UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public class UniTaskMockGameSceneWithArg<TArg> : IGameScene, IGameSceneArg<TArg>
@@ -1118,6 +1120,8 @@ namespace Game.Editor.Tests
         public UniTask Sleep() => UniTask.CompletedTask;
         public UniTask Restart() => UniTask.CompletedTask;
         public UniTask Terminate() => UniTask.CompletedTask;
+        public UniTask Focus() => UniTask.CompletedTask;
+        public UniTask Unfocus() => UniTask.CompletedTask;
 
         public UniTask ArgHandle(TArg arg)
         {

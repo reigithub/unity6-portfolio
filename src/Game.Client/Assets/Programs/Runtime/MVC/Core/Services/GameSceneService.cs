@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Game.Library.Shared;
 using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
@@ -114,11 +115,14 @@ namespace Game.Core.Services
                 return default;
             }
 
-            var gameScene = new TScene();
-            var tcs = CreateResultTcs<TResult>(gameScene);
-            _gameScenes.Add(gameScene);
-            await TransitionCore(gameScene);
-            return await ResultAsync(gameScene, tcs);
+            await using (await FocusHandleAsync())
+            {
+                var gameScene = new TScene();
+                var tcs = CreateResultTcs<TResult>(gameScene);
+                _gameScenes.Add(gameScene);
+                await TransitionCore(gameScene);
+                return await ResultAsync(gameScene, tcs);
+            }
         }
 
         public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
@@ -134,12 +138,15 @@ namespace Game.Core.Services
             }
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
-            var gameScene = new TScene();
-            CreateArgHandler(gameScene, arg);
-            var tcs = CreateResultTcs<TResult>(gameScene);
-            _gameScenes.Add(gameScene);
-            await TransitionCore(gameScene);
-            return await ResultAsync(gameScene, tcs);
+            await using (await FocusHandleAsync())
+            {
+                var gameScene = new TScene();
+                CreateArgHandler(gameScene, arg);
+                var tcs = CreateResultTcs<TResult>(gameScene);
+                _gameScenes.Add(gameScene);
+                await TransitionCore(gameScene);
+                return await ResultAsync(gameScene, tcs);
+            }
         }
 
         // 主に遷移前に現在のシーンに対して何かする
@@ -185,6 +192,26 @@ namespace Game.Core.Services
             }
 
             return null;
+        }
+
+        private async UniTask<IAsyncDisposable> FocusHandleAsync()
+        {
+            if (_gameScenes.Count == 0)
+                return new EmptyAsyncDisposable();
+
+            var lastScene = _gameScenes[^1];
+            if (lastScene.State is GameSceneState.Processing)
+            {
+                await lastScene.Unfocus();
+            }
+
+            return AsyncDisposable.Create(async () =>
+            {
+                if (lastScene.State is GameSceneState.Processing)
+                {
+                    await lastScene.Focus();
+                }
+            });
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, ICompositeDisposable
+    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, IGameSceneFocusHandler, ICompositeDisposable
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
@@ -101,6 +101,16 @@ namespace Game.MVC.Core.Scenes
         {
             return UniTask.CompletedTask;
         }
+
+        public virtual UniTask Focus()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Unfocus()
+        {
+            return UniTask.CompletedTask;
+        }
     }
 
     public interface IGameSceneState
@@ -116,6 +126,13 @@ namespace Game.MVC.Core.Scenes
     public interface IGameSceneArgHandler
     {
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
+    }
+
+    public interface IGameSceneFocusHandler
+    {
+        UniTask Focus();
+
+        UniTask Unfocus();
     }
 
     public interface IGameSceneResult
@@ -201,6 +218,18 @@ namespace Game.MVC.Core.Scenes
             await SceneComponent.Terminate();
             await UnloadScene();
             await base.Terminate();
+        }
+
+        public override async UniTask Focus()
+        {
+            await SceneComponent.Focus();
+            await base.Focus();
+        }
+
+        public override async UniTask Unfocus()
+        {
+            await SceneComponent.Unfocus();
+            await base.Focus();
         }
 
         protected virtual UniTask LoadScene()
