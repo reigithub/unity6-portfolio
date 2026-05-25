@@ -5,13 +5,11 @@ namespace Game.Shared.Input
 {
     public static class InputSystemHelper
     {
-        public static Selectable[] GetAllSelectables(Selectable[] selectables = null)
+        public static Selectable[] GetAllSelectables()
         {
-            Selectable[] allSelectables = selectables ?? Array.Empty<Selectable>();
-            if (allSelectables.Length > 0) return allSelectables;
-
-            // if (Selectable.allSelectableCount > 0)
-            //     allSelectables = new Selectable[Selectable.allSelectableCount];
+            Selectable[] allSelectables = Array.Empty<Selectable>();
+            int allCount = Selectable.allSelectableCount;
+            if (allCount > 0) allSelectables = new Selectable[allCount];
 
             int count = Selectable.AllSelectablesNoAlloc(allSelectables);
             if (count > 0) return allSelectables;

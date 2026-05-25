@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 
 namespace Game.Core.UI
 {
-    public class PointerEventReceiver : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    public class PointerEventReceiver : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -17,11 +17,6 @@ namespace Game.Core.UI
         public void OnPointerExit(PointerEventData eventData)
         {
             InputService.SetSelectedGameObject(null);
-        }
-
-        public void OnPointerClick(PointerEventData eventData)
-        {
-
         }
     }
 }

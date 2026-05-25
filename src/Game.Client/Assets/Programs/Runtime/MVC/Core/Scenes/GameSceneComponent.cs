@@ -3,11 +3,9 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
-using Game.Shared.Input;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
@@ -24,8 +22,9 @@ namespace Game.MVC.Core.Scenes
 
         UniTask Terminate() => UniTask.CompletedTask;
 
-        // ボタンなどのインタラクティブUI有効化を切り替える
-        void SetInteractable(bool interactable);
+        UniTask Focus() => UniTask.CompletedTask;
+
+        UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
@@ -44,6 +43,8 @@ namespace Game.MVC.Core.Scenes
 
         public CompositeDisposable Disposables { get; } = new();
 
+        private GameObject _selectedGameObject;
+
         public virtual UniTask Startup()
         {
             if (Buttons.Length > 0)
@@ -61,36 +62,43 @@ namespace Game.MVC.Core.Scenes
         public virtual UniTask Sleep()
         {
             if (gameObject.activeSelf)
-            {
                 gameObject.SetActive(false);
-            }
 
-            OnFocusExit();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Restart()
         {
             if (!gameObject.activeSelf)
-            {
                 gameObject.SetActive(true);
-                SetInteractable(true);
-            }
 
-            OnFocusEnter();
+            Focus();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Ready()
         {
-            OnFocusEnter();
+            Focus();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Terminate()
         {
-            OnFocusExit();
             Disposables?.Dispose();
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Focus()
+        {
+            SetInteractable(true);
+            InputService.ResolveSelectable(_selectedGameObject);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Unfocus()
+        {
+            _selectedGameObject = InputService.GetSelectedGameObject();
+            SetInteractable(false);
             return UniTask.CompletedTask;
         }
 
@@ -105,36 +113,10 @@ namespace Game.MVC.Core.Scenes
             }
         }
 
-        protected IDisposable BlockInteractables()
+        protected IDisposable BlockInteractable()
         {
             SetInteractable(false);
             return Disposable.Create(() => SetInteractable(true));
-        }
-
-        protected IDisposable BlockFocus()
-        {
-            OnFocusExit();
-            return Disposable.Create(() => OnFocusEnter());
-        }
-
-        public void OnFocusEnter()
-        {
-            if (Selectables.Length > 0)
-            {
-                InputService.SubscribeSelectable();
-                InputService.ResolveSelectable(Selectables);
-
-                foreach (var selectable in Selectables)
-                {
-                    Debug.Log("Selectable: " + selectable.gameObject.name);
-                }
-            }
-        }
-
-        public void OnFocusExit()
-        {
-            // InputService.SetSelectedGameObject(null);
-            InputService.DisposeSelectable();
         }
     }
 }

@@ -1,8 +1,8 @@
 using System;
+using System.Linq;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Input;
-using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -21,11 +21,12 @@ namespace Game.Core.Services
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
-        public string ControlScheme { get; private set; } = InputConstants.DefaultControlScheme;
         public CompositeDisposable Disposables { get; } = new();
 
+        private string _controlScheme = InputConstants.DefaultControlScheme;
         private GameObject _selectedGameObject;
-        private IDisposable _selectableDisposable;
+
+        #region Setup
 
         public InputSystemService()
         {
@@ -94,49 +95,68 @@ namespace Game.Core.Services
             UI.Disable();
         }
 
-        public void SubscribeSelectable()
-        {
-            DisposeSelectable();
-            _selectableDisposable = Observable.EveryValueChanged(EventSystem.current, system => system.currentSelectedGameObject)
-                .Subscribe(go =>
-                {
-                    if (go != null) Debug.Log($"EventSystem SelectedGameObject: {go.name}");
-                    SetSelectedGameObject(go);
-                })
-                .AddTo(Disposables);
-        }
+        #endregion
 
-        public void DisposeSelectable() => _selectableDisposable?.Dispose();
-
-        public void ResolveSelectable(Selectable[] selectables = null)
+        public void ResolveSelectable(GameObject selectedGameObject = null)
         {
-            var allSelectables = InputSystemHelper.GetAllSelectables(selectables);
+            var allSelectables = InputSystemHelper.GetAllSelectables();
             if (allSelectables.Length > 0)
             {
-                var go = allSelectables[0].gameObject;
-                // if (_selectedGameObject != null)
-                // {
-                //     foreach (var selectable in allSelectables)
-                //     {
-                //         if (_selectedGameObject == selectable.gameObject)
-                //         {
-                //             go = selectable.gameObject;
-                //         }
-                //     }
-                // }
+                GameObject go = null;
+                bool found = false;
+
+                if (selectedGameObject != null)
+                {
+                    foreach (var selectable in allSelectables)
+                    {
+                        if (!selectable.IsInteractable()) continue;
+                        if (selectable.gameObject == selectedGameObject)
+                        {
+                            go = selectable.gameObject;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    var firstSelectable = allSelectables.FirstOrDefault(x => x.IsInteractable());
+                    if (firstSelectable != null) go = firstSelectable.gameObject;
+                }
+
                 SetSelectedGameObject(go);
+                return;
             }
+
+            SetSelectedGameObject(null);
+        }
+
+        public GameObject GetSelectedGameObject()
+        {
+            // if (_selectedGameObject != null) return _selectedGameObject;
+            return EventSystem.current.currentSelectedGameObject;
         }
 
         public void SetSelectedGameObject(GameObject go)
         {
-            if (go != null) _selectedGameObject = go;
+            _selectedGameObject = go;
+
+            if (!CanDeselectGameObject() && go == null)
+                return;
+
             EventSystem.current.SetSelectedGameObject(go);
         }
 
+        private bool CanDeselectGameObject()
+            => _controlScheme is not (InputConstants.Gamepad or InputConstants.Joystick);
 
         public void SubscribeControlScheme(PlayerInput playerInput)
         {
+            // playerInput.onControlsChanged += p => { Debug.Log($"PlayerInput InputDevice: {p.currentControlScheme}"); };
+            // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
+            // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
+
             Observable.EveryValueChanged(playerInput, input => input.currentControlScheme)
                 .Subscribe(device =>
                 {
@@ -144,25 +164,29 @@ namespace Game.Core.Services
                     UpdateControlScheme(device);
                 })
                 .AddTo(Disposables);
+
+            UpdateControlScheme(playerInput.currentControlScheme);
         }
 
         public void UpdateControlScheme(string device)
         {
-            ControlScheme = device;
+            _controlScheme = device;
 
             switch (device)
             {
                 case InputConstants.Gamepad:
+                case InputConstants.Joystick:
                 {
                     ApplicationEvents.HideCursor();
-                    ResolveSelectable();
+                    ResolveSelectable(_selectedGameObject);
                     break;
                 }
                 case InputConstants.KeyboardAndMouse:
-                default:
+                case InputConstants.Touch:
+                case InputConstants.XR:
                 {
                     ApplicationEvents.ShowCursor();
-                    SetSelectedGameObject(null);
+                    ResolveSelectable();
                     break;
                 }
             }

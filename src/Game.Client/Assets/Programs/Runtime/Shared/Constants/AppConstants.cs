@@ -11,6 +11,9 @@ namespace Game.Shared.Constants
         public const string DefaultControlScheme = KeyboardAndMouse;
         public const string KeyboardAndMouse = "Keyboard&Mouse";
         public const string Gamepad = "Gamepad";
+        public const string Touch = "Touch";
+        public const string Joystick = "Joystick";
+        public const string XR = "XR";
     }
 
     /// <summary>

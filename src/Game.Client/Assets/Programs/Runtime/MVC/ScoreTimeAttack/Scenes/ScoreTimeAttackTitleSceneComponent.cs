@@ -5,9 +5,7 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
-using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
-using Game.ScoreTimeAttack.UI;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
@@ -40,19 +38,16 @@ namespace Game.ScoreTimeAttack.Scenes
             if (_startButton)
             {
                 _startButton.OnClickAsObservableThrottleFirst(1)
-                    .SubscribeAwait(async (o, token) =>
+                    .SubscribeAwait(async (_, token) =>
                     {
-                        // AudioService.StopBgmAsync(token).Forget();
-                        // await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
-
-                        // 今のところプレイモードは１つなので
-                        // var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
-                        // await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
-
-                        using (BlockInteractables())
-                        using (BlockFocus())
+                        using (BlockInteractable())
                         {
-                            await GamePauseUIDialog.RunAsync();
+                            AudioService.StopBgmAsync(token).Forget();
+                            await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
+
+                            // 今のところプレイモードは１つなので
+                            var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
+                            await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
                         }
                     })
                     .AddTo(this);
@@ -63,12 +58,10 @@ namespace Game.ScoreTimeAttack.Scenes
                 _gameModeButton.OnClickAsObservableThrottleFirst(1)
                     .SubscribeAwait(async (_, _) =>
                     {
-                        // await SceneService.TerminateLastAsync();
-                        // await ApplicationEvents.RequestReturnToTitleAsync();
-                        using (BlockInteractables())
-                        using (BlockFocus())
+                        using (BlockInteractable())
                         {
-                            await GamePauseUIDialog.RunAsync();
+                            await SceneService.TerminateLastAsync();
+                            await ApplicationEvents.RequestReturnToTitleAsync();
                         }
                     })
                     .AddTo(this);
@@ -77,15 +70,11 @@ namespace Game.ScoreTimeAttack.Scenes
             if (_quitButton)
             {
                 _quitButton.OnClickAsObservableThrottleFirst(1)
-                    .SubscribeAwait(async (_, _) =>
+                    .Subscribe(_ =>
                     {
-                        // SetInteractable(false);
-                        // ApplicationEvents.RequestShutdown();
-
-                        using (BlockInteractables())
-                        using (BlockFocus())
+                        using (BlockInteractable())
                         {
-                            await GamePauseUIDialog.RunAsync();
+                            ApplicationEvents.RequestShutdown();
                         }
                     })
                     .AddTo(this);
