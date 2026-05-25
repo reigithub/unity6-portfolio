@@ -7,7 +7,6 @@ using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
-using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -37,45 +36,39 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             if (_startButton)
             {
-                _startButton.OnClickAsObservableThrottleFirst(1)
+                _startButton.OnClickAsObservable()
                     .SubscribeAwait(async (_, token) =>
                     {
-                        using (BlockInteractable())
-                        {
-                            AudioService.StopBgmAsync(token).Forget();
-                            await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
+                        SetInteractable(false);
+                        AudioService.StopBgmAsync(token).Forget();
+                        await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
 
-                            // 今のところプレイモードは１つなので
-                            var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
-                            await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
-                        }
+                        // 今のところプレイモードは１つなので
+                        var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
+                        await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
                     })
                     .AddTo(this);
             }
 
             if (_gameModeButton != null)
             {
-                _gameModeButton.OnClickAsObservableThrottleFirst(1)
+                _gameModeButton.OnClickAsObservable()
                     .SubscribeAwait(async (_, _) =>
                     {
-                        using (BlockInteractable())
-                        {
-                            await SceneService.TerminateLastAsync();
-                            await ApplicationEvents.RequestReturnToTitleAsync();
-                        }
+                        SetInteractable(false);
+                        await SceneService.TerminateLastAsync();
+                        await ApplicationEvents.RequestReturnToTitleAsync();
                     })
                     .AddTo(this);
             }
 
             if (_quitButton)
             {
-                _quitButton.OnClickAsObservableThrottleFirst(1)
+                _quitButton.OnClickAsObservable()
                     .Subscribe(_ =>
                     {
-                        using (BlockInteractable())
-                        {
-                            ApplicationEvents.RequestShutdown();
-                        }
+                        SetInteractable(false);
+                        ApplicationEvents.RequestShutdown();
                     })
                     .AddTo(this);
             }
