@@ -97,25 +97,5 @@ namespace Game.Core.Services
         /// </summary>
         /// <param name="clearHistory">履歴もクリアするか</param>
         UniTask TerminateLastAsync(bool clearHistory = false);
-
-        /// <summary>
-        /// Unityシーンを追加読み込み（ステージ用）
-        /// </summary>
-        /// <param name="sceneName">シーン名またはAddressablesアドレス</param>
-        /// <param name="loadSceneMode">読み込みモード</param>
-        /// <param name="activateOnLoad">読み込み完了時に自動アクティブ化するか</param>
-        /// <returns>読み込まれたシーンインスタンス</returns>
-        UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true);
-
-        /// <summary>
-        /// 読み込んだUnityシーンをアンロード
-        /// </summary>
-        /// <param name="sceneInstance">アンロードするシーンインスタンス</param>
-        UniTask UnloadUnitySceneAsync(SceneInstance sceneInstance);
-
-        /// <summary>
-        /// 読み込んだすべてのUnityシーンをアンロード
-        /// </summary>
-        UniTask UnloadUnitySceneAllAsync();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using Game.Core.MessagePipe;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
 using Game.Core.Services;
@@ -143,6 +144,17 @@ namespace Game.MVC.Core.Scenes
         CompositeDisposable Disposables { get; }
     }
 
+    /// <summary>
+    /// 遷移演出
+    /// GameSceneServiceがTransitionCoreで自動的に呼び出す
+    /// </summary>
+    public interface IGameSceneFader
+    {
+        UniTask FadeInAsync(float duration = 0.3f);
+
+        UniTask FadeOutAsync(float duration = 0.3f);
+    }
+
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
@@ -205,11 +217,15 @@ namespace Game.MVC.Core.Scenes
     }
 
     public abstract class GamePrefabScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
+        , IGameSceneFader
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+
+        private MessagePipeService _messagePipeService;
+        protected MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
         private GameObject _asset;
         private GameObject _instance;
@@ -239,6 +255,12 @@ namespace Game.MVC.Core.Scenes
         {
             return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
         }
+
+        public UniTask FadeInAsync(float duration = 0.3f)
+            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+
+        public UniTask FadeOutAsync(float duration = 0.3f)
+            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
     }
 
     // コンポーネント付きのUnityScene

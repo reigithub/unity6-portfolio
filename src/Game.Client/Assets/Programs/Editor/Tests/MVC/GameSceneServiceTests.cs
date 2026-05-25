@@ -18,21 +18,14 @@ namespace Game.Editor.Tests
     {
         private GameSceneService _service;
         private List<IGameScene> _gameScenes;
-        private IAddressableAssetService _addressableAssetService;
-        private IMessagePipeService _messagePipeService;
 
         private GameSceneServiceMock _mockService;
 
         [SetUp]
         public void SetUp()
         {
-            // NSubstituteでモックを作成
-            _addressableAssetService = Substitute.For<IAddressableAssetService>();
-            _messagePipeService = Substitute.For<IMessagePipeService>();
-            _messagePipeService.Startup();
-
             // DIコンストラクタでモックを注入
-            _service = new GameSceneService(_addressableAssetService, _messagePipeService);
+            _service = new GameSceneService();
 
             // リフレクションで内部のシーンリストを取得（IsProcessing等のテスト用）
             _gameScenes = GetPrivateField<List<IGameScene>>(_service, "_gameScenes");
@@ -45,8 +38,6 @@ namespace Game.Editor.Tests
         public void TearDown()
         {
             _service = null;
-            _addressableAssetService = null;
-            _messagePipeService = null;
             _gameScenes?.Clear();
             _mockService?.Clear();
         }
