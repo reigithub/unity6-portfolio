@@ -8,8 +8,8 @@ namespace Game.Shared.Constants
 
     public static class InputConstants
     {
-        public const string DefaultControlScheme = "Keyboard&Mouse";
-        public const string KeyboardAndMouse = DefaultControlScheme;
+        public const string DefaultControlScheme = KeyboardAndMouse;
+        public const string KeyboardAndMouse = "Keyboard&Mouse";
         public const string Gamepad = "Gamepad";
     }
 
