@@ -248,7 +248,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameSceneWithArgAndResult<string, int>();
             const string testArg = "TestArgument";
 
-            await scene.ArgHandle(testArg);
+            await scene.SetArg(testArg);
 
             Assert.AreEqual(testArg, scene.ReceivedArg);
             Assert.IsTrue(scene.ArgHandleCalled);
@@ -321,7 +321,7 @@ namespace Game.Editor.Tests
 
             // Simulate arg handling
             const string testArg = "TestInput";
-            await scene.ArgHandle(testArg);
+            await scene.SetArg(testArg);
 
             // Simulate lifecycle
             scene.State = GameSceneState.Processing;
@@ -396,7 +396,7 @@ namespace Game.Editor.Tests
             var scene = new MockGameSceneWithArgAndResult<ComplexArg, string>();
             var complexArg = new ComplexArg { Id = 1, Name = "Test", Data = new[] { 1, 2, 3 } };
 
-            await scene.ArgHandle(complexArg);
+            await scene.SetArg(complexArg);
 
             Assert.AreEqual(complexArg.Id, scene.ReceivedArg.Id);
             Assert.AreEqual(complexArg.Name, scene.ReceivedArg.Name);
@@ -542,7 +542,7 @@ namespace Game.Editor.Tests
             {
                 if (scene is IGameSceneArg<DialogInput> sceneArg)
                 {
-                    await sceneArg.ArgHandle(input);
+                    await sceneArg.SetArg(input);
                 }
             };
 
@@ -1116,7 +1116,7 @@ namespace Game.Editor.Tests
 
             public string ReceivedArg { get; private set; }
 
-            public UniTask ArgHandle(string arg)
+            public UniTask SetArg(string arg)
             {
                 ReceivedArg = arg;
                 return UniTask.CompletedTask;
@@ -1157,7 +1157,7 @@ namespace Game.Editor.Tests
             public bool RestartCalled { get; private set; }
             public bool TerminateCalled { get; private set; }
 
-            public UniTask ArgHandle(TArg arg)
+            public UniTask SetArg(TArg arg)
             {
                 ReceivedArg = arg;
                 ArgHandleCalled = true;
@@ -1409,7 +1409,7 @@ namespace Game.Editor.Tests
             public bool UnloadSceneCalled { get; private set; }
             public bool TrySetCanceledCalled { get; private set; }
 
-            public UniTask ArgHandle(TArg arg)
+            public UniTask SetArg(TArg arg)
             {
                 ReceivedArg = arg;
                 ArgHandleCalled = true;

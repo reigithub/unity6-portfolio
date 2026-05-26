@@ -14,7 +14,7 @@ namespace Game.ScoreTimeAttack.UI
 
         private float _countdown;
 
-        public UniTask ArgHandle(float countdown)
+        public UniTask SetArg(float countdown)
         {
             _countdown = countdown;
             return UniTask.CompletedTask;

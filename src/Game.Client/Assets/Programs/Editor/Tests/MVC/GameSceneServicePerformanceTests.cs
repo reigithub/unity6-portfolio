@@ -1127,7 +1127,7 @@ namespace Game.Editor.Tests
         public UniTask Focus() => UniTask.CompletedTask;
         public UniTask Unfocus() => UniTask.CompletedTask;
 
-        public UniTask ArgHandle(TArg arg)
+        public UniTask SetArg(TArg arg)
         {
             ReceivedArg = arg;
             return UniTask.CompletedTask;

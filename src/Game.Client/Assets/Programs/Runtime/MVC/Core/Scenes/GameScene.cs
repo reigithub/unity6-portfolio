@@ -74,7 +74,7 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneArg<in TArg>
     {
-        UniTask ArgHandle(TArg arg);
+        UniTask SetArg(TArg arg);
     }
 
     public interface IGameSceneArgHandler
