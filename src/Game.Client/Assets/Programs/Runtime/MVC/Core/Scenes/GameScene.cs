@@ -102,6 +102,8 @@ namespace Game.MVC.Core.Scenes
             return UniTask.CompletedTask;
         }
 
+        public GameSceneFocusState FocusState { get; set; }
+
         public virtual UniTask Focus()
         {
             return UniTask.CompletedTask;
@@ -130,6 +132,8 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneFocusHandler
     {
+        GameSceneFocusState FocusState { get; set; }
+
         UniTask Focus();
 
         UniTask Unfocus();
@@ -224,10 +228,12 @@ namespace Game.MVC.Core.Scenes
         {
             await SceneComponent.Focus();
             await base.Focus();
+            FocusState = GameSceneFocusState.Focused;
         }
 
         public override async UniTask Unfocus()
         {
+            FocusState =  GameSceneFocusState.Unfocused;
             await SceneComponent.Unfocus();
             await base.Focus();
         }

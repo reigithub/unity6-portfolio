@@ -10,6 +10,7 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
+using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using R3;
@@ -32,9 +33,6 @@ namespace Game.ScoreTimeAttack.Scenes
         private MasterDataService _masterDataService;
         private MasterDataService MasterDataService => _masterDataService ??= GameServiceManager.Get<MasterDataService>();
         private MemoryDatabase MemoryDatabase => MasterDataService.MemoryDatabase;
-
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -136,10 +134,13 @@ namespace Game.ScoreTimeAttack.Scenes
                 .AddTo(Disposables);
 
             // UIキー入力設定
-            Observable.EveryUpdate(UnityFrameProvider.Update)
-                .Where(_ => Application.isPlaying)
+            SceneComponent
+                .UpdateAsObservable()
                 .Subscribe(_ =>
                 {
+                    if (FocusState is GameSceneFocusState.Unfocused)
+                        return;
+
                     if (InputService.UI.Menu.WasPressedThisFrame())
                     {
                         ShowPauseAsync().Forget();

@@ -10,6 +10,12 @@ namespace Game.MVC.Core.Enums
         Terminate
     }
 
+    public enum GameSceneFocusState
+    {
+        Focused,
+        Unfocused,
+    }
+
     [Flags]
     public enum GameSceneOperations
     {

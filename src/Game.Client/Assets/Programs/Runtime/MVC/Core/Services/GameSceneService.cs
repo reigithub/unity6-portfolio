@@ -13,6 +13,9 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
         private readonly List<IGameScene> _gameScenes = new(16);
 
         private const GameSceneOperations DefaultOperations = GameSceneConstants.DefaultOperations;
@@ -108,12 +111,7 @@ namespace Game.Core.Services
         public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
-            var type = typeof(TScene);
-            if (IsProcessing(type))
-            {
-                await TerminateAsync(type, clearHistory: true);
-                return default;
-            }
+            if (IsProcessing(typeof(TScene))) return default;
 
             await using (await FocusHandleAsync())
             {
@@ -129,13 +127,8 @@ namespace Game.Core.Services
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログは複数開く事ができる
-            // Memo: ダイアログはプロセス中に再度要求されたら閉じる挙動とする(ここは後でダイアログ毎に変えられるようにするかもしれない)
-            var type = typeof(TScene);
-            if (IsProcessing(type))
-            {
-                await TerminateAsync(type, clearHistory: true);
-                return default;
-            }
+            // Memo: ダイアログはプロセス中に同一ダイアログを再度要求されたら無視する
+            if (IsProcessing(typeof(TScene))) return default;
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
             await using (await FocusHandleAsync())
@@ -221,14 +214,17 @@ namespace Game.Core.Services
         {
             gameScene.State = GameSceneState.Processing;
 
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
+            using (InputService.BlockUI())
+            {
+                if (gameScene.ArgHandler != null)
+                    await gameScene.ArgHandler.Invoke(gameScene);
 
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            await gameScene.Startup();
-            await DoFadeInAsync(gameScene);
-            await gameScene.Ready();
+                await gameScene.PreInitialize();
+                await gameScene.LoadAsset();
+                await gameScene.Startup();
+                await DoFadeInAsync(gameScene);
+                await gameScene.Ready();
+            }
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)

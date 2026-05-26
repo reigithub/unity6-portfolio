@@ -1057,6 +1057,7 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
         }
@@ -1082,6 +1083,7 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
         }
@@ -1101,6 +1103,7 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
         }
@@ -1126,6 +1129,7 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
         }
@@ -1205,6 +1209,8 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
         }
@@ -1342,6 +1348,7 @@ namespace Game.Editor.Tests
                 return UnloadScene();
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
 
@@ -1460,6 +1467,7 @@ namespace Game.Editor.Tests
                 return UnloadScene();
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
 
@@ -1547,6 +1555,7 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
 
@@ -1593,6 +1602,7 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
+            public GameSceneFocusState FocusState { get; set; }
             public UniTask Focus() => UniTask.CompletedTask;
             public UniTask Unfocus() => UniTask.CompletedTask;
 

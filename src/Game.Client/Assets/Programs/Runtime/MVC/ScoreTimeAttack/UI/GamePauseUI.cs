@@ -3,9 +3,11 @@ using Cysharp.Threading.Tasks;
 using Game.Shared.Extensions;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
+using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using R3;
+using R3.Triggers;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +28,9 @@ namespace Game.ScoreTimeAttack.UI
         private AudioService _audioService;
         private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
         public static async UniTask<PauseDialogResult> RunAsync()
         {
             PauseDialogResult result;
@@ -42,6 +47,24 @@ namespace Game.ScoreTimeAttack.UI
         {
             ApplicationEvents.PauseTime();
             SceneComponent.Initialize(this);
+            SceneComponent.UpdateAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (FocusState is GameSceneFocusState.Unfocused)
+                        return;
+
+                    if (InputService.UI.Cancel.WasPressedThisFrame())
+                    {
+                        TrySetResult(default);
+                        return;
+                    }
+                    if (InputService.UI.Menu.WasPressedThisFrame())
+                    {
+                        TrySetResult(default);
+                        return;
+                    }
+                })
+                .AddTo(Disposables);
             return base.Startup();
         }
 
