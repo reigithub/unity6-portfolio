@@ -8,6 +8,7 @@ using Cysharp.Threading.Tasks;
 using Game.MVC.Core.Scenes;
 using Game.MVC.Core.Enums;
 using NUnit.Framework;
+using R3;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -1092,6 +1093,7 @@ namespace Game.Editor.Tests
     {
         public GameSceneState State { get; set; }
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
+        public CompositeDisposable Disposables { get; } = new();
 
         public UniTask PreInitialize() => UniTask.CompletedTask;
         public UniTask LoadAsset() => UniTask.CompletedTask;
@@ -1100,6 +1102,10 @@ namespace Game.Editor.Tests
         public UniTask Sleep() => UniTask.CompletedTask;
         public UniTask Restart() => UniTask.CompletedTask;
         public UniTask Terminate() => UniTask.CompletedTask;
+
+        public GameSceneFocusState FocusState { get; set; }
+        public UniTask Focus() => UniTask.CompletedTask;
+        public UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public class UniTaskMockGameSceneWithArg<TArg> : IGameScene, IGameSceneArg<TArg>
@@ -1107,6 +1113,7 @@ namespace Game.Editor.Tests
         public GameSceneState State { get; set; }
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
         public TArg ReceivedArg { get; private set; }
+        public CompositeDisposable Disposables { get; } = new();
 
         public UniTask PreInitialize() => UniTask.CompletedTask;
         public UniTask LoadAsset() => UniTask.CompletedTask;
@@ -1115,6 +1122,10 @@ namespace Game.Editor.Tests
         public UniTask Sleep() => UniTask.CompletedTask;
         public UniTask Restart() => UniTask.CompletedTask;
         public UniTask Terminate() => UniTask.CompletedTask;
+
+        public GameSceneFocusState FocusState { get; set; }
+        public UniTask Focus() => UniTask.CompletedTask;
+        public UniTask Unfocus() => UniTask.CompletedTask;
 
         public UniTask ArgHandle(TArg arg)
         {

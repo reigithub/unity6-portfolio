@@ -2,31 +2,40 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using R3;
 using TMPro;
 using UnityEngine;
 
 namespace Game.ScoreTimeAttack.UI
 {
-    public class GameCountdownUIDialog : GameDialogScene<GameCountdownUIDialog, GameCountdownUI, bool>
+    public class GameCountdownUIDialog : GameDialogScene<GameCountdownUIDialog, GameCountdownUI, bool>, IGameSceneArg<float>
     {
         protected override string AssetPathOrAddress => "GameCountdownUI";
 
-        public static UniTask<bool> RunAsync(float countdown = 3f)
+        private float _countdown;
+
+        public UniTask ArgHandle(float countdown)
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GameCountdownUIDialog, GameCountdownUI, bool>(
-                initializer: (component, result) =>
-                {
-                    component.Initialize(result, countdown);
-                    return UniTask.CompletedTask;
-                }
-            );
+            _countdown = countdown;
+            return UniTask.CompletedTask;
+        }
+
+        public static async UniTask<bool> RunAsync(float countdown = 3f)
+        {
+            bool result;
+            var inputService = GameServiceManager.Get<InputSystemService>();
+            using (inputService.BlockPlayer())
+            {
+                var sceneService = GameServiceManager.Get<GameSceneService>();
+                result = await sceneService.TransitionDialogAsync<GameCountdownUIDialog, float, bool>(countdown);
+            }
+            return result;
         }
 
         public override UniTask Startup()
         {
             ApplicationEvents.PauseTime();
-
+            SceneComponent.Initialize(this, _countdown);
             return base.Startup();
         }
 

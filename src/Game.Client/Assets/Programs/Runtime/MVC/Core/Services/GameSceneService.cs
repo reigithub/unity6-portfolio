@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Core.MessagePipe;
+using Game.Library.Shared;
 using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Services;
-using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.SceneManagement;
 
 namespace Game.Core.Services
 {
@@ -16,10 +13,8 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private IAddressableAssetService _assetService;
-        private IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-        private IMessagePipeService _messagePipeService;
-        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         private readonly List<IGameScene> _gameScenes = new(16);
 
@@ -27,14 +22,6 @@ namespace Game.Core.Services
 
         public GameSceneService()
         {
-        }
-
-        public GameSceneService(
-            IAddressableAssetService assetService,
-            IMessagePipeService messagePipeService)
-        {
-            _assetService = assetService;
-            _messagePipeService = messagePipeService;
         }
 
         public void Startup()
@@ -118,31 +105,41 @@ namespace Game.Core.Services
             else
             {
                 // なければブラックアウトッ!しないために、ホームやタイトルへ戻る
-                // 今はホームがないのでタイトルです
-                // await TransitionAsync<GameTitleScene>();
             }
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
+        {
+            if (IsProcessing(typeof(TScene))) return default;
+
+            await using (await FocusHandleAsync())
+            {
+                var gameScene = new TScene();
+                var tcs = CreateResultTcs<TResult>(gameScene);
+                _gameScenes.Add(gameScene);
+                await TransitionCore(gameScene);
+                return await ResultAsync(gameScene, tcs);
+            }
+        }
+
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログは複数開く事ができる
-            // Memo: ダイアログはプロセス中に再度要求されたら閉じる挙動とする(ここは後でダイアログ毎に変えられるようにするかもしれない)
-            var type = typeof(TScene);
-            if (IsProcessing(type))
-            {
-                await TerminateAsync(type, clearHistory: true);
-                return default;
-            }
+            // Memo: ダイアログはプロセス中に同一ダイアログを再度要求されたら無視する
+            if (IsProcessing(typeof(TScene))) return default;
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
-            var gameScene = new TScene();
-            gameScene.DialogInitializer = initializer;
-            var tcs = CreateResultTcs<TResult>(gameScene);
-            _gameScenes.Add(gameScene);
-            await TransitionCore(gameScene, isDialog: true);
-            return await ResultAsync(gameScene, tcs);
+            await using (await FocusHandleAsync())
+            {
+                var gameScene = new TScene();
+                CreateArgHandler(gameScene, arg);
+                var tcs = CreateResultTcs<TResult>(gameScene);
+                _gameScenes.Add(gameScene);
+                await TransitionCore(gameScene);
+                return await ResultAsync(gameScene, tcs);
+            }
         }
 
         // 主に遷移前に現在のシーンに対して何かする
@@ -190,22 +187,44 @@ namespace Game.Core.Services
             return null;
         }
 
+        private async UniTask<IAsyncDisposable> FocusHandleAsync()
+        {
+            if (_gameScenes.Count == 0)
+                return new EmptyAsyncDisposable();
+
+            var lastScene = _gameScenes[^1];
+            if (lastScene.State is GameSceneState.Processing)
+            {
+                await lastScene.Unfocus();
+            }
+
+            return AsyncDisposable.Create(async () =>
+            {
+                if (lastScene.State is GameSceneState.Processing)
+                {
+                    await lastScene.Focus();
+                }
+            });
+        }
+
         /// <summary>
         /// シーンを起動させる共通処理
         /// </summary>
-        private async UniTask TransitionCore(IGameScene gameScene, bool isDialog = false)
+        private async UniTask TransitionCore(IGameScene gameScene)
         {
             gameScene.State = GameSceneState.Processing;
 
-            if (gameScene.ArgHandler != null)
-                await gameScene.ArgHandler.Invoke(gameScene);
+            using (InputService.BlockUI())
+            {
+                if (gameScene.ArgHandler != null)
+                    await gameScene.ArgHandler.Invoke(gameScene);
 
-            if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionEnter, true);
-            await gameScene.PreInitialize();
-            await gameScene.LoadAsset();
-            await gameScene.Startup();
-            if (!isDialog) await MessagePipeService.PublishAsync(MessageKey.GameScene.TransitionFinish, true);
-            await gameScene.Ready();
+                await gameScene.PreInitialize();
+                await gameScene.LoadAsset();
+                await gameScene.Startup();
+                await DoFadeInAsync(gameScene);
+                await gameScene.Ready();
+            }
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
@@ -320,7 +339,9 @@ namespace Game.Core.Services
             if (gameScene != null)
             {
                 gameScene.State = GameSceneState.Terminate;
+                await DoFadeOutAsync(gameScene);
                 await gameScene.Terminate();
+                gameScene.Disposables?.Dispose();
             }
         }
 
@@ -338,37 +359,20 @@ namespace Game.Core.Services
             return -1;
         }
 
-        #region UnityScene
-
-        private readonly List<SceneInstance> _unityScenes = new();
-
-        public async UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
+        private async UniTask DoFadeInAsync(IGameScene gameScene)
         {
-            var sceneInstance = await AssetService.LoadSceneAsync(sceneName, loadSceneMode, activateOnLoad);
-            if (sceneInstance.Scene.IsValid())
+            if (gameScene is IGameSceneFader fader)
             {
-                _unityScenes.Add(sceneInstance);
+                await fader.FadeInAsync();
             }
-
-            return sceneInstance;
         }
 
-        public async UniTask UnloadUnitySceneAsync(SceneInstance sceneInstance)
+        private async UniTask DoFadeOutAsync(IGameScene gameScene)
         {
-            await AssetService.UnloadSceneAsync(sceneInstance);
-            _unityScenes.Remove(sceneInstance);
-        }
-
-        public async UniTask UnloadUnitySceneAllAsync()
-        {
-            foreach (var sceneInstance in _unityScenes)
+            if (gameScene is IGameSceneFader fader)
             {
-                await AssetService.UnloadSceneAsync(sceneInstance);
+                await fader.FadeOutAsync();
             }
-
-            _unityScenes.Clear();
         }
-
-        #endregion
     }
 }

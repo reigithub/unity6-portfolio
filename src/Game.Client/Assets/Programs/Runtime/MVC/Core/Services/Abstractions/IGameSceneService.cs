@@ -59,16 +59,24 @@ namespace Game.Core.Services
         UniTask TransitionPrevAsync();
 
         /// <summary>
-        /// ダイアログをオーバーレイ表示
+        /// ダイアログをオーバーレイ表示(引数なし)
         /// </summary>
         /// <typeparam name="TScene">ダイアログシーン型</typeparam>
-        /// <typeparam name="TComponent">UIコンポーネント型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
-        /// <param name="initializer">初期化コールバック（オプション）</param>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent;
+        UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
+
+        /// <summary>
+        /// ダイアログをオーバーレイ表示(引数あり)
+        /// </summary>
+        /// <typeparam name="TScene">ダイアログシーン型</typeparam>
+        /// <typeparam name="TArg">引数型</typeparam>
+        /// <typeparam name="TResult">戻り値の型</typeparam>
+        /// <param name="arg">引数</param>
+        /// <returns>ダイアログの結果</returns>
+        UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+            where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>
         /// 指定した型のシーンが処理中かどうかを判定
@@ -89,25 +97,5 @@ namespace Game.Core.Services
         /// </summary>
         /// <param name="clearHistory">履歴もクリアするか</param>
         UniTask TerminateLastAsync(bool clearHistory = false);
-
-        /// <summary>
-        /// Unityシーンを追加読み込み（ステージ用）
-        /// </summary>
-        /// <param name="sceneName">シーン名またはAddressablesアドレス</param>
-        /// <param name="loadSceneMode">読み込みモード</param>
-        /// <param name="activateOnLoad">読み込み完了時に自動アクティブ化するか</param>
-        /// <returns>読み込まれたシーンインスタンス</returns>
-        UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true);
-
-        /// <summary>
-        /// 読み込んだUnityシーンをアンロード
-        /// </summary>
-        /// <param name="sceneInstance">アンロードするシーンインスタンス</param>
-        UniTask UnloadUnitySceneAsync(SceneInstance sceneInstance);
-
-        /// <summary>
-        /// 読み込んだすべてのUnityシーンをアンロード
-        /// </summary>
-        UniTask UnloadUnitySceneAllAsync();
     }
 }

@@ -185,6 +185,7 @@ namespace Game.MVP.Survivor.Scenes
             var stageAssetName = _networkStageModel.StageMaster?.AssetName;
             if (!string.IsNullOrEmpty(stageAssetName))
             {
+                Physics.simulationMode = SimulationMode.Script;
                 _stageSceneInstance = await _addressableService.LoadSceneAsync(stageAssetName);
                 // SceneManager.SetActiveScene(_stageSceneInstance.Value.Scene);
                 LightProbes.TetrahedralizeAsync();
@@ -303,7 +304,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Where(_ => Application.isPlaying)
                 .Subscribe(_ =>
                 {
-                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Escape.WasPressedThisFrame())
+                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Menu.WasPressedThisFrame())
                         _pauseRequested = true;
 
                     if (_pauseRequested) return;

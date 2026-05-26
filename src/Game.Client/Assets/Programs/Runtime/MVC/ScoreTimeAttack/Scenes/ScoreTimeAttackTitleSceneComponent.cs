@@ -7,7 +7,6 @@ using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
-using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -37,10 +36,10 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             if (_startButton)
             {
-                _startButton.OnClickAsObservableThrottleFirst()
+                _startButton.OnClickAsObservable()
                     .SubscribeAwait(async (_, token) =>
                     {
-                        SetInteractables(false);
+                        SetInteractable(false);
                         AudioService.StopBgmAsync(token).Forget();
                         await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
 
@@ -53,9 +52,10 @@ namespace Game.ScoreTimeAttack.Scenes
 
             if (_gameModeButton != null)
             {
-                _gameModeButton.OnClickAsObservableThrottleFirst()
+                _gameModeButton.OnClickAsObservable()
                     .SubscribeAwait(async (_, _) =>
                     {
+                        SetInteractable(false);
                         await SceneService.TerminateLastAsync();
                         await ApplicationEvents.RequestReturnToTitleAsync();
                     })
@@ -64,16 +64,16 @@ namespace Game.ScoreTimeAttack.Scenes
 
             if (_quitButton)
             {
-                _quitButton.OnClickAsObservableThrottleFirst()
+                _quitButton.OnClickAsObservable()
                     .Subscribe(_ =>
                     {
-                        SetInteractables(false);
+                        SetInteractable(false);
                         ApplicationEvents.RequestShutdown();
                     })
                     .AddTo(this);
             }
 
-            SetInteractables(true);
+            SetInteractable(true);
         }
 
         public async UniTask ReadyAsync()

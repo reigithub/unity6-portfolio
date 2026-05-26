@@ -9,6 +9,7 @@ using Game.MVC.Core.Scenes;
 using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
+using R3;
 
 namespace Game.Editor.Tests
 {
@@ -17,21 +18,14 @@ namespace Game.Editor.Tests
     {
         private GameSceneService _service;
         private List<IGameScene> _gameScenes;
-        private IAddressableAssetService _addressableAssetService;
-        private IMessagePipeService _messagePipeService;
 
         private GameSceneServiceMock _mockService;
 
         [SetUp]
         public void SetUp()
         {
-            // NSubstituteでモックを作成
-            _addressableAssetService = Substitute.For<IAddressableAssetService>();
-            _messagePipeService = Substitute.For<IMessagePipeService>();
-            _messagePipeService.Startup();
-
             // DIコンストラクタでモックを注入
-            _service = new GameSceneService(_addressableAssetService, _messagePipeService);
+            _service = new GameSceneService();
 
             // リフレクションで内部のシーンリストを取得（IsProcessing等のテスト用）
             _gameScenes = GetPrivateField<List<IGameScene>>(_service, "_gameScenes");
@@ -44,8 +38,6 @@ namespace Game.Editor.Tests
         public void TearDown()
         {
             _service = null;
-            _addressableAssetService = null;
-            _messagePipeService = null;
             _gameScenes?.Clear();
             _mockService?.Clear();
         }
@@ -437,7 +429,6 @@ namespace Game.Editor.Tests
 
             Assert.IsInstanceOf<IGameScene>(dialog);
             Assert.IsInstanceOf<IGameSceneResult<bool>>(dialog);
-            Assert.IsInstanceOf<IGameDialogSceneInitializer<MockSceneComponent, bool>>(dialog);
         }
 
         [Test]
@@ -449,41 +440,6 @@ namespace Game.Editor.Tests
 
             Assert.IsNotNull(dialog.SceneComponent);
             Assert.IsTrue(dialog.LoadAssetCalled);
-        }
-
-        [Test]
-        public async Task MockGameDialogScene_Startup_InvokesDialogInitializer()
-        {
-            var dialog = new MockGameDialogScene<MockSceneComponent, bool>();
-            var initializerCalled = false;
-            MockSceneComponent receivedComponent = null;
-            IGameSceneResult<bool> receivedResult = null;
-
-            dialog.DialogInitializer = (component, result) =>
-            {
-                initializerCalled = true;
-                receivedComponent = component;
-                receivedResult = result;
-                return UniTask.CompletedTask;
-            };
-
-            await dialog.LoadAsset();
-            await dialog.Startup();
-
-            Assert.IsTrue(initializerCalled);
-            Assert.AreSame(dialog.SceneComponent, receivedComponent);
-            Assert.AreSame(dialog, receivedResult);
-        }
-
-        [Test]
-        public async Task MockGameDialogScene_Startup_WithoutInitializer_DoesNotThrow()
-        {
-            var dialog = new MockGameDialogScene<MockSceneComponent, bool>();
-            dialog.DialogInitializer = null;
-
-            await dialog.LoadAsset();
-
-            Assert.DoesNotThrowAsync(async () => await dialog.Startup());
         }
 
         [Test]
@@ -517,16 +473,6 @@ namespace Game.Editor.Tests
             dialog.ResultTcs = new UniTaskCompletionSource<int>();
             _gameScenes.Add(dialog);
 
-            var initData = new { Title = "Test Dialog", Message = "Hello" };
-            string capturedTitle = null;
-
-            dialog.DialogInitializer = (component, result) =>
-            {
-                capturedTitle = initData.Title;
-                component.Initialize(initData.Title, initData.Message);
-                return UniTask.CompletedTask;
-            };
-
             // Lifecycle
             dialog.State = GameSceneState.Processing;
             await dialog.PreInitialize();
@@ -539,7 +485,6 @@ namespace Game.Editor.Tests
             dialog.TrySetResult(userChoice);
             var result = await dialog.ResultTcs.Task;
 
-            Assert.AreEqual(initData.Title, capturedTitle);
             Assert.AreEqual(userChoice, result);
             Assert.IsTrue(dialog.SceneComponent.InitializeCalled);
         }
@@ -650,40 +595,6 @@ namespace Game.Editor.Tests
 
             component.SetInteractiveAllButton(true);
             Assert.IsTrue(component.IsInteractive);
-        }
-
-        [Test]
-        public async Task MockGameDialogScene_InitializerWithAsyncOperation()
-        {
-            var dialog = new MockGameDialogScene<MockSceneComponent, bool>();
-            dialog.ResultTcs = new UniTaskCompletionSource<bool>();
-            var asyncOperationCompleted = false;
-
-            dialog.DialogInitializer = async (component, result) =>
-            {
-                // Simulate async initialization (e.g., loading data)
-                await UniTask.Delay(10);
-                asyncOperationCompleted = true;
-            };
-
-            await dialog.LoadAsset();
-            await dialog.Startup();
-
-            Assert.IsTrue(asyncOperationCompleted);
-        }
-
-        [Test]
-        public async Task MockGameDialogScene_ExceptionInInitializer()
-        {
-            var dialog = new MockGameDialogScene<MockSceneComponent, bool>();
-            var expectedException = new InvalidOperationException("Init failed");
-
-            dialog.DialogInitializer = (component, result) => { throw expectedException; };
-
-            await dialog.LoadAsset();
-
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await dialog.Startup());
-            Assert.AreEqual("Init failed", ex.Message);
         }
 
         [Test]
@@ -959,26 +870,6 @@ namespace Game.Editor.Tests
         }
 
         [Test]
-        public async Task TransitionDialogAsync_WithInitializer_InvokesInitializer()
-        {
-            var dialog = new TestDialogScene();
-            var initializerCalled = false;
-
-            dialog.DialogInitializer = (component, result) =>
-            {
-                initializerCalled = true;
-                return UniTask.CompletedTask;
-            };
-
-            _mockService.SetupResultTcs<bool>(dialog);
-            _mockService.AddScene(dialog);
-
-            await _mockService.ExecuteTransitionCoreAsync(dialog);
-
-            Assert.IsTrue(initializerCalled);
-        }
-
-        [Test]
         public async Task TransitionDialogAsync_WhenSameDialogIsProcessing_TerminatesExisting()
         {
             // 最初のダイアログ（実際のサービスでテスト）
@@ -1114,6 +1005,7 @@ namespace Game.Editor.Tests
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public bool PreInitializeCalled { get; private set; }
             public bool LoadAssetCalled { get; private set; }
@@ -1164,12 +1056,17 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class AnotherMockGameScene : IGameScene
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public bool TerminateCalled { get; private set; }
 
@@ -1185,12 +1082,17 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class MockGameSceneWithResult : IGameScene, IGameSceneResult<int>
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
             public int Result { get; set; }
             public UniTaskCompletionSource<int> ResultTcs { get; set; }
 
@@ -1201,12 +1103,16 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class MockGameSceneWithArg : IGameScene, IGameSceneArg<string>
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public string ReceivedArg { get; private set; }
 
@@ -1223,6 +1129,9 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -1233,6 +1142,7 @@ namespace Game.Editor.Tests
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
             public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
@@ -1299,6 +1209,10 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -1366,14 +1280,14 @@ namespace Game.Editor.Tests
         /// GameDialogSceneのモッククラス
         /// IGameDialogSceneInitializerとIGameSceneResultを実装
         /// </summary>
-        private class MockGameDialogScene<TComponent, TResult> : IGameScene, IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
+        private class MockGameDialogScene<TComponent, TResult> : IGameScene, IGameSceneResult<TResult>
             where TComponent : MockSceneComponent, new()
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
-            public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
             public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public TComponent SceneComponent { get; private set; }
 
@@ -1403,11 +1317,7 @@ namespace Game.Editor.Tests
             public UniTask Startup()
             {
                 StartupCalled = true;
-                if (DialogInitializer != null)
-                {
-                    return DialogInitializer.Invoke(SceneComponent, this);
-                }
-
+                SceneComponent.Initialize("Test", "Message");
                 return UniTask.CompletedTask;
             }
 
@@ -1437,6 +1347,10 @@ namespace Game.Editor.Tests
                 TrySetCanceled();
                 return UnloadScene();
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
 
             private UniTask LoadScene()
             {
@@ -1471,7 +1385,7 @@ namespace Game.Editor.Tests
         /// 引数付きGameDialogSceneのモッククラス
         /// IGameSceneArg、IGameDialogSceneInitializer、IGameSceneResultを同時に実装
         /// </summary>
-        private class MockGameDialogSceneWithArg<TComponent, TArg, TResult> : IGameScene, IGameSceneArg<TArg>, IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
+        private class MockGameDialogSceneWithArg<TComponent, TArg, TResult> : IGameScene, IGameSceneArg<TArg>, IGameSceneResult<TResult>
             where TComponent : MockSceneComponent, new()
         {
             public GameSceneState State { get; set; }
@@ -1479,6 +1393,7 @@ namespace Game.Editor.Tests
             public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
             public TResult Result { get; set; }
             public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public TComponent SceneComponent { get; private set; }
             public TArg ReceivedArg { get; private set; }
@@ -1552,6 +1467,10 @@ namespace Game.Editor.Tests
                 return UnloadScene();
             }
 
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
+
             private UniTask LoadScene()
             {
                 return UniTask.CompletedTask;
@@ -1601,13 +1520,13 @@ namespace Game.Editor.Tests
         /// <summary>
         /// テスト用ダイアログシーン
         /// </summary>
-        private class TestDialogScene : IGameScene, IGameDialogSceneInitializer<MockSceneComponent, bool>, IGameSceneResult<bool>
+        private class TestDialogScene : IGameScene, IGameSceneResult<bool>
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
-            public Func<MockSceneComponent, IGameSceneResult<bool>, UniTask> DialogInitializer { get; set; }
             public bool Result { get; set; }
             public UniTaskCompletionSource<bool> ResultTcs { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public MockSceneComponent SceneComponent { get; private set; }
             public bool TerminateCalled { get; private set; }
@@ -1622,11 +1541,6 @@ namespace Game.Editor.Tests
 
             public UniTask Startup()
             {
-                if (DialogInitializer != null)
-                {
-                    return DialogInitializer.Invoke(SceneComponent, this);
-                }
-
                 return UniTask.CompletedTask;
             }
 
@@ -1640,6 +1554,10 @@ namespace Game.Editor.Tests
                 TrySetCanceled();
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
 
             public bool TrySetResult(bool result) => ResultTcs?.TrySetResult(result) ?? false;
             public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
@@ -1649,13 +1567,13 @@ namespace Game.Editor.Tests
         /// <summary>
         /// テスト用ダイアログシーン2（異なる型のダイアログスタックテスト用）
         /// </summary>
-        private class TestDialogScene2 : IGameScene, IGameDialogSceneInitializer<MockSceneComponent, int>, IGameSceneResult<int>
+        private class TestDialogScene2 : IGameScene, IGameSceneResult<int>
         {
             public GameSceneState State { get; set; }
             public Func<IGameScene, UniTask> ArgHandler { get; set; }
-            public Func<MockSceneComponent, IGameSceneResult<int>, UniTask> DialogInitializer { get; set; }
             public int Result { get; set; }
             public UniTaskCompletionSource<int> ResultTcs { get; set; }
+            public CompositeDisposable Disposables { get; } = new();
 
             public MockSceneComponent SceneComponent { get; private set; }
             public bool TerminateCalled { get; private set; }
@@ -1670,11 +1588,6 @@ namespace Game.Editor.Tests
 
             public UniTask Startup()
             {
-                if (DialogInitializer != null)
-                {
-                    return DialogInitializer.Invoke(SceneComponent, this);
-                }
-
                 return UniTask.CompletedTask;
             }
 
@@ -1688,6 +1601,10 @@ namespace Game.Editor.Tests
                 TrySetCanceled();
                 return UniTask.CompletedTask;
             }
+
+            public GameSceneFocusState FocusState { get; set; }
+            public UniTask Focus() => UniTask.CompletedTask;
+            public UniTask Unfocus() => UniTask.CompletedTask;
 
             public bool TrySetResult(int result) => ResultTcs?.TrySetResult(result) ?? false;
             public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;

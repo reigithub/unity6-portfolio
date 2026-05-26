@@ -11,12 +11,8 @@ namespace Game.ScoreTimeAttack.Scenes
     {
         protected override string AssetPathOrAddress => "ScoreTimeAttackTotalResultScene";
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
         public override UniTask Startup()
         {
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, false);
             ApplicationEvents.ShowCursor();
 
             var gameStageService = GameServiceManager.Get<ScoreTimeAttackStageService>();
@@ -33,7 +29,6 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override UniTask Terminate()
         {
-            MessagePipeService.Publish(MessageKey.System.DirectionalLight, true);
             GameServiceManager.Remove<ScoreTimeAttackStageService>();
             return base.Terminate();
         }

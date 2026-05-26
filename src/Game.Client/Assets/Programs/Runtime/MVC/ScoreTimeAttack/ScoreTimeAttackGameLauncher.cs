@@ -29,7 +29,7 @@ namespace Game.ScoreTimeAttack
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 3. 共通オブジェクト読み込み
-            await GameResidentsManager.LoadAssetAsync();
+            await GameRootController.LoadAssetAsync();
 
             // 4. マスターデータ読み込み
             await masterDataService.LoadMasterDataAsync();
@@ -49,7 +49,7 @@ namespace Game.ScoreTimeAttack
             audioService.StopBgmAsync().Forget();
             await audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit);
 
-            await GameResidentsManager.UnloadAsync();
+            await GameRootController.UnloadAsync();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
             await gameSceneService.TerminateAllAsync();
             GameServiceManager.Instance.Shutdown();

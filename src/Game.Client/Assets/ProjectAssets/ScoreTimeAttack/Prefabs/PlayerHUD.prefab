@@ -736,7 +736,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Slider
   m_Navigation:
-    m_Mode: 3
+    m_Mode: 0
     m_WrapAround: 0
     m_SelectOnUp: {fileID: 0}
     m_SelectOnDown: {fileID: 0}
@@ -826,7 +826,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Slider
   m_Navigation:
-    m_Mode: 3
+    m_Mode: 0
     m_WrapAround: 0
     m_SelectOnUp: {fileID: 0}
     m_SelectOnDown: {fileID: 0}
@@ -1328,11 +1328,6 @@ MonoBehaviour:
   _staminaGauge: {fileID: 5922033946698794304}
   _currentStamina: {fileID: 8911646824497450533}
   _maxStamina: {fileID: 7592614815537421202}
-  _maxHpValue: 100
-  _maxStaminaValue: 100
-  _staminaDepleteRate: 10
-  _staminaRegenRate: 5
-  _isRunning: 0
 --- !u!1 &6233729602180674903
 GameObject:
   m_ObjectHideFlags: 0

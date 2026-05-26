@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
@@ -9,35 +10,21 @@ using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameSceneComponent
+    public interface IGameSceneComponent : ICompositeDisposable
     {
-        public UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Startup() => UniTask.CompletedTask;
 
-        public UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Ready() => UniTask.CompletedTask;
 
-        public UniTask Sleep()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Sleep() => UniTask.CompletedTask;
 
-        public UniTask Restart()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Restart() => UniTask.CompletedTask;
 
-        public UniTask Terminate()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Terminate() => UniTask.CompletedTask;
 
-        // ボタンなどのインタラクティブUI有効化を切り替える
-        public void SetInteractables(bool interactable);
+        UniTask Focus() => UniTask.CompletedTask;
+
+        UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
@@ -45,40 +32,37 @@ namespace Game.MVC.Core.Scenes
         private IAudioService _audioService;
         protected IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
+        private Selectable[] _selectables;
+        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
+
         private Button[] _buttons;
+        private Button[] Buttons => _buttons ??= GetComponentsInChildren<Button>();
 
-        protected Button[] Buttons => _buttons ??= gameObject.GetComponentsInChildren<Button>();
+        public CompositeDisposable Disposables { get; } = new();
 
-        private void Start()
-        {
-            if (Buttons.Length > 0)
-            {
-                Buttons.Select(x => x.OnClickAsObservable())
-                    .Merge()
-                    .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
-                    .AddTo(this);
-            }
-        }
-
-        public virtual void SetInteractables(bool interactive)
-        {
-            foreach (var button in Buttons)
-            {
-                button.interactable = interactive;
-            }
-        }
+        private GameObject _selectedGameObject;
 
         public virtual UniTask Startup()
         {
+            if (Buttons.Length > 0)
+            {
+                Buttons
+                    .Select(x => x.OnClickAsObservable())
+                    .Merge()
+                    .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
+                    .AddTo(Disposables);
+            }
+
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Sleep()
         {
             if (gameObject.activeSelf)
-            {
                 gameObject.SetActive(false);
-            }
 
             return UniTask.CompletedTask;
         }
@@ -86,22 +70,53 @@ namespace Game.MVC.Core.Scenes
         public virtual UniTask Restart()
         {
             if (!gameObject.activeSelf)
-            {
                 gameObject.SetActive(true);
-                SetInteractables(true);
-            }
 
+            Focus();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Ready()
         {
+            Focus();
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Terminate()
         {
+            Disposables?.Dispose();
             return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Focus()
+        {
+            SetInteractable(true);
+            InputService.ResolveSelectable(_selectedGameObject);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Unfocus()
+        {
+            _selectedGameObject = InputService.GetSelectedGameObject();
+            SetInteractable(false);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual void SetInteractable(bool interactive)
+        {
+            if (Selectables.Length > 0)
+            {
+                foreach (var selectable in Selectables)
+                {
+                    selectable.interactable = interactive;
+                }
+            }
+        }
+
+        protected IDisposable BlockInteractable()
+        {
+            SetInteractable(false);
+            return Disposable.Create(() => SetInteractable(true));
         }
     }
 }

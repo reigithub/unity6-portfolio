@@ -156,9 +156,7 @@ namespace Game.Editor.Tests
             // モックではフォールバック遷移は行わない
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TComponent, TResult>(Func<TComponent, IGameSceneResult<TResult>, UniTask> initializer = null)
-            where TScene : GameDialogScene<TScene, TComponent, TResult>, new()
-            where TComponent : IGameSceneComponent
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>() where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             var type = typeof(TScene);
             if (IsProcessing(type))
@@ -168,7 +166,23 @@ namespace Game.Editor.Tests
             }
 
             var gameScene = new TScene();
-            gameScene.DialogInitializer = initializer;
+            var tcs = CreateResultTcs<TResult>(gameScene);
+            _gameScenes.Add(gameScene);
+            await TransitionCore(gameScene);
+            return await ResultAsync(gameScene, tcs);
+        }
+
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg) where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
+        {
+            var type = typeof(TScene);
+            if (IsProcessing(type))
+            {
+                await TerminateAsync(type, clearHistory: true);
+                return default;
+            }
+
+            var gameScene = new TScene();
+            CreateArgHandler(gameScene, arg);
             var tcs = CreateResultTcs<TResult>(gameScene);
             _gameScenes.Add(gameScene);
             await TransitionCore(gameScene);

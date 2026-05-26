@@ -1,16 +1,19 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using Game.Core.MessagePipe;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
 using Game.Core.Services;
 using Game.MVC.Core.Enums;
+using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameScene : IGameSceneState, IGameSceneArgHandler
+    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, IGameSceneFocusHandler, ICompositeDisposable
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
@@ -62,6 +65,8 @@ namespace Game.MVC.Core.Scenes
         public GameSceneState State { get; set; }
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
 
+        public CompositeDisposable Disposables { get; } = new();
+
         public virtual UniTask PreInitialize()
         {
             return UniTask.CompletedTask;
@@ -96,6 +101,18 @@ namespace Game.MVC.Core.Scenes
         {
             return UniTask.CompletedTask;
         }
+
+        public GameSceneFocusState FocusState { get; set; }
+
+        public virtual UniTask Focus()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Unfocus()
+        {
+            return UniTask.CompletedTask;
+        }
     }
 
     public interface IGameSceneState
@@ -111,6 +128,15 @@ namespace Game.MVC.Core.Scenes
     public interface IGameSceneArgHandler
     {
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
+    }
+
+    public interface IGameSceneFocusHandler
+    {
+        GameSceneFocusState FocusState { get; set; }
+
+        UniTask Focus();
+
+        UniTask Unfocus();
     }
 
     public interface IGameSceneResult
@@ -134,6 +160,22 @@ namespace Game.MVC.Core.Scenes
         public bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
     }
 
+    public interface ICompositeDisposable
+    {
+        CompositeDisposable Disposables { get; }
+    }
+
+    /// <summary>
+    /// 遷移演出
+    /// GameSceneServiceがTransitionCoreで自動的に呼び出す
+    /// </summary>
+    public interface IGameSceneFader
+    {
+        UniTask FadeInAsync(float duration = 0.3f);
+
+        UniTask FadeOutAsync(float duration = 0.3f);
+    }
+
     public abstract class GameScene<TGameScene, TGameSceneComponent> : GameScene
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
@@ -151,31 +193,49 @@ namespace Game.MVC.Core.Scenes
             SceneComponent = GetSceneComponent();
         }
 
-        public override UniTask Startup()
+        public override async UniTask Startup()
         {
-            return base.Startup();
+            await SceneComponent.Startup();
+            await base.Startup();
         }
 
-        public override UniTask Ready()
+        public override async UniTask Ready()
         {
-            return base.Ready();
+            await SceneComponent.Ready();
+            await base.Ready();
         }
 
-        public override UniTask Sleep()
+        public override async UniTask Sleep()
         {
-            SceneComponent.Sleep();
-            return base.Sleep();
+            await SceneComponent.Sleep();
+            await base.Sleep();
         }
 
-        public override UniTask Restart()
+        public override async UniTask Restart()
         {
-            SceneComponent.Restart();
-            return Ready();
+            await SceneComponent.Restart();
+            await base.Restart();
         }
 
         public override async UniTask Terminate()
         {
+            await SceneComponent.Terminate();
             await UnloadScene();
+            await base.Terminate();
+        }
+
+        public override async UniTask Focus()
+        {
+            await SceneComponent.Focus();
+            await base.Focus();
+            FocusState = GameSceneFocusState.Focused;
+        }
+
+        public override async UniTask Unfocus()
+        {
+            FocusState =  GameSceneFocusState.Unfocused;
+            await SceneComponent.Unfocus();
+            await base.Focus();
         }
 
         protected virtual UniTask LoadScene()
@@ -192,11 +252,15 @@ namespace Game.MVC.Core.Scenes
     }
 
     public abstract class GamePrefabScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
+        , IGameSceneFader
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+
+        private MessagePipeService _messagePipeService;
+        protected MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
         private GameObject _asset;
         private GameObject _instance;
@@ -204,8 +268,10 @@ namespace Game.MVC.Core.Scenes
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
-            // GameSceneHelper.MoveToGameRootScene(_instance);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
         }
 
         protected override UniTask UnloadScene()
@@ -224,6 +290,12 @@ namespace Game.MVC.Core.Scenes
         {
             return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
         }
+
+        public UniTask FadeInAsync(float duration = 0.3f)
+            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+
+        public UniTask FadeOutAsync(float duration = 0.3f)
+            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
     }
 
     // コンポーネント付きのUnityScene
@@ -291,22 +363,13 @@ namespace Game.MVC.Core.Scenes
         }
     }
 
-    // 任意パラメータを受け取りつつ処理を挟みたいとき
-    public interface IGameDialogSceneInitializer<TComponent, TResult>
-    {
-        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
-    }
-
     // 主にダイアログ用(オーバーレイ表示想定)
-    public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>,
-        IGameDialogSceneInitializer<TComponent, TResult>, IGameSceneResult<TResult>
+    public abstract class GameDialogScene<TScene, TComponent, TResult> : GameScene<TScene, TComponent>, IGameSceneResult<TResult>
         where TScene : IGameScene
         where TComponent : IGameSceneComponent
     {
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        public Func<TComponent, IGameSceneResult<TResult>, UniTask> DialogInitializer { get; set; }
 
         public TResult Result { get; set; }
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
@@ -325,31 +388,19 @@ namespace Game.MVC.Core.Scenes
             SceneComponent = GetSceneComponent();
         }
 
-        public override UniTask Startup()
-        {
-            if (DialogInitializer != null)
-            {
-                return DialogInitializer.Invoke(SceneComponent, this);
-            }
-
-            return UniTask.CompletedTask;
-        }
-
-        public override UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
-
         public override UniTask Terminate()
         {
             TrySetCanceled();
-            return UnloadScene();
+            return base.Terminate();
         }
 
         protected override async UniTask LoadScene()
         {
             _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
-            _instance = UnityEngine.Object.Instantiate(_asset);
+            Scene scene = GameSceneHelper.GetGameRootScene();
+            _instance = scene.IsValid()
+                ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
+                : UnityEngine.Object.Instantiate(_asset);
         }
 
         protected override UniTask UnloadScene()

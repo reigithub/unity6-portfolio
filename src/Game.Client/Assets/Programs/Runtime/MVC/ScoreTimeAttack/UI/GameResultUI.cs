@@ -21,35 +21,44 @@ namespace Game.ScoreTimeAttack.UI
         ReturnToTitle
     }
 
-    public class GameResultUIDialog : GameDialogScene<GameResultUIDialog, GameResultUI, ResultDialogResult>
+    public class GameResultUIDialog : GameDialogScene<GameResultUIDialog, GameResultUI, ResultDialogResult>, IGameSceneArg<ScoreTimeAttackStageResultData>
     {
         protected override string AssetPathOrAddress => "GameResultUI";
 
         private AudioService _audioService;
         private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
-        public static UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
+        private ScoreTimeAttackStageResultData _data;
+
+        public UniTask ArgHandle(ScoreTimeAttackStageResultData data)
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
-            return sceneService.TransitionDialogAsync<GameResultUIDialog, GameResultUI, ResultDialogResult>(
-                initializer: (component, result) =>
-                {
-                    component.Initialize(result, data);
-                    return UniTask.CompletedTask;
-                });
+            _data = data;
+            return UniTask.CompletedTask;
+        }
+
+        public static async UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
+        {
+            ResultDialogResult result;
+            var inputService = GameServiceManager.Get<InputSystemService>();
+            using (inputService.BlockPlayer())
+            {
+                var sceneService = GameServiceManager.Get<GameSceneService>();
+                result = await sceneService.TransitionDialogAsync<GameResultUIDialog, ScoreTimeAttackStageResultData, ResultDialogResult>(data);
+            }
+            return result;
         }
 
         public override UniTask Startup()
         {
             ApplicationEvents.PauseTime();
             ApplicationEvents.ShowCursor();
-
+            SceneComponent.Initialize(this, _data);
             return base.Startup();
         }
 
         public override UniTask Ready()
         {
-            if (SceneComponent.Data.StageResult is GameStageResult.Clear)
+            if (_data.StageResult is GameStageResult.Clear)
                 AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageClear).Forget();
             else
                 AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFailed).Forget();
@@ -99,12 +108,8 @@ namespace Game.ScoreTimeAttack.UI
         [SerializeField]
         private Button _totalResultButton;
 
-        public ScoreTimeAttackStageResultData Data { get; private set; }
-
         public void Initialize(IGameSceneResult<ResultDialogResult> result, ScoreTimeAttackStageResultData data)
         {
-            Data = data;
-
             if (data.StageResult == GameStageResult.Clear)
             {
                 _result.color = Color.orange;
