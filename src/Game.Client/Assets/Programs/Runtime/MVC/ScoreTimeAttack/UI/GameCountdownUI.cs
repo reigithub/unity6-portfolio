@@ -35,13 +35,12 @@ namespace Game.ScoreTimeAttack.UI
         public override UniTask Startup()
         {
             ApplicationEvents.PauseTime();
-            SceneComponent.Initialize(this, _countdown);
             return base.Startup();
         }
 
         public override UniTask Ready()
         {
-            SceneComponent.CountdownStart();
+            RunCountdownAsync().Forget();
             return base.Ready();
         }
 
@@ -50,6 +49,22 @@ namespace Game.ScoreTimeAttack.UI
             ApplicationEvents.ResumeTime();
             return base.Terminate();
         }
+
+        private async UniTaskVoid RunCountdownAsync()
+        {
+            // 3, 2, 1 のカウントダウン
+            for (float i = _countdown; i > 0; i--)
+            {
+                SceneComponent.SetCountdown(i);
+                await UniTask.Delay(1000, DelayType.Realtime);
+            }
+
+            SceneComponent.SetGameStart();
+            await UniTask.Delay(500, DelayType.Realtime);
+
+            // 完了を通知
+            TrySetResult(true);
+        }
     }
 
     public class GameCountdownUI : GameSceneComponent
@@ -57,36 +72,8 @@ namespace Game.ScoreTimeAttack.UI
         [SerializeField]
         private TextMeshProUGUI _countdownText;
 
-        private IGameSceneResult<bool> _result;
-        private float _countdown;
-        private bool _countdownStart;
+        public void SetCountdown(float countdown) => _countdownText.text = countdown.ToString("F0");
 
-        public void Initialize(IGameSceneResult<bool> result, float countdown)
-        {
-            _result = result;
-            _countdown = countdown;
-            _countdownText.text = countdown.ToString("F0");
-        }
-
-        public void CountdownStart()
-        {
-            _countdownStart = true;
-        }
-
-        private void Update()
-        {
-            if (!_countdownStart) return;
-
-            if (_countdown < 0f)
-            {
-                _result.TrySetResult(true);
-                return;
-            }
-
-            _countdown -= Time.unscaledDeltaTime;
-            _countdownText.text = _countdown <= 1f
-                ? "Game Start!"
-                : _countdown.ToString("F0");
-        }
+        public void SetGameStart() => _countdownText.text = "Game Start!";
     }
 }
