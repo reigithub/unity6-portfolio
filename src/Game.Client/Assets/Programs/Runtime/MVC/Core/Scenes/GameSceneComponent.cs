@@ -27,6 +27,7 @@ namespace Game.MVC.Core.Scenes
         UniTask Unfocus() => UniTask.CompletedTask;
     }
 
+    [RequireComponent(typeof(CanvasGroup))]
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
         private IAudioService _audioService;

@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
@@ -215,6 +216,7 @@ namespace Game.MVC.Core.Scenes
 
         private GameObject _asset;
         private GameObject _instance;
+        private CanvasGroup _canvasGroup;
 
         protected override async UniTask LoadScene()
         {
@@ -223,6 +225,7 @@ namespace Game.MVC.Core.Scenes
             _instance = scene.IsValid()
                 ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
                 : UnityEngine.Object.Instantiate(_asset);
+            _instance.TryGetComponent(out _canvasGroup);
         }
 
         protected override UniTask UnloadScene()
@@ -242,11 +245,34 @@ namespace Game.MVC.Core.Scenes
             return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
         }
 
-        public UniTask FadeInAsync(float duration = 0.3f)
-            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+        public async UniTask FadeInAsync(float duration = 0.3f)
+        {
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = false;
+                _instance.SetActive(true);
+                await _canvasGroup.DOFade(1f, duration).SetUpdate(true).ToUniTask();
+                _canvasGroup.interactable = true;
+                _canvasGroup.blocksRaycasts = true;
+            }
 
-        public UniTask FadeOutAsync(float duration = 0.3f)
-            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
+            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+        }
+
+        public async UniTask FadeOutAsync(float duration = 0.3f)
+        {
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = false;
+                await _canvasGroup.DOFade(0f, duration).SetUpdate(true).ToUniTask();
+                _instance.SetActive(false);
+            }
+
+            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
+        }
     }
 
     // コンポーネント付きのUnityScene
