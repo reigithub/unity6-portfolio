@@ -24,14 +24,10 @@ namespace Game.Core.Services
         {
         }
 
-        public void Startup()
-        {
-        }
-
         public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
-            await CurrentSceneOperationAsync(operations);
+            await ResolveOperationAsync(operations);
 
             var gameScene = new TScene();
             _gameScenes.Add(gameScene);
@@ -42,7 +38,7 @@ namespace Game.Core.Services
         public async UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
-            await CurrentSceneOperationAsync(operations);
+            await ResolveOperationAsync(operations);
 
             var gameScene = new TScene();
             CreateArgHandler(gameScene, arg);
@@ -54,7 +50,7 @@ namespace Game.Core.Services
         public async UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
-            await CurrentSceneOperationAsync(operations);
+            await ResolveOperationAsync(operations);
 
             var gameScene = new TScene();
             var tcs = CreateResultTcs<TResult>(gameScene);
@@ -67,7 +63,7 @@ namespace Game.Core.Services
         public async UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = DefaultOperations)
             where TScene : IGameScene, new()
         {
-            await CurrentSceneOperationAsync(operations);
+            await ResolveOperationAsync(operations);
 
             var gameScene = new TScene();
             CreateArgHandler(gameScene, arg);
@@ -143,7 +139,7 @@ namespace Game.Core.Services
         }
 
         // 主に遷移前に現在のシーンに対して何かする
-        private async UniTask CurrentSceneOperationAsync(GameSceneOperations operations = DefaultOperations)
+        private async UniTask ResolveOperationAsync(GameSceneOperations operations = DefaultOperations)
         {
             // シーン遷移が起こる時はダイアログはすべて閉じる
             await TerminateAllDialogAsync();

@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Library.Shared.Enums;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -39,24 +37,12 @@ namespace Game.MVC.Core.Scenes
         private Selectable[] _selectables;
         private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
 
-        private Button[] _buttons;
-        private Button[] Buttons => _buttons ??= GetComponentsInChildren<Button>();
-
         public CompositeDisposable Disposables { get; } = new();
 
         private GameObject _selectedGameObject;
 
         public virtual UniTask Startup()
         {
-            if (Buttons.Length > 0)
-            {
-                Buttons
-                    .Select(x => x.OnClickAsObservable())
-                    .Merge()
-                    .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
-                    .AddTo(Disposables);
-            }
-
             return UniTask.CompletedTask;
         }
 
@@ -86,6 +72,7 @@ namespace Game.MVC.Core.Scenes
         public virtual UniTask Terminate()
         {
             Disposables?.Dispose();
+            SetInteractable(false);
             return UniTask.CompletedTask;
         }
 
@@ -118,6 +105,73 @@ namespace Game.MVC.Core.Scenes
         {
             SetInteractable(false);
             return Disposable.Create(() => SetInteractable(true));
+        }
+    }
+
+    public abstract class UnitySceneComponent : MonoBehaviour, IGameSceneComponent
+    {
+        private InputSystemService _inputService;
+        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
+        private Selectable[] _selectables;
+        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
+
+        public CompositeDisposable Disposables { get; } = new();
+
+        private GameObject _selectedGameObject;
+
+        public virtual UniTask Startup()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Sleep()
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Restart()
+        {
+            Focus();
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Ready()
+        {
+            Focus();
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Terminate()
+        {
+            Disposables?.Dispose();
+            SetInteractable(false);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Focus()
+        {
+            SetInteractable(true);
+            InputService.ResolveSelectable(_selectedGameObject);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual UniTask Unfocus()
+        {
+            _selectedGameObject = InputService.GetSelectedGameObject();
+            SetInteractable(false);
+            return UniTask.CompletedTask;
+        }
+
+        public virtual void SetInteractable(bool interactive)
+        {
+            if (Selectables.Length > 0)
+            {
+                foreach (var selectable in Selectables)
+                {
+                    selectable.interactable = interactive;
+                }
+            }
         }
     }
 }

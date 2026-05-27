@@ -276,8 +276,6 @@ namespace Game.MVC.Core.Scenes
     }
 
     // コンポーネント付きのUnityScene
-    // Memo: 多分使わない
-    // 基本的にPrefabSceneで賄えるのと、PrefabSceneを使う際にGameRootSceneを戻してあげないといけないので面倒
     public abstract class GameUnityScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
@@ -285,14 +283,14 @@ namespace Game.MVC.Core.Scenes
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
 
-        protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Single;
+        protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Additive;
 
         private SceneInstance _instance;
 
         protected override async UniTask LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
-            // SceneManager.SetActiveScene(_instance.Scene);
+            if (LoadSceneMode is LoadSceneMode.Additive) SceneManager.SetActiveScene(_instance.Scene);
         }
 
         protected override async UniTask UnloadScene()
@@ -303,40 +301,6 @@ namespace Game.MVC.Core.Scenes
         protected override TGameSceneComponent GetSceneComponent()
         {
             return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance.Scene);
-        }
-    }
-
-    // コンポーネントなしのピュアなUnityScene
-    // Memo: UnityScene毎にクラス作成するはめになるのでナシの方向（基本的にPrefabSceneのついでに、読み込む形で良い）
-    // 新しいフィールド作成毎にコード追加が発生するため、チーム開発には向いてないかも、ということで
-    public abstract class GameUnityScene : GameScene
-    {
-        private AddressableAssetService _assetService;
-        protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Additive;
-
-        private SceneInstance _instance;
-
-        public override async UniTask LoadAsset()
-        {
-            await LoadScene();
-        }
-
-        public override async UniTask Terminate()
-        {
-            await UnloadScene();
-        }
-
-        protected virtual async UniTask LoadScene()
-        {
-            _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
-            // SceneManager.SetActiveScene(_instance.Scene);
-        }
-
-        protected virtual async UniTask UnloadScene()
-        {
-            await AssetService.UnloadSceneAsync(_instance);
         }
     }
 

@@ -41,6 +41,7 @@ namespace Game.App.Title
         private Button _gameStartButton;
         private Button _retryButton;
         private Button _scoreTimeAttackButton;
+        private Button _horrorButton;
         private Button _survivorButton;
         private Button _quitButton;
 
@@ -82,6 +83,7 @@ namespace Game.App.Title
             _gameStartButton = _root.Q<Button>("game-start-button");
             _retryButton = _root.Q<Button>("retry-button");
             _scoreTimeAttackButton = _root.Q<Button>("score-timeattack-button");
+            _horrorButton = _root.Q<Button>("horror-button");
             _survivorButton = _root.Q<Button>("survivor-button");
             _quitButton = _root.Q<Button>("quit-button");
 
@@ -102,6 +104,12 @@ namespace Game.App.Title
             {
                 SetModeButtonsEnabled(false);
                 SelectGameModeAsync(GameMode.MvcScoreTimeAttack).Forget();
+            });
+
+            _horrorButton?.RegisterCallback<ClickEvent>(_ =>
+            {
+                SetModeButtonsEnabled(false);
+                SelectGameModeAsync(GameMode.MvcHorror).Forget();
             });
 
             _survivorButton?.RegisterCallback<ClickEvent>(_ =>
@@ -240,6 +248,7 @@ namespace Game.App.Title
         private void SetModeButtonsEnabled(bool enabled)
         {
             _scoreTimeAttackButton?.SetEnabled(enabled);
+            _horrorButton?.SetEnabled(enabled);
             _survivorButton?.SetEnabled(enabled);
             _quitButton?.SetEnabled(enabled);
         }
