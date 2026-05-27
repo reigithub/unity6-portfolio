@@ -30,7 +30,7 @@ namespace Game.ScoreTimeAttack.UI
 
         private ScoreTimeAttackStageResultData _data;
 
-        public UniTask ArgHandle(ScoreTimeAttackStageResultData data)
+        public UniTask SetArg(ScoreTimeAttackStageResultData data)
         {
             _data = data;
             return UniTask.CompletedTask;

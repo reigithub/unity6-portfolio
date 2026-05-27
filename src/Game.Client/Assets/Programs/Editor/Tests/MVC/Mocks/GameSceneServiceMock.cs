@@ -263,7 +263,7 @@ namespace Game.Editor.Tests
                 handler.ArgHandler = scene =>
                 {
                     if (scene is IGameSceneArg<TArg> gameSceneArg)
-                        return gameSceneArg.ArgHandle(arg);
+                        return gameSceneArg.SetArg(arg);
 
                     return UniTask.CompletedTask;
                 };

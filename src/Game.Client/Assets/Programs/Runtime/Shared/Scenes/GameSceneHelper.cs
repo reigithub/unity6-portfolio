@@ -14,18 +14,10 @@ namespace Game.Shared.Scenes
 
         public static void MoveToGameRootScene(GameObject scene)
         {
-            var activeScene = SceneManager.GetActiveScene();
-            if (activeScene.IsValid() && activeScene.name == AppConstants.GameRootScene)
+            var rootScene = GetGameRootScene();
+            if (rootScene.IsValid())
             {
-                SceneManager.MoveGameObjectToScene(scene, activeScene);
-            }
-            else
-            {
-                var rootScene = SceneManager.GetSceneByName(AppConstants.GameRootScene);
-                if (rootScene.IsValid())
-                {
-                    SceneManager.MoveGameObjectToScene(scene, rootScene);
-                }
+                SceneManager.MoveGameObjectToScene(scene, rootScene);
             }
         }
 

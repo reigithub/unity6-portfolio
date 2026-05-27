@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
@@ -9,7 +10,6 @@ using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
@@ -17,45 +17,24 @@ namespace Game.MVC.Core.Scenes
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
-        public UniTask PreInitialize()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask PreInitialize() => UniTask.CompletedTask;
 
         // アセット(主にこのシーン)をロード
-        public UniTask LoadAsset()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask LoadAsset() => UniTask.CompletedTask;
 
         // シーンビュー初期化～起動処理
-        public UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Startup() => UniTask.CompletedTask;
 
         // 起動後の処理
         // シーン起動後に演出など
-        public UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Ready() => UniTask.CompletedTask;
 
-        public UniTask Sleep()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Sleep() => UniTask.CompletedTask;
 
-        public UniTask Restart()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Restart() => UniTask.CompletedTask;
 
         // シーンを終了させて破棄する
-        public UniTask Terminate()
-        {
-            return UniTask.CompletedTask;
-        }
+        UniTask Terminate() => UniTask.CompletedTask;
     }
 
     public abstract class GameScene : IGameScene
@@ -67,52 +46,25 @@ namespace Game.MVC.Core.Scenes
 
         public CompositeDisposable Disposables { get; } = new();
 
-        public virtual UniTask PreInitialize()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask PreInitialize() => UniTask.CompletedTask;
 
-        public virtual UniTask LoadAsset()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask LoadAsset() => UniTask.CompletedTask;
 
-        public virtual UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Startup() => UniTask.CompletedTask;
 
-        public virtual UniTask Sleep()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Sleep() => UniTask.CompletedTask;
 
-        public virtual UniTask Restart()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Restart() => UniTask.CompletedTask;
 
-        public virtual UniTask Ready()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Ready() => UniTask.CompletedTask;
 
-        public virtual UniTask Terminate()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Terminate() => UniTask.CompletedTask;
 
         public GameSceneFocusState FocusState { get; set; }
 
-        public virtual UniTask Focus()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Focus() => UniTask.CompletedTask;
 
-        public virtual UniTask Unfocus()
-        {
-            return UniTask.CompletedTask;
-        }
+        public virtual UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public interface IGameSceneState
@@ -122,12 +74,12 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneArg<in TArg>
     {
-        public UniTask ArgHandle(TArg arg);
+        UniTask SetArg(TArg arg);
     }
 
     public interface IGameSceneArgHandler
     {
-        public Func<IGameScene, UniTask> ArgHandler { get; set; }
+        Func<IGameScene, UniTask> ArgHandler { get; set; }
     }
 
     public interface IGameSceneFocusHandler
@@ -145,19 +97,19 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneResult<TResult> : IGameSceneResult
     {
-        public TResult Result { get; set; }
+        TResult Result { get; set; }
 
-        public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
+        UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
-        public bool TrySetResult(TResult result)
+        bool TrySetResult(TResult result)
         {
             Result = result;
             return ResultTcs?.TrySetResult(result) ?? false;
         }
 
-        public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
+        bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
 
-        public bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
+        bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
     }
 
     public interface ICompositeDisposable
@@ -264,6 +216,7 @@ namespace Game.MVC.Core.Scenes
 
         private GameObject _asset;
         private GameObject _instance;
+        private CanvasGroup _canvasGroup;
 
         protected override async UniTask LoadScene()
         {
@@ -272,6 +225,7 @@ namespace Game.MVC.Core.Scenes
             _instance = scene.IsValid()
                 ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
                 : UnityEngine.Object.Instantiate(_asset);
+            _instance.TryGetComponent(out _canvasGroup);
         }
 
         protected override UniTask UnloadScene()
@@ -291,11 +245,34 @@ namespace Game.MVC.Core.Scenes
             return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
         }
 
-        public UniTask FadeInAsync(float duration = 0.3f)
-            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+        public async UniTask FadeInAsync(float duration = 0.3f)
+        {
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = false;
+                _instance.SetActive(true);
+                await _canvasGroup.DOFade(1f, duration).SetUpdate(true).ToUniTask();
+                _canvasGroup.interactable = true;
+                _canvasGroup.blocksRaycasts = true;
+            }
 
-        public UniTask FadeOutAsync(float duration = 0.3f)
-            => MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
+            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+        }
+
+        public async UniTask FadeOutAsync(float duration = 0.3f)
+        {
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = false;
+                await _canvasGroup.DOFade(0f, duration).SetUpdate(true).ToUniTask();
+                _instance.SetActive(false);
+            }
+
+            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
+        }
     }
 
     // コンポーネント付きのUnityScene

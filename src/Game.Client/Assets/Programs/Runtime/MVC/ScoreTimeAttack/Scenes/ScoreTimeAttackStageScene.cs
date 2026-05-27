@@ -42,7 +42,7 @@ namespace Game.ScoreTimeAttack.Scenes
         private int _stageId;
         private SceneInstance _stageSceneInstance;
 
-        public UniTask ArgHandle(int stageId)
+        public UniTask SetArg(int stageId)
         {
             _stageId = stageId;
             return UniTask.CompletedTask;
