@@ -185,7 +185,10 @@ namespace Game.Core.Services
                 case InputConstants.Touch:
                 case InputConstants.XR:
                 {
-                    ApplicationEvents.ShowCursor();
+                    if (Player.enabled)
+                        ApplicationEvents.HideCursor();
+                    else
+                        ApplicationEvents.ShowCursor();
                     ResolveSelectable();
                     break;
                 }
