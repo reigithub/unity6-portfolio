@@ -4,7 +4,6 @@ namespace Game.MVC.Core.Constants
 {
     public static class GameSceneConstants
     {
-        public const GameSceneOperations DefaultOperations = GameSceneOperations.Terminate |
-                                                             GameSceneOperations.ClearHistory;
+        public const GameSceneOperations DefaultOperations = GameSceneOperations.Terminate;
     }
 }
