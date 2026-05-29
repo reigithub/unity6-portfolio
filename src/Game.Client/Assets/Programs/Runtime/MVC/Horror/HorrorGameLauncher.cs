@@ -2,7 +2,6 @@ using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
 using Game.Horror.Scenes;
-using Game.Library.Shared.Enums;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
@@ -40,10 +39,6 @@ namespace Game.Horror
 
         public async UniTask ShutdownAsync()
         {
-            // var audioService = GameServiceManager.Get<AudioService>();
-            // audioService.StopBgmAsync().Forget();
-            // await audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit);
-
             await HorrorGameRootController.UnloadAsync();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
             await gameSceneService.TerminateAllAsync();
