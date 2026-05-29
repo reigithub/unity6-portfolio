@@ -1,9 +1,7 @@
 using Cysharp.Threading.Tasks;
-using Game.Core.Services;
 using Game.Horror.Player;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Scenes;
-using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -14,18 +12,10 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorStageScene";
 
-        private IGameSceneService _sceneService;
-        private IGameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
-
         private SceneInstance _stageSceneInstance;
 
         public override async UniTask Startup()
         {
-            SceneComponent.OnReturn
-                // .SubscribeAwait(async (_, _) => await SceneService.TransitionAsync<HorrorTitleScene>())
-                .SubscribeAwait(async (_, _) => await SceneService.TransitionPrevAsync())
-                .AddTo(Disposables);
-
             await LoadUnitySceneAsync();
             await LoadPlayerAsync();
             await base.Startup();
