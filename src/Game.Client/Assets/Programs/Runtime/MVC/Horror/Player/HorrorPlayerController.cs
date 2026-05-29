@@ -1,6 +1,7 @@
 using Game.Core.Constants;
 using Game.Core.Services;
 using Game.Library.Shared;
+using Game.Shared.Bootstrap;
 using Game.Shared.Input;
 using R3;
 using UnityEngine;
@@ -44,7 +45,6 @@ namespace Game.Horror.Player
 
         // 入力関連
         private Vector2 _moveValue;
-        private Vector3 _moveVector;
         private readonly ReactiveProperty<float> _speed = new();
         private bool _jumpTriggered;
 
@@ -57,6 +57,8 @@ namespace Game.Horror.Player
 
             // ステートマシン初期化
             InitializeStateMachine();
+
+            ApplicationEvents.HideCursor();
         }
 
         #region MonoBehaviour Methods
@@ -84,10 +86,9 @@ namespace Game.Horror.Player
         {
             // 移動入力受付
             _moveValue = Player.Move.ReadValue<Vector2>();
-            _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新（LeftShift で走り、それ以外は歩き）
-            _speed.Value = _moveVector.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
+            _speed.Value = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
 
             // ジャンプ入力受付
             if (Player.Jump.WasPressedThisFrame() && CanJump())
@@ -244,7 +245,6 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// カメラの向きを基準に水平速度を計算
-        /// 参考: SDUnityChan MovingState.FixedUpdate
         /// _moveVector を非正規化のまま更新してアナログ入力の強度を保持する
         /// </summary>
         private Vector3 ComputeHorizontalVelocity()
@@ -259,9 +259,8 @@ namespace Game.Horror.Player
             forward.Normalize();
             right.Normalize();
 
-            // _moveVector を上書き（参考と同パターン）。非正規化のため入力強度を保持
-            _moveVector = forward * _moveValue.y + right * _moveValue.x;
-            return _moveVector * _speed.Value;
+            var moveVector = forward * _moveValue.y + right * _moveValue.x;
+            return moveVector * _speed.Value;
         }
 
         /// <summary>
