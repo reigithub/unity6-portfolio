@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: HorrorPrefabs
   m_GUID: 2f8c2378ebe10394aa5550e1e878ed7c
   m_SerializeEntries:
+  - m_GUID: 5818357fe0784d941877264a3199967f
+    m_Address: HorrorPlayer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c0b020a3757cd34408a570b82a0c43bf
     m_Address: HorrorGameRootController
     m_ReadOnly: 0

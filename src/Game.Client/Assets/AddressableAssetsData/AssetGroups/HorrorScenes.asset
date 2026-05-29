@@ -20,7 +20,7 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: b7b35daccb45c694ab9082b630808935
+  - m_GUID: d8b3ed36bd983594eb6ff044ae827618
     m_Address: HorrorStageScene
     m_ReadOnly: 0
     m_SerializedLabels: []
