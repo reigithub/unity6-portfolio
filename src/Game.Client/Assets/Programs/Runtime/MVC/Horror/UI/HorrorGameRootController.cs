@@ -44,9 +44,6 @@ namespace Game.Core
 
         public static async UniTask UnloadAsync()
         {
-            _instance.Dispose();
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
-            assetService.ReleaseAsset(_instance);
             _instance.SafeDestroy();
             await UniTask.Yield();
         }
@@ -63,8 +60,8 @@ namespace Game.Core
 
         private void Initialize()
         {
-            // InputService.SubscribeControlScheme(_playerInput);
-            _playerInput.controlsChangedEvent.AddListener(UpdateControls);
+            InputService.SubscribeControlScheme(_playerInput);
+            // _playerInput.controlsChangedEvent.AddListener(UpdateControls);
 
             // GameScene
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
@@ -83,13 +80,13 @@ namespace Game.Core
                 .AddTo(this);
         }
 
-        private void Dispose()
-        {
-            _playerInput.controlsChangedEvent.RemoveListener(UpdateControls);
-        }
-
-        private void UpdateControls(PlayerInput playerInput)
-            => InputService.UpdateControlScheme(playerInput.currentControlScheme);
+        // private void Dispose()
+        // {
+        //     _playerInput.controlsChangedEvent.RemoveListener(UpdateControls);
+        // }
+        //
+        // private void UpdateControls(PlayerInput playerInput)
+        //     => InputService.UpdateControlScheme(playerInput.currentControlScheme);
 
         private void DoFade(float endValue, float duration, UniTaskCompletionSource<bool> tcs)
         {

@@ -126,15 +126,16 @@ namespace Game.Core.Services
                 }
 
                 SetSelectedGameObject(go);
+                Debug.Log($"[InputService] Selected GameObject {go}");
                 return;
             }
 
             SetSelectedGameObject(null);
+            Debug.Log("[InputService] No Selectables found");
         }
 
         public GameObject GetSelectedGameObject()
         {
-            // if (_selectedGameObject != null) return _selectedGameObject;
             return EventSystem.current.currentSelectedGameObject;
         }
 
@@ -153,9 +154,11 @@ namespace Game.Core.Services
 
         public void SubscribeControlScheme(PlayerInput playerInput)
         {
-            // playerInput.onControlsChanged += p => { Debug.Log($"PlayerInput InputDevice: {p.currentControlScheme}"); };
+            // playerInput.controlsChangedEvent.AddListener(UpdateControlScheme);
             // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
             // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
+
+            // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
 
             Observable.EveryValueChanged(playerInput, input => input.currentControlScheme)
                 .Subscribe(device =>
@@ -171,8 +174,12 @@ namespace Game.Core.Services
         public void UpdateControlScheme(string device)
         {
             _controlScheme = device;
+            ResolveControlScheme();
+        }
 
-            switch (device)
+        public void ResolveControlScheme()
+        {
+            switch (_controlScheme)
             {
                 case InputConstants.Gamepad:
                 case InputConstants.Joystick:
@@ -185,10 +192,7 @@ namespace Game.Core.Services
                 case InputConstants.Touch:
                 case InputConstants.XR:
                 {
-                    if (Player.enabled)
-                        ApplicationEvents.HideCursor();
-                    else
-                        ApplicationEvents.ShowCursor();
+                    ApplicationEvents.ShowCursor();
                     ResolveSelectable();
                     break;
                 }
