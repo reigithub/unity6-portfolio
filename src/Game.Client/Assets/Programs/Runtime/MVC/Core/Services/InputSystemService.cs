@@ -7,7 +7,6 @@ using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace Game.Core.Services
 {
@@ -21,7 +20,7 @@ namespace Game.Core.Services
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
-        public CompositeDisposable Disposables { get; } = new();
+        private CompositeDisposable Disposables { get; } = new();
 
         private string _controlScheme = InputConstants.DefaultControlScheme;
         private GameObject _selectedGameObject;
@@ -109,7 +108,7 @@ namespace Game.Core.Services
                 {
                     foreach (var selectable in allSelectables)
                     {
-                        if (!selectable.IsInteractable()) continue;
+                        if (!selectable.IsSelectable()) continue;
                         if (selectable.gameObject == selectedGameObject)
                         {
                             go = selectable.gameObject;
@@ -121,7 +120,7 @@ namespace Game.Core.Services
 
                 if (!found)
                 {
-                    var firstSelectable = allSelectables.FirstOrDefault(x => x.IsInteractable());
+                    var firstSelectable = allSelectables.FirstOrDefault(x => x.IsSelectable());
                     if (firstSelectable != null) go = firstSelectable.gameObject;
                 }
 
