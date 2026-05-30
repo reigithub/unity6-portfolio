@@ -67,10 +67,7 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnOption
                 .SubscribeAwait(async (_, _) =>
                 {
-                    using (SceneComponent.BlockInteractable())
-                    {
-                        await HorrorOptionDialog.RunAsync();
-                    }
+                    await HorrorOptionDialog.RunAsync();
                 })
                 .AddTo(Disposables);
             SceneComponent.OnReturn
@@ -93,10 +90,7 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Terminate()
         {
-            if (Result != PauseResult.ReturnToTitle)
-            {
-                ApplicationEvents.ResumeTime();
-            }
+            if (Result != PauseResult.ReturnToTitle) ApplicationEvents.ResumeTime();
 
             return base.Terminate();
         }
