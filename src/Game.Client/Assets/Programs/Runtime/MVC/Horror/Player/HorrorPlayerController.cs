@@ -3,7 +3,6 @@ using Game.Core.Services;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Input;
-using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -45,7 +44,7 @@ namespace Game.Horror.Player
 
         // 入力関連
         private Vector2 _moveValue;
-        private readonly ReactiveProperty<float> _speed = new();
+        private float _speed;
         private bool _jumpTriggered;
 
         // 垂直速度（重力 + ジャンプ）
@@ -57,8 +56,6 @@ namespace Game.Horror.Player
 
             // ステートマシン初期化
             InitializeStateMachine();
-
-            ApplicationEvents.HideCursor();
         }
 
         #region MonoBehaviour Methods
@@ -88,7 +85,7 @@ namespace Game.Horror.Player
             _moveValue = Player.Move.ReadValue<Vector2>();
 
             // 移動速度更新（LeftShift で走り、それ以外は歩き）
-            _speed.Value = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
+            _speed = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
 
             // ジャンプ入力受付
             if (Player.Jump.WasPressedThisFrame() && CanJump())
@@ -111,16 +108,13 @@ namespace Game.Horror.Player
 
         private bool IsGrounded() => _characterController.isGrounded;
 
-        public bool IsMoving() => _speed.Value > 0f;
+        public bool IsMoving() => _speed > 0f;
 
-        public bool IsWalking() => _speed.Value >= _walkSpeed && _speed.Value < _runSpeed;
+        public bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
 
-        public bool IsRunning() => _speed.Value >= _runSpeed;
+        public bool IsRunning() => _speed >= _runSpeed;
 
-        private bool IsMoveInput()
-        {
-            return _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
-        }
+        private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
 
         #endregion
 
@@ -260,7 +254,7 @@ namespace Game.Horror.Player
             right.Normalize();
 
             var moveVector = forward * _moveValue.y + right * _moveValue.x;
-            return moveVector * _speed.Value;
+            return moveVector * _speed;
         }
 
         /// <summary>
