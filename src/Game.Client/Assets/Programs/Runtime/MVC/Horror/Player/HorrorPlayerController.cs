@@ -32,6 +32,14 @@ namespace Game.Horror.Player
         [SerializeField]
         private float _gravity = -20.0f;
 
+        [Header("回転速度（度/秒）")]
+        [SerializeField]
+        private float _rotationSpeed = 0.1f;
+
+        [Header("マウス感度")]
+        [SerializeField]
+        private float _lookSensitivity = 1f;
+
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
@@ -44,11 +52,15 @@ namespace Game.Horror.Player
 
         // 入力関連
         private Vector2 _moveValue;
+        private Vector2 _lookValue;
         private float _speed;
         private bool _jumpTriggered;
 
         // 垂直速度（重力 + ジャンプ）
         private float _verticalVelocity;
+
+        // カメラピッチ角度
+        private float _cameraVerticalAngle;
 
         public void Initialize()
         {
@@ -66,13 +78,26 @@ namespace Game.Horror.Player
 
         protected void Update()
         {
+            if (!TryHandleCursor()) return;
             UpdateInput();
             _stateMachine?.Update();
         }
 
-        private void FixedUpdate()
+        protected void FixedUpdate()
         {
+            if (!TryHandleCursor()) return;
             _stateMachine?.FixedUpdate();
+        }
+
+        private bool TryHandleCursor()
+        {
+            if (Player.enabled)
+            {
+                ApplicationEvents.HideCursor();
+                return true;
+            }
+
+            return false;
         }
 
         #endregion
@@ -83,6 +108,9 @@ namespace Game.Horror.Player
         {
             // 移動入力受付
             _moveValue = Player.Move.ReadValue<Vector2>();
+
+            // 視点入力受付
+            _lookValue = Player.Look.ReadValue<Vector2>();
 
             // 移動速度更新（LeftShift で走り、それ以外は歩き）
             _speed = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
@@ -156,6 +184,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
+                ctx.ApplyRotation();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -174,7 +203,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 // 静止中も重力を適用
-                Context.ApplyGravityAndMove(Vector3.zero);
+                Context.ApplyMovementWithGravity(Vector3.zero);
             }
         }
 
@@ -183,6 +212,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
+                ctx.ApplyRotation();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -201,7 +231,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                ctx.ApplyGravityAndMove(ctx.ComputeHorizontalVelocity());
+                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -217,6 +247,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
+                ctx.ApplyRotation();
 
                 // 上昇終了 + 接地で着地判定
                 if (ctx._verticalVelocity <= 0f && ctx.IsGrounded())
@@ -229,7 +260,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 // 空中でも水平移動を許可
-                ctx.ApplyGravityAndMove(ctx.ComputeHorizontalVelocity());
+                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -238,16 +269,15 @@ namespace Game.Horror.Player
         #region Movement
 
         /// <summary>
-        /// カメラの向きを基準に水平速度を計算
-        /// _moveVector を非正規化のまま更新してアナログ入力の強度を保持する
+        /// Player 本体の向き（Yaw 適用済 transform）を基準に水平速度を計算
+        /// アナログ入力強度を保持するため normalize しない
         /// </summary>
         private Vector3 ComputeHorizontalVelocity()
         {
-            if (_mainCamera == null) return Vector3.zero;
             if (!IsMoveInput()) return Vector3.zero;
 
-            var forward = _mainCamera.forward;
-            var right = _mainCamera.right;
+            var forward = transform.forward;
+            var right = transform.right;
             forward.y = 0f;
             right.y = 0f;
             forward.Normalize();
@@ -260,7 +290,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// 重力を適用して CharacterController で移動
         /// </summary>
-        private void ApplyGravityAndMove(Vector3 horizontalVelocity)
+        private void ApplyMovementWithGravity(Vector3 horizontalVelocity)
         {
             if (IsGrounded() && _verticalVelocity < 0f)
             {
@@ -274,6 +304,26 @@ namespace Game.Horror.Player
 
             var motion = horizontalVelocity + Vector3.up * _verticalVelocity;
             _characterController.Move(motion * Time.fixedDeltaTime);
+        }
+
+        /// <summary>
+        /// 視点回転を適用
+        /// Yaw: Player 本体を Y 軸回転（カメラは子なので自動追従）
+        /// Pitch: カメラ Transform の X 軸を localEulerAngles で回転、±89° クランプ
+        /// </summary>
+        private void ApplyRotation()
+        {
+            if (_mainCamera == null) return;
+
+            var sensitivity = _lookSensitivity * _rotationSpeed;
+
+            // Yaw: Player 本体を Y 軸回転
+            transform.Rotate(0f, _lookValue.x * sensitivity, 0f, Space.Self);
+
+            // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ
+            var verticalInput = -_lookValue.y;
+            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * sensitivity, -89f, 89f);
+            _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
 
         #endregion
