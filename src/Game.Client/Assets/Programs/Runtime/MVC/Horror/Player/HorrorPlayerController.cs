@@ -78,26 +78,15 @@ namespace Game.Horror.Player
 
         protected void Update()
         {
-            if (!TryHandleCursor()) return;
+            // if (Player.enabled) return;
             UpdateInput();
             _stateMachine?.Update();
         }
 
         protected void FixedUpdate()
         {
-            if (!TryHandleCursor()) return;
+            // if (Player.enabled) return;
             _stateMachine?.FixedUpdate();
-        }
-
-        private bool TryHandleCursor()
-        {
-            if (Player.enabled)
-            {
-                ApplicationEvents.HideCursor();
-                return true;
-            }
-
-            return false;
         }
 
         #endregion
@@ -120,6 +109,8 @@ namespace Game.Horror.Player
             {
                 _jumpTriggered = true;
             }
+
+            if (IsMoveInput() || IsLookInput()) ApplicationEvents.HideCursor();
         }
 
         private bool CanJump()
@@ -135,14 +126,12 @@ namespace Game.Horror.Player
         }
 
         private bool IsGrounded() => _characterController.isGrounded;
-
         public bool IsMoving() => _speed > 0f;
-
         public bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
-
         public bool IsRunning() => _speed >= _runSpeed;
 
         private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
+        private bool IsLookInput() => _lookValue.magnitude > PlayerPhysicsConstants.InputThreshold;
 
         #endregion
 
