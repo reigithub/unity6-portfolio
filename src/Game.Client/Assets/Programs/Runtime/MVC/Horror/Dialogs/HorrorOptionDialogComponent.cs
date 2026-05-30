@@ -68,7 +68,6 @@ namespace Game.Horror.Dialogs
         [SerializeField] private TabEntry[] _tabs = new TabEntry[4];
 
         private readonly ReactiveProperty<int> _currentTabIndex = new(0);
-        public ReadOnlyReactiveProperty<int> CurrentTabIndex => _currentTabIndex;
 
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -132,10 +131,6 @@ namespace Game.Horror.Dialogs
                     tab.TabToggle.targetGraphic.color = tab.TabToggle.colors.normalColor;
             }
 
-            // アクティブタブ内 Selectable の Navigation を Explicit で再構築
-            // → D-Pad U/D がコンテンツ内のみで循環し、タブ Toggle へリークしない
-            RebuildContentNavigation(index);
-
             // EventSystem フォーカス移動
             var first = _tabs[index].FirstSelectable;
             if (first != null && first.IsSelectable())
@@ -144,29 +139,5 @@ namespace Game.Horror.Dialogs
             }
         }
 
-        /// <summary>
-        /// アクティブタブ内の Selectable を取得し、Up/Down だけを陽に隣接 Selectable へ接続。
-        /// Left/Right は null（Slider の値変更は Slider 内部実装が処理する）。
-        /// 結果として D-Pad U/D はタブ内の Selectable 間のみで巡回し、タブ Toggle へ遷移しない。
-        /// </summary>
-        private void RebuildContentNavigation(int activeIndex)
-        {
-            var content = _tabs[activeIndex].TabContent;
-            if (content == null) return;
-
-            var selectables = content.GetComponentsInChildren<Selectable>(includeInactive: false);
-            if (selectables.Length == 0) return;
-
-            for (int i = 0; i < selectables.Length; i++)
-            {
-                var nav = selectables[i].navigation;
-                nav.mode = Navigation.Mode.Explicit;
-                nav.selectOnUp = i > 0 ? selectables[i - 1] : selectables[selectables.Length - 1];
-                nav.selectOnDown = i < selectables.Length - 1 ? selectables[i + 1] : selectables[0];
-                nav.selectOnLeft = null;
-                nav.selectOnRight = null;
-                selectables[i].navigation = nav;
-            }
-        }
     }
 }
