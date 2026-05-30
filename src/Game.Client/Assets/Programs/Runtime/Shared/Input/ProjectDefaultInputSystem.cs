@@ -640,6 +640,24 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Previous"",
+                    ""type"": ""Button"",
+                    ""id"": ""1de0bc2d-8575-47c4-bb16-bf78f8756735"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Next"",
+                    ""type"": ""Button"",
+                    ""id"": ""dcd979b2-1e00-4e7d-a2b9-66499d5fdd4e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1104,6 +1122,50 @@ namespace Game.Shared.Input
                     ""action"": ""Menu"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fa39f7a1-912c-43eb-a4ab-ccd899dd5f1b"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Previous"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""88fb2ba3-2ab6-4d5f-9462-bbd8b8e44a1b"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Previous"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0df5ba28-6137-4746-ad8d-69ed12654e5b"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Next"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b44df29f-8999-4151-b7ff-5f239b8f1a1c"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Next"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1197,6 +1259,8 @@ namespace Game.Shared.Input
             m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
             m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
             m_UI_Menu = m_UI.FindAction("Menu", throwIfNotFound: true);
+            m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
+            m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
         }
 
         ~@ProjectDefaultInputSystem()
@@ -1495,6 +1559,8 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_TrackedDevicePosition;
         private readonly InputAction m_UI_TrackedDeviceOrientation;
         private readonly InputAction m_UI_Menu;
+        private readonly InputAction m_UI_Previous;
+        private readonly InputAction m_UI_Next;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1550,6 +1616,14 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "UI/Menu".
             /// </summary>
             public InputAction @Menu => m_Wrapper.m_UI_Menu;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Previous".
+            /// </summary>
+            public InputAction @Previous => m_Wrapper.m_UI_Previous;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Next".
+            /// </summary>
+            public InputAction @Next => m_Wrapper.m_UI_Next;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1609,6 +1683,12 @@ namespace Game.Shared.Input
                 @Menu.started += instance.OnMenu;
                 @Menu.performed += instance.OnMenu;
                 @Menu.canceled += instance.OnMenu;
+                @Previous.started += instance.OnPrevious;
+                @Previous.performed += instance.OnPrevious;
+                @Previous.canceled += instance.OnPrevious;
+                @Next.started += instance.OnNext;
+                @Next.performed += instance.OnNext;
+                @Next.canceled += instance.OnNext;
             }
 
             /// <summary>
@@ -1653,6 +1733,12 @@ namespace Game.Shared.Input
                 @Menu.started -= instance.OnMenu;
                 @Menu.performed -= instance.OnMenu;
                 @Menu.canceled -= instance.OnMenu;
+                @Previous.started -= instance.OnPrevious;
+                @Previous.performed -= instance.OnPrevious;
+                @Previous.canceled -= instance.OnPrevious;
+                @Next.started -= instance.OnNext;
+                @Next.performed -= instance.OnNext;
+                @Next.canceled -= instance.OnNext;
             }
 
             /// <summary>
@@ -1920,6 +2006,20 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnMenu(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Previous" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnPrevious(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Next" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNext(InputAction.CallbackContext context);
         }
     }
 }
