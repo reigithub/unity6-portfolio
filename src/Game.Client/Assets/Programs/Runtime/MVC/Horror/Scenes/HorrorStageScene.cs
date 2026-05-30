@@ -34,6 +34,12 @@ namespace Game.Horror.Scenes
             await base.Startup();
         }
 
+        public override UniTask Ready()
+        {
+            ApplicationEvents.ResumeTime();
+            return base.Ready();
+        }
+
         public override async UniTask Terminate()
         {
             await UnloadUnitySceneAsync();
