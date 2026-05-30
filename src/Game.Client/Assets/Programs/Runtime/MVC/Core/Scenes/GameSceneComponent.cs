@@ -59,14 +59,12 @@ namespace Game.MVC.Core.Scenes
             if (!gameObject.activeSelf)
                 gameObject.SetActive(true);
 
-            Focus();
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Ready()
+        public virtual async UniTask Ready()
         {
-            Focus();
-            return UniTask.CompletedTask;
+            await Focus();
         }
 
         public virtual UniTask Terminate()
@@ -76,18 +74,20 @@ namespace Game.MVC.Core.Scenes
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Focus()
+        public virtual async UniTask Focus()
         {
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
             SetInteractable(true);
-            InputService.ResolveSelectable(_selectedGameObject);
-            return UniTask.CompletedTask;
+            await UniTask.Yield();
+            InputService.ResolveControlScheme(_selectedGameObject);
         }
 
-        public virtual UniTask Unfocus()
+        public virtual async UniTask Unfocus()
         {
             _selectedGameObject = InputService.GetSelectedGameObject();
+            await UniTask.Yield();
             SetInteractable(false);
-            return UniTask.CompletedTask;
+            if (gameObject.activeSelf) gameObject.SetActive(false);
         }
 
         public virtual void SetInteractable(bool interactive)
@@ -101,11 +101,11 @@ namespace Game.MVC.Core.Scenes
             }
         }
 
-        public IDisposable BlockInteractable()
-        {
-            SetInteractable(false);
-            return Disposable.Create(() => SetInteractable(true));
-        }
+        // public IDisposable BlockInteractable()
+        // {
+        //     SetInteractable(false);
+        //     return Disposable.Create(() => SetInteractable(true));
+        // }
     }
 
     public abstract class UnitySceneComponent : MonoBehaviour, IGameSceneComponent
@@ -132,14 +132,12 @@ namespace Game.MVC.Core.Scenes
 
         public virtual UniTask Restart()
         {
-            Focus();
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Ready()
+        public virtual async UniTask Ready()
         {
-            Focus();
-            return UniTask.CompletedTask;
+            await Focus();
         }
 
         public virtual UniTask Terminate()
@@ -149,18 +147,18 @@ namespace Game.MVC.Core.Scenes
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Focus()
+        public virtual async UniTask Focus()
         {
             SetInteractable(true);
-            InputService.ResolveSelectable(_selectedGameObject);
-            return UniTask.CompletedTask;
+            await UniTask.Yield();
+            InputService.ResolveControlScheme(_selectedGameObject);
         }
 
-        public virtual UniTask Unfocus()
+        public virtual async UniTask Unfocus()
         {
             _selectedGameObject = InputService.GetSelectedGameObject();
+            await UniTask.Yield();
             SetInteractable(false);
-            return UniTask.CompletedTask;
         }
 
         public virtual void SetInteractable(bool interactive)

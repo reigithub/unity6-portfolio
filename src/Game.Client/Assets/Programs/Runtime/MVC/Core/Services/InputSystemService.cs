@@ -173,10 +173,10 @@ namespace Game.Core.Services
         public void UpdateControlScheme(string device)
         {
             _controlScheme = device;
-            ResolveControlScheme();
+            ResolveControlScheme(_selectedGameObject);
         }
 
-        public void ResolveControlScheme()
+        public void ResolveControlScheme(GameObject selectedGameObject)
         {
             switch (_controlScheme)
             {
@@ -184,7 +184,7 @@ namespace Game.Core.Services
                 case InputConstants.Joystick:
                 {
                     ApplicationEvents.HideCursor();
-                    ResolveSelectable(_selectedGameObject);
+                    ResolveSelectable(selectedGameObject);
                     break;
                 }
                 case InputConstants.KeyboardAndMouse:
