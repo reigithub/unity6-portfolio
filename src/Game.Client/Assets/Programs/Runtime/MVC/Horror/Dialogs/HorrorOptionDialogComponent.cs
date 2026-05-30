@@ -47,11 +47,6 @@ namespace Game.Horror.Dialogs
 
             return base.Startup();
         }
-
-        public override UniTask Terminate()
-        {
-            return base.Terminate();
-        }
     }
 
     public class HorrorOptionDialogComponent : GameSceneComponent
@@ -67,7 +62,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private ToggleGroup _tabGroup;
         [SerializeField] private TabEntry[] _tabs = new TabEntry[4];
 
-        private readonly ReactiveProperty<int> _currentTabIndex = new(0);
+        private int _currentTabIndex;
 
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -79,14 +74,6 @@ namespace Game.Horror.Dialogs
                 int capturedIndex = i;
                 var tab = _tabs[i];
                 if (tab.TabToggle == null) continue;
-
-                // タブ Toggle は D-Pad ナビゲーションの起点・終点にしない（クリック・L1/R1 のみ）
-                var nav = tab.TabToggle.navigation;
-                nav.mode = Navigation.Mode.None;
-                tab.TabToggle.navigation = nav;
-
-                // 同 ToggleGroup へ紐付け（Inspector 設定済でも保険として）
-                tab.TabToggle.group = _tabGroup;
 
                 // 状態変化（false → true）のみ反応
                 tab.TabToggle.OnValueChangedAsObservable()
@@ -102,23 +89,17 @@ namespace Game.Horror.Dialogs
             await base.Startup();
         }
 
-        /// <summary>
-        /// L1/R1 で呼ばれる外部 API。Toggle.isOn 経由で ApplyTab を間接起動。
-        /// </summary>
         public void CycleTab(int delta)
         {
             if (_tabs.Length == 0) return;
-            var next = ((_currentTabIndex.Value + delta) % _tabs.Length + _tabs.Length) % _tabs.Length;
+            var next = ((_currentTabIndex + delta) % _tabs.Length + _tabs.Length) % _tabs.Length;
             if (_tabs[next].TabToggle != null)
                 _tabs[next].TabToggle.isOn = true;
         }
 
-        /// <summary>
-        /// Toggle の onValueChanged から呼ばれる、実際のタブ表示・フォーカス・Navigation 構築処理。
-        /// </summary>
         private void ApplyTab(int index)
         {
-            _currentTabIndex.Value = index;
+            _currentTabIndex = index;
             for (int i = 0; i < _tabs.Length; i++)
             {
                 var tab = _tabs[i];
