@@ -101,7 +101,7 @@ namespace Game.MVC.Core.Scenes
             }
         }
 
-        protected IDisposable BlockInteractable()
+        public IDisposable BlockInteractable()
         {
             SetInteractable(false);
             return Disposable.Create(() => SetInteractable(true));

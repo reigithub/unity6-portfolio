@@ -28,13 +28,11 @@ namespace Game.Horror.Dialogs
         {
             PauseResult result;
             var inputService = GameServiceManager.Get<InputSystemService>();
-            inputService.ResolveControlScheme();
             using (inputService.BlockPlayer())
             {
                 var sceneService = GameServiceManager.Get<GameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorPauseDialog, PauseResult>();
             }
-            inputService.ResolveControlScheme();
             return result;
         }
 
@@ -69,9 +67,10 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnOption
                 .SubscribeAwait(async (_, _) =>
                 {
-                    Debug.Log($"{nameof(HorrorPauseDialog)}: OnOption");
-                    // SceneComponent.SetInteractable(false);
-                    await UniTask.Yield();
+                    using (SceneComponent.BlockInteractable())
+                    {
+                        await HorrorOptionDialog.RunAsync();
+                    }
                 })
                 .AddTo(Disposables);
             SceneComponent.OnReturn
