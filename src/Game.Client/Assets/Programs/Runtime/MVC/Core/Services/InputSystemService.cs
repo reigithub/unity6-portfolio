@@ -13,8 +13,6 @@ namespace Game.Core.Services
     public class InputSystemService : IInputSystemService, IDisposable
     {
         private ProjectDefaultInputSystem _inputSystem;
-        private bool _isPlayerEnabled;
-        private bool _isUIEnabled;
         private bool _isInitialized;
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
