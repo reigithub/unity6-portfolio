@@ -10,10 +10,10 @@ namespace Game.MVC.Core.Enums
         Terminate
     }
 
-    public enum GameSceneFocusState
+    public static class GameSceneStateExtensions
     {
-        Focused,
-        Unfocused,
+        public static bool IsProcessing(this GameSceneState state)
+            => state is GameSceneState.Processing;
     }
 
     [Flags]

@@ -45,11 +45,9 @@ namespace Game.Horror.Dialogs
         public override UniTask Startup()
         {
             SceneComponent.UpdateAsObservable()
+                .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (FocusState is GameSceneFocusState.Unfocused)
-                        return;
-
                     if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);

@@ -109,7 +109,7 @@ namespace Game.Core.Services
         {
             if (IsProcessing(typeof(TScene))) return default;
 
-            await using (await FocusHandleAsync())
+            await using (await ScopedSleepAsync())
             {
                 var gameScene = new TScene();
                 var tcs = CreateResultTcs<TResult>(gameScene);
@@ -127,7 +127,7 @@ namespace Game.Core.Services
             if (IsProcessing(typeof(TScene))) return default;
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
-            await using (await FocusHandleAsync())
+            await using (await ScopedSleepAsync())
             {
                 var gameScene = new TScene();
                 CreateArgHandler(gameScene, arg);
@@ -181,26 +181,6 @@ namespace Game.Core.Services
             }
 
             return null;
-        }
-
-        private async UniTask<IAsyncDisposable> FocusHandleAsync()
-        {
-            if (_gameScenes.Count == 0)
-                return new EmptyAsyncDisposable();
-
-            var lastScene = _gameScenes[^1];
-            if (lastScene.State is GameSceneState.Processing)
-            {
-                await lastScene.Unfocus();
-            }
-
-            return AsyncDisposable.Create(async () =>
-            {
-                if (lastScene.State is GameSceneState.Processing)
-                {
-                    await lastScene.Focus();
-                }
-            });
         }
 
         /// <summary>
@@ -353,6 +333,30 @@ namespace Game.Core.Services
             }
 
             return -1;
+        }
+
+        private async UniTask<IAsyncDisposable> ScopedSleepAsync()
+        {
+            if (_gameScenes.Count == 0)
+                return new EmptyAsyncDisposable();
+
+            var lastScene = _gameScenes[^1];
+            if (lastScene.State is GameSceneState.Processing)
+            {
+                lastScene.State = GameSceneState.Sleep;
+                await lastScene.Sleep();
+            }
+
+            return AsyncDisposable.Create(() =>
+            {
+                if (lastScene.State is GameSceneState.Sleep)
+                {
+                    lastScene.State = GameSceneState.Processing;
+                    return lastScene.Restart();
+                }
+
+                return UniTask.CompletedTask;
+            });
         }
 
         private async UniTask DoFadeInAsync(IGameScene gameScene)

@@ -68,11 +68,9 @@ namespace Game.Horror.Scenes
         {
             SceneComponent
                 .UpdateAsObservable()
+                .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (FocusState is GameSceneFocusState.Unfocused)
-                        return;
-
                     if (InputService.UI.Menu.WasPressedThisFrame())
                     {
                         ShowPauseDialogAsync().Forget();
