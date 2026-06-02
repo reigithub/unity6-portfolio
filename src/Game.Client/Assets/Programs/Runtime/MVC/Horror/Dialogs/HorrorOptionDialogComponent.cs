@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Core.UI;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Input;
@@ -65,10 +66,14 @@ namespace Game.Horror.Dialogs
         [SerializeField] private ToggleGroup _tabGroup;
         [SerializeField] private TabEntry[] _tabs = new TabEntry[4];
 
-        [SerializeField] private TMP_Dropdown _languages;
+        [SerializeField] private TMP_Dropdown _language;
+        [SerializeField] private DropdownValues<string> _languageValues;
 
         [SerializeField] private TMP_Dropdown _displayMode;
+        [SerializeField] private DropdownValues<FullScreenMode> _displayModeValues;
+
         [SerializeField] private TMP_Dropdown _resolution;
+        [SerializeField] private DropdownValues<ResolutionInfo> _resolutionValues;
 
         #endregion
 
@@ -107,69 +112,31 @@ namespace Game.Horror.Dialogs
             }
 #endif
 
-            _languages.OnValueChangedAsObservable()
+            _language.OnValueChangedAsObservable()
                 .Subscribe(index =>
                 {
-                    var localName = _languages.options[index].text;
-                    foreach (var locale in LocalizationSettings.AvailableLocales.Locales)
-                    {
-                        if (locale.LocaleName.StartsWith(localName))
-                        {
-                            LocalizationSettings.SelectedLocale = locale;
-                            break;
-                        }
-                    }
+                    var code = _languageValues[index];
+                    var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
+                    LocalizationSettings.SelectedLocale = locale;
                 })
                 .AddTo(Disposables);
 
             _displayMode.OnValueChangedAsObservable()
                 .Subscribe(index =>
                 {
-                    var displayMode = _displayMode.options[index].text;
-                    FullScreenMode fullScreenMode;
-                    switch (displayMode)
-                    {
-                        case "FullScreen":
-                            fullScreenMode = FullScreenMode.MaximizedWindow;
-                            break;
-                        case "Borderless":
-                            fullScreenMode = FullScreenMode.FullScreenWindow;
-                            break;
-                        case "Windowed":
-                            fullScreenMode = FullScreenMode.Windowed;
-                            break;
-                        default:
-                            fullScreenMode = FullScreenMode.FullScreenWindow;
-                            break;
-                    }
-                    Resolution currentResolution = Screen.currentResolution;
-                    Screen.SetResolution(currentResolution.width, currentResolution.height, fullScreenMode);
+                    var fullScreenMode = _displayModeValues[index];
+                    var resolution = Screen.currentResolution;
+                    Screen.SetResolution(resolution.width, resolution.height, fullScreenMode);
+                    Debug.Log($"Option FullScreenMode: {fullScreenMode} => {_displayMode.options[index].text}");
                 })
                 .AddTo(Disposables);
 
             _resolution.OnValueChangedAsObservable()
                 .Subscribe(index =>
                 {
-                    Resolution currentResolution = Screen.currentResolution;
-                    var resolution = _resolution.options[index].text;
-                    int height = currentResolution.height;
-                    int width = currentResolution.width;
-                    switch (resolution)
-                    {
-                        case "1920 x 1080":
-                            height = 1920;
-                            width = 1080;
-                            break;
-                        case "2560 x 1440":
-                            height = 2560;
-                            width = 1440;
-                            break;
-                        case "3840 x 2160":
-                            height = 3840;
-                            width = 2160;
-                            break;
-                    }
-                    Screen.SetResolution(width, height, Screen.fullScreenMode);
+                    var resolution = _resolutionValues[index];
+                    Screen.SetResolution(resolution.Width, resolution.Height, Screen.fullScreenMode);
+                    Debug.Log($"Option Resolution: width={resolution.Width} height={resolution.Height}");
                 })
                 .AddTo(Disposables);
 
