@@ -497,6 +497,7 @@ GameObject:
   - component: {fileID: 1372115351333462694}
   - component: {fileID: 2751183480753610627}
   - component: {fileID: 7218293817911204746}
+  - component: {fileID: 5527100988634852956}
   m_Layer: 5
   m_Name: Button (2)
   m_TagString: Untagged
@@ -606,6 +607,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5527100988634852956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5493108193105495629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
 --- !u!1 &5994241387563940000
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,6 +631,7 @@ GameObject:
   - component: {fileID: 7418953196966607526}
   - component: {fileID: 3507225080545993035}
   - component: {fileID: 4369958009667636432}
+  - component: {fileID: 3327290210928251155}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -727,6 +741,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3327290210928251155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5994241387563940000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
 --- !u!1 &6836156869972513042
 GameObject:
   m_ObjectHideFlags: 0
@@ -1013,6 +1039,7 @@ GameObject:
   - component: {fileID: 3319737556104136932}
   - component: {fileID: 7635833423784448906}
   - component: {fileID: 6488326974862328780}
+  - component: {fileID: 5833200394965561107}
   m_Layer: 5
   m_Name: Button (1)
   m_TagString: Untagged
@@ -1122,6 +1149,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5833200394965561107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7592243584909147532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
 --- !u!1 &7986436877692854333
 GameObject:
   m_ObjectHideFlags: 0
@@ -1337,6 +1376,7 @@ GameObject:
   - component: {fileID: 3935365146043134101}
   - component: {fileID: 1263613641457941302}
   - component: {fileID: 2846175209680234276}
+  - component: {fileID: 8426917490287786741}
   m_Layer: 5
   m_Name: Button (3)
   m_TagString: Untagged
@@ -1446,3 +1486,15 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8426917490287786741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9056897227716893152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
