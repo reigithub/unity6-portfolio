@@ -12,5 +12,7 @@ namespace Game.Core.UI
             get => _values[index];
             set => _values[index] = value;
         }
+
+        public int Count => _values.Length;
     }
 }
