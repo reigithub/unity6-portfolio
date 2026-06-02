@@ -1,14 +1,14 @@
+using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Input;
 using R3;
 using R3.Triggers;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.Localization.Settings;
 
 namespace Game.Horror.Dialogs
@@ -33,7 +33,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ =>
                 {
                     // ダイアログキャンセル
-                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
+                    if (InputService.UI.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);
                         return;
@@ -41,9 +41,9 @@ namespace Game.Horror.Dialogs
 
                     // L1 (Previous) / R1 (Next) でタブ循環
                     if (InputService.UI.Previous.WasPressedThisFrame())
-                        SceneComponent.CycleTab(-1);
+                        SceneComponent.PreviousTab();
                     else if (InputService.UI.Next.WasPressedThisFrame())
-                        SceneComponent.CycleTab(+1);
+                        SceneComponent.NextTab();
                 })
                 .AddTo(Disposables);
 
@@ -55,16 +55,7 @@ namespace Game.Horror.Dialogs
     {
         #region SerializeField
 
-        [System.Serializable]
-        public class TabEntry
-        {
-            [SerializeField] public Toggle TabToggle;           // タブヘッダ Toggle（ToggleGroup に紐付け）
-            [SerializeField] public GameObject TabContent;      // タブコンテンツ Panel（ScrollView を含む）
-            [SerializeField] public Selectable FirstSelectable; // タブ内の最初のフォーカス対象（Slider/Dropdown）
-        }
-
-        [SerializeField] private ToggleGroup _tabGroup;
-        [SerializeField] private TabEntry[] _tabs = new TabEntry[4];
+        [SerializeField] private TabGroup _tabGroup;
 
         [SerializeField] private TMP_Dropdown _language;
         [SerializeField] private DropdownValues<string> _languageValues;
@@ -77,34 +68,19 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        #region Variables
-
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
-
-        private int _currentTabIndex;
-
-        #endregion
-
         public override async UniTask Startup()
         {
-            for (int i = 0; i < _tabs.Length; i++)
-            {
-                int index = i;
-                var tab = _tabs[i];
-                if (tab.TabToggle != null)
-                {
-                    // 状態変化（false → true）のみ反応
-                    tab.TabToggle.OnValueChangedAsObservable()
-                        .Where(isOn => isOn)
-                        .Subscribe(_ => ApplyTab(index))
-                        .AddTo(Disposables);
-                }
+            _tabGroup.Initialize();
+            Initialize();
+            _tabGroup.ChangeTab(0);
+            await base.Startup();
+        }
 
-                if (tab.TabContent != null)
-                    tab.TabContent.SetActive(true);
-            }
+        public void NextTab() => _tabGroup.NextTab();
+        public void PreviousTab() => _tabGroup.PreviousTab();
 
+        private void Initialize()
+        {
 #if UNITY_EDITOR
             foreach (var locale in LocalizationSettings.AvailableLocales.Locales)
             {
@@ -121,6 +97,17 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
+            int displayModeIndex = 0;
+            for (int i = 0; i < _displayModeValues.Count; i++)
+            {
+                var mode = _displayModeValues[i];
+                if (mode == Screen.fullScreenMode)
+                {
+                    displayModeIndex = i;
+                }
+            }
+
+            _displayMode.value = displayModeIndex;
             _displayMode.OnValueChangedAsObservable()
                 .Subscribe(index =>
                 {
@@ -131,6 +118,20 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
+            int resolutionIndex = 0;
+            for (int i = 0; i < _resolutionValues.Count; i++)
+            {
+                var resolution = _resolutionValues[i];
+                Debug.Log($"Option Resolution: {resolution.Width} x {resolution.Height}");
+
+                if (Screen.currentResolution.width == resolution.Width
+                    && Screen.currentResolution.height == resolution.Height)
+                {
+                    resolutionIndex = i;
+                }
+            }
+
+            _resolution.value = resolutionIndex;
             _resolution.OnValueChangedAsObservable()
                 .Subscribe(index =>
                 {
@@ -139,42 +140,6 @@ namespace Game.Horror.Dialogs
                     Debug.Log($"Option Resolution: width={resolution.Width} height={resolution.Height}");
                 })
                 .AddTo(Disposables);
-
-            ApplyTab(0);
-
-            await base.Startup();
         }
-
-        public void CycleTab(int delta)
-        {
-            if (_tabs.Length == 0) return;
-            var next = ((_currentTabIndex + delta) % _tabs.Length + _tabs.Length) % _tabs.Length;
-            if (_tabs[next].TabToggle != null)
-                _tabs[next].TabToggle.isOn = true;
-        }
-
-        private void ApplyTab(int index)
-        {
-            _currentTabIndex = index;
-            for (int i = 0; i < _tabs.Length; i++)
-            {
-                var tab = _tabs[i];
-                if (tab.TabContent != null)
-                    tab.TabContent.SetActive(i == index);
-
-                if (tab.TabToggle.isOn)
-                    tab.TabToggle.targetGraphic.color = tab.TabToggle.colors.selectedColor;
-                else
-                    tab.TabToggle.targetGraphic.color = tab.TabToggle.colors.normalColor;
-            }
-
-            // EventSystem フォーカス移動
-            var first = _tabs[index].FirstSelectable;
-            if (first != null && first.IsSelectable())
-            {
-                InputService.SetSelectedGameObject(first.gameObject);
-            }
-        }
-
     }
 }
