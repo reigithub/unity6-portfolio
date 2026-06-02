@@ -174,7 +174,7 @@ namespace Game.Core.Services
             ResolveControlScheme(_selectedGameObject);
         }
 
-        public void ResolveControlScheme(GameObject selectedGameObject)
+        public void ResolveControlScheme(GameObject selectedGameObject = null)
         {
             switch (_controlScheme)
             {
