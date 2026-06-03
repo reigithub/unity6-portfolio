@@ -52,12 +52,12 @@ namespace Game.Core.UI
             if (_scrollRect == null || _scrollRect.content == null) return;
 
             var content = _scrollRect.content;
-            if (!content.TryGetComponent<ContentSizeFitter>(out var contentSizeFitter))
-            {
-                contentSizeFitter = content.gameObject.AddComponent<ContentSizeFitter>();
-                contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-                contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            }
+            // if (!content.TryGetComponent<ContentSizeFitter>(out var contentSizeFitter))
+            // {
+            //     contentSizeFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            //     contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            //     contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // }
 
             // アイテム = Content 直下の子（標準 ScrollView 構造）
             for (int i = 0; i < content.childCount; i++)
