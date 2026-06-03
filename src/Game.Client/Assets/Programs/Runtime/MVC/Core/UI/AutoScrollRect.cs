@@ -77,12 +77,35 @@ namespace Game.Core.UI
         }
 
         /// <summary>
-        /// reporter（Selectable）からの選択通知。選択された Selectable を含むアイテムへスクロールする。
+        /// reporter（Selectable）からの選択通知。選択された Selectable を含むアイテムへスクロールし、
+        /// そのアイテムの選択カーソル（白背景 Image）を有効化する。
         /// </summary>
         public void OnItemSelected(Transform selected)
         {
             var index = FindItemIndex(selected);
-            if (index >= 0) ScrollTo(index);
+            if (index < 0) return;
+
+            ScrollTo(index);
+            SetItemHighlight(index, true);
+        }
+
+        /// <summary>
+        /// reporter（Selectable）からの選択解除通知。選択された Selectable を含むアイテムの
+        /// 選択カーソル（白背景 Image）を無効化する（スクロールはしない）。
+        /// </summary>
+        public void OnItemDeselected(Transform deselected)
+        {
+            var index = FindItemIndex(deselected);
+            if (index < 0) return;
+
+            SetItemHighlight(index, false);
+        }
+
+        /// <summary>アイテム（Content 直下の子）ルートにある白背景 Image を On/Off する。Image が無い行は何もしない。</summary>
+        private void SetItemHighlight(int index, bool on)
+        {
+            if (_items[index].TryGetComponent<Image>(out var highlight))
+                highlight.enabled = on;
         }
 
         /// <summary>index で指定したアイテムが見切れない最小限だけスクロールする。</summary>

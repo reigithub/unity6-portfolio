@@ -56,6 +56,7 @@ namespace Game.Tests.MVC
             {
                 float rowCenterY = contentHeight / 2f - rowHeight / 2f - i * rowHeight; // content ローカル
                 rows[i] = NewRect($"Row{i}", content, new Vector2(width, rowHeight), new Vector2(0f, rowCenterY));
+                rows[i].gameObject.AddComponent<Image>().enabled = false; // 選択カーソル（行 root の白背景。初期は無効）
                 var control = NewRect("Control", rows[i], new Vector2(width, rowHeight), Vector2.zero);
                 control.gameObject.AddComponent<Button>(); // ナビゲート対象（行の子の Selectable）
             }
@@ -169,6 +170,26 @@ namespace Game.Tests.MVC
             GetViewportLocalY(rows[2], viewport, out var afterMin, out var afterMax);
             Assert.GreaterOrEqual(afterMin, viewport.rect.yMin - 0.01f, "row2（アイテム）の下端が viewport 内に収まること");
             Assert.LessOrEqual(afterMax, viewport.rect.yMax + 0.01f, "row2（アイテム）の上端が viewport を超えないこと");
+        }
+
+        [Test]
+        public void ReporterSelect_EnablesItemHighlight_AndDeselect_Disables()
+        {
+            // 子 Selectable の reporter.OnSelect/OnDeselect で、それを含む「アイテム（行 root）」の
+            // 選択カーソル（白背景 Image）が有効化/無効化されること
+            var autoScroll = BuildScrollView(3, 40f, 100f, out _, out var rows);
+
+            var highlight = rows[1].GetComponent<Image>();
+            Assert.IsNotNull(highlight, "行 root に選択カーソル用 Image があること");
+            Assert.IsFalse(highlight.enabled, "前提: 初期状態では選択カーソルは無効");
+
+            var reporter = rows[1].GetComponentInChildren<AutoScrollItemReporter>();
+
+            reporter.OnSelect(null);
+            Assert.IsTrue(highlight.enabled, "選択でアイテムの選択カーソルが有効化されること");
+
+            reporter.OnDeselect(null);
+            Assert.IsFalse(highlight.enabled, "選択解除でアイテムの選択カーソルが無効化されること");
         }
     }
 }
