@@ -1,106 +1,156 @@
-﻿using System.Collections.Generic;
-using Game.Core.Services;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.Core.UI
 {
+    /// <summary>
+    /// ScrollRect の自動スクロール部品。
+    /// content 配下の Selectable を index リストとして保持し、ScrollTo(index) で
+    /// 対象が viewport に収まる最小限だけスクロールする。
+    ///
+    /// トリガー（毎フレーム監視なし）:
+    ///   各 Selectable に AutoScrollItemReporter を自動付与し、選択された瞬間（ISelectHandler）に ScrollTo する。
+    ///   押しっぱなしのリピート移動も毎回 selectHandler が飛ぶため追従する。
+    ///   OnEnable 時のみ端フレームへ遅延したワンショットで Rebuild + 現在選択へ初期スクロール（Dropdown を開いた状態に対応）。
+    /// </summary>
     [RequireComponent(typeof(ScrollRect))]
-    public class AutoScrollRect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public class AutoScrollRect : MonoBehaviour
     {
-        public float _scrollSpeed = 10f;
-        private bool _isMouseOver = false;
+        private const float Epsilon = 0.01f;
 
-        private List<Selectable> m_Selectables = new List<Selectable>();
-        private ScrollRect m_ScrollRect;
+        private ScrollRect _scrollRect;
+        private readonly List<RectTransform> _items = new();
 
-        private Vector2 m_NextScrollPosition = Vector2.up;
+        private bool _scrollScheduled;
 
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
-
-        void OnEnable()
-        {
-            if (m_ScrollRect)
-            {
-                m_ScrollRect.content.GetComponentsInChildren(m_Selectables);
-            }
-        }
+        /// <summary>index リスト（content 配下の Selectable）</summary>
+        public IReadOnlyList<RectTransform> Items => _items;
 
         private void Awake()
         {
-            m_ScrollRect = GetComponent<ScrollRect>();
+            _scrollRect = GetComponent<ScrollRect>();
+            Rebuild();
         }
 
-        private void Start()
+        private void OnEnable()
         {
-            if (m_ScrollRect)
-            {
-                m_ScrollRect.content.GetComponentsInChildren(m_Selectables);
-            }
-            ScrollToSelected(true);
+            // Dropdown を開いた直後など、有効化時点の選択アイテムへスクロール。
+            // 複製リストのアイテム生成・toggle.Select() 完了後に処理するため端フレームへ遅延。
+            ScheduleInitialScroll();
         }
 
-        private void Update()
+        /// <summary>
+        /// content 配下の Selectable（ナビゲート対象）を index リストとして再収集し、
+        /// 各 Selectable に AutoScrollItemReporter を確保する（深さ無関係、動的生成にも対応）。
+        /// </summary>
+        public void Rebuild()
         {
-            // Scroll via input.
-            InputScroll();
+            _items.Clear();
+            if (_scrollRect == null || _scrollRect.content == null) return;
 
-            if (!_isMouseOver)
+            var selectables = _scrollRect.content.GetComponentsInChildren<Selectable>(false);
+            foreach (var selectable in selectables)
             {
-                // Lerp scrolling code.
-                m_ScrollRect.normalizedPosition = Vector2.Lerp(m_ScrollRect.normalizedPosition, m_NextScrollPosition, _scrollSpeed * Time.deltaTime);
-            }
-            else
-            {
-                m_NextScrollPosition = m_ScrollRect.normalizedPosition;
-            }
-        }
+                _items.Add((RectTransform)selectable.transform);
 
-        private void InputScroll()
-        {
-            if (m_Selectables.Count > 0)
-            {
-                if (InputService.UI.Navigate.WasPressedThisFrame())
-                {
-                    ScrollToSelected(false);
-                }
+                if (!selectable.TryGetComponent<AutoScrollItemReporter>(out var reporter))
+                    reporter = selectable.gameObject.AddComponent<AutoScrollItemReporter>();
+                reporter.Owner = this;
             }
         }
 
-        private void ScrollToSelected(bool quickScroll)
+        /// <summary>index で指定したアイテムが見切れない最小限だけスクロールする。</summary>
+        public void ScrollTo(int index)
         {
-            int selectedIndex = -1;
-            Selectable selectedElement = EventSystem.current.currentSelectedGameObject ? EventSystem.current.currentSelectedGameObject.GetComponent<Selectable>() : null;
-
-            if (selectedElement)
-            {
-                selectedIndex = m_Selectables.IndexOf(selectedElement);
-            }
-            if (selectedIndex > -1)
-            {
-                if (quickScroll)
-                {
-                    m_ScrollRect.normalizedPosition = new Vector2(0, 1 - (selectedIndex / ((float)m_Selectables.Count - 1)));
-                    m_NextScrollPosition = m_ScrollRect.normalizedPosition;
-                }
-                else
-                {
-                    m_NextScrollPosition = new Vector2(0, 1 - (selectedIndex / ((float)m_Selectables.Count - 1)));
-                }
-            }
+            if (index < 0 || index >= _items.Count) return;
+            ScrollTo(_items[index]);
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        /// <summary>対象 RectTransform が viewport に収まる最小限だけスクロールする。</summary>
+        public void ScrollTo(RectTransform target)
         {
-            _isMouseOver = true;
+            if (target == null || _scrollRect == null || _scrollRect.content == null) return;
+
+            // Canvas.ForceUpdateCanvases();
+            var viewport = _scrollRect.viewport != null
+                ? _scrollRect.viewport
+                : (RectTransform)_scrollRect.transform;
+
+            // 対象の上端/下端を viewport ローカル Y に変換
+            var corners = new Vector3[4];
+            target.GetWorldCorners(corners);
+            float targetMin = float.PositiveInfinity;
+            float targetMax = float.NegativeInfinity;
+            for (int i = 0; i < 4; i++)
+            {
+                var lp = viewport.InverseTransformPoint(corners[i]);
+                targetMin = Mathf.Min(targetMin, lp.y);
+                targetMax = Mathf.Max(targetMax, lp.y);
+            }
+
+            var vp = viewport.rect;
+
+            float delta = 0f;
+            if (targetMax > vp.yMax) delta = targetMax - vp.yMax;       // 上にはみ出し
+            else if (targetMin < vp.yMin) delta = targetMin - vp.yMin;  // 下にはみ出し
+
+            if (Mathf.Abs(delta) < Epsilon) return; // 収まっていれば何もしない（最小スクロール）
+
+            var pos = _scrollRect.content.anchoredPosition;
+            pos.y -= delta;
+            _scrollRect.content.anchoredPosition = pos;
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        /// <summary>
+        /// OnEnable 時のワンショット。端フレームへ遅延して Rebuild（reporter 付与 + 収集）後、
+        /// 現在の選択アイテムへ初期スクロールする。多重起動は _scrollScheduled でガード。
+        /// </summary>
+        private void ScheduleInitialScroll()
         {
-            _isMouseOver = false;
-            // ScrollToSelected(false);
+            if (_scrollScheduled) return;
+            _scrollScheduled = true;
+            InitialScrollDeferredAsync(this.GetCancellationTokenOnDestroy()).Forget();
+        }
+
+        private async UniTaskVoid InitialScrollDeferredAsync(CancellationToken ct)
+        {
+            try
+            {
+                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, ct);
+            }
+            catch (System.OperationCanceledException)
+            {
+                return;
+            }
+            finally
+            {
+                _scrollScheduled = false;
+            }
+
+            // 動的生成（Dropdown の複製リスト）に追従するため再収集 + reporter 付与
+            Rebuild();
+
+            var selected = EventSystem.current.currentSelectedGameObject;
+            if (selected == null) return;
+
+            var index = FindItemIndex(selected.transform);
+            if (index >= 0) ScrollTo(index);
+        }
+
+        /// <summary>選択中 Transform を含むアイテム（行）の index を祖先一致で求める。</summary>
+        private int FindItemIndex(Transform selected)
+        {
+            for (int i = 0; i < _items.Count; i++)
+            {
+                if (selected == _items[i] || selected.IsChildOf(_items[i]))
+                    return i;
+            }
+
+            return -1;
         }
     }
 }
