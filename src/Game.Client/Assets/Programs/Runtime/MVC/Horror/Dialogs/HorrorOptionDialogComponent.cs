@@ -1,10 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Enums;
 using R3;
 using R3.Triggers;
 using TMPro;
@@ -57,14 +56,37 @@ namespace Game.Horror.Dialogs
 
         [SerializeField] private TabGroup _tabGroup;
 
+        [Header("Options - General")]
         [SerializeField] private TMP_Dropdown _language;
         [SerializeField] private DropdownValues<string> _languageValues;
 
+        [SerializeField] private TMP_Dropdown _cameraControlHorizontal;
+        [SerializeField] private TMP_Dropdown _cameraControlVertical;
+
+        [SerializeField] private SliderValue _cameraSensitivityHorizontal;
+        [SerializeField] private SliderValue _cameraSensitivityVertical;
+
+        [SerializeField] private SliderValue _cameraAcceleration;
+        [SerializeField] private SliderValue _cameraShake;
+
+        [Header("Options - Video")]
         [SerializeField] private TMP_Dropdown _displayMode;
         [SerializeField] private DropdownValues<FullScreenMode> _displayModeValues;
 
         [SerializeField] private TMP_Dropdown _resolution;
         [SerializeField] private DropdownValues<ResolutionInfo> _resolutionValues;
+
+        [SerializeField] private SliderValue _fov;
+
+        [Header("Options - Graphics")]
+        [SerializeField] private TMP_Dropdown _graphicsPreset;
+        [SerializeField] private DropdownValues<GraphicQuality> _graphicsPresetValues;
+
+        [Header("Options - Audio")]
+        [SerializeField] private SliderValue _masterVolume;
+        [SerializeField] private SliderValue _bgmVolume;
+        [SerializeField] private SliderValue _voiceVolume;
+        [SerializeField] private SliderValue _seVolume;
 
         #endregion
 
@@ -81,6 +103,8 @@ namespace Game.Horror.Dialogs
 
         private void Initialize()
         {
+            #region Language
+
 #if UNITY_EDITOR
             foreach (var locale in LocalizationSettings.AvailableLocales.Locales)
             {
@@ -96,6 +120,52 @@ namespace Game.Horror.Dialogs
                     LocalizationSettings.SelectedLocale = locale;
                 })
                 .AddTo(Disposables);
+
+            #endregion
+
+            #region Camera
+
+            _cameraControlHorizontal.value = 0;
+            _cameraControlHorizontal.OnValueChangedAsObservable()
+                .Subscribe(index =>
+                {
+                    Debug.Log($"Camera Control Horizontal: {index}");
+                }).AddTo(Disposables);
+
+            _cameraControlVertical.value = 0;
+            _cameraControlVertical.OnValueChangedAsObservable()
+                .Subscribe(index =>
+                {
+                    Debug.Log($"Camera Control Vertical: {index}");
+                }).AddTo(Disposables);
+
+            _cameraSensitivityHorizontal.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Camera Sensitivity Horizontal: {value}");
+                }).AddTo(Disposables);
+
+            _cameraSensitivityVertical.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Camera Sensitivity Vertical: {value}");
+                }).AddTo(Disposables);
+
+            _cameraAcceleration.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Camera Acceleration: {value}");
+                }).AddTo(Disposables);
+
+            _cameraShake.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Camera Shake: {value}");
+                }).AddTo(Disposables);
+
+            #endregion
+
+            #region Video
 
             int displayModeIndex = 0;
             for (int i = 0; i < _displayModeValues.Count; i++)
@@ -140,6 +210,59 @@ namespace Game.Horror.Dialogs
                     Debug.Log($"Option Resolution: width={resolution.Width} height={resolution.Height}");
                 })
                 .AddTo(Disposables);
+
+            _fov.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Option Fov: {value}");
+                })
+                .AddTo(Disposables);
+
+            #endregion
+
+            #region Graphics
+
+            _graphicsPreset.OnValueChangedAsObservable()
+                .Subscribe(index =>
+                {
+                    var quality = _graphicsPresetValues[index];
+                    Debug.Log($"Option Graphics: {index} => {quality}");
+                })
+                .AddTo(Disposables);
+
+            #endregion
+
+            #region Audio
+
+            _masterVolume.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Option Master Volume: {value}");
+                })
+                .AddTo(Disposables);
+
+            _bgmVolume.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Option BGM Volume: {value}");
+                })
+                .AddTo(Disposables);
+
+            _voiceVolume.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Option Voice Volume: {value}");
+                })
+                .AddTo(Disposables);
+
+            _seVolume.OnValueChanged
+                .Subscribe(value =>
+                {
+                    Debug.Log($"Option SE Volume: {value}");
+                })
+                .AddTo(Disposables);
+
+            #endregion
         }
     }
 }
