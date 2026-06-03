@@ -92,21 +92,34 @@ namespace Game.Core.UI
             ScrollTo(_items[index]);
         }
 
-        /// <summary>対象 RectTransform が viewport に収まる最小限だけスクロールする。</summary>
+        /// <summary>
+        /// 対象 RectTransform が viewport の縦範囲からはみ出している分だけ content を動かし、
+        /// はみ出した端を viewport の端にぴったり合わせる（＝見切れを解消する最小スクロール）。
+        ///
+        /// 座標系: すべて viewport のローカル空間で縦方向(Y)のみを比較する。
+        ///   viewport.rect では yMax = 上端 / yMin = 下端。
+        ///   target の四隅をこの空間へ変換し、その Y 範囲を [targetMin(下端), targetMax(上端)] とする。
+        /// </summary>
         public void ScrollTo(RectTransform target)
         {
             if (target == null || _scrollRect == null || _scrollRect.content == null) return;
 
+            // 直前のアイテム生成・レイアウト変更（ContentSizeFitter / VerticalLayoutGroup）が
+            // まだ反映されていないと GetWorldCorners が古い位置を返し delta を誤算出する。
+            // 測定前に Canvas とレイアウトを確定させる。
             // Canvas.ForceUpdateCanvases();
+
+            // viewport 未設定の ScrollRect では自身の RectTransform がクリップ領域を兼ねる。
             var viewport = _scrollRect.viewport != null
                 ? _scrollRect.viewport
                 : (RectTransform)_scrollRect.transform;
 
-            // 対象の上端/下端を viewport ローカル Y に変換
+            // target の縦の占有範囲を viewport ローカル Y で求める。
+            // GetWorldCorners → InverseTransformPoint で、回転やネスト階層に依存せず実際の表示位置を得る。
             var corners = new Vector3[4];
             target.GetWorldCorners(corners);
-            float targetMin = float.PositiveInfinity;
-            float targetMax = float.NegativeInfinity;
+            float targetMin = float.PositiveInfinity; // 下端
+            float targetMax = float.NegativeInfinity; // 上端
             for (int i = 0; i < 4; i++)
             {
                 var lp = viewport.InverseTransformPoint(corners[i]);
@@ -116,12 +129,21 @@ namespace Game.Core.UI
 
             var vp = viewport.rect;
 
+            // delta = target が viewport からはみ出している量（符号付き）。
+            // 上にはみ出し → 正、下にはみ出し → 負。
+            // 両端同時にはみ出すケース（target が viewport より 高い）は上端優先。
+            // 収まっていれば 0。
             float delta = 0f;
-            if (targetMax > vp.yMax) delta = targetMax - vp.yMax;       // 上にはみ出し
-            else if (targetMin < vp.yMin) delta = targetMin - vp.yMin;  // 下にはみ出し
+            if (targetMax > vp.yMax)
+                delta = targetMax - vp.yMax;
+            else if (targetMin < vp.yMin)
+                delta = targetMin - vp.yMin;
 
-            if (Mathf.Abs(delta) < Epsilon) return; // 収まっていれば何もしない（最小スクロール）
+            // 既に収まっているなら動かさない
+            if (Mathf.Abs(delta) < Epsilon) return;
 
+            // content を縦に delta 分ずらすと、その子である target も同じだけ動く。
+            // y を -delta することで、はみ出していた端が viewport の端にちょうど一致する。
             var pos = _scrollRect.content.anchoredPosition;
             pos.y -= delta;
             _scrollRect.content.anchoredPosition = pos;
