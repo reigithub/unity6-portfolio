@@ -20,15 +20,13 @@ namespace Game.Core.UI
     [RequireComponent(typeof(ScrollRect))]
     public class AutoScrollRect : MonoBehaviour
     {
-        private const float Epsilon = 0.01f;
-
         private ScrollRect _scrollRect;
         private readonly List<RectTransform> _items = new();
+        public IReadOnlyList<RectTransform> Items => _items;
 
         private bool _scrollScheduled;
 
-        /// <summary>index リスト（content 配下の Selectable）</summary>
-        public IReadOnlyList<RectTransform> Items => _items;
+        private const float Epsilon = 0.01f;
 
         private void Awake()
         {
@@ -44,23 +42,47 @@ namespace Game.Core.UI
         }
 
         /// <summary>
-        /// content 配下の Selectable（ナビゲート対象）を index リストとして再収集し、
-        /// 各 Selectable に AutoScrollItemReporter を確保する（深さ無関係、動的生成にも対応）。
+        /// アイテム（Content 直下の子）を index リストとして再収集し、
+        /// Content 配下の各 Selectable に AutoScrollItemReporter を確保する。
+        /// Selectable は深さ無関係に集める（カスタムアイテムが Selectable を子に持つ構造に対応）。
         /// </summary>
         public void Rebuild()
         {
             _items.Clear();
             if (_scrollRect == null || _scrollRect.content == null) return;
 
-            var selectables = _scrollRect.content.GetComponentsInChildren<Selectable>(false);
+            var content = _scrollRect.content;
+            if (!content.TryGetComponent<ContentSizeFitter>(out var contentSizeFitter))
+            {
+                contentSizeFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+                contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+                contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            }
+
+            // アイテム = Content 直下の子（標準 ScrollView 構造）
+            for (int i = 0; i < content.childCount; i++)
+            {
+                if (content.GetChild(i) is RectTransform rt)
+                    _items.Add(rt);
+            }
+
+            // ナビゲート対象（Selectable）に reporter を付与（カスタムアイテムの子 Selectable も含む）
+            var selectables = content.GetComponentsInChildren<Selectable>(false);
             foreach (var selectable in selectables)
             {
-                _items.Add((RectTransform)selectable.transform);
-
                 if (!selectable.TryGetComponent<AutoScrollItemReporter>(out var reporter))
                     reporter = selectable.gameObject.AddComponent<AutoScrollItemReporter>();
                 reporter.Owner = this;
             }
+        }
+
+        /// <summary>
+        /// reporter（Selectable）からの選択通知。選択された Selectable を含むアイテムへスクロールする。
+        /// </summary>
+        public void OnItemSelected(Transform selected)
+        {
+            var index = FindItemIndex(selected);
+            if (index >= 0) ScrollTo(index);
         }
 
         /// <summary>index で指定したアイテムが見切れない最小限だけスクロールする。</summary>
