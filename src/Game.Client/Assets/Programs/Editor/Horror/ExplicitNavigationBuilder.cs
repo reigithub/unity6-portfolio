@@ -1,8 +1,9 @@
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Editor.Horror
+namespace Game.Editor.MenuCommands
 {
     /// <summary>
     /// 選択した GameObject の子階層にある Selectable に対して、
@@ -12,19 +13,21 @@ namespace Game.Editor.Horror
     ///       Horror / Build Tab Content Navigation を実行することで、
     ///       D-Pad U/D がタブ内のみで巡回しタブ Toggle へリークしない設定をエディタ時に焼き込む。
     /// </summary>
-    public static class HorrorTabContentNavigationBuilder
+    public static class ExplicitNavigationBuilder
     {
-        private const string MenuPath = "GameObject/Horror/Build Tab Content Navigation";
+        private const string MenuPath = "GameObject/Navigation/Build Explicit Navigation";
 
         // priority = 10 は GameObject/ メニューを Hierarchy 右クリックメニューに伝播させるために必須
         // 参照: https://docs.unity3d.com/6000.3/Documentation/ScriptReference/MenuItem.html
         [MenuItem(MenuPath, false, 0)]
-        private static void Build(MenuCommand command)
+        private static void ExecCommand(MenuCommand command)
         {
             var target = command.context as GameObject;
             if (target == null) return;
 
-            var selectables = target.GetComponentsInChildren<Selectable>(includeInactive: false);
+            var selectables = target.GetComponentsInChildren<Selectable>(includeInactive: false)
+                .Where(x => x.navigation.mode != Navigation.Mode.None)
+                .ToArray();
             if (selectables.Length == 0)
             {
                 Debug.LogWarning($"[HorrorTabContentNavigationBuilder] No Selectable found under '{target.name}'");
@@ -45,8 +48,7 @@ namespace Game.Editor.Horror
                 EditorUtility.SetDirty(selectables[i]);
             }
 
-            Debug.Log(
-                $"[HorrorTabContentNavigationBuilder] Built Explicit Up/Down navigation for {selectables.Length} Selectables under '{target.name}'");
+            Debug.Log($"[HorrorTabContentNavigationBuilder] Built Explicit Up/Down navigation for {selectables.Length} Selectables under '{target.name}'");
         }
 
         // Validate メソッドは引数なしが Unity 公式サンプルの形
