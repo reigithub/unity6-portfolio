@@ -47,7 +47,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 471740654813184
-    m_Localized: Camera Control Horizon
+    m_Localized: Camera Control Horizontal
     m_Metadata:
       m_Items: []
   - m_Id: 472841928048640
@@ -55,7 +55,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 480033473298432
-    m_Localized: Camera Sensitivity Horizon
+    m_Localized: Camera Sensitivity Horizontal
     m_Metadata:
       m_Items: []
   - m_Id: 480245164015616

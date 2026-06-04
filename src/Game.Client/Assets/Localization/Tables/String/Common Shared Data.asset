@@ -44,7 +44,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 471740654813184
-    m_Key: Camera_Control_Horizon
+    m_Key: 'Camera_Control_Horizontal
+
+'
     m_Metadata:
       m_Items: []
   - m_Id: 472841928048640
@@ -52,7 +54,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 480033473298432
-    m_Key: Camera_Sensitivity_Horizon
+    m_Key: Camera_Sensitivity_Horizontal
     m_Metadata:
       m_Items: []
   - m_Id: 480245164015616
