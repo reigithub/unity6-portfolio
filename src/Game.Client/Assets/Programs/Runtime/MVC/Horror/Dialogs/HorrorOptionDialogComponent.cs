@@ -6,7 +6,6 @@ using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
 using R3;
 using R3.Triggers;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 
@@ -32,7 +31,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ =>
                 {
                     // ダイアログキャンセル
-                    if (InputService.UI.Menu.WasPressedThisFrame())
+                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);
                         return;
@@ -57,36 +56,36 @@ namespace Game.Horror.Dialogs
         [SerializeField] private TabGroup _tabGroup;
 
         [Header("Options - General")]
-        [SerializeField] private TMP_Dropdown _language;
-        [SerializeField] private DropdownValues<string> _languageValues;
+        [SerializeField] private SliderIndexSelector _language;
+        [SerializeField] private GenericValues<string> _languageValues;
 
-        [SerializeField] private TMP_Dropdown _cameraControlHorizontal;
-        [SerializeField] private TMP_Dropdown _cameraControlVertical;
+        [SerializeField] private SliderIndexSelector _cameraControlHorizontal;
+        [SerializeField] private SliderIndexSelector _cameraControlVertical;
 
-        [SerializeField] private SliderValue _cameraSensitivityHorizontal;
-        [SerializeField] private SliderValue _cameraSensitivityVertical;
+        [SerializeField] private SliderValueSelector _cameraSensitivityHorizontal;
+        [SerializeField] private SliderValueSelector _cameraSensitivityVertical;
 
-        [SerializeField] private SliderValue _cameraAcceleration;
-        [SerializeField] private SliderValue _cameraShake;
+        [SerializeField] private SliderValueSelector _cameraAcceleration;
+        [SerializeField] private SliderValueSelector _cameraShake;
 
         [Header("Options - Video")]
-        [SerializeField] private TMP_Dropdown _displayMode;
-        [SerializeField] private DropdownValues<FullScreenMode> _displayModeValues;
+        [SerializeField] private SliderIndexSelector _displayMode;
+        [SerializeField] private GenericValues<FullScreenMode> _displayModeValues;
 
-        [SerializeField] private TMP_Dropdown _resolution;
-        [SerializeField] private DropdownValues<ResolutionInfo> _resolutionValues;
+        [SerializeField] private SliderIndexSelector _resolution;
+        [SerializeField] private GenericValues<ResolutionInfo> _resolutionValues;
 
-        [SerializeField] private SliderValue _fov;
+        [SerializeField] private SliderValueSelector _fov;
 
         [Header("Options - Graphics")]
-        [SerializeField] private TMP_Dropdown _graphicsPreset;
-        [SerializeField] private DropdownValues<GraphicQuality> _graphicsPresetValues;
+        [SerializeField] private SliderIndexSelector _graphicsPreset;
+        [SerializeField] private GenericValues<GraphicQuality> _graphicsPresetValues;
 
         [Header("Options - Audio")]
-        [SerializeField] private SliderValue _masterVolume;
-        [SerializeField] private SliderValue _bgmVolume;
-        [SerializeField] private SliderValue _voiceVolume;
-        [SerializeField] private SliderValue _seVolume;
+        [SerializeField] private SliderValueSelector _masterVolume;
+        [SerializeField] private SliderValueSelector _bgmVolume;
+        [SerializeField] private SliderValueSelector _voiceVolume;
+        [SerializeField] private SliderValueSelector _seVolume;
 
         #endregion
 
@@ -112,7 +111,7 @@ namespace Game.Horror.Dialogs
             }
 #endif
 
-            _language.OnValueChangedAsObservable()
+            _language.OnValueChanged
                 .Subscribe(index =>
                 {
                     var code = _languageValues[index];
@@ -125,15 +124,15 @@ namespace Game.Horror.Dialogs
 
             #region Camera
 
-            _cameraControlHorizontal.value = 0;
-            _cameraControlHorizontal.OnValueChangedAsObservable()
+            _cameraControlHorizontal.SetIndex(0);
+            _cameraControlHorizontal.OnValueChanged
                 .Subscribe(index =>
                 {
                     Debug.Log($"Camera Control Horizontal: {index}");
                 }).AddTo(Disposables);
 
-            _cameraControlVertical.value = 0;
-            _cameraControlVertical.OnValueChangedAsObservable()
+            _cameraControlVertical.SetIndex(0);
+            _cameraControlVertical.OnValueChanged
                 .Subscribe(index =>
                 {
                     Debug.Log($"Camera Control Vertical: {index}");
@@ -177,14 +176,14 @@ namespace Game.Horror.Dialogs
                 }
             }
 
-            _displayMode.value = displayModeIndex;
-            _displayMode.OnValueChangedAsObservable()
+            _displayMode.SetIndex(displayModeIndex);
+            _displayMode.OnValueChanged
                 .Subscribe(index =>
                 {
                     var fullScreenMode = _displayModeValues[index];
                     var resolution = Screen.currentResolution;
                     Screen.SetResolution(resolution.width, resolution.height, fullScreenMode);
-                    Debug.Log($"Option FullScreenMode: {fullScreenMode} => {_displayMode.options[index].text}");
+                    Debug.Log($"Option FullScreenMode: {fullScreenMode} => {_displayMode.GetLabel(index)}");
                 })
                 .AddTo(Disposables);
 
@@ -192,7 +191,7 @@ namespace Game.Horror.Dialogs
             for (int i = 0; i < _resolutionValues.Count; i++)
             {
                 var resolution = _resolutionValues[i];
-                Debug.Log($"Option Resolution: {resolution.Width} x {resolution.Height}");
+                Debug.Log($"Option Resolution: {resolution}");
 
                 if (Screen.currentResolution.width == resolution.Width
                     && Screen.currentResolution.height == resolution.Height)
@@ -201,8 +200,8 @@ namespace Game.Horror.Dialogs
                 }
             }
 
-            _resolution.value = resolutionIndex;
-            _resolution.OnValueChangedAsObservable()
+            _resolution.SetIndex(resolutionIndex);
+            _resolution.OnValueChanged
                 .Subscribe(index =>
                 {
                     var resolution = _resolutionValues[index];
@@ -222,7 +221,7 @@ namespace Game.Horror.Dialogs
 
             #region Graphics
 
-            _graphicsPreset.OnValueChangedAsObservable()
+            _graphicsPreset.OnValueChanged
                 .Subscribe(index =>
                 {
                     var quality = _graphicsPresetValues[index];
