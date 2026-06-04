@@ -9,8 +9,8 @@ namespace Game.Editor.Inspector.UI
     /// _value を Slider の m_Value と同様に min〜max のつまみ（スライダー）で編集できるようにする。
     /// step に snap するため、Inspector 表示値と Runtime 適用値が一致する。
     /// </summary>
-    [CustomEditor(typeof(SliderValue))]
-    public class SliderValueEditor : UnityEditor.Editor
+    [CustomEditor(typeof(SliderValueSelector))]
+    public class SliderValueSelectorEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {

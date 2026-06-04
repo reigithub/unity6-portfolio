@@ -10,7 +10,7 @@ namespace Game.Core.UI
     /// 内部 Slider を wholeNumbers(整数) にし、value を「step インデックス(0..N)」として扱う。
     /// 実値 = _min + slider.value * _step。ゲームパッド左右はネイティブ stepSize=1 で実値 +step。
     /// </summary>
-    public class SliderValue : MonoBehaviour
+    public class SliderValueSelector : MonoBehaviour
     {
         [SerializeField] private Slider _slider;
         [SerializeField] private float _min;

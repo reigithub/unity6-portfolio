@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace Game.Tests.MVC
 {
     [TestFixture]
-    public class SliderValueTests
+    public class SliderValueSelectorTests
     {
         private GameObject _go;
 
@@ -41,7 +41,7 @@ namespace Game.Tests.MVC
             slider.wholeNumbers = true;
             slider.value = 60f;
 
-            var sv = _go.AddComponent<SliderValue>();
+            var sv = _go.AddComponent<SliderValueSelector>();
             SetPrivate(sv, "_slider", slider);
             SetPrivate(sv, "_min", 60f);
             SetPrivate(sv, "_max", 120f);
@@ -63,7 +63,7 @@ namespace Game.Tests.MVC
             slider.wholeNumbers = true;
             slider.value = 0f;
 
-            var sv = _go.AddComponent<SliderValue>();
+            var sv = _go.AddComponent<SliderValueSelector>();
             SetPrivate(sv, "_slider", slider);
             SetPrivate(sv, "_min", 0f);
             SetPrivate(sv, "_max", 180f);
