@@ -4,6 +4,7 @@ using Game.Core.UI;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
+using Game.Shared.Extensions;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -26,23 +27,21 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            SceneComponent.UpdateAsObservable()
+            // ダイアログキャンセル
+            Observable.Merge(InputService.UI.Cancel.OnPerformedAsObservable(), InputService.UI.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ =>
-                {
-                    // ダイアログキャンセル
-                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
-                    {
-                        TrySetResult(default);
-                        return;
-                    }
+                .Subscribe(_ => TrySetResult(default))
+                .AddTo(Disposables);
 
-                    // L1 (Previous) / R1 (Next) でタブ循環
-                    if (InputService.UI.Previous.WasPressedThisFrame())
-                        SceneComponent.PreviousTab();
-                    else if (InputService.UI.Next.WasPressedThisFrame())
-                        SceneComponent.NextTab();
-                })
+            // L1 (Previous) / R1 (Next) でタブ循環
+            InputService.UI.Previous.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => SceneComponent.PreviousTab())
+                .AddTo(Disposables);
+
+            InputService.UI.Next.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
             return base.Startup();

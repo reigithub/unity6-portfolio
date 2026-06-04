@@ -5,6 +5,7 @@ using Game.Horror.Player;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
 using Game.Shared.Scenes;
 using R3;
 using R3.Triggers;
@@ -66,16 +67,9 @@ namespace Game.Horror.Scenes
 
         private void SubscribeEvents()
         {
-            SceneComponent
-                .UpdateAsObservable()
+            InputService.UI.Menu.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ =>
-                {
-                    if (InputService.UI.Menu.WasPressedThisFrame())
-                    {
-                        ShowPauseDialogAsync().Forget();
-                    }
-                })
+                .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
         }
 

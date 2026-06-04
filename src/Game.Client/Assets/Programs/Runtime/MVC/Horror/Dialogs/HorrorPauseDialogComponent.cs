@@ -3,8 +3,8 @@ using Game.Core.Services;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
 using R3;
-using R3.Triggers;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -44,15 +44,9 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            SceneComponent.UpdateAsObservable()
+            Observable.Merge(InputService.UI.Cancel.OnPerformedAsObservable(), InputService.UI.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ =>
-                {
-                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
-                    {
-                        TrySetResult(default);
-                    }
-                })
+                .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
 
             SceneComponent.OnResume
@@ -88,7 +82,8 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Terminate()
         {
-            if (Result != PauseResult.ReturnToTitle) ApplicationEvents.ResumeTime();
+            if (Result != PauseResult.ReturnToTitle)
+                ApplicationEvents.ResumeTime();
 
             return base.Terminate();
         }
