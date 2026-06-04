@@ -3,7 +3,7 @@
 namespace Game.Core.UI
 {
     [System.Serializable]
-    public class DropdownValues<T>
+    public class GenericValues<T>
     {
         [SerializeField] private T[] _values;
 
