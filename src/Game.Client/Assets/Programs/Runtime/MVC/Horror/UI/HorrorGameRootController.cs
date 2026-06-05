@@ -44,7 +44,6 @@ namespace Game.Core
 
         public static async UniTask UnloadAsync()
         {
-            _instance.Dispose();
             _instance.SafeDestroy();
             _instance = null;
             await UniTask.Yield();
@@ -62,8 +61,13 @@ namespace Game.Core
 
         private void Initialize()
         {
-            // InputService.SubscribeControlScheme(_playerInput);
-            _playerInput.controlsChangedEvent.AddListener(UpdateControls);
+            // playerInput.controlsChangedEvent.AddListener(UpdateControlScheme);
+            // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
+            // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
+            // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
+            _playerInput.controlsChangedEvent.AsObservable()
+                .Subscribe(x => InputService.UpdateControlScheme(x.currentControlScheme))
+                .AddTo(this);
 
             // GameScene
             MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
@@ -81,14 +85,6 @@ namespace Game.Core
                 })
                 .AddTo(this);
         }
-
-        private void Dispose()
-        {
-            _playerInput.controlsChangedEvent.RemoveListener(UpdateControls);
-        }
-
-        private void UpdateControls(PlayerInput playerInput)
-            => InputService.UpdateControlScheme(playerInput.currentControlScheme);
 
         private void DoFade(float endValue, float duration, UniTaskCompletionSource<bool> tcs)
         {

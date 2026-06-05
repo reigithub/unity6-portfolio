@@ -6,7 +6,6 @@ using Game.Shared.Input;
 using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 
 namespace Game.Core.Services
 {
@@ -17,8 +16,6 @@ namespace Game.Core.Services
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
-
-        private CompositeDisposable Disposables { get; } = new();
 
         private string _controlScheme = InputConstants.DefaultControlScheme;
         private GameObject _selectedGameObject;
@@ -143,30 +140,13 @@ namespace Game.Core.Services
             if (!CanDeselectGameObject() && go == null)
                 return;
 
+            if (EventSystem.current.currentSelectedGameObject == go) return;
+
             EventSystem.current.SetSelectedGameObject(go);
         }
 
         private bool CanDeselectGameObject()
             => _controlScheme is not (InputConstants.Gamepad or InputConstants.Joystick);
-
-        public void SubscribeControlScheme(PlayerInput playerInput)
-        {
-            // playerInput.controlsChangedEvent.AddListener(UpdateControlScheme);
-            // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
-            // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
-
-            // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
-
-            Observable.EveryValueChanged(playerInput, input => input.currentControlScheme)
-                .Subscribe(device =>
-                {
-                    Debug.Log($"PlayerInput InputDevice: {device}");
-                    UpdateControlScheme(device);
-                })
-                .AddTo(Disposables);
-
-            UpdateControlScheme(playerInput.currentControlScheme);
-        }
 
         public void UpdateControlScheme(string device)
         {
@@ -198,7 +178,6 @@ namespace Game.Core.Services
 
         public void Dispose()
         {
-            Disposables?.Dispose();
             Shutdown();
         }
     }
