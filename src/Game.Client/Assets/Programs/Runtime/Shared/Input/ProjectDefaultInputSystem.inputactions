@@ -993,17 +993,6 @@
                 },
                 {
                     "name": "",
-                    "id": "015e0bf4-406a-466e-83c8-33c4a1dc1f86",
-                    "path": "<Keyboard>/escape",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Menu",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "e29c5e83-cc60-421b-a788-38b389d52afd",
                     "path": "<Keyboard>/tab",
                     "interactions": "",
