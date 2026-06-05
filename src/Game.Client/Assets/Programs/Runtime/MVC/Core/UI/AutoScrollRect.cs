@@ -34,13 +34,6 @@ namespace Game.Core.UI
             Rebuild();
         }
 
-        private void OnEnable()
-        {
-            // Dropdown を開いた直後など、有効化時点の選択アイテムへスクロール。
-            // 複製リストのアイテム生成・toggle.Select() 完了後に処理するため端フレームへ遅延。
-            ScheduleInitialScroll();
-        }
-
         /// <summary>
         /// アイテム（Content 直下の子）を index リストとして再収集し、
         /// Content 配下の各 Selectable に AutoScrollItemReporter を確保する。
@@ -94,6 +87,18 @@ namespace Game.Core.UI
         /// </summary>
         public void OnItemDeselected(Transform deselected)
         {
+        }
+
+        /// <summary>選択中 Transform を含むアイテム（行）の index を祖先一致で求める。</summary>
+        private int FindItemIndex(Transform selected)
+        {
+            for (int i = 0; i < _items.Count; i++)
+            {
+                if (selected == _items[i] || selected.IsChildOf(_items[i]))
+                    return i;
+            }
+
+            return -1;
         }
 
         /// <summary>index で指定したアイテムが見切れない最小限だけスクロールする。</summary>
@@ -160,52 +165,47 @@ namespace Game.Core.UI
             _scrollRect.content.anchoredPosition = pos;
         }
 
-        /// <summary>
-        /// OnEnable 時のワンショット。端フレームへ遅延して Rebuild（reporter 付与 + 収集）後、
-        /// 現在の選択アイテムへ初期スクロールする。多重起動は _scrollScheduled でガード。
-        /// </summary>
-        private void ScheduleInitialScroll()
-        {
-            if (_scrollScheduled) return;
-            _scrollScheduled = true;
-            InitialScrollDeferredAsync(this.GetCancellationTokenOnDestroy()).Forget();
-        }
-
-        private async UniTaskVoid InitialScrollDeferredAsync(CancellationToken ct)
-        {
-            try
-            {
-                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, ct);
-            }
-            catch (System.OperationCanceledException)
-            {
-                return;
-            }
-            finally
-            {
-                _scrollScheduled = false;
-            }
-
-            // 動的生成（Dropdown の複製リスト）に追従するため再収集 + reporter 付与
-            Rebuild();
-
-            var selected = EventSystem.current.currentSelectedGameObject;
-            if (selected == null) return;
-
-            var index = FindItemIndex(selected.transform);
-            if (index >= 0) ScrollTo(index);
-        }
-
-        /// <summary>選択中 Transform を含むアイテム（行）の index を祖先一致で求める。</summary>
-        private int FindItemIndex(Transform selected)
-        {
-            for (int i = 0; i < _items.Count; i++)
-            {
-                if (selected == _items[i] || selected.IsChildOf(_items[i]))
-                    return i;
-            }
-
-            return -1;
-        }
+        // private void OnEnable()
+        // {
+        //     // Dropdown を開いた直後など、有効化時点の選択アイテムへスクロール。
+        //     // 複製リストのアイテム生成・toggle.Select() 完了後に処理するため端フレームへ遅延。
+        //     ScheduleInitialScroll();
+        // }
+        //
+        // /// <summary>
+        // /// OnEnable 時のワンショット。端フレームへ遅延して Rebuild（reporter 付与 + 収集）後、
+        // /// 現在の選択アイテムへ初期スクロールする。多重起動は _scrollScheduled でガード。
+        // /// </summary>
+        // private void ScheduleInitialScroll()
+        // {
+        //     if (_scrollScheduled) return;
+        //     _scrollScheduled = true;
+        //     InitialScrollDeferredAsync(this.GetCancellationTokenOnDestroy()).Forget();
+        // }
+        //
+        // private async UniTaskVoid InitialScrollDeferredAsync(CancellationToken ct)
+        // {
+        //     try
+        //     {
+        //         await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, ct);
+        //     }
+        //     catch (System.OperationCanceledException)
+        //     {
+        //         return;
+        //     }
+        //     finally
+        //     {
+        //         _scrollScheduled = false;
+        //     }
+        //
+        //     // 動的生成（Dropdown の複製リスト）に追従するため再収集 + reporter 付与
+        //     Rebuild();
+        //
+        //     var selected = EventSystem.current.currentSelectedGameObject;
+        //     if (selected == null) return;
+        //
+        //     var index = FindItemIndex(selected.transform);
+        //     if (index >= 0) ScrollTo(index);
+        // }
     }
 }
