@@ -11,6 +11,12 @@ namespace Game.Core.UI
         public int Width => _width;
         public int Height => _height;
 
+        public ResolutionInfo(int width, int height)
+        {
+            _width = width;
+            _height = height;
+        }
+
         public override string ToString() => $"{Width} x {Height}";
     }
 }
