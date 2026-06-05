@@ -15,7 +15,7 @@ namespace Game.Editor.MenuCommands
     /// </summary>
     public static class ExplicitNavigationBuilder
     {
-        private const string MenuPath = "GameObject/Navigation/Build Explicit Navigation";
+        private const string MenuPath = "GameObject/Navigation/Build Explicit Navigation(Vertical)";
 
         // priority = 10 は GameObject/ メニューを Hierarchy 右クリックメニューに伝播させるために必須
         // 参照: https://docs.unity3d.com/6000.3/Documentation/ScriptReference/MenuItem.html
@@ -30,7 +30,7 @@ namespace Game.Editor.MenuCommands
                 .ToArray();
             if (selectables.Length == 0)
             {
-                Debug.LogWarning($"[HorrorTabContentNavigationBuilder] No Selectable found under '{target.name}'");
+                Debug.LogWarning($"[ExplicitNavigationBuilder] No Selectable found under '{target.name}'");
                 return;
             }
 
@@ -48,10 +48,9 @@ namespace Game.Editor.MenuCommands
                 EditorUtility.SetDirty(selectables[i]);
             }
 
-            Debug.Log($"[HorrorTabContentNavigationBuilder] Built Explicit Up/Down navigation for {selectables.Length} Selectables under '{target.name}'");
+            Debug.Log($"[ExplicitNavigationBuilder] Built Explicit Up/Down navigation for {selectables.Length} Selectables under '{target.name}'");
         }
 
-        // Validate メソッドは引数なしが Unity 公式サンプルの形
         [MenuItem(MenuPath, true)]
         private static bool Validate()
         {
