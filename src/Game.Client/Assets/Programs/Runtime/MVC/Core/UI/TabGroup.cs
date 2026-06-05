@@ -1,4 +1,5 @@
-﻿using Game.Core.Services;
+﻿using System.Linq;
+using Game.Core.Services;
 using Game.Shared.Input;
 using R3;
 using UnityEngine;
@@ -65,9 +66,15 @@ namespace Game.Core.UI
             // EventSystem フォーカス移動
             var first = _tabs[index].FirstSelectable;
             if (first != null && first.IsSelectable())
+            {
                 InputService.SetSelectedGameObject(first.gameObject);
+            }
             else
-                InputService.ResolveSelectable();
+            {
+                var selectable = _tabs[index].TabContent.GetComponentsInChildren<Selectable>(false)
+                    .FirstOrDefault(x => x.IsSelectable());
+                if (selectable != null) InputService.SetSelectedGameObject(selectable.gameObject);
+            }
 
             _onChangedTab.OnNext(index);
         }
