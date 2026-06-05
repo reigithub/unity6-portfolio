@@ -523,7 +523,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 360, y: 80}
+  m_SizeDelta: {x: 480, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1372115351333462694
 CanvasRenderer:
@@ -619,6 +619,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 7218293817911204746}
 --- !u!1 &5994241387563940000
 GameObject:
   m_ObjectHideFlags: 0
@@ -657,7 +658,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 360, y: 80}
+  m_SizeDelta: {x: 480, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7418953196966607526
 CanvasRenderer:
@@ -753,6 +754,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 4369958009667636432}
 --- !u!1 &6836156869972513042
 GameObject:
   m_ObjectHideFlags: 0
@@ -982,12 +984,12 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 48
+  m_fontSize: 60
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 48
+  m_fontSizeMax: 60
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -1065,7 +1067,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 360, y: 80}
+  m_SizeDelta: {x: 480, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3319737556104136932
 CanvasRenderer:
@@ -1161,6 +1163,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 6488326974862328780}
 --- !u!1 &7986436877692854333
 GameObject:
   m_ObjectHideFlags: 0
@@ -1199,7 +1202,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 360, y: 80}
+  m_SizeDelta: {x: 480, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &799650800227287292
 MonoBehaviour:
@@ -1402,7 +1405,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 360, y: 80}
+  m_SizeDelta: {x: 480, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3935365146043134101
 CanvasRenderer:
@@ -1498,3 +1501,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 2846175209680234276}
