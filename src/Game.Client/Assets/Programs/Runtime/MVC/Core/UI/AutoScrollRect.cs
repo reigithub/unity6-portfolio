@@ -86,7 +86,6 @@ namespace Game.Core.UI
             if (index < 0) return;
 
             ScrollTo(index);
-            SetItemHighlight(index, true);
         }
 
         /// <summary>
@@ -95,17 +94,6 @@ namespace Game.Core.UI
         /// </summary>
         public void OnItemDeselected(Transform deselected)
         {
-            var index = FindItemIndex(deselected);
-            if (index < 0) return;
-
-            SetItemHighlight(index, false);
-        }
-
-        /// <summary>アイテム（Content 直下の子）ルートにある白背景 Image を On/Off する。Image が無い行は何もしない。</summary>
-        private void SetItemHighlight(int index, bool on)
-        {
-            if (_items[index].TryGetComponent<Image>(out var highlight))
-                highlight.enabled = on;
         }
 
         /// <summary>index で指定したアイテムが見切れない最小限だけスクロールする。</summary>
