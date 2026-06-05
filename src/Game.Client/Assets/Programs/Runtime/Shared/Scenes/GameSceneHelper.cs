@@ -55,10 +55,16 @@ namespace Game.Shared.Scenes
             {
                 if (obj.TryGetComponent<T>(out component))
                     break;
+            }
 
-                component = obj.GetComponentInChildren<T>();
-                if (component != null)
-                    break;
+            if (component == null)
+            {
+                foreach (var obj in rootGameObjects)
+                {
+                    component = obj.GetComponentInChildren<T>();
+                    if (component != null)
+                        break;
+                }
             }
 
             return component;
