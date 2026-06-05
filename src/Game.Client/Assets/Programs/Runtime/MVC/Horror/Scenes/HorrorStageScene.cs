@@ -67,7 +67,7 @@ namespace Game.Horror.Scenes
 
         private void SubscribeEvents()
         {
-            InputService.UI.Menu.OnPerformedAsObservable()
+            Observable.Merge(InputService.UI.Cancel.OnPerformedAsObservable(), InputService.UI.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
