@@ -321,10 +321,10 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(7)); // Default
-            Assert.That(_service.Data.BgmVolume, Is.EqualTo(7));    // Default
-            Assert.That(_service.Data.VoiceVolume, Is.EqualTo(10)); // Default
-            Assert.That(_service.Data.SeVolume, Is.EqualTo(7));     // Default
+            Assert.That(_service.Data.MasterVolume, Is.EqualTo(5)); // Default
+            Assert.That(_service.Data.BgmVolume, Is.EqualTo(3));    // Default
+            Assert.That(_service.Data.VoiceVolume, Is.EqualTo(7)); // Default
+            Assert.That(_service.Data.SeVolume, Is.EqualTo(5));     // Default
         }
 
         #endregion
