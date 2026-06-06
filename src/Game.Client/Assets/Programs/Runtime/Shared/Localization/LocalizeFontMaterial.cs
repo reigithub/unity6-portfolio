@@ -37,6 +37,8 @@ namespace Game.Shared.Localization
         }
     }
 
+#if UNITY_EDITOR
+
     public abstract class AddLocalizeFontMaterial
     {
         [MenuItem("CONTEXT/TMP_Text/Localize Font Material", false, 1)]
@@ -49,4 +51,6 @@ namespace Game.Shared.Localization
             }
         }
     }
+
+#endif
 }

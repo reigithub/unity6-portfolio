@@ -48,6 +48,8 @@ namespace Game.Shared.Localization
         }
     }
 
+#if UNITY_EDITOR
+
     public abstract class AddLocalizeDropdown
     {
         [MenuItem("CONTEXT/TMP_Dropdown/Localize", false, 1)]
@@ -60,4 +62,6 @@ namespace Game.Shared.Localization
             }
         }
     }
+
+#endif
 }
