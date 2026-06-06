@@ -600,6 +600,7 @@ GameObject:
   - component: {fileID: 5216230396753566375}
   - component: {fileID: 5716968559708695759}
   - component: {fileID: 6312275994968854436}
+  - component: {fileID: 8400663133814322357}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -709,6 +710,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8400663133814322357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327578770793796432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 632668996821103969}
 --- !u!1 &366473900984735942
 GameObject:
   m_ObjectHideFlags: 0
@@ -3292,6 +3306,7 @@ GameObject:
   - component: {fileID: 6472891638330427775}
   - component: {fileID: 8910340738908007105}
   - component: {fileID: 1245159853516669676}
+  - component: {fileID: 7227162401358369929}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -3401,6 +3416,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7227162401358369929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1431305315031046036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 2093479853392291266}
 --- !u!1 &1462977362984079865
 GameObject:
   m_ObjectHideFlags: 0
@@ -3413,6 +3441,7 @@ GameObject:
   - component: {fileID: 7151612871962358467}
   - component: {fileID: 3935047889687635756}
   - component: {fileID: 7551081327026395333}
+  - component: {fileID: 3745021480301205697}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -3522,6 +3551,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3745021480301205697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1462977362984079865}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 5084043861531332821}
 --- !u!1 &1493619801185960470
 GameObject:
   m_ObjectHideFlags: 0
@@ -5559,6 +5601,7 @@ GameObject:
   - component: {fileID: 5442442375123408988}
   - component: {fileID: 886364571621304717}
   - component: {fileID: 5226925909846238558}
+  - component: {fileID: 5325260743214718996}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -5668,6 +5711,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5325260743214718996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2082841442467393916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 9002487264583162506}
 --- !u!1 &2084909942548430182
 GameObject:
   m_ObjectHideFlags: 0
@@ -9346,6 +9402,7 @@ GameObject:
   - component: {fileID: 2822566271569429563}
   - component: {fileID: 3645025795374773273}
   - component: {fileID: 7748645516286082461}
+  - component: {fileID: 6892392887860860016}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -9455,6 +9512,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6892392887860860016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3621500772511383472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 2093479853392291266}
 --- !u!1 &3711423570365692486
 GameObject:
   m_ObjectHideFlags: 0
@@ -11299,6 +11369,7 @@ GameObject:
   - component: {fileID: 1649145221389424374}
   - component: {fileID: 2152065258232172971}
   - component: {fileID: 4829676810881310536}
+  - component: {fileID: 7054706797185399005}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -11408,6 +11479,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7054706797185399005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4137917893855327297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 4095502674537021207}
 --- !u!1 &4231380935533950292
 GameObject:
   m_ObjectHideFlags: 0
@@ -13324,6 +13408,7 @@ GameObject:
   - component: {fileID: 4867892042140815839}
   - component: {fileID: 1609628472452483786}
   - component: {fileID: 8795195552722679478}
+  - component: {fileID: 4657630853765785337}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -13433,6 +13518,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4657630853765785337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4837662103430969212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 9002487264583162506}
 --- !u!1 &4864669434710961796
 GameObject:
   m_ObjectHideFlags: 0
@@ -13859,6 +13957,7 @@ GameObject:
   - component: {fileID: 2532020588761106136}
   - component: {fileID: 2645499564664883642}
   - component: {fileID: 5948004615569190944}
+  - component: {fileID: 6834302720111891720}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -13968,6 +14067,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6834302720111891720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5017100321327626323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 6802981768607562189}
 --- !u!1 &5048813774460969241
 GameObject:
   m_ObjectHideFlags: 0
@@ -14130,6 +14242,7 @@ GameObject:
   - component: {fileID: 4776186964220925915}
   - component: {fileID: 1639455550775967687}
   - component: {fileID: 2353010818374273695}
+  - component: {fileID: 8180598541025306030}
   m_Layer: 5
   m_Name: PrevButton
   m_TagString: Untagged
@@ -14239,6 +14352,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8180598541025306030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5117715217936933804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 6802981768607562189}
 --- !u!1 &5124712314236092750
 GameObject:
   m_ObjectHideFlags: 0
@@ -15377,6 +15503,7 @@ GameObject:
   - component: {fileID: 7874313419357027848}
   - component: {fileID: 2696578038220148524}
   - component: {fileID: 1863071157211264469}
+  - component: {fileID: 895112438606752149}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -15486,6 +15613,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &895112438606752149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434718080040243341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 632668996821103969}
 --- !u!1 &5464752120150508339
 GameObject:
   m_ObjectHideFlags: 0
@@ -19298,6 +19438,7 @@ GameObject:
   - component: {fileID: 3215880592450527627}
   - component: {fileID: 9057309667141801419}
   - component: {fileID: 3919625069337193221}
+  - component: {fileID: 8735993639617624991}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -19407,6 +19548,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8735993639617624991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7140576708930554935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 5084043861531332821}
 --- !u!1 &7147083325721459273
 GameObject:
   m_ObjectHideFlags: 0
@@ -22570,6 +22724,7 @@ GameObject:
   - component: {fileID: 2694373224516355163}
   - component: {fileID: 856935599044570141}
   - component: {fileID: 2279608704674082426}
+  - component: {fileID: 729290841066614912}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -22679,6 +22834,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &729290841066614912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8262282638411158344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70d1cc50f587cea47b71e50d335f5b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.PointerEventReceiver
+  _selectable: {fileID: 4095502674537021207}
 --- !u!1 &8392244706326726452
 GameObject:
   m_ObjectHideFlags: 0
