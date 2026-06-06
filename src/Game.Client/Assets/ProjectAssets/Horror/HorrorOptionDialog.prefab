@@ -6961,6 +6961,11 @@ MonoBehaviour:
       _height: 1440
     - _width: 3840
       _height: 2160
+  _frameRateLimit: {fileID: 7403550563786883885}
+  _frameRateLimitValues:
+    _values: ffffffff1e0000003c0000005a00000078000000
+  _vSync: {fileID: 2785860455721251788}
+  _motionBluer: {fileID: 6869850943917206182}
   _graphicQualityPreset: {fileID: 175176151019268821}
   _graphicQualityValues:
     _values: 01000000020000000300000004000000
