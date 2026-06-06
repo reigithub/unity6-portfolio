@@ -135,18 +135,14 @@ namespace Game.Core.Services
 
         public void SetSelectedGameObject(GameObject go)
         {
-            _selectedGameObject = go;
+            if (go == null) return;
 
-            if (!CanDeselectGameObject() && go == null)
-                return;
+            _selectedGameObject = go;
 
             if (EventSystem.current.currentSelectedGameObject == go) return;
 
             EventSystem.current.SetSelectedGameObject(go);
         }
-
-        private bool CanDeselectGameObject()
-            => _controlScheme is not (InputConstants.Gamepad or InputConstants.Joystick);
 
         public void UpdateControlScheme(string device)
         {
@@ -170,7 +166,7 @@ namespace Game.Core.Services
                 case InputConstants.XR:
                 {
                     ApplicationEvents.ShowCursor();
-                    ResolveSelectable();
+                    ResolveSelectable(selectedGameObject);
                     break;
                 }
             }
