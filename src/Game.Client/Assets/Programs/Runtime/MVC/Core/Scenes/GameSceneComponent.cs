@@ -33,22 +33,24 @@ namespace Game.MVC.Core.Scenes
         private Selectable[] _selectables;
         private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
 
-        public CompositeDisposable Disposables { get; } = new();
-
         private GameObject _selectedGameObject;
+
+        public CompositeDisposable Disposables { get; } = new();
 
         public virtual UniTask Startup()
         {
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Sleep()
+        public virtual async UniTask Sleep()
         {
-            return Unfocus();
+            await Unfocus();
+            Hide();
         }
 
         public virtual UniTask Restart()
         {
+            Show();
             return Focus();
         }
 
@@ -66,7 +68,6 @@ namespace Game.MVC.Core.Scenes
 
         private async UniTask Focus()
         {
-            if (!gameObject.activeSelf) gameObject.SetActive(true);
             SetInteractable(true);
             await UniTask.Yield();
             InputService.ResolveControlScheme(_selectedGameObject);
@@ -77,6 +78,15 @@ namespace Game.MVC.Core.Scenes
             _selectedGameObject = InputService.GetSelectedGameObject();
             await UniTask.Yield();
             SetInteractable(false);
+        }
+
+        private void Show()
+        {
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+        }
+
+        private void Hide()
+        {
             if (gameObject.activeSelf) gameObject.SetActive(false);
         }
 
