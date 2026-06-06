@@ -12,15 +12,15 @@ namespace Game.Shared.SaveData
         public int Version { get; set; } = 1;
 
         /// <summary>マスターボリューム (0-10)</summary>
-        public int MasterVolume { get; set; } = 7;
+        public int MasterVolume { get; set; } = 5;
 
         /// <summary>BGMボリューム (0-10)</summary>
-        public int BgmVolume { get; set; } = 7;
+        public int BgmVolume { get; set; } = 3;
 
         /// <summary>ボイスボリューム (0-10)</summary>
-        public int VoiceVolume { get; set; } = 10;
+        public int VoiceVolume { get; set; } = 7;
 
         /// <summary>SEボリューム (0-10)</summary>
-        public int SeVolume { get; set; } = 7;
+        public int SeVolume { get; set; } = 5;
     }
 }
