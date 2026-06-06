@@ -23,7 +23,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 63721974530048
-    m_Localized: Video
+    m_Localized: Display
     m_Metadata:
       m_Items: []
   - m_Id: 64935877410816
@@ -87,7 +87,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 485709490683904
-    m_Localized: FOV
+    m_Localized: Camera FOV
     m_Metadata:
       m_Items: []
   - m_Id: 486222361788416
@@ -136,6 +136,46 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 489553507385344
     m_Localized: SE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2207592664276992
+    m_Localized: Lighting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2209176018231296
+    m_Localized: Reflectiom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2210084433174528
+    m_Localized: Anti Aliasing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2210298732748800
+    m_Localized: PostProcessing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2216650326679552
+    m_Localized: ResolutionScale
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2232632818540544
+    m_Localized: Frame Rate Limit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234188787884032
+    m_Localized: VSync
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234301727907840
+    m_Localized: ON
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234583346061312
+    m_Localized: OFF
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2235681796530176
+    m_Localized: MotionBlur
     m_Metadata:
       m_Items: []
   references:
