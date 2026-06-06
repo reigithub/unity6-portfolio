@@ -375,7 +375,7 @@ MonoBehaviour:
   m_ScrollWheelAction: {fileID: 6240969308177333660, guid: 72fd472ba9a8dca43a0b96927f073670, type: 3}
   m_TrackedDevicePositionAction: {fileID: 6564999863303420839, guid: 72fd472ba9a8dca43a0b96927f073670, type: 3}
   m_TrackedDeviceOrientationAction: {fileID: 7970375526676320489, guid: 72fd472ba9a8dca43a0b96927f073670, type: 3}
-  m_DeselectOnBackgroundClick: 1
+  m_DeselectOnBackgroundClick: 0
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
   m_ScrollDeltaPerTick: 6
@@ -492,6 +492,14 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: a8b045ff-5c42-4504-9495-7a8b5be17bd3
     m_ActionName: 'UI/Escape[/Keyboard/escape,/XInputControllerWindows/start]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 1de0bc2d-8575-47c4-bb16-bf78f8756735
+    m_ActionName: 'UI/Previous[/XInputControllerWindows/leftShoulder,/Keyboard/q]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: dcd979b2-1e00-4e7d-a2b9-66499d5fdd4e
+    m_ActionName: 'UI/Next[/XInputControllerWindows/rightShoulder,/Keyboard/e]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
