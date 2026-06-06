@@ -40,15 +40,7 @@ namespace Game.Core.UI
         {
             if (_initialized) return;
 
-            // 購読時の即時発火やスライダー再スケーリングで _value が上書きされる前に初期値を退避
-            var initialValue = _value;
-
-            var notchCount = Mathf.Max(1, Mathf.RoundToInt((_max - _min) / _step));
-            _slider.minValue = 0;
-            _slider.maxValue = notchCount;
-            _slider.wholeNumbers = true;
-
-            SetValue(initialValue);
+            Configure();
 
             _slider.OnValueChangedAsObservable()
                 .Subscribe(_ =>
@@ -60,6 +52,20 @@ namespace Game.Core.UI
                 .AddTo(this);
 
             _initialized = true;
+        }
+
+        [ContextMenu("Configure Slider")]
+        public void Configure()
+        {
+            // 購読時の即時発火やスライダー再スケーリングで _value が上書きされる前に初期値を退避
+            var initialValue = _value;
+
+            var notchCount = Mathf.Max(1, Mathf.RoundToInt((_max - _min) / _step));
+            _slider.minValue = 0;
+            _slider.maxValue = notchCount;
+            _slider.wholeNumbers = true;
+
+            SetValue(initialValue);
         }
 
         public float GetValue()
