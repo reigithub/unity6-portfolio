@@ -57,6 +57,7 @@ namespace Game.Horror.Scenes
         private async UniTask UnloadUnitySceneAsync()
         {
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
+            _stageSceneInstance = default;
         }
 
         private async UniTask LoadPlayerAsync()
