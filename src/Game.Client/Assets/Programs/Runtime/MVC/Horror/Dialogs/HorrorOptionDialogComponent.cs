@@ -10,6 +10,7 @@ using R3;
 using R3.Triggers;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
+using UnityEngine.Rendering;
 
 namespace Game.Horror.Dialogs
 {
@@ -99,11 +100,11 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderIndexSelector _resolution;
         [SerializeField] private GenericValues<ResolutionInfo> _resolutionValues;
 
-        [SerializeField] private SliderIndexSelector _frameRateLimit;
-        [SerializeField] private GenericValues<FrameRateLimit> _frameRateLimitValues;
+        [SerializeField] private SliderValueSelector _frameRate;
+        [SerializeField] private SliderIndexSelector _uncappedFrameRate;
 
         [SerializeField] private SliderIndexSelector _vSync;
-        [SerializeField] private SliderIndexSelector _motionBluer;
+        [SerializeField] private SliderIndexSelector _motionBlur;
 
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _graphicQualityPreset;
@@ -134,6 +135,7 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnCameraSensitivityVerticalChanged => _cameraSensitivityVertical.OnValueChanged;
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
         public Observable<float> OnCameraShakeChanged => _cameraShake.OnValueChanged;
+        public Observable<float> OnCameraFovChanged => _cameraFov.OnValueChanged;
 
         #endregion
 
@@ -141,7 +143,10 @@ namespace Game.Horror.Dialogs
 
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
-        public Observable<float> OnFovChanged => _cameraFov.OnValueChanged;
+        public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
+        public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged.Select(index => index != 0);
+        public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged.Select(index => index != 0);
+        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged.Select(index => index != 0);
 
         #endregion
 
@@ -180,66 +185,10 @@ namespace Game.Horror.Dialogs
 
         private void Initialize()
         {
-            #region Language
-
-#if UNITY_EDITOR
-            foreach (var locale in LocalizationSettings.AvailableLocales.Locales)
-            {
-                Debug.Log($"Localization Code: {locale.Identifier.Code} / LocalName: {locale.LocaleName}");
-            }
-#endif
-
-            // _language.OnValueChanged
-            //     .Subscribe(index =>
-            //     {
-            //         var code = _languageValues[index];
-            //         // var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
-            //         // LocalizationSettings.SelectedLocale = locale;
-            //         // _onLanguageChanged.OnNext(code);
-            //     })
-            //     .AddTo(Disposables);
-
-            #endregion
-
             #region Camera
 
             _cameraControlHorizontal.SetIndex(0);
-            _cameraControlHorizontal.OnValueChanged
-                .Subscribe(index =>
-                {
-                    Debug.Log($"Camera Control Horizontal: {index}");
-                }).AddTo(Disposables);
-
             _cameraControlVertical.SetIndex(0);
-            _cameraControlVertical.OnValueChanged
-                .Subscribe(index =>
-                {
-                    Debug.Log($"Camera Control Vertical: {index}");
-                }).AddTo(Disposables);
-
-            _cameraSensitivityHorizontal.OnValueChanged
-                .Subscribe(value =>
-                {
-                    Debug.Log($"Camera Sensitivity Horizontal: {value}");
-                }).AddTo(Disposables);
-
-            _cameraSensitivityVertical.OnValueChanged
-                .Subscribe(value =>
-                {
-                    Debug.Log($"Camera Sensitivity Vertical: {value}");
-                }).AddTo(Disposables);
-
-            _cameraAcceleration.OnValueChanged
-                .Subscribe(value =>
-                {
-                    Debug.Log($"Camera Acceleration: {value}");
-                }).AddTo(Disposables);
-
-            _cameraShake.OnValueChanged
-                .Subscribe(value =>
-                {
-                    Debug.Log($"Camera Shake: {value}");
-                }).AddTo(Disposables);
 
             #endregion
 
@@ -288,57 +237,6 @@ namespace Game.Horror.Dialogs
                     Debug.Log($"Option Resolution: width={resolution.Width} height={resolution.Height}");
                 })
                 .AddTo(Disposables);
-
-            _cameraFov.OnValueChanged
-                .Subscribe(value =>
-                {
-                    Debug.Log($"Option Fov: {value}");
-                })
-                .AddTo(Disposables);
-
-            #endregion
-
-            #region Graphics
-
-            _graphicQualityPreset.OnValueChanged
-                .Subscribe(index =>
-                {
-                    var quality = _graphicQualityValues[index];
-                    Debug.Log($"Option Graphics: {index} => {quality}");
-                })
-                .AddTo(Disposables);
-
-            #endregion
-
-            #region Audio
-
-            // _masterVolume.OnValueChanged
-            //     .Subscribe(value =>
-            //     {
-            //         Debug.Log($"Option Master Volume: {value}");
-            //     })
-            //     .AddTo(Disposables);
-            //
-            // _bgmVolume.OnValueChanged
-            //     .Subscribe(value =>
-            //     {
-            //         Debug.Log($"Option BGM Volume: {value}");
-            //     })
-            //     .AddTo(Disposables);
-            //
-            // _voiceVolume.OnValueChanged
-            //     .Subscribe(value =>
-            //     {
-            //         Debug.Log($"Option Voice Volume: {value}");
-            //     })
-            //     .AddTo(Disposables);
-            //
-            // _seVolume.OnValueChanged
-            //     .Subscribe(value =>
-            //     {
-            //         Debug.Log($"Option SE Volume: {value}");
-            //     })
-            //     .AddTo(Disposables);
 
             #endregion
         }
