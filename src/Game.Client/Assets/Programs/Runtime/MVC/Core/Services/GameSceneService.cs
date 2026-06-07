@@ -314,6 +314,7 @@ namespace Game.Core.Services
         {
             if (gameScene != null)
             {
+                if (gameScene.State is GameSceneState.Terminate) return;
                 gameScene.State = GameSceneState.Terminate;
                 await DoFadeOutAsync(gameScene);
                 await gameScene.Terminate();
