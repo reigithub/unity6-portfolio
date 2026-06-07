@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Exceptions;
+using Game.Shared.Extensions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -38,6 +39,7 @@ namespace Game.Shared.Services
 
         public async UniTask UnloadSceneAsync(SceneInstance sceneInstance)
         {
+            if (!sceneInstance.CanUnload()) return;
             await Addressables.UnloadSceneAsync(sceneInstance);
         }
 
