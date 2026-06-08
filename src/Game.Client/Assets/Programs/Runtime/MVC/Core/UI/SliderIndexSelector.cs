@@ -37,7 +37,7 @@ namespace Game.Core.UI
         {
             if (_initialized) return;
 
-            ConfigureSlider();
+            Configure();
 
             _prevButton.OnClickAsObservable().Subscribe(_ => Step(-1)).AddTo(this);
             _nextButton.OnClickAsObservable().Subscribe(_ => Step(+1)).AddTo(this);
@@ -78,7 +78,7 @@ namespace Game.Core.UI
         public void SetLabels(string[] labels)
         {
             _labels = labels;
-            ConfigureSlider();
+            Configure();
             Refresh();
         }
 
@@ -92,7 +92,7 @@ namespace Game.Core.UI
             Refresh();
         }
 
-        private void ConfigureSlider()
+        private void Configure()
         {
             _slider.wholeNumbers = true;
             _slider.minValue = 0;

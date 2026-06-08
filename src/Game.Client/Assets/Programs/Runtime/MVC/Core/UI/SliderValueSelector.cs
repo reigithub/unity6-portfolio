@@ -65,7 +65,8 @@ namespace Game.Core.UI
             _slider.maxValue = notchCount;
             _slider.wholeNumbers = true;
 
-            SetValue(initialValue);
+            _slider.SetValueWithoutNotify(Mathf.RoundToInt((initialValue - _min) / _step)); // Slider 側で [0, maxValue] にクランプ
+            UpdateValueText(GetValue());
         }
 
         public float GetValue()
@@ -78,6 +79,7 @@ namespace Game.Core.UI
         /// </summary>
         public void SetValue(float value)
         {
+            Initialize();
             _slider.value = Mathf.RoundToInt((value - _min) / _step); // Slider 側で [0, maxValue] にクランプ
             UpdateValueText(GetValue());
         }
