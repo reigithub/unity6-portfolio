@@ -53,12 +53,35 @@ namespace Game.Horror.Dialogs
 
             SceneComponent.Initialize(_model.Data);
 
+            // General
             SceneComponent.OnLanguageChanged
                 .Subscribe(code => { _model.SetLanguageCode(code); })
                 .AddTo(Disposables);
+            SceneComponent.OnCameraControlHorizontalChanged
+                .Subscribe(b => { _model.SetCameraControlHorizontal(b); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraControlVerticalChanged
+                .Subscribe(b => { _model.SetCameraControlVertical(b); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraSensitivityHorizontalChanged
+                .Subscribe(v => { _model.SetCameraSensitivityHorizontal(v); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraSensitivityVerticalChanged
+                .Subscribe(v => { _model.SetCameraSensitivityVertical(v); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraAccelerationChanged
+                .Subscribe(v => { _model.SetCameraAcceleration(v); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraShakeChanged
+                .Subscribe(v => { _model.SetCameraShake(v); })
+                .AddTo(Disposables);
+            SceneComponent.OnCameraFovChanged
+                .Subscribe(v => { _model.SetCameraFov(v); })
+                .AddTo(Disposables);
 
+            // Display
             SceneComponent.OnDisplayModeChanged
-                .Subscribe(mode => { _model.SetDisplayMode(mode);  })
+                .Subscribe(mode => { _model.SetDisplayMode(mode); })
                 .AddTo(Disposables);
             SceneComponent.OnResolutionChanged
                 .Subscribe(res => { _model.SetResolution(res.Width, res.Height); })
@@ -70,7 +93,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(b => { _model.SetUncappedFrameRate(b); })
                 .AddTo(Disposables);
             SceneComponent.OnVSyncChanged
-                .Subscribe(b => { _model.SetVSync(b);})
+                .Subscribe(b => { _model.SetVSync(b); })
                 .AddTo(Disposables);
 
             return base.Startup();
@@ -149,7 +172,7 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        #region Options - Video
+        #region Options - Display
 
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
@@ -186,7 +209,17 @@ namespace Game.Horror.Dialogs
         {
             _tabGroup.Initialize();
 
+            // General
             _language.SetIndex(_languageValues[d.LanguageCode]);
+            _cameraControlHorizontal.SetIndex(d.CameraControlHorizontal ? 1 : 0);
+            _cameraControlVertical.SetIndex(d.CameraControlVertical ? 1 : 0);
+            _cameraSensitivityHorizontal.SetValue(d.CameraSensitivityHorizontal);
+            _cameraSensitivityVertical.SetValue(d.CameraSensitivityVertical);
+            _cameraAcceleration.SetValue(d.CameraAcceleration);
+            _cameraShake.SetValue(d.CameraShake);
+            _cameraFov.SetValue(d.CameraFov);
+
+            // Display
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);
             _resolution.SetIndex(ResolveResolutionIndex(d.ResolutionWidth, d.ResolutionHeight));
             _frameRate.SetValue(d.FrameRateLimit);
@@ -223,12 +256,31 @@ namespace Game.Horror.Dialogs
             _saveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
         }
 
+        // General
         public void SetLanguageCode(string code)
         {
             _saveService.SetLanguageCode(code);
             HorrorOptionHelper.ApplyLanguage(code);
         }
 
+        public void SetCameraControlHorizontal(bool invert)
+            => _saveService.SetCameraControlHorizontal(invert);
+        public void SetCameraControlVertical(bool invert)
+            => _saveService.SetCameraControlVertical(invert);
+
+        public void SetCameraSensitivityHorizontal(float v)
+            => _saveService.SetCameraSensitivityHorizontal(v);
+        public void SetCameraSensitivityVertical(float v)
+            => _saveService.SetCameraSensitivityVertical(v);
+
+        public void SetCameraAcceleration(float v)
+            => _saveService.SetCameraAcceleration(v);
+        public void SetCameraShake(float v)
+            => _saveService.SetCameraShake(v);
+        public void SetCameraFov(float v)
+            => _saveService.SetCameraFov(v);
+
+        // Display
         public void SetDisplayMode(FullScreenMode mode)
         {
             _saveService.SetDisplayMode(mode);
