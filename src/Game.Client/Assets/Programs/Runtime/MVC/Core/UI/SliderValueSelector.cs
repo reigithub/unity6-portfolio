@@ -78,7 +78,6 @@ namespace Game.Core.UI
         /// </summary>
         public void SetValue(float value)
         {
-            Initialize();
             _slider.value = Mathf.RoundToInt((value - _min) / _step); // Slider 側で [0, maxValue] にクランプ
             UpdateValueText(GetValue());
         }
