@@ -74,12 +74,12 @@ namespace Game.Core.UI
         }
 
         /// <summary>
-        /// 外部から実値を設定する。OnValueChanged は発火しない（SetValueWithoutNotify 経由）。
+        /// 外部から実値を設定する。
         /// </summary>
         public void SetValue(float value)
         {
-            var index = Mathf.RoundToInt((value - _min) / _step);
-            _slider.SetValueWithoutNotify(index); // Slider 側で [0, maxValue] にクランプ
+            Initialize();
+            _slider.value = Mathf.RoundToInt((value - _min) / _step); // Slider 側で [0, maxValue] にクランプ
             UpdateValueText(GetValue());
         }
 

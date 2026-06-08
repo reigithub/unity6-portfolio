@@ -83,11 +83,12 @@ namespace Game.Core.UI
         }
 
         /// <summary>
-        /// 外部から index を設定する。OnValueChanged は発火しない（購読前の初期値適用用）。
+        /// 外部から index を設定する。
         /// </summary>
         public void SetIndex(int index)
         {
-            _slider.SetValueWithoutNotify(Mathf.Clamp(index, 0, Mathf.Max(0, Count - 1)));
+            Initialize();
+            _slider.value = Mathf.Clamp(index, 0, Mathf.Max(0, Count - 1));
             Refresh();
         }
 
