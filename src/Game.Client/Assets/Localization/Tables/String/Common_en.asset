@@ -178,6 +178,10 @@ MonoBehaviour:
     m_Localized: MotionBlur
     m_Metadata:
       m_Items: []
+  - m_Id: 2313625302736896
+    m_Localized: Uncapped Frame RateLimit
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -177,6 +177,10 @@ MonoBehaviour:
     m_Key: MotionBlur
     m_Metadata:
       m_Items: []
+  - m_Id: 2313625302736896
+    m_Key: UncappedFrameRateLimit
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
