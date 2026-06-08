@@ -116,8 +116,8 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderIndexSelector _language;
         [SerializeField] private GenericValues<string> _languageValues;
 
-        [SerializeField] private SliderIndexSelector _cameraControlHorizontal;
-        [SerializeField] private SliderIndexSelector _cameraControlVertical;
+        [SerializeField] private SliderBooleanSelector _cameraControlHorizontal;
+        [SerializeField] private SliderBooleanSelector _cameraControlVertical;
 
         [SerializeField] private SliderValueSelector _cameraSensitivityHorizontal;
         [SerializeField] private SliderValueSelector _cameraSensitivityVertical;
@@ -134,10 +134,8 @@ namespace Game.Horror.Dialogs
         [SerializeField] private GenericValues<ResolutionInfo> _resolutionValues;
 
         [SerializeField] private SliderValueSelector _frameRate;
-        [SerializeField] private SliderIndexSelector _uncappedFrameRate;
-
-        [SerializeField] private SliderIndexSelector _vSync;
-        [SerializeField] private SliderIndexSelector _motionBlur;
+        [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
+        [SerializeField] private SliderBooleanSelector _vSync;
 
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _graphicQualityPreset;
@@ -149,6 +147,8 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderIndexSelector _reflection;
         [SerializeField] private SliderIndexSelector _antiAliasing;
         [SerializeField] private SliderIndexSelector _postProcessing;
+
+        [SerializeField] private SliderBooleanSelector _motionBlur;
 
         [Header("Options - Audio")]
         [SerializeField] private SliderValueSelector _masterVolume;
@@ -162,8 +162,8 @@ namespace Game.Horror.Dialogs
 
         public Observable<string> OnLanguageChanged => _language.OnValueChanged.Select(index => _languageValues[index]);
 
-        public Observable<bool> OnCameraControlHorizontalChanged => _cameraControlHorizontal.OnValueChanged.Select(index => index != 0);
-        public Observable<bool> OnCameraControlVerticalChanged => _cameraControlVertical.OnValueChanged.Select(index => index != 0);
+        public Observable<bool> OnCameraControlHorizontalChanged => _cameraControlHorizontal.OnValueChanged;
+        public Observable<bool> OnCameraControlVerticalChanged => _cameraControlVertical.OnValueChanged;
         public Observable<float> OnCameraSensitivityHorizontalChanged => _cameraSensitivityHorizontal.OnValueChanged;
         public Observable<float> OnCameraSensitivityVerticalChanged => _cameraSensitivityVertical.OnValueChanged;
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
@@ -177,9 +177,8 @@ namespace Game.Horror.Dialogs
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
         public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
-        public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged.Select(index => index != 0);
-        public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged.Select(index => index != 0);
-        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged.Select(index => index != 0);
+        public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged;
+        public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged;
 
         #endregion
 
@@ -193,6 +192,8 @@ namespace Game.Horror.Dialogs
         public Observable<GraphicQuality> OnReflectionChanged => _reflection.OnValueChanged.Select(index => _graphicQualityValues[index]);
         public Observable<GraphicQuality> OnAntiAliasingChanged => _antiAliasing.OnValueChanged.Select(index => _graphicQualityValues[index]);
         public Observable<GraphicQuality> OnPostProcessingChanged => _postProcessing.OnValueChanged.Select(index => _graphicQualityValues[index]);
+
+        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged;
 
         #endregion
 
@@ -211,8 +212,8 @@ namespace Game.Horror.Dialogs
 
             // General
             _language.SetIndex(_languageValues[d.LanguageCode]);
-            _cameraControlHorizontal.SetIndex(d.CameraControlHorizontal ? 1 : 0);
-            _cameraControlVertical.SetIndex(d.CameraControlVertical ? 1 : 0);
+            _cameraControlHorizontal.SetBool(d.CameraControlHorizontal);
+            _cameraControlVertical.SetBool(d.CameraControlVertical);
             _cameraSensitivityHorizontal.SetValue(d.CameraSensitivityHorizontal);
             _cameraSensitivityVertical.SetValue(d.CameraSensitivityVertical);
             _cameraAcceleration.SetValue(d.CameraAcceleration);
@@ -223,8 +224,8 @@ namespace Game.Horror.Dialogs
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);
             _resolution.SetIndex(ResolveResolutionIndex(d.ResolutionWidth, d.ResolutionHeight));
             _frameRate.SetValue(d.FrameRateLimit);
-            _uncappedFrameRate.SetIndex(d.UncappedFrameRate ? 1 : 0);
-            _vSync.SetIndex(d.VSync ? 1 : 0);
+            _uncappedFrameRate.SetBool(d.UncappedFrameRate);
+            _vSync.SetBool(d.VSync);
 
             _tabGroup.ChangeTab(0);
         }
