@@ -1,16 +1,13 @@
-using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Core.UI;
+using Game.Horror.SaveData;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
-using R3.Triggers;
 using UnityEngine;
-using UnityEngine.Localization.Settings;
-using UnityEngine.Rendering;
 
 namespace Game.Horror.Dialogs
 {
@@ -54,22 +51,35 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
+            SceneComponent.Initialize(_model.Data);
+
             SceneComponent.OnLanguageChanged
-                .Subscribe(code =>
-                {
-                    _model.SetLocalCode(code);
-                    var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
-                    LocalizationSettings.SelectedLocale = locale;
-                })
+                .Subscribe(code => { _model.SetLanguageCode(code); })
                 .AddTo(Disposables);
 
-            // Audio
-            SceneComponent.OnMasterVolumeChanged.Subscribe(_model.SetMasterVolume).AddTo(Disposables);
-            SceneComponent.OnBgmVolumeChanged.Subscribe(_model.SetBgmVolume).AddTo(Disposables);
-            SceneComponent.OnVoiceVolumeChanged.Subscribe(_model.SetVoiceVolume).AddTo(Disposables);
-            SceneComponent.OnSeVolumeChanged.Subscribe(_model.SetSeVolume).AddTo(Disposables);
+            SceneComponent.OnDisplayModeChanged
+                .Subscribe(mode => { _model.SetDisplayMode(mode);  })
+                .AddTo(Disposables);
+            SceneComponent.OnResolutionChanged
+                .Subscribe(res => { _model.SetResolution(res.Width, res.Height); })
+                .AddTo(Disposables);
+            SceneComponent.OnFrameRateChanged
+                .Subscribe(fps => { _model.SetFrameRateLimit(fps); })
+                .AddTo(Disposables);
+            SceneComponent.OnUncappedFrameRateChanged
+                .Subscribe(b => { _model.SetUncappedFrameRate(b); })
+                .AddTo(Disposables);
+            SceneComponent.OnVSyncChanged
+                .Subscribe(b => { _model.SetVSync(b);})
+                .AddTo(Disposables);
 
             return base.Startup();
+        }
+
+        public override async UniTask Terminate()
+        {
+            await _model.SaveIfDirtyAsync();
+            await base.Terminate();
         }
     }
 
@@ -172,146 +182,86 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        public override async UniTask Startup()
+        public void Initialize(HorrorOptionSaveData d)
         {
             _tabGroup.Initialize();
-            Initialize();
+
+            _language.SetIndex(_languageValues[d.LanguageCode]);
+            _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);
+            _resolution.SetIndex(ResolveResolutionIndex(d.ResolutionWidth, d.ResolutionHeight));
+            _frameRate.SetValue(d.FrameRateLimit);
+            _uncappedFrameRate.SetIndex(d.UncappedFrameRate ? 1 : 0);
+            _vSync.SetIndex(d.VSync ? 1 : 0);
+
             _tabGroup.ChangeTab(0);
-            await base.Startup();
         }
 
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
 
-        private void Initialize()
+        private int ResolveResolutionIndex(int width, int height)
         {
-            #region Camera
-
-            _cameraControlHorizontal.SetIndex(0);
-            _cameraControlVertical.SetIndex(0);
-
-            #endregion
-
-            #region Video
-
-            int displayModeIndex = 0;
-            for (int i = 0; i < _displayModeValues.Count; i++)
-            {
-                var mode = _displayModeValues[i];
-                if (mode == Screen.fullScreenMode)
-                {
-                    displayModeIndex = i;
-                }
-            }
-
-            _displayMode.SetIndex(displayModeIndex);
-            _displayMode.OnValueChanged
-                .Subscribe(index =>
-                {
-                    var fullScreenMode = _displayModeValues[index];
-                    var resolution = Screen.currentResolution;
-                    Screen.SetResolution(resolution.width, resolution.height, fullScreenMode);
-                    Debug.Log($"Option FullScreenMode: {fullScreenMode} => {_displayMode.GetLabel(index)}");
-                })
-                .AddTo(Disposables);
-
-            int resolutionIndex = 0;
+            var w = width > 0 ? width : Screen.currentResolution.width;
+            var h = height > 0 ? height : Screen.currentResolution.height;
             for (int i = 0; i < _resolutionValues.Count; i++)
             {
                 var resolution = _resolutionValues[i];
-                Debug.Log($"Option Resolution: {resolution}");
-
-                if (Screen.currentResolution.width == resolution.Width
-                    && Screen.currentResolution.height == resolution.Height)
-                {
-                    resolutionIndex = i;
-                }
+                if (resolution.Width == w && resolution.Height == h)
+                    return i;
             }
-
-            _resolution.SetIndex(resolutionIndex);
-            _resolution.OnValueChanged
-                .Subscribe(index =>
-                {
-                    var resolution = _resolutionValues[index];
-                    Screen.SetResolution(resolution.Width, resolution.Height, Screen.fullScreenMode);
-                    Debug.Log($"Option Resolution: width={resolution.Width} height={resolution.Height}");
-                })
-                .AddTo(Disposables);
-
-            #endregion
+            return 0;
         }
     }
 
-    public class HorrorOptionDialogModel : IDisposable
+    public class HorrorOptionDialogModel
     {
-        private bool _isDirty;
-
-        private string _localCode;
-
-        private float _masterVolume;
-        private float _bgmVolume;
-        private float _voiceVolume;
-        private float _seVolume;
+        private readonly HorrorOptionSaveService _saveService;
+        public HorrorOptionSaveData Data => _saveService.Data;
 
         public HorrorOptionDialogModel()
         {
-            LoadSaveData();
+            _saveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
         }
 
-        private void LoadSaveData()
+        public void SetLanguageCode(string code)
         {
+            _saveService.SetLanguageCode(code);
+            HorrorOptionHelper.ApplyLanguage(code);
         }
 
-        public void SetLocalCode(string localCode)
+        public void SetDisplayMode(FullScreenMode mode)
         {
-            if (_localCode == localCode) return;
-            SetDirty();
-            _localCode = localCode;
+            _saveService.SetDisplayMode(mode);
+            HorrorOptionHelper.ApplyResolution(Data.DisplayMode, Data.ResolutionWidth, Data.ResolutionHeight);
         }
 
-        public void SetMasterVolume(float volume)
+        public void SetResolution(int width, int height)
         {
-            if (_masterVolume.Equals(volume)) return;
-            SetDirty();
-            _masterVolume = volume;
+            _saveService.SetResolution(width, height);
+            HorrorOptionHelper.ApplyResolution(Data.DisplayMode, Data.ResolutionWidth, Data.ResolutionHeight);
         }
 
-        public void SetBgmVolume(float volume)
+        public void SetFrameRateLimit(float fps)
         {
-            if (_bgmVolume.Equals(volume)) return;
-            SetDirty();
-            _bgmVolume = volume;
+            _saveService.SetFrameRateLimit(Mathf.RoundToInt(fps));
+            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
         }
 
-        public void SetVoiceVolume(float volume)
+        public void SetUncappedFrameRate(bool uncapped)
         {
-            if (_voiceVolume.Equals(volume)) return;
-            SetDirty();
-            _voiceVolume = volume;
+            _saveService.SetUncappedFrameRate(uncapped);
+            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
         }
 
-        public void SetSeVolume(float volume)
+        public void SetVSync(bool enabled)
         {
-            if (_seVolume.Equals(volume)) return;
-            SetDirty();
-            _seVolume = volume;
+            _saveService.SetVSync(enabled);
+            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
         }
 
-        public bool IsDirty() => _isDirty;
-
-        private void SetDirty() => _isDirty = true;
-
-        public void Reset()
+        public UniTask SaveIfDirtyAsync()
         {
-            _isDirty = false;
-        }
-
-        public void Dispose()
-        {
-            if (_isDirty)
-            {
-                // Save
-            }
+            return _saveService.SaveIfDirtyAsync();
         }
     }
 }
