@@ -111,7 +111,7 @@ namespace Game.Tests.MVC
         }
 
         [Test]
-        public void OnValueChanged_FiresOnStep_ButNotOnSetValue()
+        public void OnValueChanged_FiresWhenIndexChanges()
         {
             var selector = Build(new[] { "A", "B", "C" }, out _, out _, out var next);
             selector.SetIndex(0);
@@ -119,12 +119,13 @@ namespace Game.Tests.MVC
             var received = new List<int>();
             using var sub = selector.OnValueChanged.Subscribe(received.Add);
 
-            selector.SetIndex(1);          // 通知なし
-            Assert.AreEqual(0, received.Count, "SetValue は OnValueChanged を発火しない");
+            selector.SetIndex(1);          // 値が変わるので発火
+            Assert.AreEqual(1, received.Count, "SetIndex で値が変われば発火");
+            Assert.AreEqual(1, received[0], "発火値は新しい index");
 
-            next.onClick.Invoke();         // ステップは発火
-            Assert.AreEqual(1, received.Count, "ステップで1回発火");
-            Assert.AreEqual(2, received[0], "発火値は新しい index");
+            next.onClick.Invoke();         // ステップでも発火
+            Assert.AreEqual(2, received.Count, "ステップでも発火");
+            Assert.AreEqual(2, received[1], "発火値は新しい index");
         }
     }
 }
