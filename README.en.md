@@ -20,15 +20,6 @@ A game development portfolio (monorepo) consisting of a Unity 6 client + game ba
 * Catch up on real-world and the latest technologies by building with technologies actually used in the field and modern stacks
 * Understand the full picture of a game application by developing the full stack (client + backend + infrastructure)
 
-## Demo
-| P2P MultiPlayer                                                                             |
-|-------------------------------------------------------------------------------------------|
-| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") |
-
-| SinglePlayer                                                                   |
-|---------------------------------------------------------------------------------------------|
-| [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
-
 ## Screenshots
 
 ### Score Attack Game (MVC Pattern)
@@ -57,11 +48,17 @@ A game development portfolio (monorepo) consisting of a Unity 6 client + game ba
 
 ## Gameplay Videos
 
-### MVC: ScoreTimeAttack
-![MVC Gameplay](src/Game.Client/Documentation/GIFs/mvc_gameplay.gif)
+| MVC: ScoreTimeAttack | MVP: Survivor |
+|----------------------|---------------|
+| ![MVC Gameplay](src/Game.Client/Documentation/GIFs/mvc_gameplay.gif) | ![MVP Gameplay](src/Game.Client/Documentation/GIFs/mvp_gameplay.gif) |
 
-### MVP: Survivor
-![MVP Gameplay](src/Game.Client/Documentation/GIFs/mvp_gameplay.gif)
+| P2P Multiplayer | Single Player (Server-Authoritative) |
+|-----------------|--------------------------------------|
+| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") | [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
+
+| UI Control with Gamepad                                                         |
+|--------------------------------------------------------------------------------|
+| ![GamepadUIControl](src/Game.Client/Documentation/GIFs/gamepad_ui_control.gif) |
 
 ### Scene Transitions & Effects
 | Scene Transition | Effects Showcase |
