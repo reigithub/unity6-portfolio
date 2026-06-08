@@ -82,8 +82,7 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Terminate()
         {
-            if (Result != PauseResult.ReturnToTitle)
-                ApplicationEvents.ResumeTime();
+            ApplicationEvents.ResumeTime();
 
             return base.Terminate();
         }
