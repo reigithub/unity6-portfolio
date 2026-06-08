@@ -30,95 +30,9 @@ namespace Game.MVC.Core.Scenes
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
-        private Selectable[] _selectables;
-        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
-
         private GameObject _selectedGameObject;
 
         public CompositeDisposable Disposables { get; } = new();
-
-        public virtual UniTask Startup()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public virtual async UniTask Sleep()
-        {
-            await Unfocus();
-            Hide();
-        }
-
-        public virtual UniTask Restart()
-        {
-            Show();
-            return Focus();
-        }
-
-        public virtual UniTask Ready()
-        {
-            return Focus();
-        }
-
-        public virtual UniTask Terminate()
-        {
-            Disposables?.Dispose();
-            SetInteractable(false);
-            return UniTask.CompletedTask;
-        }
-
-        private async UniTask Focus()
-        {
-            SetInteractable(true);
-            await UniTask.Yield();
-            InputService.ResolveControlScheme(_selectedGameObject);
-        }
-
-        private async UniTask Unfocus()
-        {
-            _selectedGameObject = InputService.GetSelectedGameObject();
-            await UniTask.Yield();
-            SetInteractable(false);
-        }
-
-        private void Show()
-        {
-            if (!gameObject.activeSelf) gameObject.SetActive(true);
-        }
-
-        private void Hide()
-        {
-            if (gameObject.activeSelf) gameObject.SetActive(false);
-        }
-
-        public virtual void SetInteractable(bool interactive)
-        {
-            if (Selectables.Length > 0)
-            {
-                foreach (var selectable in Selectables)
-                {
-                    selectable.interactable = interactive;
-                }
-            }
-        }
-
-        // public IDisposable BlockInteractable()
-        // {
-        //     SetInteractable(false);
-        //     return Disposable.Create(() => SetInteractable(true));
-        // }
-    }
-
-    public abstract class UnitySceneComponent : MonoBehaviour, IGameSceneComponent
-    {
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
-
-        private Selectable[] _selectables;
-        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
-
-        public CompositeDisposable Disposables { get; } = new();
-
-        private GameObject _selectedGameObject;
 
         public virtual UniTask Startup()
         {
@@ -149,7 +63,6 @@ namespace Game.MVC.Core.Scenes
 
         private async UniTask Focus()
         {
-            if (!gameObject.activeSelf) gameObject.SetActive(true);
             SetInteractable(true);
             await UniTask.Yield();
             InputService.ResolveControlScheme(_selectedGameObject);
@@ -160,18 +73,31 @@ namespace Game.MVC.Core.Scenes
             _selectedGameObject = InputService.GetSelectedGameObject();
             await UniTask.Yield();
             SetInteractable(false);
-            if (gameObject.activeSelf) gameObject.SetActive(false);
         }
 
-        public virtual void SetInteractable(bool interactive)
+        public virtual void SetInteractable(bool interactable)
         {
-            if (Selectables.Length > 0)
+            if (TryGetComponent<CanvasGroup>(out var canvasGroup))
             {
-                foreach (var selectable in Selectables)
+                if (interactable)
                 {
-                    selectable.interactable = interactive;
+                    canvasGroup.alpha = 1f;
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                }
+                else
+                {
+                    canvasGroup.alpha = 0f;
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
                 }
             }
         }
+
+        // public IDisposable BlockInteractable()
+        // {
+        //     SetInteractable(false);
+        //     return Disposable.Create(() => SetInteractable(true));
+        // }
     }
 }
