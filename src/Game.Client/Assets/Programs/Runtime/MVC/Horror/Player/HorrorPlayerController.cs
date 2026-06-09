@@ -1,8 +1,10 @@
 using Game.Core.Constants;
 using Game.Core.Services;
+using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Input;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -13,32 +15,18 @@ namespace Game.Horror.Player
     [RequireComponent(typeof(CharacterController))]
     public class HorrorPlayerController : MonoBehaviour
     {
-        [SerializeField]
-        private Transform _mainCamera;
+        [SerializeField] private Transform _mainCamera;
 
-        [Header("歩く速度")]
-        [SerializeField]
-        private float _walkSpeed = 2.0f;
-
-        [Header("走る速度")]
-        [SerializeField]
-        private float _runSpeed = 5.0f;
-
-        [Header("ジャンプ力")]
-        [SerializeField]
-        private float _jump = 5.0f;
-
-        [Header("重力加速度")]
-        [SerializeField]
-        private float _gravity = -20.0f;
+        [SerializeField] private float _walkSpeed = 2.0f;
+        [SerializeField] private float _runSpeed = 5.0f;
+        [SerializeField] private float _jump = 5.0f;
+        [SerializeField] private float _gravity = -20.0f;
 
         [Header("回転速度（度/秒）")]
-        [SerializeField]
-        private float _rotationSpeed = 0.1f;
+        [SerializeField] private float _lookRotationSpeed = 0.1f;
 
         [Header("マウス感度")]
-        [SerializeField]
-        private float _lookSensitivity = 1f;
+        [SerializeField] private float _lookSensitivity = 1f;
 
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -62,12 +50,25 @@ namespace Game.Horror.Player
         // カメラピッチ角度
         private float _cameraVerticalAngle;
 
-        public void Initialize()
+        // カメラ操作反転設定
+        private float _lookInvertX = 1f;
+        private float _lookInvertY = 1f;
+
+        public void Initialize(HorrorOptionSaveData data)
         {
             TryGetComponent(out _characterController);
 
+            // オプション設定の反映
+            ApplyOptions(data);
+
             // ステートマシン初期化
             InitializeStateMachine();
+        }
+
+        public void ApplyOptions(HorrorOptionSaveData data)
+        {
+            _lookInvertX = data.CameraControlHorizontal ? -1f : 1f;
+            _lookInvertY = data.CameraControlVertical ? -1f : 1f;
         }
 
         #region MonoBehaviour Methods
@@ -78,14 +79,12 @@ namespace Game.Horror.Player
 
         protected void Update()
         {
-            // if (Player.enabled) return;
             UpdateInput();
             _stateMachine?.Update();
         }
 
         protected void FixedUpdate()
         {
-            // if (Player.enabled) return;
             _stateMachine?.FixedUpdate();
         }
 
@@ -304,13 +303,13 @@ namespace Game.Horror.Player
         {
             if (_mainCamera == null) return;
 
-            var sensitivity = _lookSensitivity * _rotationSpeed;
+            var sensitivity = _lookSensitivity * _lookRotationSpeed;
 
-            // Yaw: Player 本体を Y 軸回転
-            transform.Rotate(0f, _lookValue.x * sensitivity, 0f, Space.Self);
+            // Yaw: Player 本体を Y 軸回転（反転 ON で符号反転）
+            transform.Rotate(0f, _lookValue.x * sensitivity * _lookInvertX, 0f, Space.Self);
 
-            // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ
-            var verticalInput = -_lookValue.y;
+            // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、反転 ON で符号反転）
+            var verticalInput = -_lookValue.y * _lookInvertY;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * sensitivity, -89f, 89f);
             _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }

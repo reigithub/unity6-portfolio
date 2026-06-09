@@ -9,16 +9,16 @@ namespace Game.Horror.Player
     /// </summary>
     public class HorrorPlayerStart : MonoBehaviour
     {
-        public async UniTask<GameObject> LoadPlayerAsync()
+        public async UniTask<HorrorPlayerController> LoadPlayerAsync()
         {
             var assetService = GameServiceManager.Get<AddressableAssetService>();
             var player = await assetService.InstantiateAsync("HorrorPlayer", transform);
             if (player.TryGetComponent<HorrorPlayerController>(out var playerController))
             {
-                playerController.Initialize();
+                return playerController;
             }
 
-            return player;
+            throw new MissingComponentException($"Cannot find {nameof(HorrorPlayerController)}");
         }
     }
 }
