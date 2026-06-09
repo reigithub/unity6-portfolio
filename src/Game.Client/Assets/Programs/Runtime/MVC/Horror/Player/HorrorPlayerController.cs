@@ -25,9 +25,6 @@ namespace Game.Horror.Player
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
 
-        [Header("マウス感度")]
-        [SerializeField] private float _lookSensitivity = 1f;
-
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
@@ -54,6 +51,10 @@ namespace Game.Horror.Player
         private float _lookInvertX = 1f;
         private float _lookInvertY = 1f;
 
+        // カメラ感度設定（per-axis）
+        private float _lookSensitivityX = 1f;
+        private float _lookSensitivityY = 1f;
+
         public void Initialize(HorrorOptionSaveData data)
         {
             TryGetComponent(out _characterController);
@@ -69,6 +70,9 @@ namespace Game.Horror.Player
         {
             _lookInvertX = data.CameraControlHorizontal ? -1f : 1f;
             _lookInvertY = data.CameraControlVertical ? -1f : 1f;
+
+            _lookSensitivityX = data.CameraSensitivityHorizontal;
+            _lookSensitivityY = data.CameraSensitivityVertical;
         }
 
         #region MonoBehaviour Methods
@@ -303,14 +307,13 @@ namespace Game.Horror.Player
         {
             if (_mainCamera == null) return;
 
-            var sensitivity = _lookSensitivity * _lookRotationSpeed;
+            // Yaw: Player 本体を Y 軸回転（感度H・反転を適用）
+            var horizontalInput = _lookValue.x * _lookSensitivityX * _lookInvertX;
+            transform.Rotate(0f, horizontalInput * _lookRotationSpeed, 0f, Space.Self);
 
-            // Yaw: Player 本体を Y 軸回転（反転 ON で符号反転）
-            transform.Rotate(0f, _lookValue.x * sensitivity * _lookInvertX, 0f, Space.Self);
-
-            // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、反転 ON で符号反転）
-            var verticalInput = -_lookValue.y * _lookInvertY;
-            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * sensitivity, -89f, 89f);
+            // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
+            var verticalInput = -_lookValue.y * _lookSensitivityY * _lookInvertY;
+            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
             _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
 
