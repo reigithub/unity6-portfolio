@@ -28,20 +28,21 @@ namespace Game.Horror.SaveData
             Screen.SetResolution(w, h, mode);
         }
 
-        /// <summary>フレームレート上限/上限解除/VSync は相互依存のため一体で適用。</summary>
+        /// <summary>
+        /// VSync とフレーム上限を適用。VSync の有効/無効と targetFrameRate の優劣は Unity が裁定するため
+        /// （vSyncCount != 0 のとき targetFrameRate は無視され、リフレッシュレートで頭打ちになる）、
+        /// targetFrameRate は uncapped/limit のみから決め、vSync には依存させない。
+        /// </summary>
         public static void ApplyFrameRate(bool vSync, bool uncapped, int limit)
         {
             QualitySettings.vSyncCount = vSync ? 1 : 0;
-            Application.targetFrameRate = ResolveTargetFrameRate(vSync, uncapped, limit);
+            Application.targetFrameRate = ResolveTargetFrameRate(uncapped, limit);
         }
 
-        /// <summary>
-        /// VSync 有効 or 上限解除なら -1（VSync 時は targetFrameRate 無効、上限解除は無制限）。
-        /// それ以外は上限値。純粋関数（テスト対象）。
-        /// </summary>
-        public static int ResolveTargetFrameRate(bool vSync, bool uncapped, int limit)
+        /// <summary>上限解除なら -1（無制限）、それ以外は上限値。純粋関数（テスト対象）。</summary>
+        public static int ResolveTargetFrameRate(bool uncapped, int limit)
         {
-            return (vSync || uncapped) ? -1 : limit;
+            return uncapped ? -1 : limit;
         }
     }
 }
