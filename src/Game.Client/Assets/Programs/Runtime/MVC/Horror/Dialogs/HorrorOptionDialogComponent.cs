@@ -15,10 +15,10 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
-        private HorrorOptionDialogModel _model;
-
         private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+
+        private HorrorOptionSaveService _optionSaveService;
+        private HorrorOptionSaveData Options => _optionSaveService.Data;
 
         public static async UniTask<bool> RunAsync()
         {
@@ -28,72 +28,97 @@ namespace Game.Horror.Dialogs
 
         public override UniTask PreInitialize()
         {
-            _model = new HorrorOptionDialogModel();
+            _inputService = GameServiceManager.Get<InputSystemService>();
+            _optionSaveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
             return base.PreInitialize();
         }
 
         public override UniTask Startup()
         {
             // ダイアログキャンセル
-            Observable.Merge(InputService.UI.Cancel.OnPerformedAsObservable(), InputService.UI.Menu.OnPerformedAsObservable())
+            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.UI.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
 
             // L1 (Previous) / R1 (Next) でタブ循環
-            InputService.UI.Previous.OnPerformedAsObservable()
+            _inputService.UI.Previous.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => SceneComponent.PreviousTab())
                 .AddTo(Disposables);
 
-            InputService.UI.Next.OnPerformedAsObservable()
+            _inputService.UI.Next.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
-            SceneComponent.Initialize(_model.Data);
+            SceneComponent.Initialize(Options);
 
             // General
             SceneComponent.OnLanguageChanged
-                .Subscribe(code => { _model.SetLanguageCode(code); })
+                .Subscribe(code =>
+                {
+                    _optionSaveService.SetLanguageCode(code);
+                    HorrorOptionHelper.ApplyLanguage(code);
+                })
                 .AddTo(Disposables);
             SceneComponent.OnCameraControlHorizontalChanged
-                .Subscribe(b => { _model.SetCameraControlHorizontal(b); })
+                .Subscribe(b => { _optionSaveService.SetCameraControlHorizontal(b); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraControlVerticalChanged
-                .Subscribe(b => { _model.SetCameraControlVertical(b); })
+                .Subscribe(b => { _optionSaveService.SetCameraControlVertical(b); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraSensitivityHorizontalChanged
-                .Subscribe(v => { _model.SetCameraSensitivityHorizontal(v); })
+                .Subscribe(v => { _optionSaveService.SetCameraSensitivityHorizontal(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraSensitivityVerticalChanged
-                .Subscribe(v => { _model.SetCameraSensitivityVertical(v); })
+                .Subscribe(v => { _optionSaveService.SetCameraSensitivityVertical(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraAccelerationChanged
-                .Subscribe(v => { _model.SetCameraAcceleration(v); })
+                .Subscribe(v => { _optionSaveService.SetCameraAcceleration(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraShakeChanged
-                .Subscribe(v => { _model.SetCameraShake(v); })
+                .Subscribe(v => { _optionSaveService.SetCameraShake(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraFovChanged
-                .Subscribe(v => { _model.SetCameraFov(v); })
+                .Subscribe(v => { _optionSaveService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
             // Display
             SceneComponent.OnDisplayModeChanged
-                .Subscribe(mode => { _model.SetDisplayMode(mode); })
+                .Subscribe(mode =>
+                {
+                    _optionSaveService.SetDisplayMode(mode);
+                    HorrorOptionHelper.ApplyResolution(Options.DisplayMode, Options.ResolutionWidth, Options.ResolutionHeight);
+                })
                 .AddTo(Disposables);
             SceneComponent.OnResolutionChanged
-                .Subscribe(res => { _model.SetResolution(res.Width, res.Height); })
+                .Subscribe(res =>
+                {
+                    _optionSaveService.SetResolution(res.Width, res.Height);
+                    HorrorOptionHelper.ApplyResolution(Options.DisplayMode, Options.ResolutionWidth, Options.ResolutionHeight);
+                })
                 .AddTo(Disposables);
             SceneComponent.OnFrameRateChanged
-                .Subscribe(fps => { _model.SetFrameRateLimit(fps); })
+                .Subscribe(fps =>
+                {
+                    _optionSaveService.SetFrameRateLimit(Mathf.RoundToInt(fps));
+                    HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
+                })
                 .AddTo(Disposables);
             SceneComponent.OnUncappedFrameRateChanged
-                .Subscribe(b => { _model.SetUncappedFrameRate(b); })
+                .Subscribe(uncapped =>
+                {
+                    _optionSaveService.SetUncappedFrameRate(uncapped);
+                    HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
+                })
                 .AddTo(Disposables);
             SceneComponent.OnVSyncChanged
-                .Subscribe(b => { _model.SetVSync(b); })
+                .Subscribe(vsync =>
+                {
+                    _optionSaveService.SetVSync(vsync);
+                    HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
+                })
                 .AddTo(Disposables);
 
             return base.Startup();
@@ -101,7 +126,7 @@ namespace Game.Horror.Dialogs
 
         public override async UniTask Terminate()
         {
-            await _model.SaveIfDirtyAsync();
+            await _optionSaveService.SaveIfDirtyAsync();
             await base.Terminate();
         }
     }
@@ -244,77 +269,6 @@ namespace Game.Horror.Dialogs
                     return i;
             }
             return 0;
-        }
-    }
-
-    public class HorrorOptionDialogModel
-    {
-        private readonly HorrorOptionSaveService _saveService;
-        public HorrorOptionSaveData Data => _saveService.Data;
-
-        public HorrorOptionDialogModel()
-        {
-            _saveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
-        }
-
-        // General
-        public void SetLanguageCode(string code)
-        {
-            _saveService.SetLanguageCode(code);
-            HorrorOptionHelper.ApplyLanguage(code);
-        }
-
-        public void SetCameraControlHorizontal(bool invert)
-            => _saveService.SetCameraControlHorizontal(invert);
-        public void SetCameraControlVertical(bool invert)
-            => _saveService.SetCameraControlVertical(invert);
-
-        public void SetCameraSensitivityHorizontal(float v)
-            => _saveService.SetCameraSensitivityHorizontal(v);
-        public void SetCameraSensitivityVertical(float v)
-            => _saveService.SetCameraSensitivityVertical(v);
-
-        public void SetCameraAcceleration(float v)
-            => _saveService.SetCameraAcceleration(v);
-        public void SetCameraShake(float v)
-            => _saveService.SetCameraShake(v);
-        public void SetCameraFov(float v)
-            => _saveService.SetCameraFov(v);
-
-        // Display
-        public void SetDisplayMode(FullScreenMode mode)
-        {
-            _saveService.SetDisplayMode(mode);
-            HorrorOptionHelper.ApplyResolution(Data.DisplayMode, Data.ResolutionWidth, Data.ResolutionHeight);
-        }
-
-        public void SetResolution(int width, int height)
-        {
-            _saveService.SetResolution(width, height);
-            HorrorOptionHelper.ApplyResolution(Data.DisplayMode, Data.ResolutionWidth, Data.ResolutionHeight);
-        }
-
-        public void SetFrameRateLimit(float fps)
-        {
-            _saveService.SetFrameRateLimit(Mathf.RoundToInt(fps));
-            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
-        }
-
-        public void SetUncappedFrameRate(bool uncapped)
-        {
-            _saveService.SetUncappedFrameRate(uncapped);
-            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
-        }
-
-        public void SetVSync(bool enabled)
-        {
-            _saveService.SetVSync(enabled);
-            HorrorOptionHelper.ApplyFrameRate(Data.VSync, Data.UncappedFrameRate, Data.FrameRateLimit);
-        }
-
-        public UniTask SaveIfDirtyAsync()
-        {
-            return _saveService.SaveIfDirtyAsync();
         }
     }
 }
