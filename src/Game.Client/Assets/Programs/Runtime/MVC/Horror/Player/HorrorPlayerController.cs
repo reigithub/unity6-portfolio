@@ -59,10 +59,11 @@ namespace Game.Horror.Player
         private Vector2 _smoothedLookValue;
         private float _lookAcceleration = 1f;
 
-        // カメラ揺れ設定（ヘッドボブ figure-8 ＋ ストライド同期ロール）
+        // カメラ揺れ設定（ヘッドボブ figure-8 ＋ ストライド同期ロール、停止時はアイドルスウェイ）
         private Vector3 _cameraBasePosition;
         private float _bobPhase;
-        private float _currentBobScale;   // 揺れ強度の 0..1 イーズ（停止/開始のなめらか化）
+        private float _idlePhase;         // アイドルスウェイの常時位相
+        private float _moveBobWeight;     // 0=停止, 1=移動（ease）。cameraShake とは分離
         private float _cameraShake = 1f;
 
         private const float BobWalkAmplitude = 0.04f;   // 歩き：縦位置振幅（m）
@@ -73,6 +74,10 @@ namespace Game.Horror.Player
         private const float BobWalkRoll = 0.1f;         // 歩き：ロール角（度）＝知覚される横揺れ
         private const float BobRunRoll = 0.2f;          // 走り：ロール角（度）
         private const float BobAmplitudeResponse = 10f; // 強度イーズの応答
+
+        private const float IdleSwaySpeed = 1.2f;       // アイドル：位相速度 rad/s（呼吸 ~5秒周期）
+        private const float IdleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
+        private const float IdleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
 
         public void Initialize(HorrorOptionSaveData data)
         {
@@ -359,8 +364,8 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// ヘッドボブ（figure-8）を適用。移動中はカメラ localPosition を 8 の字に揺らす。
-        /// 振幅は CameraShake でスケール。回転（ApplyRotation の localEulerAngles）とは非干渉。
+        /// カメラ揺れを適用。移動中は figure-8 ヘッドボブ、停止中はアイドルスウェイ（呼吸揺れ）をクロスフェードする。
+        /// 全体強度は CameraShake でスケール。ApplyRotation 直後に呼ばれ、pitch を維持しつつ roll を合成する。
         /// </summary>
         private void UpdateHeadBob()
         {
@@ -371,31 +376,40 @@ namespace Game.Horror.Player
             {
                 _mainCamera.localPosition = _cameraBasePosition;
                 _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
-                _currentBobScale = 0f;
+                _moveBobWeight = 0f;
                 return;
             }
 
-            // 接地して移動中のみ揺れる（ジャンプ/静止は neutral へイーズ）。
+            // 接地して移動中のみヘッドボブ。停止でアイドルスウェイへクロスフェード。
             // ケイデンスは _speed 直結にせず歩き/走りで固定（走りは少しだけ速い）。
             var active = IsGrounded() && IsMoving();
             var running = IsRunning();
 
             var ease = 1f - Mathf.Exp(-BobAmplitudeResponse * Time.deltaTime);
-            _currentBobScale = Mathf.Lerp(_currentBobScale, active ? _cameraShake : 0f, ease);
+            _moveBobWeight = Mathf.Lerp(_moveBobWeight, active ? 1f : 0f, ease);
 
             if (active)
                 _bobPhase += (running ? BobRunSpeed : BobWalkSpeed) * Time.deltaTime;
+            _idlePhase += IdleSwaySpeed * Time.deltaTime; // アイドルは常時進む
 
-            var posAmplitude = (running ? BobRunAmplitude : BobWalkAmplitude) * _currentBobScale;
-            var rollAmplitude = (running ? BobRunRoll : BobWalkRoll) * _currentBobScale;
+            // ヘッドボブ（移動）：縦は位相、横はストライド（半周期）＝figure-8。横揺れの知覚はロールが主成分。
+            var moveAmplitude = (running ? BobRunAmplitude : BobWalkAmplitude) * _moveBobWeight;
+            var moveRoll = (running ? BobRunRoll : BobWalkRoll) * _moveBobWeight;
+            var bobX = Mathf.Sin(_bobPhase * 0.5f) * moveAmplitude * BobHorizontalRatio;
+            var bobY = Mathf.Sin(_bobPhase) * moveAmplitude;
+            var bobRoll = Mathf.Sin(_bobPhase * 0.5f) * moveRoll;
 
-            // 縦は位相、横はストライド（半周期）＝figure-8 の位置。横揺れの知覚はロールが主成分。
-            var x = Mathf.Sin(_bobPhase * 0.5f) * posAmplitude * BobHorizontalRatio;
-            var y = Mathf.Sin(_bobPhase) * posAmplitude;
-            var roll = Mathf.Sin(_bobPhase * 0.5f) * rollAmplitude;
+            // アイドルスウェイ（停止）：別周波数の遅い sin を重ねて有機的に
+            var idleWeight = 1f - _moveBobWeight;
+            var idleX = Mathf.Sin(_idlePhase * 1.3f) * IdleSwayAmplitude * BobHorizontalRatio * idleWeight;
+            var idleY = Mathf.Sin(_idlePhase) * IdleSwayAmplitude * idleWeight;
+            var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * IdleSwayRoll * idleWeight;
 
-            _mainCamera.localPosition = _cameraBasePosition + new Vector3(x, y, 0f);
-            // ApplyRotation 直後に呼ばれる前提で、pitch を維持しつつ roll を合成（yaw は body 側）。
+            // 合算 → 全体強度 CameraShake（0 で完全停止）
+            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake;
+            var roll = (bobRoll + idleRoll) * _cameraShake;
+
+            _mainCamera.localPosition = _cameraBasePosition + offset;
             _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
         }
 
