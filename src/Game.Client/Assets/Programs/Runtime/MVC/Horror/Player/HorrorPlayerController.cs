@@ -4,7 +4,6 @@ using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Input;
-using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -15,7 +14,7 @@ namespace Game.Horror.Player
     [RequireComponent(typeof(CharacterController))]
     public class HorrorPlayerController : MonoBehaviour
     {
-        [SerializeField] private Transform _mainCamera;
+        [SerializeField] private Camera _mainCamera;
 
         [SerializeField] private float _walkSpeed = 2.0f;
         [SerializeField] private float _runSpeed = 5.0f;
@@ -83,9 +82,8 @@ namespace Game.Horror.Player
         {
             TryGetComponent(out _characterController);
 
-            // ヘッドボブの基準（rest）位置を保持
-            if (_mainCamera != null)
-                _cameraBasePosition = _mainCamera.localPosition;
+            // ヘッドボブの基準（rest）位置と Camera（FOV 反映用）を保持
+            _cameraBasePosition = _mainCamera.transform.localPosition;
 
             // オプション設定の反映
             ApplyOptions(data);
@@ -104,6 +102,7 @@ namespace Game.Horror.Player
 
             _lookAcceleration = data.CameraAcceleration;
             _cameraShake = data.CameraShake;
+            _mainCamera.fieldOfView = data.CameraFov;
         }
 
         #region MonoBehaviour Methods
@@ -360,7 +359,7 @@ namespace Game.Horror.Player
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
-            _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+            _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
 
         /// <summary>
@@ -374,8 +373,8 @@ namespace Game.Horror.Player
             // 入力ブロック中（ポーズ等）は neutral に戻す（Time.deltaTime=0 凍結による残オフセット防止）
             if (!Player.enabled)
             {
-                _mainCamera.localPosition = _cameraBasePosition;
-                _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+                _mainCamera.transform.localPosition = _cameraBasePosition;
+                _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
                 _moveBobWeight = 0f;
                 return;
             }
@@ -409,8 +408,8 @@ namespace Game.Horror.Player
             var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake;
             var roll = (bobRoll + idleRoll) * _cameraShake;
 
-            _mainCamera.localPosition = _cameraBasePosition + offset;
-            _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
+            _mainCamera.transform.localPosition = _cameraBasePosition + offset;
+            _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
         }
 
         #endregion

@@ -291,10 +291,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95314a647cf9fa44799cf53ff897374d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.HorrorPlayerController
-  _mainCamera: {fileID: 3108793209200739432}
+  _mainCamera: {fileID: 6031481874108313397}
   _walkSpeed: 2
   _runSpeed: 5
   _jump: 5
   _gravity: -20
-  _rotationSpeed: 0.1
-  _lookSensitivity: 1
+  _lookRotationSpeed: 0.1
