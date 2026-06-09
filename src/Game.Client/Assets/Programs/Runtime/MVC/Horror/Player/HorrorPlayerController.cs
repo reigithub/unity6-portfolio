@@ -3,7 +3,9 @@ using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
 using Game.Shared.Input;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -90,6 +92,14 @@ namespace Game.Horror.Player
 
             // ステートマシン初期化
             InitializeStateMachine();
+
+            // プレイヤー入力監視
+            Observable.Merge(Player.Move.OnPerformedAsObservable()
+                    , Player.Look.OnPerformedAsObservable()
+                    , Player.Attack.OnPerformedAsObservable()
+                    , Player.Jump.OnPerformedAsObservable())
+                .Subscribe(_ => ApplicationEvents.HideCursor())
+                .AddTo(this);
         }
 
         public void ApplyOptions(HorrorOptionSaveData data)
@@ -154,8 +164,6 @@ namespace Game.Horror.Player
             {
                 _jumpTriggered = true;
             }
-
-            if (IsMoveInput() || IsLookInput()) ApplicationEvents.HideCursor();
         }
 
         private bool CanJump()
