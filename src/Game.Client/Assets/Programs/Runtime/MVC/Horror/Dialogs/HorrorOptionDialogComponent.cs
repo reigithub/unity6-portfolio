@@ -161,6 +161,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _frameRate;
         [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
         [SerializeField] private SliderBooleanSelector _vSync;
+        [SerializeField] private SliderBooleanSelector _motionBlur;
 
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _graphicQualityPreset;
@@ -172,8 +173,6 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderIndexSelector _reflection;
         [SerializeField] private SliderIndexSelector _antiAliasing;
         [SerializeField] private SliderIndexSelector _postProcessing;
-
-        [SerializeField] private SliderBooleanSelector _motionBlur;
 
         [Header("Options - Audio")]
         [SerializeField] private SliderValueSelector _masterVolume;
@@ -204,6 +203,7 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
         public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged;
         public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged;
+        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged;
 
         #endregion
 
@@ -217,8 +217,6 @@ namespace Game.Horror.Dialogs
         public Observable<GraphicQuality> OnReflectionChanged => _reflection.OnValueChanged.Select(index => _graphicQualityValues[index]);
         public Observable<GraphicQuality> OnAntiAliasingChanged => _antiAliasing.OnValueChanged.Select(index => _graphicQualityValues[index]);
         public Observable<GraphicQuality> OnPostProcessingChanged => _postProcessing.OnValueChanged.Select(index => _graphicQualityValues[index]);
-
-        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged;
 
         #endregion
 
