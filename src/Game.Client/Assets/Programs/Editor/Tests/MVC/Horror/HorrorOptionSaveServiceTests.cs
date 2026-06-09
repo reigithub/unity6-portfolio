@@ -6,6 +6,7 @@ using Game.Shared.SaveData;
 using MemoryPack;
 using NSubstitute;
 using NUnit.Framework;
+using R3;
 using UnityEngine;
 
 namespace Game.Tests.MVC.Horror
@@ -196,6 +197,25 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.BgmVolume, Is.EqualTo(original.BgmVolume));
             Assert.That(restored.VoiceVolume, Is.EqualTo(original.VoiceVolume));
             Assert.That(restored.SeVolume, Is.EqualTo(original.SeVolume));
+        }
+
+        #endregion
+
+        #region OnSaved
+
+        [Test]
+        public async Task SaveAsync_FiresOnSaved_WithSavedData()
+        {
+            await LoadDefaultData();
+            _service.SetCameraControlHorizontal(true);   // 変更（dirty）
+
+            HorrorOptionSaveData received = null;
+            using var sub = _service.OnSaved.Subscribe(d => received = d);
+
+            await _service.SaveAsync();
+
+            Assert.That(received, Is.SameAs(_service.Data), "保存されたデータが通知される");
+            Assert.That(received.CameraControlHorizontal, Is.True);
         }
 
         #endregion
