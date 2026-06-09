@@ -59,9 +59,28 @@ namespace Game.Horror.Player
         private Vector2 _smoothedLookValue;
         private float _lookAcceleration = 1f;
 
+        // カメラ揺れ設定（ヘッドボブ figure-8 ＋ ストライド同期ロール）
+        private Vector3 _cameraBasePosition;
+        private float _bobPhase;
+        private float _currentBobScale;   // 揺れ強度の 0..1 イーズ（停止/開始のなめらか化）
+        private float _cameraShake = 1f;
+
+        private const float BobWalkAmplitude = 0.04f;   // 歩き：縦位置振幅（m）
+        private const float BobRunAmplitude = 0.06f;    // 走り：縦位置振幅（m）
+        private const float BobWalkSpeed = 10f;         // 歩き：位相速度 rad/s（ゆっくり）
+        private const float BobRunSpeed = 15f;          // 走り：位相速度 rad/s（少しだけ速い）
+        private const float BobHorizontalRatio = 0.5f;  // 横位置/縦位置 比
+        private const float BobWalkRoll = 0.1f;         // 歩き：ロール角（度）＝知覚される横揺れ
+        private const float BobRunRoll = 0.2f;          // 走り：ロール角（度）
+        private const float BobAmplitudeResponse = 10f; // 強度イーズの応答
+
         public void Initialize(HorrorOptionSaveData data)
         {
             TryGetComponent(out _characterController);
+
+            // ヘッドボブの基準（rest）位置を保持
+            if (_mainCamera != null)
+                _cameraBasePosition = _mainCamera.localPosition;
 
             // オプション設定の反映
             ApplyOptions(data);
@@ -79,6 +98,7 @@ namespace Game.Horror.Player
             _lookSensitivityY = data.CameraSensitivityVertical;
 
             _lookAcceleration = data.CameraAcceleration;
+            _cameraShake = data.CameraShake;
         }
 
         #region MonoBehaviour Methods
@@ -195,6 +215,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateHeadBob();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -223,6 +244,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateHeadBob();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -258,6 +280,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateHeadBob();
 
                 // 上昇終了 + 接地で着地判定
                 if (ctx._verticalVelocity <= 0f && ctx.IsGrounded())
@@ -333,6 +356,47 @@ namespace Game.Horror.Player
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
             _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+        }
+
+        /// <summary>
+        /// ヘッドボブ（figure-8）を適用。移動中はカメラ localPosition を 8 の字に揺らす。
+        /// 振幅は CameraShake でスケール。回転（ApplyRotation の localEulerAngles）とは非干渉。
+        /// </summary>
+        private void UpdateHeadBob()
+        {
+            if (_mainCamera == null) return;
+
+            // 入力ブロック中（ポーズ等）は neutral に戻す（Time.deltaTime=0 凍結による残オフセット防止）
+            if (!Player.enabled)
+            {
+                _mainCamera.localPosition = _cameraBasePosition;
+                _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+                _currentBobScale = 0f;
+                return;
+            }
+
+            // 接地して移動中のみ揺れる（ジャンプ/静止は neutral へイーズ）。
+            // ケイデンスは _speed 直結にせず歩き/走りで固定（走りは少しだけ速い）。
+            var active = IsGrounded() && IsMoving();
+            var running = IsRunning();
+
+            var ease = 1f - Mathf.Exp(-BobAmplitudeResponse * Time.deltaTime);
+            _currentBobScale = Mathf.Lerp(_currentBobScale, active ? _cameraShake : 0f, ease);
+
+            if (active)
+                _bobPhase += (running ? BobRunSpeed : BobWalkSpeed) * Time.deltaTime;
+
+            var posAmplitude = (running ? BobRunAmplitude : BobWalkAmplitude) * _currentBobScale;
+            var rollAmplitude = (running ? BobRunRoll : BobWalkRoll) * _currentBobScale;
+
+            // 縦は位相、横はストライド（半周期）＝figure-8 の位置。横揺れの知覚はロールが主成分。
+            var x = Mathf.Sin(_bobPhase * 0.5f) * posAmplitude * BobHorizontalRatio;
+            var y = Mathf.Sin(_bobPhase) * posAmplitude;
+            var roll = Mathf.Sin(_bobPhase * 0.5f) * rollAmplitude;
+
+            _mainCamera.localPosition = _cameraBasePosition + new Vector3(x, y, 0f);
+            // ApplyRotation 直後に呼ばれる前提で、pitch を維持しつつ roll を合成（yaw は body 側）。
+            _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
         }
 
         #endregion
