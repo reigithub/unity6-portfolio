@@ -55,6 +55,10 @@ namespace Game.Horror.Player
         private float _lookSensitivityX = 1f;
         private float _lookSensitivityY = 1f;
 
+        // カメラ加速度設定（入力スムージング）
+        private Vector2 _smoothedLookValue;
+        private float _lookAcceleration = 1f;
+
         public void Initialize(HorrorOptionSaveData data)
         {
             TryGetComponent(out _characterController);
@@ -73,6 +77,8 @@ namespace Game.Horror.Player
 
             _lookSensitivityX = data.CameraSensitivityHorizontal;
             _lookSensitivityY = data.CameraSensitivityVertical;
+
+            _lookAcceleration = data.CameraAcceleration;
         }
 
         #region MonoBehaviour Methods
@@ -103,6 +109,18 @@ namespace Game.Horror.Player
 
             // 視点入力受付
             _lookValue = Player.Look.ReadValue<Vector2>();
+
+            if (Player.enabled)
+            {
+                // 加速度（入力スムージング）：実効 look を生入力へ追従。応答が高いほど即時、低いほど滑らか。
+                var acceleration = Mathf.Max(_lookAcceleration, 0.01f);
+                var smoothing = 1f - Mathf.Exp(-acceleration * Time.deltaTime);
+                _smoothedLookValue = Vector2.Lerp(_smoothedLookValue, _lookValue, smoothing);
+            }
+            else
+            {
+                _smoothedLookValue = Vector2.zero;
+            }
 
             // 移動速度更新（LeftShift で走り、それ以外は歩き）
             _speed = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
@@ -307,12 +325,12 @@ namespace Game.Horror.Player
         {
             if (_mainCamera == null) return;
 
-            // Yaw: Player 本体を Y 軸回転（感度H・反転を適用）
-            var horizontalInput = _lookValue.x * _lookSensitivityX * _lookInvertX;
+            // Yaw: Player 本体を Y 軸回転（感度H・反転を適用、入力は加速度スムージング後の値）
+            var horizontalInput = _smoothedLookValue.x * _lookSensitivityX * _lookInvertX;
             transform.Rotate(0f, horizontalInput * _lookRotationSpeed, 0f, Space.Self);
 
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
-            var verticalInput = -_lookValue.y * _lookSensitivityY * _lookInvertY;
+            var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
             _mainCamera.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
