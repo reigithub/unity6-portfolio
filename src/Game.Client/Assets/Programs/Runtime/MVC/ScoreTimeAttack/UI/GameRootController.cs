@@ -64,7 +64,9 @@ namespace Game.Core
         private void Initialize()
         {
             _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, UIAnimationConstants.AlphaOpaque);
-            InputService.SubscribeControlScheme(_playerInput);
+            _playerInput.controlsChangedEvent.AsObservable()
+                .Subscribe(x => InputService.UpdateControlScheme(x.currentControlScheme))
+                .AddTo(this);
             SubscribeEvents();
         }
 

@@ -6,22 +6,16 @@ using Game.Shared.Input;
 using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace Game.Core.Services
 {
     public class InputSystemService : IInputSystemService, IDisposable
     {
         private ProjectDefaultInputSystem _inputSystem;
-        private bool _isPlayerEnabled;
-        private bool _isUIEnabled;
         private bool _isInitialized;
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
-
-        public CompositeDisposable Disposables { get; } = new();
 
         private string _controlScheme = InputConstants.DefaultControlScheme;
         private GameObject _selectedGameObject;
@@ -109,7 +103,7 @@ namespace Game.Core.Services
                 {
                     foreach (var selectable in allSelectables)
                     {
-                        if (!selectable.IsInteractable()) continue;
+                        if (!selectable.IsSelectable()) continue;
                         if (selectable.gameObject == selectedGameObject)
                         {
                             go = selectable.gameObject;
@@ -121,64 +115,50 @@ namespace Game.Core.Services
 
                 if (!found)
                 {
-                    var firstSelectable = allSelectables.FirstOrDefault(x => x.IsInteractable());
+                    var firstSelectable = allSelectables.FirstOrDefault(x => x.IsSelectable());
                     if (firstSelectable != null) go = firstSelectable.gameObject;
                 }
 
                 SetSelectedGameObject(go);
+                Debug.Log($"[InputService] Selected GameObject {go}");
                 return;
             }
 
             SetSelectedGameObject(null);
+            Debug.Log("[InputService] No Selectables found");
         }
 
         public GameObject GetSelectedGameObject()
         {
-            // if (_selectedGameObject != null) return _selectedGameObject;
             return EventSystem.current.currentSelectedGameObject;
         }
 
         public void SetSelectedGameObject(GameObject go)
         {
+            if (go == null) return;
+
             _selectedGameObject = go;
 
-            if (!CanDeselectGameObject() && go == null)
-                return;
+            if (EventSystem.current.currentSelectedGameObject == go) return;
 
             EventSystem.current.SetSelectedGameObject(go);
-        }
-
-        private bool CanDeselectGameObject()
-            => _controlScheme is not (InputConstants.Gamepad or InputConstants.Joystick);
-
-        public void SubscribeControlScheme(PlayerInput playerInput)
-        {
-            // playerInput.onControlsChanged += p => { Debug.Log($"PlayerInput InputDevice: {p.currentControlScheme}"); };
-            // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
-            // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
-
-            Observable.EveryValueChanged(playerInput, input => input.currentControlScheme)
-                .Subscribe(device =>
-                {
-                    Debug.Log($"PlayerInput InputDevice: {device}");
-                    UpdateControlScheme(device);
-                })
-                .AddTo(Disposables);
-
-            UpdateControlScheme(playerInput.currentControlScheme);
         }
 
         public void UpdateControlScheme(string device)
         {
             _controlScheme = device;
+            ResolveControlScheme(_selectedGameObject);
+        }
 
-            switch (device)
+        public void ResolveControlScheme(GameObject selectedGameObject = null)
+        {
+            switch (_controlScheme)
             {
                 case InputConstants.Gamepad:
                 case InputConstants.Joystick:
                 {
                     ApplicationEvents.HideCursor();
-                    ResolveSelectable(_selectedGameObject);
+                    ResolveSelectable(selectedGameObject);
                     break;
                 }
                 case InputConstants.KeyboardAndMouse:
@@ -186,7 +166,7 @@ namespace Game.Core.Services
                 case InputConstants.XR:
                 {
                     ApplicationEvents.ShowCursor();
-                    ResolveSelectable();
+                    ResolveSelectable(selectedGameObject);
                     break;
                 }
             }
@@ -194,7 +174,6 @@ namespace Game.Core.Services
 
         public void Dispose()
         {
-            Disposables?.Dispose();
             Shutdown();
         }
     }

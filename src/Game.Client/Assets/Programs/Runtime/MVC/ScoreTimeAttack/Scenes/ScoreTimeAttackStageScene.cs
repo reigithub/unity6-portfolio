@@ -136,14 +136,13 @@ namespace Game.ScoreTimeAttack.Scenes
             // UIキー入力設定
             SceneComponent
                 .UpdateAsObservable()
+                .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (FocusState is GameSceneFocusState.Unfocused)
-                        return;
-
                     if (InputService.UI.Menu.WasPressedThisFrame())
                     {
                         ShowPauseAsync().Forget();
+                        return;
                     }
 
                     if (InputService.UI.ScrollWheel.WasPressedThisFrame())

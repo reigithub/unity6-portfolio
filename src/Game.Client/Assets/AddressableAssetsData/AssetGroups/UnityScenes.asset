@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 30fb6719a9eb1d84a807a42d598b16f8
+    m_Address: Abandoned_Asylum
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8dda08b4fb6fb704182957c4fe2041f9
     m_Address: StylizedNature
     m_ReadOnly: 0

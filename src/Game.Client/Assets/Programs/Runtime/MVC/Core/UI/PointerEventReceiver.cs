@@ -1,22 +1,47 @@
 using Game.Core.Services;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Game.Core.UI
 {
-    public class PointerEventReceiver : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public class PointerEventReceiver : MonoBehaviour
+        , IPointerEnterHandler, IPointerExitHandler
+        , IPointerClickHandler
+        , IPointerDownHandler, IPointerUpHandler
     {
+        [SerializeField] private Selectable _selectable;
+
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void OnPointerEnter(PointerEventData eventData) => OnSelect();
+
+        public void OnPointerExit(PointerEventData eventData) { }
+
+        public void OnPointerClick(PointerEventData eventData) => OnPress(eventData);
+
+        public void OnPointerDown(PointerEventData eventData) => OnPress(eventData);
+
+        public void OnPointerUp(PointerEventData eventData) { }
+
+        private void OnPress(PointerEventData eventData)
         {
-            InputService.SetSelectedGameObject(gameObject);
+            if (eventData.button != PointerEventData.InputButton.Left) return;
+            OnSelect();
         }
 
-        public void OnPointerExit(PointerEventData eventData)
+        private void OnSelect() => InputService.SetSelectedGameObject(_selectable.gameObject);
+
+#if UNITY_EDITOR
+        private void OnValidate()
         {
-            InputService.SetSelectedGameObject(null);
+            if (_selectable != null)
+                return;
+
+            if (gameObject.TryGetComponent<Selectable>(out var selectable))
+                _selectable = selectable;
         }
+#endif
     }
 }

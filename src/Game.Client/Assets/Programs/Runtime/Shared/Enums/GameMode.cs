@@ -5,5 +5,6 @@ namespace Game.Shared.Enums
         None = 0,
         MvcScoreTimeAttack = 1,
         MvpSurvivor = 2,
+        MvcHorror = 3,
     }
 }

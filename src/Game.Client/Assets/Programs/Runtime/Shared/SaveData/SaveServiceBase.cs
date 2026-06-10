@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using R3;
 using UnityEngine;
 
 namespace Game.Shared.SaveData
@@ -30,6 +31,10 @@ namespace Game.Shared.SaveData
 
         /// <summary>未保存の変更があるか</summary>
         public bool IsDirty => _isDirty;
+
+        /// <summary>セーブされたとき</summary>
+        private readonly Subject<TData> _onSaved = new();
+        public Observable<TData> OnSaved => _onSaved.AsObservable();
 
         protected SaveServiceBase(ISaveDataStorage storage)
         {
@@ -90,6 +95,7 @@ namespace Game.Shared.SaveData
                 OnBeforeSave(_data);
                 await _storage.SaveAsync(SaveKey, _data);
                 _isDirty = false;
+                _onSaved.OnNext(_data);
                 Debug.Log($"[{GetType().Name}] Saved successfully.");
             }
             catch (Exception e)

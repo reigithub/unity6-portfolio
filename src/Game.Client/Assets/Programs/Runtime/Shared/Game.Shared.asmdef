@@ -20,7 +20,11 @@
         "Fusion.Addons.KCC",
         "Fusion.Addons.FSM",
         "Unity.Collections",
-        "VContainer"
+        "VContainer",
+        "Unity.Localization",
+        "Unity.TextMeshPro",
+        "R3.Unity.TextMeshPro",
+        "UniTask.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -30,8 +34,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false,
-    "internalsVisibleTo": [
-        "Game.Tests.Shared"
-    ]
+    "noEngineReferences": false
 }

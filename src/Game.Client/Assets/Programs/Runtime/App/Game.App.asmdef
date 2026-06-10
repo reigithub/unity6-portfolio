@@ -6,6 +6,7 @@
         "VContainer",
         "Game.MVC.Core",
         "Game.MVC.ScoreTimeAttack",
+        "Game.MVC.Horror",
         "Game.MVP.Core",
         "Game.Library.Shared",
         "UniTask",

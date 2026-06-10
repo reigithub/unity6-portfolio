@@ -76,5 +76,20 @@ namespace Game.Core.Services
         {
             Instance.TryRemove<T>();
         }
+
+        /// <summary>
+        /// 生成済みインスタンス登録
+        /// </summary>
+        public static void Register<T>(IGameService service)
+            where T : IGameService
+        {
+            Instance._gameServices[typeof(T)] = service;
+        }
+
+        public static T Resolve<T>()
+            where T : IGameService
+        {
+            return (T)Instance._gameServices[typeof(T)];
+        }
     }
 }

@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 
 namespace Game.MVC.Core.Scenes
 {
-    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, IGameSceneFocusHandler, ICompositeDisposable
+    public interface IGameScene : IGameSceneState, IGameSceneArgHandler, ICompositeDisposable
     {
         // 事前初期化処理
         // サーバー通信, モデルクラスの初期化など
@@ -44,7 +44,7 @@ namespace Game.MVC.Core.Scenes
         public GameSceneState State { get; set; }
         public Func<IGameScene, UniTask> ArgHandler { get; set; }
 
-        public CompositeDisposable Disposables { get; } = new();
+        public CompositeDisposable Disposables { get; protected set; } = new();
 
         public virtual UniTask PreInitialize() => UniTask.CompletedTask;
 
@@ -59,12 +59,6 @@ namespace Game.MVC.Core.Scenes
         public virtual UniTask Ready() => UniTask.CompletedTask;
 
         public virtual UniTask Terminate() => UniTask.CompletedTask;
-
-        public GameSceneFocusState FocusState { get; set; }
-
-        public virtual UniTask Focus() => UniTask.CompletedTask;
-
-        public virtual UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     public interface IGameSceneState
@@ -80,15 +74,6 @@ namespace Game.MVC.Core.Scenes
     public interface IGameSceneArgHandler
     {
         Func<IGameScene, UniTask> ArgHandler { get; set; }
-    }
-
-    public interface IGameSceneFocusHandler
-    {
-        GameSceneFocusState FocusState { get; set; }
-
-        UniTask Focus();
-
-        UniTask Unfocus();
     }
 
     public interface IGameSceneResult
@@ -142,7 +127,10 @@ namespace Game.MVC.Core.Scenes
         public override async UniTask LoadAsset()
         {
             await LoadScene();
+            SceneComponent = default;
             SceneComponent = GetSceneComponent();
+            if (Disposables.IsDisposed)
+                Disposables = new CompositeDisposable();
         }
 
         public override async UniTask Startup()
@@ -174,20 +162,6 @@ namespace Game.MVC.Core.Scenes
             await SceneComponent.Terminate();
             await UnloadScene();
             await base.Terminate();
-        }
-
-        public override async UniTask Focus()
-        {
-            await SceneComponent.Focus();
-            await base.Focus();
-            FocusState = GameSceneFocusState.Focused;
-        }
-
-        public override async UniTask Unfocus()
-        {
-            FocusState =  GameSceneFocusState.Unfocused;
-            await SceneComponent.Unfocus();
-            await base.Focus();
         }
 
         protected virtual UniTask LoadScene()
@@ -235,15 +209,14 @@ namespace Game.MVC.Core.Scenes
                 _instance.SafeDestroy();
                 _instance = null;
                 _asset = null;
+                _canvasGroup = null;
             }
 
             return UniTask.CompletedTask;
         }
 
         protected override TGameSceneComponent GetSceneComponent()
-        {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
-        }
+            => GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
 
         public async UniTask FadeInAsync(float duration = 0.3f)
         {
@@ -276,40 +249,9 @@ namespace Game.MVC.Core.Scenes
     }
 
     // コンポーネント付きのUnityScene
-    // Memo: 多分使わない
-    // 基本的にPrefabSceneで賄えるのと、PrefabSceneを使う際にGameRootSceneを戻してあげないといけないので面倒
     public abstract class GameUnityScene<TGameScene, TGameSceneComponent> : GameScene<TGameScene, TGameSceneComponent>
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
-    {
-        private AddressableAssetService _assetService;
-        protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Single;
-
-        private SceneInstance _instance;
-
-        protected override async UniTask LoadScene()
-        {
-            _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
-            // SceneManager.SetActiveScene(_instance.Scene);
-        }
-
-        protected override async UniTask UnloadScene()
-        {
-            await AssetService.UnloadSceneAsync(_instance);
-        }
-
-        protected override TGameSceneComponent GetSceneComponent()
-        {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance.Scene);
-        }
-    }
-
-    // コンポーネントなしのピュアなUnityScene
-    // Memo: UnityScene毎にクラス作成するはめになるのでナシの方向（基本的にPrefabSceneのついでに、読み込む形で良い）
-    // 新しいフィールド作成毎にコード追加が発生するため、チーム開発には向いてないかも、ということで
-    public abstract class GameUnityScene : GameScene
     {
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
@@ -318,26 +260,19 @@ namespace Game.MVC.Core.Scenes
 
         private SceneInstance _instance;
 
-        public override async UniTask LoadAsset()
-        {
-            await LoadScene();
-        }
-
-        public override async UniTask Terminate()
-        {
-            await UnloadScene();
-        }
-
-        protected virtual async UniTask LoadScene()
+        protected override async UniTask LoadScene()
         {
             _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
-            // SceneManager.SetActiveScene(_instance.Scene);
+            if (LoadSceneMode is LoadSceneMode.Additive) SceneManager.SetActiveScene(_instance.Scene);
         }
 
-        protected virtual async UniTask UnloadScene()
+        protected override async UniTask UnloadScene()
         {
             await AssetService.UnloadSceneAsync(_instance);
         }
+
+        protected override TGameSceneComponent GetSceneComponent()
+            => GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance.Scene);
     }
 
     // 主にダイアログ用(オーバーレイ表示想定)
@@ -410,8 +345,6 @@ namespace Game.MVC.Core.Scenes
         }
 
         protected override TComponent GetSceneComponent()
-        {
-            return SceneComponent ??= GameSceneHelper.GetSceneComponent<TComponent>(_instance);
-        }
+            => GameSceneHelper.GetSceneComponent<TComponent>(_instance);
     }
 }

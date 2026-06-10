@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks.Triggers;
 using Game.App.Launcher;
 using Game.App.Services;
 using Game.App.Title;
+using Game.Horror;
 using Game.ScoreTimeAttack;
 using Game.MVP.Core.DI;
 using Game.Shared;
@@ -86,6 +87,7 @@ namespace Game.App.Bootstrap
             _registry = new GameModeLauncherRegistry();
             _registry.Register(new ScoreTimeAttackGameLauncher());
             _registry.Register(new SurvivorGameLauncher());
+            _registry.Register(new HorrorGameLauncher());
 
             // シーンローダー初期化
             _sceneLoader = new AppSceneLoader();

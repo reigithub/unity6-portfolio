@@ -1,0 +1,215 @@
+using Game.Core.Services;
+using Game.Shared.Enums;
+using Game.Shared.SaveData;
+using UnityEngine;
+
+namespace Game.Horror.SaveData
+{
+    /// <summary>
+    /// Horror オプション設定のセーブサービス。<see cref="SaveServiceBase{TData}"/> を継承し、
+    /// 各設定の値保持・ダーティ管理・永続化を担う。ゲームへの実適用（Screen/QualitySettings 等）は持たない。
+    /// 生成・ロード済みインスタンスを GameServiceManager.Register で共有登録して使う（IGameService）。
+    /// </summary>
+    public class HorrorOptionSaveService : SaveServiceBase<HorrorOptionSaveData>, IGameService
+    {
+        protected override string SaveKey => "horror_option_settings";
+        protected override int CurrentVersion => 1;
+
+        public HorrorOptionSaveService(ISaveDataStorage storage) : base(storage)
+        {
+        }
+
+        #region General / Camera
+
+        public void SetLanguageCode(string code)
+        {
+            if (Data == null) return;
+            Data.LanguageCode = code;
+            MarkDirty();
+        }
+
+        public void SetCameraControlHorizontal(bool invert)
+        {
+            if (Data == null) return;
+            Data.CameraControlHorizontal = invert;
+            MarkDirty();
+        }
+
+        public void SetCameraControlVertical(bool invert)
+        {
+            if (Data == null) return;
+            Data.CameraControlVertical = invert;
+            MarkDirty();
+        }
+
+        public void SetCameraSensitivityHorizontal(float value)
+        {
+            if (Data == null) return;
+            Data.CameraSensitivityHorizontal = value;
+            MarkDirty();
+        }
+
+        public void SetCameraSensitivityVertical(float value)
+        {
+            if (Data == null) return;
+            Data.CameraSensitivityVertical = value;
+            MarkDirty();
+        }
+
+        public void SetCameraAcceleration(float value)
+        {
+            if (Data == null) return;
+            Data.CameraAcceleration = value;
+            MarkDirty();
+        }
+
+        public void SetCameraShake(float value)
+        {
+            if (Data == null) return;
+            Data.CameraShake = value;
+            MarkDirty();
+        }
+
+        public void SetCameraFov(float fov)
+        {
+            if (Data == null) return;
+            Data.CameraFov = fov;
+            MarkDirty();
+        }
+
+        #endregion
+
+        #region Display
+
+        public void SetDisplayMode(FullScreenMode mode)
+        {
+            if (Data == null) return;
+            Data.DisplayMode = mode;
+            MarkDirty();
+        }
+
+        public void SetResolution(int width, int height)
+        {
+            if (Data == null) return;
+            Data.ResolutionWidth = width;
+            Data.ResolutionHeight = height;
+            MarkDirty();
+        }
+
+        public void SetFrameRateLimit(int fps)
+        {
+            if (Data == null) return;
+            Data.FrameRateLimit = fps;
+            MarkDirty();
+        }
+
+        public void SetUncappedFrameRate(bool uncapped)
+        {
+            if (Data == null) return;
+            Data.UncappedFrameRate = uncapped;
+            MarkDirty();
+        }
+
+        public void SetVSync(bool enabled)
+        {
+            if (Data == null) return;
+            Data.VSync = enabled;
+            MarkDirty();
+        }
+
+        public void SetMotionBlur(bool enabled)
+        {
+            if (Data == null) return;
+            Data.MotionBlur = enabled;
+            MarkDirty();
+        }
+
+        #endregion
+
+        #region Graphics
+
+        public void SetGraphicQualityPreset(GraphicQuality quality)
+        {
+            if (Data == null) return;
+            Data.GraphicQualityPreset = quality;
+            MarkDirty();
+        }
+
+        public void SetResolutionScale(float scale)
+        {
+            if (Data == null) return;
+            Data.ResolutionScale = scale;
+            MarkDirty();
+        }
+
+        public void SetLighting(GraphicQuality quality)
+        {
+            if (Data == null) return;
+            Data.Lighting = quality;
+            MarkDirty();
+        }
+
+        public void SetReflection(GraphicQuality quality)
+        {
+            if (Data == null) return;
+            Data.Reflection = quality;
+            MarkDirty();
+        }
+
+        public void SetAntiAliasing(GraphicQuality quality)
+        {
+            if (Data == null) return;
+            Data.AntiAliasing = quality;
+            MarkDirty();
+        }
+
+        public void SetPostProcessing(GraphicQuality quality)
+        {
+            if (Data == null) return;
+            Data.PostProcessing = quality;
+            MarkDirty();
+        }
+
+        #endregion
+
+        #region Audio
+
+        public void SetMasterVolume(float value)
+        {
+            if (Data == null) return;
+            Data.MasterVolume = Mathf.Clamp01(value);
+            MarkDirty();
+        }
+
+        public void SetBgmVolume(float value)
+        {
+            if (Data == null) return;
+            Data.BgmVolume = Mathf.Clamp01(value);
+            MarkDirty();
+        }
+
+        public void SetVoiceVolume(float value)
+        {
+            if (Data == null) return;
+            Data.VoiceVolume = Mathf.Clamp01(value);
+            MarkDirty();
+        }
+
+        public void SetSeVolume(float value)
+        {
+            if (Data == null) return;
+            Data.SeVolume = Mathf.Clamp01(value);
+            MarkDirty();
+        }
+
+        #endregion
+
+        protected override int GetDataVersion(HorrorOptionSaveData data) => data.Version;
+
+        protected override void MigrateData(HorrorOptionSaveData data, int fromVersion)
+        {
+            data.Version = CurrentVersion;
+            Debug.Log($"[HorrorOptionSaveService] Migrated from version {fromVersion} to {CurrentVersion}");
+        }
+    }
+}

@@ -48,20 +48,12 @@ namespace Game.ScoreTimeAttack.UI
             ApplicationEvents.PauseTime();
             SceneComponent.Initialize(this);
             SceneComponent.UpdateAsObservable()
+                .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (FocusState is GameSceneFocusState.Unfocused)
-                        return;
-
-                    if (InputService.UI.Cancel.WasPressedThisFrame())
+                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);
-                        return;
-                    }
-                    if (InputService.UI.Menu.WasPressedThisFrame())
-                    {
-                        TrySetResult(default);
-                        return;
                     }
                 })
                 .AddTo(Disposables);

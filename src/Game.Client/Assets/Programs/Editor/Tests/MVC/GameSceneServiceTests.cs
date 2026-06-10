@@ -1056,10 +1056,6 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
-
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class AnotherMockGameScene : IGameScene
@@ -1082,10 +1078,6 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
-
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class MockGameSceneWithResult : IGameScene, IGameSceneResult<int>
@@ -1103,9 +1095,6 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         private class MockGameSceneWithArg : IGameScene, IGameSceneArg<string>
@@ -1129,9 +1118,6 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -1209,10 +1195,6 @@ namespace Game.Editor.Tests
                 TerminateCalled = true;
                 return UniTask.CompletedTask;
             }
-
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -1348,10 +1330,6 @@ namespace Game.Editor.Tests
                 return UnloadScene();
             }
 
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
-
             private UniTask LoadScene()
             {
                 // Simulate asset loading
@@ -1467,10 +1445,6 @@ namespace Game.Editor.Tests
                 return UnloadScene();
             }
 
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
-
             private UniTask LoadScene()
             {
                 return UniTask.CompletedTask;
@@ -1555,10 +1529,6 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
-
             public bool TrySetResult(bool result) => ResultTcs?.TrySetResult(result) ?? false;
             public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
             public bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
@@ -1601,10 +1571,6 @@ namespace Game.Editor.Tests
                 TrySetCanceled();
                 return UniTask.CompletedTask;
             }
-
-            public GameSceneFocusState FocusState { get; set; }
-            public UniTask Focus() => UniTask.CompletedTask;
-            public UniTask Unfocus() => UniTask.CompletedTask;
 
             public bool TrySetResult(int result) => ResultTcs?.TrySetResult(result) ?? false;
             public bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;

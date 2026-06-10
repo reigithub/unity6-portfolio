@@ -37,6 +37,7 @@
                 <!-- Mode Selection Panel -->
                 <ui:VisualElement name="mode-selection-panel" class="panel hidden">
                     <ui:Button name="score-timeattack-button" text="SCORE TIME ATTACK" class="menu-button menu-button--primary"/>
+                    <ui:Button name="horror-button" text="HORROR" class="menu-button"/>
                     <ui:Button name="survivor-button" text="SURVIVOR" class="menu-button"/>
                     <ui:Button name="quit-button" text="QUIT" class="menu-button menu-button--danger"/>
                 </ui:VisualElement>

@@ -1,0 +1,31 @@
+{
+    "name": "Game.Tests.MVC.Horror",
+    "rootNamespace": "Game.Tests.MVC.Horror",
+    "references": [
+        "Game.MVC.Horror",
+        "Game.Shared",
+        "Game.Library.Shared",
+        "UniTask",
+        "R3.Unity",
+        "MessagePipe",
+        "MemoryPack.Unity"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NSubstitute.dll",
+        "R3.dll",
+        "MemoryPack.Core.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

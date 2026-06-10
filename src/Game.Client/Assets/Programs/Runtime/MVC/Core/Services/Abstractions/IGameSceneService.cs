@@ -1,9 +1,8 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
-using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.SceneManagement;
 
 namespace Game.Core.Services
 {
@@ -18,7 +17,7 @@ namespace Game.Core.Services
         /// </summary>
         /// <typeparam name="TScene">遷移先シーン型</typeparam>
         /// <param name="operations">遷移オプション（現在シーンの終了方法、履歴操作）</param>
-        UniTask TransitionAsync<TScene>(GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
+        UniTask TransitionAsync<TScene>(GameSceneOperations operations = GameSceneConstants.DefaultOperations)
             where TScene : IGameScene, new();
 
         /// <summary>
@@ -28,7 +27,7 @@ namespace Game.Core.Services
         /// <typeparam name="TArg">引数の型</typeparam>
         /// <param name="arg">シーンに渡す引数</param>
         /// <param name="operations">遷移オプション</param>
-        UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
+        UniTask TransitionAsync<TScene, TArg>(TArg arg, GameSceneOperations operations = GameSceneConstants.DefaultOperations)
             where TScene : IGameScene, new();
 
         /// <summary>
@@ -38,7 +37,7 @@ namespace Game.Core.Services
         /// <typeparam name="TResult">戻り値の型</typeparam>
         /// <param name="operations">遷移オプション</param>
         /// <returns>シーンからの戻り値</returns>
-        UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
+        UniTask<TResult> TransitionAsync<TScene, TResult>(GameSceneOperations operations = GameSceneConstants.DefaultOperations)
             where TScene : IGameScene, new();
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace Game.Core.Services
         /// <param name="arg">シーンに渡す引数</param>
         /// <param name="operations">遷移オプション</param>
         /// <returns>シーンからの戻り値</returns>
-        UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = GameSceneOperations.Terminate | GameSceneOperations.ClearHistory)
+        UniTask<TResult> TransitionAsync<TScene, TArg, TResult>(TArg arg, GameSceneOperations operations = GameSceneConstants.DefaultOperations)
             where TScene : IGameScene, new();
 
         /// <summary>

@@ -20,15 +20,6 @@ Unity6クライアント + ゲームバックエンド基盤 + オンライン�
 * 現場で使用される技術・モダン技術で構築することによる現場環境・最新へのキャッチアップ
 * クライアント+バックエンド+インフラを含めたフルスタックで開発することでゲームアプリ全体像を理解する
 
-## デモ動画
-| P2Pマルチプレイ                                                                             |
-|-------------------------------------------------------------------------------------------|
-| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") |
-
-| シングルプレイ(サーバー権威型)                                                                   |
-|---------------------------------------------------------------------------------------------|
-| [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
-
 ## スクリーンショット
 
 ### スコアアタックゲーム(MVCパターン)
@@ -57,11 +48,18 @@ Unity6クライアント + ゲームバックエンド基盤 + オンライン�
 
 ## ゲームプレイ動画
 
-### MVC: ScoreTimeAttack
-![MVCゲームプレイ](src/Game.Client/Documentation/GIFs/mvc_gameplay.gif)
+| MVC: ScoreTimeAttack | MVP: Survivor |
+|----------------------|---------------|
+| ![MVCゲームプレイ](src/Game.Client/Documentation/GIFs/mvc_gameplay.gif) | [![MVPゲームプレイ](src/Game.Client/Documentation/GIFs/mvp_gameplay.gif) |
 
-### MVP: Survivor
-![MVPゲームプレイ](src/Game.Client/Documentation/GIFs/mvp_gameplay.gif)
+| P2Pマルチプレイ            | シングルプレイ(サーバー権威型)  |
+|--------------------------|----------------------------|
+| [![P2P](http://img.youtube.com/vi/yKuJerdvdhA/0.jpg)](https://youtu.be/yKuJerdvdhA "P2P") | [![Demo](http://img.youtube.com/vi/VYO7xeJUYHk/0.jpg)](https://youtu.be/VYO7xeJUYHk "Demo") |
+
+| ゲームパッドでUI操作                                                                    |
+|--------------------------------------------------------------------------------|
+| ![GamepadUIControl](src/Game.Client/Documentation/GIFs/gamepad_ui_control.gif) |
+
 
 ### シーン遷移・エフェクト
 | シーン遷移 | エフェクト集 |

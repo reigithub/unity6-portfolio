@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Library.Shared.Enums;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -21,10 +19,6 @@ namespace Game.MVC.Core.Scenes
         UniTask Restart() => UniTask.CompletedTask;
 
         UniTask Terminate() => UniTask.CompletedTask;
-
-        UniTask Focus() => UniTask.CompletedTask;
-
-        UniTask Unfocus() => UniTask.CompletedTask;
     }
 
     [RequireComponent(typeof(CanvasGroup))]
@@ -36,88 +30,74 @@ namespace Game.MVC.Core.Scenes
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
-        private Selectable[] _selectables;
-        private Selectable[] Selectables => _selectables ??= GetComponentsInChildren<Selectable>();
-
-        private Button[] _buttons;
-        private Button[] Buttons => _buttons ??= GetComponentsInChildren<Button>();
+        private GameObject _selectedGameObject;
 
         public CompositeDisposable Disposables { get; } = new();
 
-        private GameObject _selectedGameObject;
-
         public virtual UniTask Startup()
         {
-            if (Buttons.Length > 0)
-            {
-                Buttons
-                    .Select(x => x.OnClickAsObservable())
-                    .Merge()
-                    .SubscribeAwait(async (_, token) => { await AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIButton, token); })
-                    .AddTo(Disposables);
-            }
-
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask Sleep()
         {
-            if (gameObject.activeSelf)
-                gameObject.SetActive(false);
-
-            return UniTask.CompletedTask;
+            return Unfocus();
         }
 
         public virtual UniTask Restart()
         {
-            if (!gameObject.activeSelf)
-                gameObject.SetActive(true);
-
-            Focus();
-            return UniTask.CompletedTask;
+            return Focus();
         }
 
         public virtual UniTask Ready()
         {
-            Focus();
-            return UniTask.CompletedTask;
+            return Focus();
         }
 
         public virtual UniTask Terminate()
         {
             Disposables?.Dispose();
-            return UniTask.CompletedTask;
-        }
-
-        public virtual UniTask Focus()
-        {
-            SetInteractable(true);
-            InputService.ResolveSelectable(_selectedGameObject);
-            return UniTask.CompletedTask;
-        }
-
-        public virtual UniTask Unfocus()
-        {
-            _selectedGameObject = InputService.GetSelectedGameObject();
             SetInteractable(false);
             return UniTask.CompletedTask;
         }
 
-        public virtual void SetInteractable(bool interactive)
+        private async UniTask Focus()
         {
-            if (Selectables.Length > 0)
+            SetInteractable(true);
+            await UniTask.Yield();
+            InputService.ResolveControlScheme(_selectedGameObject);
+        }
+
+        private async UniTask Unfocus()
+        {
+            _selectedGameObject = InputService.GetSelectedGameObject();
+            await UniTask.Yield();
+            SetInteractable(false);
+        }
+
+        public virtual void SetInteractable(bool interactable)
+        {
+            if (TryGetComponent<CanvasGroup>(out var canvasGroup))
             {
-                foreach (var selectable in Selectables)
+                if (interactable)
                 {
-                    selectable.interactable = interactive;
+                    canvasGroup.alpha = 1f;
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                }
+                else
+                {
+                    canvasGroup.alpha = 0f;
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
                 }
             }
         }
 
-        protected IDisposable BlockInteractable()
-        {
-            SetInteractable(false);
-            return Disposable.Create(() => SetInteractable(true));
-        }
+        // public IDisposable BlockInteractable()
+        // {
+        //     SetInteractable(false);
+        //     return Disposable.Create(() => SetInteractable(true));
+        // }
     }
 }

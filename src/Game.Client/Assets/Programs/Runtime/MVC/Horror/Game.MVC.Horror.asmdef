@@ -1,0 +1,30 @@
+{
+    "name": "Game.MVC.Horror",
+    "rootNamespace": "Game",
+    "references": [
+        "Game.MVC.Core",
+        "Game.Shared",
+        "Game.Library.Shared",
+        "UniTask",
+        "R3.Unity",
+        "R3.Unity.TextMeshPro",
+        "MessagePipe",
+        "MessagePipe.Unity",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.TextMeshPro",
+        "DOTween.Modules",
+        "Unity.InputSystem",
+        "Unity.Cinemachine",
+        "Unity.Localization"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
