@@ -71,12 +71,15 @@ namespace Game.Shared.Scriptable.Database.Samples
         }
 
 #if UNITY_EDITOR
-        private void OnValidate()
+        [ContextMenu("Sort & Validate")]
+        public override void EditorSortAndValidate()
         {
             SortAndValidate(_pkSel, _pkCmp);
             _idx0 = null;
             _idx1 = null;
         }
+
+        public override bool EditorIsSorted() => IsSortedByKey(_pkSel, _pkCmp);
 #endif
     }
 }

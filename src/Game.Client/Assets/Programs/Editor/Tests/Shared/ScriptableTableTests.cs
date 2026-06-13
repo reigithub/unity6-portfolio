@@ -32,7 +32,10 @@ namespace Game.Tests.Shared
             public ScriptableTableRecords<Rec> FindRangeById(int min, int max, bool ascending = true) => FindRange(records, min, max, Sel, Cmp, ascending);
 
             public void Set(params Rec[] rs) => records = rs;   // 主キー昇順で渡す
-            public void Validate() => SortAndValidate(Sel, Cmp);   // OnValidate 経路をテストから叩く
+
+            public override void EditorSortAndValidate() => SortAndValidate(Sel, Cmp);
+            public override bool EditorIsSorted() => IsSortedByKey(Sel, Cmp);
+            public void Validate() => EditorSortAndValidate();   // 既存テストの呼び口を維持
         }
 
         private static TestScriptableTable Make(params Rec[] rs)
@@ -162,6 +165,16 @@ namespace Game.Tests.Shared
             LogAssert.Expect(LogType.Warning, new Regex("主キー 1 が重複"));
             t.Validate();
             Assert.AreEqual(3, t.All.Count);   // 重複は警告のみで除去はしない
+        }
+
+        [Test]
+        public void EditorIsSorted_DetectsUnsorted_ThenSortFixes()
+        {
+            var t = Make(new Rec(3, "c"), new Rec(1, "a"), new Rec(2, "b"));   // 未整列
+            Assert.IsFalse(t.EditorIsSorted());
+            t.EditorSortAndValidate();
+            Assert.IsTrue(t.EditorIsSorted());
+            Assert.AreEqual(1, t.All[0].id);
         }
     }
 }

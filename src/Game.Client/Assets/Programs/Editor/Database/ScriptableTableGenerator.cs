@@ -154,11 +154,14 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
             sb.AppendLine();
             sb.AppendLine("#if UNITY_EDITOR");
-            sb.AppendLine($"{i1}private void OnValidate()");
+            sb.AppendLine($"{i1}[ContextMenu(\"Sort & Validate\")]");
+            sb.AppendLine($"{i1}public override void EditorSortAndValidate()");
             sb.AppendLine($"{i1}{{");
             sb.AppendLine($"{i2}SortAndValidate(_pkSel, _pkCmp);");
             foreach (var k in indices.Keys) sb.AppendLine($"{i2}_idx{k} = null;");
             sb.AppendLine($"{i1}}}");
+            sb.AppendLine();
+            sb.AppendLine($"{i1}public override bool EditorIsSorted() => IsSortedByKey(_pkSel, _pkCmp);");
             sb.AppendLine("#endif");
             sb.AppendLine($"{i0}}}");
             if (ns != null) sb.AppendLine("}");

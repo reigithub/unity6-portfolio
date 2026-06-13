@@ -13,7 +13,7 @@ namespace Game.Shared.Scriptable.Database
     /// not-found 表現は MasterMemory に準拠：<see cref="FindUnique"/> は既定で例外、
     /// <see cref="TryFindUnique"/> は <c>default</c>＋false、<see cref="FindClosest"/> は空時に <c>default</c>。
     /// </summary>
-    public abstract class ScriptableTable<TRecord> : ScriptableObject
+    public abstract class ScriptableTable<TRecord> : ScriptableTableBase
     {
         [SerializeField] protected TRecord[] records = Array.Empty<TRecord>();
 
@@ -91,6 +91,18 @@ namespace Game.Shared.Scriptable.Database
         /// 生成 partial の OnValidate が主キーセレクタ付きで呼ぶ、編集時の整列＋重複警告コア。
         /// records を <paramref name="sel"/> 昇順へ整列し、重複キーを警告する。
         /// </summary>
+        /// <summary>records が <paramref name="sel"/> 昇順・空要素なしに整っているか（手動整列の要否判定用）。</summary>
+        protected bool IsSortedByKey<TKey>(Func<TRecord, TKey> sel, IComparer<TKey> cmp)
+        {
+            if (records == null) return true;
+            for (int i = 1; i < records.Length; i++)
+            {
+                if (records[i - 1] == null || records[i] == null) return false;
+                if (cmp.Compare(sel(records[i - 1]), sel(records[i])) > 0) return false;
+            }
+            return true;
+        }
+
         protected void SortAndValidate<TKey>(Func<TRecord, TKey> sel, IComparer<TKey> cmp)
         {
             if (records == null) return;
