@@ -13,7 +13,7 @@ namespace Game.Horror.SaveData
     public class HorrorOptionSaveService : SaveServiceBase<HorrorOptionSaveData>, IGameService
     {
         protected override string SaveKey => "horror_option_settings";
-        protected override int CurrentVersion => 1;
+        protected override int CurrentVersion => 2;
 
         public HorrorOptionSaveService(ISaveDataStorage storage) : base(storage)
         {
@@ -199,6 +199,21 @@ namespace Game.Horror.SaveData
         {
             if (Data == null) return;
             Data.SeVolume = Mathf.Clamp01(value);
+            MarkDirty();
+        }
+
+        #endregion
+
+        #region Input
+
+        /// <summary>
+        /// キーリバインドのオーバーライド JSON を保持する（InputActionAsset.SaveBindingOverridesAsJson の出力）。
+        /// null は空文字として扱う（オーバーライド無し）。
+        /// </summary>
+        public void SetInputBindingOverrides(string json)
+        {
+            if (Data == null) return;
+            Data.InputBindingOverridesJson = json ?? "";
             MarkDirty();
         }
 

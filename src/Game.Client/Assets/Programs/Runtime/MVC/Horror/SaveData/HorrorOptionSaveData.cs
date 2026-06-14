@@ -12,7 +12,7 @@ namespace Game.Horror.SaveData
     public partial class HorrorOptionSaveData
     {
         /// <summary>セーブデータバージョン（マイグレーション用）</summary>
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
 
         #region General / Camera
 
@@ -104,6 +104,16 @@ namespace Game.Horror.SaveData
 
         /// <summary>SE ボリューム</summary>
         public float SeVolume { get; set; } = 1f;
+
+        #endregion
+
+        #region Input
+
+        /// <summary>
+        /// キーリバインドのオーバーライド（InputActionAsset.SaveBindingOverridesAsJson の出力）。
+        /// 空文字はオーバーライド無し（既定バインド）を表す。
+        /// </summary>
+        public string InputBindingOverridesJson { get; set; } = "";
 
         #endregion
     }
