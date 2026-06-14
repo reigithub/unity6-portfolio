@@ -22,19 +22,19 @@ namespace Game.Horror
             GameServiceManager.Instance.StartUp();
 
             // 2. 各種サービス取得・初期化
+            var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
             GameServiceManager.Add<MessagePipeService>();
-            var audioService = GameServiceManager.Get<AudioService>();
+            GameServiceManager.Add<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 3. 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
 
-            // 4. オーディオ設定読み込み
-            var saveDataStorage = new SaveDataStorage();
-            var audioSaveService = new AudioSaveService(saveDataStorage, audioService);
-            await audioSaveService.LoadAsync();
+            // 4. マスターデータ
+            await dbService.LoadAsync();
 
-            // 4-2. オプション設定: ロード → 共有登録 → 起動時の静的適用
+            // 5. オプション設定: ロード → 共有登録 → 起動時の静的適用
+            var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
             await optionSaveService.LoadAsync();
             GameServiceManager.Register<HorrorOptionSaveService>(optionSaveService);

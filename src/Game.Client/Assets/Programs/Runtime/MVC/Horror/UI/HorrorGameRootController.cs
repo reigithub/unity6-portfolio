@@ -19,7 +19,7 @@ namespace Game.Core
     {
         private const string Address = "HorrorGameRootController";
 
-        private static HorrorGameRootController _instance;
+        private static GameObject _instance;
 
         public static async UniTask LoadAssetAsync()
         {
@@ -31,7 +31,7 @@ namespace Game.Core
             var go = Instantiate(prefab);
             if (go.TryGetComponent<HorrorGameRootController>(out var gameRootController))
             {
-                _instance = gameRootController;
+                _instance = go;
                 DontDestroyOnLoad(go);
                 gameRootController.Initialize();
             }
@@ -45,7 +45,6 @@ namespace Game.Core
         public static async UniTask UnloadAsync()
         {
             _instance.SafeDestroy();
-            _instance = null;
             await UniTask.Yield();
         }
 
@@ -53,31 +52,28 @@ namespace Game.Core
         [SerializeField] private PlayerInput _playerInput;
         [SerializeField] private Image _fadeImage;
 
-        private IMessagePipeService _messagePipeService;
-        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
-
         private void Initialize()
         {
             // playerInput.controlsChangedEvent.AddListener(UpdateControlScheme);
             // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
             // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
             // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
+
+            var inputService = GameServiceManager.Get<InputSystemService>();
             _playerInput.controlsChangedEvent.AsObservable()
-                .Subscribe(x => InputService.UpdateControlScheme(x.currentControlScheme))
+                .Subscribe(x => inputService.UpdateControlScheme(x.currentControlScheme))
                 .AddTo(this);
 
             // GameScene
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
+            var messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration, tcs);
                     await tcs.Task;
                 })
                 .AddTo(this);
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
+            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration, tcs);
