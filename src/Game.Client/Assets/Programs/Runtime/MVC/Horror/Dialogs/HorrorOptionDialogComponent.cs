@@ -257,7 +257,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _seVolume;
 
         [Header("Options - Input")]
-        [SerializeField] private InputActionRebindView[] _rebindViews;
+        [SerializeField] private InputRebindView[] _rebindViews;
 
         #endregion
 
@@ -311,7 +311,7 @@ namespace Game.Horror.Dialogs
         #region Input
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
+        public IReadOnlyList<InputRebindView> RebindViews => _rebindViews;
 
         #endregion
 

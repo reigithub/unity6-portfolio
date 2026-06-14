@@ -10,7 +10,7 @@ namespace Game.Core.UI
     /// 現在のバインド表示と「変更」「リセット」ボタンを持ち、押下を Observable で通知する。
     /// リバインド実行・重複判定などの入力ロジックは持たず、表示更新のみを担う。
     /// </summary>
-    public class InputActionRebindView : MonoBehaviour
+    public class InputRebindView : MonoBehaviour
     {
         [Header("Identity")]
         [SerializeField] private string _scheme;            // コントロールスキーム（Keyboard&Mouse / Gamepad）
@@ -24,10 +24,10 @@ namespace Game.Core.UI
         [Header("Buttons")]
         [SerializeField] private Button _rebindButton;
         [SerializeField] private Button _resetButton;
+        [SerializeField] private Button _cancelButton;         // 任意: 待機中のキャンセル（InputAction 非依存）
 
         [Header("Waiting")]
         [SerializeField] private GameObject _waitingOverlay;   // 任意: リバインド待機中の表示
-        [SerializeField] private Button _cancelButton;         // 任意: 待機中のキャンセル（InputAction 非依存）
         [SerializeField] private Image _timeoutFill;           // 任意: 自動キャンセルまでの残り時間バー/リング（fillAmount 1→0）
 
         /// <summary>コントロールスキーム（Keyboard＆Mouse / Gamepad）。</summary>
