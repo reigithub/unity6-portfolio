@@ -38,7 +38,7 @@ namespace Game.Tests.PlayMode
             => service.Asset.FindActionMap("Player").FindAction(name);
 
         private int FirstIndex(InputAction action, string scheme)
-            => InputSystemService.ResolveSchemeBindingIndices(action, scheme)[0];
+            => InputSystemService.ResolveSchemeBindingIndices(scheme, action)[0];
 
         #region Save / Load
 
@@ -103,7 +103,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(idx, "<Keyboard>/j");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
-            _service.ResetBinding("Jump", InputConstants.KeyboardAndMouse);
+            _service.ResetBinding(InputConstants.KeyboardAndMouse, "Jump");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo(defaultPath));
             yield return null;
         }
@@ -119,7 +119,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
+            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -150,7 +150,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath; // <Keyboard>/space
 
             var completed = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
+            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -180,7 +180,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
+            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
                 _ => { },
                 () => canceled = true);
             yield return null;

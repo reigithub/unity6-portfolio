@@ -130,7 +130,7 @@ namespace Game.Horror.Dialogs
             foreach (var rebindView in SceneComponent.RebindViews)
             {
                 var rebind = rebindView;
-                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
+                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
                 rebind.OnRebindRequested
@@ -139,8 +139,8 @@ namespace Game.Horror.Dialogs
                     {
                         rebind.SetWaiting(true);
                         _currentRebind = _inputService.StartRebind(
-                            rebind.ActionName,
                             rebind.Scheme,
+                            rebind.ActionName,
                             rebind.CompositePartName,
                             display =>
                             {
@@ -152,7 +152,7 @@ namespace Game.Horror.Dialogs
                             () =>
                             {
                                 rebind.SetWaiting(false);
-                                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
+                                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
                                 _currentRebind = null;
                             });
                         _currentRebind.AddTo(Disposables);
@@ -163,8 +163,8 @@ namespace Game.Horror.Dialogs
                     .Where(_ => State.IsProcessing() && _currentRebind == null)
                     .Subscribe(_ =>
                     {
-                        _inputService.ResetBinding(rebind.ActionName, rebind.Scheme, rebind.CompositePartName);
-                        rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
+                        _inputService.ResetBinding(rebind.Scheme, rebind.ActionName, rebind.CompositePartName);
+                        rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
                         _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                     })
                     .AddTo(Disposables);

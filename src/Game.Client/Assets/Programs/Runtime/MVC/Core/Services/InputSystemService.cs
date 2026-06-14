@@ -186,12 +186,12 @@ namespace Game.Core.Services
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
-        public string GetBindingDisplayString(string actionName, string scheme, string partName = null)
+        public string GetBindingDisplayString(string scheme, string actionName, string partName = null)
         {
             var action = ResolveAction(actionName);
             if (action == null) return string.Empty;
 
-            var indices = ResolveSchemeBindingIndices(action, scheme, partName);
+            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
             if (indices.Count == 0) return string.Empty;
 
             var parts = new List<string>(indices.Count);
@@ -212,15 +212,15 @@ namespace Game.Core.Services
         public void ResetAllBindings()
             => _inputSystem?.asset.RemoveAllBindingOverrides();
 
-        public void ResetBinding(string actionName, string scheme, string partName = null)
+        public void ResetBinding(string scheme, string actionName, string partName = null)
         {
             var action = ResolveAction(actionName);
             if (action == null) return;
-            foreach (var index in ResolveSchemeBindingIndices(action, scheme, partName))
+            foreach (var index in ResolveSchemeBindingIndices(scheme, action, partName))
                 action.RemoveBindingOverride(index);
         }
 
-        public IDisposable StartRebind(string actionName, string scheme, string partName, Action<string> onComplete, Action onCanceled)
+        public IDisposable StartRebind(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled)
         {
             var action = ResolveAction(actionName);
             if (action == null)
@@ -229,7 +229,7 @@ namespace Game.Core.Services
                 return Disposable.Empty;
             }
 
-            var indices = ResolveSchemeBindingIndices(action, scheme, partName);
+            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
             if (indices.Count == 0)
             {
                 onCanceled?.Invoke();
@@ -260,7 +260,7 @@ namespace Game.Core.Services
                 if (listIndex >= indices.Count)
                 {
                     Finish();
-                    onComplete?.Invoke(GetBindingDisplayString(actionName, scheme, partName));
+                    onComplete?.Invoke(GetBindingDisplayString(scheme, actionName, partName));
                     return;
                 }
 
@@ -333,7 +333,7 @@ namespace Game.Core.Services
         /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
         /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        public static IReadOnlyList<int> ResolveSchemeBindingIndices(InputAction action, string scheme, string partName = null)
+        public static IReadOnlyList<int> ResolveSchemeBindingIndices(string scheme, InputAction action, string partName = null)
         {
             var result = new List<int>();
             if (action == null) return result;

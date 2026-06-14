@@ -16025,8 +16025,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Jump
   _scheme: Keyboard&Mouse
+  _actionName: Jump
   _compositePartName: 
   _actionLabel: {fileID: 9101125689934737237}
   _bindingLabel: {fileID: 8254828557283428488}
@@ -20189,8 +20189,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Jump
   _scheme: Gamepad
+  _actionName: Jump
   _compositePartName: 
   _actionLabel: {fileID: 7300583891569639776}
   _bindingLabel: {fileID: 1991662530198144895}
@@ -21996,8 +21996,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Move
   _scheme: Keyboard&Mouse
+  _actionName: Move
   _compositePartName: Down
   _actionLabel: {fileID: 2974893730642373572}
   _bindingLabel: {fileID: 976763216341594582}
@@ -25496,8 +25496,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Move
   _scheme: Keyboard&Mouse
+  _actionName: Move
   _compositePartName: Right
   _actionLabel: {fileID: 3575513045087868004}
   _bindingLabel: {fileID: 830626167704446366}
@@ -41256,8 +41256,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Move
   _scheme: Keyboard&Mouse
+  _actionName: Move
   _compositePartName: Up
   _actionLabel: {fileID: 5169248634488811957}
   _bindingLabel: {fileID: 857774645980155371}
@@ -41608,8 +41608,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebe149a704598ba49a98c2ef23eff047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.RebindRow
-  _actionName: Move
   _scheme: Keyboard&Mouse
+  _actionName: Move
   _compositePartName: Left
   _actionLabel: {fileID: 5344512849973187358}
   _bindingLabel: {fileID: 3222755707372771034}

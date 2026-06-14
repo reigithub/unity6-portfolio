@@ -13,8 +13,8 @@ namespace Game.Core.UI
     public class InputActionRebindView : MonoBehaviour
     {
         [Header("Identity")]
-        [SerializeField] private string _actionName;   // Player マップのアクション名（例: Jump）
-        [SerializeField] private string _scheme;       // コントロールスキーム（Keyboard&Mouse / Gamepad）
+        [SerializeField] private string _scheme;            // コントロールスキーム（Keyboard&Mouse / Gamepad）
+        [SerializeField] private string _actionName;        // Player マップのアクション名（例: Jump）
         [SerializeField] private string _compositePartName; // コンポジットのパート名（up/down/left/right）。空＝非コンポジット
 
         [Header("Display")]
