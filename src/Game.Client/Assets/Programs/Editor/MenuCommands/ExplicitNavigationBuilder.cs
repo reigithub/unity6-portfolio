@@ -6,21 +6,16 @@ using UnityEngine.UI;
 namespace Game.Editor.MenuCommands
 {
     /// <summary>
-    /// 選択した GameObject の子階層にある Selectable に対して、
-    /// Explicit Navigation（Up/Down 循環、Left/Right null）を一括設定する Editor ツール。
-    ///
-    /// 用途: Horror オプション画面のタブコンテンツ Panel に対して、Hierarchy 右クリック →
-    ///       Horror / Build Tab Content Navigation を実行することで、
-    ///       D-Pad U/D がタブ内のみで巡回しタブ Toggle へリークしない設定をエディタ時に焼き込む。
+    /// 選択した GameObject の子階層にある Selectable に対して、 Explicit Navigationを一括設定する Editor ツール。
     /// </summary>
     public static class ExplicitNavigationBuilder
     {
-        private const string MenuPath = "GameObject/Navigation/Build Explicit Navigation(Vertical)";
+        private const string MenuPathRoot = "GameObject/Navigation/Explicit/";
 
-        // priority = 10 は GameObject/ メニューを Hierarchy 右クリックメニューに伝播させるために必須
+        // priority = 0 は GameObject/ メニューを Hierarchy 右クリックメニューに伝播させるために必須
         // 参照: https://docs.unity3d.com/6000.3/Documentation/ScriptReference/MenuItem.html
-        [MenuItem(MenuPath, false, 0)]
-        private static void ExecCommand(MenuCommand command)
+        [MenuItem(MenuPathRoot + "Build Navigation(Vertical)", false, 0)]
+        private static void BuildVerticalOnly(MenuCommand command)
         {
             var target = command.context as GameObject;
             if (target == null) return;
@@ -51,7 +46,7 @@ namespace Game.Editor.MenuCommands
             Debug.Log($"[ExplicitNavigationBuilder] Built Explicit Up/Down navigation for {selectables.Length} Selectables under '{target.name}'");
         }
 
-        [MenuItem(MenuPath, true)]
+        [MenuItem(MenuPathRoot, true)]
         private static bool Validate()
         {
             return Selection.activeGameObject != null;
