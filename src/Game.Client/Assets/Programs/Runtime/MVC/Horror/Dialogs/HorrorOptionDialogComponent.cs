@@ -127,48 +127,49 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // Input（キーリバインド）
-            foreach (var row in SceneComponent.RebindRows)
+            foreach (var rebindView in SceneComponent.RebindViews)
             {
-                var capturedRow = row;
-                capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+                var rebind = rebindView;
+                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
-                capturedRow.OnRebindRequested
+                rebind.OnRebindRequested
                     .Where(_ => State.IsProcessing() && _currentRebind == null)
                     .Subscribe(_ =>
                     {
-                        capturedRow.SetWaiting(true);
+                        rebind.SetWaiting(true);
                         _currentRebind = _inputService.StartRebind(
-                            capturedRow.ActionName,
-                            capturedRow.Scheme,
+                            rebind.ActionName,
+                            rebind.Scheme,
+                            rebind.CompositePartName,
                             display =>
                             {
-                                capturedRow.SetWaiting(false);
-                                capturedRow.SetDisplay(display);
+                                rebind.SetWaiting(false);
+                                rebind.SetDisplay(display);
                                 _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebind = null;
                             },
                             () =>
                             {
-                                capturedRow.SetWaiting(false);
-                                capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+                                rebind.SetWaiting(false);
+                                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
                                 _currentRebind = null;
                             });
                         _currentRebind.AddTo(Disposables);
                     })
                     .AddTo(Disposables);
 
-                capturedRow.OnResetRequested
+                rebind.OnResetRequested
                     .Where(_ => State.IsProcessing() && _currentRebind == null)
                     .Subscribe(_ =>
                     {
-                        _inputService.ResetBinding(capturedRow.ActionName, capturedRow.Scheme);
-                        capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+                        _inputService.ResetBinding(rebind.ActionName, rebind.Scheme, rebind.CompositePartName);
+                        rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.ActionName, rebind.Scheme, rebind.CompositePartName));
                         _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                     })
                     .AddTo(Disposables);
 
-                capturedRow.OnCancelRequested
+                rebind.OnCancelRequested
                     .Subscribe(_ => _currentRebind?.Dispose())
                     .AddTo(Disposables);
             }
@@ -233,7 +234,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _seVolume;
 
         [Header("Options - Input")]
-        [SerializeField] private InputActionRebindView[] _rebindRows;
+        [SerializeField] private InputActionRebindView[] _rebindViews;
 
         #endregion
 
@@ -287,7 +288,7 @@ namespace Game.Horror.Dialogs
         #region Input
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputActionRebindView> RebindRows => _rebindRows;
+        public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
 
         #endregion
 
