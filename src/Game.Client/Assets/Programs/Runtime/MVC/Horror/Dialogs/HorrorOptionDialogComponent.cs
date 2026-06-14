@@ -6,6 +6,7 @@ using Game.Core.UI;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Constants;
 using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
@@ -24,6 +25,9 @@ namespace Game.Horror.Dialogs
 
         // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
         private IDisposable _currentRebind;
+
+        // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）。_currentRebind と対で管理。
+        private IDisposable _rebindTimeout;
 
         public static async UniTask<bool> RunAsync()
         {
@@ -138,6 +142,7 @@ namespace Game.Horror.Dialogs
                     .Subscribe(_ =>
                     {
                         rebind.SetWaiting(true);
+                        rebind.SetTimeoutProgress(1f);
                         _currentRebind = _inputService.StartRebind(
                             rebind.Scheme,
                             rebind.ActionName,
@@ -148,14 +153,32 @@ namespace Game.Horror.Dialogs
                                 rebind.SetDisplay(display);
                                 _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebind = null;
+                                _rebindTimeout?.Dispose();
+                                _rebindTimeout = null;
+                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
                             },
                             () =>
                             {
                                 rebind.SetWaiting(false);
                                 rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
                                 _currentRebind = null;
+                                _rebindTimeout?.Dispose();
+                                _rebindTimeout = null;
+                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
                             });
                         _currentRebind.AddTo(Disposables);
+
+                        // 開始から3秒で自動キャンセル（完了していない時のみ）。残り時間をバーで提示。
+                        var elapsed = 0f;
+                        _rebindTimeout = Observable.EveryUpdate(UnityFrameProvider.Update)
+                            .Subscribe(_ =>
+                            {
+                                elapsed += Time.unscaledDeltaTime; // ポーズ中(timeScale=0)でも進行
+                                rebind.SetTimeoutProgress(1f - elapsed / InputConstants.RebindTimeoutSeconds);
+                                if (elapsed >= InputConstants.RebindTimeoutSeconds)
+                                    _currentRebind?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
+                            });
+                        _rebindTimeout.AddTo(Disposables);
                     })
                     .AddTo(Disposables);
 

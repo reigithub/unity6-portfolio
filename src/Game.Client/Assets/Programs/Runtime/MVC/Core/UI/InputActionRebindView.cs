@@ -28,15 +28,19 @@ namespace Game.Core.UI
         [Header("Waiting")]
         [SerializeField] private GameObject _waitingOverlay;   // 任意: リバインド待機中の表示
         [SerializeField] private Button _cancelButton;         // 任意: 待機中のキャンセル（InputAction 非依存）
+        [SerializeField] private Image _timeoutFill;           // 任意: 自動キャンセルまでの残り時間バー/リング（fillAmount 1→0）
+
+        /// <summary>コントロールスキーム（Keyboard＆Mouse / Gamepad）。</summary>
+        public string Scheme => _scheme;
 
         /// <summary>Player マップのアクション名。</summary>
         public string ActionName => _actionName;
 
-        /// <summary>コントロールスキーム（Keyboard&amp;Mouse / Gamepad）。</summary>
-        public string Scheme => _scheme;
-
         /// <summary>コンポジットのパート名（up/down/left/right）。空＝非コンポジット（単体 binding）。</summary>
         public string CompositePartName => _compositePartName;
+
+        /// <summary>リバインド操作終了後に再フォーカスするオブジェクト</summary>
+        public Selectable Selectable => _rebindButton;
 
         /// <summary>「変更」ボタン押下。</summary>
         public Observable<Unit> OnRebindRequested => _rebindButton.OnClickAsObservable();
@@ -60,6 +64,13 @@ namespace Game.Core.UI
         {
             if (_bindingLabel != null)
                 _bindingLabel.text = bindingText;
+        }
+
+        /// <summary>タイムアウトの残り時間表示を更新する（1=満タン, 0=タイムアウト）。</summary>
+        public void SetTimeoutProgress(float remaining01)
+        {
+            if (_timeoutFill != null)
+                _timeoutFill.fillAmount = Mathf.Clamp01(remaining01);
         }
 
         /// <summary>リバインド待機状態の表示を切り替える（待機中はボタンを無効化）。</summary>
