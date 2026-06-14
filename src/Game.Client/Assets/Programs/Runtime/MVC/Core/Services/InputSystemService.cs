@@ -186,12 +186,12 @@ namespace Game.Core.Services
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
-        public string GetBindingDisplayString(string actionName, string scheme)
+        public string GetBindingDisplayString(string actionName, string scheme, string partName = null)
         {
             var action = ResolveAction(actionName);
             if (action == null) return string.Empty;
 
-            var indices = ResolveSchemeBindingIndices(action, scheme);
+            var indices = ResolveSchemeBindingIndices(action, scheme, partName);
             if (indices.Count == 0) return string.Empty;
 
             var parts = new List<string>(indices.Count);
@@ -212,15 +212,15 @@ namespace Game.Core.Services
         public void ResetAllBindings()
             => _inputSystem?.asset.RemoveAllBindingOverrides();
 
-        public void ResetBinding(string actionName, string scheme)
+        public void ResetBinding(string actionName, string scheme, string partName = null)
         {
             var action = ResolveAction(actionName);
             if (action == null) return;
-            foreach (var index in ResolveSchemeBindingIndices(action, scheme))
+            foreach (var index in ResolveSchemeBindingIndices(action, scheme, partName))
                 action.RemoveBindingOverride(index);
         }
 
-        public IDisposable StartRebind(string actionName, string scheme, Action<string> onComplete, Action onCanceled)
+        public IDisposable StartRebind(string actionName, string scheme, string partName, Action<string> onComplete, Action onCanceled)
         {
             var action = ResolveAction(actionName);
             if (action == null)
@@ -229,7 +229,7 @@ namespace Game.Core.Services
                 return Disposable.Empty;
             }
 
-            var indices = ResolveSchemeBindingIndices(action, scheme);
+            var indices = ResolveSchemeBindingIndices(action, scheme, partName);
             if (indices.Count == 0)
             {
                 onCanceled?.Invoke();
@@ -260,7 +260,7 @@ namespace Game.Core.Services
                 if (listIndex >= indices.Count)
                 {
                     Finish();
-                    onComplete?.Invoke(GetBindingDisplayString(actionName, scheme));
+                    onComplete?.Invoke(GetBindingDisplayString(actionName, scheme, partName));
                     return;
                 }
 
@@ -329,14 +329,16 @@ namespace Game.Core.Services
         }
 
         /// <summary>
-        /// 指定アクション・スキームに属するリバインド対象の binding index 群を返す。
-        /// 単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。純粋関数（テスト対象）。
+        /// 指定アクション・スキームに属するリバインド対象の binding index 群を返す。純粋関数（テスト対象）。
+        /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
+        /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        public static IReadOnlyList<int> ResolveSchemeBindingIndices(InputAction action, string scheme)
+        public static IReadOnlyList<int> ResolveSchemeBindingIndices(InputAction action, string scheme, string partName = null)
         {
             var result = new List<int>();
             if (action == null) return result;
 
+            var hasPart = !string.IsNullOrEmpty(partName);
             var bindings = action.bindings;
             for (var i = 0; i < bindings.Count; i++)
             {
@@ -346,12 +348,14 @@ namespace Game.Core.Services
                     // コンポジットコンテナ自身はパス無し。直後のパート群を見る
                     for (var j = i + 1; j < bindings.Count && bindings[j].isPartOfComposite; j++)
                     {
-                        if (BelongsToScheme(bindings[j], scheme))
-                            result.Add(j);
+                        if (!BelongsToScheme(bindings[j], scheme)) continue;
+                        if (hasPart && !string.Equals(bindings[j].name, partName, StringComparison.OrdinalIgnoreCase)) continue;
+                        result.Add(j);
                     }
                 }
                 else if (!binding.isPartOfComposite)
                 {
+                    if (hasPart) continue; // パート指定時は単体 binding を対象としない
                     if (BelongsToScheme(binding, scheme))
                         result.Add(i);
                 }

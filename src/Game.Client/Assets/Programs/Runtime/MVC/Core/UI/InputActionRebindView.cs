@@ -15,6 +15,7 @@ namespace Game.Core.UI
         [Header("Identity")]
         [SerializeField] private string _actionName;   // Player マップのアクション名（例: Jump）
         [SerializeField] private string _scheme;       // コントロールスキーム（Keyboard&Mouse / Gamepad）
+        [SerializeField] private string _compositePartName; // コンポジットのパート名（up/down/left/right）。空＝非コンポジット
 
         [Header("Display")]
         [SerializeField] private TextMeshProUGUI _actionLabel;
@@ -33,6 +34,9 @@ namespace Game.Core.UI
 
         /// <summary>コントロールスキーム（Keyboard&amp;Mouse / Gamepad）。</summary>
         public string Scheme => _scheme;
+
+        /// <summary>コンポジットのパート名（up/down/left/right）。空＝非コンポジット（単体 binding）。</summary>
+        public string CompositePartName => _compositePartName;
 
         /// <summary>「変更」ボタン押下。</summary>
         public Observable<Unit> OnRebindRequested => _rebindButton.OnClickAsObservable();

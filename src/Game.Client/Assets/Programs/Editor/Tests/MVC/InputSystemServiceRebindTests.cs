@@ -100,6 +100,36 @@ namespace Game.Tests.MVC
             Assert.That(indices.Count, Is.EqualTo(0));
         }
 
+        [Test]
+        public void Resolve_Move_KeyboardMouse_PartUp_ReturnsSingleW()
+        {
+            var action = Action("Move");
+            var indices = InputSystemService.ResolveSchemeBindingIndices(action, InputConstants.KeyboardAndMouse, "up");
+
+            Assert.That(indices.Count, Is.EqualTo(1));
+            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/w"));
+        }
+
+        [Test]
+        public void Resolve_Move_KeyboardMouse_PartDown_ReturnsSingleS()
+        {
+            var action = Action("Move");
+            var indices = InputSystemService.ResolveSchemeBindingIndices(action, InputConstants.KeyboardAndMouse, "down");
+
+            Assert.That(indices.Count, Is.EqualTo(1));
+            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/s"));
+        }
+
+        [Test]
+        public void Resolve_SingleAction_WithPartName_ReturnsEmpty()
+        {
+            // 単体アクション（Jump）に partName を指定しても該当パートは存在しない
+            var action = Action("Jump");
+            var indices = InputSystemService.ResolveSchemeBindingIndices(action, InputConstants.KeyboardAndMouse, "up");
+
+            Assert.That(indices.Count, Is.EqualTo(0));
+        }
+
         #endregion
 
         #region WouldConflict

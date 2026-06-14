@@ -119,7 +119,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse,
+            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -150,7 +150,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath; // <Keyboard>/space
 
             var completed = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse,
+            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -180,7 +180,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse,
+            var op = _service.StartRebind("Jump", InputConstants.KeyboardAndMouse, null,
                 _ => { },
                 () => canceled = true);
             yield return null;
