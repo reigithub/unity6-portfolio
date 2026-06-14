@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "Game.Shared",
         "Game.App",
+        "Game.Core.Services",
         "Game.MVC.Core",
         "Game.MVC.ScoreTimeAttack",
         "Game.MVP.Core",
