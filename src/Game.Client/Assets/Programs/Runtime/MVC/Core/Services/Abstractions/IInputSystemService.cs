@@ -1,5 +1,6 @@
 using System;
 using Game.Shared.Input;
+using UnityEngine.InputSystem;
 
 namespace Game.Core.Services
 {
@@ -18,6 +19,48 @@ namespace Game.Core.Services
         /// UI入力アクション（メニュー操作、決定、キャンセル等）
         /// </summary>
         ProjectDefaultInputSystem.UIActions UI { get; }
+
+        /// <summary>
+        /// リバインド対象となる InputActionAsset 実体（このインスタンス上でゲームが動作する）。
+        /// </summary>
+        InputActionAsset Asset { get; }
+
+        /// <summary>
+        /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
+        /// コンポジット（WASD 等）は各パートを "/" 区切りで結合して返す。
+        /// </summary>
+        string GetBindingDisplayString(string actionName, string scheme);
+
+        /// <summary>
+        /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
+        /// コンポジットは各パートを順にリバインドする。同一スキーム内でキーが重複した場合は
+        /// 巻き戻して変更を破棄する。戻り値を Dispose すると進行中のリバインドをキャンセルする。
+        /// </summary>
+        /// <param name="actionName">Player マップのアクション名</param>
+        /// <param name="scheme">コントロールスキーム（Keyboard&amp;Mouse / Gamepad）</param>
+        /// <param name="onComplete">全パート確定後に呼ばれる。引数は確定後の表示文字列</param>
+        /// <param name="onCanceled">キャンセル時に呼ばれる</param>
+        IDisposable StartRebind(string actionName, string scheme, Action<string> onComplete, Action onCanceled);
+
+        /// <summary>
+        /// 現在のバインドオーバーライドを JSON 文字列として取得する（永続化用）。
+        /// </summary>
+        string SaveBindingOverridesAsJson();
+
+        /// <summary>
+        /// JSON 文字列からバインドオーバーライドを復元・適用する。空/null は無視する。
+        /// </summary>
+        void LoadBindingOverrides(string json);
+
+        /// <summary>
+        /// 指定アクション・スキームのバインドオーバーライドを既定へ戻す。
+        /// </summary>
+        void ResetBinding(string actionName, string scheme);
+
+        /// <summary>
+        /// 全アクションのバインドオーバーライドを既定へ戻す。
+        /// </summary>
+        void ResetAllBindings();
 
         /// <summary>
         /// プレイヤー入力を有効化する
