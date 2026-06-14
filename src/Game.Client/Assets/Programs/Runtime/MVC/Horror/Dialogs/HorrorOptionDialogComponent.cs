@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Core.UI;
@@ -19,6 +21,9 @@ namespace Game.Horror.Dialogs
 
         private HorrorOptionSaveService _optionSaveService;
         private HorrorOptionSaveData Options => _optionSaveService.Data;
+
+        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
+        private IDisposable _currentRebind;
 
         public static async UniTask<bool> RunAsync()
         {
@@ -121,6 +126,53 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
+            // Input（キーリバインド）
+            foreach (var row in SceneComponent.RebindRows)
+            {
+                var capturedRow = row;
+                capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+
+                // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
+                capturedRow.OnRebindRequested
+                    .Where(_ => State.IsProcessing() && _currentRebind == null)
+                    .Subscribe(_ =>
+                    {
+                        capturedRow.SetWaiting(true);
+                        _currentRebind = _inputService.StartRebind(
+                            capturedRow.ActionName,
+                            capturedRow.Scheme,
+                            display =>
+                            {
+                                capturedRow.SetWaiting(false);
+                                capturedRow.SetDisplay(display);
+                                _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+                                _currentRebind = null;
+                            },
+                            () =>
+                            {
+                                capturedRow.SetWaiting(false);
+                                capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+                                _currentRebind = null;
+                            });
+                        _currentRebind.AddTo(Disposables);
+                    })
+                    .AddTo(Disposables);
+
+                capturedRow.OnResetRequested
+                    .Where(_ => State.IsProcessing() && _currentRebind == null)
+                    .Subscribe(_ =>
+                    {
+                        _inputService.ResetBinding(capturedRow.ActionName, capturedRow.Scheme);
+                        capturedRow.SetDisplay(_inputService.GetBindingDisplayString(capturedRow.ActionName, capturedRow.Scheme));
+                        _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+                    })
+                    .AddTo(Disposables);
+
+                capturedRow.OnCancelRequested
+                    .Subscribe(_ => _currentRebind?.Dispose())
+                    .AddTo(Disposables);
+            }
+
             return base.Startup();
         }
 
@@ -180,6 +232,9 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _voiceVolume;
         [SerializeField] private SliderValueSelector _seVolume;
 
+        [Header("Options - Input")]
+        [SerializeField] private InputActionRebindView[] _rebindRows;
+
         #endregion
 
         #region Options - General
@@ -226,6 +281,13 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnBgmVolumeChanged => _bgmVolume.OnValueChanged;
         public Observable<float> OnVoiceVolumeChanged => _voiceVolume.OnValueChanged;
         public Observable<float> OnSeVolumeChanged => _seVolume.OnValueChanged;
+
+        #endregion
+
+        #region Input
+
+        /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
+        public IReadOnlyList<InputActionRebindView> RebindRows => _rebindRows;
 
         #endregion
 
