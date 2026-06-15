@@ -11,6 +11,8 @@ using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 namespace Game.Horror.Dialogs
 {
@@ -197,7 +199,18 @@ namespace Game.Horror.Dialogs
                     .AddTo(Disposables);
             }
 
+            LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
+            Disposables.Add(Disposable.Create(() => LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged));
+
             return base.Startup();
+        }
+
+        private void OnLocaleChanged(Locale locale)
+        {
+            // ロケール変更でバインド表示名を再ローカライズ
+            if (_currentRebind != null) return;
+            foreach (var rebind in SceneComponent.RebindViews)
+                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
         }
 
         public override async UniTask Terminate()
@@ -257,7 +270,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _seVolume;
 
         [Header("Options - Input")]
-        [SerializeField] private InputRebindView[] _rebindViews;
+        [SerializeField] private InputActionRebindView[] _rebindViews;
 
         #endregion
 
@@ -311,7 +324,7 @@ namespace Game.Horror.Dialogs
         #region Input
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputRebindView> RebindViews => _rebindViews;
+        public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
 
         #endregion
 

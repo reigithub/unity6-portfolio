@@ -4,6 +4,7 @@ using System.Linq;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Input;
+using Game.Shared.Localization;
 using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -196,7 +197,11 @@ namespace Game.Core.Services
 
             var parts = new List<string>(indices.Count);
             foreach (var index in indices)
-                parts.Add(action.GetBindingDisplayString(index));
+            {
+                // 既定の英語表示と安定キー controlPath を取得し、ローカライズ名へ変換（未登録は英語へフォールバック）
+                var raw = action.GetBindingDisplayString(index, out _, out var controlPath);
+                parts.Add(InputControlLocalizer.Localize(controlPath, raw));
+            }
             return string.Join("/", parts);
         }
 
