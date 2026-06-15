@@ -15,6 +15,178 @@ MonoBehaviour:
   m_TableCollectionName: InputControls
   m_TableCollectionNameGuidString: 257b1f2889daa8142959891c0f690b60
   m_Entries:
+  - m_Id: 196230203318272
+    m_Key: xbox/buttonSouth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512576
+    m_Key: xbox/buttonEast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512577
+    m_Key: xbox/buttonWest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512578
+    m_Key: xbox/buttonNorth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512579
+    m_Key: xbox/leftShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512580
+    m_Key: xbox/rightShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512581
+    m_Key: xbox/leftTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512582
+    m_Key: xbox/rightTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512583
+    m_Key: xbox/leftStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512584
+    m_Key: xbox/rightStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512585
+    m_Key: xbox/start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512586
+    m_Key: xbox/select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512587
+    m_Key: ps/buttonSouth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512588
+    m_Key: ps/buttonEast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512589
+    m_Key: ps/buttonWest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512590
+    m_Key: ps/buttonNorth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512591
+    m_Key: ps/leftShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512592
+    m_Key: ps/rightShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512593
+    m_Key: ps/leftTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512594
+    m_Key: ps/rightTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512595
+    m_Key: ps/leftStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512596
+    m_Key: ps/rightStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512597
+    m_Key: ps/start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512598
+    m_Key: ps/select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512599
+    m_Key: ps/touchpadButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512600
+    m_Key: ps/micButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512601
+    m_Key: ps/systemButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512602
+    m_Key: ps/leftTriggerButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512603
+    m_Key: ps/rightTriggerButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512604
+    m_Key: switch/buttonSouth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512605
+    m_Key: switch/buttonEast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512606
+    m_Key: switch/buttonWest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512607
+    m_Key: switch/buttonNorth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512608
+    m_Key: switch/leftShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512609
+    m_Key: switch/rightShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512610
+    m_Key: switch/leftTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512611
+    m_Key: switch/rightTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512612
+    m_Key: switch/leftStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512613
+    m_Key: switch/rightStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512614
+    m_Key: switch/start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512615
+    m_Key: switch/select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512616
+    m_Key: switch/capture
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512617
+    m_Key: switch/home
+    m_Metadata:
+      m_Items: []
   - m_Id: 76630990848
     m_Key: a
     m_Metadata:

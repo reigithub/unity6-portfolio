@@ -502,6 +502,178 @@ MonoBehaviour:
     m_Localized: Mouse XY 2D-Axis
     m_Metadata:
       m_Items: []
+  - m_Id: 196230203318272
+    m_Localized: A
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512576
+    m_Localized: B
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512577
+    m_Localized: X
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512578
+    m_Localized: Y
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512579
+    m_Localized: LB
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512580
+    m_Localized: RB
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512581
+    m_Localized: LT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512582
+    m_Localized: RT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512583
+    m_Localized: Left Stick Press
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512584
+    m_Localized: Right Stick Press
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512585
+    m_Localized: Menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512586
+    m_Localized: View
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512587
+    m_Localized: Cross
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512588
+    m_Localized: Circle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512589
+    m_Localized: Square
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512590
+    m_Localized: Triangle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512591
+    m_Localized: L1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512592
+    m_Localized: R1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512593
+    m_Localized: L2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512594
+    m_Localized: R2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512595
+    m_Localized: L3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512596
+    m_Localized: R3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512597
+    m_Localized: OPTIONS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512598
+    m_Localized: SHARE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512599
+    m_Localized: Touchpad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512600
+    m_Localized: Mic Mute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512601
+    m_Localized: PS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512602
+    m_Localized: L2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512603
+    m_Localized: R2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512604
+    m_Localized: B
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512605
+    m_Localized: A
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512606
+    m_Localized: Y
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512607
+    m_Localized: X
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512608
+    m_Localized: L
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512609
+    m_Localized: R
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512610
+    m_Localized: ZL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512611
+    m_Localized: ZR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512612
+    m_Localized: Left Stick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512613
+    m_Localized: Right Stick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512614
+    m_Localized: Plus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512615
+    m_Localized: Minus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512616
+    m_Localized: Capture
+    m_Metadata:
+      m_Items: []
+  - m_Id: 196230207512617
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
