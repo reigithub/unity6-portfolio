@@ -149,49 +149,13 @@ namespace Game.Shared.Input
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Reset"",
-                    ""type"": ""Button"",
-                    ""id"": ""782951d2-d5db-410a-a85d-c5df6c7364df"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""LeftAlt"",
-                    ""type"": ""Button"",
-                    ""id"": ""4c20fe38-e9eb-4f44-9d1a-29399deb3b3c"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""LeftControl"",
-                    ""type"": ""Button"",
-                    ""id"": ""5b8f139a-5f84-4ade-9373-2406b571bd17"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""LeftShift"",
+                    ""name"": ""Sprint"",
                     ""type"": ""Button"",
                     ""id"": ""3889c0f5-f74e-49f0-ae22-c8ad39263328"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""MouseScrollY"",
-                    ""type"": ""Value"",
-                    ""id"": ""f1556d77-9ec6-414d-8be0-1cf3947e096b"",
-                    ""expectedControlType"": ""Axis"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -461,67 +425,12 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""fd7b0f3b-eef7-4365-8346-33d2ae500597"",
-                    ""path"": ""<Mouse>/rightButton"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Reset"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""55488aa8-2418-4e09-a34b-b708b7bb3cee"",
-                    ""path"": ""<Keyboard>/r"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Reset"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""2e75a127-22c3-4a58-8f60-4659ae4c8379"",
-                    ""path"": ""<Keyboard>/leftAlt"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""LeftAlt"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""0dab6741-fec9-4527-89e5-c1ac2da35a85"",
-                    ""path"": ""<Keyboard>/leftCtrl"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""LeftControl"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""ad587ddc-a256-499a-9f31-cf65ea2f5e2f"",
-                    ""path"": ""<Mouse>/scroll/y"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""MouseScrollY"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""1f2254b4-773e-4a17-a79d-4422a2312ac6"",
                     ""path"": ""<Keyboard>/leftShift"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""LeftShift"",
+                    ""action"": ""Sprint"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -532,7 +441,7 @@ namespace Game.Shared.Input
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
-                    ""action"": ""LeftShift"",
+                    ""action"": ""Sprint"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -654,6 +563,15 @@ namespace Game.Shared.Input
                     ""name"": ""Next"",
                     ""type"": ""Button"",
                     ""id"": ""dcd979b2-1e00-4e7d-a2b9-66499d5fdd4e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Reset"",
+                    ""type"": ""Button"",
+                    ""id"": ""17e81caa-54cf-4712-9036-6244f7965d86"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1155,6 +1073,17 @@ namespace Game.Shared.Input
                     ""action"": ""Next"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d4af8e23-b774-4af0-b6b4-f560c3b06013"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Reset"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1230,11 +1159,7 @@ namespace Game.Shared.Input
             m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
             m_Player_Previous = m_Player.FindAction("Previous", throwIfNotFound: true);
             m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
-            m_Player_Reset = m_Player.FindAction("Reset", throwIfNotFound: true);
-            m_Player_LeftAlt = m_Player.FindAction("LeftAlt", throwIfNotFound: true);
-            m_Player_LeftControl = m_Player.FindAction("LeftControl", throwIfNotFound: true);
-            m_Player_LeftShift = m_Player.FindAction("LeftShift", throwIfNotFound: true);
-            m_Player_MouseScrollY = m_Player.FindAction("MouseScrollY", throwIfNotFound: true);
+            m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1250,6 +1175,7 @@ namespace Game.Shared.Input
             m_UI_Menu = m_UI.FindAction("Menu", throwIfNotFound: true);
             m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
             m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
+            m_UI_Reset = m_UI.FindAction("Reset", throwIfNotFound: true);
         }
 
         ~@ProjectDefaultInputSystem()
@@ -1337,11 +1263,7 @@ namespace Game.Shared.Input
         private readonly InputAction m_Player_Jump;
         private readonly InputAction m_Player_Previous;
         private readonly InputAction m_Player_Next;
-        private readonly InputAction m_Player_Reset;
-        private readonly InputAction m_Player_LeftAlt;
-        private readonly InputAction m_Player_LeftControl;
-        private readonly InputAction m_Player_LeftShift;
-        private readonly InputAction m_Player_MouseScrollY;
+        private readonly InputAction m_Player_Sprint;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1378,25 +1300,9 @@ namespace Game.Shared.Input
             /// </summary>
             public InputAction @Next => m_Wrapper.m_Player_Next;
             /// <summary>
-            /// Provides access to the underlying input action "Player/Reset".
+            /// Provides access to the underlying input action "Player/Sprint".
             /// </summary>
-            public InputAction @Reset => m_Wrapper.m_Player_Reset;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/LeftAlt".
-            /// </summary>
-            public InputAction @LeftAlt => m_Wrapper.m_Player_LeftAlt;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/LeftControl".
-            /// </summary>
-            public InputAction @LeftControl => m_Wrapper.m_Player_LeftControl;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/LeftShift".
-            /// </summary>
-            public InputAction @LeftShift => m_Wrapper.m_Player_LeftShift;
-            /// <summary>
-            /// Provides access to the underlying input action "Player/MouseScrollY".
-            /// </summary>
-            public InputAction @MouseScrollY => m_Wrapper.m_Player_MouseScrollY;
+            public InputAction @Sprint => m_Wrapper.m_Player_Sprint;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1441,21 +1347,9 @@ namespace Game.Shared.Input
                 @Next.started += instance.OnNext;
                 @Next.performed += instance.OnNext;
                 @Next.canceled += instance.OnNext;
-                @Reset.started += instance.OnReset;
-                @Reset.performed += instance.OnReset;
-                @Reset.canceled += instance.OnReset;
-                @LeftAlt.started += instance.OnLeftAlt;
-                @LeftAlt.performed += instance.OnLeftAlt;
-                @LeftAlt.canceled += instance.OnLeftAlt;
-                @LeftControl.started += instance.OnLeftControl;
-                @LeftControl.performed += instance.OnLeftControl;
-                @LeftControl.canceled += instance.OnLeftControl;
-                @LeftShift.started += instance.OnLeftShift;
-                @LeftShift.performed += instance.OnLeftShift;
-                @LeftShift.canceled += instance.OnLeftShift;
-                @MouseScrollY.started += instance.OnMouseScrollY;
-                @MouseScrollY.performed += instance.OnMouseScrollY;
-                @MouseScrollY.canceled += instance.OnMouseScrollY;
+                @Sprint.started += instance.OnSprint;
+                @Sprint.performed += instance.OnSprint;
+                @Sprint.canceled += instance.OnSprint;
             }
 
             /// <summary>
@@ -1485,21 +1379,9 @@ namespace Game.Shared.Input
                 @Next.started -= instance.OnNext;
                 @Next.performed -= instance.OnNext;
                 @Next.canceled -= instance.OnNext;
-                @Reset.started -= instance.OnReset;
-                @Reset.performed -= instance.OnReset;
-                @Reset.canceled -= instance.OnReset;
-                @LeftAlt.started -= instance.OnLeftAlt;
-                @LeftAlt.performed -= instance.OnLeftAlt;
-                @LeftAlt.canceled -= instance.OnLeftAlt;
-                @LeftControl.started -= instance.OnLeftControl;
-                @LeftControl.performed -= instance.OnLeftControl;
-                @LeftControl.canceled -= instance.OnLeftControl;
-                @LeftShift.started -= instance.OnLeftShift;
-                @LeftShift.performed -= instance.OnLeftShift;
-                @LeftShift.canceled -= instance.OnLeftShift;
-                @MouseScrollY.started -= instance.OnMouseScrollY;
-                @MouseScrollY.performed -= instance.OnMouseScrollY;
-                @MouseScrollY.canceled -= instance.OnMouseScrollY;
+                @Sprint.started -= instance.OnSprint;
+                @Sprint.performed -= instance.OnSprint;
+                @Sprint.canceled -= instance.OnSprint;
             }
 
             /// <summary>
@@ -1550,6 +1432,7 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_Menu;
         private readonly InputAction m_UI_Previous;
         private readonly InputAction m_UI_Next;
+        private readonly InputAction m_UI_Reset;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1613,6 +1496,10 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "UI/Next".
             /// </summary>
             public InputAction @Next => m_Wrapper.m_UI_Next;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Reset".
+            /// </summary>
+            public InputAction @Reset => m_Wrapper.m_UI_Reset;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1678,6 +1565,9 @@ namespace Game.Shared.Input
                 @Next.started += instance.OnNext;
                 @Next.performed += instance.OnNext;
                 @Next.canceled += instance.OnNext;
+                @Reset.started += instance.OnReset;
+                @Reset.performed += instance.OnReset;
+                @Reset.canceled += instance.OnReset;
             }
 
             /// <summary>
@@ -1728,6 +1618,9 @@ namespace Game.Shared.Input
                 @Next.started -= instance.OnNext;
                 @Next.performed -= instance.OnNext;
                 @Next.canceled -= instance.OnNext;
+                @Reset.started -= instance.OnReset;
+                @Reset.performed -= instance.OnReset;
+                @Reset.canceled -= instance.OnReset;
             }
 
             /// <summary>
@@ -1876,40 +1769,12 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnNext(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Reset" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// Method invoked when associated input action "Sprint" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnReset(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "LeftAlt" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnLeftAlt(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "LeftControl" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnLeftControl(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "LeftShift" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnLeftShift(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "MouseScrollY" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnMouseScrollY(InputAction.CallbackContext context);
+            void OnSprint(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -2009,6 +1874,13 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnNext(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Reset" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnReset(InputAction.CallbackContext context);
         }
     }
 }
