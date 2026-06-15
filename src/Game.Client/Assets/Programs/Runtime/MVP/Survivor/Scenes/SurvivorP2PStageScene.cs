@@ -546,9 +546,9 @@ namespace Game.MVP.Survivor.Scenes
                         if (_inputService.Player.enabled)
                         {
                             if (stamina > 0)
-                                _inputService.Player.LeftShift.Enable();
+                                _inputService.Player.Sprint.Enable();
                             else
-                                _inputService.Player.LeftShift.Disable();
+                                _inputService.Player.Sprint.Disable();
                         }
                     })
                     .AddTo(Disposables);
