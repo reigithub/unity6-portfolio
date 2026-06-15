@@ -199,8 +199,27 @@ namespace Game.Core.Services
             foreach (var index in indices)
             {
                 // 既定の英語表示と安定キー controlPath を取得し、ローカライズ名へ変換（未登録は英語へフォールバック）
-                var raw = action.GetBindingDisplayString(index, out _, out var controlPath);
-                parts.Add(InputControlLocalizer.Localize(controlPath, raw));
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                    parts.Add(InputControlLocalizer.Localize(controlPath, raw));
+                    Debug.Log($"[InputSystemService] GetBindingDisplayString:0 {raw} - {deviceLayoutName} - {controlPath}");
+                }
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontUseShortDisplayNames);
+                    Debug.Log($"[InputSystemService] GetBindingDisplayString:1 {raw} - {deviceLayoutName} - {controlPath}");
+                }
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontOmitDevice);
+                    Debug.Log($"[InputSystemService] GetBindingDisplayString:2 {raw} - {deviceLayoutName} - {controlPath}");
+                }
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontIncludeInteractions);
+                    Debug.Log($"[InputSystemService] GetBindingDisplayString:4 {raw} - {deviceLayoutName} - {controlPath}");
+                }
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.IgnoreBindingOverrides);
+                    Debug.Log($"[InputSystemService] GetBindingDisplayString:8 {raw} - {deviceLayoutName} - {controlPath}");
+                }
             }
             return string.Join("/", parts);
         }
@@ -277,6 +296,8 @@ namespace Game.Core.Services
                 currentOp = action.PerformInteractiveRebinding(bindingIndex)
                     .WithControlsExcluding("<Mouse>/position")
                     .WithControlsExcluding("<Mouse>/delta")
+                    .WithControlsExcluding("<Gamepad>/leftStick")
+                    .WithControlsExcluding("<Gamepad>/rightStick")
                     .WithCancelingThrough("<Keyboard>/escape")
                     .WithActionEventNotificationsBeingSuppressed();
                 ApplySchemeFilter(currentOp, scheme);
