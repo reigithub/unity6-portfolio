@@ -498,6 +498,10 @@ MonoBehaviour:
     m_Localized: Select
     m_Metadata:
       m_Items: []
+  - m_Id: 147288283422720
+    m_Localized: "\u30DE\u30A6\u30B9 XY 2D\u8EF8"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

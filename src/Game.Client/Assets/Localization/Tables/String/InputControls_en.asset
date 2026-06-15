@@ -498,6 +498,10 @@ MonoBehaviour:
     m_Localized: Select
     m_Metadata:
       m_Items: []
+  - m_Id: 147288283422720
+    m_Localized: Mouse XY 2D-Axis
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
