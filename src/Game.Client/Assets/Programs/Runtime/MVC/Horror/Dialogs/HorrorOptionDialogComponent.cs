@@ -207,6 +207,11 @@ namespace Game.Horror.Dialogs
 
         private void OnLocaleChanged(Locale locale)
         {
+            RefreshBindingDisplays();
+        }
+
+        private void RefreshBindingDisplays()
+        {
             // ロケール変更でバインド表示名を再ローカライズ
             if (_currentRebind != null) return;
             foreach (var rebind in SceneComponent.RebindViews)
