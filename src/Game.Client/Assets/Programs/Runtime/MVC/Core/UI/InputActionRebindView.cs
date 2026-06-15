@@ -7,7 +7,7 @@ namespace Game.Core.UI
 {
     /// <summary>
     /// 1アクション×1スキームのキーリバインド行（純粋View）。
-    /// 現在のバインド表示と「変更」「リセット」ボタンを持ち、押下を Observable で通知する。
+    /// 現在のバインド表示と「変更」ボタンを持ち、押下を Observable で通知する。
     /// リバインド実行・重複判定などの入力ロジックは持たず、表示更新のみを担う。
     /// </summary>
     public class InputActionRebindView : MonoBehaviour
@@ -23,7 +23,6 @@ namespace Game.Core.UI
 
         [Header("Buttons")]
         [SerializeField] private Button _rebindButton;
-        [SerializeField] private Button _resetButton;
         [SerializeField] private Button _cancelButton;         // 任意: 待機中のキャンセル（InputAction 非依存）
 
         [Header("Waiting")]
@@ -44,9 +43,6 @@ namespace Game.Core.UI
 
         /// <summary>「変更」ボタン押下。</summary>
         public Observable<Unit> OnRebindRequested => _rebindButton.OnClickAsObservable();
-
-        /// <summary>「リセット」ボタン押下。</summary>
-        public Observable<Unit> OnResetRequested => _resetButton.OnClickAsObservable();
 
         /// <summary>待機中キャンセルボタン押下（未設定なら何も流さない）。</summary>
         public Observable<Unit> OnCancelRequested =>
@@ -80,8 +76,6 @@ namespace Game.Core.UI
                 _waitingOverlay.SetActive(waiting);
             if (_rebindButton != null)
                 _rebindButton.interactable = !waiting;
-            if (_resetButton != null)
-                _resetButton.interactable = !waiting;
         }
     }
 }

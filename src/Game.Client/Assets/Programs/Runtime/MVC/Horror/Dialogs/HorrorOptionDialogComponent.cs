@@ -13,6 +13,7 @@ using R3;
 using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
+using UnityEngine.UI;
 
 namespace Game.Horror.Dialogs
 {
@@ -184,20 +185,21 @@ namespace Game.Horror.Dialogs
                     })
                     .AddTo(Disposables);
 
-                rebind.OnResetRequested
-                    .Where(_ => State.IsProcessing() && _currentRebind == null)
-                    .Subscribe(_ =>
-                    {
-                        _inputService.ResetBinding(rebind.Scheme, rebind.ActionName, rebind.CompositePartName);
-                        rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
-                        _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
-                    })
-                    .AddTo(Disposables);
-
                 rebind.OnCancelRequested
                     .Subscribe(_ => _currentRebind?.Dispose())
                     .AddTo(Disposables);
             }
+
+            // 全体リセット（個別リセットは廃止）。全バインドを既定へ戻して全行を再表示・保存する。
+            SceneComponent.OnResetAllBindingsRequested
+                .Where(_ => State.IsProcessing() && _currentRebind == null)
+                .Subscribe(_ =>
+                {
+                    _inputService.ResetAllBindings();
+                    RefreshBindingDisplays();
+                    _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+                })
+                .AddTo(Disposables);
 
             LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
             Disposables.Add(Disposable.Create(() => LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged));
@@ -276,6 +278,7 @@ namespace Game.Horror.Dialogs
 
         [Header("Options - Input")]
         [SerializeField] private InputActionRebindView[] _rebindViews;
+        [SerializeField] private Button _resetAllBindingsButton;
 
         #endregion
 
@@ -330,6 +333,9 @@ namespace Game.Horror.Dialogs
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
         public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
+
+        /// <summary>全キーバインドを既定へ戻す「全体リセット」ボタン押下。</summary>
+        public Observable<Unit> OnResetAllBindingsRequested => _resetAllBindingsButton.OnClickAsObservable();
 
         #endregion
 
