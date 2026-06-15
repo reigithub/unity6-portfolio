@@ -198,28 +198,9 @@ namespace Game.Core.Services
             var parts = new List<string>(indices.Count);
             foreach (var index in indices)
             {
-                // 既定の英語表示と安定キー controlPath を取得し、ローカライズ名へ変換（未登録は英語へフォールバック）
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                    parts.Add(InputControlLocalizer.Localize(controlPath, raw));
-                    Debug.Log($"[InputSystemService] GetBindingDisplayString:0 {raw} - {deviceLayoutName} - {controlPath}");
-                }
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontUseShortDisplayNames);
-                    Debug.Log($"[InputSystemService] GetBindingDisplayString:1 {raw} - {deviceLayoutName} - {controlPath}");
-                }
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontOmitDevice);
-                    Debug.Log($"[InputSystemService] GetBindingDisplayString:2 {raw} - {deviceLayoutName} - {controlPath}");
-                }
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontIncludeInteractions);
-                    Debug.Log($"[InputSystemService] GetBindingDisplayString:4 {raw} - {deviceLayoutName} - {controlPath}");
-                }
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.IgnoreBindingOverrides);
-                    Debug.Log($"[InputSystemService] GetBindingDisplayString:8 {raw} - {deviceLayoutName} - {controlPath}");
-                }
+                // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
+                var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                parts.Add(InputControlLocalizer.Localize(deviceLayoutName, controlPath, raw));
             }
             return string.Join("/", parts);
         }

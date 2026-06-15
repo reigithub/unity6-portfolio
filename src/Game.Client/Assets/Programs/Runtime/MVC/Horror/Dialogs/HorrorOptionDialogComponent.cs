@@ -11,6 +11,7 @@ using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
@@ -200,10 +201,19 @@ namespace Game.Horror.Dialogs
             LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
             Disposables.Add(Disposable.Create(() => LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged));
 
+            // コントローラー接続/切替に追従して family 別表示を更新する
+            InputSystem.onDeviceChange += OnDeviceChanged;
+            Disposables.Add(Disposable.Create(() => InputSystem.onDeviceChange -= OnDeviceChanged));
+
             return base.Startup();
         }
 
         private void OnLocaleChanged(Locale locale)
+        {
+            RefreshBindingDisplays();
+        }
+
+        private void OnDeviceChanged(InputDevice device, InputDeviceChange change)
         {
             RefreshBindingDisplays();
         }
