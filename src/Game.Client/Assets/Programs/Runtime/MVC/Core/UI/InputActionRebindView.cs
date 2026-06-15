@@ -23,7 +23,6 @@ namespace Game.Core.UI
 
         [Header("Buttons")]
         [SerializeField] private Button _rebindButton;
-        [SerializeField] private Button _cancelButton;         // 任意: 待機中のキャンセル（InputAction 非依存）
 
         [Header("Waiting")]
         [SerializeField] private GameObject _waitingOverlay;   // 任意: リバインド待機中の表示
@@ -43,10 +42,6 @@ namespace Game.Core.UI
 
         /// <summary>「変更」ボタン押下。</summary>
         public Observable<Unit> OnRebindRequested => _rebindButton.OnClickAsObservable();
-
-        /// <summary>待機中キャンセルボタン押下（未設定なら何も流さない）。</summary>
-        public Observable<Unit> OnCancelRequested =>
-            _cancelButton != null ? _cancelButton.OnClickAsObservable() : Observable.Empty<Unit>();
 
         /// <summary>アクション名ラベルを設定する。</summary>
         public void SetActionLabel(string text)

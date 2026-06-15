@@ -184,10 +184,6 @@ namespace Game.Horror.Dialogs
                         _rebindTimeout.AddTo(Disposables);
                     })
                     .AddTo(Disposables);
-
-                rebind.OnCancelRequested
-                    .Subscribe(_ => _currentRebind?.Dispose())
-                    .AddTo(Disposables);
             }
 
             // 全バインドを既定へ戻して全行を再表示・保存する。
