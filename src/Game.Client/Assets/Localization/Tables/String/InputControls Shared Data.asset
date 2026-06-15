@@ -1,0 +1,508 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: InputControls Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: InputControls
+  m_TableCollectionNameGuidString: 257b1f2889daa8142959891c0f690b60
+  m_Entries:
+  - m_Id: 76630990848
+    m_Key: a
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739584
+    m_Key: b
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739585
+    m_Key: c
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739586
+    m_Key: d
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739587
+    m_Key: e
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739588
+    m_Key: f
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739589
+    m_Key: g
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739590
+    m_Key: h
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739591
+    m_Key: i
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739592
+    m_Key: j
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739593
+    m_Key: k
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739594
+    m_Key: l
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739595
+    m_Key: m
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739596
+    m_Key: n
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739597
+    m_Key: o
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739598
+    m_Key: p
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739599
+    m_Key: q
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739600
+    m_Key: r
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739601
+    m_Key: s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739602
+    m_Key: t
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739603
+    m_Key: u
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739604
+    m_Key: v
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739605
+    m_Key: w
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739606
+    m_Key: x
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739607
+    m_Key: y
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739608
+    m_Key: z
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739609
+    m_Key: 1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739610
+    m_Key: 2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76668739611
+    m_Key: 3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933888
+    m_Key: 4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933889
+    m_Key: 5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933890
+    m_Key: 6
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933891
+    m_Key: 7
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933892
+    m_Key: 8
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933893
+    m_Key: 9
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933894
+    m_Key: 0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933895
+    m_Key: space
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933896
+    m_Key: enter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933897
+    m_Key: escape
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933898
+    m_Key: tab
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933899
+    m_Key: backspace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933900
+    m_Key: leftShift
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933901
+    m_Key: rightShift
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933902
+    m_Key: leftCtrl
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933903
+    m_Key: rightCtrl
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933904
+    m_Key: leftAlt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933905
+    m_Key: rightAlt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933906
+    m_Key: upArrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933907
+    m_Key: downArrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933908
+    m_Key: leftArrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933909
+    m_Key: rightArrow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933910
+    m_Key: backquote
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933911
+    m_Key: minus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933912
+    m_Key: equals
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933913
+    m_Key: leftBracket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933914
+    m_Key: rightBracket
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933915
+    m_Key: semicolon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933916
+    m_Key: quote
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933917
+    m_Key: backslash
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933918
+    m_Key: comma
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933919
+    m_Key: period
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933920
+    m_Key: slash
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933921
+    m_Key: home
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933922
+    m_Key: end
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933923
+    m_Key: insert
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933924
+    m_Key: delete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933925
+    m_Key: pageUp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933926
+    m_Key: pageDown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933927
+    m_Key: capsLock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933928
+    m_Key: f1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933929
+    m_Key: f2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933930
+    m_Key: f3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933931
+    m_Key: f4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933932
+    m_Key: f5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933933
+    m_Key: f6
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933934
+    m_Key: f7
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933935
+    m_Key: f8
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933936
+    m_Key: f9
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933937
+    m_Key: f10
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933938
+    m_Key: f11
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933939
+    m_Key: f12
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933940
+    m_Key: numpad0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933941
+    m_Key: numpad1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933942
+    m_Key: numpad2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933943
+    m_Key: numpad3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933944
+    m_Key: numpad4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933945
+    m_Key: numpad5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933946
+    m_Key: numpad6
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933947
+    m_Key: numpad7
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933948
+    m_Key: numpad8
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933949
+    m_Key: numpad9
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933950
+    m_Key: numpadEnter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933951
+    m_Key: numpadPlus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933952
+    m_Key: numpadMinus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933953
+    m_Key: numpadMultiply
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933954
+    m_Key: numpadDivide
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933955
+    m_Key: numpadPeriod
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933956
+    m_Key: leftButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933957
+    m_Key: rightButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933958
+    m_Key: middleButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933959
+    m_Key: forwardButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933960
+    m_Key: backButton
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933961
+    m_Key: buttonSouth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933962
+    m_Key: buttonEast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933963
+    m_Key: buttonWest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933964
+    m_Key: buttonNorth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933965
+    m_Key: dpad/up
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933966
+    m_Key: dpad/down
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933967
+    m_Key: dpad/left
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933968
+    m_Key: dpad/right
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933969
+    m_Key: leftStick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933970
+    m_Key: rightStick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933971
+    m_Key: leftStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933972
+    m_Key: rightStickPress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933973
+    m_Key: leftShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933974
+    m_Key: rightShoulder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933975
+    m_Key: leftTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933976
+    m_Key: rightTrigger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933977
+    m_Key: start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76672933978
+    m_Key: select
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 3523269893801902406
+  references:
+    version: 2
+    RefIds:
+    - rid: 3523269893801902406
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1781515646644
