@@ -190,7 +190,7 @@ namespace Game.Horror.Dialogs
                     .AddTo(Disposables);
             }
 
-            // 全体リセット（個別リセットは廃止）。全バインドを既定へ戻して全行を再表示・保存する。
+            // 全バインドを既定へ戻して全行を再表示・保存する。
             SceneComponent.OnResetAllBindingsRequested
                 .Where(_ => State.IsProcessing() && _currentRebind == null)
                 .Subscribe(_ =>
