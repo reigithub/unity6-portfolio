@@ -237,7 +237,7 @@ namespace Game.Tests.Shared
             var (h2, r2) = ScriptableTableTextSerializer.ParseDocument(text, delimiter);
 
             var dst = MakeTable2();
-            dst.EditorImportRows(h2, r2, ScriptableTableImportMode.Replace);
+            dst.EditorImportRows(h2, r2, mergeByPrimaryKey: false);
 
             var expected = source.OrderBy(r => r.Id).ToArray();
             Assert.AreEqual(expected.Length, dst.All.Count);
@@ -299,7 +299,7 @@ namespace Game.Tests.Shared
 
             var headers = new[] { "Id", "Name", "Kind", "Active", "Weight" };
             var rows = new List<string[]> { new[] { "9", "z", "Fire", "true", "9" } };
-            t.EditorImportRows(headers, rows, ScriptableTableImportMode.Replace);
+            t.EditorImportRows(headers, rows, mergeByPrimaryKey: false);
 
             Assert.AreEqual(1, t.All.Count);
             Assert.AreEqual(9, t.All[0].Id);
@@ -319,7 +319,7 @@ namespace Game.Tests.Shared
                 new[] { "2", "B2", "Fire", "true", "2.5" },   // 既存キー → 更新
                 new[] { "4", "d", "Wind", "false", "4" },     // 新規キー → 追加
             };
-            t.EditorImportRows(headers, rows, ScriptableTableImportMode.MergeByPrimaryKey);
+            t.EditorImportRows(headers, rows, mergeByPrimaryKey: true);
 
             Assert.AreEqual(4, t.All.Count);                  // 1,2,3 は保持＋4 追加
             Assert.AreEqual("B2", t.All[1].Name);             // id=2 が更新
@@ -336,7 +336,7 @@ namespace Game.Tests.Shared
             var rows = new List<string[]> { new[] { "5", "ignored" } };
 
             LogAssert.Expect(LogType.Warning, new Regex("未知の列"));
-            t.EditorImportRows(headers, rows, ScriptableTableImportMode.Replace);
+            t.EditorImportRows(headers, rows, mergeByPrimaryKey: false);
 
             Assert.AreEqual(1, t.All.Count);
             Assert.AreEqual(5, t.All[0].Id);
@@ -350,7 +350,7 @@ namespace Game.Tests.Shared
             var rows = new List<string[]> { new[] { "not-an-int" } };
 
             Assert.Throws<FormatException>(
-                () => t.EditorImportRows(headers, rows, ScriptableTableImportMode.Replace));
+                () => t.EditorImportRows(headers, rows, mergeByPrimaryKey: false));
         }
 
         [Test]
@@ -364,7 +364,7 @@ namespace Game.Tests.Shared
                 new[] { "1", "a", "Fire", "true", "1" },
                 new[] { "2", "b", "Water", "true", "2" },
             };
-            t.EditorImportRows(headers, rows, ScriptableTableImportMode.Replace);
+            t.EditorImportRows(headers, rows, mergeByPrimaryKey: false);
 
             Assert.IsTrue(t.EditorIsSorted());
             Assert.AreEqual(1, t.All[0].Id);

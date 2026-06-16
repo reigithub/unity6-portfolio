@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Text;
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,6 +20,32 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             var dir = Path.GetFullPath(Path.Combine(Application.dataPath, "ProjectAssets", "Scriptable", "Database", "Raw"));
             Directory.CreateDirectory(dir);
             return dir;
+        }
+
+        public static void Import(ScriptableTableBase table, bool mergeByPrimaryKey)
+        {
+            if (table == null) return;
+
+            var path = EditorUtility.OpenFilePanel("Import Table from CSV/TSV", DefaultDirectory(), "tsv,csv");
+            if (string.IsNullOrEmpty(path)) return;
+
+            try
+            {
+                var text = File.ReadAllText(path);
+                var delimiter = ScriptableTableTextSerializer.DelimiterFromExtension(path);
+                var (headers, rows) = ScriptableTableTextSerializer.ParseDocument(text, delimiter);
+
+                Undo.RecordObject(table, "Import Table");
+                table.EditorImportRows(headers, rows, mergeByPrimaryKey);
+                EditorUtility.SetDirty(table);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[ScriptableTableIO] {rows.Count} 行を取り込みました（{(mergeByPrimaryKey ? "Merge" : "Replace")}）: {path}", table);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ScriptableTableIO] インポートに失敗しました: {e}", table);
+                EditorUtility.DisplayDialog("Import 失敗", e.Message, "OK");
+            }
         }
 
         // extension は "tsv" / "csv"。SaveFilePanel は単一拡張子しか扱えないため形式ごとに呼び分ける。
@@ -44,32 +69,6 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             {
                 Debug.LogError($"[ScriptableTableIO] エクスポートに失敗しました: {e}", table);
                 EditorUtility.DisplayDialog("Export 失敗", e.Message, "OK");
-            }
-        }
-
-        public static void Import(ScriptableTableBase table, ScriptableTableImportMode mode)
-        {
-            if (table == null) return;
-
-            var path = EditorUtility.OpenFilePanel("Import Table from CSV/TSV", DefaultDirectory(), "tsv,csv");
-            if (string.IsNullOrEmpty(path)) return;
-
-            try
-            {
-                var text = File.ReadAllText(path);
-                var delimiter = ScriptableTableTextSerializer.DelimiterFromExtension(path);
-                var (headers, rows) = ScriptableTableTextSerializer.ParseDocument(text, delimiter);
-
-                Undo.RecordObject(table, "Import Table");
-                table.EditorImportRows(headers, rows, mode);
-                EditorUtility.SetDirty(table);
-                AssetDatabase.SaveAssets();
-                Debug.Log($"[ScriptableTableIO] {rows.Count} 行を取り込みました（{mode}）: {path}", table);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[ScriptableTableIO] インポートに失敗しました: {e}", table);
-                EditorUtility.DisplayDialog("Import 失敗", e.Message, "OK");
             }
         }
     }

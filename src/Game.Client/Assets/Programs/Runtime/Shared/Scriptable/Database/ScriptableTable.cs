@@ -162,7 +162,7 @@ namespace Game.Shared.Scriptable.Database
         /// CSV/TSV から解析した行を records へ反映する。列名はメンバ名と完全一致でマッピングし、
         /// 未知列は警告して無視、ファイルに無い列は既定値のままとする。反映後に整列・検証する。
         /// </summary>
-        public override void EditorImportRows(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, ScriptableTableImportMode mode)
+        public override void EditorImportRows(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, bool mergeByPrimaryKey)
         {
             var writable = Columns().Where(IsWritable).ToDictionary(MemberName);
             var headerColumns = new MemberInfo[headers.Count];
@@ -186,7 +186,7 @@ namespace Game.Shared.Scriptable.Database
                 parsed.Add((TRecord)boxed);
             }
 
-            records = mode == ScriptableTableImportMode.MergeByPrimaryKey
+            records = mergeByPrimaryKey
                 ? MergeByPrimaryKey(records, parsed)
                 : parsed.ToArray();
 
