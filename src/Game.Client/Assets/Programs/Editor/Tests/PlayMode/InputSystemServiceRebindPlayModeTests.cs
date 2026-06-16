@@ -108,6 +108,36 @@ namespace Game.Tests.PlayMode
             yield return null;
         }
 
+        [UnityTest]
+        public IEnumerator ResetSchemeBindings_RemovesOnlyTargetScheme()
+        {
+            _service.Startup();
+            yield return null;
+
+            var jump = PlayerAction(_service, "Jump");
+            var kbmIdx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var padIdx = FirstIndex(jump, InputConstants.Gamepad);
+            var kbmDefault = jump.bindings[kbmIdx].effectivePath;
+            var padDefault = jump.bindings[padIdx].effectivePath;
+
+            // KBM・Gamepad 両方へ override を適用
+            jump.ApplyBindingOverride(kbmIdx, "<Keyboard>/j");
+            jump.ApplyBindingOverride(padIdx, "<Gamepad>/buttonNorth");
+
+            // Gamepad のみリセット
+            _service.ResetSchemeBindings(InputConstants.Gamepad);
+
+            Assert.That(jump.bindings[padIdx].effectivePath, Is.EqualTo(padDefault),
+                "対象スキーム（Gamepad）は既定へ戻る");
+            Assert.That(jump.bindings[kbmIdx].effectivePath, Is.EqualTo("<Keyboard>/j"),
+                "他スキーム（KBM）の override は保持される");
+
+            // KBM もリセットすると既定へ戻る
+            _service.ResetSchemeBindings(InputConstants.KeyboardAndMouse);
+            Assert.That(jump.bindings[kbmIdx].effectivePath, Is.EqualTo(kbmDefault));
+            yield return null;
+        }
+
         #endregion
 
         #region StartRebind

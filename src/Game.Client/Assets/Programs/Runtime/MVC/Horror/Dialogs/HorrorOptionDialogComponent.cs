@@ -189,12 +189,12 @@ namespace Game.Horror.Dialogs
                     .AddTo(Disposables);
             }
 
-            // 全バインドを既定へ戻して全行を再表示・保存する。
-            SceneComponent.OnResetAllBindingsRequested
+            // 指定スキームのバインドのみ既定へ戻して全行を再表示・保存する。
+            SceneComponent.OnResetSchemeBindingsRequested
                 .Where(_ => State.IsProcessing() && _currentRebind == null)
-                .Subscribe(_ =>
+                .Subscribe(scheme =>
                 {
-                    _inputService.ResetAllBindings();
+                    _inputService.ResetSchemeBindings(scheme);
                     RefreshBindingDisplays();
                     _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                 })
@@ -268,7 +268,8 @@ namespace Game.Horror.Dialogs
 
         [Header("Options - Control")]
         [SerializeField] private InputActionRebindView[] _rebindViews;
-        [SerializeField] private Button _resetAllBindingsButton;
+        [SerializeField] private Button _resetKeyboardBindingsButton;
+        [SerializeField] private Button _resetGamepadBindingsButton;
 
         [Header("Options - Audio")]
         [SerializeField] private SliderValueSelector _masterVolume;
@@ -307,8 +308,11 @@ namespace Game.Horror.Dialogs
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
         public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
 
-        /// <summary>全キーバインドを既定へ戻す「全体リセット」ボタン押下。</summary>
-        public Observable<Unit> OnResetAllBindingsRequested => _resetAllBindingsButton.OnClickAsObservable();
+        /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
+        public Observable<string> OnResetSchemeBindingsRequested =>
+            Observable.Merge(
+                _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputConstants.KeyboardAndMouse),
+                _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputConstants.Gamepad));
 
         #endregion
 

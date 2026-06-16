@@ -217,6 +217,16 @@ namespace Game.Core.Services
         public void ResetAllBindings()
             => _inputSystem?.asset.RemoveAllBindingOverrides();
 
+        public void ResetSchemeBindings(string scheme)
+        {
+            if (_inputSystem == null || string.IsNullOrEmpty(scheme)) return;
+            // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する
+            foreach (var map in _inputSystem.asset.actionMaps)
+                foreach (var action in map.actions)
+                    foreach (var index in ResolveSchemeBindingIndices(scheme, action))
+                        action.RemoveBindingOverride(index);
+        }
+
         public void ResetBinding(string scheme, string actionName, string partName = null)
         {
             var action = ResolveAction(actionName);

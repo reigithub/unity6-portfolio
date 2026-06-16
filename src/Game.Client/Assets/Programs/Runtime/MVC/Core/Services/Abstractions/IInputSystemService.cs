@@ -67,6 +67,12 @@ namespace Game.Core.Services
         void ResetAllBindings();
 
         /// <summary>
+        /// 指定スキーム（Keyboard&amp;Mouse / Gamepad 等）に属するバインドオーバーライドのみを既定へ戻す。
+        /// 全アクションマップを対象とし、他スキームのオーバーライドは保持する。
+        /// </summary>
+        void ResetSchemeBindings(string scheme);
+
+        /// <summary>
         /// プレイヤー入力を有効化する
         /// </summary>
         void EnablePlayer();
