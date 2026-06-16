@@ -270,8 +270,8 @@ namespace Game.Core.Services
                 }
 
                 var bindingIndex = indices[listIndex];
-                // 巻き戻し用に元の override 状態を退避（null/空 = override 無し）
-                var originalOverridePath = action.bindings[bindingIndex].overridePath;
+                // swap 用にターゲットの旧 effectivePath（override 無しなら既定パス）を退避
+                var originalEffectivePath = action.bindings[bindingIndex].effectivePath;
 
                 currentOp?.Dispose();
                 currentOp = action.PerformInteractiveRebinding(bindingIndex)
@@ -292,14 +292,16 @@ namespace Game.Core.Services
                     .OnComplete(op =>
                     {
                         var newPath = action.bindings[bindingIndex].effectivePath;
-                        if (WouldConflict(_inputSystem.asset, scheme, action, bindingIndex, newPath))
+                        if (TryFindConflict(_inputSystem.asset, scheme, action, bindingIndex, newPath, out var conflictAction, out var conflictIndex))
                         {
-                            // 同一スキーム内で重複 → 変更を巻き戻す（既定 or 直前の override へ）
-                            if (string.IsNullOrEmpty(originalOverridePath))
-                                action.RemoveBindingOverride(bindingIndex);
+                            // 同一スキーム内で重複 → 相手へターゲットの旧キーを渡して入れ替える（swap）。
+                            // 旧キーが相手の既定パスと一致するなら override を残さず解除する。
+                            var conflictDefaultPath = conflictAction.bindings[conflictIndex].path;
+                            if (originalEffectivePath == conflictDefaultPath)
+                                conflictAction.RemoveBindingOverride(conflictIndex);
                             else
-                                action.ApplyBindingOverride(bindingIndex, originalOverridePath);
-                            Debug.Log($"[InputService] Rebind rejected (duplicate in {scheme}): {newPath}");
+                                conflictAction.ApplyBindingOverride(conflictIndex, originalEffectivePath);
+                            Debug.Log($"[InputService] Rebind swapped ({scheme}): {newPath} <-> {originalEffectivePath}");
                         }
 
                         op.Dispose();
@@ -375,7 +377,17 @@ namespace Game.Core.Services
         /// 候補パスが同一スキーム内の他バインド（自分自身を除く）と衝突するか判定する。純粋関数（テスト対象）。
         /// </summary>
         public static bool WouldConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath)
+            => TryFindConflict(asset, scheme, targetAction, targetBindingIndex, candidatePath, out _, out _);
+
+        /// <summary>
+        /// 候補パスが同一スキーム内の他バインド（自分自身を除く）と衝突する場合、その相手バインドを返す。純粋関数（テスト対象）。
+        /// swap（入れ替え）処理で相手バインドへターゲットの旧キーを渡すために用いる。
+        /// invariant 上、衝突は高々1件のため最初にヒットしたものを返す。
+        /// </summary>
+        public static bool TryFindConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath, out InputAction conflictAction, out int conflictBindingIndex)
         {
+            conflictAction = null;
+            conflictBindingIndex = -1;
             if (asset == null || targetAction == null || string.IsNullOrEmpty(candidatePath)) return false;
 
             var map = targetAction.actionMap;
@@ -391,7 +403,12 @@ namespace Game.Core.Services
                     var binding = bindings[i];
                     if (binding.isComposite) continue; // コンテナはパス無し
                     if (!BelongsToScheme(binding, scheme)) continue;
-                    if (binding.effectivePath == candidatePath) return true;
+                    if (binding.effectivePath == candidatePath)
+                    {
+                        conflictAction = action;
+                        conflictBindingIndex = i;
+                        return true;
+                    }
                 }
             }
 

@@ -187,5 +187,45 @@ namespace Game.Tests.MVC
         }
 
         #endregion
+
+        #region TryFindConflict
+
+        [Test]
+        public void TryFindConflict_SameSchemeDuplicate_ReturnsConflictBinding()
+        {
+            // Jump を対象に、別アクションへ既定割当した <Keyboard>/numpad5 を候補にすると、その相手が返る
+            var jump = Action("Jump");
+            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, jump)[0];
+
+            // Attack(KBM) を numpad5 に固定し、衝突相手として特定できることを確認
+            var attack = Action("Attack");
+            var attackIndex = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, attack)[0];
+            attack.ApplyBindingOverride(attackIndex, "<Keyboard>/numpad5");
+
+            var found = InputSystemService.TryFindConflict(
+                _asset, InputConstants.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/numpad5",
+                out var conflictAction, out var conflictIndex);
+
+            Assert.That(found, Is.True);
+            Assert.That(conflictAction, Is.SameAs(attack));
+            Assert.That(conflictIndex, Is.EqualTo(attackIndex));
+        }
+
+        [Test]
+        public void TryFindConflict_UnusedKey_ReturnsFalseAndNullOut()
+        {
+            var jump = Action("Jump");
+            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, jump)[0];
+
+            var found = InputSystemService.TryFindConflict(
+                _asset, InputConstants.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/numpad5",
+                out var conflictAction, out var conflictIndex);
+
+            Assert.That(found, Is.False);
+            Assert.That(conflictAction, Is.Null);
+            Assert.That(conflictIndex, Is.EqualTo(-1));
+        }
+
+        #endregion
     }
 }

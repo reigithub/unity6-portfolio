@@ -140,14 +140,19 @@ namespace Game.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator StartRebind_DuplicateKey_RollsBack()
+        public IEnumerator StartRebind_DuplicateKey_Swaps()
         {
             _service.Startup();
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
-            var originalPath = jump.bindings[idx].effectivePath; // <Keyboard>/space
+            var jumpIdx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var jumpOriginalPath = jump.bindings[jumpIdx].effectivePath; // <Keyboard>/space
+
+            // Attack(KBM) を <Keyboard>/j に固定し、Jump をその j へリバインドして衝突させる
+            var attack = PlayerAction(_service, "Attack");
+            var attackIdx = FirstIndex(attack, InputConstants.KeyboardAndMouse);
+            attack.ApplyBindingOverride(attackIdx, "<Keyboard>/j");
 
             var completed = false;
             var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
@@ -155,15 +160,16 @@ namespace Game.Tests.PlayMode
                 () => { });
             yield return null;
 
-            // enter は Attack(KBM) が既に使用 → 同一スキーム重複で巻き戻るはず
-            Press(_keyboard.enterKey);
+            Press(_keyboard.jKey);
             yield return null;
-            Release(_keyboard.enterKey);
+            Release(_keyboard.jKey);
             for (var i = 0; i < 20 && !completed; i++) yield return null;
 
-            Assert.That(completed, Is.True, "完了コールバックは呼ばれる（巻き戻し後）");
-            Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo(originalPath),
-                "重複キーは適用されず元のバインドが維持される");
+            Assert.That(completed, Is.True, "完了コールバックは呼ばれる（swap 後）");
+            Assert.That(jump.bindings[jumpIdx].effectivePath, Is.EqualTo("<Keyboard>/j"),
+                "ターゲットは新しいキーを取得する");
+            Assert.That(attack.bindings[attackIdx].effectivePath, Is.EqualTo(jumpOriginalPath),
+                "相手にはターゲットの旧キーが入れ替わりで割り当てられる");
 
             op.Dispose();
             yield return null;

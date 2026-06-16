@@ -35,7 +35,7 @@ namespace Game.Core.Services
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
         /// <paramref name="partName"/> が空ならコンポジットは各パートを順にリバインドし、指定時はその1パートのみをリバインドする。
-        /// 同一スキーム内でキーが重複した場合は巻き戻して変更を破棄する。
+        /// 同一スキーム内でキーが重複した場合は、相手バインドへターゲットの旧キーを渡して入れ替える（swap）。
         /// 戻り値を Dispose すると進行中のリバインドをキャンセルする。
         /// </summary>
         /// <param name="scheme">コントロールスキーム（Keyboard&amp;Mouse / Gamepad）</param>
