@@ -15,14 +15,12 @@ namespace Game.Tests.MVC
     {
         private ProjectDefaultInputSystem _input;
         private InputActionAsset _asset;
-        private InputActionMap _player;
 
         [SetUp]
         public void Setup()
         {
             _input = new ProjectDefaultInputSystem();
             _asset = _input.asset;
-            _player = _asset.FindActionMap("Player");
         }
 
         [TearDown]
@@ -34,7 +32,8 @@ namespace Game.Tests.MVC
                 UnityEngine.Object.DestroyImmediate(_asset);
         }
 
-        private InputAction Action(string name) => _player.FindAction(name);
+        // Reset は UI マップへ移動済みのため、マップ横断（アセット全体）で解決する
+        private InputAction Action(string name) => _asset.FindAction(name);
 
         #region ResolveSchemeBindingIndices
 
@@ -83,21 +82,23 @@ namespace Game.Tests.MVC
         [Test]
         public void Resolve_Reset_KeyboardMouse_ReturnsBindings()
         {
-            // groups 整備後、Reset の KBM バインドが解決されることを確認
+            // Reset（UI マップ）の KBM バインドが解決されることを確認
             var action = Action("Reset");
             var indices = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, action);
 
-            Assert.That(indices.Count, Is.GreaterThan(0));
+            Assert.That(indices.Count, Is.EqualTo(1));
+            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/r"));
         }
 
         [Test]
-        public void Resolve_Reset_Gamepad_ReturnsEmpty()
+        public void Resolve_Reset_Gamepad_ReturnsBinding()
         {
-            // Reset は Gamepad バインドを持たない
+            // Reset（UI マップ）は Gamepad バインド（buttonNorth）も持つ
             var action = Action("Reset");
             var indices = InputSystemService.ResolveSchemeBindingIndices(InputConstants.Gamepad, action);
 
-            Assert.That(indices.Count, Is.EqualTo(0));
+            Assert.That(indices.Count, Is.EqualTo(1));
+            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Gamepad>/buttonNorth"));
         }
 
         [Test]
@@ -137,12 +138,16 @@ namespace Game.Tests.MVC
         [Test]
         public void WouldConflict_SameSchemeDuplicate_ReturnsTrue()
         {
-            // Jump(KBM) を対象に、Attack の KBM に存在する <Keyboard>/enter を候補にすると衝突
+            // Jump(KBM) を対象に、別アクション(Attack)が KBM で使用中のキーを候補にすると衝突
             var jump = Action("Jump");
             var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, jump)[0];
 
+            var attack = Action("Attack");
+            var attackIndex = InputSystemService.ResolveSchemeBindingIndices(InputConstants.KeyboardAndMouse, attack)[0];
+            var attackPath = attack.bindings[attackIndex].effectivePath;
+
             var conflict = InputSystemService.WouldConflict(
-                _asset, InputConstants.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/enter");
+                _asset, InputConstants.KeyboardAndMouse, jump, jumpIndex, attackPath);
 
             Assert.That(conflict, Is.True);
         }
