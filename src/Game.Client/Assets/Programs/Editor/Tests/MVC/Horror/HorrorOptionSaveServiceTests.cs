@@ -42,11 +42,11 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(1));
+            Assert.That(_service.Data.Version, Is.EqualTo(2));
             Assert.That(_service.Data.LanguageCode, Is.EqualTo("ja"));
+            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
             Assert.That(_service.Data.CameraFov, Is.EqualTo(60f));
             Assert.That(_service.Data.DisplayMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
-            Assert.That(_service.Data.GraphicQualityPreset, Is.EqualTo(GraphicQuality.Medium));
             Assert.That(_service.Data.MasterVolume, Is.EqualTo(1f));
             Assert.That(_service.IsDirty, Is.False);
         }
@@ -114,6 +114,49 @@ namespace Game.Tests.MVC.Horror
 
         #endregion
 
+        #region Input Binding Overrides
+
+        [Test]
+        public async Task SetInputBindingOverrides_SetsValueAndMarksDirty()
+        {
+            await LoadDefaultData();
+
+            _service.SetInputBindingOverrides("{\"bindings\":[]}");
+
+            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo("{\"bindings\":[]}"));
+            Assert.That(_service.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task SetInputBindingOverrides_WhenNull_StoresEmptyString()
+        {
+            await LoadDefaultData();
+
+            _service.SetInputBindingOverrides(null);
+
+            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
+        }
+
+        #endregion
+
+        #region Migration
+
+        [Test]
+        public async Task Load_WhenOldVersion_MigratesToCurrentVersionWithDefaults()
+        {
+            // Version 1 の旧データ（InputBindingOverridesJson が未設定 ＝ 既定 ""）
+            var oldData = new HorrorOptionSaveData { Version = 1 };
+            _mockStorage.LoadAsync<HorrorOptionSaveData>(SaveKey)
+                .Returns(UniTask.FromResult(oldData));
+
+            await _service.LoadAsync();
+
+            Assert.That(_service.Data.Version, Is.EqualTo(1), "現行バージョンへマイグレーションされる");
+            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""), "新フィールドは既定値で補完される");
+        }
+
+        #endregion
+
         #region Null Guard
 
         [Test]
@@ -125,8 +168,8 @@ namespace Game.Tests.MVC.Horror
                 _service.SetCameraFov(90f);
                 _service.SetResolution(1920, 1080);
                 _service.SetMasterVolume(0.5f);
-                _service.SetGraphicQualityPreset(GraphicQuality.Low);
                 _service.SetVSync(true);
+                _service.SetInputBindingOverrides("{}");
             });
         }
 
@@ -154,17 +197,11 @@ namespace Game.Tests.MVC.Horror
                 FrameRateLimit = 144,
                 UncappedFrameRate = true,
                 VSync = true,
-                MotionBlur = true,
-                GraphicQualityPreset = GraphicQuality.Max,
-                ResolutionScale = 0.8f,
-                Lighting = GraphicQuality.Medium,
-                Reflection = GraphicQuality.Low,
-                AntiAliasing = GraphicQuality.Custom,
-                PostProcessing = GraphicQuality.Max,
                 MasterVolume = 0.6f,
                 BgmVolume = 0.4f,
                 VoiceVolume = 0.7f,
                 SeVolume = 0.3f,
+                InputBindingOverridesJson = "{\"bindings\":[{\"action\":\"Player/Jump\",\"path\":\"<Keyboard>/j\"}]}",
             };
 
             var bytes = MemoryPackSerializer.Serialize(original);
@@ -186,17 +223,11 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.FrameRateLimit, Is.EqualTo(original.FrameRateLimit));
             Assert.That(restored.UncappedFrameRate, Is.EqualTo(original.UncappedFrameRate));
             Assert.That(restored.VSync, Is.EqualTo(original.VSync));
-            Assert.That(restored.MotionBlur, Is.EqualTo(original.MotionBlur));
-            Assert.That(restored.GraphicQualityPreset, Is.EqualTo(original.GraphicQualityPreset));
-            Assert.That(restored.ResolutionScale, Is.EqualTo(original.ResolutionScale));
-            Assert.That(restored.Lighting, Is.EqualTo(original.Lighting));
-            Assert.That(restored.Reflection, Is.EqualTo(original.Reflection));
-            Assert.That(restored.AntiAliasing, Is.EqualTo(original.AntiAliasing));
-            Assert.That(restored.PostProcessing, Is.EqualTo(original.PostProcessing));
             Assert.That(restored.MasterVolume, Is.EqualTo(original.MasterVolume));
             Assert.That(restored.BgmVolume, Is.EqualTo(original.BgmVolume));
             Assert.That(restored.VoiceVolume, Is.EqualTo(original.VoiceVolume));
             Assert.That(restored.SeVolume, Is.EqualTo(original.SeVolume));
+            Assert.That(restored.InputBindingOverridesJson, Is.EqualTo(original.InputBindingOverridesJson));
         }
 
         #endregion

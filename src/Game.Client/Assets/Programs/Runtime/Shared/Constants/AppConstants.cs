@@ -14,6 +14,9 @@ namespace Game.Shared.Constants
         public const string Touch = "Touch";
         public const string Joystick = "Joystick";
         public const string XR = "XR";
+
+        /// <summary>キーリバインド待機の自動キャンセルまでの秒数。</summary>
+        public const float RebindTimeoutSeconds = 3f;
     }
 
     /// <summary>

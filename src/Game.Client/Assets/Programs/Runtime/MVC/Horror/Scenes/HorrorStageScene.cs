@@ -24,6 +24,7 @@ namespace Game.Horror.Scenes
         private HorrorOptionSaveService _optionSaveService;
 
         private SceneInstance _stageSceneInstance;
+        private HorrorPlayerStart _playerStart;
 
         public override UniTask PreInitialize()
         {
@@ -54,6 +55,7 @@ namespace Game.Horror.Scenes
 
         public override async UniTask Terminate()
         {
+            UnloadPlayer();
             await UnloadUnitySceneAsync();
             await base.Terminate();
         }
@@ -73,12 +75,21 @@ namespace Game.Horror.Scenes
 
         private async UniTask LoadPlayerAsync()
         {
-            var playerStart = GameSceneHelper.GetComponentInChildren<HorrorPlayerStart>(_stageSceneInstance.Scene);
-            var player = await playerStart.LoadPlayerAsync();
-            player.Initialize(_optionSaveService.Data);
-            _optionSaveService.OnSaved
-                .Subscribe(data => player.ApplyOptions(data))
-                .AddTo(Disposables);
+            _playerStart = GameSceneHelper.GetComponentInChildren<HorrorPlayerStart>(_stageSceneInstance.Scene);
+            if (_playerStart != null)
+            {
+                var player = await _playerStart.LoadPlayerAsync();
+                player.Initialize(_optionSaveService.Data);
+                _optionSaveService.OnSaved
+                    .Subscribe(data => player.ApplyOptions(data))
+                    .AddTo(Disposables);
+            }
+        }
+
+        private void UnloadPlayer()
+        {
+            if (_playerStart != null)
+                _playerStart.UnloadPlayer();
         }
 
         private async UniTask ShowPauseDialogAsync()

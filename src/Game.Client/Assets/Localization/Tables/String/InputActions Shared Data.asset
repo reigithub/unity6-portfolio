@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: InputActions Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: InputActions
+  m_TableCollectionNameGuidString: 8fde8acfa368cf34a982083ac8d2ebb4
+  m_Entries:
+  - m_Id: 44628451328
+    m_Key: MoveForward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 669240008704
+    m_Key: MoveBackward
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418076696576
+    m_Key: MoveLeft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 849720909824
+    m_Key: MoveRight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1026775064576
+    m_Key: Look
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1272724856832
+    m_Key: Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1332460134400
+    m_Key: Interact
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2460656607232
+    m_Key: Crouch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534862233600
+    m_Key: Jump
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2596711440384
+    m_Key: Sprint
+    m_Metadata:
+      m_Items: []
+  - m_Id: 301517983719424
+    m_Key: Move
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 3523269893801902421
+  references:
+    version: 2
+    RefIds:
+    - rid: 3523269893801902421
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1781542358845

@@ -157,7 +157,7 @@ namespace Game.Horror.Player
             }
 
             // 移動速度更新（LeftShift で走り、それ以外は歩き）
-            _speed = _moveValue.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _walkSpeed);
+            _speed = _moveValue.magnitude * (Player.Sprint.IsPressed() ? _runSpeed : _walkSpeed);
 
             // ジャンプ入力受付
             if (Player.Jump.WasPressedThisFrame() && CanJump())

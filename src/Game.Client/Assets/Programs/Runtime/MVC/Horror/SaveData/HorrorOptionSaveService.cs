@@ -79,7 +79,7 @@ namespace Game.Horror.SaveData
 
         #endregion
 
-        #region Display
+        #region Graphics
 
         public void SetDisplayMode(FullScreenMode mode)
         {
@@ -117,56 +117,18 @@ namespace Game.Horror.SaveData
             MarkDirty();
         }
 
-        public void SetMotionBlur(bool enabled)
-        {
-            if (Data == null) return;
-            Data.MotionBlur = enabled;
-            MarkDirty();
-        }
-
         #endregion
 
-        #region Graphics
+        #region Controls
 
-        public void SetGraphicQualityPreset(GraphicQuality quality)
+        /// <summary>
+        /// キーリバインドのオーバーライド JSON を保持する（InputActionAsset.SaveBindingOverridesAsJson の出力）。
+        /// null は空文字として扱う（オーバーライド無し）。
+        /// </summary>
+        public void SetInputBindingOverrides(string json)
         {
             if (Data == null) return;
-            Data.GraphicQualityPreset = quality;
-            MarkDirty();
-        }
-
-        public void SetResolutionScale(float scale)
-        {
-            if (Data == null) return;
-            Data.ResolutionScale = scale;
-            MarkDirty();
-        }
-
-        public void SetLighting(GraphicQuality quality)
-        {
-            if (Data == null) return;
-            Data.Lighting = quality;
-            MarkDirty();
-        }
-
-        public void SetReflection(GraphicQuality quality)
-        {
-            if (Data == null) return;
-            Data.Reflection = quality;
-            MarkDirty();
-        }
-
-        public void SetAntiAliasing(GraphicQuality quality)
-        {
-            if (Data == null) return;
-            Data.AntiAliasing = quality;
-            MarkDirty();
-        }
-
-        public void SetPostProcessing(GraphicQuality quality)
-        {
-            if (Data == null) return;
-            Data.PostProcessing = quality;
+            Data.InputBindingOverridesJson = json ?? "";
             MarkDirty();
         }
 

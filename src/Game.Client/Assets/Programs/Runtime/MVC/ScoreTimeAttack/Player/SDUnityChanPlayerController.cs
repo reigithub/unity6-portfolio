@@ -165,7 +165,7 @@ namespace Game.ScoreTimeAttack.Player
             _moveVector = new Vector3(_moveValue.x, 0.0f, _moveValue.y).normalized;
 
             // 移動速度更新
-            _speed.Value = _moveVector.magnitude * (Player.LeftShift.IsPressed() ? _runSpeed : _jogSpeed);
+            _speed.Value = _moveVector.magnitude * (Player.Sprint.IsPressed() ? _runSpeed : _jogSpeed);
 
             // 回転入力受付
             if (IsMoveInput())
@@ -225,9 +225,9 @@ namespace Game.ScoreTimeAttack.Player
         public void SetRunInput(bool canRun)
         {
             if (canRun)
-                Player.LeftShift.Enable();
+                Player.Sprint.Enable();
             else
-                Player.LeftShift.Disable();
+                Player.Sprint.Disable();
         }
 
         #endregion

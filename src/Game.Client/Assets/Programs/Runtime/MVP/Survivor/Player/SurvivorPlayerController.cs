@@ -156,7 +156,7 @@ namespace Game.MVP.Survivor.Player
                         Move = _accumulatedMoveDirectionSize > 0f
                             ? _accumulatedMoveDirection / _accumulatedMoveDirectionSize
                             : Vector2.zero,
-                        IsSprinting = _inputService.Player.LeftShift.IsPressed(),
+                        IsSprinting = _inputService.Player.Sprint.IsPressed(),
                         CameraRotationY = _lastCameraRotationY
                     };
 
@@ -447,7 +447,7 @@ namespace Game.MVP.Survivor.Player
 
             var move = _inputService.Player.Move.ReadValue<Vector2>();
             var isMoveInput = move.magnitude > 0.1f;
-            var wantToRun = _inputService.Player.LeftShift.IsPressed() && isMoveInput;
+            var wantToRun = _inputService.Player.Sprint.IsPressed() && isMoveInput;
             var isRunning = wantToRun && _fusionPlayer.Stamina > 0;
             var speed = (isMoveInput ? 1f : 0f) * (isRunning ? _runSpeed : _jogSpeed);
 

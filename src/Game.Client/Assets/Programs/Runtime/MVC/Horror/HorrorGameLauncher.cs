@@ -40,6 +40,10 @@ namespace Game.Horror
             GameServiceManager.Register<HorrorOptionSaveService>(optionSaveService);
             HorrorOptionHelper.ApplySaveData(optionSaveService.Data);
 
+            // キーリバインドのオーバーライドを起動時に適用
+            var inputSystemService = GameServiceManager.Get<InputSystemService>();
+            inputSystemService.LoadBindingOverrides(optionSaveService.Data.InputBindingOverridesJson);
+
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
         }
