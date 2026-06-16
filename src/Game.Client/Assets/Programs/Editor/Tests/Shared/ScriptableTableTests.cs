@@ -429,5 +429,84 @@ namespace Game.Tests.Shared
                 Assert.AreEqual("v2", File.ReadAllText(path + ".bak")); // 1世代＝直前のみ
             });
         }
+
+        // ===== table ⇔ ファイル変換コア（一括処理が共用） =====
+
+        [Test]
+        public void FileIO_RoundTrip_Tsv()
+        {
+            InTempDir(dir =>
+            {
+                var src = MakeTable2(
+                    new Rec2(2, "b", Element.Water, true, 2.5f),
+                    new Rec2(1, "a", Element.Fire, false, 0.25f));
+                var path = Path.Combine(dir, "t.tsv");
+                ScriptableTableFileIO.ExportToFile(src, path, Utf8NoBom);
+
+                var dst = MakeTable2();
+                ScriptableTableFileIO.ImportFromFile(dst, path, mergeByPrimaryKey: false);
+
+                var expected = new[]
+                {
+                    new Rec2(1, "a", Element.Fire, false, 0.25f),
+                    new Rec2(2, "b", Element.Water, true, 2.5f),
+                };
+                Assert.AreEqual(expected.Length, dst.All.Count);
+                for (int i = 0; i < expected.Length; i++) AssertRec2Equal(expected[i], dst.All[i]);
+            });
+        }
+
+        [Test]
+        public void FileIO_RoundTrip_Csv()
+        {
+            InTempDir(dir =>
+            {
+                var src = MakeTable2(new Rec2(1, "a,b", Element.Fire, true, 1f));   // カンマ含む → CSV エスケープ
+                var path = Path.Combine(dir, "t.csv");
+                ScriptableTableFileIO.ExportToFile(src, path, Utf8NoBom);
+
+                var dst = MakeTable2();
+                ScriptableTableFileIO.ImportFromFile(dst, path, mergeByPrimaryKey: false);
+
+                Assert.AreEqual(1, dst.All.Count);
+                AssertRec2Equal(new Rec2(1, "a,b", Element.Fire, true, 1f), dst.All[0]);
+            });
+        }
+
+        [Test]
+        public void FileIO_ImportFromFile_Merge()
+        {
+            InTempDir(dir =>
+            {
+                var fileTable = MakeTable2(
+                    new Rec2(2, "B2", Element.Fire, true, 2.5f),   // 既存キー → 更新
+                    new Rec2(4, "d", Element.Wind, false, 4f));    // 新規キー → 追加
+                var path = Path.Combine(dir, "t.tsv");
+                ScriptableTableFileIO.ExportToFile(fileTable, path, Utf8NoBom);
+
+                var target = MakeTable2(
+                    new Rec2(1, "a", Element.Fire, true, 1f),
+                    new Rec2(2, "b", Element.Water, false, 2f),
+                    new Rec2(3, "c", Element.Wind, true, 3f));
+                ScriptableTableFileIO.ImportFromFile(target, path, mergeByPrimaryKey: true);
+
+                Assert.AreEqual(4, target.All.Count);          // 1,2,3 保持＋4 追加
+                Assert.AreEqual("B2", target.All[1].Name);     // id=2 更新
+                Assert.AreEqual(4, target.All[3].Id);          // id=4 追加
+            });
+        }
+
+        [Test]
+        public void FileIO_ExportToFile_BacksUpExisting()
+        {
+            InTempDir(dir =>
+            {
+                var path = Path.Combine(dir, "t.tsv");
+                ScriptableTableFileIO.ExportToFile(MakeTable2(new Rec2(1, "a", Element.Fire, true, 1f)), path, Utf8NoBom);
+                ScriptableTableFileIO.ExportToFile(MakeTable2(new Rec2(2, "b", Element.Water, false, 2f)), path, Utf8NoBom);
+
+                Assert.IsTrue(File.Exists(path + ".bak"));   // 一括でも既存ファイルは .bak へ退避される
+            });
+        }
     }
 }

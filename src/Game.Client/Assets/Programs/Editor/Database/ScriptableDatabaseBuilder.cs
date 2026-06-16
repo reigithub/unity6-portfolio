@@ -23,7 +23,7 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     public static class ScriptableDatabaseBuilder
     {
         private const string OutDir = "Assets/Programs/Runtime/Shared/Scriptable/Database/Generated";
-        private const string DatabaseAssetPath = "Assets/ProjectAssets/Scriptable/Database/ScriptableDatabase.asset";
+        internal const string DatabaseAssetPath = "Assets/ProjectAssets/Scriptable/Database/ScriptableDatabase.asset";
         private const string DatabaseClassName = "ScriptableDatabase";
         private const string DatabaseNamespace = "Game.Shared.Scriptable.Database";
 
@@ -123,7 +123,7 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             Debug.Log($"[ScriptableDatabaseBuilder] Register 完了: 結線 {wired} 件 / 欠落 {missing} 件。");
         }
 
-        private static Type FindDatabaseType() =>
+        internal static Type FindDatabaseType() =>
             AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(SafeTypes)
                 .FirstOrDefault(t => t.FullName == $"{DatabaseNamespace}.{DatabaseClassName}");

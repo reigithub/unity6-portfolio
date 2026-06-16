@@ -13,9 +13,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     /// </summary>
     public static class ScriptableTableIO
     {
+        /// <summary>UTF-8 (BOM なし)。一括側とも共有する出力エンコーディング。</summary>
+        internal static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
+
         // ScriptableTable 専用の入出力先（masterdata/raw の MasterMemory パイプラインとは非干渉）。
         // 無ければ作成してダイアログの初期ディレクトリ・書き込み先として使えるようにする。
-        private static string DefaultDirectory()
+        internal static string DefaultDirectory()
         {
             var dir = Path.GetFullPath(Path.Combine(Application.dataPath, "ProjectAssets", "Scriptable", "Database", "Raw"));
             Directory.CreateDirectory(dir);
@@ -31,15 +34,11 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
             try
             {
-                var text = File.ReadAllText(path);
-                var delimiter = ScriptableTableTextSerializer.DelimiterFromExtension(path);
-                var (headers, rows) = ScriptableTableTextSerializer.ParseDocument(text, delimiter);
-
                 Undo.RecordObject(table, "Import Table");
-                table.EditorImportRows(headers, rows, mergeByPrimaryKey);
+                ScriptableTableFileIO.ImportFromFile(table, path, mergeByPrimaryKey);
                 EditorUtility.SetDirty(table);
                 AssetDatabase.SaveAssets();
-                Debug.Log($"[ScriptableTableIO] {rows.Count} 行を取り込みました（{(mergeByPrimaryKey ? "Merge" : "Replace")}）: {path}", table);
+                Debug.Log($"[ScriptableTableIO] 取り込みました（{(mergeByPrimaryKey ? "Merge" : "Replace")}）: {path}", table);
             }
             catch (Exception e)
             {
@@ -59,11 +58,8 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
             try
             {
-                var (headers, rows) = table.EditorExportRows();
-                var delimiter = ScriptableTableTextSerializer.DelimiterFromExtension(path);
-                var text = ScriptableTableTextSerializer.WriteDocument(headers, rows, delimiter);
-                ScriptableTableFileWriter.WriteWithBackup(path, text, new UTF8Encoding(false));
-                Debug.Log($"[ScriptableTableIO] {rows.Count} 件を書き出しました: {path}", table);
+                ScriptableTableFileIO.ExportToFile(table, path, Utf8NoBom);
+                Debug.Log($"[ScriptableTableIO] 書き出しました: {path}", table);
             }
             catch (Exception e)
             {
