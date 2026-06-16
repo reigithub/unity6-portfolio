@@ -154,11 +154,13 @@ namespace Game.Horror.Dialogs
                             display =>
                             {
                                 rebind.SetWaiting(false);
-                                rebind.SetDisplay(display);
+                                // rebind.SetDisplay(display);
                                 _optionSaveService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebind = null;
                                 _rebindTimeout?.Dispose();
                                 _rebindTimeout = null;
+                                // swap で旧キーが移った相手行も含め全行を再表示（ターゲット行も更新される）
+                                RefreshBindingDisplays();
                                 _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
                             },
                             () =>
@@ -239,7 +241,7 @@ namespace Game.Horror.Dialogs
 
         [SerializeField] private TabGroup _tabGroup;
 
-        [Header("Options - General")]
+        [Header("Options - Gameplay")]
         [SerializeField] private SliderIndexSelector _language;
         [SerializeField] private GenericValues<string> _languageValues;
 
@@ -253,7 +255,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
-        [Header("Options - Display")]
+        [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _displayMode;
         [SerializeField] private GenericValues<FullScreenMode> _displayModeValues;
 
@@ -263,28 +265,16 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _frameRate;
         [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
         [SerializeField] private SliderBooleanSelector _vSync;
-        [SerializeField] private SliderBooleanSelector _motionBlur;
 
-        [Header("Options - Graphics")]
-        [SerializeField] private SliderIndexSelector _graphicQualityPreset;
-        [SerializeField] private GenericValues<GraphicQuality> _graphicQualityValues;
-
-        [SerializeField] private SliderValueSelector _resolutionScale;
-
-        [SerializeField] private SliderIndexSelector _lighting;
-        [SerializeField] private SliderIndexSelector _reflection;
-        [SerializeField] private SliderIndexSelector _antiAliasing;
-        [SerializeField] private SliderIndexSelector _postProcessing;
+        [Header("Options - Control")]
+        [SerializeField] private InputActionRebindView[] _rebindViews;
+        [SerializeField] private Button _resetAllBindingsButton;
 
         [Header("Options - Audio")]
         [SerializeField] private SliderValueSelector _masterVolume;
         [SerializeField] private SliderValueSelector _bgmVolume;
         [SerializeField] private SliderValueSelector _voiceVolume;
         [SerializeField] private SliderValueSelector _seVolume;
-
-        [Header("Options - Input")]
-        [SerializeField] private InputActionRebindView[] _rebindViews;
-        [SerializeField] private Button _resetAllBindingsButton;
 
         #endregion
 
@@ -302,27 +292,23 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        #region Options - Display
+        #region Options - Graphics
 
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
         public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
         public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged;
         public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged;
-        public Observable<bool> OnMotionBlurChanged => _motionBlur.OnValueChanged;
 
         #endregion
 
-        #region Options - Graphics
+        #region Controls
 
-        public Observable<GraphicQuality> OnGraphicQualityPresetChanged => _graphicQualityPreset.OnValueChanged.Select(index => _graphicQualityValues[index]);
+        /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
+        public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
 
-        public Observable<float> OnResolutionScaleChanged => _resolutionScale.OnValueChanged;
-
-        public Observable<GraphicQuality> OnLightingChanged => _lighting.OnValueChanged.Select(index => _graphicQualityValues[index]);
-        public Observable<GraphicQuality> OnReflectionChanged => _reflection.OnValueChanged.Select(index => _graphicQualityValues[index]);
-        public Observable<GraphicQuality> OnAntiAliasingChanged => _antiAliasing.OnValueChanged.Select(index => _graphicQualityValues[index]);
-        public Observable<GraphicQuality> OnPostProcessingChanged => _postProcessing.OnValueChanged.Select(index => _graphicQualityValues[index]);
+        /// <summary>全キーバインドを既定へ戻す「全体リセット」ボタン押下。</summary>
+        public Observable<Unit> OnResetAllBindingsRequested => _resetAllBindingsButton.OnClickAsObservable();
 
         #endregion
 
@@ -332,16 +318,6 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnBgmVolumeChanged => _bgmVolume.OnValueChanged;
         public Observable<float> OnVoiceVolumeChanged => _voiceVolume.OnValueChanged;
         public Observable<float> OnSeVolumeChanged => _seVolume.OnValueChanged;
-
-        #endregion
-
-        #region Input
-
-        /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
-
-        /// <summary>全キーバインドを既定へ戻す「全体リセット」ボタン押下。</summary>
-        public Observable<Unit> OnResetAllBindingsRequested => _resetAllBindingsButton.OnClickAsObservable();
 
         #endregion
 
