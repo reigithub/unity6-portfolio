@@ -23,6 +23,7 @@ namespace Game.Core.UI
 
         [Header("Buttons")]
         [SerializeField] private Button _rebindButton;
+        [SerializeField] private bool _rebindable = true;
 
         [Header("Waiting")]
         [SerializeField] private GameObject _waitingOverlay;   // 任意: リバインド待機中の表示
@@ -41,7 +42,8 @@ namespace Game.Core.UI
         public Selectable Selectable => _rebindButton;
 
         /// <summary>「変更」ボタン押下。</summary>
-        public Observable<Unit> OnRebindRequested => _rebindButton.OnClickAsObservable();
+        public Observable<Unit> OnRebindRequested
+            => _rebindable ? _rebindButton.OnClickAsObservable() : Observable.Empty<Unit>();
 
         /// <summary>アクション名ラベルを設定する。</summary>
         public void SetActionLabel(string text)
