@@ -65,7 +65,7 @@ namespace Game.Core.UI
 
             // EventSystem フォーカス移動
             var first = _tabs[index].FirstSelectable;
-            if (first != null && first.IsSelectable())
+            if (first != null && first.IsSelectable() && first.gameObject.activeInHierarchy)
             {
                 InputService.SetSelectedGameObject(first.gameObject);
             }
