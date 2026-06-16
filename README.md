@@ -60,6 +60,10 @@ Unity6クライアント + ゲームバックエンド基盤 + オンライン�
 |--------------------------------------------------------------------------------|
 | ![GamepadUIControl](src/Game.Client/Documentation/GIFs/gamepad_ui_control.gif) |
 
+| 入力キーバインド変更                                                                      |
+|---------------------------------------------------------------------------------|
+| ![InputActionRebinding](src/Game.Client/Documentation/GIFs/input_rebinding.gif) |
+
 
 ### シーン遷移・エフェクト
 | シーン遷移 | エフェクト集 |

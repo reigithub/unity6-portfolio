@@ -60,6 +60,10 @@ A game development portfolio (monorepo) consisting of a Unity 6 client + game ba
 |--------------------------------------------------------------------------------|
 | ![GamepadUIControl](src/Game.Client/Documentation/GIFs/gamepad_ui_control.gif) |
 
+| Input Action Rebinding                                                          |
+|---------------------------------------------------------------------------------|
+| ![InputActionRebinding](src/Game.Client/Documentation/GIFs/input_rebinding.gif) |
+
 ### Scene Transitions & Effects
 | Scene Transition | Effects Showcase |
 |-----------------|------------------|
