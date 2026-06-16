@@ -23,7 +23,7 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     public static class ScriptableDatabaseBuilder
     {
         private const string OutDir = "Assets/Programs/Runtime/Shared/Scriptable/Database/Generated";
-        private const string DatabaseAssetPath = "Assets/ProjectAssets/Database/ScriptableDatabase.asset";
+        private const string DatabaseAssetPath = "Assets/ProjectAssets/Scriptable/Database/ScriptableDatabase.asset";
         private const string DatabaseClassName = "ScriptableDatabase";
         private const string DatabaseNamespace = "Game.Shared.Scriptable.Database";
 

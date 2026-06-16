@@ -35,6 +35,38 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                     EditorUtility.SetDirty(tb);
                 }
             }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("CSV / TSV", EditorStyles.boldLabel);
+
+            // Export は複数選択でも各アセットを個別に書き出す。
+            // SaveFilePanel は単一拡張子しか扱えないため形式ごとにボタンを分ける。
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Export to CSV"))
+                {
+                    foreach (var o in targets)
+                        ScriptableTableIO.Export((ScriptableTableBase)o, "csv");
+                }
+                if (GUILayout.Button("Export to TSV"))
+                {
+                    foreach (var o in targets)
+                        ScriptableTableIO.Export((ScriptableTableBase)o, "tsv");
+                }
+            }
+
+            // Import は対象アセットが一意に定まる単一選択時のみ。
+            if (targets.Length == 1)
+            {
+                if (GUILayout.Button("Import (Replace)"))
+                    ScriptableTableIO.Import(table, ScriptableTableImportMode.Replace);
+                if (GUILayout.Button("Import (Merge by PrimaryKey)"))
+                    ScriptableTableIO.Import(table, ScriptableTableImportMode.MergeByPrimaryKey);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Import は単一アセット選択時のみ実行できます。", MessageType.Info);
+            }
         }
     }
 }
