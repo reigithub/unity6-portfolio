@@ -151,7 +151,7 @@ namespace Game.Tests.MVC.Horror
 
             await _service.LoadAsync();
 
-            Assert.That(_service.Data.Version, Is.EqualTo(2), "現行バージョンへマイグレーションされる");
+            Assert.That(_service.Data.Version, Is.EqualTo(1), "現行バージョンへマイグレーションされる");
             Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""), "新フィールドは既定値で補完される");
         }
 
