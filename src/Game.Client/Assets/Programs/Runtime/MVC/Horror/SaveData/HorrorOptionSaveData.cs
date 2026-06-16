@@ -1,4 +1,3 @@
-using Game.Shared.Enums;
 using MemoryPack;
 using UnityEngine;
 
@@ -42,7 +41,7 @@ namespace Game.Horror.SaveData
 
         #endregion
 
-        #region Display
+        #region Graphics
 
         /// <summary>表示モード（フルスクリーン/ウィンドウ等）</summary>
         public FullScreenMode DisplayMode { get; set; } = FullScreenMode.FullScreenWindow;
@@ -62,30 +61,15 @@ namespace Game.Horror.SaveData
         /// <summary>垂直同期</summary>
         public bool VSync { get; set; }
 
-        /// <summary>モーションブラー</summary>
-        public bool MotionBlur { get; set; }
-
         #endregion
 
-        #region Graphics
+        #region Controls
 
-        /// <summary>グラフィッククオリティのプリセット</summary>
-        public GraphicQuality GraphicQualityPreset { get; set; } = GraphicQuality.Medium;
-
-        /// <summary>解像度スケール</summary>
-        public float ResolutionScale { get; set; } = 1f;
-
-        /// <summary>ライティング品質</summary>
-        public GraphicQuality Lighting { get; set; } = GraphicQuality.Medium;
-
-        /// <summary>反射品質</summary>
-        public GraphicQuality Reflection { get; set; } = GraphicQuality.Medium;
-
-        /// <summary>アンチエイリアス品質</summary>
-        public GraphicQuality AntiAliasing { get; set; } = GraphicQuality.Medium;
-
-        /// <summary>ポストプロセス品質</summary>
-        public GraphicQuality PostProcessing { get; set; } = GraphicQuality.Medium;
+        /// <summary>
+        /// キーリバインドのオーバーライド（InputActionAsset.SaveBindingOverridesAsJson の出力）。
+        /// 空文字はオーバーライド無し（既定バインド）を表す。
+        /// </summary>
+        public string InputBindingOverridesJson { get; set; } = "";
 
         #endregion
 
@@ -104,16 +88,6 @@ namespace Game.Horror.SaveData
 
         /// <summary>SE ボリューム</summary>
         public float SeVolume { get; set; } = 1f;
-
-        #endregion
-
-        #region Input
-
-        /// <summary>
-        /// キーリバインドのオーバーライド（InputActionAsset.SaveBindingOverridesAsJson の出力）。
-        /// 空文字はオーバーライド無し（既定バインド）を表す。
-        /// </summary>
-        public string InputBindingOverridesJson { get; set; } = "";
 
         #endregion
     }
