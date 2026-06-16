@@ -58,6 +58,10 @@ MonoBehaviour:
     m_Localized: Sprint
     m_Metadata:
       m_Items: []
+  - m_Id: 301517983719424
+    m_Localized: Move
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

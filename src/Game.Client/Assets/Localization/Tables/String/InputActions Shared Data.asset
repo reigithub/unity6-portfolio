@@ -55,6 +55,10 @@ MonoBehaviour:
     m_Key: Sprint
     m_Metadata:
       m_Items: []
+  - m_Id: 301517983719424
+    m_Key: Move
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
