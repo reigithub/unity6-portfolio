@@ -181,6 +181,14 @@ MonoBehaviour:
     m_Key: UncappedFrameRateLimit
     m_Metadata:
       m_Items: []
+  - m_Id: 5849428867948544
+    m_Key: Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5862682835034112
+    m_Key: Game
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
