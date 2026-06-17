@@ -337,17 +337,6 @@
                 },
                 {
                     "name": "",
-                    "id": "786ebc49-17c2-49b5-8152-fa05a9e193c9",
-                    "path": "<Mouse>/middleButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Crouch",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "3b4e1770-2b5a-420d-91b4-338b8ba6f1aa",
                     "path": "<Gamepad>/leftTrigger",
                     "interactions": "",
