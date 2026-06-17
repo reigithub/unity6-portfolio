@@ -31,7 +31,7 @@ namespace Game.Horror.Player
         [SerializeField] private float _crouchTransitionSpeed = 8f;
 
         [Tooltip("立ち上がり判定の対象レイヤー。プレイヤー自身のレイヤーは含めないこと")]
-        [SerializeField] private LayerMask _ceilingMask;
+        [SerializeField] private LayerMask _ceilingLayerMask;
 
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
@@ -280,7 +280,7 @@ namespace Game.Horror.Player
                 Vector3.up,
                 out _,
                 castDistance,
-                _ceilingMask,
+                _ceilingLayerMask,
                 QueryTriggerInteraction.Ignore);
         }
 

@@ -296,4 +296,10 @@ MonoBehaviour:
   _runSpeed: 5
   _jump: 5
   _gravity: -20
+  _crouchSpeed: 1.2
+  _crouchHeight: 1
+  _crouchTransitionSpeed: 8
+  _ceilingLayerMask:
+    serializedVersion: 2
+    m_Bits: 520
   _lookRotationSpeed: 0.1
