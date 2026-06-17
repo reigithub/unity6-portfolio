@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database
@@ -15,6 +16,16 @@ namespace Game.Shared.Scriptable.Database
 
         /// <summary>records が主キー昇順・空要素なしに整っているか（生成 partial が実装）。</summary>
         public abstract bool EditorIsSorted();
+
+        /// <summary>
+        /// CSV/TSV から解析した行を records へ反映する（型非依存。ジェネリック基底が実装）。
+        /// <paramref name="mergeByPrimaryKey"/> が true なら主キーマージ（一致=更新・新規=追加・ファイル外=保持）、
+        /// false なら総入れ替え。反映後に <see cref="EditorSortAndValidate"/> 相当の整列を行う。
+        /// </summary>
+        public abstract void EditorImportRows(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, bool mergeByPrimaryKey);
+
+        /// <summary>records を CSV/TSV 出力用のヘッダ＋行へ変換する（型非依存。ジェネリック基底が実装）。</summary>
+        public abstract (string[] headers, List<string[]> rows) EditorExportRows();
 #endif
     }
 }

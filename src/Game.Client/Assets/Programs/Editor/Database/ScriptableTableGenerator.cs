@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,7 +17,6 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     {
         private const string OutDir = "Assets/Programs/Runtime/Shared/Scriptable/Database/Generated";
 
-        [MenuItem("Tools/Scriptable Database/Generate")]
         public static void Generate()
         {
             Directory.CreateDirectory(OutDir);

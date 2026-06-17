@@ -1,4 +1,3 @@
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -25,6 +24,8 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             }
 
             EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Validation", EditorStyles.boldLabel);
+
             if (GUILayout.Button("Sort & Validate"))
             {
                 foreach (var o in targets)
@@ -33,6 +34,43 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                     Undo.RecordObject(tb, "Sort & Validate");
                     tb.EditorSortAndValidate();
                     EditorUtility.SetDirty(tb);
+                }
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("CSV / TSV", EditorStyles.boldLabel);
+
+            // Import は対象アセットが一意に定まる単一選択時のみ。
+            if (targets.Length == 1)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("Import (Replace)"))
+                        ScriptableTableIO.Import(table, mergeByPrimaryKey: false);
+                    if (GUILayout.Button("Import (Merge by PrimaryKey)"))
+                        ScriptableTableIO.Import(table, mergeByPrimaryKey: true);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Import は単一アセット選択時のみ実行できます。", MessageType.Info);
+            }
+
+            EditorGUILayout.Space();
+
+            // Export は複数選択でも各アセットを個別に書き出す。
+            // SaveFilePanel は単一拡張子しか扱えないため形式ごとにボタンを分ける。
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Export to CSV"))
+                {
+                    foreach (var o in targets)
+                        ScriptableTableIO.Export((ScriptableTableBase)o, "csv");
+                }
+                if (GUILayout.Button("Export to TSV"))
+                {
+                    foreach (var o in targets)
+                        ScriptableTableIO.Export((ScriptableTableBase)o, "tsv");
                 }
             }
         }

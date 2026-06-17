@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,13 +22,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     public static class ScriptableDatabaseBuilder
     {
         private const string OutDir = "Assets/Programs/Runtime/Shared/Scriptable/Database/Generated";
-        private const string DatabaseAssetPath = "Assets/ProjectAssets/Database/ScriptableDatabase.asset";
+        internal const string DatabaseAssetPath = "Assets/ProjectAssets/Scriptable/Database/ScriptableDatabase.asset";
         private const string DatabaseClassName = "ScriptableDatabase";
         private const string DatabaseNamespace = "Game.Shared.Scriptable.Database";
 
         // ---- コマンド①: コンテナクラス生成 ----
 
-        [MenuItem("Tools/Scriptable Database/Build")]
         public static void Build()
         {
             Directory.CreateDirectory(OutDir);
@@ -75,13 +73,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
         // ---- コマンド②: テーブル資産の自動登録 ----
 
-        [MenuItem("Tools/Scriptable Database/Register")]
         public static void Register()
         {
             var dbType = FindDatabaseType();
             if (dbType == null)
             {
-                Debug.LogError("[ScriptableDatabaseBuilder] ScriptableDatabase 型が見つかりません。先に 'Tools/Scriptable Database/Build' を実行してください。");
+                Debug.LogError("[ScriptableDatabaseBuilder] ScriptableDatabase 型が見つかりません。先に ScriptableDatabaseWindow の 'Build' を実行してください。");
                 return;
             }
 
@@ -123,7 +120,7 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             Debug.Log($"[ScriptableDatabaseBuilder] Register 完了: 結線 {wired} 件 / 欠落 {missing} 件。");
         }
 
-        private static Type FindDatabaseType() =>
+        internal static Type FindDatabaseType() =>
             AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(SafeTypes)
                 .FirstOrDefault(t => t.FullName == $"{DatabaseNamespace}.{DatabaseClassName}");

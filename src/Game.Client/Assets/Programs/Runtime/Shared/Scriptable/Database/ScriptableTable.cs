@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using System.Linq;
+using System.Reflection;
+#endif
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database
@@ -125,6 +129,117 @@ namespace Game.Shared.Scriptable.Database
                 if (cmp.Compare(keys[i], keys[i - 1]) == 0)
                     Debug.LogWarning($"[{name}] 主キー {keys[i]} が重複しています。", this);
             }
+        }
+
+        // ---- CSV/TSV インポート/エクスポート（型非依存。基底の抽象を実装） ----------
+
+        /// <summary>
+        /// records を CSV/TSV 出力用のヘッダ＋行へ変換する。
+        /// 列は public プロパティ/フィールド（読取可能）を宣言順（MetadataToken）で並べる。
+        /// </summary>
+        public override (string[] headers, List<string[]> rows) EditorExportRows()
+        {
+            var cols = Columns().Where(IsReadable).ToList();
+            var headers = cols.Select(MemberName).ToArray();
+
+            var rows = new List<string[]>();
+            if (records != null)
+            {
+                foreach (var record in records)
+                {
+                    if (record == null) continue;
+                    object boxed = record;
+                    var row = new string[cols.Count];
+                    for (int i = 0; i < cols.Count; i++)
+                        row[i] = ScriptableTableTextSerializer.FormatValue(GetMember(cols[i], boxed));
+                    rows.Add(row);
+                }
+            }
+            return (headers, rows);
+        }
+
+        /// <summary>
+        /// CSV/TSV から解析した行を records へ反映する。列名はメンバ名と完全一致でマッピングし、
+        /// 未知列は警告して無視、ファイルに無い列は既定値のままとする。反映後に整列・検証する。
+        /// </summary>
+        public override void EditorImportRows(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, bool mergeByPrimaryKey)
+        {
+            var writable = Columns().Where(IsWritable).ToDictionary(MemberName);
+            var headerColumns = new MemberInfo[headers.Count];
+            for (int i = 0; i < headers.Count; i++)
+            {
+                if (writable.TryGetValue(headers[i], out var member)) headerColumns[i] = member;
+                else Debug.LogWarning($"[{name}] 未知の列「{headers[i]}」を無視します。", this);
+            }
+
+            var parsed = new List<TRecord>(rows.Count);
+            foreach (var row in rows)
+            {
+                object boxed = Activator.CreateInstance(typeof(TRecord));
+                for (int i = 0; i < headerColumns.Length && i < row.Count; i++)
+                {
+                    var member = headerColumns[i];
+                    if (member == null) continue;
+                    var value = ScriptableTableTextSerializer.ParseValue(MemberType(member), row[i]);
+                    SetMember(member, boxed, value);
+                }
+                parsed.Add((TRecord)boxed);
+            }
+
+            records = mergeByPrimaryKey
+                ? MergeByPrimaryKey(records, parsed)
+                : parsed.ToArray();
+
+            EditorSortAndValidate();
+        }
+
+        /// <summary>既存 records とインポート行を主キーでマージする（一致=更新／新規=追加／ファイル外=保持、初出順を保つ）。</summary>
+        private TRecord[] MergeByPrimaryKey(TRecord[] existing, List<TRecord> incoming)
+        {
+            var primaryKey = Columns().FirstOrDefault(IsPrimaryKey);
+            if (primaryKey == null)
+            {
+                Debug.LogWarning($"[{name}] 主キーが無いため Replace として扱います。", this);
+                return incoming.ToArray();
+            }
+
+            var byKey = new Dictionary<object, TRecord>();
+            var order = new List<object>();
+
+            void Put(TRecord record)
+            {
+                if (record == null) return;
+                var key = GetMember(primaryKey, record);
+                if (!byKey.ContainsKey(key)) order.Add(key);
+                byKey[key] = record;
+            }
+
+            if (existing != null)
+                foreach (var record in existing) Put(record);
+            foreach (var record in incoming) Put(record);   // 同一キーは上書き、新規は末尾へ追加
+
+            var result = new TRecord[order.Count];
+            for (int i = 0; i < order.Count; i++) result[i] = byKey[order[i]];
+            return result;
+        }
+
+        // 列対象 = public プロパティ（非インデクサ）/ public フィールド。宣言順を安定再現するため MetadataToken 昇順。
+        private static IEnumerable<MemberInfo> Columns() =>
+            typeof(TRecord)
+                .GetMembers(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m is FieldInfo || (m is PropertyInfo p && p.GetIndexParameters().Length == 0))
+                .OrderBy(m => m.MetadataToken);
+
+        private static string MemberName(MemberInfo m) => m.Name;
+        private static Type MemberType(MemberInfo m) => m is FieldInfo f ? f.FieldType : ((PropertyInfo)m).PropertyType;
+        private static bool IsReadable(MemberInfo m) => m is FieldInfo || ((PropertyInfo)m).CanRead;
+        private static bool IsWritable(MemberInfo m) => m is FieldInfo f ? !f.IsInitOnly : ((PropertyInfo)m).CanWrite;
+        private static bool IsPrimaryKey(MemberInfo m) => m.GetCustomAttribute<PrimaryKeyAttribute>() != null;
+        private static object GetMember(MemberInfo m, object obj) => m is FieldInfo f ? f.GetValue(obj) : ((PropertyInfo)m).GetValue(obj);
+        private static void SetMember(MemberInfo m, object obj, object value)
+        {
+            if (m is FieldInfo f) f.SetValue(obj, value);
+            else ((PropertyInfo)m).SetValue(obj, value);
         }
 #endif
     }
