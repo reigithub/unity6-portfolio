@@ -99,40 +99,22 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             }
         }
 
-        // ---- メニューコマンド（Tools/Scriptable Database/） ----
-
-        [MenuItem("Tools/Scriptable Database/Export All (CSV)")]
-        public static void MenuExportCsv() => RunWithDatabase(db => BatchExport(db, "csv"));
-
-        [MenuItem("Tools/Scriptable Database/Export All (TSV)")]
-        public static void MenuExportTsv() => RunWithDatabase(db => BatchExport(db, "tsv"));
-
-        [MenuItem("Tools/Scriptable Database/Import All Replace (CSV)")]
-        public static void MenuImportReplaceCsv() => RunWithDatabase(db => BatchImport(db, "csv", mergeByPrimaryKey: false));
-
-        [MenuItem("Tools/Scriptable Database/Import All Replace (TSV)")]
-        public static void MenuImportReplaceTsv() => RunWithDatabase(db => BatchImport(db, "tsv", mergeByPrimaryKey: false));
-
-        [MenuItem("Tools/Scriptable Database/Import All Merge (CSV)")]
-        public static void MenuImportMergeCsv() => RunWithDatabase(db => BatchImport(db, "csv", mergeByPrimaryKey: true));
-
-        [MenuItem("Tools/Scriptable Database/Import All Merge (TSV)")]
-        public static void MenuImportMergeTsv() => RunWithDatabase(db => BatchImport(db, "tsv", mergeByPrimaryKey: true));
+        // ---- 対象 ScriptableDatabase の解決（ScriptableDatabaseWindow から利用） ----
 
         // 固定パスの ScriptableDatabase.asset をロードしてアクションを実行する（型はリフレクションで解決）。
-        private static void RunWithDatabase(Action<ScriptableObject> action)
+        internal static void RunWithDatabase(Action<ScriptableObject> action)
         {
             var dbType = ScriptableDatabaseBuilder.FindDatabaseType();
             if (dbType == null)
             {
-                Debug.LogError("[ScriptableDatabaseIO] ScriptableDatabase 型が見つかりません。先に 'Tools/Scriptable Database/Build' を実行してください。");
+                Debug.LogError("[ScriptableDatabaseIO] ScriptableDatabase 型が見つかりません。先に ScriptableDatabaseWindow の 'Build' を実行してください。");
                 return;
             }
 
             var database = AssetDatabase.LoadAssetAtPath(ScriptableDatabaseBuilder.DatabaseAssetPath, dbType) as ScriptableObject;
             if (database == null)
             {
-                Debug.LogError($"[ScriptableDatabaseIO] {ScriptableDatabaseBuilder.DatabaseAssetPath} が見つかりません。先に 'Tools/Scriptable Database/Register' を実行してください。");
+                Debug.LogError($"[ScriptableDatabaseIO] {ScriptableDatabaseBuilder.DatabaseAssetPath} が見つかりません。先に ScriptableDatabaseWindow の 'Register' を実行してください。");
                 return;
             }
 

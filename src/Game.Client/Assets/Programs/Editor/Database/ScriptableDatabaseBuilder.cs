@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -29,7 +28,6 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
         // ---- コマンド①: コンテナクラス生成 ----
 
-        [MenuItem("Tools/Scriptable Database/Build")]
         public static void Build()
         {
             Directory.CreateDirectory(OutDir);
@@ -75,13 +73,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
         // ---- コマンド②: テーブル資産の自動登録 ----
 
-        [MenuItem("Tools/Scriptable Database/Register")]
         public static void Register()
         {
             var dbType = FindDatabaseType();
             if (dbType == null)
             {
-                Debug.LogError("[ScriptableDatabaseBuilder] ScriptableDatabase 型が見つかりません。先に 'Tools/Scriptable Database/Build' を実行してください。");
+                Debug.LogError("[ScriptableDatabaseBuilder] ScriptableDatabase 型が見つかりません。先に ScriptableDatabaseWindow の 'Build' を実行してください。");
                 return;
             }
 
