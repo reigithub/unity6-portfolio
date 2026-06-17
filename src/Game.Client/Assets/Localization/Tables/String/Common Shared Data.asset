@@ -74,7 +74,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 483635457687552
-    m_Key: Camera_Control_Reverse
+    m_Key: Input_Controls_Hold
     m_Metadata:
       m_Items: []
   - m_Id: 485408155107328
@@ -199,6 +199,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 5965764814184448
     m_Key: Reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6347372679405568
+    m_Key: Crouch_Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6348878405181440
+    m_Key: Input_Controls_Toggle
     m_Metadata:
       m_Items: []
   m_Metadata:

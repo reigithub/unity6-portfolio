@@ -75,7 +75,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 483635457687552
-    m_Localized: Reverse
+    m_Localized: Hold
     m_Metadata:
       m_Items: []
   - m_Id: 485408155107328
@@ -200,6 +200,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 5965764814184448
     m_Localized: Reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6347372679405568
+    m_Localized: Crouch Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6348878405181440
+    m_Localized: Toggle
     m_Metadata:
       m_Items: []
   references:
