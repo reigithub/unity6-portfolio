@@ -23,6 +23,16 @@ namespace Game.Horror.Player
         [SerializeField] private float _jump = 5.0f;
         [SerializeField] private float _gravity = -20.0f;
 
+        [Header("しゃがみ")]
+        [SerializeField] private float _crouchSpeed = 1.2f;
+        [SerializeField] private float _crouchHeight = 1.0f;
+
+        [Tooltip("立ち↔しゃがみ補間の応答速度（1-exp(-k・dt) の k）")]
+        [SerializeField] private float _crouchTransitionSpeed = 8f;
+
+        [Tooltip("立ち上がり判定の対象レイヤー。プレイヤー自身のレイヤーは含めないこと")]
+        [SerializeField] private LayerMask _ceilingMask;
+
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
 
@@ -41,6 +51,12 @@ namespace Game.Horror.Player
         private Vector2 _lookValue;
         private float _speed;
         private bool _jumpTriggered;
+
+        // しゃがみ姿勢（移動ステートと直交する姿勢として保持）
+        private bool _crouchToggle;   // オプション値（false=ホールド, true=トグル）
+        private bool _isCrouching;    // 目標姿勢
+        private float _crouchBlend;   // 0=立ち, 1=しゃがみ の実補間値（形状・カメラ高さの単一ソース）
+        private float _standHeight;   // 立ち時の CharacterController 高さ（Initialize で実測）
 
         // 垂直速度（重力 + ジャンプ）
         private float _verticalVelocity;
@@ -62,6 +78,7 @@ namespace Game.Horror.Player
 
         // カメラ揺れ設定（ヘッドボブ figure-8 ＋ ストライド同期ロール、停止時はアイドルスウェイ）
         private Vector3 _cameraBasePosition;
+        private Vector3 _standCameraBasePosition; // 立ち目線の不変参照点（しゃがみ補間の基準）
         private float _bobPhase;
         private float _idlePhase;         // アイドルスウェイの常時位相
         private float _moveBobWeight;     // 0=停止, 1=移動（ease）。cameraShake とは分離
@@ -80,12 +97,18 @@ namespace Game.Horror.Player
         private const float IdleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
         private const float IdleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
 
+        private const float CeilingCheckBuffer = 0.05f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
+
         public void Initialize(HorrorOptionSaveData data)
         {
             TryGetComponent(out _characterController);
 
+            // 立ち姿勢の基準値を実測で保持（prefab 値の変更に追従させ、しゃがみ補間の不変参照点にする）
+            _standHeight = _characterController.height;
+            _standCameraBasePosition = _mainCamera.transform.localPosition;
+
             // ヘッドボブの基準（rest）位置と Camera（FOV 反映用）を保持
-            _cameraBasePosition = _mainCamera.transform.localPosition;
+            _cameraBasePosition = _standCameraBasePosition;
 
             // オプション設定の反映
             ApplyOptions(data);
@@ -113,6 +136,9 @@ namespace Game.Horror.Player
             _lookAcceleration = data.CameraAcceleration;
             _cameraShake = data.CameraShake;
             _mainCamera.fieldOfView = data.CameraFov;
+
+            // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
+            _crouchToggle = data.CrouchToggle;
         }
 
         #region MonoBehaviour Methods
@@ -156,8 +182,14 @@ namespace Game.Horror.Player
                 _smoothedLookValue = Vector2.zero;
             }
 
-            // 移動速度更新（LeftShift で走り、それ以外は歩き）
-            _speed = _moveValue.magnitude * (Player.Sprint.IsPressed() ? _runSpeed : _walkSpeed);
+            // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
+            UpdateCrouchInput();
+
+            // 移動速度更新（しゃがみ中は crouchSpeed 優先・スプリント無効、それ以外は LeftShift で走り/歩き）
+            var baseSpeed = _isCrouching
+                ? _crouchSpeed
+                : (Player.Sprint.IsPressed() ? _runSpeed : _walkSpeed);
+            _speed = _moveValue.magnitude * baseSpeed;
 
             // ジャンプ入力受付
             if (Player.Jump.WasPressedThisFrame() && CanJump())
@@ -171,11 +203,11 @@ namespace Game.Horror.Player
             if (!_stateMachine.IsProcessing())
                 return false;
 
-            // Idle/Moving状態でのみジャンプ可能
+            // Idle/Moving状態でのみジャンプ可能（しゃがみ中は不可）
             var canJumpFromState = _stateMachine.IsCurrentState<IdleState>() ||
                                    _stateMachine.IsCurrentState<MovingState>();
 
-            return canJumpFromState && IsGrounded();
+            return canJumpFromState && IsGrounded() && !_isCrouching;
         }
 
         private bool IsGrounded() => _characterController.isGrounded;
@@ -185,6 +217,72 @@ namespace Game.Horror.Player
 
         private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
         private bool IsLookInput() => _lookValue.magnitude > PlayerPhysicsConstants.InputThreshold;
+
+        /// <summary>
+        /// しゃがみ入力をモード別に処理する。空中（非接地）では姿勢を変更しない。
+        /// 立ち上がる方向のみ <see cref="CanStandUp"/> で頭上を確認し、塞がっていればしゃがみを維持する。
+        /// </summary>
+        private void UpdateCrouchInput()
+        {
+            // 空中ではしゃがみ入力を無視（姿勢は維持）
+            if (!IsGrounded()) return;
+
+            if (_crouchToggle)
+            {
+                // トグル：押した瞬間に反転（立ち上がりは天井チェックを通す）
+                if (Player.Crouch.WasPressedThisFrame())
+                {
+                    if (_isCrouching)
+                    {
+                        if (CanStandUp()) _isCrouching = false;
+                    }
+                    else
+                    {
+                        _isCrouching = true;
+                    }
+                }
+            }
+            else
+            {
+                // ホールド：押下中はしゃがみ、離したら立ち上がり試行
+                if (Player.Crouch.IsPressed())
+                {
+                    _isCrouching = true;
+                }
+                else if (_isCrouching && CanStandUp())
+                {
+                    _isCrouching = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 立ち上がれるか（頭上の障害物判定）。立ち姿勢のカプセル頭頂までを SphereCast で掃引し、障害物が無ければ true。
+        /// 自己衝突は (1)_ceilingMask に自レイヤーを含めない (2)始点を下半球中心に置く (3)半径を skinWidth 分縮める の三重で回避する。
+        /// </summary>
+        private bool CanStandUp()
+        {
+            var radius = _characterController.radius;
+
+            // 現在（しゃがみ）のカプセル下端をワールド座標で求める（center はローカル基準）
+            var bottomWorld = transform.TransformPoint(_characterController.center) - Vector3.up * (_characterController.height * 0.5f);
+            var origin = bottomWorld + Vector3.up * radius; // 下半球の中心（自カプセル内）
+
+            // 下半球中心から、立ち姿勢の上半球中心（下端 + standHeight - radius）までの距離 ＋ 頭上余裕
+            var castDistance = _standHeight - 2f * radius + CeilingCheckBuffer;
+            if (castDistance <= 0f) return true; // 立ち高さ ≈ しゃがみ高さなら常に立てる
+
+            var castRadius = Mathf.Max(0.01f, radius - _characterController.skinWidth);
+
+            return !Physics.SphereCast(
+                origin,
+                castRadius,
+                Vector3.up,
+                out _,
+                castDistance,
+                _ceilingMask,
+                QueryTriggerInteraction.Ignore);
+        }
 
         #endregion
 
@@ -227,6 +325,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
                 // ジャンプ入力チェック
@@ -256,6 +355,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
                 // ジャンプ入力チェック
@@ -292,6 +392,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.ApplyRotation();
+                ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
                 // 上昇終了 + 接地で着地判定
@@ -418,6 +519,32 @@ namespace Game.Horror.Player
 
             _mainCamera.transform.localPosition = _cameraBasePosition + offset;
             _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
+        }
+
+        /// <summary>
+        /// しゃがみ姿勢を毎フレーム補間する。CharacterController の height/center とカメラ基準位置（ヘッドボブの rest 位置）を
+        /// 補間値 _crouchBlend から導出する。カメラ rest 自体を下げることで <see cref="UpdateHeadBob"/> と自然に合成される
+        /// （UpdateHeadBob より前に呼ぶこと）。
+        /// </summary>
+        private void UpdateCrouchPose()
+        {
+            // 目標 0/1 へ指数補間（フレームレート非依存）
+            var target = _isCrouching ? 1f : 0f;
+            var ease = 1f - Mathf.Exp(-_crouchTransitionSpeed * Time.deltaTime);
+            _crouchBlend = Mathf.Lerp(_crouchBlend, target, ease);
+
+            var height = Mathf.Lerp(_standHeight, _crouchHeight, _crouchBlend);
+
+            // カプセル下端（= center.y - height/2）を立ち時と同じに固定し、足元を保ったまま頭だけ縮める
+            var centerY = (height - _standHeight) * 0.5f;
+            _characterController.height = height;
+            var center = _characterController.center;
+            center.y = centerY;
+            _characterController.center = center;
+
+            // カメラ rest を縮んだ分だけ下げる（ヘッドボブはこの rest を基準に揺れる）
+            var eyeDrop = _standHeight - height;
+            _cameraBasePosition = _standCameraBasePosition - new Vector3(0f, eyeDrop, 0f);
         }
 
         #endregion
