@@ -19,7 +19,7 @@ namespace Game.Horror.SaveData
         {
         }
 
-        #region General / Camera
+        #region Gameplay
 
         public void SetLanguageCode(string code)
         {
@@ -74,6 +74,14 @@ namespace Game.Horror.SaveData
         {
             if (Data == null) return;
             Data.CameraFov = fov;
+            MarkDirty();
+        }
+
+        /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        public void SetCrouchToggle(bool toggle)
+        {
+            if (Data == null) return;
+            Data.CrouchToggle = toggle;
             MarkDirty();
         }
 

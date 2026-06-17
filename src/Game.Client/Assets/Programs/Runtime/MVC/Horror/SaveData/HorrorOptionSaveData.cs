@@ -11,9 +11,9 @@ namespace Game.Horror.SaveData
     public partial class HorrorOptionSaveData
     {
         /// <summary>セーブデータバージョン（マイグレーション用）</summary>
-        public int Version { get; set; } = 2;
+        public int Version { get; set; } = 1;
 
-        #region General / Camera
+        #region Gameplay
 
         /// <summary>選択中のロケールコード（例: "ja", "en"）</summary>
         public string LanguageCode { get; set; } = "ja";
@@ -31,13 +31,16 @@ namespace Game.Horror.SaveData
         public float CameraSensitivityVertical { get; set; } = 1f;
 
         /// <summary>カメラ加速</summary>
-        public float CameraAcceleration { get; set; } = 1f;
+        public float CameraAcceleration { get; set; } = 15f;
 
         /// <summary>カメラシェイク強度</summary>
         public float CameraShake { get; set; } = 1f;
 
         /// <summary>カメラ FOV</summary>
         public float CameraFov { get; set; } = 60f;
+
+        /// <summary>しゃがみ入力モード（false=ホールド, true=トグル）</summary>
+        public bool CrouchToggle { get; set; } = true;
 
         #endregion
 

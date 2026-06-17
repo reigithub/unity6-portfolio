@@ -188,7 +188,7 @@ namespace Game.Tests.MVC.Horror
                 CameraControlVertical = true,
                 CameraSensitivityHorizontal = 2.5f,
                 CameraSensitivityVertical = 0.5f,
-                CameraAcceleration = 1.5f,
+                CameraAcceleration = 15f,
                 CameraShake = 0.25f,
                 CameraFov = 100f,
                 DisplayMode = FullScreenMode.ExclusiveFullScreen,
