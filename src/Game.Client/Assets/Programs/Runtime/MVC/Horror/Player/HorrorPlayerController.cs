@@ -97,7 +97,7 @@ namespace Game.Horror.Player
         private const float IdleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
         private const float IdleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
 
-        private const float CeilingCheckBuffer = 0.05f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
+        private const float CeilingCheckBuffer = 0.15f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
 
         public void Initialize(HorrorOptionSaveData data)
         {
@@ -120,7 +120,11 @@ namespace Game.Horror.Player
             Observable.Merge(Player.Move.OnPerformedAsObservable()
                     , Player.Look.OnPerformedAsObservable()
                     , Player.Attack.OnPerformedAsObservable()
-                    , Player.Jump.OnPerformedAsObservable())
+                    , Player.Interact.OnPerformedAsObservable()
+                    , Player.Jump.OnPerformedAsObservable()
+                    , Player.Crouch.OnPerformedAsObservable()
+                    , Player.Sprint.OnPerformedAsObservable()
+                    )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
         }

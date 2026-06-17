@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 6031481874108313397}
   - component: {fileID: 7058230326464133767}
   - component: {fileID: 398646497543394851}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Camera
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -151,9 +151,9 @@ GameObject:
   - component: {fileID: 2106959460308340998}
   - component: {fileID: 1795677415710958266}
   - component: {fileID: 579882215014566955}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: HorrorPlayer
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
