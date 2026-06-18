@@ -42,7 +42,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(2));
+            Assert.That(_service.Data.Version, Is.EqualTo(1));
             Assert.That(_service.Data.LanguageCode, Is.EqualTo("ja"));
             Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
             Assert.That(_service.Data.CameraFov, Is.EqualTo(60f));

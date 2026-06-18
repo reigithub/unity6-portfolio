@@ -77,6 +77,14 @@ namespace Game.Horror.SaveData
             MarkDirty();
         }
 
+        /// <summary>走り入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        public void SetSprintToggle(bool toggle)
+        {
+            if (Data == null) return;
+            Data.SprintToggle = toggle;
+            MarkDirty();
+        }
+
         /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
         public void SetCrouchToggle(bool toggle)
         {

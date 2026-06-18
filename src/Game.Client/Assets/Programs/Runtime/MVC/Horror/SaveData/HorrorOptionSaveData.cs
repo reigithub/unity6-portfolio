@@ -39,6 +39,9 @@ namespace Game.Horror.SaveData
         /// <summary>カメラ FOV</summary>
         public float CameraFov { get; set; } = 60f;
 
+        /// <summary>走り入力モード（false=ホールド, true=トグル）</summary>
+        public bool SprintToggle { get; set; }
+
         /// <summary>しゃがみ入力モード（false=ホールド, true=トグル）</summary>
         public bool CrouchToggle { get; set; } = true;
 
