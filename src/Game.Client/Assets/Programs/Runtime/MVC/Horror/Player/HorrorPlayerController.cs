@@ -5,6 +5,7 @@ using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
+using Game.Shared.Interaction;
 using R3;
 using UnityEngine;
 
@@ -35,6 +36,10 @@ namespace Game.Horror.Player
 
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
+
+        [Header("インタラクション")]
+        [Tooltip("最近接インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
+        [SerializeField] private InteractionDetector _interactionDetector;
 
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
@@ -130,6 +135,17 @@ namespace Game.Horror.Player
                     , Player.Sprint.OnPerformedAsObservable()
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
+                .AddTo(this);
+
+            // インタラクト実行：最近接ターゲットがあればその効果を発火する
+            Player.Interact.OnPerformedAsObservable()
+                .Subscribe(_ =>
+                {
+                    if (_interactionDetector != null && _interactionDetector.TryGetCurrent(out var interactable))
+                    {
+                        interactable.Interact();
+                    }
+                })
                 .AddTo(this);
         }
 

@@ -151,6 +151,7 @@ GameObject:
   - component: {fileID: 2106959460308340998}
   - component: {fileID: 1795677415710958266}
   - component: {fileID: 579882215014566955}
+  - component: {fileID: 2782133958124064289}
   m_Layer: 6
   m_Name: HorrorPlayer
   m_TagString: Player
@@ -303,3 +304,21 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 520
   _lookRotationSpeed: 0.1
+  _interactionDetector: {fileID: 2782133958124064289}
+--- !u!114 &2782133958124064289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3649338037539827978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c74449a1721cdad439af4791b74e437d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Interaction.InteractionDetector
+  _detectRadius: 2.5
+  _interactableMask:
+    serializedVersion: 2
+    m_Bits: 1024
+  _scanInterval: 0.1
