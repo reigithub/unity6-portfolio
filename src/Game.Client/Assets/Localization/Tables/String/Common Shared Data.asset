@@ -209,6 +209,10 @@ MonoBehaviour:
     m_Key: Input_Controls_Toggle
     m_Metadata:
       m_Items: []
+  - m_Id: 6433956510572544
+    m_Key: Sprint_Controls
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
