@@ -475,11 +475,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 76672933973
-    m_Localized: "L\u30DC\u30BF\u30F3"
+    m_Localized: LB
     m_Metadata:
       m_Items: []
   - m_Id: 76672933974
-    m_Localized: "R\u30DC\u30BF\u30F3"
+    m_Localized: RB
     m_Metadata:
       m_Items: []
   - m_Id: 76672933975
