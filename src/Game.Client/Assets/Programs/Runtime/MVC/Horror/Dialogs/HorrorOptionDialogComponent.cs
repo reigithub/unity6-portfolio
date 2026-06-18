@@ -9,6 +9,8 @@ using Game.MVC.Core.Scenes;
 using Game.Shared.Constants;
 using Game.Shared.Enums;
 using Game.Shared.Extensions;
+using Game.Shared.Input;
+using Game.Shared.Localization;
 using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -207,24 +209,16 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
-            Disposables.Add(Disposable.Create(() => LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged));
+            LocalizationEvents.OnLocaleChanged
+                .Subscribe(_ => RefreshBindingDisplays())
+                .AddTo(Disposables);
 
             // コントローラー接続/切替に追従して family 別表示を更新する
-            InputSystem.onDeviceChange += OnDeviceChanged;
-            Disposables.Add(Disposable.Create(() => InputSystem.onDeviceChange -= OnDeviceChanged));
+            InputSystemEvents.OnDeviceChanged
+                .Subscribe(_ => RefreshBindingDisplays())
+                .AddTo(Disposables);
 
             return base.Startup();
-        }
-
-        private void OnLocaleChanged(Locale locale)
-        {
-            RefreshBindingDisplays();
-        }
-
-        private void OnDeviceChanged(InputDevice device, InputDeviceChange change)
-        {
-            RefreshBindingDisplays();
         }
 
         private void RefreshBindingDisplays()
