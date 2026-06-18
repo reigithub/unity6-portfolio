@@ -7,98 +7,81 @@ using UnityEngine;
 namespace Game.Tests.Shared
 {
     /// <summary>
-    /// <see cref="InteractionDetector.SelectNearest"/>（最近接選定の純粋関数）の検証。
+    /// <see cref="InteractionDetector.SelectActionable"/>（画面中心に最も近い単一対象の選別）の純粋関数テスト。
+    /// frustum・遮蔽・距離の絞り込みは物理シーン依存のため、PlayMode/手動検証に委ねる。
     /// </summary>
     [TestFixture]
     public class InteractionDetectorTests
     {
-        private static IInteractable Interactable(Vector3 position)
-        {
-            var mock = Substitute.For<IInteractable>();
-            mock.CenterPosition.Returns(position);
-            return mock;
-        }
+        private static readonly Vector2 ScreenCenter = new(0.5f, 0.5f);
+
+        private static IInteractable Mock() => Substitute.For<IInteractable>();
 
         [Test]
-        public void SelectNearest_WhenNoCandidates_ReturnsNull()
+        public void SelectActionable_WhenNoCandidates_ReturnsNull()
         {
-            // Act
-            var result = InteractionDetector.SelectNearest(Vector3.zero, new List<IInteractable>());
+            var result = InteractionDetector.SelectActionable(
+                ScreenCenter, new List<(IInteractable, Vector2)>());
 
-            // Assert
             Assert.That(result, Is.Null);
         }
 
         [Test]
-        public void SelectNearest_WithSingleCandidate_ReturnsThatCandidate()
+        public void SelectActionable_WithSingleCandidate_ReturnsThatCandidate()
         {
-            // Arrange
-            var only = Interactable(new Vector3(3f, 0f, 0f));
+            var only = Mock();
+            var candidates = new List<(IInteractable, Vector2)> { (only, new Vector2(0.2f, 0.2f)) };
 
-            // Act
-            var result = InteractionDetector.SelectNearest(Vector3.zero, new List<IInteractable> { only });
+            var result = InteractionDetector.SelectActionable(ScreenCenter, candidates);
 
-            // Assert
             Assert.That(result, Is.SameAs(only));
         }
 
         [Test]
-        public void SelectNearest_WithMultipleCandidates_ReturnsNearest()
+        public void SelectActionable_WithMultipleCandidates_ReturnsNearestToScreenCenter()
         {
-            // Arrange
-            var far = Interactable(new Vector3(10f, 0f, 0f));
-            var near = Interactable(new Vector3(1f, 0f, 0f));
-            var mid = Interactable(new Vector3(5f, 0f, 0f));
+            var far = Mock();
+            var near = Mock();
+            var candidates = new List<(IInteractable, Vector2)>
+            {
+                (far, new Vector2(0.1f, 0.1f)),   // 画面中心から遠い
+                (near, new Vector2(0.55f, 0.5f)), // 画面中心に近い
+            };
 
-            // Act
-            var result = InteractionDetector.SelectNearest(
-                Vector3.zero, new List<IInteractable> { far, near, mid });
+            var result = InteractionDetector.SelectActionable(ScreenCenter, candidates);
 
-            // Assert
             Assert.That(result, Is.SameAs(near));
         }
 
         [Test]
-        public void SelectNearest_MeasuresDistanceFromOrigin()
+        public void SelectActionable_WhenTie_ReturnsFirstDeterministically()
         {
-            // Arrange: origin を b 寄りに置くと b が最近接になる
-            var a = Interactable(new Vector3(0f, 0f, 0f));
-            var b = Interactable(new Vector3(8f, 0f, 0f));
+            var first = Mock();
+            var second = Mock();
+            // 画面中心から左右対称＝等距離。先頭が決定的に返る
+            var candidates = new List<(IInteractable, Vector2)>
+            {
+                (first, new Vector2(0.4f, 0.5f)),
+                (second, new Vector2(0.6f, 0.5f)),
+            };
 
-            // Act
-            var result = InteractionDetector.SelectNearest(
-                new Vector3(9f, 0f, 0f), new List<IInteractable> { a, b });
+            var result = InteractionDetector.SelectActionable(ScreenCenter, candidates);
 
-            // Assert
-            Assert.That(result, Is.SameAs(b));
-        }
-
-        [Test]
-        public void SelectNearest_WhenTie_ReturnsFirstDeterministically()
-        {
-            // Arrange: 同じ距離（2）の 2 候補
-            var first = Interactable(new Vector3(2f, 0f, 0f));
-            var second = Interactable(new Vector3(0f, 2f, 0f));
-
-            // Act
-            var result = InteractionDetector.SelectNearest(
-                Vector3.zero, new List<IInteractable> { first, second });
-
-            // Assert: 厳密な < で更新するため、同距離なら先頭が残る
             Assert.That(result, Is.SameAs(first));
         }
 
         [Test]
-        public void SelectNearest_SkipsNullEntries()
+        public void SelectActionable_SkipsNullEntries()
         {
-            // Arrange
-            var valid = Interactable(new Vector3(3f, 0f, 0f));
-            var candidates = new List<IInteractable> { null, valid, null };
+            var valid = Mock();
+            var candidates = new List<(IInteractable, Vector2)>
+            {
+                (null, new Vector2(0.5f, 0.5f)),  // ちょうど中心だが null → スキップ
+                (valid, new Vector2(0.3f, 0.3f)),
+            };
 
-            // Act
-            var result = InteractionDetector.SelectNearest(Vector3.zero, candidates);
+            var result = InteractionDetector.SelectActionable(ScreenCenter, candidates);
 
-            // Assert
             Assert.That(result, Is.SameAs(valid));
         }
     }

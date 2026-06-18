@@ -38,7 +38,7 @@ namespace Game.Horror.Player
         [SerializeField] private float _lookRotationSpeed = 0.1f;
 
         [Header("インタラクション")]
-        [Tooltip("最近接インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
+        [Tooltip("インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
         [SerializeField] private InteractionDetector _interactionDetector;
 
         private InputSystemService _inputService;
@@ -137,11 +137,11 @@ namespace Game.Horror.Player
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
 
-            // インタラクト実行：最近接ターゲットがあればその効果を発火する
+            // インタラクト実行：現在のターゲットがあればその効果を発火する
             Player.Interact.OnPerformedAsObservable()
                 .Subscribe(_ =>
                 {
-                    if (_interactionDetector != null && _interactionDetector.TryGetCurrent(out var interactable))
+                    if (_interactionDetector != null && _interactionDetector.TryGetActionable(out var interactable))
                     {
                         interactable.Interact();
                     }
