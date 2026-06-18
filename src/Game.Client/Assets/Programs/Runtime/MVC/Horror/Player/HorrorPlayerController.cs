@@ -143,7 +143,7 @@ namespace Game.Horror.Player
 
             _lookAcceleration = data.CameraAcceleration;
             _cameraShake = data.CameraShake;
-            _mainCamera.fieldOfView = data.CameraFov;
+            if (_mainCamera != null) _mainCamera.fieldOfView = data.CameraFov;
 
             // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
             _sprintToggle = data.SprintToggle;
