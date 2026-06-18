@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
+using R3;
 using UnityEngine;
 using UnityEngine.Localization;
-using UnityEngine.Localization.Settings;
 using TMPro;
 using UnityEditor;
 
@@ -18,20 +17,15 @@ namespace Game.Shared.Localization
         {
             if (_tmp == null) TryGetComponent(out _tmp);
 
-            LocalizationSettings.SelectedLocaleChanged += ChangedLocale;
+            LocalizationEvents.OnLocaleChanged.Subscribe(x => OnLocaleChanged(x)).AddTo(this);
         }
 
-        private void OnDestroy()
+        private void OnLocaleChanged(Locale newLocale)
         {
-            LocalizationSettings.SelectedLocaleChanged -= ChangedLocale;
+            OnLocaleChangedAsync(newLocale).Forget();
         }
 
-        private void ChangedLocale(Locale newLocale)
-        {
-            ChangedLocaleAsync(newLocale).Forget();
-        }
-
-        private async UniTask ChangedLocaleAsync(Locale newLocale)
+        private async UniTask OnLocaleChangedAsync(Locale newLocale)
         {
             _tmp.fontSharedMaterial = await _fontMaterial.LoadAssetAsync().ToUniTask();
         }

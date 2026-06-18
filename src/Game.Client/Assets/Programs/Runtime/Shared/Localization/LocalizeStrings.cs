@@ -16,12 +16,7 @@ namespace Game.Shared.Localization
 
         private void Awake()
         {
-            LocalizationSettings.SelectedLocaleChanged += SelectedLocaleChanged;
-        }
-
-        private void OnDestroy()
-        {
-            LocalizationSettings.SelectedLocaleChanged -= SelectedLocaleChanged;
+            LocalizationEvents.OnLocaleChanged.Subscribe(x => OnLocaleChanged(x)).AddTo(this);
         }
 
         private void OnEnable()
@@ -32,10 +27,10 @@ namespace Game.Shared.Localization
         [ContextMenu("Update Locale")]
         public void UpdateLocale()
         {
-            SelectedLocaleChanged(LocalizationSettings.SelectedLocale);
+            OnLocaleChanged(LocalizationSettings.SelectedLocale);
         }
 
-        private void SelectedLocaleChanged(Locale newLocale)
+        private void OnLocaleChanged(Locale newLocale)
         {
             _strings = new string[_localizedStrings.Length];
 
