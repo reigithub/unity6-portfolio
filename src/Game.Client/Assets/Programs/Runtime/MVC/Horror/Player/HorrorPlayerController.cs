@@ -52,6 +52,10 @@ namespace Game.Horror.Player
         private float _speed;
         private bool _jumpTriggered;
 
+        // 走り（トグル/ホールド切替）
+        private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
+        private bool _isSprinting;  // 走り状態
+
         // しゃがみ姿勢（移動ステートと直交する姿勢として保持）
         private bool _crouchToggle;   // オプション値（false=ホールド, true=トグル）
         private bool _isCrouching;    // 目標姿勢
@@ -142,6 +146,7 @@ namespace Game.Horror.Player
             _mainCamera.fieldOfView = data.CameraFov;
 
             // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
+            _sprintToggle = data.SprintToggle;
             _crouchToggle = data.CrouchToggle;
         }
 
@@ -188,11 +193,13 @@ namespace Game.Horror.Player
 
             // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
             UpdateCrouchInput();
+            // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
+            UpdateSprintInput();
 
-            // 移動速度更新（しゃがみ中は crouchSpeed 優先・スプリント無効、それ以外は LeftShift で走り/歩き）
+            // 移動速度更新（しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
             var baseSpeed = _isCrouching
                 ? _crouchSpeed
-                : (Player.Sprint.IsPressed() ? _runSpeed : _walkSpeed);
+                : (_isSprinting ? _runSpeed : _walkSpeed);
             _speed = _moveValue.magnitude * baseSpeed;
 
             // ジャンプ入力受付
@@ -257,6 +264,28 @@ namespace Game.Horror.Player
                 {
                     _isCrouching = false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// 走り入力をモード別に処理する。しゃがみ中は走れない（トグル状態も解除）。
+        /// トグル時は押下で反転し、移動を止めると解除する。
+        /// </summary>
+        private void UpdateSprintInput()
+        {
+            // しゃがみ中は走れない（トグル状態も強制解除）
+            if (_isCrouching) { _isSprinting = false; return; }
+
+            if (_sprintToggle)
+            {
+                // トグル：押下で反転。移動入力が無ければ解除（停止で解除）
+                if (Player.Sprint.WasPressedThisFrame()) _isSprinting = !_isSprinting;
+                if (!IsMoveInput()) _isSprinting = false;
+            }
+            else
+            {
+                // ホールド：押下中のみ走る
+                _isSprinting = Player.Sprint.IsPressed();
             }
         }
 
