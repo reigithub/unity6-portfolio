@@ -67,7 +67,7 @@ namespace Game.Horror.Dialogs
 
             SceneComponent.Initialize(Options);
 
-            // General
+            // Gameplay
             SceneComponent.OnLanguageChanged
                 .Subscribe(code =>
                 {
@@ -97,7 +97,14 @@ namespace Game.Horror.Dialogs
                 .Subscribe(v => { _optionSaveService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
-            // Display
+            SceneComponent.OnSprintModeChanged
+                .Subscribe(b => { _optionSaveService.SetSprintToggle(b); })
+                .AddTo(Disposables);
+            SceneComponent.OnCrouchModeChanged
+                .Subscribe(b => { _optionSaveService.SetCrouchToggle(b); })
+                .AddTo(Disposables);
+
+            // Graphics
             SceneComponent.OnDisplayModeChanged
                 .Subscribe(mode =>
                 {
@@ -134,7 +141,7 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            // Input（キーリバインド）
+            // Controls（キーリバインド）
             foreach (var rebindView in SceneComponent.RebindViews)
             {
                 var rebind = rebindView;
@@ -255,6 +262,9 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
+        [SerializeField] private SliderBooleanSelector _sprintMode;
+        [SerializeField] private SliderBooleanSelector _crouchMode;
+
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _displayMode;
         [SerializeField] private GenericValues<FullScreenMode> _displayModeValues;
@@ -285,6 +295,8 @@ namespace Game.Horror.Dialogs
 
         public Observable<bool> OnCameraControlHorizontalChanged => _cameraControlHorizontal.OnValueChanged;
         public Observable<bool> OnCameraControlVerticalChanged => _cameraControlVertical.OnValueChanged;
+        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
+        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
         public Observable<float> OnCameraSensitivityHorizontalChanged => _cameraSensitivityHorizontal.OnValueChanged;
         public Observable<float> OnCameraSensitivityVerticalChanged => _cameraSensitivityVertical.OnValueChanged;
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
@@ -329,7 +341,7 @@ namespace Game.Horror.Dialogs
         {
             _tabGroup.Initialize();
 
-            // General
+            // Gameplay
             _language.SetIndex(_languageValues[d.LanguageCode]);
             _cameraControlHorizontal.SetBool(d.CameraControlHorizontal);
             _cameraControlVertical.SetBool(d.CameraControlVertical);
@@ -338,6 +350,9 @@ namespace Game.Horror.Dialogs
             _cameraAcceleration.SetValue(d.CameraAcceleration);
             _cameraShake.SetValue(d.CameraShake);
             _cameraFov.SetValue(d.CameraFov);
+
+            _crouchMode.SetBool(d.CrouchToggle);
+            _sprintMode.SetBool(d.SprintToggle);
 
             // Display
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);

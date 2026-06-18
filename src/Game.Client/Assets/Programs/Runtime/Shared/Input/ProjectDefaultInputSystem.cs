@@ -415,7 +415,7 @@ namespace Game.Shared.Input
                 {
                     ""name"": """",
                     ""id"": ""cef2c1aa-5cc0-454a-8a11-15b45c23230a"",
-                    ""path"": ""<Keyboard>/leftCtrl"",
+                    ""path"": ""<Keyboard>/c"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",

@@ -42,7 +42,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(2));
+            Assert.That(_service.Data.Version, Is.EqualTo(1));
             Assert.That(_service.Data.LanguageCode, Is.EqualTo("ja"));
             Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
             Assert.That(_service.Data.CameraFov, Is.EqualTo(60f));
@@ -188,7 +188,7 @@ namespace Game.Tests.MVC.Horror
                 CameraControlVertical = true,
                 CameraSensitivityHorizontal = 2.5f,
                 CameraSensitivityVertical = 0.5f,
-                CameraAcceleration = 1.5f,
+                CameraAcceleration = 15f,
                 CameraShake = 0.25f,
                 CameraFov = 100f,
                 DisplayMode = FullScreenMode.ExclusiveFullScreen,
