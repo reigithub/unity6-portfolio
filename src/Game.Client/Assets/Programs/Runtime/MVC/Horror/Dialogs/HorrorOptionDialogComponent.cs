@@ -97,6 +97,9 @@ namespace Game.Horror.Dialogs
                 .Subscribe(v => { _optionSaveService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
+            SceneComponent.OnSprintModeChanged
+                .Subscribe(b => { _optionSaveService.SetSprintToggle(b); })
+                .AddTo(Disposables);
             SceneComponent.OnCrouchModeChanged
                 .Subscribe(b => { _optionSaveService.SetCrouchToggle(b); })
                 .AddTo(Disposables);
@@ -259,6 +262,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
+        [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
         [Header("Options - Graphics")]
@@ -291,6 +295,7 @@ namespace Game.Horror.Dialogs
 
         public Observable<bool> OnCameraControlHorizontalChanged => _cameraControlHorizontal.OnValueChanged;
         public Observable<bool> OnCameraControlVerticalChanged => _cameraControlVertical.OnValueChanged;
+        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
         public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
         public Observable<float> OnCameraSensitivityHorizontalChanged => _cameraSensitivityHorizontal.OnValueChanged;
         public Observable<float> OnCameraSensitivityVerticalChanged => _cameraSensitivityVertical.OnValueChanged;
@@ -347,6 +352,7 @@ namespace Game.Horror.Dialogs
             _cameraFov.SetValue(d.CameraFov);
 
             _crouchMode.SetBool(d.CrouchToggle);
+            _sprintMode.SetBool(d.SprintToggle);
 
             // Display
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);
