@@ -475,19 +475,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 76672933973
-    m_Localized: Left Shoulder
+    m_Localized: LB
     m_Metadata:
       m_Items: []
   - m_Id: 76672933974
-    m_Localized: Right Shoulder
+    m_Localized: RB
     m_Metadata:
       m_Items: []
   - m_Id: 76672933975
-    m_Localized: Left Trigger
+    m_Localized: LT
     m_Metadata:
       m_Items: []
   - m_Id: 76672933976
-    m_Localized: Right Trigger
+    m_Localized: RT
     m_Metadata:
       m_Items: []
   - m_Id: 76672933977

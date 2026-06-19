@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using R3;
 using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
@@ -17,12 +18,7 @@ namespace Game.Shared.Localization
         {
             if (_tmpDropdown == null) TryGetComponent(out _tmpDropdown);
 
-            LocalizationSettings.SelectedLocaleChanged += OnChangedLocale;
-        }
-
-        private void OnDestroy()
-        {
-            LocalizationSettings.SelectedLocaleChanged -= OnChangedLocale;
+            LocalizationEvents.OnLocaleChanged.Subscribe(x => OnLocaleChanged(x)).AddTo(this);
         }
 
         private void OnEnable()
@@ -33,10 +29,10 @@ namespace Game.Shared.Localization
         [ContextMenu("Update Locale")]
         public void UpdateLocale()
         {
-            OnChangedLocale(LocalizationSettings.SelectedLocale);
+            OnLocaleChanged(LocalizationSettings.SelectedLocale);
         }
 
-        private void OnChangedLocale(Locale newLocale)
+        private void OnLocaleChanged(Locale newLocale)
         {
             var tmpDropdownOptions = new List<TMP_Dropdown.OptionData>(_dropdownOptions.Count);
             foreach (var dropdownOption in _dropdownOptions)
