@@ -29,16 +29,19 @@ namespace Game.Shared.Interaction
         [Tooltip("遮蔽判定の対象レイヤー（壁・床・構造物）。対象自身のレイヤー(Interactable)は含めないこと")]
         [SerializeField] private LayerMask _occluderMask = ~0;
 
+        [Tooltip("レティクルからのエイムアシスト用 SphereCast 半径(m)。小さいほど厳密、大きいほど掴みやすい")]
+        [SerializeField] private float _aimAssistRadius = 0.15f;
+
         // 遮蔽レイを対象表面の手前で止め、対象自身の collider への自己ヒットを避けるための余白
         private const float OcclusionMargin = 0.05f;
 
-        private static readonly Vector2 _viewportCenter = new(0.5f, 0.5f);
+        // レティクル SphereCast の原点をカメラ手前へ後退させる量（対象へのめり込みによる検出漏れ対策）
+        private const float AimCastBackstep = 0.2f;
 
         // 物理クエリ・候補集計用の再利用バッファ（毎スキャンで Clear し GC を避ける）
         private readonly Collider[] _hitBuffer = new Collider[16];
         private readonly HashSet<IInteractable> _seen = new();
         private readonly List<IInteractable> _visible = new();
-        private readonly List<(IInteractable target, Vector2 viewport)> _actionableCandidates = new();
 
         // 提示状態の差分追跡（前回 / 今回）。Scan 末尾で swap して再利用する
         private Dictionary<IInteractable, InteractionState> _previousStates = new();
@@ -66,7 +69,6 @@ namespace Game.Shared.Interaction
         private void Scan()
         {
             _visible.Clear();
-            _actionableCandidates.Clear();
             _seen.Clear();
             _currentStates.Clear();
             _actionable = null;
@@ -74,7 +76,7 @@ namespace Game.Shared.Interaction
             if (_camera != null)
             {
                 CollectVisible();
-                _actionable = SelectActionable(_viewportCenter, _actionableCandidates);
+                _actionable = SelectActionableByAimCast();
 
                 for (int i = 0; i < _visible.Count; i++)
                 {
@@ -88,13 +90,11 @@ namespace Game.Shared.Interaction
             ApplyStates();
         }
 
-        // 範囲内の候補から「カメラ視界内かつ非遮蔽」のものを _visible に、
-        // さらにインタラクト距離内のものを _actionableCandidates に集める。
+        // 範囲内の候補から「カメラ視界内かつ非遮蔽」のものを _visible に集める（Discoverable 候補）。
         private void CollectVisible()
         {
             var playerPos = transform.position;
             var camPos = _camera.transform.position;
-            float interactSqr = _interactRadius * _interactRadius;
 
             int hitCount = Physics.OverlapSphereNonAlloc(
                 playerPos, _discoverRadius, _hitBuffer, _interactableMask, QueryTriggerInteraction.Collide);
@@ -123,37 +123,31 @@ namespace Game.Shared.Interaction
                 }
 
                 _visible.Add(interactable);
-
-                if ((center - playerPos).sqrMagnitude <= interactSqr)
-                {
-                    _actionableCandidates.Add((interactable, new Vector2(viewport.x, viewport.y)));
-                }
             }
         }
 
         /// <summary>
-        /// インタラクト距離内の候補から、画面中心 <paramref name="screenCenter"/> に最も近い 1 つを選ぶ純粋関数。
-        /// 候補が空なら null。同点は先頭を返す（厳密な &lt; で更新）。視界・遮蔽・距離の絞り込みは呼び出し側の責務。
+        /// レティクル（画面中心）から SphereCast を撃ち、ヒットした単一対象を Actionable として返す。
+        /// エイムアシスト半径 <see cref="_aimAssistRadius"/> ぶんの許容を持たせ、レティクルが対象コライダーに
+        /// 重なっているときのみ成立する。原点はカメラへのめり込み対策で <see cref="AimCastBackstep"/> 後退させる。
+        /// マスクは Interactable のみ。遮蔽は <see cref="_visible"/>（中心点への細いレイ遮蔽を通った集合）への
+        /// 包含チェックで担保し、Actionable ⊆ Discoverable を保証する。
         /// </summary>
-        public static IInteractable SelectActionable(Vector2 screenCenter, IReadOnlyList<(IInteractable target, Vector2 viewport)> candidates)
+        private IInteractable SelectActionableByAimCast()
         {
-            IInteractable nearest = null;
-            float nearestSqr = float.MaxValue;
+            var ray = _camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            var origin = ray.origin - ray.direction * AimCastBackstep;
+            float maxDist = _interactRadius + AimCastBackstep;
 
-            for (int i = 0; i < candidates.Count; i++)
+            if (!Physics.SphereCast(origin, _aimAssistRadius, ray.direction, out var hit, maxDist, _interactableMask, QueryTriggerInteraction.Collide))
             {
-                var candidate = candidates[i];
-                if (candidate.target == null) continue;
-
-                float sqr = (candidate.viewport - screenCenter).sqrMagnitude;
-                if (sqr < nearestSqr)
-                {
-                    nearestSqr = sqr;
-                    nearest = candidate.target;
-                }
+                return null;
             }
 
-            return nearest;
+            var target = hit.collider.GetComponentInParent<IInteractable>();
+            if (target == null || !_visible.Contains(target)) return null;
+
+            return target;
         }
 
         // 前回との差分のみ通知する。今回不在の対象は Hidden に戻し、状態変化のみ反映する。
