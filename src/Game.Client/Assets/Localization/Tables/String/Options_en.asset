@@ -10,120 +10,120 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
-  m_Name: Common_ja
+  m_Name: Options_en
   m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
   m_LocaleId:
-    m_Code: ja
+    m_Code: en
   m_SharedData: {fileID: 11400000, guid: 2cc7cf7ec22e69241b4d071651007bf7, type: 2}
   m_Metadata:
     m_Items: []
   m_TableData:
   - m_Id: 233247866880
-    m_Localized: "\u4E00\u822C"
+    m_Localized: General
     m_Metadata:
       m_Items: []
   - m_Id: 63721974530048
-    m_Localized: "\u30C7\u30A3\u30B9\u30D7\u30EC\u30A4"
+    m_Localized: Display
     m_Metadata:
       m_Items: []
   - m_Id: 64935877410816
-    m_Localized: "\u30B0\u30E9\u30D5\u30A3\u30C3\u30AF"
+    m_Localized: Graphics
     m_Metadata:
       m_Items: []
   - m_Id: 65780559904768
-    m_Localized: "\u30AA\u30FC\u30C7\u30A3\u30AA"
+    m_Localized: Audio
     m_Metadata:
       m_Items: []
   - m_Id: 422569092579328
-    m_Localized: "\u8A00\u8A9E"
+    m_Localized: Language
     m_Metadata:
       m_Items: []
   - m_Id: 422912803209216
-    m_Localized: "\u65E5\u672C\u8A9E"
+    m_Localized: Japanese
     m_Metadata:
       m_Items: []
   - m_Id: 423322850951168
-    m_Localized: "\u82F1\u8A9E"
+    m_Localized: English
     m_Metadata:
       m_Items: []
   - m_Id: 471740654813184
-    m_Localized: "\u30AB\u30E1\u30E9\u64CD\u4F5C \u6A2A"
+    m_Localized: Camera Control Horizontal
     m_Metadata:
       m_Items: []
   - m_Id: 472841928048640
-    m_Localized: "\u30AB\u30E1\u30E9\u64CD\u4F5C \u7E26"
+    m_Localized: Camera Control Vertical
     m_Metadata:
       m_Items: []
   - m_Id: 480033473298432
-    m_Localized: "\u30AB\u30E1\u30E9\u611F\u5EA6 \u6A2A"
+    m_Localized: Camera Sensitivity Horizontal
     m_Metadata:
       m_Items: []
   - m_Id: 480245164015616
-    m_Localized: "\u30AB\u30E1\u30E9\u611F\u5EA6 \u7E26"
+    m_Localized: Camera Sensitivity Vertical
     m_Metadata:
       m_Items: []
   - m_Id: 481395611271168
-    m_Localized: "\u30AB\u30E1\u30E9\u52A0\u901F\u5EA6"
+    m_Localized: Camera Acceleration
     m_Metadata:
       m_Items: []
   - m_Id: 481568227852288
-    m_Localized: "\u30AB\u30E1\u30E9\u63FA\u308C"
+    m_Localized: Camera Shake
     m_Metadata:
       m_Items: []
   - m_Id: 483402149527552
-    m_Localized: "\u30CE\u30FC\u30DE\u30EB"
+    m_Localized: Normal
     m_Metadata:
       m_Items: []
   - m_Id: 483635457687552
-    m_Localized: "\u30EA\u30D0\u30FC\u30B9"
+    m_Localized: Reverse
     m_Metadata:
       m_Items: []
   - m_Id: 485408155107328
-    m_Localized: "\u30A6\u30A3\u30F3\u30C9\u30A6\u30E2\u30FC\u30C9"
+    m_Localized: Display Mode
     m_Metadata:
       m_Items: []
   - m_Id: 485607296466944
-    m_Localized: "\u89E3\u50CF\u5EA6"
+    m_Localized: Resolution
     m_Metadata:
       m_Items: []
   - m_Id: 485709490683904
-    m_Localized: "\u30AB\u30E1\u30E9\u8996\u91CE\u89D2"
+    m_Localized: Camera FOV
     m_Metadata:
       m_Items: []
   - m_Id: 486222361788416
-    m_Localized: "\u30D5\u30EB\u30B9\u30AF\u30EA\u30FC\u30F3"
+    m_Localized: FullScreen
     m_Metadata:
       m_Items: []
   - m_Id: 486444064309248
-    m_Localized: "\u30DC\u30FC\u30C0\u30FC\u30EC\u30B9"
+    m_Localized: Borderless
     m_Metadata:
       m_Items: []
   - m_Id: 486580286914560
-    m_Localized: "\u30A6\u30A3\u30F3\u30C9\u30A6"
+    m_Localized: Windowed
     m_Metadata:
       m_Items: []
   - m_Id: 487228202024960
-    m_Localized: "\u30D7\u30EA\u30BB\u30C3\u30C8"
+    m_Localized: Preset
     m_Metadata:
       m_Items: []
   - m_Id: 487934623481856
-    m_Localized: "\u4F4E"
+    m_Localized: Low
     m_Metadata:
       m_Items: []
   - m_Id: 488087946264576
-    m_Localized: "\u4E2D"
+    m_Localized: Medium
     m_Metadata:
       m_Items: []
   - m_Id: 488313201360896
-    m_Localized: "\u9AD8"
+    m_Localized: High
     m_Metadata:
       m_Items: []
   - m_Id: 488432147628032
-    m_Localized: "\u6700\u9AD8"
+    m_Localized: Max
     m_Metadata:
       m_Items: []
   - m_Id: 488803968483328
-    m_Localized: "\u30DE\u30B9\u30BF\u30FC\u30DC\u30EA\u30E5\u30FC\u30E0"
+    m_Localized: Master Volume
     m_Metadata:
       m_Items: []
   - m_Id: 489054662033408
@@ -131,39 +131,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 489182479253504
-    m_Localized: "\u30DC\u30A4\u30B9"
+    m_Localized: Voice
     m_Metadata:
       m_Items: []
   - m_Id: 489553507385344
-    m_Localized: "\u52B9\u679C\u97F3"
+    m_Localized: SE
     m_Metadata:
       m_Items: []
   - m_Id: 2207592664276992
-    m_Localized: "\u30E9\u30A4\u30C6\u30A3\u30F3\u30B0"
+    m_Localized: Lighting
     m_Metadata:
       m_Items: []
   - m_Id: 2209176018231296
-    m_Localized: "\u30EA\u30D5\u30EC\u30AF\u30B7\u30E7\u30F3"
+    m_Localized: Reflectiom
     m_Metadata:
       m_Items: []
   - m_Id: 2210084433174528
-    m_Localized: "\u30A2\u30F3\u30C1\u30A8\u30A4\u30EA\u30A2\u30B7\u30F3\u30B0"
+    m_Localized: Anti Aliasing
     m_Metadata:
       m_Items: []
   - m_Id: 2210298732748800
-    m_Localized: "\u30DD\u30B9\u30C8\u30D7\u30ED\u30BB\u30B9"
+    m_Localized: PostProcessing
     m_Metadata:
       m_Items: []
   - m_Id: 2216650326679552
-    m_Localized: "\u89E3\u50CF\u5EA6\u30B9\u30B1\u30FC\u30EB"
+    m_Localized: ResolutionScale
     m_Metadata:
       m_Items: []
   - m_Id: 2232632818540544
-    m_Localized: "\u30D5\u30EC\u30FC\u30E0\u30EC\u30FC\u30C8\u5236\u9650"
+    m_Localized: Frame Rate Limit
     m_Metadata:
       m_Items: []
   - m_Id: 2234188787884032
-    m_Localized: "\u5782\u76F4\u540C\u671F"
+    m_Localized: VSync
     m_Metadata:
       m_Items: []
   - m_Id: 2234301727907840
@@ -175,47 +175,47 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2235681796530176
-    m_Localized: "\u30E2\u30FC\u30B7\u30E7\u30F3\u30D6\u30E9\u30FC"
+    m_Localized: MotionBlur
     m_Metadata:
       m_Items: []
   - m_Id: 2313625302736896
-    m_Localized: "\u30D5\u30EC\u30FC\u30E0\u30EC\u30FC\u30C8\u7121\u5236\u9650"
+    m_Localized: Uncapped Frame RateLimit
     m_Metadata:
       m_Items: []
   - m_Id: 5849428867948544
-    m_Localized: "\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB"
+    m_Localized: Controls
     m_Metadata:
       m_Items: []
   - m_Id: 5862682835034112
-    m_Localized: "\u30B2\u30FC\u30E0"
+    m_Localized: Game
     m_Metadata:
       m_Items: []
   - m_Id: 5955032190033920
-    m_Localized: "\u30B2\u30FC\u30E0\u30D1\u30C3\u30C9"
+    m_Localized: Gamepad
     m_Metadata:
       m_Items: []
   - m_Id: 5955178034372608
-    m_Localized: "\u30AD\u30FC\u30DC\u30FC\u30C9&\u30DE\u30A6\u30B9"
+    m_Localized: Keyboard&Mouse
     m_Metadata:
       m_Items: []
   - m_Id: 5965764814184448
-    m_Localized: "\u30EA\u30BB\u30C3\u30C8"
+    m_Localized: Reset
     m_Metadata:
       m_Items: []
   - m_Id: 6347372679405568
-    m_Localized: "\u3057\u3083\u304C\u307F\u64CD\u4F5C"
+    m_Localized: Crouch Controls
     m_Metadata:
       m_Items: []
   - m_Id: 6348878405181440
-    m_Localized: "\u30C8\u30B0\u30EB"
+    m_Localized: Toggle
     m_Metadata:
       m_Items: []
   - m_Id: 6433956510572544
-    m_Localized: "\u30B9\u30D7\u30EA\u30F3\u30C8\u64CD\u4F5C"
+    m_Localized: Sprint Controls
     m_Metadata:
       m_Items: []
   - m_Id: 6465602920128512
-    m_Localized: "\u30DB\u30FC\u30EB\u30C9"
+    m_Localized: Hold
     m_Metadata:
       m_Items: []
   references:

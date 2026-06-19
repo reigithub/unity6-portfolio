@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5be51871efa6c3e4eae1703925c8f5ac, type: 3}
-  m_Name: Common
+  m_Name: Options
   m_EditorClassIdentifier: Unity.Localization.Editor::UnityEditor.Localization.StringTableCollection
   m_SharedTableData: {fileID: 11400000, guid: 2cc7cf7ec22e69241b4d071651007bf7, type: 2}
   m_Tables:

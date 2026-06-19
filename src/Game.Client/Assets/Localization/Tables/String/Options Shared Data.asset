@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
-  m_Name: Common Shared Data
+  m_Name: Options Shared Data
   m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
-  m_TableCollectionName: Common
+  m_TableCollectionName: Options
   m_TableCollectionNameGuidString: 2cc7cf7ec22e69241b4d071651007bf7
   m_Entries:
   - m_Id: 233247866880
@@ -201,8 +201,8 @@ MonoBehaviour:
     m_Key: Reset
     m_Metadata:
       m_Items: []
-  - m_Id: 6347372679405568
-    m_Key: Crouch_Controls
+  - m_Id: 6465602920128512
+    m_Key: Input_Controls_Hold
     m_Metadata:
       m_Items: []
   - m_Id: 6348878405181440
@@ -213,8 +213,8 @@ MonoBehaviour:
     m_Key: Sprint_Controls
     m_Metadata:
       m_Items: []
-  - m_Id: 6465602920128512
-    m_Key: Input_Controls_Hold
+  - m_Id: 6347372679405568
+    m_Key: Crouch_Controls
     m_Metadata:
       m_Items: []
   m_Metadata:

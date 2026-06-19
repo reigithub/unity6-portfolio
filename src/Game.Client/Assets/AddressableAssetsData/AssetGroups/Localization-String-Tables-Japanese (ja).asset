@@ -28,7 +28,7 @@ MonoBehaviour:
     - Locale-ja
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f0f11cffa6a64e04bbde67676c83fe00
-    m_Address: Common_ja
+    m_Address: Options_ja
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-ja
