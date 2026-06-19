@@ -50,6 +50,72 @@ namespace Game.Shared.Interaction
         private IInteractable _actionable;
         private float _nextScanTime;
 
+#if UNITY_EDITOR
+        // ---- デバッグ Gizmo トグル ----
+        [Header("Debug Gizmos")]
+        [SerializeField] private bool _drawGizmos = false;
+        [SerializeField] private bool _drawDiscoverRadius = true;
+        [SerializeField] private bool _drawInteractRadius = true;
+        [SerializeField] private bool _drawAimCast = true;
+        [SerializeField] private bool _drawOcclusionRays = true;
+        [SerializeField] private bool _drawCameraFrustum = true;
+        [SerializeField] private bool _drawCandidates = true;
+
+        // ---- Gizmo 色定数 ----
+        private static readonly Color GizmoColorDiscoverRadius = Color.cyan;
+        private static readonly Color GizmoColorInteractRadius = Color.yellow;
+        private static readonly Color GizmoColorAimCastMiss = Color.white;
+        private static readonly Color GizmoColorAimCastHit = Color.green;
+        private static readonly Color GizmoColorOcclusionRayClear = Color.green;
+        private static readonly Color GizmoColorOcclusionRayBlocked = Color.red;
+        private static readonly Color GizmoColorFrustum = Color.gray;
+        private static readonly Color GizmoColorCandidateDiscoverable = Color.cyan;
+        private static readonly Color GizmoColorCandidateActionable = Color.green;
+        private static readonly Color GizmoColorCandidateOutOfView = new Color(0.3f, 0.3f, 0.3f);
+        private static readonly Color GizmoColorCandidateOccluded = Color.red;
+
+        // ---- 候補分類 ----
+        private enum GizmoCandidateKind { OutOfView, Occluded, Discoverable, Actionable }
+
+        private readonly struct GizmoCandidate
+        {
+            public readonly Vector3 Center;
+            public readonly GizmoCandidateKind Kind;
+
+            public GizmoCandidate(Vector3 center, GizmoCandidateKind kind)
+            {
+                Center = center;
+                Kind = kind;
+            }
+        }
+
+        // ---- スナップショット（最後のスキャン結果を OnDrawGizmos から参照する） ----
+        private Vector3 _gizmoCamPos;
+        private Vector3 _gizmoAimOrigin;
+        private Vector3 _gizmoAimDir;
+        private float _gizmoAimMaxDist;
+        private bool _gizmoAimHasHit;
+        private Vector3 _gizmoAimHitPoint;
+        private readonly List<GizmoCandidate> _gizmoCandidates = new();
+
+        // 遮蔽レイのスナップショット（origin → center、ヒット有無）
+        private readonly struct GizmoOcclusionRay
+        {
+            public readonly Vector3 From;
+            public readonly Vector3 To;
+            public readonly bool Blocked;
+
+            public GizmoOcclusionRay(Vector3 from, Vector3 to, bool blocked)
+            {
+                From = from;
+                To = to;
+                Blocked = blocked;
+            }
+        }
+
+        private readonly List<GizmoOcclusionRay> _gizmoOcclusionRays = new();
+#endif
+
         /// <summary>
         /// 現在の実行可能（Actionable）対象を取得する。存在しなければ false。Interact 入力の実行先。
         /// </summary>
@@ -68,6 +134,15 @@ namespace Game.Shared.Interaction
 
         private void Scan()
         {
+#if UNITY_EDITOR
+            _gizmoCandidates.Clear();
+            _gizmoOcclusionRays.Clear();
+            if (_camera != null)
+            {
+                _gizmoCamPos = _camera.transform.position;
+            }
+#endif
+
             _visible.Clear();
             _seen.Clear();
             _currentStates.Clear();
@@ -84,6 +159,31 @@ namespace Game.Shared.Interaction
                     _currentStates[target] = ReferenceEquals(target, _actionable)
                         ? InteractionState.Actionable
                         : InteractionState.Discoverable;
+
+#if UNITY_EDITOR
+                    // 最終分類を候補リストへ反映する（CollectVisible で Discoverable として仮記録済みの要素を上書き）
+                    var finalKind = ReferenceEquals(target, _actionable)
+                        ? GizmoCandidateKind.Actionable
+                        : GizmoCandidateKind.Discoverable;
+                    var center = target.CenterPosition;
+                    // 仮記録（Discoverable）を最終 kind に差し替える
+                    bool replaced = false;
+                    for (int j = 0; j < _gizmoCandidates.Count; j++)
+                    {
+                        if (_gizmoCandidates[j].Center == center && _gizmoCandidates[j].Kind == GizmoCandidateKind.Discoverable)
+                        {
+                            _gizmoCandidates[j] = new GizmoCandidate(center, finalKind);
+                            replaced = true;
+                            break;
+                        }
+                    }
+
+                    // _visible への追加後に Gizmo スナップショットが未登録の場合は追加する
+                    if (!replaced)
+                    {
+                        _gizmoCandidates.Add(new GizmoCandidate(center, finalKind));
+                    }
+#endif
                 }
             }
 
@@ -111,7 +211,13 @@ namespace Game.Shared.Interaction
 
                 // カメラ視界（frustum）内か
                 var viewport = _camera.WorldToViewportPoint(center);
-                if (viewport.z <= 0f || viewport.x < 0f || viewport.x > 1f || viewport.y < 0f || viewport.y > 1f) continue;
+                if (viewport.z <= 0f || viewport.x < 0f || viewport.x > 1f || viewport.y < 0f || viewport.y > 1f)
+                {
+#if UNITY_EDITOR
+                    _gizmoCandidates.Add(new GizmoCandidate(center, GizmoCandidateKind.OutOfView));
+#endif
+                    continue;
+                }
 
                 // 遮蔽（壁越し）を除外：カメラ→中心の間に遮蔽物があれば不可視
                 var toCenter = center - camPos;
@@ -119,8 +225,23 @@ namespace Game.Shared.Interaction
                 if (dist > OcclusionMargin &&
                     Physics.Raycast(camPos, toCenter, dist - OcclusionMargin, _occluderMask, QueryTriggerInteraction.Ignore))
                 {
+#if UNITY_EDITOR
+                    _gizmoCandidates.Add(new GizmoCandidate(center, GizmoCandidateKind.Occluded));
+                    _gizmoOcclusionRays.Add(new GizmoOcclusionRay(camPos, center, blocked: true));
+#endif
                     continue;
                 }
+
+#if UNITY_EDITOR
+                // 非遮蔽レイもスナップショットに記録する
+                if (dist > OcclusionMargin)
+                {
+                    _gizmoOcclusionRays.Add(new GizmoOcclusionRay(camPos, center, blocked: false));
+                }
+
+                // _visible.Add より前に Discoverable として仮記録する（Scan の状態決定ループで最終 kind へ差し替える）
+                _gizmoCandidates.Add(new GizmoCandidate(center, GizmoCandidateKind.Discoverable));
+#endif
 
                 _visible.Add(interactable);
             }
@@ -139,7 +260,17 @@ namespace Game.Shared.Interaction
             var origin = ray.origin - ray.direction * AimCastBackstep;
             float maxDist = _interactRadius + AimCastBackstep;
 
-            if (!Physics.SphereCast(origin, _aimAssistRadius, ray.direction, out var hit, maxDist, _interactableMask, QueryTriggerInteraction.Collide))
+            bool hasHit = Physics.SphereCast(origin, _aimAssistRadius, ray.direction, out var hit, maxDist, _interactableMask, QueryTriggerInteraction.Collide);
+
+#if UNITY_EDITOR
+            _gizmoAimOrigin = origin;
+            _gizmoAimDir = ray.direction;
+            _gizmoAimMaxDist = maxDist;
+            _gizmoAimHasHit = hasHit;
+            _gizmoAimHitPoint = hasHit ? hit.point : Vector3.zero;
+#endif
+
+            if (!hasHit)
             {
                 return null;
             }
@@ -191,5 +322,88 @@ namespace Game.Shared.Interaction
             if (interactable is Object unityObject) return unityObject != null;
             return interactable != null;
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            if (!_drawGizmos) return;
+
+            // 範囲スフィアは Play 外でも transform.position から描画できる
+            if (_drawDiscoverRadius)
+            {
+                Gizmos.color = GizmoColorDiscoverRadius;
+                Gizmos.DrawWireSphere(transform.position, _discoverRadius);
+            }
+
+            if (_drawInteractRadius)
+            {
+                Gizmos.color = GizmoColorInteractRadius;
+                Gizmos.DrawWireSphere(transform.position, _interactRadius);
+            }
+
+            // カメラ・スナップショット依存の描画は Play 中かつ参照が有効なときのみ
+            if (!Application.isPlaying || _camera == null) return;
+
+            if (_drawCameraFrustum)
+            {
+                Gizmos.color = GizmoColorFrustum;
+                Gizmos.matrix = _camera.transform.localToWorldMatrix;
+                Gizmos.DrawFrustum(
+                    Vector3.zero,
+                    _camera.fieldOfView,
+                    _camera.farClipPlane,
+                    _camera.nearClipPlane,
+                    _camera.aspect);
+                Gizmos.matrix = Matrix4x4.identity;
+            }
+
+            if (_drawOcclusionRays)
+            {
+                foreach (var ray in _gizmoOcclusionRays)
+                {
+                    Gizmos.color = ray.Blocked ? GizmoColorOcclusionRayBlocked : GizmoColorOcclusionRayClear;
+                    Gizmos.DrawLine(ray.From, ray.To);
+                }
+            }
+
+            if (_drawAimCast)
+            {
+                Gizmos.color = _gizmoAimHasHit ? GizmoColorAimCastHit : GizmoColorAimCastMiss;
+                DrawSphereCast(_gizmoAimOrigin, _gizmoAimDir, _aimAssistRadius, _gizmoAimMaxDist, _gizmoAimHasHit, _gizmoAimHitPoint);
+            }
+
+            if (_drawCandidates)
+            {
+                foreach (var candidate in _gizmoCandidates)
+                {
+                    Gizmos.color = candidate.Kind switch
+                    {
+                        GizmoCandidateKind.Actionable => GizmoColorCandidateActionable,
+                        GizmoCandidateKind.Discoverable => GizmoColorCandidateDiscoverable,
+                        GizmoCandidateKind.Occluded => GizmoColorCandidateOccluded,
+                        _ => GizmoColorCandidateOutOfView,
+                    };
+                    Gizmos.DrawWireSphere(candidate.Center, 0.15f);
+                }
+            }
+        }
+
+        /// <summary>
+        /// SphereCast の軌道を Gizmo で可視化する。始点・終点に球、軸線で軌跡を表現する。
+        /// </summary>
+        /// <param name="origin">キャスト始点（AimCastBackstep 後退済みの原点）</param>
+        /// <param name="dir">キャスト方向</param>
+        /// <param name="radius">球の半径</param>
+        /// <param name="maxDist">最大距離</param>
+        /// <param name="hasHit">ヒットした場合 true</param>
+        /// <param name="hitPoint">ヒット点（hasHit が false の場合は未使用）</param>
+        private static void DrawSphereCast(Vector3 origin, Vector3 dir, float radius, float maxDist, bool hasHit, Vector3 hitPoint)
+        {
+            var endpoint = hasHit ? hitPoint : origin + dir * maxDist;
+            Gizmos.DrawWireSphere(origin, radius);
+            Gizmos.DrawWireSphere(endpoint, radius);
+            Gizmos.DrawLine(origin, endpoint);
+        }
+#endif
     }
 }
