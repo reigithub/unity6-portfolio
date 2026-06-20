@@ -1,6 +1,6 @@
 using Game.Core.Services;
 using Game.Core.UI;
-using Game.Horror.Inventory;
+using Game.Horror.Item;
 using Game.MVC.Core.Scenes;
 using R3;
 using UnityEngine;

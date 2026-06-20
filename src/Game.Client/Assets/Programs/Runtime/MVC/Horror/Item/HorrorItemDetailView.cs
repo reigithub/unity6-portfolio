@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Horror.Inventory
+namespace Game.Horror.Item
 {
     /// <summary>
     /// 選択中アイテムの詳細（拡大アイコン・名前・説明）を表示するパネル。
