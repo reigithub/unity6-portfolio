@@ -29,6 +29,7 @@ namespace Game.Horror.Dialogs
             PauseResult result;
             var inputService = GameServiceManager.Get<InputSystemService>();
             using (inputService.BlockPlayer())
+            using (inputService.BlockInputActions(inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Get<GameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorPauseDialog, PauseResult>();
