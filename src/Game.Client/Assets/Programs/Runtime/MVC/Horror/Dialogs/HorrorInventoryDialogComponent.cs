@@ -30,13 +30,22 @@ namespace Game.Horror.Dialogs
 
         private void BindSlots()
         {
-            var entries = GameServiceManager.Get<HorrorInventoryService>().Entries;
+            var items = GameServiceManager.Get<HorrorInventoryService>().Items;
+            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {
-                if (i < entries.Count)
-                    _slots[i].SetItem(entries[i].Master, entries[i].Count);
-                else
-                    _slots[i].SetEmpty();
+                bool empty = true;
+                if (i < items.Count)
+                {
+                    var entry = items[i];
+                    if (database.HorrorItemMasterTable.TryFindById(entry.ItemId, out var master))
+                    {
+                        _slots[i].SetItem(master, entry.Count);
+                        empty = false;
+                    }
+                }
+
+                if (empty) _slots[i].SetEmpty();
 
                 _slots[i].OnSelected
                     .Subscribe(UpdateDetail)
@@ -46,6 +55,7 @@ namespace Game.Horror.Dialogs
             UpdateDetail(_slots[0]);
         }
 
-        private void UpdateDetail(HorrorItemSlotView slot) => _detailView.SetDetail(slot.Item);
+        private void UpdateDetail(HorrorItemSlotView slot)
+            => _detailView.SetDetail(slot.Item);
     }
 }

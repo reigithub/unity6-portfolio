@@ -11,63 +11,44 @@ namespace Game.Horror.Inventory
     /// </summary>
     public class HorrorInventoryService : IGameService
     {
-        private readonly List<HorrorInventoryEntry> _entries = new();
-
         /// <summary>現在の所持アイテム一覧（追加順）。</summary>
-        public IReadOnlyList<HorrorInventoryEntry> Entries => _entries;
+        private readonly List<HorrorInventoryItem> _items = new();
+        public IReadOnlyList<HorrorInventoryItem> Items => _items;
 
         /// <summary>
         /// アイテムをインベントリに追加する。
         /// 同一 Id が既に存在する場合はスタック加算し MaxQuantity で頭打ちする。
         /// </summary>
         /// <param name="master">追加するアイテムのマスターデータ。</param>
-        /// <param name="count">追加数量。</param>
-        /// <returns>実際に加算できた数。0 の場合は上限到達または無効引数。</returns>
-        public int Add(HorrorItemMaster master, int count)
+        /// <param name="addCount">追加数量。</param>
+        public void Add(HorrorItemMaster master, int addCount)
         {
-            if (master == null || count <= 0)
-                return 0;
+            if (master == null || addCount <= 0)
+                return;
 
-            var entry = _entries.Find(e => e.Master.Id == master.Id);
-            if (entry != null)
-            {
-                var newCount = Mathf.Min(entry.Count + count, master.MaxQuantity);
-                var added = newCount - entry.Count;
-                entry.Count = newCount;
-                return added;
-            }
+            var item = _items.Find(x => x.ItemId == master.Id);
+            if (item != null)
+                item.Count = Mathf.Min(item.Count + addCount, master.MaxQuantity);
             else
-            {
-                var addCount = Mathf.Min(count, master.MaxQuantity);
-                _entries.Add(new HorrorInventoryEntry(master, addCount));
-                return addCount;
-            }
+                _items.Add(new HorrorInventoryItem(master.Id, addCount));
         }
 
         /// <summary>所持アイテムを全件削除する。</summary>
-        public void Clear() => _entries.Clear();
+        public void Clear() => _items.Clear();
 
         /// <summary>モード離脱時に呼ばれる。メモリリーク防止のため所持データを破棄する。</summary>
-        public void Shutdown() => _entries.Clear();
+        public void Shutdown() => _items.Clear();
     }
 
-    /// <summary>
-    /// インベントリ内の1エントリ（アイテム種別と所持数）。
-    /// Master の参照を直接保持することで MaxQuantity クランプに DB を再引きしない設計。
-    /// </summary>
-    public class HorrorInventoryEntry
+    public class HorrorInventoryItem
     {
-        /// <summary>このエントリのアイテムマスターデータ（読み取り専用）。</summary>
-        public HorrorItemMaster Master { get; }
+        public int ItemId { get; }
 
-        /// <summary>現在の所持数。</summary>
         public int Count { get; internal set; }
 
-        /// <param name="master">アイテムのマスターデータ。</param>
-        /// <param name="count">初期所持数。</param>
-        public HorrorInventoryEntry(HorrorItemMaster master, int count)
+        public HorrorInventoryItem(int itemId, int count)
         {
-            Master = master;
+            ItemId = itemId;
             Count = count;
         }
     }
