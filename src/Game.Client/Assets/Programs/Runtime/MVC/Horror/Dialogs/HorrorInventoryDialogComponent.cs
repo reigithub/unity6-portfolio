@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Core.UI;
+using Game.Horror.Inventory;
 using Game.Horror.Item;
 using Game.MVC.Core.Scenes;
 using R3;
@@ -20,22 +21,20 @@ namespace Game.Horror.Dialogs
         public void Initialize()
         {
             _tabGroup.Initialize();
-            PopulateSlots();
+            BindSlots();
             _tabGroup.ChangeTab(0);
         }
 
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
 
-        private void PopulateSlots()
+        private void BindSlots()
         {
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
-
-            var items = database.HorrorItemMasterTable.All;
+            var entries = GameServiceManager.Get<HorrorInventoryService>().Entries;
             for (int i = 0; i < _slots.Length; i++)
             {
-                if (i < items.Count)
-                    _slots[i].SetItem(items[i], 1);
+                if (i < entries.Count)
+                    _slots[i].SetItem(entries[i].Master, entries[i].Count);
                 else
                     _slots[i].SetEmpty();
 
@@ -47,7 +46,6 @@ namespace Game.Horror.Dialogs
             UpdateDetail(_slots[0]);
         }
 
-        private void UpdateDetail(HorrorItemSlotView slot)
-            => _detailView.SetDetail(slot.Item);
+        private void UpdateDetail(HorrorItemSlotView slot) => _detailView.SetDetail(slot.Item);
     }
 }

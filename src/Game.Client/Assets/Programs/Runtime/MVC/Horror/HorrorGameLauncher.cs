@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
 using Game.Shared.Bootstrap;
@@ -21,19 +22,19 @@ namespace Game.Horror
             // 1. サービスマネージャー初期化
             GameServiceManager.Instance.StartUp();
 
-            // 2. 各種サービス取得・初期化
+            // 各種サービス取得・初期化
             var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            await dbService.LoadAsync();
+
             GameServiceManager.Add<MessagePipeService>();
             GameServiceManager.Add<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
+            GameServiceManager.Add<HorrorInventoryService>();
 
-            // 3. 共通オブジェクト読み込み
+            // 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
 
-            // 4. マスターデータ
-            await dbService.LoadAsync();
-
-            // 5. オプション設定: ロード → 共有登録 → 起動時の静的適用
+            // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
             await optionSaveService.LoadAsync();
