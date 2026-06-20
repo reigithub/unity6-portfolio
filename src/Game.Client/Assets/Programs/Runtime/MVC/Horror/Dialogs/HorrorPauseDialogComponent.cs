@@ -22,7 +22,6 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorPauseDialog";
 
         private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         public static async UniTask<PauseResult> RunAsync()
         {
@@ -39,13 +38,14 @@ namespace Game.Horror.Dialogs
 
         public override UniTask PreInitialize()
         {
+            _inputService = GameServiceManager.Get<InputSystemService>();
             ApplicationEvents.PauseTime();
             return base.PreInitialize();
         }
 
         public override UniTask Startup()
         {
-            Observable.Merge(InputService.UI.Cancel.OnPerformedAsObservable(), InputService.UI.Menu.OnPerformedAsObservable())
+            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.UI.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
