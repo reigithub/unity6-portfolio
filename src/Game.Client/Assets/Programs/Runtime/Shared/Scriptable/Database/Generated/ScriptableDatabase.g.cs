@@ -7,7 +7,7 @@ namespace Game.Shared.Scriptable.Database
     [CreateAssetMenu(menuName = "Scriptable Database/Database")]
     public sealed partial class ScriptableDatabase : ScriptableObject
     {
-        [SerializeField] private global::Game.Shared.Scriptable.Database.Samples.WeaponLevelMasterTable weaponLevelMasterTable;
-        public global::Game.Shared.Scriptable.Database.Samples.WeaponLevelMasterTable WeaponLevelMasterTable => weaponLevelMasterTable;
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.WeaponLevelMasterTable weaponLevelMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.WeaponLevelMasterTable WeaponLevelMasterTable => weaponLevelMasterTable;
     }
 }

@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Shared.Scriptable.Database;
+using Game.Shared.Scriptable.Database.Tables;
 
-namespace Game.Shared.Scriptable.Database.Samples
+namespace Game.Shared.Scriptable.Database.Tables
 {
     [CreateAssetMenu(menuName = "Scriptable Database/Table/WeaponLevelMasterTable")]
     public sealed partial class WeaponLevelMasterTable : ScriptableTable<WeaponLevelMaster>

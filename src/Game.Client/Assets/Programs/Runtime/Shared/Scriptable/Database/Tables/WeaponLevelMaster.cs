@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Game.Shared.Scriptable.Database.Samples
+namespace Game.Shared.Scriptable.Database.Tables
 {
     /// <summary>
     /// テーブルシステムの動作確認用サンプル。主キー＋単一二次キー＋複合二次キーを持つ。
