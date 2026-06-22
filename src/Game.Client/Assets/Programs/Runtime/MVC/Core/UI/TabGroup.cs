@@ -26,8 +26,8 @@ namespace Game.Core.UI
         private InputSystemService _inputService;
         private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
-        private readonly Subject<int> _onChangedTab = new();
-        public Observable<int> OnChangedTab => _onChangedTab.AsObservable();
+        private readonly Subject<int> _onTabChanged = new();
+        public Observable<int> OnTabChanged => _onTabChanged.AsObservable();
 
         private int _currentTabIndex;
 
@@ -80,7 +80,7 @@ namespace Game.Core.UI
                 }
             }
 
-            _onChangedTab.OnNext(index);
+            _onTabChanged.OnNext(index);
         }
 
         private void CycleTab(int delta)
