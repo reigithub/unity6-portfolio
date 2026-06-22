@@ -32,6 +32,11 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
+        [Header("Options - Control")]
+        [SerializeField] private InputActionRebindView[] _rebindViews;
+        [SerializeField] private Button _resetKeyboardBindingsButton;
+        [SerializeField] private Button _resetGamepadBindingsButton;
+
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _displayMode;
         [SerializeField] private GenericValues<FullScreenMode> _displayModeValues;
@@ -43,11 +48,6 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
         [SerializeField] private SliderBooleanSelector _vSync;
 
-        [Header("Options - Control")]
-        [SerializeField] private InputActionRebindView[] _rebindViews;
-        [SerializeField] private Button _resetKeyboardBindingsButton;
-        [SerializeField] private Button _resetGamepadBindingsButton;
-
         [Header("Options - Audio")]
         [SerializeField] private SliderValueSelector _masterVolume;
         [SerializeField] private SliderValueSelector _bgmVolume;
@@ -56,7 +56,7 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        #region Options - General
+        #region Options - Game
 
         public Observable<string> OnLanguageChanged => _language.OnValueChanged.Select(index => _languageValues[index]);
 
@@ -88,10 +88,9 @@ namespace Game.Horror.Dialogs
         public IReadOnlyList<InputActionRebindView> RebindViews => _rebindViews;
 
         /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
-        public Observable<string> OnResetSchemeBindingsRequested =>
-            Observable.Merge(
-                _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputConstants.KeyboardAndMouse),
-                _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputConstants.Gamepad));
+        public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
+            _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputConstants.KeyboardAndMouse),
+            _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputConstants.Gamepad));
 
         #endregion
 
@@ -118,8 +117,8 @@ namespace Game.Horror.Dialogs
             _cameraShake.SetValue(d.CameraShake);
             _cameraFov.SetValue(d.CameraFov);
 
-            _crouchMode.SetBool(d.CrouchToggle);
             _sprintMode.SetBool(d.SprintToggle);
+            _crouchMode.SetBool(d.CrouchToggle);
 
             // Display
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);
