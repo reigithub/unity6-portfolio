@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Game.Shared.Scriptable.Database;
-using Game.Shared.Scriptable.Database.Samples;
+using Game.Shared.Scriptable.Database.Tables;
 using NUnit.Framework;
 using UnityEngine;
 

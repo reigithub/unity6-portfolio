@@ -44,6 +44,11 @@ namespace Game.Horror.Scenes
                 .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
 
+            _inputService.UI.Inventory.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .SubscribeAwait(async (_, _) => await HorrorInventoryDialog.RunAsync())
+                .AddTo(Disposables);
+
             await base.Startup();
         }
 

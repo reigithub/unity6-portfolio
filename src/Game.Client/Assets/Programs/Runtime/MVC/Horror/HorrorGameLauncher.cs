@@ -21,19 +21,18 @@ namespace Game.Horror
             // 1. サービスマネージャー初期化
             GameServiceManager.Instance.StartUp();
 
-            // 2. 各種サービス取得・初期化
+            // 各種サービス取得・初期化
             var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            await dbService.LoadAsync();
+
             GameServiceManager.Add<MessagePipeService>();
             GameServiceManager.Add<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
-            // 3. 共通オブジェクト読み込み
+            // 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
 
-            // 4. マスターデータ
-            await dbService.LoadAsync();
-
-            // 5. オプション設定: ロード → 共有登録 → 起動時の静的適用
+            // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
             await optionSaveService.LoadAsync();
@@ -43,6 +42,11 @@ namespace Game.Horror
             // キーリバインドのオーバーライドを起動時に適用
             var inputSystemService = GameServiceManager.Get<InputSystemService>();
             inputSystemService.LoadBindingOverrides(optionSaveService.Data.InputBindingOverridesJson);
+
+            // インベントリ: ロード（マスター整合込み）→ 共有登録（saveDataStorage を共有）
+            var inventorySaveService = new HorrorInventorySaveService(saveDataStorage, dbService);
+            await inventorySaveService.LoadAsync();
+            GameServiceManager.Register<HorrorInventorySaveService>(inventorySaveService);
 
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();

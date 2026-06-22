@@ -68,6 +68,18 @@ namespace Game.Core.Services
             Player.Disable();
         }
 
+        public void EnableUI()
+        {
+            if (UI.enabled) return;
+            UI.Enable();
+        }
+
+        public void DisableUI()
+        {
+            if (!UI.enabled) return;
+            UI.Disable();
+        }
+
         public IDisposable BlockPlayer()
         {
             DisablePlayer();
@@ -80,16 +92,14 @@ namespace Game.Core.Services
             return Disposable.Create(() => EnableUI());
         }
 
-        public void EnableUI()
+        public IDisposable BlockInputActions(params InputAction[] actions)
         {
-            if (UI.enabled) return;
-            UI.Enable();
-        }
+            foreach (var action in actions) action.Disable();
 
-        public void DisableUI()
-        {
-            if (!UI.enabled) return;
-            UI.Disable();
+            return Disposable.Create(() =>
+            {
+                foreach (var action in actions) action.Enable();
+            });
         }
 
         #endregion

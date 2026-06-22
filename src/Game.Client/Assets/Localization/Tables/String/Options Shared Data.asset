@@ -1,0 +1,230 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Options Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Options
+  m_TableCollectionNameGuidString: 2cc7cf7ec22e69241b4d071651007bf7
+  m_Entries:
+  - m_Id: 233247866880
+    m_Key: General
+    m_Metadata:
+      m_Items: []
+  - m_Id: 63721974530048
+    m_Key: Display
+    m_Metadata:
+      m_Items: []
+  - m_Id: 64935877410816
+    m_Key: Graphics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 65780559904768
+    m_Key: Audio
+    m_Metadata:
+      m_Items: []
+  - m_Id: 422569092579328
+    m_Key: Language
+    m_Metadata:
+      m_Items: []
+  - m_Id: 422912803209216
+    m_Key: Language_Japanese
+    m_Metadata:
+      m_Items: []
+  - m_Id: 423322850951168
+    m_Key: Language_English
+    m_Metadata:
+      m_Items: []
+  - m_Id: 471740654813184
+    m_Key: 'Camera_Control_Horizontal
+
+'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 472841928048640
+    m_Key: Camer_Control_Vertical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 480033473298432
+    m_Key: Camera_Sensitivity_Horizontal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 480245164015616
+    m_Key: Camera_Sensitivity_Vertical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 481395611271168
+    m_Key: Camera_Acceleration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 481568227852288
+    m_Key: Camera_Shake
+    m_Metadata:
+      m_Items: []
+  - m_Id: 483402149527552
+    m_Key: Camera_Control_Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 483635457687552
+    m_Key: Camera_Control_Reverse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 485408155107328
+    m_Key: Display_Mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 485607296466944
+    m_Key: Resolution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 485709490683904
+    m_Key: CameraFOV
+    m_Metadata:
+      m_Items: []
+  - m_Id: 486222361788416
+    m_Key: Display_Mode_FullScreen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 486444064309248
+    m_Key: Display_Mode_Borderless
+    m_Metadata:
+      m_Items: []
+  - m_Id: 486580286914560
+    m_Key: Display_Mode_Windowed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 487228202024960
+    m_Key: Preset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 487934623481856
+    m_Key: Low
+    m_Metadata:
+      m_Items: []
+  - m_Id: 488087946264576
+    m_Key: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 488313201360896
+    m_Key: High
+    m_Metadata:
+      m_Items: []
+  - m_Id: 488432147628032
+    m_Key: Max
+    m_Metadata:
+      m_Items: []
+  - m_Id: 488803968483328
+    m_Key: Master_Volume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 489054662033408
+    m_Key: BGM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 489182479253504
+    m_Key: Voice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 489553507385344
+    m_Key: SE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2207592664276992
+    m_Key: Lighting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2209176018231296
+    m_Key: Reflectiom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2210084433174528
+    m_Key: AntiAliasing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2210298732748800
+    m_Key: PostProcessing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2216650326679552
+    m_Key: ResolutionScale
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2232632818540544
+    m_Key: FrameRateLimit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234188787884032
+    m_Key: VSync
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234301727907840
+    m_Key: ON
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2234583346061312
+    m_Key: OFF
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2235681796530176
+    m_Key: MotionBlur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2313625302736896
+    m_Key: UncappedFrameRateLimit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5849428867948544
+    m_Key: Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5862682835034112
+    m_Key: Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5955032190033920
+    m_Key: Gamepad
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5955178034372608
+    m_Key: KeyboardAndMouse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5965764814184448
+    m_Key: Reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6465602920128512
+    m_Key: Input_Controls_Hold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6348878405181440
+    m_Key: Input_Controls_Toggle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6433956510572544
+    m_Key: Sprint_Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6347372679405568
+    m_Key: Crouch_Controls
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 8850695460468818096
+  references:
+    version: 2
+    RefIds:
+    - rid: 8850695460468818096
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1780211486027

@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
-using Game.Shared.Exceptions;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Services;
+using UnityEngine.AddressableAssets;
 
 namespace Game.Core.Services
 {
@@ -11,17 +11,8 @@ namespace Game.Core.Services
     /// </summary>
     public class ScriptableDatabaseService : ScriptableDatabaseServiceBase, IGameService
     {
-        private const string AssetAddress = "ScriptableDatabase";
-
-        private IAddressableAssetService _assetService;
-
         public ScriptableDatabaseService()
         {
-        }
-
-        public ScriptableDatabaseService(IAddressableAssetService assetService)
-        {
-            _assetService = assetService;
         }
 
         public void Startup()
@@ -34,17 +25,7 @@ namespace Game.Core.Services
 
         protected override async UniTask<ScriptableDatabase> LoadDatabaseAssetAsync()
         {
-            _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-            if (_assetService == null)
-            {
-                throw new DependencyInjectionException(
-                    typeof(IAddressableAssetService),
-                    DIErrorType.ServiceNotRegistered,
-                    "IAddressableAssetService not available in ScriptableDatabaseService");
-            }
-
-            return await _assetService.LoadAssetAsync<ScriptableDatabase>(AssetAddress);
+            return await Addressables.LoadAssetAsync<ScriptableDatabase>("ScriptableDatabase");
         }
     }
 }

@@ -15,6 +15,21 @@ namespace Game.Shared.Interaction
         Vector3 CenterPosition { get; }
 
         /// <summary>
+        /// 起動方式（単発／長押し／トグル）。入力ハンドラが実行タイミングの判断に使う。
+        /// </summary>
+        InteractionInputType InputType { get; }
+
+        /// <summary>
+        /// <see cref="InteractionInputType.Hold"/> 時の長押し秒数。
+        /// </summary>
+        float HoldSeconds { get; }
+
+        /// <summary>
+        /// 実行可能か（鍵所持などの条件判定）。false の間は実行をブロックし、提示で不可を表す。
+        /// </summary>
+        bool CanInteract();
+
+        /// <summary>
         /// インタラクトアクション実行時の効果。
         /// </summary>
         void Interact();

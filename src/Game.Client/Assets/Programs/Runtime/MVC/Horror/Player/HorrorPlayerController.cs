@@ -57,6 +57,11 @@ namespace Game.Horror.Player
         private float _speed;
         private bool _jumpTriggered;
 
+        // インタラクト（起動入力フラグ／Hold 実行中の対象と経過時間）
+        private bool _interactTriggered;
+        private IInteractable _holdTarget;
+        private float _holdElapsed;
+
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
         private bool _isSprinting;  // 走り状態
@@ -136,17 +141,6 @@ namespace Game.Horror.Player
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
-
-            // インタラクト実行：現在のターゲットがあればその効果を発火する
-            Player.Interact.OnPerformedAsObservable()
-                .Subscribe(_ =>
-                {
-                    if (_interactionDetector != null && _interactionDetector.TryGetActionable(out var interactable))
-                    {
-                        interactable.Interact();
-                    }
-                })
-                .AddTo(this);
         }
 
         public void ApplyOptions(HorrorOptionSaveData data)
@@ -207,19 +201,31 @@ namespace Game.Horror.Player
                 _smoothedLookValue = Vector2.zero;
             }
 
-            // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
-            UpdateCrouchInput();
-            // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
-            UpdateSprintInput();
+            // インタラクト中（身体占有）は移動・他アクションを受け付けない
+            var interacting = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
+            if (!interacting)
+            {
+                // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
+                UpdateCrouchInput();
+                // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
+                UpdateSprintInput();
+                // インタラクト起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+                UpdateInteractInput();
+            }
 
-            // 移動速度更新（しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
-            var baseSpeed = _isCrouching
-                ? _crouchSpeed
-                : (_isSprinting ? _runSpeed : _walkSpeed);
-            _speed = _moveValue.magnitude * baseSpeed;
+            // 移動速度更新（拘束中は 0、しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
+            if (interacting)
+            {
+                _speed = 0f;
+            }
+            else
+            {
+                var baseSpeed = _isCrouching ? _crouchSpeed : (_isSprinting ? _runSpeed : _walkSpeed);
+                _speed = _moveValue.magnitude * baseSpeed;
+            }
 
-            // ジャンプ入力受付
-            if (Player.Jump.WasPressedThisFrame() && CanJump())
+            // ジャンプ入力受付（拘束中は不可）
+            if (!interacting && Player.Jump.WasPressedThisFrame() && CanJump())
             {
                 _jumpTriggered = true;
             }
@@ -237,10 +243,39 @@ namespace Game.Horror.Player
             return canJumpFromState && IsGrounded() && !_isCrouching;
         }
 
+        /// <summary>
+        /// 立てられた起動入力フラグを消費してインタラクトを開始する。Idle/Moving ステートの Update から呼ばれ、
+        /// 単発/トグルはその場で実行し（状態は変えない）、Hold は対象を保持して true を返す（遷移は呼び出し元ステートが行う）。
+        /// </summary>
+        /// <returns>Hold 開始で InteractingState へ遷移すべきなら true。</returns>
+        private bool TryBeginInteraction()
+        {
+            if (!_interactTriggered)
+                return false;
+
+            _interactTriggered = false;
+
+            if (_interactionDetector == null || !_interactionDetector.TryGetActionable(out var target))
+                return false;
+
+            if (!target.CanInteract())
+                return false;
+
+            if (target.InputType == InteractionInputType.Hold)
+            {
+                _holdTarget = target;
+                return true;
+            }
+
+            // 単発 / トグル：状態を変えずその場で実行
+            target.Interact();
+            return false;
+        }
+
         private bool IsGrounded() => _characterController.isGrounded;
-        public bool IsMoving() => _speed > 0f;
-        public bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
-        public bool IsRunning() => _speed >= _runSpeed;
+        private bool IsMoving() => _speed > 0f;
+        private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
+        private bool IsRunning() => _speed >= _runSpeed;
 
         private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
         private bool IsLookInput() => _lookValue.magnitude > PlayerPhysicsConstants.InputThreshold;
@@ -305,6 +340,12 @@ namespace Game.Horror.Player
             }
         }
 
+        private void UpdateInteractInput()
+        {
+            if (Player.Interact.WasPressedThisFrame() && IsGrounded() && !_isCrouching)
+                _interactTriggered = true;
+        }
+
         /// <summary>
         /// 立ち上がれるか（頭上の障害物判定）。立ち姿勢のカプセル頭頂までを SphereCast で掃引し、障害物が無ければ true。
         /// 自己衝突は (1)_ceilingMask に自レイヤーを含めない (2)始点を下半球中心に置く (3)半径を skinWidth 分縮める の三重で回避する。
@@ -350,6 +391,10 @@ namespace Game.Horror.Player
 
             _stateMachine.AddTransition<JumpingState, IdleState>(StateEvent.Land);
 
+            _stateMachine.AddTransition<IdleState, InteractingState>(StateEvent.Interact);
+            _stateMachine.AddTransition<MovingState, InteractingState>(StateEvent.Interact);
+            _stateMachine.AddTransition<InteractingState, IdleState>(StateEvent.EndInteract);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
 
             // 初期ステート
@@ -366,6 +411,8 @@ namespace Game.Horror.Player
             Stop, // 移動停止: Moving → Idle
             Jump, // ジャンプ: Idle/Moving → Jumping
             Land, // 着地: Jumping → Idle
+            Interact, // インタラクト開始: Idle/Moving → Interacting
+            EndInteract, // インタラクト終了: Interacting → Idle
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -381,6 +428,13 @@ namespace Game.Horror.Player
                 if (ctx._jumpTriggered && ctx.IsGrounded())
                 {
                     StateMachine.Transition(StateEvent.Jump);
+                    return;
+                }
+
+                // インタラクト起動チェック（Hold は Interacting へ遷移）
+                if (ctx.TryBeginInteraction())
+                {
+                    StateMachine.Transition(StateEvent.Interact);
                     return;
                 }
 
@@ -411,6 +465,13 @@ namespace Game.Horror.Player
                 if (ctx._jumpTriggered && ctx.IsGrounded())
                 {
                     StateMachine.Transition(StateEvent.Jump);
+                    return;
+                }
+
+                // インタラクト起動チェック（Hold は Interacting へ遷移）
+                if (ctx.TryBeginInteraction())
+                {
+                    StateMachine.Transition(StateEvent.Interact);
                     return;
                 }
 
@@ -456,6 +517,49 @@ namespace Game.Horror.Player
                 var ctx = Context;
                 // 空中でも水平移動を許可
                 ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
+        /// <summary>
+        /// インタラクト（Hold）実行中の身体占有状態。視点回転のみ許可し水平移動は止める。
+        /// ボタン解放・対象喪失・視線外し・実行不可化で中断し、長押し閾値到達で効果を発火する。
+        /// </summary>
+        private class InteractingState : State<HorrorPlayerController, StateEvent>
+        {
+            public override void Enter() => Context._holdElapsed = 0f;
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.ApplyRotation(); // 視点回転のみ許可
+
+                var target = ctx._holdTarget;
+
+                // 中断条件：対象喪失 / 視線を外した / ボタン解放 / 実行不可化
+                var stillAimed = ctx._interactionDetector != null
+                                 && ctx._interactionDetector.TryGetActionable(out var current)
+                                 && current == target;
+                if (target == null || !stillAimed || !ctx.Player.Interact.IsPressed() || !target.CanInteract())
+                {
+                    StateMachine.Transition(StateEvent.EndInteract);
+                    return;
+                }
+
+                ctx._holdElapsed += Time.deltaTime;
+                if (ctx._holdElapsed >= target.HoldSeconds)
+                {
+                    target.Interact();
+                    StateMachine.Transition(StateEvent.EndInteract);
+                }
+            }
+
+            // 水平移動なし＝拘束（重力のみ適用）
+            public override void FixedUpdate() => Context.ApplyMovementWithGravity(Vector3.zero);
+
+            public override void Exit()
+            {
+                Context._holdTarget = null;
+                Context._holdElapsed = 0f;
             }
         }
 

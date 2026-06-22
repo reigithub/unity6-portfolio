@@ -71,9 +71,13 @@ namespace Game.Core.UI
             }
             else
             {
-                var selectable = _tabs[index].TabContent.GetComponentsInChildren<Selectable>(false)
-                    .FirstOrDefault(x => x.IsSelectable());
-                if (selectable != null) InputService.SetSelectedGameObject(selectable.gameObject);
+                var tabContent = _tabs[index].TabContent;
+                if (tabContent != null)
+                {
+                    var selectable = _tabs[index].TabContent.GetComponentsInChildren<Selectable>(false)
+                        .FirstOrDefault(x => x.IsSelectable());
+                    if (selectable != null) InputService.SetSelectedGameObject(selectable.gameObject);
+                }
             }
 
             _onChangedTab.OnNext(index);

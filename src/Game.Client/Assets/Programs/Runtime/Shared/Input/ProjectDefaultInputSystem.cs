@@ -565,6 +565,15 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Inventory"",
+                    ""type"": ""Button"",
+                    ""id"": ""1ea20a20-8377-431b-a1a2-e85a694e0fe3"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1106,6 +1115,28 @@ namespace Game.Shared.Input
                     ""action"": ""Reset"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a9359f78-776c-422b-a0c4-43c84dd1d650"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Inventory"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""32c207fc-cd77-45ff-86d2-59712d3a8319"",
+                    ""path"": ""<Gamepad>/select"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Inventory"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1198,6 +1229,7 @@ namespace Game.Shared.Input
             m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
             m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
             m_UI_Reset = m_UI.FindAction("Reset", throwIfNotFound: true);
+            m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
         }
 
         ~@ProjectDefaultInputSystem()
@@ -1455,6 +1487,7 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_Previous;
         private readonly InputAction m_UI_Next;
         private readonly InputAction m_UI_Reset;
+        private readonly InputAction m_UI_Inventory;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1523,6 +1556,10 @@ namespace Game.Shared.Input
             /// </summary>
             public InputAction @Reset => m_Wrapper.m_UI_Reset;
             /// <summary>
+            /// Provides access to the underlying input action "UI/Inventory".
+            /// </summary>
+            public InputAction @Inventory => m_Wrapper.m_UI_Inventory;
+            /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
             public InputActionMap Get() { return m_Wrapper.m_UI; }
@@ -1590,6 +1627,9 @@ namespace Game.Shared.Input
                 @Reset.started += instance.OnReset;
                 @Reset.performed += instance.OnReset;
                 @Reset.canceled += instance.OnReset;
+                @Inventory.started += instance.OnInventory;
+                @Inventory.performed += instance.OnInventory;
+                @Inventory.canceled += instance.OnInventory;
             }
 
             /// <summary>
@@ -1643,6 +1683,9 @@ namespace Game.Shared.Input
                 @Reset.started -= instance.OnReset;
                 @Reset.performed -= instance.OnReset;
                 @Reset.canceled -= instance.OnReset;
+                @Inventory.started -= instance.OnInventory;
+                @Inventory.performed -= instance.OnInventory;
+                @Inventory.canceled -= instance.OnInventory;
             }
 
             /// <summary>
@@ -1903,6 +1946,13 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnReset(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Inventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnInventory(InputAction.CallbackContext context);
         }
     }
 }
