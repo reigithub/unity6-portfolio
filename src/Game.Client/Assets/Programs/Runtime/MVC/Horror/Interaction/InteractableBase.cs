@@ -1,5 +1,5 @@
 using Game.Core.Services;
-using Game.Horror.Inventory;
+using Game.Horror.SaveData;
 using Game.Shared.Interaction;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
@@ -67,8 +67,8 @@ namespace Game.Horror.Interaction
         /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
         protected bool InventoryHas(int itemId)
         {
-            var inventory = GameServiceManager.Get<HorrorInventoryService>();
-            foreach (var item in inventory.Items)
+            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            foreach (var item in inventory.Data.Items)
             {
                 if (item.ItemId == itemId)
                     return true;

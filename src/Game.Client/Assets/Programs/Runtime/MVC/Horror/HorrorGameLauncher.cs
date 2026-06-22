@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
-using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
 using Game.Shared.Bootstrap;
@@ -29,7 +28,6 @@ namespace Game.Horror
             GameServiceManager.Add<MessagePipeService>();
             GameServiceManager.Add<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
-            GameServiceManager.Add<HorrorInventoryService>();
 
             // 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
@@ -44,6 +42,11 @@ namespace Game.Horror
             // キーリバインドのオーバーライドを起動時に適用
             var inputSystemService = GameServiceManager.Get<InputSystemService>();
             inputSystemService.LoadBindingOverrides(optionSaveService.Data.InputBindingOverridesJson);
+
+            // インベントリ: ロード（マスター整合込み）→ 共有登録（saveDataStorage を共有）
+            var inventorySaveService = new HorrorInventorySaveService(saveDataStorage, dbService);
+            await inventorySaveService.LoadAsync();
+            GameServiceManager.Register<HorrorInventorySaveService>(inventorySaveService);
 
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();

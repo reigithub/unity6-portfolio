@@ -1,5 +1,5 @@
 using Game.Core.Services;
-using Game.Horror.Inventory;
+using Game.Horror.SaveData;
 
 namespace Game.Horror.Interaction
 {
@@ -16,7 +16,7 @@ namespace Game.Horror.Interaction
 
             var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
             if (database.HorrorItemMasterTable.TryFindById(Master.GrantItemId, out var itemMaster))
-                GameServiceManager.Get<HorrorInventoryService>().Add(itemMaster, Master.GrantQuantity);
+                GameServiceManager.Resolve<HorrorInventorySaveService>().Add(itemMaster, Master.GrantQuantity);
 
             gameObject.SetActive(false);
         }
