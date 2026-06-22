@@ -16,5 +16,10 @@ MonoBehaviour:
   - _id: 1
     _name: Key
     _description: "\u3069\u3053\u304B\u306E\u30AB\u30AE"
-    _maxQuantity: 1
+    _maxQuantity: 3
+    _iconAssetName: T_14_key_
+  - _id: 2
+    _name: Key2
+    _description: "\u3069\u3053\u304B\u306E\u30AB\u30AE"
+    _maxQuantity: 3
     _iconAssetName: T_14_key_

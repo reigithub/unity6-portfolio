@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Shared.Scriptable.Database;
-using Game.Shared.Scriptable.Database.Tables;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {

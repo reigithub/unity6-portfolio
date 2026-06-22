@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d3a063ae4782b479b32a6a3b090d50, type: 3}
+  m_Name: HorrorInteractionMasterTable
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable
+  records:
+  - _id: 1
+    _inputType: 0
+    _holdSeconds: 0
+    _requiredItemId: 0
+    _grantItemId: 1
+    _grantQuantity: 1
+  - _id: 2
+    _inputType: 2
+    _holdSeconds: 0
+    _requiredItemId: 1
+    _grantItemId: 1
+    _grantQuantity: 1
+  - _id: 3
+    _inputType: 1
+    _holdSeconds: 3
+    _requiredItemId: 0
+    _grantItemId: 2
+    _grantQuantity: 1
