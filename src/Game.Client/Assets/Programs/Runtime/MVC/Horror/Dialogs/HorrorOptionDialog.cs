@@ -18,6 +18,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
         private InputSystemService _inputService;
+        private AudioService _audioService;
 
         private HorrorOptionSaveService _optionSaveService;
         private HorrorOptionSaveData Options => _optionSaveService.Data;
@@ -133,6 +134,36 @@ namespace Game.Horror.Dialogs
                 {
                     _optionSaveService.SetVSync(vsync);
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
+                })
+                .AddTo(Disposables);
+
+            // Audio
+            SceneComponent.OnMasterVolumeChanged
+                .Subscribe(volume =>
+                {
+                    _optionSaveService.SetMasterVolume(volume);
+                    _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
+                })
+                .AddTo(Disposables);
+            SceneComponent.OnBgmVolumeChanged
+                .Subscribe(volume =>
+                {
+                    _optionSaveService.SetBgmVolume(volume);
+                    _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
+                })
+                .AddTo(Disposables);
+            SceneComponent.OnVoiceVolumeChanged
+                .Subscribe(volume =>
+                {
+                    _optionSaveService.SetVoiceVolume(volume);
+                    _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
+                })
+                .AddTo(Disposables);
+            SceneComponent.OnSeVolumeChanged
+                .Subscribe(volume =>
+                {
+                    _optionSaveService.SetSeVolume(volume);
+                    _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
                 })
                 .AddTo(Disposables);
 
