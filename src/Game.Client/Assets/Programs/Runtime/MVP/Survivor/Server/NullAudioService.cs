@@ -21,6 +21,6 @@ namespace Game.MVP.Survivor.Server
         public UniTask PlayAsync(int[] audioIds, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayRandomOneAsync(AudioPlayTag audioPlayTag, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayRandomOneAsync(AudioCategory audioCategory, AudioPlayTag audioPlayTag, CancellationToken token = default) => UniTask.CompletedTask;
-        public void SetVolume(float bgm, float voice, float sfx) { }
+        public void SetVolume(float master, float bgm, float voice, float sfx) { }
     }
 }

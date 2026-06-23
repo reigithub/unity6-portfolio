@@ -59,6 +59,8 @@ namespace Game.Horror
             await HorrorGameRootController.UnloadAsync();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
             await gameSceneService.TerminateAllAsync();
+            var audioService = GameServiceManager.Get<AudioService>();
+            audioService.Unload();
             GameServiceManager.Instance.Shutdown();
             await UniTask.Yield();
         }

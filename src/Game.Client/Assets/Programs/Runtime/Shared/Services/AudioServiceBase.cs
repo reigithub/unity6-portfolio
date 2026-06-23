@@ -24,11 +24,20 @@ namespace Game.Shared.Services
         private AudioSource _voiceSource;
         private AudioSource _sfxSource;
 
-        private float _bgmVolume = 0.3f;
+        // AudioMixer - Volume(Db)
+        private float _masterVolume;
+        private float _bgmVolume;
+        private float _voiceVolume;
+        private float _sfxVolume;
+
+        // AudioMixer - ExposedParameters
+        private const string MasterVolume = "MasterVolume";
+        private const string BgmVolume = "BGMVolume";
+        private const string VoiceVolume = "VoiceVolume";
+        private const string SeVolume = "SEVolume";
+
         private const float DefaultBgmFadeDuration = 0.25f;
-        private float _voiceVolume = 1f;
         private const float DefaultVoiceFadeDuration = 0.1f;
-        private float _sfxVolume = 0.7f;
         private const float DefaultSfxFadeDuration = 0.1f;
 
         /// <summary>
@@ -76,25 +85,21 @@ namespace Game.Shared.Services
             var audioClip = await LoadAudioClipAsync(assetName);
 
             if (_bgmSource.isPlaying)
-            {
-                await _bgmSource.DOFade(0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
-            }
+                await _audioMixer.DOSetFloat(BgmVolume, 0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _bgmSource.Stop();
             _bgmSource.clip = audioClip;
-            _bgmSource.volume = 0f;
+            _bgmSource.volume = 1f;
             _bgmSource.mute = false;
             _bgmSource.loop = true;
             _bgmSource.Play();
-            await _bgmSource.DOFade(_bgmVolume, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+            await _audioMixer.DOSetFloat(BgmVolume, _bgmVolume, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
         }
 
         public async UniTask StopBgmAsync(CancellationToken token = default)
         {
             if (_bgmSource.isPlaying)
-            {
-                await _bgmSource.DOFade(0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
-            }
+                await _audioMixer.DOSetFloat(BgmVolume, 0f, DefaultBgmFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _bgmSource.Stop();
         }
@@ -107,10 +112,10 @@ namespace Game.Shared.Services
             var audioClip = await LoadAudioClipAsync(assetName);
 
             if (_voiceSource.isPlaying)
-                await _voiceSource.DOFade(0f, DefaultVoiceFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
+                await _audioMixer.DOSetFloat(VoiceVolume , 0f, DefaultVoiceFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _voiceSource.Stop();
-            _voiceSource.volume = _voiceVolume;
+            _voiceSource.volume = 1f;
             _voiceSource.mute = false;
             _voiceSource.loop = false;
             _voiceSource.PlayOneShot(audioClip);
@@ -125,12 +130,10 @@ namespace Game.Shared.Services
             var audioClip = await LoadAudioClipAsync(assetName);
 
             if (_sfxSource.isPlaying)
-            {
-                await _sfxSource.DOFade(0f, DefaultSfxFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
-            }
+                await _audioMixer.DOSetFloat(SeVolume, 0f, DefaultSfxFadeDuration).SetUpdate(true).ToUniTask(cancellationToken: token);
 
             _sfxSource.Stop();
-            _sfxSource.volume = _sfxVolume;
+            _sfxSource.volume = 1f;
             _sfxSource.mute = false;
             _sfxSource.loop = false;
             _sfxSource.PlayOneShot(audioClip);
@@ -220,20 +223,40 @@ namespace Game.Shared.Services
             return PlayAsync(audioCategory, audioName, token);
         }
 
-        public void SetVolume(float bgm, float voice, float sfx)
+        public void SetVolume(float master, float bgm, float voice, float sfx)
         {
-            _bgmVolume = Mathf.Clamp01(bgm);
-            _voiceVolume = Mathf.Clamp01(voice);
-            _sfxVolume = Mathf.Clamp01(sfx);
+            _masterVolume = PaToDb(master / 10f);
+            _bgmVolume = PaToDb(bgm / 10f);
+            _voiceVolume = PaToDb(voice / 10f);
+            _sfxVolume = PaToDb(sfx / 10f);
 
-            if (_bgmSource != null)
-                _bgmSource.volume = _bgmVolume;
+            if (_audioMixer != null)
+            {
+                _audioMixer.SetFloat(MasterVolume, _masterVolume);
+                _audioMixer.SetFloat(BgmVolume, _bgmVolume);
+                _audioMixer.SetFloat(VoiceVolume, _voiceVolume);
+                _audioMixer.SetFloat(SeVolume, _sfxVolume);
+            }
+        }
 
-            if (_voiceSource != null)
-                _voiceSource.volume = _voiceVolume;
+        /// <summary>
+        /// デシベル変換
+        /// 0, 1, 10の音圧→-80, 0, 20のデシベル
+        /// </summary>
+        private float PaToDb(float volume)
+        {
+            var clamped = Mathf.Clamp(volume, 0.0001f, 10f);
+            return 20f * Mathf.Log10(clamped);
+        }
 
-            if (_sfxSource != null)
-                _sfxSource.volume = _sfxVolume;
+        /// <summary>
+        /// 音圧変換
+        /// -80, 0, 20のデシベル→0, 1, 10の音圧
+        /// </summary>
+        private float DbToPa(float db)
+        {
+            var clamped = Mathf.Clamp(db, -80f, 20f);
+            return Mathf.Pow(10f, clamped / 20f);
         }
     }
 }
