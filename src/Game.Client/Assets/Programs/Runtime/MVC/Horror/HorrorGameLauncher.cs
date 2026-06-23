@@ -45,6 +45,13 @@ namespace Game.Horror
             var inputSystemService = GameServiceManager.Get<InputSystemService>();
             inputSystemService.LoadBindingOverrides(optionSaveService.Data.InputBindingOverridesJson);
 
+            // オーディオ設定
+            audioService.SetVolume(
+                optionSaveService.Data.MasterVolume,
+                optionSaveService.Data.BgmVolume,
+                optionSaveService.Data.VoiceVolume,
+                optionSaveService.Data.SeVolume);
+
             // インベントリ: ロード（マスター整合込み）→ 共有登録（saveDataStorage を共有）
             var inventorySaveService = new HorrorInventorySaveService(saveDataStorage, dbService);
             await inventorySaveService.LoadAsync();
