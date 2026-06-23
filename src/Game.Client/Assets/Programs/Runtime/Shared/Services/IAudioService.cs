@@ -14,13 +14,13 @@ namespace Game.Shared.Services
         /// オーディオサービスを初期化・起動する
         /// アプリケーション起動時に呼び出す
         /// </summary>
-        void Startup();
+        UniTask LoadAsync();
 
         /// <summary>
         /// オーディオサービスをシャットダウンする
         /// リソースの解放と再生中のオーディオの停止を行う
         /// </summary>
-        void Shutdown();
+        void Unload();
 
         /// <summary>
         /// BGM（バックグラウンドミュージック）を再生する

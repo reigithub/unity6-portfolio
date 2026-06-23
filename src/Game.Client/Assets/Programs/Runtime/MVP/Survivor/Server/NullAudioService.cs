@@ -10,8 +10,8 @@ namespace Game.MVP.Survivor.Server
     /// </summary>
     public class NullAudioService : IAudioService
     {
-        public void Startup() { }
-        public void Shutdown() { }
+        public UniTask LoadAsync() => UniTask.CompletedTask;
+        public void Unload() { }
         public UniTask PlayBgmAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask StopBgmAsync(CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayVoiceAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;

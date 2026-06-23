@@ -52,7 +52,7 @@ namespace Game.App.Services
 
             CreateServices();
             await LoadMasterDataAsync();
-            InitializeAudioService();
+            await LoadAudioServiceAsync();
             await LoadAudioSettingsAsync();
 
             _isInitialized = true;
@@ -119,9 +119,9 @@ namespace Game.App.Services
             Debug.Log("[AppServiceProvider] MasterData loaded.");
         }
 
-        private void InitializeAudioService()
+        private async UniTask LoadAudioServiceAsync()
         {
-            AudioService?.Startup();
+            await AudioService.LoadAsync();
             Debug.Log("[AppServiceProvider] AudioService started.");
         }
 
@@ -137,7 +137,7 @@ namespace Game.App.Services
 
             Debug.Log("[AppServiceProvider] Disposing services...");
 
-            AudioService?.Shutdown();
+            AudioService?.Unload();
 
             AddressableAssetService = null;
             MasterDataService = null;

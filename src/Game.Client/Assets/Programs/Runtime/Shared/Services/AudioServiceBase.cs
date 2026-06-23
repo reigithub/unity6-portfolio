@@ -7,6 +7,8 @@ using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
 using Game.Shared.Extensions;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.Audio;
 
 namespace Game.Shared.Services
 {
@@ -17,6 +19,7 @@ namespace Game.Shared.Services
     public abstract class AudioServiceBase : IAudioService
     {
         private GameObject _audioServiceObject;
+        private AudioMixer _audioMixer;
         private AudioSource _bgmSource;
         private AudioSource _voiceSource;
         private AudioSource _sfxSource;
@@ -38,28 +41,28 @@ namespace Game.Shared.Services
         /// </summary>
         protected abstract UniTask<AudioClip> LoadAudioClipAsync(string assetName);
 
-        public void Startup()
+        public async UniTask LoadAsync()
         {
-            _audioServiceObject = new GameObject("AudioService");
-            _audioServiceObject.AddComponent<AudioListener>();
-            _bgmSource = new GameObject("BgmSource").AddComponent<AudioSource>();
-            _voiceSource = new GameObject("VoiceSource").AddComponent<AudioSource>();
-            _sfxSource = new GameObject("SfxSource").AddComponent<AudioSource>();
+            var audioService = await Addressables.InstantiateAsync("AudioService");
+            if (audioService == null) return;
 
-            _bgmSource.transform.SetParent(_audioServiceObject.transform);
-            _voiceSource.transform.SetParent(_audioServiceObject.transform);
-            _sfxSource.transform.SetParent(_audioServiceObject.transform);
+            _audioServiceObject = audioService;
+
+            if (audioService.TryGetComponent<AudioServiceComponent>(out var component))
+            {
+                _audioMixer = component.AudioMixer;
+                _bgmSource = component.BgmSource;
+                _voiceSource = component.VoiceSource;
+                _sfxSource = component.SeSource;
+            }
 
             UnityEngine.Object.DontDestroyOnLoad(_audioServiceObject);
         }
 
-        public void Shutdown()
+        public void Unload()
         {
-            _bgmSource.SafeDestroy();
             _bgmSource = null;
-            _voiceSource.SafeDestroy();
             _voiceSource = null;
-            _sfxSource.SafeDestroy();
             _sfxSource = null;
             _audioServiceObject.SafeDestroy();
             _audioServiceObject = null;
@@ -223,21 +226,14 @@ namespace Game.Shared.Services
             _voiceVolume = Mathf.Clamp01(voice);
             _sfxVolume = Mathf.Clamp01(sfx);
 
-            // 再生中のソースにも即時適用
-            if (_bgmSource != null && _bgmSource.isPlaying)
-            {
+            if (_bgmSource != null)
                 _bgmSource.volume = _bgmVolume;
-            }
 
             if (_voiceSource != null)
-            {
                 _voiceSource.volume = _voiceVolume;
-            }
 
             if (_sfxSource != null)
-            {
                 _sfxSource.volume = _sfxVolume;
-            }
         }
     }
 }

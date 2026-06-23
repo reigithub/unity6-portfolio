@@ -90,7 +90,7 @@ namespace Game.MVP.Survivor
         public async UniTask StartupAsync()
         {
             // 1. サービス起動
-            _audioService.Startup();
+            await _audioService.LoadAsync();
             _inputService.Startup();
 
             // 2. マスターデータ読み込み
@@ -232,7 +232,7 @@ namespace Game.MVP.Survivor
             await _sceneService.TerminateAllAsync();
 
             // サービスシャットダウン
-            _audioService.Shutdown();
+            _audioService.Unload();
             _inputService.Shutdown();
 
             // 永続オブジェクトの登録解除

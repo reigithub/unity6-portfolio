@@ -25,8 +25,10 @@ namespace Game.Horror
             var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
             await dbService.LoadAsync();
 
+            var audioService = GameServiceManager.Get<AudioService>();
+            await audioService.LoadAsync();
+
             GameServiceManager.Add<MessagePipeService>();
-            GameServiceManager.Add<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 共通オブジェクト読み込み
