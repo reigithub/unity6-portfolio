@@ -38,6 +38,7 @@ namespace Game.Horror.Dialogs
         public override UniTask PreInitialize()
         {
             _inputService = GameServiceManager.Get<InputSystemService>();
+            _audioService = GameServiceManager.Get<AudioService>();
             _optionSaveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
             return base.PreInitialize();
         }

@@ -127,6 +127,12 @@ namespace Game.Horror.Dialogs
             _uncappedFrameRate.SetBool(d.UncappedFrameRate);
             _vSync.SetBool(d.VSync);
 
+            // Audio
+            _masterVolume.SetValue(d.MasterVolume);
+            _bgmVolume.SetValue(d.BgmVolume);
+            _voiceVolume.SetValue(d.VoiceVolume);
+            _seVolume.SetValue(d.SeVolume);
+
             _tabGroup.ChangeTab(0);
         }
 
