@@ -19,6 +19,9 @@ namespace Game.Horror.Interaction
         [Tooltip("中心位置の上書き。未指定なら自身の transform.position を使う")]
         [SerializeField] private Transform _centerOverride;
 
+        // WorldBounds 算出用のコライダー群（Awake で一度だけ取得し、毎回 .bounds で最新の world AABB を合成する）
+        [SerializeField] private Collider[] _colliders;
+
         [Tooltip("アウトライン表現を担うコンポーネント")]
         [SerializeField] private InteractionOutlineHighlighter _highlighter;
 
@@ -27,6 +30,11 @@ namespace Game.Horror.Interaction
 
         /// <summary>解決済みのマスターデータ。見つからなければ null。</summary>
         protected HorrorInteractionMaster Master { get; private set; }
+
+        protected virtual void Awake()
+        {
+            _colliders = GetComponentsInChildren<Collider>(includeInactive: true);
+        }
 
         protected virtual void Start()
         {
@@ -39,6 +47,37 @@ namespace Game.Horror.Interaction
 
         public Vector3 CenterPosition =>
             _centerOverride != null ? _centerOverride.position : transform.position;
+
+        public Bounds WorldBounds
+        {
+            get
+            {
+                Bounds bounds = default;
+                bool initialized = false;
+
+                if (_colliders != null)
+                {
+                    for (int i = 0; i < _colliders.Length; i++)
+                    {
+                        var collider = _colliders[i];
+                        if (collider == null || !collider.enabled) continue;
+
+                        if (!initialized)
+                        {
+                            bounds = collider.bounds;
+                            initialized = true;
+                        }
+                        else
+                        {
+                            bounds.Encapsulate(collider.bounds);
+                        }
+                    }
+                }
+
+                // コライダーが無ければ中心点の極小 bounds でフォールバック（面積を持たないが検出は成立しうる）
+                return initialized ? bounds : new Bounds(CenterPosition, Vector3.zero);
+            }
+        }
 
         public virtual InteractionInputType InputType =>
             Master != null ? Master.InputType : InteractionInputType.Instant;

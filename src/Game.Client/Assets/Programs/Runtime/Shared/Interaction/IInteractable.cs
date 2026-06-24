@@ -10,9 +10,15 @@ namespace Game.Shared.Interaction
     public interface IInteractable
     {
         /// <summary>
-        /// 検出の基準となる中心位置。プレイヤーからの距離計算と可視判定（視線の的）に使用する。
+        /// 中心位置。<see cref="WorldBounds"/> が算出できない場合のフォールバック基準点。
         /// </summary>
         Vector3 CenterPosition { get; }
+
+        /// <summary>
+        /// 検出の基準となるワールド空間 AABB。距離（表面まで）・視界・遮蔽・狙いの判定に使用する。
+        /// 対象のコライダー群から算出する。
+        /// </summary>
+        Bounds WorldBounds { get; }
 
         /// <summary>
         /// 起動方式（単発／長押し／トグル）。入力ハンドラが実行タイミングの判断に使う。
