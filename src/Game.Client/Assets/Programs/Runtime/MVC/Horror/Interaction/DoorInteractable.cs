@@ -1,4 +1,7 @@
+using Cysharp.Threading.Tasks;
+using Game.Shared.Extensions;
 using UnityEngine;
+using UnityEngine.Playables;
 
 namespace Game.Horror.Interaction
 {
@@ -9,13 +12,12 @@ namespace Game.Horror.Interaction
     /// </summary>
     public class DoorInteractable : InteractableBase
     {
-        [Tooltip("開閉アニメーション（任意）。bool パラメータ IsOpen を駆動する")]
-        [SerializeField] private Animator _animator;
-
-        private static readonly int IsOpenParam = Animator.StringToHash("IsOpen");
+        [SerializeField] private PlayableDirector _openDirector;
+        [SerializeField] private PlayableDirector _closeDirector;
 
         private bool _isOpen;
         private bool _unlocked;
+        private bool _isBlocking;
 
         protected override void Start()
         {
@@ -36,10 +38,40 @@ namespace Game.Horror.Interaction
                 _unlocked = true;
             }
 
-            _isOpen = !_isOpen;
+            if (_isBlocking) return;
 
-            if (_animator != null)
-                _animator.SetBool(IsOpenParam, _isOpen);
+            if (!_isOpen)
+                OpenAsync().Forget();
+            else
+                CloseAsync().Forget();
+        }
+
+        private async UniTask OpenAsync()
+        {
+            try
+            {
+                _isBlocking = true;
+                await _openDirector.PlayAsync();
+            }
+            finally
+            {
+                _isOpen = true;
+                _isBlocking = false;
+            }
+        }
+
+        private async UniTask CloseAsync()
+        {
+            try
+            {
+                _isBlocking = true;
+                await _closeDirector.PlayAsync();
+            }
+            finally
+            {
+                _isOpen = false;
+                _isBlocking = false;
+            }
         }
     }
 }
