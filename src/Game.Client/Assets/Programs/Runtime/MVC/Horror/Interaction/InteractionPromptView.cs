@@ -1,7 +1,14 @@
+using Game.Core.Services;
+using Game.Shared.Enums;
+using Game.Shared.Input;
+using Game.Shared.Localization;
+using Game.Shared.Scriptable.Database.Tables;
+using R3;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Game.Shared.Interaction
+namespace Game.Horror.Interaction
 {
     /// <summary>
     /// インタラクト対象の位置に出すワールド空間プロンプト。対象（Interactable）が所有し、対象プレハブの子として配置する。
@@ -26,7 +33,54 @@ namespace Game.Shared.Interaction
         [Tooltip("画面に対するプロンプトの目標サイズ係数。全対象で同一値にすると画面上のサイズが距離に依らず統一される")]
         [SerializeField] private float _screenSizeFactor = 0.05f;
 
+        [SerializeField] private TextMeshProUGUI _interactionText;
+        [SerializeField] private TextMeshProUGUI _inputBindingText;
+
+        [SerializeField] private GameObject _inputTypeRoot;
+        [SerializeField] private TextMeshProUGUI _inputTypeText;
+
         private Camera _viewCamera;
+        private HorrorInteractionMaster _master;
+        private bool _interactionToggle;
+        private InputSystemService _inputService;
+
+        public void Initialize(HorrorInteractionMaster master)
+        {
+            _master = master;
+            _inputService = GameServiceManager.Get<InputSystemService>();
+
+            LocalizationEvents.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
+            SetInteractionText();
+
+            _inputService.OnControlSchemeChanged.Subscribe(_ => SetInputBindingText()).AddTo(this);
+            _inputService.OnBindingChanged
+                .Where(x => x == _inputService.Player.Interact)
+                .Subscribe(_ => SetInputBindingText()).AddTo(this);
+            InputSystemEvents.OnDeviceChanged.Subscribe(_ => SetInputBindingText()).AddTo(this);
+            SetInputBindingText();
+
+            _inputTypeRoot.SetActive(master.InputType == InteractionInputType.Hold);
+
+            SetState(InteractionState.Hidden, null);
+        }
+
+        private void SetInteractionText()
+        {
+            _interactionText.text = !_interactionToggle
+                ? InteractionLocalizer.Localize(_master.InteractionVerbLocalizeKey)
+                : InteractionLocalizer.Localize(_master.ReinteractionVerbLocalizeKey);
+        }
+
+        private void SetInputBindingText()
+        {
+            _inputBindingText.text = _inputService.GetBindingDisplayString(_inputService.Player.Interact);
+        }
+
+        public void SetInteractionToggle(bool isOn)
+        {
+            _interactionToggle = isOn;
+            SetInteractionText();
+        }
 
         /// <summary>
         /// 提示状態を反映する。Hidden で自身を無効化し、Discoverable/Actionable で対応する見た目だけを出す。

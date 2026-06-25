@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Game.Shared.Interaction
+namespace Game.Horror.Interaction
 {
     /// <summary>
     /// 対象 Renderer の materials にアウトライン用 Material を一時的に追加してハイライトする。

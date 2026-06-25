@@ -1,6 +1,6 @@
 using Game.Core.Services;
 using Game.Horror.SaveData;
-using Game.Shared.Interaction;
+using Game.Shared.Enums;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
 
@@ -42,6 +42,9 @@ namespace Game.Horror.Interaction
             if (database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
                 Master = master;
+
+                if (_promptView != null)
+                    _promptView.Initialize(master);
             }
         }
 
@@ -107,6 +110,12 @@ namespace Game.Horror.Interaction
         {
             if (_promptView != null)
                 _promptView.SetState(InteractionState.Hidden, null);
+        }
+
+        protected void SetInteractionToggle(bool isOn)
+        {
+            if (_promptView != null)
+                _promptView.SetInteractionToggle(isOn);
         }
 
         /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>

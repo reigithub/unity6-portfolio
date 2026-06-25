@@ -1,10 +1,10 @@
 using System.Reflection;
+using Game.Horror.Interaction;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
-using Game.Shared.Interaction;
 
-namespace Game.Tests.Shared.Interaction
+namespace Game.Tests.MVC.Horror.Interaction
 {
     [TestFixture]
     public class InteractionPromptViewTests

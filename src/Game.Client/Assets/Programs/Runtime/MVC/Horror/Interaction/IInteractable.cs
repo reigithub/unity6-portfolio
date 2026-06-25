@@ -1,6 +1,7 @@
+using Game.Shared.Enums;
 using UnityEngine;
 
-namespace Game.Shared.Interaction
+namespace Game.Horror.Interaction
 {
     /// <summary>
     /// インタラクト可能なオブジェクトのインターフェース。

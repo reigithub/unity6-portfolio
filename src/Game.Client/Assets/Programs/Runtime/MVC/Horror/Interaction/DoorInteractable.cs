@@ -51,6 +51,7 @@ namespace Game.Horror.Interaction
             try
             {
                 _isBlocking = true;
+                SetInteractionToggle(true);
                 await _openDirector.PlayAsync();
             }
             finally
@@ -65,6 +66,7 @@ namespace Game.Horror.Interaction
             try
             {
                 _isBlocking = true;
+                SetInteractionToggle(false);
                 await _closeDirector.PlayAsync();
             }
             finally

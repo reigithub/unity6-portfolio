@@ -1,11 +1,12 @@
 using Game.Core.Constants;
 using Game.Core.Services;
+using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
-using Game.Shared.Interaction;
 using R3;
 using UnityEngine;
 

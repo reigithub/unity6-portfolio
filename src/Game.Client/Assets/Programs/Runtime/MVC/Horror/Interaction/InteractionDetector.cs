@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using Game.Horror.Interaction;
+using Game.Shared.Enums;
 using UnityEngine;
 
-namespace Game.Shared.Interaction
+namespace Game.Horror.Interaction
 {
     /// <summary>
     /// プレイヤー周囲のインタラクト対象を検出し、各対象の提示状態を駆動する検出器。
@@ -313,9 +315,9 @@ namespace Game.Shared.Interaction
         // 無効化時、提示中の対象を Hidden に戻して取り残しを防ぐ
         private void OnDisable()
         {
-            foreach (var pair in _previousStates)
+            foreach (var (interactable, _) in _previousStates)
             {
-                if (IsAlive(pair.Key)) pair.Key.SetInteractionState(InteractionState.Hidden, _camera);
+                if (IsAlive(interactable)) interactable.SetInteractionState(InteractionState.Hidden, _camera);
             }
 
             _previousStates.Clear();

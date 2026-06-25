@@ -1,8 +1,8 @@
 using NUnit.Framework;
 using UnityEngine;
-using Game.Shared.Interaction;
+using Game.Horror.Interaction;
 
-namespace Game.Tests.Shared.Interaction
+namespace Game.Tests.MVC.Horror.Interaction
 {
     /// <summary>
     /// <see cref="InteractionDetector.CalculateAimScore"/> の純粋ロジック検証。
