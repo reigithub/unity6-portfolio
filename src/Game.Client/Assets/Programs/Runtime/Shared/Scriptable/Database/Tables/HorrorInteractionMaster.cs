@@ -1,5 +1,5 @@
 using System;
-using Game.Shared.Interaction;
+using Game.Shared.Enums;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables
@@ -19,6 +19,9 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private InteractionInputType _inputType;
         [SerializeField] private float _holdSeconds;
 
+        [SerializeField] private string _interactionVerbLocalizeKey;
+        [SerializeField] private string _reinteractionVerbLocalizeKey;
+
         [SerializeField] private int _requiredItemId;
 
         [SerializeField] private int _grantItemId;
@@ -26,7 +29,7 @@ namespace Game.Shared.Scriptable.Database.Tables
 
         #endregion
 
-        #region Database
+        #region Columns
 
         [PrimaryKey]
         public int Id
@@ -47,6 +50,18 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _holdSeconds;
             set => _holdSeconds = value;
+        }
+
+        public string InteractionVerbLocalizeKey
+        {
+            get => _interactionVerbLocalizeKey;
+            set => _interactionVerbLocalizeKey = value;
+        }
+
+        public string ReinteractionVerbLocalizeKey
+        {
+            get => _reinteractionVerbLocalizeKey;
+            set => _reinteractionVerbLocalizeKey = value;
         }
 
         /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>

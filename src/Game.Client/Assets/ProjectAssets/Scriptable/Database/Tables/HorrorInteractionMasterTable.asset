@@ -16,18 +16,24 @@ MonoBehaviour:
   - _id: 1
     _inputType: 0
     _holdSeconds: 0
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 1
     _grantQuantity: 1
   - _id: 2
     _inputType: 2
     _holdSeconds: 0
+    _interactionVerbLocalizeKey: Open
+    _reinteractionVerbLocalizeKey: Close
     _requiredItemId: 1
     _grantItemId: 1
     _grantQuantity: 1
   - _id: 3
     _inputType: 1
-    _holdSeconds: 3
+    _holdSeconds: 2
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 2
     _grantQuantity: 1
