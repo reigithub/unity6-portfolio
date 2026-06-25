@@ -23,6 +23,12 @@ namespace Game.Core.Services
         private string _controlScheme = InputConstants.DefaultControlScheme;
         private GameObject _selectedGameObject;
 
+        private readonly Subject<string> _onControlSchemeChanged = new();
+        public Observable<string> OnControlSchemeChanged => _onControlSchemeChanged;
+
+        private readonly Subject<InputAction> _onBindingChanged = new();
+        public Observable<InputAction> OnBindingChanged => _onBindingChanged;
+
         #region Setup
 
         public InputSystemService()
@@ -159,7 +165,9 @@ namespace Game.Core.Services
 
         public void UpdateControlScheme(string device)
         {
+            bool changed = _controlScheme != device;
             _controlScheme = device;
+            if (changed) _onControlSchemeChanged.OnNext(device);
             ResolveControlScheme(_selectedGameObject);
         }
 
@@ -213,6 +221,11 @@ namespace Game.Core.Services
                 parts.Add(InputControlLocalizer.Localize(deviceLayoutName, controlPath, raw));
             }
             return string.Join("/", parts);
+        }
+
+        public string GetBindingDisplayString(InputAction action)
+        {
+            return GetBindingDisplayString(_controlScheme, action.name);
         }
 
         public string SaveBindingOverridesAsJson()
@@ -323,6 +336,8 @@ namespace Game.Core.Services
                                 conflictAction.ApplyBindingOverride(conflictIndex, originalEffectivePath);
                             Debug.Log($"[InputService] Rebind swapped ({scheme}): {newPath} <-> {originalEffectivePath}");
                         }
+
+                        _onBindingChanged.OnNext(action);
 
                         op.Dispose();
                         currentOp = null;
