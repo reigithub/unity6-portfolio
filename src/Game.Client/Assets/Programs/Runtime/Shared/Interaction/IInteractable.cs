@@ -46,5 +46,13 @@ namespace Game.Shared.Interaction
         /// （検出器が保持する唯一の視点。<see cref="InteractionState.Hidden"/> 時は未使用で null 可）。
         /// </summary>
         void SetInteractionState(InteractionState state, Camera viewCamera);
+
+        /// <summary>
+        /// <see cref="InteractionInputType.Hold"/> 長押し中の進捗（0→1）を提示へ反映する。
+        /// <paramref name="progress01"/> が 0 超でゲージを表示・充填し、0 以下で非表示にする。
+        /// 状態遷移（<see cref="SetInteractionState"/>）とは独立した、押下中の連続値の通知。
+        /// Hold 以外の対象は実装不要（no-op でよい）。
+        /// </summary>
+        void SetHoldProgress(float progress01);
     }
 }

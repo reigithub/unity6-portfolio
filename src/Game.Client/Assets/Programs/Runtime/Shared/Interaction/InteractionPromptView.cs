@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Game.Shared.Interaction
 {
@@ -18,6 +19,9 @@ namespace Game.Shared.Interaction
 
         [Tooltip("実行可能（インタラクトできる）状態の見た目")]
         [SerializeField] private GameObject _actionableView;
+
+        [Tooltip("Hold 長押しの進捗を示す円形ゲージ（Image: Type=Filled / FillMethod=Radial360）。押下中のみ表示する")]
+        [SerializeField] private Image _holdGauge;
 
         [Tooltip("画面に対するプロンプトの目標サイズ係数。全対象で同一値にすると画面上のサイズが距離に依らず統一される")]
         [SerializeField] private float _screenSizeFactor = 0.05f;
@@ -39,6 +43,21 @@ namespace Game.Shared.Interaction
             if (_actionableView != null) _actionableView.SetActive(actionable);
 
             gameObject.SetActive(discoverable || actionable);
+        }
+
+        /// <summary>
+        /// Hold 長押しの進捗（0→1）を円形ゲージへ反映する。0 超で表示・充填、0 以下で非表示。
+        /// 押下中に毎フレーム呼ばれ、中断・完了時は 0 を受けて即座に消える。
+        /// </summary>
+        public void SetHoldProgress(float progress01)
+        {
+            if (_holdGauge == null) return;
+
+            bool active = progress01 > 0f;
+            if (_holdGauge.gameObject.activeSelf != active)
+                _holdGauge.gameObject.SetActive(active);
+
+            _holdGauge.fillAmount = Mathf.Clamp01(progress01);
         }
 
         private void LateUpdate()

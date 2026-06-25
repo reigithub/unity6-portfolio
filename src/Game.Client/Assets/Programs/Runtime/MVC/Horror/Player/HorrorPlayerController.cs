@@ -272,6 +272,14 @@ namespace Game.Horror.Player
             return false;
         }
 
+        /// <summary>
+        /// Hold 長押しの進捗（0→1）を算出する。<paramref name="holdSeconds"/> が 0 以下なら
+        /// ゼロ除算を避けて即時完了（1）とみなす。表示側で Clamp されるため、
+        /// elapsed が holdSeconds を超えた最終フレームでは 1 を超える生値を返しうる。
+        /// </summary>
+        public static float CalculateHoldProgress(float elapsed, float holdSeconds)
+            => holdSeconds > 0f ? elapsed / holdSeconds : 1f;
+
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
         private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
@@ -526,7 +534,11 @@ namespace Game.Horror.Player
         /// </summary>
         private class InteractingState : State<HorrorPlayerController, StateEvent>
         {
-            public override void Enter() => Context._holdElapsed = 0f;
+            public override void Enter()
+            {
+                Context._holdElapsed = 0f;
+                Context._holdTarget?.SetHoldProgress(0f); // ゲージを初期化（非表示）
+            }
 
             public override void Update()
             {
@@ -546,7 +558,12 @@ namespace Game.Horror.Player
                 }
 
                 ctx._holdElapsed += Time.deltaTime;
-                if (ctx._holdElapsed >= target.HoldSeconds)
+
+                // 進捗ゲージへ反映（HoldSeconds=0 はゼロ除算回避で満充填扱い）
+                var holdSeconds = target.HoldSeconds;
+                target.SetHoldProgress(CalculateHoldProgress(ctx._holdElapsed, holdSeconds));
+
+                if (ctx._holdElapsed >= holdSeconds)
                 {
                     target.Interact();
                     StateMachine.Transition(StateEvent.EndInteract);
@@ -558,6 +575,7 @@ namespace Game.Horror.Player
 
             public override void Exit()
             {
+                Context._holdTarget?.SetHoldProgress(0f); // 中断・完了とも即非表示
                 Context._holdTarget = null;
                 Context._holdElapsed = 0f;
             }

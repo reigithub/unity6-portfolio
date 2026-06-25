@@ -97,6 +97,12 @@ namespace Game.Horror.Interaction
                 _promptView.SetState(state, viewCamera);
         }
 
+        public void SetHoldProgress(float progress01)
+        {
+            if (_promptView != null)
+                _promptView.SetHoldProgress(progress01);
+        }
+
         protected virtual void OnDisable()
         {
             if (_promptView != null)
