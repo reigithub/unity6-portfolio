@@ -20,7 +20,7 @@ namespace Game.Core.Services
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
-        private string _controlScheme = InputConstants.DefaultControlScheme;
+        private string _controlScheme = InputControlSchemes.DefaultControlScheme;
         private GameObject _selectedGameObject;
 
         private readonly Subject<string> _onControlSchemeChanged = new();
@@ -175,16 +175,16 @@ namespace Game.Core.Services
         {
             switch (_controlScheme)
             {
-                case InputConstants.Gamepad:
-                case InputConstants.Joystick:
+                case InputControlSchemes.Gamepad:
+                case InputControlSchemes.Joystick:
                 {
                     ApplicationEvents.HideCursor();
                     ResolveSelectable(selectedGameObject);
                     break;
                 }
-                case InputConstants.KeyboardAndMouse:
-                case InputConstants.Touch:
-                case InputConstants.XR:
+                case InputControlSchemes.KeyboardAndMouse:
+                case InputControlSchemes.Touch:
+                case InputControlSchemes.XR:
                 {
                     ApplicationEvents.ShowCursor();
                     ResolveSelectable(selectedGameObject);
@@ -218,7 +218,7 @@ namespace Game.Core.Services
             {
                 // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
                 var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                parts.Add(InputControlLocalizer.Localize(deviceLayoutName, controlPath, raw));
+                parts.Add(InputControlsLocalizer.Localize(deviceLayoutName, controlPath, raw));
             }
             return string.Join("/", parts);
         }
@@ -361,11 +361,11 @@ namespace Game.Core.Services
         /// <summary>リバインド入力を当該スキームのデバイスに限定する。</summary>
         private static void ApplySchemeFilter(InputActionRebindingExtensions.RebindingOperation op, string scheme)
         {
-            if (scheme == InputConstants.Gamepad)
+            if (scheme == InputControlSchemes.Gamepad)
             {
                 op.WithControlsHavingToMatchPath("<Gamepad>");
             }
-            else if (scheme == InputConstants.KeyboardAndMouse)
+            else if (scheme == InputControlSchemes.KeyboardAndMouse)
             {
                 op.WithControlsHavingToMatchPath("<Keyboard>");
                 op.WithControlsHavingToMatchPath("<Mouse>");

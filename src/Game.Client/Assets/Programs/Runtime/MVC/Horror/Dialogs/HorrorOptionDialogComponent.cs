@@ -89,8 +89,8 @@ namespace Game.Horror.Dialogs
 
         /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
         public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
-            _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputConstants.KeyboardAndMouse),
-            _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputConstants.Gamepad));
+            _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.KeyboardAndMouse),
+            _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.Gamepad));
 
         #endregion
 
