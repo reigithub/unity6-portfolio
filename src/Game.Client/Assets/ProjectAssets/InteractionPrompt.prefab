@@ -97,8 +97,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.8}
-  m_SizeDelta: {x: 3, y: 1.5}
+  m_AnchoredPosition: {x: 0, y: 0.9}
+  m_SizeDelta: {x: 3, y: 1.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2869373308778434743
 MonoBehaviour:
@@ -212,6 +212,7 @@ GameObject:
   - component: {fileID: 2375600244156015404}
   - component: {fileID: 8120167998137462438}
   - component: {fileID: 6619824419062336161}
+  - component: {fileID: 1884461099697923120}
   m_Layer: 0
   m_Name: InputTypeText
   m_TagString: Untagged
@@ -338,6 +339,46 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &1884461099697923120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164819746150543653}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56eb0353ae6e5124bb35b17aff880f16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Components.LocalizeStringEvent
+  m_StringReference:
+    m_TableReference:
+      m_TableCollectionName: GUID:f107895dd8568a3429e53377b860ba22
+    m_TableEntryReference:
+      m_KeyId: 7059812012032
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  m_FormatArguments: []
+  m_UpdateString:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 6619824419062336161}
+        m_TargetAssemblyTypeName: TMPro.TMP_Text, Unity.TextMeshPro
+        m_MethodName: set_text
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
+  references:
+    version: 2
+    RefIds: []
 --- !u!1 &2187125144490617674
 GameObject:
   m_ObjectHideFlags: 0
@@ -737,6 +778,10 @@ MonoBehaviour:
   _actionableView: {fileID: 8814741269533994518}
   _holdGauge: {fileID: 6868642412237086668}
   _screenSizeFactor: 0.05
+  _interactionText: {fileID: 2850353534316969455}
+  _inputBindingText: {fileID: 8274935800114506730}
+  _inputTypeRoot: {fileID: 5268695545939458938}
+  _inputTypeText: {fileID: 6619824419062336161}
 --- !u!1 &5268695545939458938
 GameObject:
   m_ObjectHideFlags: 0
@@ -748,6 +793,7 @@ GameObject:
   - component: {fileID: 4391318956975626773}
   - component: {fileID: 6185902774978817071}
   - component: {fileID: 5326556390552974659}
+  - component: {fileID: 7227500552178538774}
   m_Layer: 0
   m_Name: InputType
   m_TagString: Untagged
@@ -770,10 +816,10 @@ RectTransform:
   - {fileID: 2375600244156015404}
   m_Father: {fileID: 5334001981546127581}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1, y: 0.3}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: -0.15}
+  m_SizeDelta: {x: 1, y: 0.29999995}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6185902774978817071
 CanvasRenderer:
@@ -813,6 +859,26 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7227500552178538774
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5268695545939458938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 1
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &6996063947201906838
 GameObject:
   m_ObjectHideFlags: 0
