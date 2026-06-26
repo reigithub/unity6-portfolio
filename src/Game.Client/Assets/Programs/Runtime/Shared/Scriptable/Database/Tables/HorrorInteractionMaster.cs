@@ -16,6 +16,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         #region SerializeField
 
         [SerializeField] private int _id;
+        [SerializeField] private string _name;
+
         [SerializeField] private InteractionInputType _inputType;
         [SerializeField] private float _holdSeconds;
 
@@ -27,6 +29,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _grantItemId;
         [SerializeField] private int _grantQuantity;
 
+        [SerializeField] private bool _checkpointSave;
+
         #endregion
 
         #region Columns
@@ -36,6 +40,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _id;
             set => _id = value;
+        }
+
+        public string Name
+        {
+            get => _name;
+            set => _name = value;
         }
 
         /// <summary>起動方式（単発／長押し／トグル）。</summary>
@@ -83,6 +93,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _grantQuantity;
             set => _grantQuantity = value;
+        }
+
+        public bool CheckpointSave
+        {
+            get => _checkpointSave;
+            set => _checkpointSave = value;
         }
 
         #endregion
