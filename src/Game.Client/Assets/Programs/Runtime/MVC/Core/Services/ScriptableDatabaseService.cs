@@ -15,14 +15,6 @@ namespace Game.Core.Services
         {
         }
 
-        public void Startup()
-        {
-        }
-
-        public void Shutdown()
-        {
-        }
-
         protected override async UniTask<ScriptableDatabase> LoadDatabaseAssetAsync()
         {
             return await Addressables.LoadAssetAsync<ScriptableDatabase>("ScriptableDatabase");
