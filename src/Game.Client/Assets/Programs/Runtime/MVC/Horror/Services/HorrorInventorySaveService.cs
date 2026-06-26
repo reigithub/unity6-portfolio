@@ -1,15 +1,17 @@
 using Game.Core.Services;
+using Game.Horror.SaveData;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.SaveData;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using UnityEngine;
 
-namespace Game.Horror.SaveData
+namespace Game.Horror.Services
 {
     /// <summary>
     /// Horror インベントリのセーブサービス。所持アイテムの状態保持と永続化を担う。
     /// </summary>
-    public class HorrorInventorySaveService : SaveServiceBase<HorrorInventorySaveData>, IGameService
+    public class HorrorInventorySaveService : SaveServiceBase<HorrorInventorySaveData>, IHorrorInventorySaveService, IGameService
     {
         protected override string SaveKey => "horror_inventory";
         protected override int CurrentVersion => 1;
