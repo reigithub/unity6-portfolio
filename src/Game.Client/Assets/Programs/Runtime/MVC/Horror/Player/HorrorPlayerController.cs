@@ -42,10 +42,9 @@ namespace Game.Horror.Player
         [Tooltip("インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
         [SerializeField] private InteractionDetector _interactionDetector;
 
+        private bool _initialized;
         private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
-
-        private ProjectDefaultInputSystem.PlayerActions Player => InputService.Player;
+        private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
 
         private CharacterController _characterController;
 
@@ -116,6 +115,9 @@ namespace Game.Horror.Player
 
         public void Initialize(HorrorOptionSaveData data)
         {
+            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService.EnablePlayer();
+
             TryGetComponent(out _characterController);
 
             // 立ち姿勢の基準値を実測で保持（prefab 値の変更に追従させ、しゃがみ補間の不変参照点にする）
@@ -142,6 +144,8 @@ namespace Game.Horror.Player
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
+
+            _initialized = true;
         }
 
         public void ApplyOptions(HorrorOptionSaveData data)
@@ -163,18 +167,21 @@ namespace Game.Horror.Player
 
         #region MonoBehaviour Methods
 
-        protected void OnEnable() => InputService.EnablePlayer();
-
-        protected void OnDisable() => InputService.DisablePlayer();
+        protected void OnDestroy()
+        {
+            if (_initialized) _inputService.DisablePlayer();
+        }
 
         protected void Update()
         {
+            if (!_initialized) return;
             UpdateInput();
             _stateMachine?.Update();
         }
 
         protected void FixedUpdate()
         {
+            if (!_initialized) return;
             _stateMachine?.FixedUpdate();
         }
 
