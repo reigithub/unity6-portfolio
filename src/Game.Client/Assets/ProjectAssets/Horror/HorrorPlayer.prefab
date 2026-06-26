@@ -403,8 +403,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Interaction.InteractionDetector
   _camera: {fileID: 6031481874108313397}
-  _discoverRadius: 6
-  _interactRadius: 3
+  _discoverRadius: 3
+  _interactRadius: 1.5
   _scanInterval: 0.1
   _interactableMask:
     serializedVersion: 2
@@ -412,6 +412,15 @@ MonoBehaviour:
   _occluderMask:
     serializedVersion: 2
     m_Bits: 521
+  _aimConeAngle: 12
+  _actionableStickiness: 5
+  _drawGizmos: 0
+  _drawDiscoverRadius: 1
+  _drawInteractRadius: 1
+  _drawReticleRay: 1
+  _drawOcclusionRays: 1
+  _drawCameraFrustum: 1
+  _drawCandidates: 1
 --- !u!1 &6853252730508953924
 GameObject:
   m_ObjectHideFlags: 0

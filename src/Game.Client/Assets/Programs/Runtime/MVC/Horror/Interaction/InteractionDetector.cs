@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Game.Horror.Interaction;
 using Game.Shared.Enums;
 using UnityEngine;
 
@@ -19,10 +18,10 @@ namespace Game.Horror.Interaction
         [SerializeField] private Camera _camera;
 
         [Tooltip("発見可能とみなす最大距離（m, プレイヤー基準）")]
-        [SerializeField] private float _discoverRadius = 6f;
+        [SerializeField] private float _discoverRadius = 3f;
 
         [Tooltip("インタラクト可能とみなす最大距離（m, プレイヤー基準・対象表面まで）。_discoverRadius 以下にする")]
-        [SerializeField] private float _interactRadius = 3f;
+        [SerializeField] private float _interactRadius = 1.5f;
 
         [Tooltip("検出スキャンの間隔（秒）。毎フレームではなく間引く")]
         [SerializeField] private float _scanInterval = 0.1f;
