@@ -1,6 +1,5 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Horror.SaveData;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -52,11 +51,6 @@ namespace Game.Horror.Dialogs
             _inputService.UI.Next.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => SceneComponent.NextTab())
-                .AddTo(Disposables);
-
-            // デバッグ用: 現在のインベントリを手動セーブ
-            SceneComponent.OnSaveRequested
-                .SubscribeAwait(async (_, _) => await GameServiceManager.Resolve<HorrorInventorySaveService>().SaveAsync())
                 .AddTo(Disposables);
 
             SceneComponent.Initialize();
