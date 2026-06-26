@@ -3,6 +3,7 @@ using Game.Core;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
+using Game.Horror.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
@@ -38,7 +39,7 @@ namespace Game.Horror
             var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
             await optionSaveService.LoadAsync();
-            GameServiceManager.Register<HorrorOptionSaveService>(optionSaveService);
+            GameServiceManager.Register(optionSaveService);
             HorrorOptionHelper.ApplySaveData(optionSaveService.Data);
 
             // キーリバインドのオーバーライドを起動時に適用
@@ -55,7 +56,14 @@ namespace Game.Horror
             // インベントリ: ロード（マスター整合込み）→ 共有登録（saveDataStorage を共有）
             var inventorySaveService = new HorrorInventorySaveService(saveDataStorage, dbService);
             await inventorySaveService.LoadAsync();
-            GameServiceManager.Register<HorrorInventorySaveService>(inventorySaveService);
+            GameServiceManager.Register(inventorySaveService);
+
+            var interactionSaveService = new HorrorInteractionSaveService(saveDataStorage, dbService);
+            await interactionSaveService.LoadAsync();
+            GameServiceManager.Register(interactionSaveService);
+
+            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService);
+            GameServiceManager.Register(checkpointSaveService);
 
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
