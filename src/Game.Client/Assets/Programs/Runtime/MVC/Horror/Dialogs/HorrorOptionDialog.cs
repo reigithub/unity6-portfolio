@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Constants;
@@ -234,21 +235,17 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            LocalizationEvents.OnLocaleChanged
-                .Subscribe(_ => RefreshBindingDisplays())
-                .AddTo(Disposables);
+            // ロケール変更でバインド表示名を再ローカライズ
+            LocalizationEvents.OnLocaleChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
 
             // コントローラー接続/切替に追従して family 別表示を更新する
-            InputSystemEvents.OnDeviceChanged
-                .Subscribe(_ => RefreshBindingDisplays())
-                .AddTo(Disposables);
+            InputSystemEvents.OnDeviceChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
 
             return base.Startup();
         }
 
         private void RefreshBindingDisplays()
         {
-            // ロケール変更でバインド表示名を再ローカライズ
             if (_currentRebind != null) return;
             foreach (var rebind in SceneComponent.RebindViews)
                 rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));

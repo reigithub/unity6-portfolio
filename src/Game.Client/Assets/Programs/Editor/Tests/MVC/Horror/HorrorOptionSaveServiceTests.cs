@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.SaveData;
-using Game.Shared.Enums;
+using Game.Horror.Services;
 using Game.Shared.SaveData;
 using MemoryPack;
 using NSubstitute;
