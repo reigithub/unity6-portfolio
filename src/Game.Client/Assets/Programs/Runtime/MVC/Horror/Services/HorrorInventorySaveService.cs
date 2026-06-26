@@ -44,6 +44,17 @@ namespace Game.Horror.Services
             MarkDirty();
         }
 
+        public bool HasItem(int itemId)
+        {
+            foreach (var item in Data.Items)
+            {
+                if (item.ItemId == itemId)
+                    return true;
+            }
+
+            return false;
+        }
+
         protected override void OnDataLoaded(HorrorInventorySaveData data)
         {
             var database = _databaseService.Database;

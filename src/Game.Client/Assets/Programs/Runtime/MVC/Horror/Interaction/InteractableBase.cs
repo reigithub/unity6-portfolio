@@ -1,7 +1,10 @@
+using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.Shared.Enums;
+using Game.Shared.Scriptable.Database;
 using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Interaction
@@ -28,7 +31,13 @@ namespace Game.Horror.Interaction
         [Tooltip("対象位置に出すプロンプト表示")]
         [SerializeField] private InteractionPromptView _promptView;
 
-        /// <summary>解決済みのマスターデータ。見つからなければ null。</summary>
+        protected HorrorInteractionSaveService InteractionSaveService { get; private set; }
+        protected HorrorInventorySaveService InventorySaveService { get; private set; }
+        protected HorrorCheckpointSaveService CheckpointSaveService { get; private set; }
+
+        private IScriptableDatabaseService _databaseService;
+        protected ScriptableDatabase Database => _databaseService.Database;
+
         protected HorrorInteractionMaster Master { get; private set; }
 
         protected virtual void Awake()
@@ -38,8 +47,12 @@ namespace Game.Horror.Interaction
 
         protected virtual void Start()
         {
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
-            if (database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
+            InteractionSaveService = GameServiceManager.Resolve<HorrorInteractionSaveService>();
+            InventorySaveService = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            CheckpointSaveService = GameServiceManager.Resolve<HorrorCheckpointSaveService>();
+
+            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
+            if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
                 Master = master;
 
@@ -87,9 +100,17 @@ namespace Game.Horror.Interaction
 
         public virtual float HoldSeconds => Master != null ? Master.HoldSeconds : 0f;
 
+        public virtual bool WasInteracted() => InteractionSaveService.Contains(_interactionId);
+
         public virtual bool CanInteract() => true;
 
-        public abstract void Interact();
+        public virtual void Interact()
+        {
+            InteractionSaveService.Add(Master);
+
+            if (Master.CheckpointSave)
+                CheckpointSaveService.SaveIfDirtyAsync().Forget();
+        }
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
         {
@@ -119,16 +140,10 @@ namespace Game.Horror.Interaction
         }
 
         /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
-        protected bool InventoryHas(int itemId)
+        protected bool HasItem()
         {
-            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            foreach (var item in inventory.Data.Items)
-            {
-                if (item.ItemId == itemId)
-                    return true;
-            }
-
-            return false;
+            if (Master == null) return false;
+            return InventorySaveService.HasItem(Master.RequiredItemId);
         }
     }
 }

@@ -1,6 +1,3 @@
-using Game.Core.Services;
-using Game.Horror.SaveData;
-
 namespace Game.Horror.Interaction
 {
     /// <summary>
@@ -9,16 +6,26 @@ namespace Game.Horror.Interaction
     /// </summary>
     public class PickItemInteractable : InteractableBase
     {
+        protected override void Start()
+        {
+            base.Start();
+
+            gameObject.SetActive(!WasInteracted());
+        }
+
+        public override bool CanInteract() => !WasInteracted();
+
         public override void Interact()
         {
             if (Master == null)
                 return;
 
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
-            if (database.HorrorItemMasterTable.TryFindById(Master.GrantItemId, out var itemMaster))
-                GameServiceManager.Resolve<HorrorInventorySaveService>().Add(itemMaster, Master.GrantQuantity);
+            if (Database.HorrorItemMasterTable.TryFindById(Master.GrantItemId, out var itemMaster))
+                InventorySaveService.Add(itemMaster, Master.GrantQuantity);
 
             gameObject.SetActive(false);
+
+            base.Interact();
         }
     }
 }

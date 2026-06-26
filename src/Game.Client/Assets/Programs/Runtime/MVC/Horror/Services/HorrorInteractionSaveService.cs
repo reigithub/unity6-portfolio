@@ -24,12 +24,14 @@ namespace Game.Horror.Services
         {
             if (master == null) return;
 
-            if (!Data.InteractionIds.Contains(master.Id))
+            if (!Contains(master.Id))
             {
                 Data.InteractionIds.Add(master.Id);
                 MarkDirty();
             }
         }
+
+        public bool Contains(int id) => Data.InteractionIds.Contains(id);
 
         protected override void OnDataLoaded(HorrorInteractionSaveData data)
         {

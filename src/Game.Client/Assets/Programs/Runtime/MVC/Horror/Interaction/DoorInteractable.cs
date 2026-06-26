@@ -15,35 +15,26 @@ namespace Game.Horror.Interaction
         [SerializeField] private PlayableDirector _openDirector;
         [SerializeField] private PlayableDirector _closeDirector;
 
-        private bool _isOpen;
-        private bool _unlocked;
+        private bool _isOpened;
         private bool _isBlocking;
 
         protected override void Start()
         {
             base.Start();
-            _unlocked = Master == null || Master.RequiredItemId == 0;
         }
 
-        public override bool CanInteract() =>
-            _unlocked || (Master != null && InventoryHas(Master.RequiredItemId));
+        public override bool CanInteract() => HasItem();
 
         public override void Interact()
         {
-            if (!_unlocked)
-            {
-                if (Master == null || !InventoryHas(Master.RequiredItemId))
-                    return;
+            if (_isBlocking || !CanInteract()) return;
 
-                _unlocked = true;
-            }
-
-            if (_isBlocking) return;
-
-            if (!_isOpen)
+            if (!_isOpened)
                 OpenAsync().Forget();
             else
                 CloseAsync().Forget();
+
+            base.Interact();
         }
 
         private async UniTask OpenAsync()
@@ -56,7 +47,7 @@ namespace Game.Horror.Interaction
             }
             finally
             {
-                _isOpen = true;
+                _isOpened = true;
                 _isBlocking = false;
             }
         }
@@ -71,7 +62,7 @@ namespace Game.Horror.Interaction
             }
             finally
             {
-                _isOpen = false;
+                _isOpened = false;
                 _isBlocking = false;
             }
         }
