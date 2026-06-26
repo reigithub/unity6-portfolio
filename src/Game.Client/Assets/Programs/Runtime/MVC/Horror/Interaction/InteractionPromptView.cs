@@ -30,6 +30,9 @@ namespace Game.Horror.Interaction
         [Tooltip("Hold 長押しの進捗を示す円形ゲージ（Image: Type=Filled / FillMethod=Radial360）。押下中のみ表示する")]
         [SerializeField] private Image _holdGauge;
 
+        [Tooltip("画面に対して平行になるように回転するか")]
+        [SerializeField] private bool _rotation = true;
+
         [Tooltip("画面に対するプロンプトの目標サイズ係数。全対象で同一値にすると画面上のサイズが距離に依らず統一される")]
         [SerializeField] private float _screenSizeFactor = 0.05f;
 
@@ -39,10 +42,11 @@ namespace Game.Horror.Interaction
         [SerializeField] private GameObject _inputTypeRoot;
         [SerializeField] private TextMeshProUGUI _inputTypeText;
 
-        private Camera _viewCamera;
         private HorrorInteractionMaster _master;
-        private bool _interactionToggle;
         private InputSystemService _inputService;
+
+        private Camera _viewCamera;
+        private bool _interactionToggle;
 
         public void Initialize(HorrorInteractionMaster master)
         {
@@ -121,7 +125,7 @@ namespace Game.Horror.Interaction
             var camTf = _viewCamera.transform;
 
             // ビルボード（視点カメラへ正対）
-            transform.rotation = camTf.rotation;
+            if (_rotation) transform.rotation = camTf.rotation;
 
             // 平行投影は見かけサイズが距離非依存のためスケール補正不要
             if (_viewCamera.orthographic) return;
