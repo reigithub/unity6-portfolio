@@ -3686,10 +3686,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3099169879722722710, guid: 125232ca33aecc344bcfa98465e6cc77, type: 3}
-      propertyPath: _rotation
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4850308081218471319, guid: 125232ca33aecc344bcfa98465e6cc77, type: 3}
       propertyPath: m_Name
       value: InteractionPrompt
