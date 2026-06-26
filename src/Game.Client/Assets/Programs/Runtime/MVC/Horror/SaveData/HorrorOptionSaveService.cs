@@ -1,9 +1,9 @@
 using Game.Core.Services;
-using Game.Shared.Enums;
+using Game.Horror.SaveData;
 using Game.Shared.SaveData;
 using UnityEngine;
 
-namespace Game.Horror.SaveData
+namespace Game.Horror.Services
 {
     /// <summary>
     /// Horror オプション設定のセーブサービス。<see cref="SaveServiceBase{TData}"/> を継承し、
@@ -12,7 +12,7 @@ namespace Game.Horror.SaveData
     /// </summary>
     public class HorrorOptionSaveService : SaveServiceBase<HorrorOptionSaveData>, IGameService
     {
-        protected override string SaveKey => "horror_option_settings";
+        protected override string SaveKey => "horror_option";
         protected override int CurrentVersion => 1;
 
         public HorrorOptionSaveService(ISaveDataStorage storage) : base(storage)
