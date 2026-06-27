@@ -1651,7 +1651,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee61f7e1d1b1be849b4be2d43b013e76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.DoorInteractable
-  _interactionId: 2
+  _interactionId: 3
   _centerOverride: {fileID: 0}
   _colliders: []
   _highlighter: {fileID: 439381030}
@@ -5577,6 +5577,10 @@ PrefabInstance:
     - target: {fileID: 1155385438627058722, guid: 292264c9e4ef9d24a974bf72731e0d37, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 45
+      objectReference: {fileID: 0}
+    - target: {fileID: 1747042683783761211, guid: 292264c9e4ef9d24a974bf72731e0d37, type: 3}
+      propertyPath: _interactionId
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3229550244793785540, guid: 292264c9e4ef9d24a974bf72731e0d37, type: 3}
       propertyPath: m_AnchorMax.y
