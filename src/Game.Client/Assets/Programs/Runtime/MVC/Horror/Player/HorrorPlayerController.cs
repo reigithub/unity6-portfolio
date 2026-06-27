@@ -103,8 +103,8 @@ namespace Game.Horror.Player
         private const float BobWalkSpeed = 10f;         // 歩き：位相速度 rad/s（ゆっくり）
         private const float BobRunSpeed = 15f;          // 走り：位相速度 rad/s（少しだけ速い）
         private const float BobHorizontalRatio = 0.5f;  // 横位置/縦位置 比
-        private const float BobWalkRoll = 0.1f;         // 歩き：ロール角（度）＝知覚される横揺れ
-        private const float BobRunRoll = 0.2f;          // 走り：ロール角（度）
+        private const float BobWalkRoll = 0.05f;         // 歩き：ロール角（度）＝知覚される横揺れ
+        private const float BobRunRoll = 0.1f;          // 走り：ロール角（度）
         private const float BobAmplitudeResponse = 10f; // 強度イーズの応答
 
         private const float IdleSwaySpeed = 1.2f;       // アイドル：位相速度 rad/s（呼吸 ~5秒周期）
