@@ -142,7 +142,7 @@ namespace Game.Horror.Interaction
         /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
         protected bool HasItem()
         {
-            if (Master == null) return false;
+            if (Master == null || Master.RequiredItemId == 0) return true;
             return InventorySaveService.HasItem(Master.RequiredItemId);
         }
     }
