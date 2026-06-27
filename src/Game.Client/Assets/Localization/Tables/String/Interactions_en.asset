@@ -34,6 +34,10 @@ MonoBehaviour:
     m_Localized: HOLD
     m_Metadata:
       m_Items: []
+  - m_Id: 844565784711168
+    m_Localized: Move
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

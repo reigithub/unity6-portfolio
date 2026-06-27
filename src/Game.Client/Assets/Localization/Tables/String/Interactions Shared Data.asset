@@ -31,6 +31,10 @@ MonoBehaviour:
     m_Key: Hold
     m_Metadata:
       m_Items: []
+  - m_Id: 844565784711168
+    m_Key: Move
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
