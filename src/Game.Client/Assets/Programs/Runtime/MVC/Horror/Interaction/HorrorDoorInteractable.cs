@@ -10,7 +10,7 @@ namespace Game.Horror.Interaction
     /// 必要アイテムを所持していなければ実行不可で、初回実行時に解錠する。
     /// 入力方式はマスターデータ（Toggle 指定）に従い、提示動詞のみ開閉状態で切り替える。
     /// </summary>
-    public class DoorInteractable : InteractableBase
+    public class HorrorDoorInteractable : InteractableBase
     {
         [SerializeField] private PlayableDirector _openDirector;
         [SerializeField] private PlayableDirector _closeDirector;
