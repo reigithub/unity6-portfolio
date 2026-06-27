@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable
   records:
   - _id: 1
-    _name: 
+    _name: Key
     _inputType: 0
     _holdSeconds: 0
     _interactionVerbLocalizeKey: PickUp
@@ -24,17 +24,7 @@ MonoBehaviour:
     _grantQuantity: 1
     _checkpointSave: 0
   - _id: 2
-    _name: 
-    _inputType: 2
-    _holdSeconds: 0
-    _interactionVerbLocalizeKey: Open
-    _reinteractionVerbLocalizeKey: Close
-    _requiredItemId: 2
-    _grantItemId: 0
-    _grantQuantity: 0
-    _checkpointSave: 1
-  - _id: 3
-    _name: 
+    _name: Key
     _inputType: 1
     _holdSeconds: 2
     _interactionVerbLocalizeKey: PickUp
@@ -43,3 +33,13 @@ MonoBehaviour:
     _grantItemId: 2
     _grantQuantity: 1
     _checkpointSave: 0
+  - _id: 3
+    _name: Door1
+    _inputType: 2
+    _holdSeconds: 0
+    _interactionVerbLocalizeKey: Open
+    _reinteractionVerbLocalizeKey: Close
+    _requiredItemId: 2
+    _grantItemId: 0
+    _grantQuantity: 0
+    _checkpointSave: 1
