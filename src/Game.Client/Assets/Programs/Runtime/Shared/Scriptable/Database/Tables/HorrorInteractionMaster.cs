@@ -24,6 +24,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _interactionVerbLocalizeKey;
         [SerializeField] private string _reinteractionVerbLocalizeKey;
 
+        [SerializeField] private string _rejectionMessageLocalizeKey;
+
         [SerializeField] private int _requiredItemId;
 
         [SerializeField] private int _grantItemId;
@@ -72,6 +74,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _reinteractionVerbLocalizeKey;
             set => _reinteractionVerbLocalizeKey = value;
+        }
+
+        public string RejectionMessageLocalizeKey
+        {
+            get => _rejectionMessageLocalizeKey;
+            set => _rejectionMessageLocalizeKey = value;
         }
 
         /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>

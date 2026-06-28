@@ -19,6 +19,7 @@ MonoBehaviour:
     _holdSeconds: 0
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 1
     _grantQuantity: 1
@@ -29,6 +30,7 @@ MonoBehaviour:
     _holdSeconds: 2
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 2
     _grantQuantity: 1
@@ -39,16 +41,18 @@ MonoBehaviour:
     _holdSeconds: 0
     _interactionVerbLocalizeKey: Open
     _reinteractionVerbLocalizeKey: Close
+    _rejectionMessageLocalizeKey: Locked_with_a_Key
     _requiredItemId: 2
     _grantItemId: 0
     _grantQuantity: 0
-    _checkpointSave: 1
+    _checkpointSave: 0
   - _id: 4
     _name: Soft_Chair
     _inputType: 2
     _holdSeconds: 0
     _interactionVerbLocalizeKey: Move
     _reinteractionVerbLocalizeKey: Move
+    _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 0
     _grantQuantity: 0
@@ -59,7 +63,19 @@ MonoBehaviour:
     _holdSeconds: 0
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _grantItemId: 3
     _grantQuantity: 1
+    _checkpointSave: 1
+  - _id: 6
+    _name: Door2
+    _inputType: 2
+    _holdSeconds: 0
+    _interactionVerbLocalizeKey: Open
+    _reinteractionVerbLocalizeKey: Close
+    _rejectionMessageLocalizeKey: Locked_with_a_Key
+    _requiredItemId: 3
+    _grantItemId: 0
+    _grantQuantity: 0
     _checkpointSave: 0
