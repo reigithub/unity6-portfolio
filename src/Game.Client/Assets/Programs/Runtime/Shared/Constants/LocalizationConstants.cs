@@ -4,5 +4,6 @@ namespace Game.Shared.Constants
     {
         public const string InputControlsTable = "InputControls";
         public const string InteractionsTable = "Interactions";
+        public const string InteractionMessagesTable = "InteractionMessages";
     }
 }
