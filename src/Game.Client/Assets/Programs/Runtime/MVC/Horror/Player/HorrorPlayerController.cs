@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Game.Core.Constants;
 using Game.Core.Services;
 using Game.Horror.Interaction;
@@ -57,10 +58,9 @@ namespace Game.Horror.Player
         private float _speed;
         private bool _jumpTriggered;
 
-        // インタラクト（起動入力フラグ／Hold 実行中の対象と経過時間）
+        // インタラクト（起動入力フラグ／実行中の対象。経過時間は InteractingState ローカル）
         private bool _interactTriggered;
-        private IInteractable _holdTarget;
-        private float _holdElapsed;
+        private IInteractable _interactTarget;
 
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
@@ -252,32 +252,24 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 立てられた起動入力フラグを消費してインタラクトを開始する。Idle/Moving ステートの Update から呼ばれ、
-        /// 単発/トグルはその場で実行し（状態は変えない）、Hold は対象を保持して true を返す（遷移は呼び出し元ステートが行う）。
+        /// 立てられた起動入力フラグを消費し、インタラクト対象があれば保持して遷移要否を返す。
+        /// Idle/Moving ステートの Update から呼ばれ、実際の実行（可否判定・効果・拒否メッセージ）は
+        /// 入力タイプを問わず InteractingState 内で一括処理する。
         /// </summary>
-        /// <returns>Hold 開始で InteractingState へ遷移すべきなら true。</returns>
-        private bool TryBeginInteraction()
+        /// <returns>対象を保持し InteractingState へ遷移すべきなら true。</returns>
+        private bool TryInteraction()
         {
             if (!_interactTriggered)
                 return false;
 
             _interactTriggered = false;
 
-            if (_interactionDetector == null || !_interactionDetector.TryGetActionable(out var target))
+            if (_interactionDetector == null || !_interactionDetector.TryGetTarget(out var target))
                 return false;
 
-            if (!target.CanInteract())
-                return false;
-
-            if (target.InputType == InteractionInputType.Hold)
-            {
-                _holdTarget = target;
-                return true;
-            }
-
-            // 単発 / トグル：状態を変えずその場で実行
-            target.Interact();
-            return false;
+            // 可否・InputType を問わず、対象があればインタラクトステートで一括処理する
+            _interactTarget = target;
+            return true;
         }
 
         /// <summary>
@@ -447,8 +439,8 @@ namespace Game.Horror.Player
                     return;
                 }
 
-                // インタラクト起動チェック（Hold は Interacting へ遷移）
-                if (ctx.TryBeginInteraction())
+                // インタラクト起動チェック
+                if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
                     return;
@@ -484,8 +476,8 @@ namespace Game.Horror.Player
                     return;
                 }
 
-                // インタラクト起動チェック（Hold は Interacting へ遷移）
-                if (ctx.TryBeginInteraction())
+                // インタラクト起動チェック
+                if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
                     return;
@@ -537,45 +529,23 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// インタラクト（Hold）実行中の身体占有状態。視点回転のみ許可し水平移動は止める。
-        /// ボタン解放・対象喪失・視線外し・実行不可化で中断し、長押し閾値到達で効果を発火する。
+        /// インタラクト実行中の身体占有状態。視点回転のみ許可し水平移動は止める。
+        /// 入力タイプを問わず、拒否メッセージ／単発・トグル／長押しを 1 本の非同期シーケンスで処理する。
         /// </summary>
         private class InteractingState : State<HorrorPlayerController, StateEvent>
         {
+            private bool _completed;
+
             public override void Enter()
             {
-                Context._holdElapsed = 0f;
-                Context._holdTarget?.SetHoldProgress(0f); // ゲージを初期化（非表示）
+                _completed = false;
+                RunAsync(Context._interactTarget).Forget();
             }
 
             public override void Update()
             {
-                var ctx = Context;
-                ctx.ApplyRotation(); // 視点回転のみ許可
-
-                var target = ctx._holdTarget;
-
-                // 中断条件：対象喪失 / 視線を外した / ボタン解放 / 実行不可化
-                var stillAimed = ctx._interactionDetector != null
-                                 && ctx._interactionDetector.TryGetActionable(out var current)
-                                 && current == target;
-                if (target == null || !stillAimed || !ctx.Player.Interact.IsPressed() || !target.CanInteract())
-                {
-                    StateMachine.Transition(StateEvent.EndInteract);
-                    return;
-                }
-
-                ctx._holdElapsed += Time.deltaTime;
-
-                // 進捗ゲージへ反映（HoldSeconds=0 はゼロ除算回避で満充填扱い）
-                var holdSeconds = target.HoldSeconds;
-                target.SetHoldProgress(CalculateHoldProgress(ctx._holdElapsed, holdSeconds));
-
-                if (ctx._holdElapsed >= holdSeconds)
-                {
-                    target.Interact();
-                    StateMachine.Transition(StateEvent.EndInteract);
-                }
+                Context.ApplyRotation(); // 拘束中は視点回転のみ許可
+                if (_completed) StateMachine.Transition(StateEvent.EndInteract);
             }
 
             // 水平移動なし＝拘束（重力のみ適用）
@@ -583,9 +553,58 @@ namespace Game.Horror.Player
 
             public override void Exit()
             {
-                Context._holdTarget?.SetHoldProgress(0f); // 中断・完了とも即非表示
-                Context._holdTarget = null;
-                Context._holdElapsed = 0f;
+                var ctx = Context;
+                ctx._interactTarget?.SetHoldProgress(0f); // 中断・完了とも即非表示
+                ctx._interactTarget = null;
+                _completed = false;
+            }
+
+            // 1 回のインタラクトを開始～効果発火まで逐次処理する。
+            // 拒否（メッセージ）／単発・トグル（即時）／長押し（進捗）を 1 本のフローで扱う。
+            private async UniTask RunAsync(IInteractable target)
+            {
+                if (!target.CanInteract())
+                {
+                    await target.TryShowRejectionMessage();
+                }
+                else if (target.InputType == InteractionInputType.Hold)
+                {
+                    await RunHoldAsync(target);
+                }
+                else
+                {
+                    target.Interact();
+                }
+
+                _completed = true;
+            }
+
+            private async UniTask RunHoldAsync(IInteractable target)
+            {
+                var ctx = Context;
+                var elapsed = 0f;
+                target.SetHoldProgress(0f);
+
+                while (true)
+                {
+                    // 中断条件：対象喪失 / 視線を外した / ボタン解放 / 実行不可化
+                    var stillAimed = ctx._interactionDetector != null
+                                     && ctx._interactionDetector.TryGetTarget(out var current)
+                                     && current == target;
+                    if (!stillAimed || !ctx.Player.Interact.IsPressed() || !target.CanInteract())
+                        return;
+
+                    elapsed += Time.deltaTime;
+                    target.SetHoldProgress(CalculateHoldProgress(elapsed, target.HoldSeconds));
+
+                    if (elapsed >= target.HoldSeconds)
+                    {
+                        target.Interact();
+                        return;
+                    }
+
+                    await UniTask.Yield(PlayerLoopTiming.Update);
+                }
             }
         }
 

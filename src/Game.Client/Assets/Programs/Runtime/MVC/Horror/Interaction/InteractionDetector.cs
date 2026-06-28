@@ -124,7 +124,7 @@ namespace Game.Horror.Interaction
         /// <summary>
         /// 現在の実行可能（Actionable）対象を取得する。存在しなければ false。Interact 入力の実行先。
         /// </summary>
-        public bool TryGetActionable(out IInteractable target)
+        public bool TryGetTarget(out IInteractable target)
         {
             target = IsAlive(_actionable) ? _actionable : null;
             return target != null;

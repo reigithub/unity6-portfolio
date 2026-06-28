@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Dialogs;
 using Game.Horror.Services;
 using Game.Shared.Enums;
 using Game.Shared.Scriptable.Database;
@@ -125,6 +126,13 @@ namespace Game.Horror.Interaction
         {
             if (_promptView != null)
                 _promptView.SetHoldProgress(progress01);
+        }
+
+        public UniTask<bool> TryShowRejectionMessage()
+        {
+            if (Master == null) return UniTask.FromResult(false);
+
+            return HorrorInteractionMessageDialog.RunAsync(Master.RejectionMessageLocalizeKey);
         }
 
         protected virtual void OnDisable()

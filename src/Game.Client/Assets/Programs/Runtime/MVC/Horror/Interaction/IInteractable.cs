@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Game.Shared.Enums;
 using UnityEngine;
 
@@ -55,5 +56,10 @@ namespace Game.Horror.Interaction
         /// Hold 以外の対象は実装不要（no-op でよい）。
         /// </summary>
         void SetHoldProgress(float progress01);
+
+        /// <summary>
+        /// インタラクト不可能な時にメッセージを表示する
+        /// </summary>
+        UniTask<bool> TryShowRejectionMessage();
     }
 }
