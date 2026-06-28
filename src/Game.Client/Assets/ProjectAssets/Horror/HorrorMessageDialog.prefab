@@ -51,7 +51,7 @@ GameObject:
   - component: {fileID: 3889637892381741613}
   - component: {fileID: 3309218142150538135}
   m_Layer: 5
-  m_Name: HorrorInteractionMessageDialog
+  m_Name: HorrorMessageDialog
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
