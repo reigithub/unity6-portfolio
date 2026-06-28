@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace Game.Horror.Dialogs
 {
-    public class HorrorInteractionMessageDialogComponent : GameSceneComponent
+    public class HorrorMessageDialogComponent : GameSceneComponent
     {
         [SerializeField]
         private TextMeshProUGUI _messageText;

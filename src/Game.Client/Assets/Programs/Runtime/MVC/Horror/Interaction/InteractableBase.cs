@@ -3,6 +3,7 @@ using Game.Core.Services;
 using Game.Horror.Dialogs;
 using Game.Horror.Services;
 using Game.Shared.Enums;
+using Game.Shared.Localization;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
@@ -130,9 +131,11 @@ namespace Game.Horror.Interaction
 
         public UniTask<bool> TryShowRejectionMessage()
         {
-            if (Master == null) return UniTask.FromResult(false);
+            if (Master == null || string.IsNullOrEmpty(Master.RejectionMessageLocalizeKey))
+                return UniTask.FromResult(false);
 
-            return HorrorInteractionMessageDialog.RunAsync(Master.RejectionMessageLocalizeKey);
+            var message = InteractionMessagesLocalizer.Localize(Master.RejectionMessageLocalizeKey);
+            return HorrorMessageDialog.RunAsync(message);
         }
 
         protected virtual void OnDisable()

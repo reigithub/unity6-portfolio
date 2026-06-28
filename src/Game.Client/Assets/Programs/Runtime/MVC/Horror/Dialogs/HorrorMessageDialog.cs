@@ -4,38 +4,35 @@ using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
-using Game.Shared.Localization;
 using R3;
 
 namespace Game.Horror.Dialogs
 {
-    public class HorrorInteractionMessageDialog : GameDialogScene<HorrorInteractionMessageDialog, HorrorInteractionMessageDialogComponent, bool>
+    public class HorrorMessageDialog : GameDialogScene<HorrorMessageDialog, HorrorMessageDialogComponent, bool>
         , IGameSceneArg<string>
     {
-        protected override string AssetPathOrAddress => "HorrorInteractionMessageDialog";
+        protected override string AssetPathOrAddress => "HorrorMessageDialog";
 
         private InputSystemService _inputService;
-        private string _messageKey;
+        private string _message;
 
-        public static async UniTask<bool> RunAsync(string messageKey)
+        public static async UniTask<bool> RunAsync(string message)
         {
-            if (string.IsNullOrEmpty(messageKey)) return false;
-
             bool result;
             var inputService = GameServiceManager.Get<InputSystemService>();
             using (inputService.BlockPlayer())
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Get<GameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorInteractionMessageDialog, string, bool>(messageKey);
+                result = await sceneService.TransitionDialogAsync<HorrorMessageDialog, string, bool>(message);
             }
             return result;
         }
 
 
-        public UniTask SetArg(string messageKey)
+        public UniTask SetArg(string message)
         {
-            _messageKey =  messageKey;
+            _message =  message;
             return UniTask.CompletedTask;
         }
 
@@ -61,8 +58,7 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            var message = InteractionMessagesLocalizer.Localize(_messageKey);
-            SceneComponent.SetMessage(message);
+            SceneComponent.SetMessage(_message);
 
             return base.Startup();
         }
