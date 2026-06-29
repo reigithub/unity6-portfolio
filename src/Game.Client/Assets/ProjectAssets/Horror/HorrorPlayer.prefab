@@ -231,6 +231,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 292835226611884208}
+  - component: {fileID: 4774413914514725670}
   m_Layer: 6
   m_Name: FlashlightRoot
   m_TagString: Untagged
@@ -254,6 +255,20 @@ Transform:
   - {fileID: 8684561270686209843}
   m_Father: {fileID: 3108793209200739432}
   m_LocalEulerAnglesHint: {x: 85, y: -5, z: 0}
+--- !u!114 &4774413914514725670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3085953760712267595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57acd900bf4ba2c4cbcfd0a9d78cf1a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.RotationLagFollower
+  _camera: {fileID: 6031481874108313397}
+  _followSpeed: 36
 --- !u!1 &3649338037539827978
 GameObject:
   m_ObjectHideFlags: 0
