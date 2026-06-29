@@ -2,7 +2,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
 using Game.Horror.Player;
-using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;

@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.SaveData;
-using Game.Shared.Enums;
+using Game.Horror.Services;
 using Game.Shared.SaveData;
 using MemoryPack;
 using NSubstitute;
@@ -97,9 +97,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetMasterVolume(5f);
+            // 音量範囲は 1〜10。上限超えは 10 にクランプされる
+            _service.SetMasterVolume(15f);
 
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(1f));
+            Assert.That(_service.Data.MasterVolume, Is.EqualTo(10f));
         }
 
         [Test]
@@ -107,9 +108,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
+            // 音量範囲は 1〜10。下限割れは 1 にクランプされる
             _service.SetMasterVolume(-1f);
 
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(0f));
+            Assert.That(_service.Data.MasterVolume, Is.EqualTo(1f));
         }
 
         #endregion

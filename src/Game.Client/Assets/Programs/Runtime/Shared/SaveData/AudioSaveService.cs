@@ -61,14 +61,7 @@ namespace Game.Shared.SaveData
         {
             if (Data == null || _audioService == null) return;
 
-            // 0-10の整数を0.0-1.0のfloatに変換
-            // マスターボリュームは各カテゴリに乗算
-            var masterRatio = Data.MasterVolume / (float)MaxVolume;
-            var bgm = (Data.BgmVolume / (float)MaxVolume) * masterRatio;
-            var voice = (Data.VoiceVolume / (float)MaxVolume) * masterRatio;
-            var sfx = (Data.SeVolume / (float)MaxVolume) * masterRatio;
-
-            _audioService.SetVolume(bgm, voice, sfx);
+            _audioService.SetVolume(Data.MasterVolume, Data.BgmVolume, Data.VoiceVolume, Data.SeVolume);
         }
 
         protected override AudioSaveData CreateNewData()

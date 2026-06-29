@@ -1,11 +1,10 @@
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.Horror.Item;
-using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.MVC.Core.Scenes;
 using R3;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Game.Horror.Dialogs
 {
@@ -16,12 +15,8 @@ namespace Game.Horror.Dialogs
         [SerializeField] private TabGroup _tabGroup;
         [SerializeField] private HorrorItemSlotView[] _slots;
         [SerializeField] private HorrorItemDetailView _detailView;
-        [SerializeField] private Button _saveButton;
 
         #endregion
-
-        /// <summary>デバッグ用セーブボタンの押下通知（連打防止付き）。</summary>
-        public Observable<Unit> OnSaveRequested => _saveButton.OnClickAsObservable();
 
         public void Initialize()
         {
@@ -35,7 +30,8 @@ namespace Game.Horror.Dialogs
 
         private void BindSlots()
         {
-            var items = GameServiceManager.Resolve<HorrorInventorySaveService>().Data.Items;
+            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            var items = inventory.Data.Items;
             var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {

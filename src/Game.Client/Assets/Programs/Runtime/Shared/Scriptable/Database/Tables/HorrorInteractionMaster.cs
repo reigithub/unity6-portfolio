@@ -1,5 +1,5 @@
 using System;
-using Game.Shared.Interaction;
+using Game.Shared.Enums;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables
@@ -16,23 +16,38 @@ namespace Game.Shared.Scriptable.Database.Tables
         #region SerializeField
 
         [SerializeField] private int _id;
+        [SerializeField] private string _name;
+
         [SerializeField] private InteractionInputType _inputType;
         [SerializeField] private float _holdSeconds;
+
+        [SerializeField] private string _interactionVerbLocalizeKey;
+        [SerializeField] private string _reinteractionVerbLocalizeKey;
+
+        [SerializeField] private string _rejectionMessageLocalizeKey;
 
         [SerializeField] private int _requiredItemId;
 
         [SerializeField] private int _grantItemId;
         [SerializeField] private int _grantQuantity;
 
+        [SerializeField] private bool _checkpointSave;
+
         #endregion
 
-        #region Database
+        #region Columns
 
         [PrimaryKey]
         public int Id
         {
             get => _id;
             set => _id = value;
+        }
+
+        public string Name
+        {
+            get => _name;
+            set => _name = value;
         }
 
         /// <summary>起動方式（単発／長押し／トグル）。</summary>
@@ -47,6 +62,24 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _holdSeconds;
             set => _holdSeconds = value;
+        }
+
+        public string InteractionVerbLocalizeKey
+        {
+            get => _interactionVerbLocalizeKey;
+            set => _interactionVerbLocalizeKey = value;
+        }
+
+        public string ReinteractionVerbLocalizeKey
+        {
+            get => _reinteractionVerbLocalizeKey;
+            set => _reinteractionVerbLocalizeKey = value;
+        }
+
+        public string RejectionMessageLocalizeKey
+        {
+            get => _rejectionMessageLocalizeKey;
+            set => _rejectionMessageLocalizeKey = value;
         }
 
         /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>
@@ -68,6 +101,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _grantQuantity;
             set => _grantQuantity = value;
+        }
+
+        public bool CheckpointSave
+        {
+            get => _checkpointSave;
+            set => _checkpointSave = value;
         }
 
         #endregion

@@ -22,14 +22,6 @@ namespace Game.Core.Services
             _assetService = assetService;
         }
 
-        public void Startup()
-        {
-        }
-
-        public void Shutdown()
-        {
-        }
-
         protected override async UniTask<TextAsset> LoadMasterDataBinaryAsync()
         {
             _assetService ??= GameServiceManager.Get<AddressableAssetService>();

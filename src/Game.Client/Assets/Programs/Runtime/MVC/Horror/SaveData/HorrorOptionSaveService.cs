@@ -1,9 +1,9 @@
 using Game.Core.Services;
-using Game.Shared.Enums;
+using Game.Horror.SaveData;
 using Game.Shared.SaveData;
 using UnityEngine;
 
-namespace Game.Horror.SaveData
+namespace Game.Horror.Services
 {
     /// <summary>
     /// Horror オプション設定のセーブサービス。<see cref="SaveServiceBase{TData}"/> を継承し、
@@ -12,7 +12,7 @@ namespace Game.Horror.SaveData
     /// </summary>
     public class HorrorOptionSaveService : SaveServiceBase<HorrorOptionSaveData>, IGameService
     {
-        protected override string SaveKey => "horror_option_settings";
+        protected override string SaveKey => "horror_option";
         protected override int CurrentVersion => 1;
 
         public HorrorOptionSaveService(ISaveDataStorage storage) : base(storage)
@@ -155,28 +155,28 @@ namespace Game.Horror.SaveData
         public void SetMasterVolume(float value)
         {
             if (Data == null) return;
-            Data.MasterVolume = Mathf.Clamp01(value);
+            Data.MasterVolume = Mathf.Clamp(value, 1f, 10f);
             MarkDirty();
         }
 
         public void SetBgmVolume(float value)
         {
             if (Data == null) return;
-            Data.BgmVolume = Mathf.Clamp01(value);
+            Data.BgmVolume = Mathf.Clamp(value, 1f, 10f);
             MarkDirty();
         }
 
         public void SetVoiceVolume(float value)
         {
             if (Data == null) return;
-            Data.VoiceVolume = Mathf.Clamp01(value);
+            Data.VoiceVolume = Mathf.Clamp(value, 1f, 10f);
             MarkDirty();
         }
 
         public void SetSeVolume(float value)
         {
             if (Data == null) return;
-            Data.SeVolume = Mathf.Clamp01(value);
+            Data.SeVolume = Mathf.Clamp(value, 1f, 10f);
             MarkDirty();
         }
 

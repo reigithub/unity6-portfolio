@@ -25,6 +25,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6d971744f91240d4f9d93b2d13bebae6
+    m_Address: HorrorMessageDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d8b3ed36bd983594eb6ff044ae827618
     m_Address: HorrorStageScene
     m_ReadOnly: 0

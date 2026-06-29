@@ -14,13 +14,13 @@ namespace Game.Shared.Services
         /// オーディオサービスを初期化・起動する
         /// アプリケーション起動時に呼び出す
         /// </summary>
-        void Startup();
+        UniTask LoadAsync();
 
         /// <summary>
         /// オーディオサービスをシャットダウンする
         /// リソースの解放と再生中のオーディオの停止を行う
         /// </summary>
-        void Shutdown();
+        void Unload();
 
         /// <summary>
         /// BGM（バックグラウンドミュージック）を再生する
@@ -90,9 +90,10 @@ namespace Game.Shared.Services
         /// <summary>
         /// 各カテゴリのボリュームを設定する
         /// </summary>
-        /// <param name="bgm">BGMボリューム (0.0-1.0)</param>
-        /// <param name="voice">ボイスボリューム (0.0-1.0)</param>
-        /// <param name="sfx">効果音ボリューム (0.0-1.0)</param>
-        void SetVolume(float bgm, float voice, float sfx);
+        /// <param name="master">マスターボリューム</param>
+        /// <param name="bgm">BGMボリューム</param>
+        /// <param name="voice">ボイスボリューム</param>
+        /// <param name="sfx">効果音ボリューム</param>
+        void SetVolume(float master, float bgm, float voice, float sfx);
     }
 }

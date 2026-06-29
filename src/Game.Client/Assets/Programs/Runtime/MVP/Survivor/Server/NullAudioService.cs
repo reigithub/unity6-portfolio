@@ -10,8 +10,8 @@ namespace Game.MVP.Survivor.Server
     /// </summary>
     public class NullAudioService : IAudioService
     {
-        public void Startup() { }
-        public void Shutdown() { }
+        public UniTask LoadAsync() => UniTask.CompletedTask;
+        public void Unload() { }
         public UniTask PlayBgmAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask StopBgmAsync(CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayVoiceAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
@@ -21,6 +21,6 @@ namespace Game.MVP.Survivor.Server
         public UniTask PlayAsync(int[] audioIds, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayRandomOneAsync(AudioPlayTag audioPlayTag, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayRandomOneAsync(AudioCategory audioCategory, AudioPlayTag audioPlayTag, CancellationToken token = default) => UniTask.CompletedTask;
-        public void SetVolume(float bgm, float voice, float sfx) { }
+        public void SetVolume(float master, float bgm, float voice, float sfx) { }
     }
 }

@@ -8,12 +8,5 @@ namespace Game.Core.Services
     /// </summary>
     public class AddressableAssetService : AddressableAssetServiceBase, IGameService
     {
-        public void Startup()
-        {
-        }
-
-        public void Shutdown()
-        {
-        }
     }
 }

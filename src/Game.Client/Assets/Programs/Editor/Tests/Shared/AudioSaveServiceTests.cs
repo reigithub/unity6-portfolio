@@ -35,7 +35,7 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(_service.Data.MasterVolume, Is.EqualTo(5));
-            _mockAudioService.Received(1).SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
+            _mockAudioService.Received(1).SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
         }
 
         [Test]
@@ -99,7 +99,7 @@ namespace Game.Tests.Shared
 
             // Assert
             Assert.That(_service.Data.BgmVolume, Is.EqualTo(8));
-            _mockAudioService.Received(1).SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
+            _mockAudioService.Received(1).SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
         }
 
         [Test]
@@ -202,74 +202,7 @@ namespace Game.Tests.Shared
             _service.ApplyToAudioService();
 
             // Assert
-            // Master=10/10=1.0, each category = 10/10 * 1.0 = 1.0
-            _mockAudioService.Received().SetVolume(1.0f, 1.0f, 1.0f);
-        }
-
-        [Test]
-        public async Task ApplyToAudioService_CalculatesCorrectVolumes_HalfMaster()
-        {
-            // Arrange
-            await LoadData(masterVolume: 5, bgmVolume: 10, voiceVolume: 10, seVolume: 10);
-
-            // Act
-            _service.ApplyToAudioService();
-
-            // Assert
-            // Master=5/10=0.5, each category = 10/10 * 0.5 = 0.5
-            _mockAudioService.Received().SetVolume(0.5f, 0.5f, 0.5f);
-        }
-
-        [Test]
-        public async Task ApplyToAudioService_CalculatesCorrectVolumes_ZeroMaster()
-        {
-            // Arrange
-            await LoadData(masterVolume: 0, bgmVolume: 10, voiceVolume: 10, seVolume: 10);
-
-            // Act
-            _service.ApplyToAudioService();
-
-            // Assert
-            // Master=0, all volumes become 0
-            _mockAudioService.Received().SetVolume(0f, 0f, 0f);
-        }
-
-        [Test]
-        public async Task ApplyToAudioService_CalculatesCorrectVolumes_MixedValues()
-        {
-            // Arrange
-            await LoadData(masterVolume: 10, bgmVolume: 5, voiceVolume: 8, seVolume: 3);
-
-            // Act
-            _service.ApplyToAudioService();
-
-            // Assert
-            // Master=10/10=1.0
-            // BGM = 5/10 * 1.0 = 0.5
-            // Voice = 8/10 * 1.0 = 0.8
-            // SE = 3/10 * 1.0 = 0.3
-            _mockAudioService.Received().SetVolume(0.5f, 0.8f, 0.3f);
-        }
-
-        [Test]
-        public async Task ApplyToAudioService_CalculatesCorrectVolumes_ComplexCase()
-        {
-            // Arrange
-            await LoadData(masterVolume: 7, bgmVolume: 7, voiceVolume: 10, seVolume: 7);
-
-            // Act
-            _service.ApplyToAudioService();
-
-            // Assert
-            // Master=7/10=0.7
-            // BGM = 7/10 * 0.7 = 0.49
-            // Voice = 10/10 * 0.7 = 0.7
-            // SE = 7/10 * 0.7 = 0.49
-            // Use tolerance for floating point comparison
-            _mockAudioService.Received().SetVolume(
-                Arg.Is<float>(v => System.Math.Abs(v - 0.49f) < 0.001f),
-                Arg.Is<float>(v => System.Math.Abs(v - 0.7f) < 0.001f),
-                Arg.Is<float>(v => System.Math.Abs(v - 0.49f) < 0.001f));
+            _mockAudioService.Received().SetVolume(10f,10f, 10f, 10f);
         }
 
         [Test]
@@ -277,7 +210,7 @@ namespace Game.Tests.Shared
         {
             // Act & Assert
             Assert.DoesNotThrow(() => _service.ApplyToAudioService());
-            _mockAudioService.DidNotReceive().SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
+            _mockAudioService.DidNotReceive().SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
         }
 
         #endregion
@@ -302,7 +235,7 @@ namespace Game.Tests.Shared
             await _service.LoadAsync();
 
             // Assert - ApplyToAudioService should be called during load
-            _mockAudioService.Received().SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
+            _mockAudioService.Received().SetVolume(Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>(), Arg.Any<float>());
         }
 
         #endregion

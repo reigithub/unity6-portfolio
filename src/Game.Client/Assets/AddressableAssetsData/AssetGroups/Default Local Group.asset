@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: ab956b5b82bfa614baabbac2e24e7add
   m_SerializeEntries:
+  - m_GUID: 59d48e0ef1fe0154d9de06951f3d6fe2
+    m_Address: AudioService
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ba5d98dffb522e643b1b6e9e6d150d90
     m_Address: AppTitleScene
     m_ReadOnly: 0

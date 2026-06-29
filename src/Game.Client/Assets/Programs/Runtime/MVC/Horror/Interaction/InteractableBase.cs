@@ -1,7 +1,12 @@
+using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Horror.SaveData;
-using Game.Shared.Interaction;
+using Game.Horror.Dialogs;
+using Game.Horror.Services;
+using Game.Shared.Enums;
+using Game.Shared.Localization;
+using Game.Shared.Scriptable.Database;
 using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Interaction
@@ -19,35 +24,95 @@ namespace Game.Horror.Interaction
         [Tooltip("中心位置の上書き。未指定なら自身の transform.position を使う")]
         [SerializeField] private Transform _centerOverride;
 
+        // WorldBounds 算出用のコライダー群（Awake で一度だけ取得し、毎回 .bounds で最新の world AABB を合成する）
+        [SerializeField] private Collider[] _colliders;
+
         [Tooltip("アウトライン表現を担うコンポーネント")]
         [SerializeField] private InteractionOutlineHighlighter _highlighter;
 
         [Tooltip("対象位置に出すプロンプト表示")]
         [SerializeField] private InteractionPromptView _promptView;
 
-        /// <summary>解決済みのマスターデータ。見つからなければ null。</summary>
+        protected HorrorInteractionSaveService InteractionSaveService { get; private set; }
+        protected HorrorInventorySaveService InventorySaveService { get; private set; }
+        protected HorrorCheckpointSaveService CheckpointSaveService { get; private set; }
+
+        private IScriptableDatabaseService _databaseService;
+        protected ScriptableDatabase Database => _databaseService.Database;
+
         protected HorrorInteractionMaster Master { get; private set; }
+
+        protected virtual void Awake()
+        {
+            _colliders = GetComponentsInChildren<Collider>(includeInactive: true);
+        }
 
         protected virtual void Start()
         {
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
-            if (database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
+            InteractionSaveService = GameServiceManager.Resolve<HorrorInteractionSaveService>();
+            InventorySaveService = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            CheckpointSaveService = GameServiceManager.Resolve<HorrorCheckpointSaveService>();
+
+            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
+            if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
                 Master = master;
+
+                if (_promptView != null)
+                    _promptView.Initialize(master);
             }
         }
 
         public Vector3 CenterPosition =>
             _centerOverride != null ? _centerOverride.position : transform.position;
 
+        public Bounds WorldBounds
+        {
+            get
+            {
+                Bounds bounds = default;
+                bool initialized = false;
+
+                if (_colliders != null)
+                {
+                    for (int i = 0; i < _colliders.Length; i++)
+                    {
+                        var collider = _colliders[i];
+                        if (collider == null || !collider.enabled) continue;
+
+                        if (!initialized)
+                        {
+                            bounds = collider.bounds;
+                            initialized = true;
+                        }
+                        else
+                        {
+                            bounds.Encapsulate(collider.bounds);
+                        }
+                    }
+                }
+
+                // コライダーが無ければ中心点の極小 bounds でフォールバック（面積を持たないが検出は成立しうる）
+                return initialized ? bounds : new Bounds(CenterPosition, Vector3.zero);
+            }
+        }
+
         public virtual InteractionInputType InputType =>
             Master != null ? Master.InputType : InteractionInputType.Instant;
 
         public virtual float HoldSeconds => Master != null ? Master.HoldSeconds : 0f;
 
+        public virtual bool WasInteracted() => InteractionSaveService.Contains(_interactionId);
+
         public virtual bool CanInteract() => true;
 
-        public abstract void Interact();
+        public virtual void Interact()
+        {
+            InteractionSaveService.Add(Master);
+
+            if (Master.CheckpointSave)
+                CheckpointSaveService.SaveIfDirtyAsync().Forget();
+        }
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
         {
@@ -58,23 +123,38 @@ namespace Game.Horror.Interaction
                 _promptView.SetState(state, viewCamera);
         }
 
+        public void SetHoldProgress(float progress01)
+        {
+            if (_promptView != null)
+                _promptView.SetHoldProgress(progress01);
+        }
+
+        public UniTask<bool> TryShowRejectionMessage()
+        {
+            if (Master == null || string.IsNullOrEmpty(Master.RejectionMessageLocalizeKey))
+                return UniTask.FromResult(false);
+
+            var message = InteractionMessagesLocalizer.Localize(Master.RejectionMessageLocalizeKey);
+            return HorrorMessageDialog.RunAsync(message);
+        }
+
         protected virtual void OnDisable()
         {
             if (_promptView != null)
                 _promptView.SetState(InteractionState.Hidden, null);
         }
 
-        /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
-        protected bool InventoryHas(int itemId)
+        protected void SetInteractionToggle(bool isOn)
         {
-            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            foreach (var item in inventory.Data.Items)
-            {
-                if (item.ItemId == itemId)
-                    return true;
-            }
+            if (_promptView != null)
+                _promptView.SetInteractionToggle(isOn);
+        }
 
-            return false;
+        /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
+        protected bool HasItem()
+        {
+            if (Master == null || Master.RequiredItemId == 0) return true;
+            return InventorySaveService.HasItem(Master.RequiredItemId);
         }
     }
 }

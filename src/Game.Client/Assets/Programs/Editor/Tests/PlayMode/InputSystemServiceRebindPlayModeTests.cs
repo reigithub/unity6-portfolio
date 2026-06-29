@@ -49,7 +49,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var idx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             jump.ApplyBindingOverride(idx, "<Keyboard>/j");
 
             var json = _service.SaveBindingOverridesAsJson();
@@ -62,7 +62,7 @@ namespace Game.Tests.PlayMode
             service2.LoadBindingOverrides(json);
 
             var jump2 = PlayerAction(service2, "Jump");
-            var idx2 = FirstIndex(jump2, InputConstants.KeyboardAndMouse);
+            var idx2 = FirstIndex(jump2, InputControlSchemes.KeyboardAndMouse);
             Assert.That(jump2.bindings[idx2].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
             service2.Shutdown();
@@ -76,7 +76,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var idx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             var defaultPath = jump.bindings[idx].effectivePath;
 
             Assert.DoesNotThrow(() => _service.LoadBindingOverrides(""));
@@ -97,13 +97,13 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var idx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             var defaultPath = jump.bindings[idx].effectivePath;
 
             jump.ApplyBindingOverride(idx, "<Keyboard>/j");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
-            _service.ResetBinding(InputConstants.KeyboardAndMouse, "Jump");
+            _service.ResetBinding(InputControlSchemes.KeyboardAndMouse, "Jump");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo(defaultPath));
             yield return null;
         }
@@ -115,8 +115,8 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var kbmIdx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
-            var padIdx = FirstIndex(jump, InputConstants.Gamepad);
+            var kbmIdx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
+            var padIdx = FirstIndex(jump, InputControlSchemes.Gamepad);
             var kbmDefault = jump.bindings[kbmIdx].effectivePath;
             var padDefault = jump.bindings[padIdx].effectivePath;
 
@@ -125,7 +125,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(padIdx, "<Gamepad>/buttonNorth");
 
             // Gamepad のみリセット
-            _service.ResetSchemeBindings(InputConstants.Gamepad);
+            _service.ResetSchemeBindings(InputControlSchemes.Gamepad);
 
             Assert.That(jump.bindings[padIdx].effectivePath, Is.EqualTo(padDefault),
                 "対象スキーム（Gamepad）は既定へ戻る");
@@ -133,7 +133,7 @@ namespace Game.Tests.PlayMode
                 "他スキーム（KBM）の override は保持される");
 
             // KBM もリセットすると既定へ戻る
-            _service.ResetSchemeBindings(InputConstants.KeyboardAndMouse);
+            _service.ResetSchemeBindings(InputControlSchemes.KeyboardAndMouse);
             Assert.That(jump.bindings[kbmIdx].effectivePath, Is.EqualTo(kbmDefault));
             yield return null;
         }
@@ -149,7 +149,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -162,7 +162,7 @@ namespace Game.Tests.PlayMode
             Assert.That(completed, Is.True, "リバインドが完了するはず");
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var idx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
             op.Dispose();
@@ -176,16 +176,16 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var jumpIdx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var jumpIdx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             var jumpOriginalPath = jump.bindings[jumpIdx].effectivePath; // <Keyboard>/space
 
             // Attack(KBM) を <Keyboard>/j に固定し、Jump をその j へリバインドして衝突させる
             var attack = PlayerAction(_service, "Attack");
-            var attackIdx = FirstIndex(attack, InputConstants.KeyboardAndMouse);
+            var attackIdx = FirstIndex(attack, InputControlSchemes.KeyboardAndMouse);
             attack.ApplyBindingOverride(attackIdx, "<Keyboard>/j");
 
             var completed = false;
-            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -212,11 +212,11 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
-            var idx = FirstIndex(jump, InputConstants.KeyboardAndMouse);
+            var idx = FirstIndex(jump, InputControlSchemes.KeyboardAndMouse);
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebind(InputConstants.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => { },
                 () => canceled = true);
             yield return null;
