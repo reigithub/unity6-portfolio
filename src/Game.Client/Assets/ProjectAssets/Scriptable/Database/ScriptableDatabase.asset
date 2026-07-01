@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f92d211b74040944ba7223b31e695f31, type: 3}
   m_Name: ScriptableDatabase
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.ScriptableDatabase
+  horrorEnemyMasterTable: {fileID: 11400000, guid: e2e87e3bd7accf743971a7c95f801a79, type: 2}
   horrorInteractionMasterTable: {fileID: 11400000, guid: 9ba811de550e0194591d0089d3a2bb2f, type: 2}
   horrorItemMasterTable: {fileID: 11400000, guid: 330e829b9a3796d40b7ffc065f1f3e90, type: 2}
+  horrorWeaponMasterTable: {fileID: 11400000, guid: a012f6e852ee9ad4fb4a300a93399bcf, type: 2}
   weaponLevelMasterTable: {fileID: 11400000, guid: 3a507dbfc69213d40b7a3976e725fb96, type: 2}
