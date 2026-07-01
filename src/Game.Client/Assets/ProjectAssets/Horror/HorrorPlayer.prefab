@@ -438,6 +438,10 @@ MonoBehaviour:
     m_Bits: 520
   _lookRotationSpeed: 0.1
   _interactionDetector: {fileID: 8001035782658720818}
+  _weaponMasterId: 1
+  _hitMask:
+    serializedVersion: 2
+    m_Bits: 649
 --- !u!114 &8001035782658720818
 MonoBehaviour:
   m_ObjectHideFlags: 0

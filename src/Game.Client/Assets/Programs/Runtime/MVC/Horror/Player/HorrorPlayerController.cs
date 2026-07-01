@@ -5,9 +5,12 @@ using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Combat;
 using Game.Shared.Enums;
+using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
+using Game.Shared.Scriptable.Database.Tables;
 using R3;
 using UnityEngine;
 
@@ -43,6 +46,13 @@ namespace Game.Horror.Player
         [Tooltip("インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
         [SerializeField] private InteractionDetector _interactionDetector;
 
+        [Header("攻撃（ハンドガン）")]
+        [Tooltip("武器の調整値マスター ID（HorrorWeaponMasterTable の PrimaryKey）")]
+        [SerializeField] private int _weaponMasterId;
+
+        [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
+        [SerializeField] private LayerMask _hitMask;
+
         private bool _initialized;
         private InputSystemService _inputService;
         private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
@@ -61,6 +71,11 @@ namespace Game.Horror.Player
         // インタラクト（起動入力フラグ／実行中の対象。経過時間は InteractingState ローカル）
         private bool _interactTriggered;
         private IInteractable _interactTarget;
+
+        // 攻撃（ハンドガン）：マスター値・銃声発行サービス・起動入力フラグ（硬直経過は AttackingState ローカル）
+        private HorrorWeaponMaster _weaponMaster;
+        private MessagePipeService _messagePipeService;
+        private bool _attackTriggered;
 
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
@@ -117,6 +132,15 @@ namespace Game.Horror.Player
         {
             _inputService = GameServiceManager.Get<InputSystemService>();
             _inputService.EnablePlayer();
+
+            _messagePipeService = GameServiceManager.Get<MessagePipeService>();
+
+            // 武器（ハンドガン）マスターを取得。Database はプレイヤー生成時点でロード済み。
+            var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            if (dbService.Database.HorrorWeaponMasterTable.TryFindById(_weaponMasterId, out var weaponMaster))
+            {
+                _weaponMaster = weaponMaster;
+            }
 
             TryGetComponent(out _characterController);
 
@@ -209,9 +233,9 @@ namespace Game.Horror.Player
                 _smoothedLookValue = Vector2.zero;
             }
 
-            // インタラクト中（身体占有）は移動・他アクションを受け付けない
-            var interacting = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
-            if (!interacting)
+            // 身体占有（インタラクト）中は移動・他アクションを受け付けない
+            var restrained = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
+            if (!restrained)
             {
                 // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
                 UpdateCrouchInput();
@@ -222,7 +246,7 @@ namespace Game.Horror.Player
             }
 
             // 移動速度更新（拘束中は 0、しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
-            if (interacting)
+            if (restrained)
             {
                 _speed = 0f;
             }
@@ -233,9 +257,15 @@ namespace Game.Horror.Player
             }
 
             // ジャンプ入力受付（拘束中は不可）
-            if (!interacting && Player.Jump.WasPressedThisFrame() && CanJump())
+            if (!restrained && Player.Jump.WasPressedThisFrame() && CanJump())
             {
                 _jumpTriggered = true;
+            }
+
+            // 攻撃（射撃）起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+            if (!restrained && Player.Attack.WasPressedThisFrame() && IsGrounded())
+            {
+                _attackTriggered = true;
             }
         }
 
@@ -270,6 +300,21 @@ namespace Game.Horror.Player
             // 可否・InputType を問わず、対象があればインタラクトステートで一括処理する
             _interactTarget = target;
             return true;
+        }
+
+        /// <summary>
+        /// 立てられた射撃起動フラグを消費し、武器マスターがあれば AttackingState へ遷移すべきと返す。
+        /// Idle/Moving ステートの Update から呼ばれ、実際の発砲は AttackingState.Enter が行う。
+        /// </summary>
+        /// <returns>AttackingState へ遷移すべきなら true。</returns>
+        private bool TryAttack()
+        {
+            if (!_attackTriggered)
+                return false;
+
+            _attackTriggered = false;
+
+            return _weaponMaster != null;
         }
 
         /// <summary>
@@ -403,6 +448,10 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, InteractingState>(StateEvent.Interact);
             _stateMachine.AddTransition<InteractingState, IdleState>(StateEvent.EndInteract);
 
+            _stateMachine.AddTransition<IdleState, AttackingState>(StateEvent.Attack);
+            _stateMachine.AddTransition<MovingState, AttackingState>(StateEvent.Attack);
+            _stateMachine.AddTransition<AttackingState, IdleState>(StateEvent.EndAttack);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
 
             // 初期ステート
@@ -421,6 +470,8 @@ namespace Game.Horror.Player
             Land, // 着地: Jumping → Idle
             Interact, // インタラクト開始: Idle/Moving → Interacting
             EndInteract, // インタラクト終了: Interacting → Idle
+            Attack, // 攻撃開始: Idle/Moving → Attacking
+            EndAttack, // 攻撃終了（発射間隔経過）: Attacking → Idle
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -443,6 +494,13 @@ namespace Game.Horror.Player
                 if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
+                    return;
+                }
+
+                // 攻撃（射撃）起動チェック
+                if (ctx.TryAttack())
+                {
+                    StateMachine.Transition(StateEvent.Attack);
                     return;
                 }
 
@@ -480,6 +538,13 @@ namespace Game.Horror.Player
                 if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
+                    return;
+                }
+
+                // 攻撃（射撃）起動チェック
+                if (ctx.TryAttack())
+                {
+                    StateMachine.Transition(StateEvent.Attack);
                     return;
                 }
 
@@ -605,6 +670,40 @@ namespace Game.Horror.Player
 
                     await UniTask.Yield(PlayerLoopTiming.Update);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 射撃実行中の状態。Enter で 1 発発砲し、FireInterval（武器マスター）の間は移動・視点を許可しつつ
+        /// 次弾の発射を待たせる（発射レート制限）。間隔を消化したら Idle へ戻る。将来のリロード/エイム等の器も兼ねる。
+        /// </summary>
+        private class AttackingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+
+            public override void Enter()
+            {
+                // インスタンスはキャッシュ再利用されるため経過時間を必ずリセット
+                _elapsed = 0f;
+                Context.Fire();
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.ApplyRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+
+                _elapsed += Time.deltaTime;
+                if (_elapsed >= ctx.GetFireInterval())
+                    StateMachine.Transition(StateEvent.EndAttack);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -744,6 +843,40 @@ namespace Game.Horror.Player
             var eyeDrop = _standHeight - height;
             _cameraBasePosition = _standCameraBasePosition - new Vector3(0f, eyeDrop, 0f);
         }
+
+        #endregion
+
+        #region Combat
+
+        /// <summary>
+        /// カメラ中心からヒットスキャン（Raycast 即着弾）で射撃する。命中すれば IDamageable にダメージ、
+        /// 命中点（外れたら射程端）で銃声 NoiseEvent を発行する。
+        /// </summary>
+        private void Fire()
+        {
+            if (_mainCamera == null || _weaponMaster == null) return;
+
+            var origin = _mainCamera.transform.position;
+            var direction = _mainCamera.transform.forward;
+
+            IDamageable target = null;
+            var noisePosition = origin + direction * _weaponMaster.Range;
+
+            if (Physics.Raycast(origin, direction, out var hit, _weaponMaster.Range, _hitMask, QueryTriggerInteraction.Ignore))
+            {
+                target = hit.collider.GetComponentInParent<IDamageable>();
+                noisePosition = hit.point;
+            }
+
+            // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
+            target?.TakeDamage(_weaponMaster.Damage);
+            _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+            Debug.Log("Weapon Fire");
+        }
+
+
+        /// <summary>次弾までの発射間隔（AttackingState 滞在秒）。武器未設定なら 0。</summary>
+        private float GetFireInterval() => _weaponMaster?.FireInterval ?? 0f;
 
         #endregion
     }
