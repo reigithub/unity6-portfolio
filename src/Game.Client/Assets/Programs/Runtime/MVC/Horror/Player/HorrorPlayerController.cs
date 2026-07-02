@@ -6,6 +6,7 @@ using Game.Horror.SaveData;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Combat;
+using Game.Shared.Constants;
 using Game.Shared.Enums;
 using Game.Shared.Events;
 using Game.Shared.Extensions;
@@ -330,8 +331,8 @@ namespace Game.Horror.Player
         private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
         private bool IsRunning() => _speed >= _runSpeed;
 
-        private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
-        private bool IsLookInput() => _lookValue.magnitude > PlayerPhysicsConstants.InputThreshold;
+        private bool IsMoveInput() => _moveValue.magnitude > InputConstants.InputThreshold;
+        private bool IsLookInput() => _lookValue.magnitude > InputConstants.InputThreshold;
 
         /// <summary>
         /// しゃがみ入力をモード別に処理する。空中（非接地）では姿勢を変更しない。
