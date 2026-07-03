@@ -38,6 +38,26 @@ MonoBehaviour:
     m_Localized: Move
     m_Metadata:
       m_Items: []
+  - m_Id: 2898208406642688
+    m_Localized: Use
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898278426353664
+    m_Localized: Inspect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898314728054784
+    m_Localized: Discard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898367702114304
+    m_Localized: Equip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898428456607744
+    m_Localized: Shortcut
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

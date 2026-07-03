@@ -35,6 +35,26 @@ MonoBehaviour:
     m_Key: Move
     m_Metadata:
       m_Items: []
+  - m_Id: 2898208406642688
+    m_Key: Use
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898278426353664
+    m_Key: Inspect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898314728054784
+    m_Key: Discard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898367702114304
+    m_Key: Equip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2898428456607744
+    m_Key: Shortcut
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
