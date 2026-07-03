@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Shared.Enums;
 using MemoryPack;
 
 namespace Game.Horror.SaveData
@@ -14,14 +15,16 @@ namespace Game.Horror.SaveData
         public int Version { get; set; } = 1;
 
         /// <summary>所持アイテム一覧（追加順）</summary>
-        public List<HorrorInventoryItem> Items { get; set; } = new();
+        public List<HorrorInventorySlotData> Slots { get; set; } = new();
     }
 
     /// <summary>所持アイテム1種分の保存レコード。</summary>
     [MemoryPackable]
-    public partial class HorrorInventoryItem
+    public partial class HorrorInventorySlotData
     {
-        public int ItemId { get; set; }
+        public InventorySlotType SlotType { get; set; }
+
+        public int Id { get; set; }
 
         public int Count { get; set; }
     }

@@ -3,6 +3,7 @@ using Game.Core.UI;
 using Game.Horror.Item;
 using Game.Horror.Services;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Enums;
 using R3;
 using UnityEngine;
 
@@ -13,8 +14,8 @@ namespace Game.Horror.Dialogs
         #region SerializeField
 
         [SerializeField] private TabGroup _tabGroup;
-        [SerializeField] private HorrorItemSlotView[] _slots;
-        [SerializeField] private HorrorItemDetailView _detailView;
+        [SerializeField] private HorrorInventorySlotView[] _slots;
+        [SerializeField] private HorrorInventorySlotDetailView _detailView;
 
         #endregion
 
@@ -31,18 +32,34 @@ namespace Game.Horror.Dialogs
         private void BindSlots()
         {
             var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            var items = inventory.Data.Items;
+            var slots = inventory.Data.Slots;
             var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {
                 bool empty = true;
-                if (i < items.Count)
+                if (i < slots.Count)
                 {
-                    var entry = items[i];
-                    if (database.HorrorItemMasterTable.TryFindById(entry.ItemId, out var master))
+                    var slot = slots[i];
+                    switch (slot.SlotType)
                     {
-                        _slots[i].SetItem(master, entry.Count);
-                        empty = false;
+                        case InventorySlotType.Item:
+                        {
+                            if (database.HorrorItemMasterTable.TryFindById(slot.Id, out var master))
+                            {
+                                _slots[i].SetSlot(master, slot.Count);
+                                empty = false;
+                            }
+                            break;
+                        }
+                        case InventorySlotType.Weapon:
+                        {
+                            if (database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var master))
+                            {
+                                _slots[i].SetSlot(master, slot.Count);
+                                empty = false;
+                            }
+                            break;
+                        }
                     }
                 }
 
@@ -56,7 +73,7 @@ namespace Game.Horror.Dialogs
             UpdateDetail(_slots[0]);
         }
 
-        private void UpdateDetail(HorrorItemSlotView slot)
-            => _detailView.SetDetail(slot.Item);
+        private void UpdateDetail(HorrorInventorySlotView slot)
+            => _detailView.SetDetail(slot.SlotInfo);
     }
 }

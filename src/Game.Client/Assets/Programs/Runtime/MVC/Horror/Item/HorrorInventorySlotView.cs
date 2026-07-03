@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -14,39 +14,39 @@ namespace Game.Horror.Item
     /// 選択されるのは Selectable（子 Button）自身なので、このコンポーネントは Button と同じ GameObject に付与する。
     /// マウスホバー（PointerEventReceiver）・パッド/キー操作のどちらも EventSystem の選択に集約され OnSelect に届く。
     /// </summary>
-    public class HorrorItemSlotView : MonoBehaviour, ISelectHandler, IDeselectHandler
+    public class HorrorInventorySlotView : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
         [SerializeField] private Image _iconImage;            // アイコン表示（自身の Image を流用）
         [SerializeField] private TextMeshProUGUI _countText;  // 個数（スタック > 1 のときのみ表示）
 
-        private readonly Subject<HorrorItemSlotView> _onSelected = new();
+        private readonly Subject<HorrorInventorySlotView> _onSelected = new();
 
         /// <summary>このスロットが選択された通知。Component が購読して詳細表示を更新する。</summary>
-        public Observable<HorrorItemSlotView> OnSelected => _onSelected;
+        public Observable<HorrorInventorySlotView> OnSelected => _onSelected;
 
-        /// <summary>保持アイテム。空スロットは null。</summary>
-        public HorrorItemMaster Item { get; private set; }
+        public IHorrorInventorySlotInfo SlotInfo { get; private set; }
 
-        public void SetItem(HorrorItemMaster item, int count)
+        public void SetSlot(IHorrorInventorySlotInfo info, int count)
         {
-            Item = item;
-            ApplyIcon(item);
-            ApplyCount(item, count);
+            SlotInfo = info;
+            LoadIconAsync(info).Forget();
+            if (_countText != null)
+            {
+                var show = info != null && count > 1;
+                _countText.gameObject.SetActive(show);
+                if (show) _countText.text = count.ToString();
+            }
         }
 
         public void SetEmpty()
         {
-            Item = null;
-            ApplyIcon(null);
-            if (_countText != null) _countText.gameObject.SetActive(false);
+            SlotInfo = null;
+            LoadIconAsync(null).Forget();
+            if (_countText != null)
+                _countText.gameObject.SetActive(false);
         }
 
-        private void ApplyIcon(HorrorItemMaster item)
-        {
-            LoadIconAsync(item).Forget();
-        }
-
-        private async UniTask LoadIconAsync(HorrorItemMaster item)
+        private async UniTask LoadIconAsync(IHorrorInventorySlotInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {
@@ -66,14 +66,6 @@ namespace Game.Horror.Item
                 _iconImage.sprite = icon;
                 _iconImage.enabled = icon != null;
             }
-        }
-
-        private void ApplyCount(HorrorItemMaster item, int count)
-        {
-            if (_countText == null) return;
-            var show = item != null && count > 1;
-            _countText.gameObject.SetActive(show);
-            if (show) _countText.text = count.ToString();
         }
 
         public void OnSelect(BaseEventData eventData)

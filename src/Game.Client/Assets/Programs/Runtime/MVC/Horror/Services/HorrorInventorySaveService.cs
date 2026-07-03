@@ -1,8 +1,9 @@
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
+using Game.Shared.Enums;
+using Game.Shared.Interfaces;
 using Game.Shared.SaveData;
-using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using UnityEngine;
 
@@ -18,6 +19,8 @@ namespace Game.Horror.Services
 
         private readonly IScriptableDatabaseService _databaseService;
 
+        private const int MaxSlotCount = 30;
+
         public HorrorInventorySaveService(ISaveDataStorage storage, IScriptableDatabaseService databaseService) : base(storage)
         {
             _databaseService = databaseService;
@@ -25,47 +28,80 @@ namespace Game.Horror.Services
 
         /// <summary>
         /// アイテムをインベントリに追加する。
-        /// 同一 Id が既に存在する場合はスタック加算し MaxQuantity で頭打ちする。
+        /// 同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        /// <param name="master">追加するアイテムのマスターデータ。</param>
-        /// <param name="addCount">追加数量。</param>
-        public void Add(HorrorItemMaster master, int addCount)
+        public bool TryAdd(IHorrorInventorySlotInfo info, int addCount)
         {
-            if (master == null || addCount <= 0)
-                return;
+            if (info == null || addCount <= 0)
+                return false;
 
-            var items = Data.Items;
-            var item = items.Find(x => x.ItemId == master.Id);
-            if (item != null)
-                item.Count = Mathf.Min(item.Count + addCount, master.MaxQuantity);
-            else
-                items.Add(new HorrorInventoryItem { ItemId = master.Id, Count = Mathf.Min(addCount, master.MaxQuantity) });
-
-            MarkDirty();
-        }
-
-        public bool HasItem(int itemId)
-        {
-            foreach (var item in Data.Items)
+            if (TryGet(info.SlotType, info.Id, out var slot))
             {
-                if (item.ItemId == itemId)
-                    return true;
+                if (slot.Count >= info.MaxCount)
+                    return false;
+
+                slot.Count = Mathf.Min(slot.Count + addCount, info.MaxCount);
+            }
+            else
+            {
+                if (Data.Slots.Count >= MaxSlotCount)
+                    return false;
+
+                Data.Slots.Add(new HorrorInventorySlotData
+                {
+                    SlotType = info.SlotType,
+                    Id = info.Id,
+                    Count = Mathf.Min(addCount, info.MaxCount)
+                });
             }
 
+            MarkDirty();
+            return true;
+        }
+
+        private bool TryGet(InventorySlotType type, int id, out HorrorInventorySlotData slot)
+        {
+            foreach (var slotData in Data.Slots)
+            {
+                if (slotData.SlotType == type && slotData.Id == id)
+                {
+                    slot = slotData;
+                    return true;
+                }
+            }
+
+            slot = null;
             return false;
         }
+
+        public bool HasItem(int itemId) => TryGet(InventorySlotType.Item, itemId, out _);
 
         protected override void OnDataLoaded(HorrorInventorySaveData data)
         {
             var database = _databaseService.Database;
             // 逆順走査
-            for (int i = data.Items.Count - 1; i >= 0; i--)
+            for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
-                var id = data.Items[i].ItemId;
-                if (!database.HorrorItemMasterTable.TryFindById(id, out var master))
-                    data.Items.RemoveAt(i);
-                else
-                    data.Items[i].Count = Mathf.Min(data.Items[i].Count, master.MaxQuantity);
+                var slot = data.Slots[i];
+                switch (slot.SlotType)
+                {
+                    case InventorySlotType.Item:
+                    {
+                        if (!database.HorrorItemMasterTable.TryFindById(slot.Id, out var master))
+                            data.Slots.RemoveAt(i);
+                        else
+                            data.Slots[i].Count = Mathf.Min(slot.Count, master.MaxCount);
+                        break;
+                    }
+                    case InventorySlotType.Weapon:
+                    {
+                        if (!database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var master))
+                            data.Slots.RemoveAt(i);
+                        else
+                            data.Slots[i].Count = Mathf.Min(slot.Count, master.MaxCount);
+                        break;
+                    }
+                }
             }
         }
 

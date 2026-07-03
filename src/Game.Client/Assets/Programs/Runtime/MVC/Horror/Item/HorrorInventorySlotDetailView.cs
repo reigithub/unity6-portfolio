@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Interfaces;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,21 +11,21 @@ namespace Game.Horror.Item
     /// 選択中アイテムの詳細（拡大アイコン・名前・説明）を表示するパネル。
     /// 空スロット選択時は Clear で内容を消す。
     /// </summary>
-    public class HorrorItemDetailView : MonoBehaviour
+    public class HorrorInventorySlotDetailView : MonoBehaviour
     {
         [SerializeField] private Image _largeIcon;
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _descriptionText;
 
-        public void SetDetail(HorrorItemMaster item)
+        public void SetDetail(IHorrorInventorySlotInfo info)
         {
-            LoadIconAsync(item).Forget();
+            LoadIconAsync(info).Forget();
 
-            if (_nameText != null) _nameText.text = item?.Name;
-            if (_descriptionText != null) _descriptionText.text = item?.Description;
+            if (_nameText != null) _nameText.text = info?.Name;
+            if (_descriptionText != null) _descriptionText.text = info?.Description;
         }
 
-        private async UniTask LoadIconAsync(HorrorItemMaster item)
+        private async UniTask LoadIconAsync(IHorrorInventorySlotInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {
