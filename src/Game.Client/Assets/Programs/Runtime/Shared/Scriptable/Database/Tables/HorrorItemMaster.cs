@@ -14,7 +14,6 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _description;
         [SerializeField] private string _iconAssetName;
         [SerializeField] private int _maxCount;
-        [SerializeField] private bool _isUnique;
 
         #endregion
 
