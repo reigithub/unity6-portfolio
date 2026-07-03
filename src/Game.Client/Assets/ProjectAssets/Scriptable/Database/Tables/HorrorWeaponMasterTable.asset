@@ -15,6 +15,9 @@ MonoBehaviour:
   records:
   - _id: 1
     _name: Handgun
+    _description: 
+    _iconAssetName: 
+    _maxCount: 1
     _damage: 34
     _range: 50
     _fireInterval: 0.3
