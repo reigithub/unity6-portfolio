@@ -18,8 +18,5 @@ namespace Game.Shared.Scriptable.Database
 
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorWeaponMasterTable horrorWeaponMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorWeaponMasterTable HorrorWeaponMasterTable => horrorWeaponMasterTable;
-
-        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.WeaponLevelMasterTable weaponLevelMasterTable;
-        public global::Game.Shared.Scriptable.Database.Tables.WeaponLevelMasterTable WeaponLevelMasterTable => weaponLevelMasterTable;
     }
 }

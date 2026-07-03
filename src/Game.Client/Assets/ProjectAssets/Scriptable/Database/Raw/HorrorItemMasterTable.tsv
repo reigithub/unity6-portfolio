@@ -1,3 +1,4 @@
-Id	Name	Description	MaxQuantity	IconAssetName
-1	Key	どこかのカギ	3	T_14_key_
-2	Key2	どこかのカギ	3	T_14_key_
+Id	Name	Description	IconAssetName	MaxCount	SlotType
+1	Key	どこかのカギ1	T_14_key_	1	Item
+2	Key2	どこかのカギ2	T_14_key_	1	Item
+3	Key3	どこかのカギ3	T_14_key_	1	Item

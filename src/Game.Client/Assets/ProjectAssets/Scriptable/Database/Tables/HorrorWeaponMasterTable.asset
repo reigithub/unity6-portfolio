@@ -16,7 +16,7 @@ MonoBehaviour:
   - _id: 1
     _name: Handgun
     _description: 
-    _iconAssetName: 
+    _iconAssetName: T_1_fire_
     _maxCount: 1
     _damage: 34
     _range: 50

@@ -21,8 +21,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _grantItemId: 1
-    _grantQuantity: 1
+    _acquiredId: 1
+    _acquiredCount: 1
     _checkpointSave: 0
   - _id: 2
     _name: Key
@@ -32,8 +32,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _grantItemId: 2
-    _grantQuantity: 1
+    _acquiredId: 2
+    _acquiredCount: 1
     _checkpointSave: 0
   - _id: 3
     _name: Door1
@@ -43,8 +43,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
     _requiredItemId: 2
-    _grantItemId: 0
-    _grantQuantity: 0
+    _acquiredId: 0
+    _acquiredCount: 0
     _checkpointSave: 0
   - _id: 4
     _name: Soft_Chair
@@ -54,8 +54,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: Move
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _grantItemId: 0
-    _grantQuantity: 0
+    _acquiredId: 0
+    _acquiredCount: 0
     _checkpointSave: 0
   - _id: 5
     _name: Key3
@@ -65,8 +65,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _grantItemId: 3
-    _grantQuantity: 1
+    _acquiredId: 0
+    _acquiredCount: 0
     _checkpointSave: 1
   - _id: 6
     _name: Door2
@@ -76,6 +76,17 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
     _requiredItemId: 3
-    _grantItemId: 0
-    _grantQuantity: 0
+    _acquiredId: 0
+    _acquiredCount: 0
+    _checkpointSave: 0
+  - _id: 7
+    _name: Handgun
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
+    _requiredItemId: 0
+    _acquiredId: 1
+    _acquiredCount: 1
     _checkpointSave: 0

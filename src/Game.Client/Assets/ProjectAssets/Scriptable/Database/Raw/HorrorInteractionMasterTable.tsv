@@ -1,4 +1,7 @@
-Id	Name	InputType	HoldSeconds	InteractionVerbLocalizeKey	ReinteractionVerbLocalizeKey	RequiredItemId	GrantItemId	GrantQuantity	CheckpointSave
-1	Key	Instant	0	PickUp		0	1	1	false
-2	Key	Hold	2	PickUp		0	2	1	false
-3	Door1	Toggle	0	Open	Close	2	0	0	true
+Id	Name	InputType	HoldSeconds	InteractionVerbLocalizeKey	ReinteractionVerbLocalizeKey	RejectionMessageLocalizeKey	RequiredItemId	GrantItemId	GrantQuantity	CheckpointSave
+1	Key	Instant	0	PickUp			0	1	1	false
+2	Key	Hold	2	PickUp			0	2	1	false
+3	Door1	Toggle	0	Open	Close	Locked_with_a_Key	2	0	0	false
+4	Soft_Chair	Toggle	0	Move	Move		0	0	0	false
+5	Key3	Instant	0	PickUp			0	3	1	true
+6	Door2	Toggle	0	Open	Close	Locked_with_a_Key	3	0	0	false
