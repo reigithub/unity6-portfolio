@@ -16,6 +16,8 @@ namespace Game.Horror.Inventory
     /// </summary>
     public class HorrorInventorySlotView : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
+        [SerializeField] private RectTransform _rectTransform;
+        [SerializeField] private Button _button;
         [SerializeField] private Image _iconImage;            // アイコン表示（自身の Image を流用）
         [SerializeField] private TextMeshProUGUI _countText;  // 個数（スタック > 1 のときのみ表示）
 
@@ -24,7 +26,22 @@ namespace Game.Horror.Inventory
         /// <summary>このスロットが選択された通知。Component が購読して詳細表示を更新する。</summary>
         public Observable<HorrorInventorySlotView> OnSelected => _onSelected;
 
+        private readonly Subject<HorrorInventorySlotView> _onSubmit = new();
+
+        /// <summary>このスロットで決定された通知。Component が購読してサブメニューを開く。</summary>
+        public Observable<HorrorInventorySlotView> OnSubmit => _onSubmit;
+
+        /// <summary>サブメニューの表示位置決めに用いる自身の RectTransform。</summary>
+        public RectTransform RectTransform => _rectTransform;
+
         public IHorrorInventorySlotInfo SlotInfo { get; private set; }
+
+        public void Initialize()
+        {
+            _button.OnClickAsObservable()
+                .Subscribe(_ => _onSubmit.OnNext(this))
+                .AddTo(this);
+        }
 
         public void SetSlot(IHorrorInventorySlotInfo info, int count)
         {
@@ -80,6 +97,7 @@ namespace Game.Horror.Inventory
         private void OnDestroy()
         {
             _onSelected.Dispose();
+            _onSubmit.Dispose();
         }
     }
 }

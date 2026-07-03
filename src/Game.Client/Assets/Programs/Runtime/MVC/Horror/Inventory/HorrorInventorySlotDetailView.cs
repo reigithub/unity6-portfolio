@@ -17,7 +17,7 @@ namespace Game.Horror.Inventory
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _descriptionText;
 
-        public void SetDetail(IHorrorInventorySlotInfo info)
+        public void SetSlotDetail(IHorrorInventorySlotInfo info)
         {
             LoadIconAsync(info).Forget();
 
@@ -47,6 +47,6 @@ namespace Game.Horror.Inventory
             }
         }
 
-        public void Clear() => SetDetail(null);
+        public void Clear() => SetSlotDetail(null);
     }
 }

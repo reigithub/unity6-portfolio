@@ -5,6 +5,7 @@ using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using R3;
+using UnityEngine;
 
 namespace Game.Horror.Dialogs
 {
@@ -36,25 +37,46 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            // ダイアログキャンセル
-            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.UI.Inventory.OnPerformedAsObservable())
+            // キャンセル：サブメニュー展開中は一段だけ閉じ、それ以外はダイアログを閉じる
+            _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
+                .Subscribe(_ =>
+                {
+                    if (SceneComponent.IsSubmenuOpen())
+                        SceneComponent.CloseSubmenu();
+                    else
+                        TrySetResult(default);
+                })
+                .AddTo(Disposables);
+
+            // インベントリトグルでダイアログを閉じる（サブメニュー展開中は無効）
+            _inputService.UI.Inventory.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
 
-            // L1 (Previous) / R1 (Next) でタブ循環
+            // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中は無効）
             _inputService.UI.Previous.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
                 .Subscribe(_ => SceneComponent.PreviousTab())
                 .AddTo(Disposables);
 
             _inputService.UI.Next.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
-            SceneComponent.Initialize();
+            // アクション選択（基盤：ログのみ＋メニュー閉じ。実処理は将来フェーズ）
+            SceneComponent.OnContextActionClicked
+                .Where(_ => State.IsProcessing())
+                .Subscribe(info =>
+                {
+                    Debug.Log($"[HorrorInventory] Action selected: {info.ContextActionType}");
+                    SceneComponent.CloseSubmenu();
+                })
+                .AddTo(Disposables);
 
+            SceneComponent.Initialize();
 
             return base.Startup();
         }
