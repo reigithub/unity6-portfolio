@@ -1,6 +1,6 @@
 using Game.Core.Services;
 using Game.Core.UI;
-using Game.Horror.Item;
+using Game.Horror.Inventory;
 using Game.Horror.Services;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;

@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Game.Horror.Item
+namespace Game.Horror.Inventory
 {
     /// <summary>
     /// グリッド内の1スロット。アイコンと個数を表示し、選択時に枠を点灯して詳細表示へ通知する。
