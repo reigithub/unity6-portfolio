@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Core.Services;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
@@ -29,7 +30,7 @@ namespace Game.Horror.Services
         }
 
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
-        public bool Set(int index, InventorySlotType slotType, int id)
+        public bool TrySet(int index, InventorySlotType slotType, int id)
         {
             if (Data == null || index < 0 || index >= SlotCount)
                 return false;
@@ -39,6 +40,50 @@ namespace Game.Horror.Services
             slot.Id = id;
             MarkDirty();
             return true;
+        }
+
+        /// <summary>
+        /// 対象アイテムを destIndex に割り当てる。同一アイテムが既に別スロットにあれば旧スロットと内容を交換
+        /// （交換先が空なら実質「移動」）、無ければ上書き。単一登録（同一アイテムは高々1スロット）を保つ。
+        /// </summary>
+        public bool Assign(int destIndex, InventorySlotType slotType, int id)
+        {
+            if (Data == null || destIndex < 0 || destIndex >= SlotCount)
+                return false;
+
+            int index = IndexOf(slotType, id);
+            if (index == destIndex)
+                return false; // 既に同じスロット → 変化なし
+
+            var dest = Data.Slots[destIndex];
+            if (index >= 0)
+            {
+                // 既登録 → 旧スロットへ dest の旧内容を移す（dest が空なら旧が空になり「移動」、占有なら入替）
+                var src = Data.Slots[index];
+                src.SlotType = dest.SlotType;
+                src.Id = dest.Id;
+            }
+
+            // dest に対象を置く（未登録時は上書き）
+            dest.SlotType = slotType;
+            dest.Id = id;
+            MarkDirty();
+            return true;
+        }
+
+        // 指定アイテム (SlotType, Id) が登録されているスロット index を返す（None は対象外）。無ければ -1。
+        private int IndexOf(InventorySlotType slotType, int id)
+        {
+            if (Data == null || slotType == InventorySlotType.None)
+                return -1;
+
+            for (int i = 0; i < SlotCount; i++)
+            {
+                var s = Data.Slots[i];
+                if (s.SlotType == slotType && s.Id == id)
+                    return i;
+            }
+            return -1;
         }
 
         /// <summary>指定スロット(0-3)の登録を外す（空にする）。</summary>
@@ -83,17 +128,7 @@ namespace Game.Horror.Services
             var database = _databaseService.Database;
             foreach (var slot in data.Slots)
             {
-                if (slot.SlotType == InventorySlotType.None)
-                    continue;
-
-                bool exists = slot.SlotType switch
-                {
-                    InventorySlotType.Item => database.HorrorItemMasterTable.TryFindById(slot.Id, out _),
-                    InventorySlotType.Weapon => database.HorrorWeaponMasterTable.TryFindById(slot.Id, out _),
-                    _ => false,
-                };
-
-                if (!exists)
+                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out _))
                 {
                     slot.SlotType = InventorySlotType.None;
                     slot.Id = 0;
@@ -105,8 +140,10 @@ namespace Game.Horror.Services
         private static void EnsureSlotCount(HorrorEquipmentShortcutSaveData data)
         {
             data.Slots ??= new List<HorrorEquipmentShortcutSlotData>();
+
             while (data.Slots.Count < SlotCount)
                 data.Slots.Add(new HorrorEquipmentShortcutSlotData());
+
             if (data.Slots.Count > SlotCount)
                 data.Slots.RemoveRange(SlotCount, data.Slots.Count - SlotCount);
         }

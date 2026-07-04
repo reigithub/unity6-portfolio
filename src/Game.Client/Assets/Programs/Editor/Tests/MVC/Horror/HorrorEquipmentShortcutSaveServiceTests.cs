@@ -37,6 +37,15 @@ namespace Game.Tests.MVC.Horror
             await _service.LoadAsync();
         }
 
+        private int CountOf(InventorySlotType type, int id)
+        {
+            int count = 0;
+            foreach (var s in _service.Data.Slots)
+                if (s.SlotType == type && s.Id == id)
+                    count++;
+            return count;
+        }
+
         [Test]
         public async Task Load_WhenNoFile_CreatesFourEmptySlots()
         {
@@ -55,7 +64,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            var ok = _service.Set(1, InventorySlotType.Weapon, 5);
+            var ok = _service.TrySet(1, InventorySlotType.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGet(1, out var slot), Is.True);
@@ -68,7 +77,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Clear_RemovesRegistrationAndMarksDirty()
         {
             await LoadDefaultData();
-            _service.Set(2, InventorySlotType.Item, 3);
+            _service.TrySet(2, InventorySlotType.Item, 3);
 
             var ok = _service.Clear(2);
 
@@ -82,8 +91,83 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            Assert.That(_service.Set(-1, InventorySlotType.Item, 1), Is.False);
-            Assert.That(_service.Set(HorrorEquipmentShortcutSaveService.SlotCount, InventorySlotType.Item, 1), Is.False);
+            Assert.That(_service.TrySet(-1, InventorySlotType.Item, 1), Is.False);
+            Assert.That(_service.TrySet(HorrorEquipmentShortcutSaveService.SlotCount, InventorySlotType.Item, 1), Is.False);
+        }
+
+        [Test]
+        public async Task Assign_RegisteredElsewhere_ToEmptySlot_Moves()
+        {
+            await LoadDefaultData();
+            _service.TrySet(0, InventorySlotType.Weapon, 5);
+
+            var ok = _service.Assign(1, InventorySlotType.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGet(1, out var dest), Is.True);
+            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.Id, Is.EqualTo(5));
+            Assert.That(_service.TryGet(0, out _), Is.False, "旧スロットは空になる（移動）");
+        }
+
+        [Test]
+        public async Task Assign_RegisteredElsewhere_ToOccupiedSlot_Swaps()
+        {
+            await LoadDefaultData();
+            _service.TrySet(0, InventorySlotType.Weapon, 5);
+            _service.TrySet(1, InventorySlotType.Item, 3);
+
+            var ok = _service.Assign(1, InventorySlotType.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGet(1, out var dest), Is.True);
+            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.Id, Is.EqualTo(5));
+            Assert.That(_service.TryGet(0, out var src), Is.True, "元 dest の item が旧スロットへ入替");
+            Assert.That(src.SlotType, Is.EqualTo(InventorySlotType.Item));
+            Assert.That(src.Id, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task Assign_Unregistered_ToOccupiedSlot_Overwrites()
+        {
+            await LoadDefaultData();
+            _service.TrySet(1, InventorySlotType.Item, 3);
+
+            var ok = _service.Assign(1, InventorySlotType.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGet(1, out var dest), Is.True);
+            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.Id, Is.EqualTo(5));
+            Assert.That(CountOf(InventorySlotType.Item, 3), Is.EqualTo(0), "元の item は上書きで消える");
+        }
+
+        [Test]
+        public async Task Assign_ToSameSlot_ReturnsFalseAndNoChange()
+        {
+            await LoadDefaultData();
+            _service.TrySet(2, InventorySlotType.Weapon, 5);
+
+            var ok = _service.Assign(2, InventorySlotType.Weapon, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(_service.TryGet(2, out var slot), Is.True);
+            Assert.That(slot.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(slot.Id, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task Assign_KeepsSingleRegistration()
+        {
+            await LoadDefaultData();
+            _service.TrySet(0, InventorySlotType.Weapon, 5);
+
+            _service.Assign(2, InventorySlotType.Weapon, 5);
+
+            Assert.That(CountOf(InventorySlotType.Weapon, 5), Is.EqualTo(1), "同一装備は常に1スロットのみ");
+            Assert.That(_service.TryGet(2, out _), Is.True);
+            Assert.That(_service.TryGet(0, out _), Is.False);
         }
 
         [Test]
@@ -92,7 +176,7 @@ namespace Game.Tests.MVC.Horror
             // LoadAsync 未実行 ＝ Data は null
             Assert.DoesNotThrow(() =>
             {
-                Assert.That(_service.Set(0, InventorySlotType.Item, 1), Is.False);
+                Assert.That(_service.TrySet(0, InventorySlotType.Item, 1), Is.False);
                 Assert.That(_service.Clear(0), Is.False);
                 Assert.That(_service.TryGet(0, out _), Is.False);
             });

@@ -59,11 +59,18 @@ namespace Game.Horror.Dialogs
         }
 
         // 対象アイテムを指定スロットへ登録し、表示を更新する。
+        // Assign は既登録なら移動/入替、未登録なら上書きするため、影響が2スロットに及ぶ。全スロット再表示する。
         private void Register(int index)
         {
             if (_target == null) return;
-            if (_saveService.Set(index, _target.SlotType, _target.Id))
-                _slots[index].SetItem(_target);
+            if (_saveService.Assign(index, _target.SlotType, _target.Id))
+                RefreshAllSlots();
+        }
+
+        private void RefreshAllSlots()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+                RefreshSlot(i);
         }
 
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
