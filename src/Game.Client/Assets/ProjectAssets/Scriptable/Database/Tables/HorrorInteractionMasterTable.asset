@@ -90,3 +90,14 @@ MonoBehaviour:
     _acquiredId: 1
     _acquiredCount: 1
     _checkpointSave: 0
+  - _id: 8
+    _name: Smoke
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
+    _requiredItemId: 0
+    _acquiredId: 2
+    _acquiredCount: 1
+    _checkpointSave: 0
