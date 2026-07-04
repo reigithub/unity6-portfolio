@@ -1,4 +1,5 @@
 using Game.Core.Services;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
@@ -83,25 +84,10 @@ namespace Game.Horror.Services
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
-                switch (slot.SlotType)
-                {
-                    case InventorySlotType.Item:
-                    {
-                        if (!database.HorrorItemMasterTable.TryFindById(slot.Id, out var master))
-                            data.Slots.RemoveAt(i);
-                        else
-                            data.Slots[i].Count = Mathf.Min(slot.Count, master.MaxCount);
-                        break;
-                    }
-                    case InventorySlotType.Weapon:
-                    {
-                        if (!database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var master))
-                            data.Slots.RemoveAt(i);
-                        else
-                            data.Slots[i].Count = Mathf.Min(slot.Count, master.MaxCount);
-                        break;
-                    }
-                }
+                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out var info))
+                    data.Slots.RemoveAt(i);
+                else
+                    data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
             }
         }
 

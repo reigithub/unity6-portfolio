@@ -58,11 +58,16 @@ namespace Game.Horror
             await inventorySaveService.LoadAsync();
             GameServiceManager.Register(inventorySaveService);
 
+            // 装備ショートカット: ロード（マスター整合込み）→ 共有登録
+            var equipmentShortcutSaveService = new HorrorEquipmentShortcutSaveService(saveDataStorage, dbService);
+            await equipmentShortcutSaveService.LoadAsync();
+            GameServiceManager.Register(equipmentShortcutSaveService);
+
             var interactionSaveService = new HorrorInteractionSaveService(saveDataStorage, dbService);
             await interactionSaveService.LoadAsync();
             GameServiceManager.Register(interactionSaveService);
 
-            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService);
+            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService, equipmentShortcutSaveService);
             GameServiceManager.Register(checkpointSaveService);
 
             // 5. 初期シーン遷移

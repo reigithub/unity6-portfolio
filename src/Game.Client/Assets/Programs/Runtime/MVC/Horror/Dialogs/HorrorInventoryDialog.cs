@@ -3,6 +3,7 @@ using Game.Core.Services;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
@@ -66,13 +67,18 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
-            // アクション選択（基盤：ログのみ＋メニュー閉じ。実処理は将来フェーズ）
+            // アクション選択：Shortcut はショートカット登録ダイアログをネストで開く。他は従来通り。
             SceneComponent.OnContextActionClicked
                 .Where(_ => State.IsProcessing())
-                .Subscribe(info =>
+                .SubscribeAwait(async (info, _) =>
                 {
-                    Debug.Log($"[HorrorInventory] Action selected: {info.ContextActionType}");
+                    var slotInfo = info.SlotInfo;
                     SceneComponent.CloseSubmenu();
+
+                    if (info.ContextActionType == InventoryContextActionType.Shortcut)
+                        await HorrorEquipmentShortcutDialog.RunAsync(slotInfo);
+                    else
+                        Debug.Log($"[HorrorInventory] Action selected: {info.ContextActionType}");
                 })
                 .AddTo(Disposables);
 
