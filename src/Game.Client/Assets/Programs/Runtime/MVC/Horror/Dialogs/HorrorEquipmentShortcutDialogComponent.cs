@@ -1,9 +1,10 @@
 using Game.Core.Services;
 using Game.Horror.Equipment;
+using Game.Horror.Inventory;
 using Game.Horror.Services;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Enums;
 using Game.Shared.Interfaces;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private HorrorEquipmentShortcutSlotView[] _slots;
 
         private InputSystemService _inputService;
+        private IScriptableDatabaseService _databaseService;
         private HorrorEquipmentShortcutSaveService _saveService;
         private IHorrorInventorySlotInfo _target;
         private int _currentIndex;
@@ -26,6 +28,7 @@ namespace Game.Horror.Dialogs
         {
             _target = target;
             _inputService = GameServiceManager.Get<InputSystemService>();
+            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
             _saveService = GameServiceManager.Resolve<HorrorEquipmentShortcutSaveService>();
 
             for (int i = 0; i < _slots.Length; i++)
@@ -66,34 +69,10 @@ namespace Game.Horror.Dialogs
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_saveService.TryGet(index, out var slot) && TryResolveInfo(slot.SlotType, slot.Id, out var info))
+            if (_saveService.TryGet(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var info))
                 _slots[index].SetItem(info);
             else
                 _slots[index].SetEmpty();
-        }
-
-        private static bool TryResolveInfo(InventorySlotType type, int id, out IHorrorInventorySlotInfo info)
-        {
-            info = null;
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
-            switch (type)
-            {
-                case InventorySlotType.Item:
-                    if (database.HorrorItemMasterTable.TryFindById(id, out var itemMaster))
-                    {
-                        info = itemMaster;
-                        return true;
-                    }
-                    break;
-                case InventorySlotType.Weapon:
-                    if (database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
-                    {
-                        info = weaponMaster;
-                        return true;
-                    }
-                    break;
-            }
-            return false;
         }
     }
 }
