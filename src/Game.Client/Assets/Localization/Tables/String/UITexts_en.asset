@@ -218,6 +218,22 @@ MonoBehaviour:
     m_Localized: Hold
     m_Metadata:
       m_Items: []
+  - m_Id: 12236180444684288
+    m_Localized: Inventory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12236304705134592
+    m_Localized: Key Item
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12236746260488192
+    m_Localized: Crafts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12236900220805120
+    m_Localized: Maps
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
