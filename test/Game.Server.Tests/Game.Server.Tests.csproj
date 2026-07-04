@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="Npgsql" />
