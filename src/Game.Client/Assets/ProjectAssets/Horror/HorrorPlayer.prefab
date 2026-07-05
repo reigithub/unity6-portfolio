@@ -433,12 +433,11 @@ MonoBehaviour:
   _crouchSpeed: 1.2
   _crouchHeight: 1
   _crouchTransitionSpeed: 8
-  _ceilingLayerMask:
+  _ceilingMask:
     serializedVersion: 2
     m_Bits: 520
   _lookRotationSpeed: 0.1
   _interactionDetector: {fileID: 8001035782658720818}
-  _weaponMasterId: 1
   _hitMask:
     serializedVersion: 2
     m_Bits: 649
