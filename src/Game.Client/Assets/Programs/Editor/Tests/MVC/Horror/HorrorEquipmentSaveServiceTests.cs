@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
@@ -144,8 +145,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_service.Data, Is.Not.Null);
             Assert.That(_service.Data.Version, Is.EqualTo(1));
-            Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentSaveService.SlotCount));
-            for (int i = 0; i < HorrorEquipmentSaveService.SlotCount; i++)
+            Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
+            for (int i = 0; i < HorrorEquipmentConstants.MaxSlotCount; i++)
                 Assert.That(_service.TryGetSlot(i, out _), Is.False, $"slot {i} は初期空");
             Assert.That(_service.IsDirty, Is.False);
         }
@@ -183,7 +184,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.TrySetSlot(-1, InventorySlotType.Item, 1), Is.False);
-            Assert.That(_service.TrySetSlot(HorrorEquipmentSaveService.SlotCount, InventorySlotType.Item, 1), Is.False);
+            Assert.That(_service.TrySetSlot(HorrorEquipmentConstants.MaxSlotCount, InventorySlotType.Item, 1), Is.False);
         }
 
         [Test]
@@ -362,7 +363,7 @@ namespace Game.Tests.MVC.Horror
             await _service.LoadAsync();
 
             Assert.That(_service.Data.Slots, Is.Not.Null);
-            Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentSaveService.SlotCount));
+            Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
         }
     }
 }

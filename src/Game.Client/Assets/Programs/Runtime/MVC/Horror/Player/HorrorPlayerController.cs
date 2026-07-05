@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Constants;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
@@ -50,6 +52,10 @@ namespace Game.Horror.Player
         [Header("攻撃（ハンドガン）")]
         [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
         [SerializeField] private LayerMask _hitMask;
+
+        [Header("装備（武器モデル表示）")]
+        [Tooltip("装備中武器の一人称モデルを表示するビュー（Camera/WeaponRoot にアタッチ）")]
+        [SerializeField] private HorrorWeaponView _weaponView;
 
         private bool _initialized;
         private InputSystemService _inputService;
@@ -153,6 +159,11 @@ namespace Game.Horror.Player
             {
                 _weaponMaster = weaponMaster;
             }
+
+            // 武器モデル表示ビューの初期化：装備中なら即座に表示し、ショートカット登録武器のモデルは事前ロードしておく
+            _weaponView.Initialize();
+            if (_weaponMaster != null) _weaponView.ShowImmediate(_weaponMaster);
+            _weaponView.PreloadAsync(ResolveEquippableMasters()).Forget();
 
             TryGetComponent(out _characterController);
 
@@ -374,6 +385,37 @@ namespace Game.Horror.Player
             _pendingEquipId = slot.Id;
             _pendingWeaponMaster = weaponMaster;
             return true;
+        }
+
+        /// <summary>
+        /// ショートカット4スロット＋現在装備中の Weapon をマスター解決し、武器モデルの事前ロード対象として列挙する。
+        /// 同一 Id は重複排除する。
+        /// </summary>
+        private List<HorrorWeaponMaster> ResolveEquippableMasters()
+        {
+            var masters = new List<HorrorWeaponMaster>();
+            var seenIds = new HashSet<int>();
+
+            for (var i = 0; i < HorrorEquipmentConstants.MaxSlotCount; i++)
+            {
+                if (_equipmentService.TryGetSlot(i, out var slot)
+                    && slot.SlotType == InventorySlotType.Weapon
+                    && seenIds.Add(slot.Id)
+                    && _dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
+                {
+                    masters.Add(slotMaster);
+                }
+            }
+
+            if (_equipmentService.TryGetEquipped(out var equippedType, out var equippedId)
+                && equippedType == InventorySlotType.Weapon
+                && seenIds.Add(equippedId)
+                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(equippedId, out var equippedMaster))
+            {
+                masters.Add(equippedMaster);
+            }
+
+            return masters;
         }
 
         /// <summary>
@@ -822,6 +864,7 @@ namespace Game.Horror.Player
                 if (ctx._equipmentService.TryEquip(ctx._pendingEquipType, ctx._pendingEquipId))
                 {
                     ctx._weaponMaster = ctx._pendingWeaponMaster;
+                    ctx._weaponView.BeginSwitch(ctx._pendingWeaponMaster);
                     Debug.Log($"{ctx._weaponMaster.Name}");
                 }
             }
@@ -834,6 +877,7 @@ namespace Game.Horror.Player
                 ctx.UpdateHeadBob();
 
                 _elapsed += Time.deltaTime;
+                ctx._weaponView.TickSwitch(_elapsed, ctx._pendingWeaponMaster.EquipDuration);
                 if (_elapsed >= ctx._pendingWeaponMaster.EquipDuration)
                     StateMachine.Transition(StateEvent.EndEquip);
             }

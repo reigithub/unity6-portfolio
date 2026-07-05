@@ -16,6 +16,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _name;
         [SerializeField] private string _description;
         [SerializeField] private string _iconAssetName;
+        [SerializeField] private string _modelAssetName;
         [SerializeField] private int _maxCount;
 
         [SerializeField] private int _damage;              // 着弾ダメージ（IDamageable.TakeDamage へ渡す）
@@ -51,6 +52,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _iconAssetName;
             set => _iconAssetName = value;
+        }
+
+        public string ModelAssetName
+        {
+            get => _modelAssetName;
+            set => _modelAssetName = value;
         }
 
         public int MaxCount

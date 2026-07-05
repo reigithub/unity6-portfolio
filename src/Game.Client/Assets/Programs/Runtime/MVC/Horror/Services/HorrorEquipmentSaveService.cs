@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Core.Services;
+using Game.Horror.Constants;
 using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
@@ -19,7 +20,7 @@ namespace Game.Horror.Services
         protected override int CurrentVersion => 1;
 
         /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
-        public const int SlotCount = 4;
+        private const int MaxSlotCount = HorrorEquipmentConstants.MaxSlotCount;
 
         private readonly IScriptableDatabaseService _databaseService;
         private readonly IHorrorInventorySaveService _inventoryService;
@@ -67,7 +68,7 @@ namespace Game.Horror.Services
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
         public bool TrySetSlot(int index, InventorySlotType slotType, int id)
         {
-            if (Data == null || index < 0 || index >= SlotCount)
+            if (Data == null || index < 0 || index >= MaxSlotCount)
                 return false;
 
             var slot = Data.Slots[index];
@@ -83,7 +84,7 @@ namespace Game.Horror.Services
         /// </summary>
         public bool AssignSlot(int destIndex, InventorySlotType slotType, int id)
         {
-            if (Data == null || destIndex < 0 || destIndex >= SlotCount)
+            if (Data == null || destIndex < 0 || destIndex >= MaxSlotCount)
                 return false;
 
             int index = GetSlotIndex(slotType, id);
@@ -112,7 +113,7 @@ namespace Game.Horror.Services
             if (Data == null || slotType == InventorySlotType.None)
                 return -1;
 
-            for (int i = 0; i < SlotCount; i++)
+            for (int i = 0; i < MaxSlotCount; i++)
             {
                 var s = Data.Slots[i];
                 if (s.SlotType == slotType && s.Id == id)
@@ -124,7 +125,7 @@ namespace Game.Horror.Services
         /// <summary>指定スロット(0-3)の登録を外す（空にする）。</summary>
         public bool ClearSlot(int index)
         {
-            if (Data == null || index < 0 || index >= SlotCount)
+            if (Data == null || index < 0 || index >= MaxSlotCount)
                 return false;
 
             var slot = Data.Slots[index];
@@ -138,7 +139,7 @@ namespace Game.Horror.Services
         public bool TryGetSlot(int index, out HorrorEquipmentSlotData slot)
         {
             slot = null;
-            if (Data == null || index < 0 || index >= SlotCount)
+            if (Data == null || index < 0 || index >= MaxSlotCount)
                 return false;
 
             var s = Data.Slots[index];
@@ -183,11 +184,11 @@ namespace Game.Horror.Services
         {
             data.Slots ??= new List<HorrorEquipmentSlotData>();
 
-            while (data.Slots.Count < SlotCount)
+            while (data.Slots.Count < MaxSlotCount)
                 data.Slots.Add(new HorrorEquipmentSlotData());
 
-            if (data.Slots.Count > SlotCount)
-                data.Slots.RemoveRange(SlotCount, data.Slots.Count - SlotCount);
+            if (data.Slots.Count > MaxSlotCount)
+                data.Slots.RemoveRange(MaxSlotCount, data.Slots.Count - MaxSlotCount);
         }
 
         protected override int GetDataVersion(HorrorEquipmentSaveData data) => data.Version;
