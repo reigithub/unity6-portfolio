@@ -9,17 +9,14 @@ namespace Game.Horror.Services
         private readonly IHorrorInteractionSaveService _interaction;
         private readonly IHorrorInventorySaveService _inventory;
         private readonly IHorrorEquipmentSaveService _equipment;
-        private readonly IHorrorEquipmentShortcutSaveService _equipmentShortcut;
 
         public HorrorCheckpointSaveService(
             IHorrorInteractionSaveService interaction,
             IHorrorInventorySaveService inventory,
-            IHorrorEquipmentSaveService equipment,
-            IHorrorEquipmentShortcutSaveService equipmentShortcut)
+            IHorrorEquipmentSaveService equipment)
         {
             _interaction = interaction;
             _inventory = inventory;
-            _equipmentShortcut = equipmentShortcut;
             _equipment = equipment;
         }
 
@@ -27,7 +24,6 @@ namespace Game.Horror.Services
         {
             await _interaction.SaveIfDirtyAsync();
             await _inventory.SaveIfDirtyAsync();
-            await _equipmentShortcut.SaveIfDirtyAsync();
             await _equipment.SaveIfDirtyAsync();
         }
     }

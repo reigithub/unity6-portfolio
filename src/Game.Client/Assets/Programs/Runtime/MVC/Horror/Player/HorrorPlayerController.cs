@@ -75,9 +75,8 @@ namespace Game.Horror.Player
         private MessagePipeService _messagePipeService;
         private bool _attackTriggered;
 
-        // 装備（ショートカット呼び出し）：セーブサービス・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
+        // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
         private HorrorEquipmentSaveService _equipmentService;
-        private HorrorEquipmentShortcutSaveService _equipmentShortcutService;
         private ScriptableDatabaseService _dbService;
         private bool _equipTriggered;
         private int _equipSlotIndex;
@@ -146,7 +145,6 @@ namespace Game.Horror.Player
             // Database はプレイヤー生成時点でロード済み
             _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
-            _equipmentShortcutService = GameServiceManager.Resolve<HorrorEquipmentShortcutSaveService>();
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
             if (_equipmentService.TryGetEquipped(out var slotType, out var id)
@@ -357,7 +355,7 @@ namespace Game.Horror.Player
             _equipTriggered = false;
 
             // 空スロット（未登録）は無操作
-            if (!_equipmentShortcutService.TryGet(_equipSlotIndex, out var slot))
+            if (!_equipmentService.TryGetSlot(_equipSlotIndex, out var slot))
                 return false;
 
             // 現在装備と同一スロットの再指定は無操作（要件1）

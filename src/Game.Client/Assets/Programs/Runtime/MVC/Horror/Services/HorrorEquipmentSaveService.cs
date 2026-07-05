@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Core.Services;
 using Game.Horror.Inventory;
 using Game.Horror.SaveData;
@@ -10,12 +11,15 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// Horror 装備状態のセーブサービス。装備中武器の保持と永続化を担う。
+    /// Horror 装備状態のセーブサービス。装備中武器の保持と、装備ショートカット(D-Pad 4スロット)の登録・整合を合わせて担う。
     /// </summary>
     public class HorrorEquipmentSaveService : SaveServiceBase<HorrorEquipmentSaveData>, IHorrorEquipmentSaveService, IGameService
     {
         protected override string SaveKey => "horror_equipment";
         protected override int CurrentVersion => 1;
+
+        /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
+        public const int SlotCount = 4;
 
         private readonly IScriptableDatabaseService _databaseService;
         private readonly IHorrorInventorySaveService _inventoryService;
@@ -60,21 +64,130 @@ namespace Game.Horror.Services
             return true;
         }
 
-        protected override void OnDataLoaded(HorrorEquipmentSaveData data)
+        /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
+        public bool TrySetSlot(int index, InventorySlotType slotType, int id)
         {
-            if (data.SlotType != InventorySlotType.Weapon)
+            if (Data == null || index < 0 || index >= SlotCount)
+                return false;
+
+            var slot = Data.Slots[index];
+            slot.SlotType = slotType;
+            slot.Id = id;
+            MarkDirty();
+            return true;
+        }
+
+        /// <summary>
+        /// 対象アイテムを destIndex に割り当てる。同一アイテムが既に別スロットにあれば旧スロットと内容を交換
+        /// （交換先が空なら実質「移動」）、無ければ上書き。単一登録（同一アイテムは高々1スロット）を保つ。
+        /// </summary>
+        public bool AssignSlot(int destIndex, InventorySlotType slotType, int id)
+        {
+            if (Data == null || destIndex < 0 || destIndex >= SlotCount)
+                return false;
+
+            int index = GetSlotIndex(slotType, id);
+            if (index == destIndex)
+                return false; // 既に同じスロット → 変化なし
+
+            var dest = Data.Slots[destIndex];
+            if (index >= 0)
             {
-                data.SlotType = InventorySlotType.None;
-                data.Id = 0;
-                return;
+                // 既登録 → 旧スロットへ dest の旧内容を移す（dest が空なら旧が空になり「移動」、占有なら入替）
+                var src = Data.Slots[index];
+                src.SlotType = dest.SlotType;
+                src.Id = dest.Id;
             }
 
+            // dest に対象を置く（未登録時は上書き）
+            dest.SlotType = slotType;
+            dest.Id = id;
+            MarkDirty();
+            return true;
+        }
+
+        // 指定アイテム (SlotType, Id) が登録されているスロット index を返す（None は対象外）。無ければ -1。
+        private int GetSlotIndex(InventorySlotType slotType, int id)
+        {
+            if (Data == null || slotType == InventorySlotType.None)
+                return -1;
+
+            for (int i = 0; i < SlotCount; i++)
+            {
+                var s = Data.Slots[i];
+                if (s.SlotType == slotType && s.Id == id)
+                    return i;
+            }
+            return -1;
+        }
+
+        /// <summary>指定スロット(0-3)の登録を外す（空にする）。</summary>
+        public bool ClearSlot(int index)
+        {
+            if (Data == null || index < 0 || index >= SlotCount)
+                return false;
+
+            var slot = Data.Slots[index];
+            slot.SlotType = InventorySlotType.None;
+            slot.Id = 0;
+            MarkDirty();
+            return true;
+        }
+
+        /// <summary>指定スロットの登録を取得する。空(None)または範囲外なら false。</summary>
+        public bool TryGetSlot(int index, out HorrorEquipmentSlotData slot)
+        {
+            slot = null;
+            if (Data == null || index < 0 || index >= SlotCount)
+                return false;
+
+            var s = Data.Slots[index];
+            if (s.SlotType == InventorySlotType.None)
+                return false;
+
+            slot = s;
+            return true;
+        }
+
+        protected override HorrorEquipmentSaveData CreateNewData()
+        {
+            var data = new HorrorEquipmentSaveData();
+            EnsureSlotCount(data);
+            return data;
+        }
+
+        protected override void OnDataLoaded(HorrorEquipmentSaveData data)
+        {
+            EnsureSlotCount(data);
+
             var database = _databaseService.Database;
-            if (!HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
+
+            foreach (var slot in data.Slots)
+            {
+                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out _))
+                {
+                    slot.SlotType = InventorySlotType.None;
+                    slot.Id = 0;
+                }
+            }
+
+            if (data.SlotType != InventorySlotType.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
             {
                 data.SlotType = InventorySlotType.None;
                 data.Id = 0;
             }
+        }
+
+        // スロット数を SlotCount(4) に揃える（不足は空追加、超過は切り詰め）。
+        private static void EnsureSlotCount(HorrorEquipmentSaveData data)
+        {
+            data.Slots ??= new List<HorrorEquipmentSlotData>();
+
+            while (data.Slots.Count < SlotCount)
+                data.Slots.Add(new HorrorEquipmentSlotData());
+
+            if (data.Slots.Count > SlotCount)
+                data.Slots.RemoveRange(SlotCount, data.Slots.Count - SlotCount);
         }
 
         protected override int GetDataVersion(HorrorEquipmentSaveData data) => data.Version;
