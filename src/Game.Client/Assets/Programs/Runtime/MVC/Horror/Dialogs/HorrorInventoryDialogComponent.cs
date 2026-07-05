@@ -63,26 +63,10 @@ namespace Game.Horror.Dialogs
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    switch (slot.SlotType)
+                    if (HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out var slotInfo))
                     {
-                        case InventorySlotType.Item:
-                        {
-                            if (database.HorrorItemMasterTable.TryFindById(slot.Id, out var master))
-                            {
-                                _slots[i].SetSlot(master, slot.Count);
-                                empty = false;
-                            }
-                            break;
-                        }
-                        case InventorySlotType.Weapon:
-                        {
-                            if (database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var master))
-                            {
-                                _slots[i].SetSlot(master, slot.Count);
-                                empty = false;
-                            }
-                            break;
-                        }
+                        _slots[i].SetSlot(slotInfo, slot.Count);
+                        empty = false;
                     }
                 }
 

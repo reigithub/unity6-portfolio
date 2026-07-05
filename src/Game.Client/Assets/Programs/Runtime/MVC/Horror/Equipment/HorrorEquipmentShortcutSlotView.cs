@@ -1,5 +1,5 @@
-using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Services;
 using Game.Shared.Interfaces;
 using R3;
 using UnityEngine;
@@ -38,15 +38,15 @@ namespace Game.Horror.Equipment
 
         public void SetItem(IHorrorInventorySlotInfo info)
         {
-            LoadIconAsync(info).Forget();
+            SetIcon(info);
         }
 
         public void SetEmpty()
         {
-            LoadIconAsync(null).Forget();
+            SetIcon(null);
         }
 
-        private async UniTask LoadIconAsync(IHorrorInventorySlotInfo item)
+        private void SetIcon(IHorrorInventorySlotInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {
@@ -58,8 +58,8 @@ namespace Game.Horror.Equipment
                 return;
             }
 
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
-            var icon = await assetService.LoadAssetAsync<Sprite>(item.IconAssetName);
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_iconImage != null)
             {

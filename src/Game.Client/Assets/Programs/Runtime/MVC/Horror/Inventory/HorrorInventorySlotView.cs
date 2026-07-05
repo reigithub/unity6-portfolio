@@ -1,5 +1,5 @@
-using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Services;
 using Game.Shared.Interfaces;
 using R3;
 using TMPro;
@@ -46,7 +46,7 @@ namespace Game.Horror.Inventory
         public void SetSlot(IHorrorInventorySlotInfo info, int count)
         {
             SlotInfo = info;
-            LoadIconAsync(info).Forget();
+            SetIcon(info);
             if (_countText != null)
             {
                 var show = info != null && count > 1;
@@ -58,12 +58,12 @@ namespace Game.Horror.Inventory
         public void SetEmpty()
         {
             SlotInfo = null;
-            LoadIconAsync(null).Forget();
+            SetIcon(null);
             if (_countText != null)
                 _countText.gameObject.SetActive(false);
         }
 
-        private async UniTask LoadIconAsync(IHorrorInventorySlotInfo item)
+        private void SetIcon(IHorrorInventorySlotInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {
@@ -75,8 +75,8 @@ namespace Game.Horror.Inventory
                 return;
             }
 
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
-            var icon = await assetService.LoadAssetAsync<Sprite>(item.IconAssetName);
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_iconImage != null)
             {
