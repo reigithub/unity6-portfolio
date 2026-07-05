@@ -22,6 +22,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _range;             // 射程（Raycast 最大距離, m）
         [SerializeField] private float _fireInterval;      // 発砲後の硬直（AttackingState 滞在秒）
         [SerializeField] private float _noiseLoudness;     // 銃声の大きさ（NoiseEvent.Loudness）
+        [SerializeField] private float _equipDuration;     // 装備切替の硬直（EquippingState 滞在秒）
 
         #endregion
 
@@ -80,6 +81,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _noiseLoudness;
             set => _noiseLoudness = value;
+        }
+
+        public float EquipDuration
+        {
+            get => _equipDuration;
+            set => _equipDuration = value;
         }
 
         #endregion

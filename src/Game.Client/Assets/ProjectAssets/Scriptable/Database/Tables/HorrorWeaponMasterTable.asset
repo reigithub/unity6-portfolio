@@ -22,6 +22,7 @@ MonoBehaviour:
     _range: 50
     _fireInterval: 0.3
     _noiseLoudness: 2.5
+    _equipDuration: 1
   - _id: 2
     _name: Smoke
     _description: 
@@ -31,3 +32,4 @@ MonoBehaviour:
     _range: 50
     _fireInterval: 0.3
     _noiseLoudness: 2.5
+    _equipDuration: 1
