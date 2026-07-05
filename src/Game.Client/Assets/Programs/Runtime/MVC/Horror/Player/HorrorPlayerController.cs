@@ -565,7 +565,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
@@ -607,7 +607,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 // 静止中も重力を適用
-                Context.ApplyMovementWithGravity(Vector3.zero);
+                Context.UpdateMovementWithGravity(Vector3.zero);
             }
         }
 
@@ -616,7 +616,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
@@ -658,7 +658,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -674,7 +674,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
@@ -689,7 +689,7 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 // 空中でも水平移動を許可
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -709,12 +709,12 @@ namespace Game.Horror.Player
 
             public override void Update()
             {
-                Context.ApplyRotation(); // 拘束中は視点回転のみ許可
+                Context.UpdateRotation(); // 拘束中は視点回転のみ許可
                 if (_completed) StateMachine.Transition(StateEvent.EndInteract);
             }
 
             // 水平移動なし＝拘束（重力のみ適用）
-            public override void FixedUpdate() => Context.ApplyMovementWithGravity(Vector3.zero);
+            public override void FixedUpdate() => Context.UpdateMovementWithGravity(Vector3.zero);
 
             public override void Exit()
             {
@@ -791,7 +791,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
@@ -803,7 +803,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -831,7 +831,7 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
 
@@ -843,7 +843,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -873,7 +873,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// 重力を適用して CharacterController で移動
         /// </summary>
-        private void ApplyMovementWithGravity(Vector3 horizontalVelocity)
+        private void UpdateMovementWithGravity(Vector3 horizontalVelocity)
         {
             if (IsGrounded() && _verticalVelocity < 0f)
             {
@@ -894,7 +894,7 @@ namespace Game.Horror.Player
         /// Yaw: Player 本体を Y 軸回転（カメラは子なので自動追従）
         /// Pitch: カメラ Transform の X 軸を localEulerAngles で回転、±89° クランプ
         /// </summary>
-        private void ApplyRotation()
+        private void UpdateRotation()
         {
             if (_mainCamera == null) return;
 
