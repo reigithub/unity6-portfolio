@@ -35,6 +35,10 @@ namespace Game.Horror
             // 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
 
+            // アイコン一括ロード
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            await iconService.LoadAsync();
+
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
@@ -81,6 +85,8 @@ namespace Game.Horror
             await gameSceneService.TerminateAllAsync();
             var audioService = GameServiceManager.Get<AudioService>();
             audioService.Unload();
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            iconService.Unload();
             GameServiceManager.Instance.Shutdown();
             await UniTask.Yield();
         }

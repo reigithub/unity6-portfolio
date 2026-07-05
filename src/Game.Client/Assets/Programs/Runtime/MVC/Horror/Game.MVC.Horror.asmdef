@@ -6,6 +6,7 @@
         "Game.Shared",
         "Game.Library.Shared",
         "UniTask",
+        "UniTask.Addressables",
         "R3.Unity",
         "R3.Unity.TextMeshPro",
         "MessagePipe",
