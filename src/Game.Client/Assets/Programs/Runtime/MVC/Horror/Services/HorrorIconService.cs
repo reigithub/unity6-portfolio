@@ -3,6 +3,7 @@ using Game.Core.Services;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.Horror.Services
 {
@@ -10,6 +11,9 @@ namespace Game.Horror.Services
     {
         private const string UiIconsKey1 = "ModernGDR_Icons_BrightBackground";
         private const string WeaponIconsKey1 = "Navidtbt_Weapon_Icons_Blue";
+
+        private AsyncOperationHandle<IList<Sprite>> _uiIconsHandle;
+        private AsyncOperationHandle<IList<Sprite>> _weaponIconsHandle;
 
         private Dictionary<string, Sprite> _uiIcons;
         private Dictionary<string, Sprite> _weaponIcons;
@@ -26,24 +30,26 @@ namespace Game.Horror.Services
 
         public void Unload()
         {
-            Addressables.Release(UiIconsKey1);
-            Addressables.Release(WeaponIconsKey1);
+            Addressables.Release(_uiIconsHandle);
             _uiIcons.Clear();
             _uiIcons = null;
+            Addressables.Release(_weaponIconsHandle);
             _weaponIcons.Clear();
             _weaponIcons = null;
         }
 
         private async UniTask LoadUiIconsAsync()
         {
-            var sprites = await Addressables.LoadAssetAsync<IList<Sprite>>(UiIconsKey1);
+            _uiIconsHandle = Addressables.LoadAssetAsync<IList<Sprite>>(UiIconsKey1);
+            var sprites = await _uiIconsHandle.ToUniTask();
             _uiIcons = new Dictionary<string, Sprite>(sprites.Count);
             foreach (var sprite in sprites) _uiIcons[sprite.name] = sprite;
         }
 
         private async UniTask LoadWeaponIconsAsync()
         {
-            var sprites = await Addressables.LoadAssetAsync<IList<Sprite>>(WeaponIconsKey1);
+            _weaponIconsHandle = Addressables.LoadAssetAsync<IList<Sprite>>(WeaponIconsKey1);
+            var sprites = await _weaponIconsHandle.ToUniTask();
             _weaponIcons = new Dictionary<string, Sprite>(sprites.Count);
             foreach (var sprite in sprites) _weaponIcons[sprite.name] = sprite;
         }
