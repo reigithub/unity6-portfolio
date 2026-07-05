@@ -16,7 +16,7 @@ MonoBehaviour:
   - _id: 1
     _name: Handgun
     _description: 
-    _iconAssetName: T_1_fire_
+    _iconAssetName: Weapon/Sprite sheet Blue_12
     _maxCount: 1
     _damage: 34
     _range: 50
@@ -25,7 +25,7 @@ MonoBehaviour:
   - _id: 2
     _name: Smoke
     _description: 
-    _iconAssetName: T_8_bottle_magic_
+    _iconAssetName: Weapon/Sprite sheet Blue_37
     _maxCount: 1
     _damage: 100
     _range: 50

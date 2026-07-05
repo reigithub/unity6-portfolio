@@ -16,15 +16,15 @@ MonoBehaviour:
   - _id: 1
     _name: Key
     _description: "\u3069\u3053\u304B\u306E\u30AB\u30AE1"
+    _iconAssetName: UI/Key_BrightBG
     _maxCount: 1
-    _iconAssetName: T_14_key_
   - _id: 2
     _name: Key2
     _description: "\u3069\u3053\u304B\u306E\u30AB\u30AE2"
+    _iconAssetName: UI/Key_BrightBG
     _maxCount: 1
-    _iconAssetName: T_14_key_
   - _id: 3
     _name: Key3
     _description: "\u3069\u3053\u304B\u306E\u30AB\u30AE3"
+    _iconAssetName: UI/Key_BrightBG
     _maxCount: 1
-    _iconAssetName: T_14_key_
