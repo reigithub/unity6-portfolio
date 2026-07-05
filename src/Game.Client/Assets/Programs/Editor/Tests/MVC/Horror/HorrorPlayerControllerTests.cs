@@ -1,5 +1,6 @@
 using Game.Horror.Player;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Game.Tests.MVC.Horror
 {
@@ -33,5 +34,37 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateHoldProgress_NegativeHoldSeconds_IsOne()
             => Assert.That(HorrorPlayerController.CalculateHoldProgress(1f, -2f), Is.EqualTo(1f));
+
+        // 装備ショートカットのスロット index 解決：4方向（単軸）→ 0/1/2/3、斜め・閾値未満は -1。
+        // スロット並びは 1=左(0) / 2=上(1) / 3=右(2) / 4=下(3)。
+
+        [Test]
+        public void ResolveEquipSlotIndex_Left_IsZero()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(-1f, 0f)), Is.EqualTo(0));
+
+        [Test]
+        public void ResolveEquipSlotIndex_Up_IsOne()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(0f, 1f)), Is.EqualTo(1));
+
+        [Test]
+        public void ResolveEquipSlotIndex_Right_IsTwo()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(1f, 0f)), Is.EqualTo(2));
+
+        [Test]
+        public void ResolveEquipSlotIndex_Down_IsThree()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(0f, -1f)), Is.EqualTo(3));
+
+        // 斜め入力（両軸とも閾値超過）は判定不能として無視する
+        [Test]
+        public void ResolveEquipSlotIndex_Diagonal_IsNegativeOne()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(0.707f, 0.707f)), Is.EqualTo(-1));
+
+        [Test]
+        public void ResolveEquipSlotIndex_Zero_IsNegativeOne()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(Vector2.zero), Is.EqualTo(-1));
+
+        [Test]
+        public void ResolveEquipSlotIndex_BelowThreshold_IsNegativeOne()
+            => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(0.3f, 0.2f)), Is.EqualTo(-1));
     }
 }

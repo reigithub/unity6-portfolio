@@ -1,8 +1,8 @@
 using Cysharp.Threading.Tasks;
-using Game.Core.Constants;
 using Game.Core.Services;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Combat;
@@ -48,9 +48,6 @@ namespace Game.Horror.Player
         [SerializeField] private InteractionDetector _interactionDetector;
 
         [Header("攻撃（ハンドガン）")]
-        [Tooltip("武器の調整値マスター ID（HorrorWeaponMasterTable の PrimaryKey）")]
-        [SerializeField] private int _weaponMasterId;
-
         [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
         [SerializeField] private LayerMask _hitMask;
 
@@ -77,6 +74,16 @@ namespace Game.Horror.Player
         private HorrorWeaponMaster _weaponMaster;
         private MessagePipeService _messagePipeService;
         private bool _attackTriggered;
+
+        // 装備（ショートカット呼び出し）：セーブサービス・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
+        private HorrorEquipmentSaveService _equipmentService;
+        private HorrorEquipmentShortcutSaveService _equipmentShortcutService;
+        private ScriptableDatabaseService _dbService;
+        private bool _equipTriggered;
+        private int _equipSlotIndex;
+        private InventorySlotType _pendingEquipType;
+        private int _pendingEquipId;
+        private HorrorWeaponMaster _pendingWeaponMaster;
 
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
@@ -136,9 +143,15 @@ namespace Game.Horror.Player
 
             _messagePipeService = GameServiceManager.Get<MessagePipeService>();
 
-            // 武器（ハンドガン）マスターを取得。Database はプレイヤー生成時点でロード済み。
-            var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
-            if (dbService.Database.HorrorWeaponMasterTable.TryFindById(_weaponMasterId, out var weaponMaster))
+            // Database はプレイヤー生成時点でロード済み
+            _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
+            _equipmentShortcutService = GameServiceManager.Resolve<HorrorEquipmentShortcutSaveService>();
+
+            // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
+            if (_equipmentService.TryGetEquipped(out var slotType, out var id)
+                && slotType == InventorySlotType.Weapon
+                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
             {
                 _weaponMaster = weaponMaster;
             }
@@ -166,6 +179,7 @@ namespace Game.Horror.Player
                     , Player.Jump.OnPerformedAsObservable()
                     , Player.Crouch.OnPerformedAsObservable()
                     , Player.Sprint.OnPerformedAsObservable()
+                    , Player.Equip.OnPerformedAsObservable()
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
@@ -268,6 +282,17 @@ namespace Game.Horror.Player
             {
                 _attackTriggered = true;
             }
+
+            // 装備切替起動入力：方向からスロット index を解決してフラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+            if (!restrained && Player.Equip.WasPressedThisFrame() && IsGrounded())
+            {
+                var index = ResolveEquipSlotIndex(Player.Equip.ReadValue<Vector2>());
+                if (index >= 0)
+                {
+                    _equipTriggered = true;
+                    _equipSlotIndex = index;
+                }
+            }
         }
 
         private bool CanJump()
@@ -319,12 +344,66 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 立てられた装備切替起動フラグを消費し、ショートカット登録・現在装備・所持を検証して
+        /// EquippingState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
+        /// 実際の装備反映（<see cref="HorrorEquipmentSaveService.TryEquip"/>）は EquippingState.Enter が行う。
+        /// </summary>
+        /// <returns>EquippingState へ遷移すべきなら true。</returns>
+        private bool TryEquip()
+        {
+            if (!_equipTriggered)
+                return false;
+
+            _equipTriggered = false;
+
+            // 空スロット（未登録）は無操作
+            if (!_equipmentShortcutService.TryGet(_equipSlotIndex, out var slot))
+                return false;
+
+            // 現在装備と同一スロットの再指定は無操作（要件1）
+            if (_equipmentService.TryGetEquipped(out var currentType, out var currentId)
+                && currentType == slot.SlotType && currentId == slot.Id)
+                return false;
+
+            // Weapon 限定・所持検証。不成立なら硬直を発生させない
+            if (!_equipmentService.CanEquip(slot.SlotType, slot.Id))
+                return false;
+
+            if (!_dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var weaponMaster))
+                return false;
+
+            _pendingEquipType = slot.SlotType;
+            _pendingEquipId = slot.Id;
+            _pendingWeaponMaster = weaponMaster;
+            return true;
+        }
+
+        /// <summary>
         /// Hold 長押しの進捗（0→1）を算出する。<paramref name="holdSeconds"/> が 0 以下なら
         /// ゼロ除算を避けて即時完了（1）とみなす。表示側で Clamp されるため、
         /// elapsed が holdSeconds を超えた最終フレームでは 1 を超える生値を返しうる。
         /// </summary>
         public static float CalculateHoldProgress(float elapsed, float holdSeconds)
             => holdSeconds > 0f ? elapsed / holdSeconds : 1f;
+
+        /// <summary>
+        /// D-Pad / 2DVector composite の方向入力からショートカットスロット index (0-3) を解決する。
+        /// 閾値 0.5 を両軸とも超える（斜め）入力は判定不能として -1 を返す。
+        /// スロット並びは 1=左(0) / 2=上(1) / 3=右(2) / 4=下(3)。
+        /// </summary>
+        public static int ResolveEquipSlotIndex(Vector2 value)
+        {
+            const float threshold = 0.5f;
+            var xExceeds = Mathf.Abs(value.x) > threshold;
+            var yExceeds = Mathf.Abs(value.y) > threshold;
+
+            if (xExceeds && yExceeds) return -1; // 斜め入力は無視
+
+            if (xExceeds) return value.x < 0f ? 0 : 2; // left / right
+            if (yExceeds) return value.y > 0f ? 1 : 3; // up / down
+
+            return -1;
+        }
 
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
@@ -453,6 +532,10 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, AttackingState>(StateEvent.Attack);
             _stateMachine.AddTransition<AttackingState, IdleState>(StateEvent.EndAttack);
 
+            _stateMachine.AddTransition<IdleState, EquippingState>(StateEvent.Equip);
+            _stateMachine.AddTransition<MovingState, EquippingState>(StateEvent.Equip);
+            _stateMachine.AddTransition<EquippingState, IdleState>(StateEvent.EndEquip);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
 
             // 初期ステート
@@ -473,6 +556,8 @@ namespace Game.Horror.Player
             EndInteract, // インタラクト終了: Interacting → Idle
             Attack, // 攻撃開始: Idle/Moving → Attacking
             EndAttack, // 攻撃終了（発射間隔経過）: Attacking → Idle
+            Equip, // 装備切替開始: Idle/Moving → Equipping
+            EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -502,6 +587,13 @@ namespace Game.Horror.Player
                 if (ctx.TryAttack())
                 {
                     StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // 装備切替起動チェック
+                if (ctx.TryEquip())
+                {
+                    StateMachine.Transition(StateEvent.Equip);
                     return;
                 }
 
@@ -546,6 +638,13 @@ namespace Game.Horror.Player
                 if (ctx.TryAttack())
                 {
                     StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // 装備切替起動チェック
+                if (ctx.TryEquip())
+                {
+                    StateMachine.Transition(StateEvent.Equip);
                     return;
                 }
 
@@ -699,6 +798,46 @@ namespace Game.Horror.Player
                 _elapsed += Time.deltaTime;
                 if (_elapsed >= ctx.GetFireInterval())
                     StateMachine.Transition(StateEvent.EndAttack);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
+        /// <summary>
+        /// 装備切替実行中の状態。Enter で装備をセーブデータへ反映し、EquipDuration（武器マスター）の間は
+        /// 移動・視点を許可しつつ硬直として滞在する。滞在秒を消化したら Idle へ戻る。
+        /// </summary>
+        private class EquippingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+
+            public override void Enter()
+            {
+                // インスタンスはキャッシュ再利用されるため経過時間を必ずリセット
+                _elapsed = 0f;
+
+                var ctx = Context;
+                if (ctx._equipmentService.TryEquip(ctx._pendingEquipType, ctx._pendingEquipId))
+                {
+                    ctx._weaponMaster = ctx._pendingWeaponMaster;
+                    Debug.Log($"{ctx._weaponMaster.Name}");
+                }
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.ApplyRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+
+                _elapsed += Time.deltaTime;
+                if (_elapsed >= ctx._pendingWeaponMaster.EquipDuration)
+                    StateMachine.Transition(StateEvent.EndEquip);
             }
 
             public override void FixedUpdate()
@@ -872,7 +1011,7 @@ namespace Game.Horror.Player
             // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
             target?.TakeDamage(_weaponMaster.Damage);
             _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
-            Debug.Log("Weapon Fire");
+            Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{_weaponMaster.Damage}");
         }
 
 

@@ -75,7 +75,8 @@ namespace Game.Horror.Services
             return false;
         }
 
-        public bool HasItem(int itemId) => TryGet(InventorySlotType.Item, itemId, out _);
+        /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
+        public bool HasItem(InventorySlotType type, int id) => TryGet(type, id, out _);
 
         protected override void OnDataLoaded(HorrorInventorySaveData data)
         {
