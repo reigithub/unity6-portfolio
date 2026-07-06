@@ -37,8 +37,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 270}
-  m_SizeDelta: {x: 200, y: 200}
+  m_AnchoredPosition: {x: 0, y: 350}
+  m_SizeDelta: {x: 180, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5780873598439691374
 CanvasRenderer:
@@ -149,7 +149,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 190, y: 190}
+  m_SizeDelta: {x: 170, y: 170}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1153808863402379818
 CanvasRenderer:
@@ -247,6 +247,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 4123460984975949436}
   _iconImage: {fileID: 6235730890373855918}
+  _frameImage: {fileID: 0}
 --- !u!1 &1570308909961993679
 GameObject:
   m_ObjectHideFlags: 0
@@ -284,8 +285,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -270}
-  m_SizeDelta: {x: 200, y: 200}
+  m_AnchoredPosition: {x: 0, y: -350}
+  m_SizeDelta: {x: 180, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &808566191878810151
 CanvasRenderer:
@@ -396,7 +397,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 190, y: 190}
+  m_SizeDelta: {x: 170, y: 170}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6450258695643800008
 CanvasRenderer:
@@ -494,6 +495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 5875009493357655705}
   _iconImage: {fileID: 2339773740671814639}
+  _frameImage: {fileID: 0}
 --- !u!1 &1889253254155075514
 GameObject:
   m_ObjectHideFlags: 0
@@ -664,8 +666,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 640, y: 0}
-  m_SizeDelta: {x: 200, y: 200}
+  m_AnchoredPosition: {x: 750, y: 0}
+  m_SizeDelta: {x: 180, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4884316211683256898
 CanvasRenderer:
@@ -775,8 +777,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -640, y: 0}
-  m_SizeDelta: {x: 200, y: 200}
+  m_AnchoredPosition: {x: -750, y: 0}
+  m_SizeDelta: {x: 180, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3970082179402348609
 CanvasRenderer:
@@ -962,7 +964,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 190, y: 190}
+  m_SizeDelta: {x: 170, y: 170}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6970926183824809263
 CanvasRenderer:
@@ -1060,6 +1062,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 4227175548354355740}
   _iconImage: {fileID: 6269981689835572980}
+  _frameImage: {fileID: 0}
 --- !u!1 &4070546663851013818
 GameObject:
   m_ObjectHideFlags: 0
@@ -1252,7 +1255,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 190, y: 190}
+  m_SizeDelta: {x: 170, y: 170}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5926728861131229505
 CanvasRenderer:
@@ -1350,6 +1353,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 5275707218682501605}
   _iconImage: {fileID: 3178651472962321414}
+  _frameImage: {fileID: 0}
 --- !u!1 &6038427850845566005
 GameObject:
   m_ObjectHideFlags: 0

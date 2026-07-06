@@ -37,7 +37,7 @@ namespace Game.Horror.Equipment
                 .AddTo(this);
         }
 
-        public void SetItem(IHorrorInventorySlotInfo info)
+        public void SetSlot(IHorrorInventorySlotInfo info)
         {
             SetIcon(info);
         }
