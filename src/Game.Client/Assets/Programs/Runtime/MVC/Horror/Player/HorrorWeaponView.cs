@@ -137,8 +137,9 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 武器の構え位置を毎フレーム反映する。<see cref="HorrorPlayerController"/> の UpdateAimPose から
-        /// ステート更新後に呼ばれ、切替演出の下げ量とエイムブレンドを合成した唯一の位置書き込み点となる。
+        /// 武器の構え位置を毎フレーム反映する。<see cref="HorrorPlayerController"/> の各ステート Update
+        /// （装備切替中は TickSwitch の後）から UpdateAimPose 経由で呼ばれ、
+        /// 切替演出の下げ量とエイムブレンドを合成した唯一の位置書き込み点となる。
         /// </summary>
         public void UpdatePose(float aimBlend)
         {

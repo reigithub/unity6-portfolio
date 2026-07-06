@@ -251,9 +251,6 @@ namespace Game.Horror.Player
             if (!_initialized) return;
             UpdateInput();
             _stateMachine?.Update();
-            UpdateAimPose();
-            if (_reticleView != null)
-                _reticleView.UpdatePose(_isAiming);
         }
 
         protected void FixedUpdate()
@@ -670,6 +667,7 @@ namespace Game.Horror.Player
                 ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -721,6 +719,7 @@ namespace Game.Horror.Player
                 ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -779,6 +778,7 @@ namespace Game.Horror.Player
                 ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // 上昇終了 + 接地で着地判定
                 if (ctx._verticalVelocity <= 0f && ctx.IsGrounded())
@@ -796,7 +796,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// インタラクト実行中の身体占有状態。視点回転のみ許可し水平移動は止める。
+        /// インタラクト実行中の身体占有状態。視点回転とエイム解除の補間のみ許可し水平移動は止める。
         /// 入力タイプを問わず、拒否メッセージ／単発・トグル／長押しを 1 本の非同期シーケンスで処理する。
         /// </summary>
         private class InteractingState : State<HorrorPlayerController, StateEvent>
@@ -811,7 +811,8 @@ namespace Game.Horror.Player
 
             public override void Update()
             {
-                Context.UpdateRotation(); // 拘束中は視点回転のみ許可
+                Context.UpdateRotation(); // 拘束中は視点回転とエイム解除の補間のみ許可
+                Context.UpdateAimPose();
                 if (_completed) StateMachine.Transition(StateEvent.EndInteract);
             }
 
@@ -896,6 +897,7 @@ namespace Game.Horror.Player
                 ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 _elapsed += Time.deltaTime;
                 if (_elapsed >= ctx.GetFireInterval())
@@ -941,6 +943,7 @@ namespace Game.Horror.Player
 
                 _elapsed += Time.deltaTime;
                 ctx._weaponView.TickSwitch(_elapsed, ctx._pendingWeaponMaster.EquipDuration);
+                ctx.UpdateAimPose(); // TickSwitch の後に呼ぶ（下げ量更新 → 位置反映の順序）
                 if (_elapsed >= ctx._pendingWeaponMaster.EquipDuration)
                     StateMachine.Transition(StateEvent.EndEquip);
             }
@@ -1093,9 +1096,9 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置を _aimBlend / _aimShakeWeight から導出する。
-        /// インタラクト拘束中も解除補間（FOV 復帰）が必要なため、ステート経由ではなく Update から
-        /// ステート更新後に呼ぶ（武器切替の下げ量更新 → 位置反映の順序もこれで保証される）。
+        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクルを _aimBlend / _aimShakeWeight から導出する。
+        /// 各ステートの Update から呼ばれる（インタラクト拘束中も解除補間・FOV 復帰が必要なため
+        /// InteractingState を含む全ステートが呼ぶ）。装備切替中は TickSwitch の後に呼ぶこと（下げ量更新 → 位置反映の順序）。
         /// </summary>
         private void UpdateAimPose()
         {
@@ -1112,6 +1115,9 @@ namespace Game.Horror.Player
             _aimShakeWeight = Mathf.MoveTowards(_aimShakeWeight, _isAiming ? 0f : 1f, Time.deltaTime / _aimShakeFadeSeconds);
 
             _weaponView.UpdatePose(_aimBlend);
+
+            if (_reticleView != null)
+                _reticleView.UpdatePose(_isAiming);
         }
 
         /// <summary>

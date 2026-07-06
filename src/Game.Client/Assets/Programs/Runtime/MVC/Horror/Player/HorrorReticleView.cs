@@ -4,7 +4,7 @@ namespace Game.Horror.Player
 {
     /// <summary>
     /// エイム連動レティクル。OverlayCanvas/Reticle にアタッチし、エイム中はドット・エイム解除はセグメント拡大→保持→フェードの表示を行う。
-    /// 演出はフレーム駆動（<see cref="HorrorPlayerController"/> の Update から毎フレーム駆動され、DOTween は使わない）。
+    /// 演出はフレーム駆動（<see cref="HorrorPlayerController"/> の各ステート Update から UpdateAimPose 経由で毎フレーム駆動され、DOTween は使わない）。
     /// フェード途中の再エイムや発砲キックを、その時点の連続量から滑らかに合成するため。
     /// </summary>
     public class HorrorReticleView : MonoBehaviour
@@ -74,8 +74,8 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// レティクルの表示状態を毎フレーム更新する。<see cref="HorrorPlayerController"/> の Update から
-        /// UpdateAimPose と同じタイミングで毎フレーム呼ばれる。
+        /// レティクルの表示状態を毎フレーム更新する。<see cref="HorrorPlayerController"/> の
+        /// 各ステート Update から UpdateAimPose 経由で毎フレーム呼ばれる。
         /// </summary>
         /// <param name="isAiming">現在エイム中か（HOLD 判定の二値）。</param>
         public void UpdatePose(bool isAiming)
