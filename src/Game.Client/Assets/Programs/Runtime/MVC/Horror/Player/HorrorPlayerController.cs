@@ -71,6 +71,9 @@ namespace Game.Horror.Player
         [Tooltip("装備切替時のショートカット HUD（OverlayCanvas/Equipments にアタッチ）")]
         [SerializeField] private HorrorEquipmentsView _equipmentsView;
 
+        [Tooltip("エイム連動レティクル（OverlayCanvas/Reticle にアタッチ）")]
+        [SerializeField] private HorrorReticleView _reticleView;
+
         private bool _initialized;
         private InputSystemService _inputService;
         private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
@@ -249,6 +252,8 @@ namespace Game.Horror.Player
             UpdateInput();
             _stateMachine?.Update();
             UpdateAimPose();
+            if (_reticleView != null)
+                _reticleView.UpdatePose(_isAiming);
         }
 
         protected void FixedUpdate()
@@ -1155,6 +1160,7 @@ namespace Game.Horror.Player
             // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
             target?.TakeDamage(damage);
             _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+            _reticleView?.NotifyFired();
             Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{damage}");
         }
 
