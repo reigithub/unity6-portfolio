@@ -16,7 +16,7 @@ namespace Game.Horror.Dialogs
     /// </summary>
     public class HorrorEquipmentShortcutDialogComponent : GameSceneComponent
     {
-        [SerializeField] private HorrorEquipmentShortcutSlotView[] _slots;
+        [SerializeField] private HorrorEquipmentSlotView[] _slots;
 
         private InputSystemService _inputService;
         private IScriptableDatabaseService _databaseService;

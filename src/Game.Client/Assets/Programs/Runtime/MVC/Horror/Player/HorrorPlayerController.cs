@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Constants;
+using Game.Horror.Equipment;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
@@ -56,6 +57,9 @@ namespace Game.Horror.Player
         [Header("装備（武器モデル表示）")]
         [Tooltip("装備中武器の一人称モデルを表示するビュー（Camera/WeaponRoot にアタッチ）")]
         [SerializeField] private HorrorWeaponView _weaponView;
+
+        [Tooltip("装備切替時のショートカット HUD（OverlayCanvas/Equipments にアタッチ）")]
+        [SerializeField] private HorrorEquipmentsView _equipmentsView;
 
         private bool _initialized;
         private InputSystemService _inputService;
@@ -151,6 +155,7 @@ namespace Game.Horror.Player
             // Database はプレイヤー生成時点でロード済み
             _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
+            _equipmentsView.Initialize();
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
             if (_equipmentService.TryGetEquipped(out var slotType, out var id)
@@ -865,6 +870,7 @@ namespace Game.Horror.Player
                 {
                     ctx._weaponMaster = ctx._pendingWeaponMaster;
                     ctx._weaponView.BeginSwitch(ctx._pendingWeaponMaster);
+                    ctx._equipmentsView.Show(ctx._pendingEquipType, ctx._pendingEquipId);
                     Debug.Log($"{ctx._weaponMaster.Name}");
                 }
             }

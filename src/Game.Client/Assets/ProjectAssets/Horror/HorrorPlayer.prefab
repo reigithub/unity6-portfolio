@@ -287,6 +287,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 2055192790215107097}
   _iconImage: {fileID: 5698614597636187142}
+  _frameImage: {fileID: 3243019189231426478}
 --- !u!1 &1807372559117701934
 GameObject:
   m_ObjectHideFlags: 0
@@ -647,6 +648,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 4361230662488775049}
   _iconImage: {fileID: 6858513650964587931}
+  _frameImage: {fileID: 7773189859462325063}
 --- !u!1 &2137021424053338414
 GameObject:
   m_ObjectHideFlags: 0
@@ -943,6 +945,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 649
   _weaponView: {fileID: 2394900082480587528}
+  _equipmentsView: {fileID: 6051565467554838924}
 --- !u!114 &8001035782658720818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1262,6 +1265,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 4285746374021780087}
   _iconImage: {fileID: 2837489143366921169}
+  _frameImage: {fileID: 8482570012949706357}
 --- !u!1 &5199705943673795865
 GameObject:
   m_ObjectHideFlags: 0
@@ -1518,6 +1522,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentShortcutSlotView
   _button: {fileID: 7174353530140465676}
   _iconImage: {fileID: 1864991109311707992}
+  _frameImage: {fileID: 7602825029894048824}
 --- !u!1 &6715967740860157120
 GameObject:
   m_ObjectHideFlags: 0
@@ -1530,6 +1535,7 @@ GameObject:
   - component: {fileID: 3036007119429133823}
   - component: {fileID: 3404694586766999903}
   - component: {fileID: 2589304626285092893}
+  - component: {fileID: 6051565467554838924}
   m_Layer: 5
   m_Name: Equipments
   m_TagString: Untagged
@@ -1610,6 +1616,29 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
+--- !u!114 &6051565467554838924
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6715967740860157120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a583db0891b95740843ed304cadecb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Equipment.HorrorEquipmentHudView
+  _slots:
+  - {fileID: 6154327962088012958}
+  - {fileID: 3589324842798598674}
+  - {fileID: 6344953817410009596}
+  - {fileID: 715376164898082906}
+  _canvasGroup: {fileID: 2589304626285092893}
+  _fadeInSeconds: 0.2
+  _holdSeconds: 2
+  _fadeOutSeconds: 0.5
+  _equippedFrameColor: {r: 0, g: 0.5882353, b: 0.5882353, a: 1}
+  _normalFrameColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &6853252730508953924
 GameObject:
   m_ObjectHideFlags: 0
