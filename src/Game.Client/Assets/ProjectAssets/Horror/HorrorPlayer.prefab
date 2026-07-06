@@ -750,14 +750,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3085953760712267595}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.67494714, y: 0.032159597, z: -0.029468838, w: 0.73657566}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -0.25, y: -0.3, z: 0.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8684561270686209843}
   m_Father: {fileID: 3108793209200739432}
-  m_LocalEulerAnglesHint: {x: 85, y: 5, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &4774413914514725670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -940,6 +940,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 520
   _lookRotationSpeed: 0.1
+  _aimTransitionSpeed: 8
+  _aimRotationMultiplier: 0.4
+  _aimShakeFadeSeconds: 1
   _interactionDetector: {fileID: 8001035782658720818}
   _hitMask:
     serializedVersion: 2
@@ -1291,13 +1294,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5199705943673795865}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0019026564, y: -0.9980973, z: 0.04357798, w: 0.043577887}
+  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
   m_LocalPosition: {x: 0.25, y: -0.3, z: 0.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3108793209200739432}
-  m_LocalEulerAnglesHint: {x: 175, y: 5, z: 180}
+  m_LocalEulerAnglesHint: {x: 180, y: 0, z: 180}
 --- !u!114 &2394900082480587528
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1311,6 +1314,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.HorrorPlayerWeaponView
   _downOffset: {x: 0, y: -0.4, z: 0}
+  _aimOffset: {x: -0.25, y: 0.1, z: 0}
 --- !u!1 &5560323742111455703
 GameObject:
   m_ObjectHideFlags: 0
