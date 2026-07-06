@@ -19,9 +19,9 @@ MonoBehaviour:
     _iconAssetName: Weapon/Sprite sheet Blue_12
     _modelAssetName: M1911
     _maxCount: 1
-    _damage: 34
+    _damage: 30
     _range: 50
-    _fireInterval: 0.3
+    _fireInterval: 1
     _noiseLoudness: 2.5
     _equipDuration: 1
     _aimZoomRatio: 0.75
