@@ -13,11 +13,16 @@ namespace Game.Horror.Player
     /// 装備中武器のモデル生成・表示切替を担う。演出クロックは持たず、<see cref="HorrorPlayerController"/> の
     /// EquippingState が持つ経過時間を <see cref="BeginSwitch"/> / <see cref="TickSwitch"/> 経由で受け取って駆動する
     /// （単一クロック設計。View 独自のタイマーや UniTask 演出ループは持たない）。
+    /// WeaponRoot ローカル位置への書き込みは <see cref="UpdatePose"/> に一元化されており、
+    /// 切替演出の下げ量とエイム構えオフセットの合成もそこでのみ行われる。
     /// </summary>
     public class HorrorWeaponView : MonoBehaviour
     {
         [Tooltip("装備切替演出で武器を下げる相対オフセット（WeaponRoot ローカル座標）")]
         [SerializeField] private Vector3 _downOffset = new(0f, -0.4f, 0f);
+
+        [Tooltip("エイム時に武器を構える相対オフセット（WeaponRoot ローカル座標）")]
+        [SerializeField] private Vector3 _aimOffset = new(-0.25f, 0.1f, 0f);
 
         private IAddressableAssetService _assetService;
 
@@ -31,6 +36,7 @@ namespace Game.Horror.Player
         private readonly HashSet<int> _loading = new();
 
         private Vector3 _baseLocalPosition;
+        private float _lowerAmount; // 切替演出の下げ量（0-1）。TickSwitch が更新し UpdatePose が消費する
         private int _currentId = -1;
         private bool _disposed;
 
@@ -117,18 +123,26 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// 装備切替演出を毎フレーム進行させる。EquippingState.Update から呼ばれる。
-        /// EquippingState の経過時間を唯一のクロックとして受け取り、下げ→入替→上げの位置更新とモデル入替を行う。
+        /// EquippingState の経過時間を唯一のクロックとして受け取り、下げ量の更新とモデル入替を行う。
         /// </summary>
         public void TickSwitch(float elapsed, float duration)
         {
-            var lowerAmount = CalculateLowerAmount(elapsed, duration, _skipPutDown);
-            transform.localPosition = _baseLocalPosition + _downOffset * lowerAmount;
+            _lowerAmount = CalculateLowerAmount(elapsed, duration, _skipPutDown);
 
             if (!_swapped && IsPastSwapPoint(elapsed, duration, _skipPutDown))
             {
                 _swapped = true;
                 SwapModel(_pendingId);
             }
+        }
+
+        /// <summary>
+        /// 武器の構え位置を毎フレーム反映する。<see cref="HorrorPlayerController"/> の UpdateAimPose から
+        /// ステート更新後に呼ばれ、切替演出の下げ量とエイムブレンドを合成した唯一の位置書き込み点となる。
+        /// </summary>
+        public void UpdatePose(float aimBlend)
+        {
+            transform.localPosition = CalculateLocalPosition(_baseLocalPosition, _downOffset, _lowerAmount, _aimOffset, aimBlend);
         }
 
         // 入替点で旧モデルを非表示にし、新モデルが生成済みなら表示する（未生成ならロード完了側で表示される）
@@ -201,6 +215,12 @@ namespace Game.Horror.Player
             var amount = t < 0.5f ? t * 2f : (1f - t) * 2f;
             return Mathf.Clamp01(amount);
         }
+
+        /// <summary>
+        /// 基準位置に切替演出の下げオフセットとエイム構えオフセットを合成した WeaponRoot ローカル位置を算出する。
+        /// </summary>
+        public static Vector3 CalculateLocalPosition(Vector3 basePosition, Vector3 downOffset, float lowerAmount, Vector3 aimOffset, float aimBlend)
+            => basePosition + downOffset * lowerAmount + aimOffset * aimBlend;
 
         /// <summary>
         /// モデル入替点（中間点）を通過したかを判定する。初回装備（<paramref name="skipPutDown"/>）は

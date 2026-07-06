@@ -1,5 +1,6 @@
 using Game.Horror.Player;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Game.Tests.MVC.Horror
 {
@@ -59,5 +60,27 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void IsPastSwapPoint_AtStart_Skip_IsTrue()
             => Assert.That(HorrorWeaponView.IsPastSwapPoint(0f, 1f, true), Is.True);
+
+        // WeaponRoot ローカル位置の算出：基準位置に下げオフセット（lowerAmount）とエイムオフセット（aimBlend）を合成する。
+
+        private static readonly Vector3 BasePosition = new(0f, 0.1f, 0.2f);
+        private static readonly Vector3 DownOffset = new(0f, -0.4f, 0f);
+        private static readonly Vector3 AimOffset = new(-0.25f, 0.1f, 0f);
+
+        [Test]
+        public void CalculateLocalPosition_NoLowerNoBlend_IsBase()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 0f), Is.EqualTo(BasePosition));
+
+        [Test]
+        public void CalculateLocalPosition_FullBlend_IsBasePlusAimOffset()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 1f), Is.EqualTo(BasePosition + AimOffset));
+
+        [Test]
+        public void CalculateLocalPosition_FullLower_IsBasePlusDownOffset()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 0f), Is.EqualTo(BasePosition + DownOffset));
+
+        [Test]
+        public void CalculateLocalPosition_FullLowerAndBlend_IsBasePlusBothOffsets()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 1f), Is.EqualTo(BasePosition + DownOffset + AimOffset));
     }
 }

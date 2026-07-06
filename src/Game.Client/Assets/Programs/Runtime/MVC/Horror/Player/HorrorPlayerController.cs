@@ -46,6 +46,16 @@ namespace Game.Horror.Player
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
 
+        [Header("エイム")]
+        [Tooltip("エイム構え補間の応答速度（1-exp(-k・dt) の k）")]
+        [SerializeField] private float _aimTransitionSpeed = 8f;
+
+        [Tooltip("エイム中のカメラ回転速度倍率")]
+        [SerializeField] private float _aimRotationMultiplier = 0.4f;
+
+        [Tooltip("エイム中にカメラ揺れをゼロへ減衰させる秒数（解除時の復帰も同じ秒数）")]
+        [SerializeField] private float _aimShakeFadeSeconds = 1f;
+
         [Header("インタラクション")]
         [Tooltip("インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
         [SerializeField] private InteractionDetector _interactionDetector;
@@ -103,6 +113,12 @@ namespace Game.Horror.Player
         private bool _isCrouching;    // 目標姿勢
         private float _crouchBlend;   // 0=立ち, 1=しゃがみ の実補間値（形状・カメラ高さの単一ソース）
         private float _standHeight;   // 立ち時の CharacterController 高さ（Initialize で実測）
+
+        // エイム姿勢（移動ステートと直交する姿勢として保持）
+        private bool _isAiming;          // HOLD 判定（二値: ダメージ・スプレッド・揺れ減衰の目標方向に使用）
+        private float _aimBlend;         // 0=通常, 1=構え の実補間値（FOV・回転倍率・武器構え位置の単一ソース）
+        private float _aimShakeWeight = 1f; // 1=通常揺れ, 0=無揺れ（エイムで線形減衰）
+        private float _baseFov;          // オプション由来の基準 FOV（エイムズームの基準）
 
         // 垂直速度（重力 + ジャンプ）
         private float _verticalVelocity;
@@ -194,6 +210,7 @@ namespace Game.Horror.Player
                     , Player.Crouch.OnPerformedAsObservable()
                     , Player.Sprint.OnPerformedAsObservable()
                     , Player.Equip.OnPerformedAsObservable()
+                    , Player.Aim.OnPerformedAsObservable()
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
@@ -211,7 +228,8 @@ namespace Game.Horror.Player
 
             _lookAcceleration = data.CameraAcceleration;
             _cameraShake = data.CameraShake;
-            if (_mainCamera != null) _mainCamera.fieldOfView = data.CameraFov;
+            _baseFov = data.CameraFov;
+            ApplyFov();
 
             // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
             _sprintToggle = data.SprintToggle;
@@ -230,6 +248,7 @@ namespace Game.Horror.Player
             if (!_initialized) return;
             UpdateInput();
             _stateMachine?.Update();
+            UpdateAimPose();
         }
 
         protected void FixedUpdate()
@@ -268,10 +287,16 @@ namespace Game.Horror.Player
             {
                 // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
                 UpdateCrouchInput();
+                // エイム入力（HOLD）。走りがエイム状態を参照するため先に確定させる
+                UpdateAimInput();
                 // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
                 UpdateSprintInput();
                 // インタラクト起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
                 UpdateInteractInput();
+            }
+            else
+            {
+                _isAiming = false;
             }
 
             // 移動速度更新（拘束中は 0、しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
@@ -450,6 +475,19 @@ namespace Game.Horror.Player
             return -1;
         }
 
+        /// <summary>
+        /// 拡散角の範囲内でランダムに逸れた射撃方向を算出する（FPS Microgame の
+        /// GetShotDirectionWithinSpread と同式）。<paramref name="spreadAngle"/> 0 で forward のまま。
+        /// </summary>
+        public static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
+            => Vector3.Slerp(forward, randomUnit, spreadAngle / 180f);
+
+        /// <summary>
+        /// エイム状態を加味した射撃ダメージを算出する。エイム中は倍率を掛けて四捨五入する。
+        /// </summary>
+        public static int CalculateAimedDamage(int baseDamage, bool isAiming, float aimDamageMultiplier)
+            => isAiming ? Mathf.RoundToInt(baseDamage * aimDamageMultiplier) : baseDamage;
+
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
         private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
@@ -497,6 +535,17 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// エイム入力（HOLD）を処理する。武器未装備では構えられない。
+        /// 装備切替の硬直中は強制解除する（HOLD 継続なら硬直明けに自動で再エイムされる）。
+        /// </summary>
+        private void UpdateAimInput()
+        {
+            _isAiming = Player.Aim.IsPressed()
+                        && _weaponMaster != null
+                        && !(_stateMachine.IsProcessing() && _stateMachine.IsCurrentState<EquippingState>());
+        }
+
+        /// <summary>
         /// 走り入力をモード別に処理する。しゃがみ中は走れない（トグル状態も解除）。
         /// トグル時は押下で反転し、移動を止めると解除する。
         /// </summary>
@@ -504,6 +553,9 @@ namespace Game.Horror.Player
         {
             // しゃがみ中は走れない（トグル状態も強制解除）
             if (_isCrouching) { _isSprinting = false; return; }
+
+            // エイム中は走れない（トグル状態も強制解除）
+            if (_isAiming) { _isSprinting = false; return; }
 
             if (_sprintToggle)
             {
@@ -946,13 +998,16 @@ namespace Game.Horror.Player
         {
             if (_mainCamera == null) return;
 
+            // エイム中はカメラ回転を減速する（精密な狙いを支援）
+            var aimMultiplier = Mathf.Lerp(1f, _aimRotationMultiplier, _aimBlend);
+
             // Yaw: Player 本体を Y 軸回転（感度H・反転を適用、入力は加速度スムージング後の値）
             var horizontalInput = _smoothedLookValue.x * _lookSensitivityX * _lookInvertX;
-            transform.Rotate(0f, horizontalInput * _lookRotationSpeed, 0f, Space.Self);
+            transform.Rotate(0f, horizontalInput * _lookRotationSpeed * aimMultiplier, 0f, Space.Self);
 
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
-            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
+            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed * aimMultiplier, -89f, 89f);
             _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
 
@@ -998,9 +1053,9 @@ namespace Game.Horror.Player
             var idleY = Mathf.Sin(_idlePhase) * IdleSwayAmplitude * idleWeight;
             var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * IdleSwayRoll * idleWeight;
 
-            // 合算 → 全体強度 CameraShake（0 で完全停止）
-            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake;
-            var roll = (bobRoll + idleRoll) * _cameraShake;
+            // 合算 → 全体強度 CameraShake × エイム減衰（エイム中は _aimShakeWeight が 0 へ減衰）
+            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
+            var roll = (bobRoll + idleRoll) * _cameraShake * _aimShakeWeight;
 
             _mainCamera.transform.localPosition = _cameraBasePosition + offset;
             _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
@@ -1032,6 +1087,39 @@ namespace Game.Horror.Player
             _cameraBasePosition = _standCameraBasePosition - new Vector3(0f, eyeDrop, 0f);
         }
 
+        /// <summary>
+        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置を _aimBlend / _aimShakeWeight から導出する。
+        /// インタラクト拘束中も解除補間（FOV 復帰）が必要なため、ステート経由ではなく Update から
+        /// ステート更新後に呼ぶ（武器切替の下げ量更新 → 位置反映の順序もこれで保証される）。
+        /// </summary>
+        private void UpdateAimPose()
+        {
+            if (_mainCamera == null || _weaponView == null) return;
+
+            // 目標 0/1 へ指数補間（フレームレート非依存）
+            var target = _isAiming ? 1f : 0f;
+            var ease = 1f - Mathf.Exp(-_aimTransitionSpeed * Time.deltaTime);
+            _aimBlend = Mathf.Lerp(_aimBlend, target, ease);
+
+            ApplyFov();
+
+            // カメラ揺れの重みを線形に減衰/復帰（_aimShakeFadeSeconds でゼロ/1 に到達）
+            _aimShakeWeight = Mathf.MoveTowards(_aimShakeWeight, _isAiming ? 0f : 1f, Time.deltaTime / _aimShakeFadeSeconds);
+
+            _weaponView.UpdatePose(_aimBlend);
+        }
+
+        /// <summary>
+        /// カメラ FOV を基準 FOV とエイムズームの合成で適用する（唯一の FOV 書き込み点）。
+        /// オプションのランタイム再適用がエイム中のズームを上書きしないよう、常に同一式で導出する。
+        /// </summary>
+        private void ApplyFov()
+        {
+            if (_mainCamera == null) return;
+            var zoomRatio = _weaponMaster?.AimZoomRatio ?? 1f;
+            _mainCamera.fieldOfView = Mathf.Lerp(_baseFov, _baseFov * zoomRatio, _aimBlend);
+        }
+
         #endregion
 
         #region Combat
@@ -1047,6 +1135,12 @@ namespace Game.Horror.Player
             var origin = _mainCamera.transform.position;
             var direction = _mainCamera.transform.forward;
 
+            // 非エイム（腰だめ）射撃はわずかにランダム拡散する（エイム中はカメラ中心へ正確に飛ぶ）
+            if (!_isAiming)
+            {
+                direction = CalculateShotDirection(direction, Random.insideUnitSphere, _weaponMaster.SpreadAngle);
+            }
+
             IDamageable target = null;
             var noisePosition = origin + direction * _weaponMaster.Range;
 
@@ -1056,10 +1150,12 @@ namespace Game.Horror.Player
                 noisePosition = hit.point;
             }
 
+            var damage = CalculateAimedDamage(_weaponMaster.Damage, _isAiming, _weaponMaster.AimDamageMultiplier);
+
             // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
-            target?.TakeDamage(_weaponMaster.Damage);
+            target?.TakeDamage(damage);
             _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
-            Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{_weaponMaster.Damage}");
+            Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{damage}");
         }
 
 

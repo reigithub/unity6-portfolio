@@ -66,5 +66,46 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void ResolveEquipSlotIndex_BelowThreshold_IsNegativeOne()
             => Assert.That(HorrorPlayerController.ResolveEquipSlotIndex(new Vector2(0.3f, 0.2f)), Is.EqualTo(-1));
+
+        // 射撃方向の拡散：spreadAngle 0 は forward 不変、180 は randomUnit と一致、中間角は forward との偏差が spreadAngle 以下。
+
+        [Test]
+        public void CalculateShotDirection_ZeroSpread_IsForward()
+        {
+            var forward = Vector3.forward;
+            var result = HorrorPlayerController.CalculateShotDirection(forward, Vector3.right, 0f);
+            Assert.That(Vector3.Angle(result, forward), Is.EqualTo(0f).Within(1e-4f));
+        }
+
+        [Test]
+        public void CalculateShotDirection_MaxSpread_MatchesRandomUnit()
+        {
+            var randomUnit = Vector3.right;
+            var result = HorrorPlayerController.CalculateShotDirection(Vector3.forward, randomUnit, 180f);
+            Assert.That(Vector3.Angle(result, randomUnit), Is.EqualTo(0f).Within(1e-4f));
+        }
+
+        [Test]
+        public void CalculateShotDirection_WithinSpreadAngle_DeviationIsWithinSpread()
+        {
+            const float spreadAngle = 10f;
+            var forward = Vector3.forward;
+            var result = HorrorPlayerController.CalculateShotDirection(forward, Vector3.right, spreadAngle);
+            Assert.That(Vector3.Angle(result, forward), Is.LessThanOrEqualTo(spreadAngle));
+        }
+
+        // エイムダメージ：非エイムは素値、エイムは倍率適用の四捨五入、倍率1.0はエイムでも素値と一致。
+
+        [Test]
+        public void CalculateAimedDamage_NotAiming_ReturnsBaseDamage()
+            => Assert.That(HorrorPlayerController.CalculateAimedDamage(34, false, 1.2f), Is.EqualTo(34));
+
+        [Test]
+        public void CalculateAimedDamage_Aiming_ReturnsRoundedMultipliedDamage()
+            => Assert.That(HorrorPlayerController.CalculateAimedDamage(34, true, 1.2f), Is.EqualTo(41));
+
+        [Test]
+        public void CalculateAimedDamage_AimingWithUnitMultiplier_ReturnsBaseDamage()
+            => Assert.That(HorrorPlayerController.CalculateAimedDamage(34, true, 1.0f), Is.EqualTo(34));
     }
 }
