@@ -24,6 +24,9 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _fireInterval;      // 発砲後の硬直（AttackingState 滞在秒）
         [SerializeField] private float _noiseLoudness;     // 銃声の大きさ（NoiseEvent.Loudness）
         [SerializeField] private float _equipDuration;     // 装備切替の硬直（EquippingState 滞在秒）
+        [SerializeField] private float _aimZoomRatio;      // エイム時 FOV 倍率（1=ズーム無し、小さいほどズーム）
+        [SerializeField] private float _aimDamageMultiplier; // エイム射撃のダメージ倍率
+        [SerializeField] private float _spreadAngle;       // 非エイム射撃のランダム拡散角（度）
 
         #endregion
 
@@ -94,6 +97,24 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _equipDuration;
             set => _equipDuration = value;
+        }
+
+        public float AimZoomRatio
+        {
+            get => _aimZoomRatio;
+            set => _aimZoomRatio = value;
+        }
+
+        public float AimDamageMultiplier
+        {
+            get => _aimDamageMultiplier;
+            set => _aimDamageMultiplier = value;
+        }
+
+        public float SpreadAngle
+        {
+            get => _spreadAngle;
+            set => _spreadAngle = value;
         }
 
         #endregion

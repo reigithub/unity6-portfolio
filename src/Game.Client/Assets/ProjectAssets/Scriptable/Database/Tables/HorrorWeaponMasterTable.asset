@@ -24,6 +24,9 @@ MonoBehaviour:
     _fireInterval: 0.3
     _noiseLoudness: 2.5
     _equipDuration: 1
+    _aimZoomRatio: 0.75
+    _aimDamageMultiplier: 1.2
+    _spreadAngle: 2
   - _id: 2
     _name: Smoke
     _description: 
@@ -35,3 +38,6 @@ MonoBehaviour:
     _fireInterval: 0.3
     _noiseLoudness: 2.5
     _equipDuration: 1
+    _aimZoomRatio: 0.75
+    _aimDamageMultiplier: 1.2
+    _spreadAngle: 2
