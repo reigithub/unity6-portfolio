@@ -435,7 +435,7 @@ namespace Game.Shared.Input
                 {
                     ""name"": """",
                     ""id"": ""3b4e1770-2b5a-420d-91b4-338b8ba6f1aa"",
-                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
@@ -644,7 +644,7 @@ namespace Game.Shared.Input
                 {
                     ""name"": ""Remove"",
                     ""type"": ""Button"",
-                    ""id"": ""a1b2c3d4-0001-4a11-8b22-000000000001"",
+                    ""id"": ""698161ab-cd33-4abf-90e0-22d68a05a6d5"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1202,7 +1202,7 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""a1b2c3d4-0002-4a11-8b22-000000000002"",
+                    ""id"": ""98b2674d-6714-4aae-8ad2-baa3bd14c013"",
                     ""path"": ""<Keyboard>/delete"",
                     ""interactions"": """",
                     ""processors"": """",
@@ -1213,7 +1213,7 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""a1b2c3d4-0003-4a11-8b22-000000000003"",
+                    ""id"": ""c9f2693c-1e75-494c-aa91-77ba67aefbd1"",
                     ""path"": ""<Gamepad>/buttonWest"",
                     ""interactions"": """",
                     ""processors"": """",
