@@ -345,7 +345,7 @@ namespace Game.Horror.Player
             var canJumpFromState = _stateMachine.IsCurrentState<IdleState>() ||
                                    _stateMachine.IsCurrentState<MovingState>();
 
-            return canJumpFromState && IsGrounded() && !_isCrouching;
+            return canJumpFromState && IsGrounded() && !_isCrouching && !_isAiming;
         }
 
         /// <summary>
