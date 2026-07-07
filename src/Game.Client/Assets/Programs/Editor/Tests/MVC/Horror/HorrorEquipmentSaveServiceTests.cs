@@ -56,7 +56,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(1));
+            Assert.That(_service.Data.Version, Is.EqualTo(2));
             Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
             Assert.That(_service.IsDirty, Is.False);
         }
@@ -144,7 +144,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(1));
+            Assert.That(_service.Data.Version, Is.EqualTo(2));
             Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
             for (int i = 0; i < HorrorEquipmentConstants.MaxSlotCount; i++)
                 Assert.That(_service.TryGetSlot(i, out _), Is.False, $"slot {i} は初期空");
@@ -364,6 +364,86 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_service.Data.Slots, Is.Not.Null);
             Assert.That(_service.Data.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
+        }
+
+        [Test]
+        public async Task GetMagazineCount_Unrecorded_ReturnsMagazineSizeAsFull()
+        {
+            await LoadDefaultData();
+
+            var count = _service.GetMagazineCount(5, 30);
+
+            Assert.That(count, Is.EqualTo(30));
+        }
+
+        [Test]
+        public async Task SetMagazineCount_ThenGetMagazineCount_RoundTrips()
+        {
+            await LoadDefaultData();
+
+            _service.SetMagazineCount(5, 12);
+
+            Assert.That(_service.GetMagazineCount(5, 30), Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task SetMagazineCount_NegativeValue_ClampsToZero()
+        {
+            await LoadDefaultData();
+
+            _service.SetMagazineCount(5, -3);
+
+            Assert.That(_service.GetMagazineCount(5, 30), Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task GetMagazineCount_RecordedValueExceedsMagazineSize_ClampsToSize()
+        {
+            await LoadDefaultData();
+            _service.SetMagazineCount(5, 999);
+
+            var count = _service.GetMagazineCount(5, 30);
+
+            Assert.That(count, Is.EqualTo(30));
+        }
+
+        [Test]
+        public async Task SetMagazineCount_MarksDirty()
+        {
+            await LoadDefaultData();
+
+            _service.SetMagazineCount(5, 12);
+
+            Assert.That(_service.IsDirty, Is.True);
+        }
+
+        [Test]
+        public void MagazineMutators_WhenDataNull_DoNotThrow()
+        {
+            // LoadAsync 未実行 ＝ Data は null
+            Assert.DoesNotThrow(() =>
+            {
+                _service.SetMagazineCount(5, 12);
+                Assert.That(_service.GetMagazineCount(5, 30), Is.EqualTo(30));
+            });
+        }
+
+        [Test]
+        public async Task Load_V1Data_MigratesToVersion2AndInitializesMagazines()
+        {
+            var data = new HorrorEquipmentSaveData
+            {
+                Version = 1,
+                Slots = null,
+                Magazines = null,
+            };
+            _mockStorage.LoadAsync<HorrorEquipmentSaveData>(SaveKey)
+                .Returns(UniTask.FromResult(data));
+
+            await _service.LoadAsync();
+
+            Assert.That(_service.Data.Version, Is.EqualTo(2));
+            Assert.That(_service.Data.Magazines, Is.Not.Null);
         }
     }
 }

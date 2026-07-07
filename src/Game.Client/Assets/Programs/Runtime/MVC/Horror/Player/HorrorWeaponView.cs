@@ -11,10 +11,11 @@ namespace Game.Horror.Player
     /// <summary>
     /// Horror 一人称視点の武器モデル表示。カメラ子ソケット WeaponRoot にアタッチし、
     /// 装備中武器のモデル生成・表示切替を担う。演出クロックは持たず、<see cref="HorrorPlayerController"/> の
-    /// EquippingState が持つ経過時間を <see cref="BeginSwitch"/> / <see cref="TickSwitch"/> 経由で受け取って駆動する
+    /// EquippingState / ReloadingState が持つ経過時間を <see cref="BeginSwitch"/> / <see cref="TickSwitch"/> /
+    /// <see cref="TickReload"/> 経由で受け取って駆動する
     /// （単一クロック設計。View 独自のタイマーや UniTask 演出ループは持たない）。
-    /// WeaponRoot ローカル位置への書き込みは <see cref="UpdatePose"/> に一元化されており、
-    /// 切替演出の下げ量とエイム構えオフセットの合成もそこでのみ行われる。
+    /// WeaponRoot ローカル位置・回転への書き込みは <see cref="UpdatePose"/> に一元化されており、
+    /// 切替演出の下げ量・エイム構えオフセット・リロード傾きの合成もそこでのみ行われる。
     /// </summary>
     public class HorrorWeaponView : MonoBehaviour
     {
@@ -23,6 +24,12 @@ namespace Game.Horror.Player
 
         [Tooltip("エイム時に武器を構える相対オフセット（WeaponRoot ローカル座標）")]
         [SerializeField] private Vector3 _aimOffset = new(-0.25f, 0.1f, 0f);
+
+        [Tooltip("リロード演出で武器を傾けるロール角（度）。正で右傾き")]
+        [SerializeField] private float _reloadTiltAngle = 35f;
+
+        [Tooltip("リロード演出の傾け・戻しの遷移秒数")]
+        [SerializeField] private float _reloadTiltSeconds = 0.4f;
 
         private IAddressableAssetService _assetService;
 
@@ -36,7 +43,9 @@ namespace Game.Horror.Player
         private readonly HashSet<int> _loading = new();
 
         private Vector3 _baseLocalPosition;
+        private Quaternion _baseLocalRotation;
         private float _lowerAmount; // 切替演出の下げ量（0-1）。TickSwitch が更新し UpdatePose が消費する
+        private float _reloadTiltWeight; // リロード演出の傾き量（0-1）。TickReload が更新し UpdatePose が消費する
         private int _currentId = -1;
         private bool _disposed;
 
@@ -48,6 +57,7 @@ namespace Game.Horror.Player
         private void Awake()
         {
             _baseLocalPosition = transform.localPosition;
+            _baseLocalRotation = transform.localRotation;
         }
 
         private void OnDestroy()
@@ -137,13 +147,31 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 武器の構え位置を毎フレーム反映する。<see cref="HorrorPlayerController"/> の各ステート Update
-        /// （装備切替中は TickSwitch の後）から UpdateAimPose 経由で呼ばれ、
-        /// 切替演出の下げ量とエイムブレンドを合成した唯一の位置書き込み点となる。
+        /// リロード演出を毎フレーム進行させる。ReloadingState.Update から呼ばれる。
+        /// ReloadingState の経過時間を唯一のクロックとして受け取り、傾き量を更新する。
+        /// </summary>
+        public void TickReload(float elapsed, float duration)
+        {
+            _reloadTiltWeight = CalculateReloadTiltWeight(elapsed, duration, _reloadTiltSeconds);
+        }
+
+        /// <summary>
+        /// リロード演出の傾きを即時解除する。ReloadingState.Exit から呼ばれる（中断・完了とも確実にリセット）。
+        /// </summary>
+        public void ResetReload()
+        {
+            _reloadTiltWeight = 0f;
+        }
+
+        /// <summary>
+        /// 武器の構え位置・傾きを毎フレーム反映する。<see cref="HorrorPlayerController"/> の各ステート Update
+        /// （装備切替中は TickSwitch の後、リロード中は TickReload の後）から UpdateAimPose 経由で呼ばれ、
+        /// 切替演出の下げ量とエイムブレンドを合成した唯一の位置・回転書き込み点となる。
         /// </summary>
         public void UpdatePose(float aimBlend)
         {
             transform.localPosition = CalculateLocalPosition(_baseLocalPosition, _downOffset, _lowerAmount, _aimOffset, aimBlend);
+            transform.localRotation = CalculateLocalRotation(_baseLocalRotation, _reloadTiltAngle, _reloadTiltWeight);
         }
 
         // 入替点で旧モデルを非表示にし、新モデルが生成済みなら表示する（未生成ならロード完了側で表示される）
@@ -231,5 +259,22 @@ namespace Game.Horror.Player
         {
             return skipPutDown || elapsed >= duration * 0.5f;
         }
+
+        /// <summary>
+        /// リロード演出の傾き量（0-1）を算出する。開始から transitionSeconds で 0→1（傾け）、
+        /// 終端の transitionSeconds で 1→0（戻し）、間は 1 を保持する台形カーブ。
+        /// duration が 0 以下なら 0。transitionSeconds が短い duration では自然に三角波化する。
+        /// </summary>
+        public static float CalculateReloadTiltWeight(float elapsed, float duration, float transitionSeconds)
+        {
+            if (duration <= 0f) return 0f;
+
+            var t = Mathf.Max(transitionSeconds, 0.0001f);
+            return Mathf.Clamp01(Mathf.Min(elapsed / t, (duration - elapsed) / t));
+        }
+
+        /// <summary>基準回転にリロード傾き（ロール角 × 傾き量）を合成した WeaponRoot ローカル回転を算出する。</summary>
+        public static Quaternion CalculateLocalRotation(Quaternion baseRotation, float tiltAngle, float tiltWeight)
+            => baseRotation * Quaternion.Euler(0f, 0f, tiltAngle * tiltWeight);
     }
 }

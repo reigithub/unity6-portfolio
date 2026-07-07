@@ -78,6 +78,29 @@ namespace Game.Horror.Services
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
         public bool HasItem(InventorySlotType type, int id) => TryGet(type, id, out _);
 
+        /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
+        public int GetCount(InventorySlotType type, int id) => TryGet(type, id, out var slot) ? slot.Count : 0;
+
+        /// <summary>
+        /// 指定数を消費する。所持数不足なら何もせず false（部分消費しない）。
+        /// 0 到達でスロットを除去し、Dirty にする。
+        /// </summary>
+        public bool TryConsume(InventorySlotType type, int id, int count)
+        {
+            if (count <= 0)
+                return false;
+
+            if (!TryGet(type, id, out var slot) || slot.Count < count)
+                return false;
+
+            slot.Count -= count;
+            if (slot.Count <= 0)
+                Data.Slots.Remove(slot);
+
+            MarkDirty();
+            return true;
+        }
+
         protected override void OnDataLoaded(HorrorInventorySaveData data)
         {
             var database = _databaseService.Database;

@@ -82,5 +82,58 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateLocalPosition_FullLowerAndBlend_IsBasePlusBothOffsets()
             => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 1f), Is.EqualTo(BasePosition + DownOffset + AimOffset));
+
+        // リロード傾き量：開始 transitionSeconds で 0→1（傾け）、終端 transitionSeconds で 1→0（戻し）、間は 1 を保持する台形カーブ。
+
+        [Test]
+        public void CalculateReloadTiltWeight_AtStart_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0f, 3f, 0.4f), Is.EqualTo(0f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_DuringTiltTransition_IsHalfway()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.2f, 3f, 0.4f), Is.EqualTo(0.5f).Within(1e-4f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_DuringHold_IsOne()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(1.5f, 3f, 0.4f), Is.EqualTo(1f).Within(1e-4f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_AtEnd_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(3f, 3f, 0.4f), Is.EqualTo(0f).Within(1e-4f));
+
+        // duration<=0 はゼロ除算を避けて 0 とみなす
+        [Test]
+        public void CalculateReloadTiltWeight_ZeroDuration_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.5f, 0f, 0.4f), Is.EqualTo(0f));
+
+        // transitionSeconds<=0 は最小値でガードされ、例外なく 0-1 に収まる
+        [Test]
+        public void CalculateReloadTiltWeight_ZeroTransitionSeconds_IsClampedWithinUnitRange()
+        {
+            var result = HorrorWeaponView.CalculateReloadTiltWeight(0.5f, 1f, 0f);
+            Assert.That(result, Is.InRange(0f, 1f));
+        }
+
+        // duration より遷移区間（transitionSeconds * 2）が大きい場合、保持区間なしの三角波化しても 0-1 にクランプされる
+        [Test]
+        public void CalculateReloadTiltWeight_TransitionLongerThanDuration_IsClamped()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.25f, 0.5f, 0.4f), Is.EqualTo(0.625f).Within(1e-4f));
+
+        // WeaponRoot ローカル回転の算出：基準回転にリロード傾き（ロール角 × 傾き量）を合成する。
+
+        private static readonly Quaternion BaseRotation = Quaternion.Euler(10f, 20f, 30f);
+        private const float TiltAngle = -35f;
+
+        [Test]
+        public void CalculateLocalRotation_WeightZero_EqualsBaseRotation()
+            => Assert.That(Quaternion.Angle(HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 0f), BaseRotation), Is.EqualTo(0f).Within(1e-3f));
+
+        [Test]
+        public void CalculateLocalRotation_WeightOne_EqualsBaseRotationTimesTilt()
+        {
+            var expected = BaseRotation * Quaternion.Euler(0f, 0f, TiltAngle);
+            var actual = HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 1f);
+            Assert.That(Quaternion.Angle(actual, expected), Is.EqualTo(0f).Within(1e-3f));
+        }
     }
 }

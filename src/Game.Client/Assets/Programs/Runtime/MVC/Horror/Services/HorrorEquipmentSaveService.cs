@@ -17,7 +17,7 @@ namespace Game.Horror.Services
     public class HorrorEquipmentSaveService : SaveServiceBase<HorrorEquipmentSaveData>, IHorrorEquipmentSaveService, IGameService
     {
         protected override string SaveKey => "horror_equipment";
-        protected override int CurrentVersion => 1;
+        protected override int CurrentVersion => 2;
 
         /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
         private const int MaxSlotCount = HorrorEquipmentConstants.MaxSlotCount;
@@ -150,6 +150,46 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// 指定武器の弾倉残弾を取得する。記録があれば [0, magazineSize] にクランプして返し、
+        /// 未記録・未ロードなら満タン（magazineSize）を返す（初回入手武器は満タン仕様）。読み取り専用で Data には書き込まない。
+        /// </summary>
+        public int GetMagazineCount(int weaponId, int magazineSize)
+        {
+            if (Data == null || Data.Magazines == null)
+                return magazineSize;
+
+            foreach (var rec in Data.Magazines)
+            {
+                if (rec.WeaponId == weaponId)
+                    return Mathf.Clamp(rec.Count, 0, magazineSize);
+            }
+
+            return magazineSize;
+        }
+
+        /// <summary>指定武器の弾倉残弾を設定する。未記録なら追加し、負値は 0 にクランプして Dirty にする。</summary>
+        public void SetMagazineCount(int weaponId, int count)
+        {
+            if (Data == null)
+                return;
+
+            Data.Magazines ??= new List<HorrorWeaponMagazineData>();
+
+            foreach (var rec in Data.Magazines)
+            {
+                if (rec.WeaponId == weaponId)
+                {
+                    rec.Count = Mathf.Max(0, count);
+                    MarkDirty();
+                    return;
+                }
+            }
+
+            Data.Magazines.Add(new HorrorWeaponMagazineData { WeaponId = weaponId, Count = Mathf.Max(0, count) });
+            MarkDirty();
+        }
+
         protected override HorrorEquipmentSaveData CreateNewData()
         {
             var data = new HorrorEquipmentSaveData();
@@ -176,6 +216,25 @@ namespace Game.Horror.Services
             {
                 data.SlotType = InventorySlotType.None;
                 data.Id = 0;
+            }
+
+            data.Magazines ??= new List<HorrorWeaponMagazineData>();
+
+            // 逆順走査（弾薬概念の無い武器・重複・マスター未存在レコードを除去しつつクランプ）
+            var seenWeaponIds = new HashSet<int>();
+            for (int i = data.Magazines.Count - 1; i >= 0; i--)
+            {
+                var rec = data.Magazines[i];
+                if (!database.HorrorWeaponMasterTable.TryFindById(rec.WeaponId, out var weaponMaster)
+                    || weaponMaster.AmmoItemId <= 0
+                    || !seenWeaponIds.Add(rec.WeaponId))
+                {
+                    data.Magazines.RemoveAt(i);
+                }
+                else
+                {
+                    rec.Count = Mathf.Clamp(rec.Count, 0, weaponMaster.MagazineSize);
+                }
             }
         }
 

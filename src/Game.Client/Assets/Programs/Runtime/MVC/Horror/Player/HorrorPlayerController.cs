@@ -74,6 +74,9 @@ namespace Game.Horror.Player
         [Tooltip("エイム連動レティクル（OverlayCanvas/Reticle にアタッチ）")]
         [SerializeField] private HorrorReticleView _reticleView;
 
+        [Tooltip("残弾 HUD（OverlayCanvas/Ammo にアタッチ）")]
+        [SerializeField] private HorrorAmmoView _ammoView;
+
         private bool _initialized;
         private InputSystemService _inputService;
         private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
@@ -106,6 +109,16 @@ namespace Game.Horror.Player
         private InventorySlotType _pendingEquipType;
         private int _pendingEquipId;
         private HorrorWeaponMaster _pendingWeaponMaster;
+
+        // リロード：インベントリセーブサービス（予備弾の所持数参照）・SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
+        private HorrorInventorySaveService _inventoryService;
+        private AudioService _audioService;
+        private bool _reloadTriggered;
+
+        /// <summary>
+        /// 弾切れ発砲時に自動でリロードを開始するか（将来オプション設定から反映する拡張点。既定 false）。
+        /// </summary>
+        public bool AutoReloadOnEmpty { get; set; }
 
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
@@ -170,10 +183,12 @@ namespace Game.Horror.Player
             _inputService.EnablePlayer();
 
             _messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            _audioService = GameServiceManager.Get<AudioService>();
 
             // Database はプレイヤー生成時点でロード済み
             _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
+            _inventoryService = GameServiceManager.Resolve<HorrorInventorySaveService>();
             _equipmentsView.Initialize();
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
@@ -207,13 +222,14 @@ namespace Game.Horror.Player
             // プレイヤー入力監視
             Observable.Merge(Player.Move.OnPerformedAsObservable()
                     , Player.Look.OnPerformedAsObservable()
-                    , Player.Attack.OnPerformedAsObservable()
                     , Player.Interact.OnPerformedAsObservable()
                     , Player.Jump.OnPerformedAsObservable()
                     , Player.Crouch.OnPerformedAsObservable()
                     , Player.Sprint.OnPerformedAsObservable()
                     , Player.Equip.OnPerformedAsObservable()
+                    , Player.Fire.OnPerformedAsObservable()
                     , Player.Aim.OnPerformedAsObservable()
+                    , Player.Reload.OnPerformedAsObservable()
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
@@ -285,6 +301,10 @@ namespace Game.Horror.Player
 
             // 身体占有（インタラクト）中は移動・他アクションを受け付けない
             var restrained = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
+
+            // リロード硬直中は攻撃・インタラクト・リロード再入力を受け付けない（完了後の遅延発火も禁止するため、フラグ自体を立てない）
+            var reloading = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>();
+
             if (!restrained)
             {
                 // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
@@ -294,7 +314,7 @@ namespace Game.Horror.Player
                 // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
                 UpdateSprintInput();
                 // インタラクト起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
-                UpdateInteractInput();
+                if (!reloading) UpdateInteractInput();
             }
             else
             {
@@ -319,7 +339,7 @@ namespace Game.Horror.Player
             }
 
             // 攻撃（射撃）起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
-            if (!restrained && Player.Attack.WasPressedThisFrame() && IsGrounded())
+            if (!restrained && !reloading && Player.Fire.WasPressedThisFrame() && IsGrounded())
             {
                 _attackTriggered = true;
             }
@@ -333,6 +353,12 @@ namespace Game.Horror.Player
                     _equipTriggered = true;
                     _equipSlotIndex = index;
                 }
+            }
+
+            // リロード起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+            if (!restrained && !reloading && Player.Reload.WasPressedThisFrame() && IsGrounded())
+            {
+                _reloadTriggered = true;
             }
         }
 
@@ -372,6 +398,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// 立てられた射撃起動フラグを消費し、武器マスターがあれば AttackingState へ遷移すべきと返す。
         /// Idle/Moving ステートの Update から呼ばれ、実際の発砲は AttackingState.Enter が行う。
+        /// 弾切れ時は空撃ち（硬直なし）として処理し遷移しない。
         /// </summary>
         /// <returns>AttackingState へ遷移すべきなら true。</returns>
         private bool TryAttack()
@@ -381,7 +408,32 @@ namespace Game.Horror.Player
 
             _attackTriggered = false;
 
-            return _weaponMaster != null;
+            if (_weaponMaster == null)
+                return false;
+
+            // 弾切れは空撃ち（ステート遷移なし＝硬直なし）。AmmoItemId=0 の武器は弾薬概念なし（無限）
+            if (_weaponMaster.AmmoItemId > 0
+                && _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize) <= 0)
+            {
+                HandleDryFire();
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 空撃ちを処理する。SE（マスターにアセット名がある場合のみ）と HUD の表示キックを行い、
+        /// 自動リロードが有効ならリロード起動フラグを立てる（同フレームの TryReload が消費する）。
+        /// </summary>
+        private void HandleDryFire()
+        {
+            if (!string.IsNullOrEmpty(_weaponMaster.DryFireSeAssetName))
+                _audioService.PlaySoundEffectAsync(_weaponMaster.DryFireSeAssetName, destroyCancellationToken).Forget();
+
+            _ammoView?.Notify();
+
+            if (AutoReloadOnEmpty) _reloadTriggered = true;
         }
 
         /// <summary>
@@ -416,6 +468,31 @@ namespace Game.Horror.Player
             _pendingEquipType = slot.SlotType;
             _pendingEquipId = slot.Id;
             _pendingWeaponMaster = weaponMaster;
+            return true;
+        }
+
+        /// <summary>
+        /// 立てられたリロード起動フラグを消費し、弾薬を使う武器で弾倉に空きがあり予備弾を所持している場合に
+        /// ReloadingState へ遷移すべきと返す。Idle/Moving ステートの Update から呼ばれ、
+        /// 実際の装填（弾倉回復・予備消費）は ReloadingState が硬直消化後に行う。予備 0 は無反応（拒否演出なし）。
+        /// </summary>
+        /// <returns>ReloadingState へ遷移すべきなら true。</returns>
+        private bool TryReload()
+        {
+            if (!_reloadTriggered)
+                return false;
+
+            _reloadTriggered = false;
+
+            if (_weaponMaster == null || _weaponMaster.AmmoItemId <= 0 || _weaponMaster.MagazineSize <= 0)
+                return false;
+
+            if (_equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize) >= _weaponMaster.MagazineSize)
+                return false;
+
+            if (_inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId) <= 0)
+                return false;
+
             return true;
         }
 
@@ -489,6 +566,12 @@ namespace Game.Horror.Player
         /// </summary>
         public static int CalculateAimedDamage(int baseDamage, bool isAiming, float aimDamageMultiplier)
             => isAiming ? Mathf.RoundToInt(baseDamage * aimDamageMultiplier) : baseDamage;
+
+        /// <summary>
+        /// リロードの装填数（=予備弾の消費数）を算出する。弾倉の不足分と予備所持数の小さい方。満タン・予備 0 は 0。
+        /// </summary>
+        public static int CalculateReloadAmount(int magazine, int magazineSize, int reserve)
+            => Mathf.Max(0, Mathf.Min(magazineSize - magazine, reserve));
 
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
@@ -635,6 +718,10 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, EquippingState>(StateEvent.Equip);
             _stateMachine.AddTransition<EquippingState, IdleState>(StateEvent.EndEquip);
 
+            _stateMachine.AddTransition<IdleState, ReloadingState>(StateEvent.Reload);
+            _stateMachine.AddTransition<MovingState, ReloadingState>(StateEvent.Reload);
+            _stateMachine.AddTransition<ReloadingState, IdleState>(StateEvent.EndReload);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
 
             // 初期ステート
@@ -657,6 +744,8 @@ namespace Game.Horror.Player
             EndAttack, // 攻撃終了（発射間隔経過）: Attacking → Idle
             Equip, // 装備切替開始: Idle/Moving → Equipping
             EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
+            Reload, // リロード開始: Idle/Moving → Reloading
+            EndReload, // リロード終了（ReloadDuration経過）: Reloading → Idle
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -694,6 +783,13 @@ namespace Game.Horror.Player
                 if (ctx.TryEquip())
                 {
                     StateMachine.Transition(StateEvent.Equip);
+                    return;
+                }
+
+                // リロード起動チェック
+                if (ctx.TryReload())
+                {
+                    StateMachine.Transition(StateEvent.Reload);
                     return;
                 }
 
@@ -746,6 +842,13 @@ namespace Game.Horror.Player
                 if (ctx.TryEquip())
                 {
                     StateMachine.Transition(StateEvent.Equip);
+                    return;
+                }
+
+                // リロード起動チェック
+                if (ctx.TryReload())
+                {
+                    StateMachine.Transition(StateEvent.Reload);
                     return;
                 }
 
@@ -878,7 +981,7 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// 射撃実行中の状態。Enter で 1 発発砲し、FireInterval（武器マスター）の間は移動・視点を許可しつつ
-        /// 次弾の発射を待たせる（発射レート制限）。間隔を消化したら Idle へ戻る。将来のリロード/エイム等の器も兼ねる。
+        /// 次弾の発射を待たせる（発射レート制限）。間隔を消化したら Idle へ戻る。
         /// </summary>
         private class AttackingState : State<HorrorPlayerController, StateEvent>
         {
@@ -952,6 +1055,60 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
+        /// <summary>
+        /// リロード実行中の状態。ReloadDuration（武器マスター）の間、移動・視点・エイムを許可しつつ硬直として滞在し、
+        /// 武器を傾ける演出を進める。滞在秒を消化した時点で装填（弾倉回復・予備消費）を適用して Idle へ戻る。
+        /// 攻撃・ジャンプ・インタラクトの起動は入力側・遷移構造で禁止される。
+        /// </summary>
+        private class ReloadingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+            private float _duration;
+            private bool _applied;
+
+            public override void Enter()
+            {
+                var ctx = Context;
+                // インスタンスはキャッシュ再利用されるため経過時間・適用済みフラグを必ずリセット
+                _elapsed = 0f;
+                _applied = false;
+                _duration = ctx._weaponMaster.ReloadDuration;
+                if (ctx._ammoView != null)
+                    ctx._ammoView.Notify();
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.UpdateRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+
+                _elapsed += Time.deltaTime;
+                ctx._weaponView.TickReload(_elapsed, _duration);
+                ctx.UpdateAimPose(); // TickReload の後に呼ぶ（傾き量更新 → 反映の順序）
+
+                if (!_applied && _elapsed >= _duration)
+                {
+                    _applied = true; // フレーム落ち・将来の中断遷移追加に対する二重適用防止
+                    ctx.ApplyReload();
+                    StateMachine.Transition(StateEvent.EndReload);
+                }
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+
+            public override void Exit()
+            {
+                // 中断・完了とも傾き演出を確実に解除する
+                Context._weaponView.ResetReload();
             }
         }
 
@@ -1096,7 +1253,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクルを _aimBlend / _aimShakeWeight から導出する。
+        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクル・残弾 HUD を _aimBlend / _aimShakeWeight から導出する。
         /// 各ステートの Update から呼ばれる（インタラクト拘束中も解除補間・FOV 復帰が必要なため
         /// InteractingState を含む全ステートが呼ぶ）。装備切替中は TickSwitch の後に呼ぶこと（下げ量更新 → 位置反映の順序）。
         /// </summary>
@@ -1118,6 +1275,38 @@ namespace Game.Horror.Player
 
             if (_reticleView != null)
                 _reticleView.UpdatePose(_isAiming);
+
+            UpdateAmmoHud();
+        }
+
+        /// <summary>
+        /// 残弾 HUD を毎フレーム駆動する。表示内容（弾倉/予備・所持数のみ・非表示）と最新値をプル型で渡し、
+        /// 値の変更検出と表示演出は View 側が担う。エイム中・リロード中は表示を維持する。
+        /// </summary>
+        private void UpdateAmmoHud()
+        {
+            if (_ammoView == null) return;
+
+            var mode = HorrorAmmoView.ResolveDisplayMode(_weaponMaster != null, _weaponMaster?.AmmoItemId ?? 0);
+            var keepVisible = _isAiming
+                || (_stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>());
+
+            var magazine = 0;
+            var magazineSize = 0;
+            var reserve = 0;
+            switch (mode)
+            {
+                case HorrorAmmoView.DisplayMode.MagazineAndReserve:
+                    magazineSize = _weaponMaster.MagazineSize;
+                    magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
+                    reserve = _inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId);
+                    break;
+                case HorrorAmmoView.DisplayMode.CountOnly:
+                    magazine = _inventoryService.GetCount(InventorySlotType.Weapon, _weaponMaster.Id); // 武器アイテム自体の所持数（例: Smoke）
+                    break;
+            }
+
+            _ammoView.UpdatePose(mode, keepVisible, magazine, magazineSize, reserve);
         }
 
         /// <summary>
@@ -1163,6 +1352,14 @@ namespace Game.Horror.Player
 
             var damage = CalculateAimedDamage(_weaponMaster.Damage, _isAiming, _weaponMaster.AimDamageMultiplier);
 
+            // 弾倉消費（AmmoItemId=0 の武器は弾薬概念なし・無限）
+            if (_weaponMaster.AmmoItemId > 0)
+            {
+                var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize);
+                _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine - 1);
+                _ammoView?.Notify();
+            }
+
             // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
             target?.TakeDamage(damage);
             _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
@@ -1173,6 +1370,26 @@ namespace Game.Horror.Player
 
         /// <summary>次弾までの発射間隔（AttackingState 滞在秒）。武器未設定なら 0。</summary>
         private float GetFireInterval() => _weaponMaster?.FireInterval ?? 0f;
+
+        /// <summary>
+        /// 装填を適用する。完了時点の弾倉・予備から装填数を再計算し、予備の消費に成功した場合のみ弾倉へ反映する
+        /// （予備だけ減る・弾倉だけ増える不整合を防ぐ順序）。
+        /// </summary>
+        private void ApplyReload()
+        {
+            if (_weaponMaster == null || _weaponMaster.AmmoItemId <= 0) return;
+
+            var magazineSize = _weaponMaster.MagazineSize;
+            var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
+            var reserve = _inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId);
+            var amount = CalculateReloadAmount(magazine, magazineSize, reserve);
+
+            if (amount <= 0) return;
+            if (!_inventoryService.TryConsume(InventorySlotType.Item, _weaponMaster.AmmoItemId, amount)) return;
+
+            _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine + amount);
+            _ammoView?.Notify();
+        }
 
         #endregion
     }

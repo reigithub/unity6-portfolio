@@ -107,5 +107,31 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateAimedDamage_AimingWithUnitMultiplier_ReturnsBaseDamage()
             => Assert.That(HorrorPlayerController.CalculateAimedDamage(34, true, 1.0f), Is.EqualTo(34));
+
+        // リロード装填数：弾倉不足分と予備所持数の小さい方。満タン・予備0は0、異常値（弾倉>容量）でも負にならない。
+
+        [Test]
+        public void CalculateReloadAmount_EmptyMagazineWithEnoughReserve_ReturnsMagazineSize()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(0, 10, 100), Is.EqualTo(10));
+
+        [Test]
+        public void CalculateReloadAmount_PartialMagazine_ReturnsShortfall()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 100), Is.EqualTo(6));
+
+        [Test]
+        public void CalculateReloadAmount_InsufficientReserve_ReturnsReserveAmount()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 3), Is.EqualTo(3));
+
+        [Test]
+        public void CalculateReloadAmount_FullMagazine_ReturnsZero()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(10, 10, 100), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateReloadAmount_ZeroReserve_ReturnsZero()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 0), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateReloadAmount_MagazineExceedsSize_DoesNotGoNegative()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(15, 10, 100), Is.EqualTo(0));
     }
 }
