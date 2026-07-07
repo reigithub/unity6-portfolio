@@ -167,9 +167,27 @@ namespace Game.Shared.Input
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""Fire"",
+                    ""type"": ""Button"",
+                    ""id"": ""e3a1eb86-577c-4be1-91ba-39874c4dcd0e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""Aim"",
                     ""type"": ""Button"",
                     ""id"": ""7c3f9d2a-4e61-4b8f-9a05-2d8c1e6f5b3a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Reload"",
+                    ""type"": ""Button"",
+                    ""id"": ""726cc193-0d79-49a5-acaf-8b2803af3c31"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -537,6 +555,50 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""Aim"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""175cd85d-be2c-47c1-aa74-0077d977717b"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Reload"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b4ee4b2e-ba2f-4ca8-af10-d221c9e634d3"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Reload"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2489bd63-e882-4adb-81df-02b2499bbeed"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Fire"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fdbde1b3-88ae-46f7-bb76-0a4e6a54cfd4"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Fire"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1351,7 +1413,9 @@ namespace Game.Shared.Input
             m_Player_Crouch = m_Player.FindAction("Crouch", throwIfNotFound: true);
             m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
             m_Player_Equip = m_Player.FindAction("Equip", throwIfNotFound: true);
+            m_Player_Fire = m_Player.FindAction("Fire", throwIfNotFound: true);
             m_Player_Aim = m_Player.FindAction("Aim", throwIfNotFound: true);
+            m_Player_Reload = m_Player.FindAction("Reload", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1459,7 +1523,9 @@ namespace Game.Shared.Input
         private readonly InputAction m_Player_Crouch;
         private readonly InputAction m_Player_Sprint;
         private readonly InputAction m_Player_Equip;
+        private readonly InputAction m_Player_Fire;
         private readonly InputAction m_Player_Aim;
+        private readonly InputAction m_Player_Reload;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1504,9 +1570,17 @@ namespace Game.Shared.Input
             /// </summary>
             public InputAction @Equip => m_Wrapper.m_Player_Equip;
             /// <summary>
+            /// Provides access to the underlying input action "Player/Fire".
+            /// </summary>
+            public InputAction @Fire => m_Wrapper.m_Player_Fire;
+            /// <summary>
             /// Provides access to the underlying input action "Player/Aim".
             /// </summary>
             public InputAction @Aim => m_Wrapper.m_Player_Aim;
+            /// <summary>
+            /// Provides access to the underlying input action "Player/Reload".
+            /// </summary>
+            public InputAction @Reload => m_Wrapper.m_Player_Reload;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1557,9 +1631,15 @@ namespace Game.Shared.Input
                 @Equip.started += instance.OnEquip;
                 @Equip.performed += instance.OnEquip;
                 @Equip.canceled += instance.OnEquip;
+                @Fire.started += instance.OnFire;
+                @Fire.performed += instance.OnFire;
+                @Fire.canceled += instance.OnFire;
                 @Aim.started += instance.OnAim;
                 @Aim.performed += instance.OnAim;
                 @Aim.canceled += instance.OnAim;
+                @Reload.started += instance.OnReload;
+                @Reload.performed += instance.OnReload;
+                @Reload.canceled += instance.OnReload;
             }
 
             /// <summary>
@@ -1595,9 +1675,15 @@ namespace Game.Shared.Input
                 @Equip.started -= instance.OnEquip;
                 @Equip.performed -= instance.OnEquip;
                 @Equip.canceled -= instance.OnEquip;
+                @Fire.started -= instance.OnFire;
+                @Fire.performed -= instance.OnFire;
+                @Fire.canceled -= instance.OnFire;
                 @Aim.started -= instance.OnAim;
                 @Aim.performed -= instance.OnAim;
                 @Aim.canceled -= instance.OnAim;
+                @Reload.started -= instance.OnReload;
+                @Reload.performed -= instance.OnReload;
+                @Reload.canceled -= instance.OnReload;
             }
 
             /// <summary>
@@ -2021,12 +2107,26 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnEquip(InputAction.CallbackContext context);
             /// <summary>
+            /// Method invoked when associated input action "Fire" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnFire(InputAction.CallbackContext context);
+            /// <summary>
             /// Method invoked when associated input action "Aim" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnAim(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Reload" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnReload(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
