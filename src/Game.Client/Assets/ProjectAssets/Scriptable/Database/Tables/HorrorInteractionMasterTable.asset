@@ -101,3 +101,14 @@ MonoBehaviour:
     _acquiredId: 2
     _acquiredCount: 1
     _checkpointSave: 0
+  - _id: 9
+    _name: Handgun Ammo
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
+    _requiredItemId: 0
+    _acquiredId: 4
+    _acquiredCount: 12
+    _checkpointSave: 0

@@ -27,6 +27,10 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _aimZoomRatio;      // エイム時 FOV 倍率（1=ズーム無し、小さいほどズーム）
         [SerializeField] private float _aimDamageMultiplier; // エイム射撃のダメージ倍率
         [SerializeField] private float _spreadAngle;       // 非エイム射撃のランダム拡散角（度）
+        [SerializeField] private int _magazineSize;          // 弾倉容量
+        [SerializeField] private float _reloadDuration;      // リロード硬直（ReloadingState 滞在秒）
+        [SerializeField] private int _ammoItemId;            // 予備弾薬の HorrorItemMaster Id（0=弾薬概念なし・無限）
+        [SerializeField] private string _dryFireSeAssetName; // 空撃ち SE アセット名（空文字=再生しない）
 
         #endregion
 
@@ -115,6 +119,30 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _spreadAngle;
             set => _spreadAngle = value;
+        }
+
+        public int MagazineSize
+        {
+            get => _magazineSize;
+            set => _magazineSize = value;
+        }
+
+        public float ReloadDuration
+        {
+            get => _reloadDuration;
+            set => _reloadDuration = value;
+        }
+
+        public int AmmoItemId
+        {
+            get => _ammoItemId;
+            set => _ammoItemId = value;
+        }
+
+        public string DryFireSeAssetName
+        {
+            get => _dryFireSeAssetName;
+            set => _dryFireSeAssetName = value;
         }
 
         #endregion
