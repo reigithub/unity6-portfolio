@@ -35,6 +35,10 @@ namespace Game.Horror
             // 共通オブジェクト読み込み
             await HorrorGameRootController.LoadAssetAsync();
 
+            // アイコン一括ロード
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            await iconService.LoadAsync();
+
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
             var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
@@ -58,11 +62,16 @@ namespace Game.Horror
             await inventorySaveService.LoadAsync();
             GameServiceManager.Register(inventorySaveService);
 
+            // 装備状態: ロード（マスター整合込み）→ 共有登録（所持判定はインベントリへ委譲）
+            var equipmentSaveService = new HorrorEquipmentSaveService(saveDataStorage, dbService, inventorySaveService);
+            await equipmentSaveService.LoadAsync();
+            GameServiceManager.Register(equipmentSaveService);
+
             var interactionSaveService = new HorrorInteractionSaveService(saveDataStorage, dbService);
             await interactionSaveService.LoadAsync();
             GameServiceManager.Register(interactionSaveService);
 
-            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService);
+            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService, equipmentSaveService);
             GameServiceManager.Register(checkpointSaveService);
 
             // 5. 初期シーン遷移
@@ -76,6 +85,8 @@ namespace Game.Horror
             await gameSceneService.TerminateAllAsync();
             var audioService = GameServiceManager.Get<AudioService>();
             audioService.Unload();
+            var iconService = GameServiceManager.Get<HorrorIconService>();
+            iconService.Unload();
             GameServiceManager.Instance.Shutdown();
             await UniTask.Yield();
         }

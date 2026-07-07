@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HorrorWeapons
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HorrorWeapons
+  m_GUID: 087e715e4321b96479088cfd270e9d06
+  m_SerializeEntries:
+  - m_GUID: 02baef62b1bfedf40bb369fb7542b9e7
+    m_Address: RPG7
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5a2bf64643e1fb0439ea39c0fc9b00ff
+    m_Address: RGD-5
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6f1a7354265853f44b0ed5e2e43676ad
+    m_Address: M1911
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8b0b86b42def11849a8eba21f4a6a684
+    m_Address: Bennelli_M4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8b4cba336c093ff41ae9321f9f8433d6
+    m_Address: Smoke
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee329c3cd08e58645834d20702d7f6c6
+    m_Address: AK74
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: da1ce9d386ef0d64587f523f52eab1b9, type: 2}
+    - {fileID: 11400000, guid: 32f13fb75df4d9348a93c7a6f2208f78, type: 2}

@@ -156,6 +156,24 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Equip"",
+                    ""type"": ""Button"",
+                    ""id"": ""51885bf7-9541-4473-a2d6-00883fe00cc5"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Aim"",
+                    ""type"": ""Button"",
+                    ""id"": ""7c3f9d2a-4e61-4b8f-9a05-2d8c1e6f5b3a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -426,11 +444,99 @@ namespace Game.Shared.Input
                 {
                     ""name"": """",
                     ""id"": ""3b4e1770-2b5a-420d-91b4-338b8ba6f1aa"",
-                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e1f3dec2-a29a-4c20-98c6-b31f0c4ce3a2"",
+                    ""path"": ""<Gamepad>/dpad"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Equip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Keyborad"",
+                    ""id"": ""c80e45ba-77b8-414b-8d5a-80e7da9a8b89"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Equip"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""0bfa5646-73f0-4098-a894-1f55f73294fa"",
+                    ""path"": ""<Keyboard>/2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Equip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""d26cd298-a46d-420d-8d42-b2d66d8095b6"",
+                    ""path"": ""<Keyboard>/4"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Equip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""4f82b4bf-ce11-4091-80d8-c8fa5d3f6347"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Equip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""fbd7d082-d077-473c-b2bc-921d0241d41b"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Equip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9b5e2c71-0d4a-4f3b-8e69-7a1c3d5e9f28"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Aim"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4a8d6f30-9c2b-4e17-b5d8-0f3a7c9e2b61"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Aim"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -561,6 +667,15 @@ namespace Game.Shared.Input
                     ""name"": ""Reset"",
                     ""type"": ""Button"",
                     ""id"": ""17e81caa-54cf-4712-9036-6244f7965d86"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Remove"",
+                    ""type"": ""Button"",
+                    ""id"": ""698161ab-cd33-4abf-90e0-22d68a05a6d5"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1118,6 +1233,28 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
+                    ""id"": ""98b2674d-6714-4aae-8ad2-baa3bd14c013"",
+                    ""path"": ""<Keyboard>/delete"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Remove"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c9f2693c-1e75-494c-aa91-77ba67aefbd1"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Remove"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""a9359f78-776c-422b-a0c4-43c84dd1d650"",
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
@@ -1213,6 +1350,8 @@ namespace Game.Shared.Input
             m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
             m_Player_Crouch = m_Player.FindAction("Crouch", throwIfNotFound: true);
             m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
+            m_Player_Equip = m_Player.FindAction("Equip", throwIfNotFound: true);
+            m_Player_Aim = m_Player.FindAction("Aim", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1229,6 +1368,7 @@ namespace Game.Shared.Input
             m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
             m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
             m_UI_Reset = m_UI.FindAction("Reset", throwIfNotFound: true);
+            m_UI_Remove = m_UI.FindAction("Remove", throwIfNotFound: true);
             m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
         }
 
@@ -1318,6 +1458,8 @@ namespace Game.Shared.Input
         private readonly InputAction m_Player_Jump;
         private readonly InputAction m_Player_Crouch;
         private readonly InputAction m_Player_Sprint;
+        private readonly InputAction m_Player_Equip;
+        private readonly InputAction m_Player_Aim;
         /// <summary>
         /// Provides access to input actions defined in input action map "Player".
         /// </summary>
@@ -1357,6 +1499,14 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "Player/Sprint".
             /// </summary>
             public InputAction @Sprint => m_Wrapper.m_Player_Sprint;
+            /// <summary>
+            /// Provides access to the underlying input action "Player/Equip".
+            /// </summary>
+            public InputAction @Equip => m_Wrapper.m_Player_Equip;
+            /// <summary>
+            /// Provides access to the underlying input action "Player/Aim".
+            /// </summary>
+            public InputAction @Aim => m_Wrapper.m_Player_Aim;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1404,6 +1554,12 @@ namespace Game.Shared.Input
                 @Sprint.started += instance.OnSprint;
                 @Sprint.performed += instance.OnSprint;
                 @Sprint.canceled += instance.OnSprint;
+                @Equip.started += instance.OnEquip;
+                @Equip.performed += instance.OnEquip;
+                @Equip.canceled += instance.OnEquip;
+                @Aim.started += instance.OnAim;
+                @Aim.performed += instance.OnAim;
+                @Aim.canceled += instance.OnAim;
             }
 
             /// <summary>
@@ -1436,6 +1592,12 @@ namespace Game.Shared.Input
                 @Sprint.started -= instance.OnSprint;
                 @Sprint.performed -= instance.OnSprint;
                 @Sprint.canceled -= instance.OnSprint;
+                @Equip.started -= instance.OnEquip;
+                @Equip.performed -= instance.OnEquip;
+                @Equip.canceled -= instance.OnEquip;
+                @Aim.started -= instance.OnAim;
+                @Aim.performed -= instance.OnAim;
+                @Aim.canceled -= instance.OnAim;
             }
 
             /// <summary>
@@ -1487,6 +1649,7 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_Previous;
         private readonly InputAction m_UI_Next;
         private readonly InputAction m_UI_Reset;
+        private readonly InputAction m_UI_Remove;
         private readonly InputAction m_UI_Inventory;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
@@ -1555,6 +1718,10 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "UI/Reset".
             /// </summary>
             public InputAction @Reset => m_Wrapper.m_UI_Reset;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Remove".
+            /// </summary>
+            public InputAction @Remove => m_Wrapper.m_UI_Remove;
             /// <summary>
             /// Provides access to the underlying input action "UI/Inventory".
             /// </summary>
@@ -1627,6 +1794,9 @@ namespace Game.Shared.Input
                 @Reset.started += instance.OnReset;
                 @Reset.performed += instance.OnReset;
                 @Reset.canceled += instance.OnReset;
+                @Remove.started += instance.OnRemove;
+                @Remove.performed += instance.OnRemove;
+                @Remove.canceled += instance.OnRemove;
                 @Inventory.started += instance.OnInventory;
                 @Inventory.performed += instance.OnInventory;
                 @Inventory.canceled += instance.OnInventory;
@@ -1683,6 +1853,9 @@ namespace Game.Shared.Input
                 @Reset.started -= instance.OnReset;
                 @Reset.performed -= instance.OnReset;
                 @Reset.canceled -= instance.OnReset;
+                @Remove.started -= instance.OnRemove;
+                @Remove.performed -= instance.OnRemove;
+                @Remove.canceled -= instance.OnRemove;
                 @Inventory.started -= instance.OnInventory;
                 @Inventory.performed -= instance.OnInventory;
                 @Inventory.canceled -= instance.OnInventory;
@@ -1840,6 +2013,20 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnSprint(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Equip" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnEquip(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Aim" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnAim(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -1946,6 +2133,13 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnReset(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Remove" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnRemove(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Inventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>

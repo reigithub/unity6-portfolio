@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {
-    /// <summary>
-    /// テーブルシステムの動作確認用サンプル。主キー＋単一二次キー＋複合二次キーを持つ。
-    /// （Unity が List 要素としてシリアライズできるよう [Serializable]）
-    /// </summary>
     [Serializable]
     [ScriptableTable(Name = "Scriptable Database/Table/HorrorItemMasterTable")]
     public partial class HorrorItemMaster
@@ -16,8 +12,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _id;
         [SerializeField] private string _name;
         [SerializeField] private string _description;
-        [SerializeField] private int _maxQuantity;
         [SerializeField] private string _iconAssetName;
+        [SerializeField] private int _maxCount;
 
         #endregion
 
@@ -42,16 +38,16 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _description = value;
         }
 
-        public int MaxQuantity
-        {
-            get => _maxQuantity;
-            set => _maxQuantity = value;
-        }
-
         public string IconAssetName
         {
             get => _iconAssetName;
             set => _iconAssetName = value;
+        }
+
+        public int MaxCount
+        {
+            get => _maxCount;
+            set => _maxCount = value;
         }
 
         #endregion

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f460d7ccb2cefb94ab8b801da9045947, type: 3}
+  m_Name: HorrorEnemyMasterTable
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable
+  records:
+  - _id: 1
+    _name: HorrorEnemy
+    _walkSpeed: 0
+    _chaseSpeed: 0
+    _sightRange: 0
+    _sightHalfAngle: 0
+    _eyeHeight: 0
+    _hearingRadius: 0
+    _hearingSensitivity: 0
+    _awarenessFillRate: 0
+    _awarenessDecayRate: 0
+    _suspiciousThreshold: 0
+    _alertThreshold: 0
+    _attackRange: 0
+    _attackDamage: 0
+    _attackCooldown: 0
+    _investigateGiveUpTime: 0
+    _repathInterval: 0
+    _maxHealth: 100
+    _staggerDuration: 0

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
+using Game.Shared.Events;
 using UnityEngine;
 
 namespace Game.Core.Services
@@ -61,6 +62,9 @@ namespace Game.Core.Services
             // UniTask型
             _builder.AddMessageBroker<int, UniTaskCompletionSource<int>>();
             _builder.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
+
+            // 音イベント
+            _builder.AddMessageBroker<NoiseEvent>();
 
             // _builder.AddRequestHandler<TRequest, TResponse, THandler>();
         }
@@ -122,9 +126,25 @@ namespace Game.Core.Services
         /// <summary>
         /// メッセージをPublish
         /// </summary>
+        public void Publish<TMessage>(TMessage message)
+        {
+            GetPublisher<TMessage>().Publish(message);
+        }
+
+        /// <summary>
+        /// メッセージをPublish
+        /// </summary>
         public void Publish<TMessage>(int key, TMessage message)
         {
             GetPublisher<int, TMessage>().Publish(key, message);
+        }
+
+        /// <summary>
+        /// メッセージをSubscribe
+        /// </summary>
+        public IDisposable Subscribe<TMessage>(Action<TMessage> handler)
+        {
+            return GetSubscriber<TMessage>().Subscribe(handler);
         }
 
         /// <summary>
@@ -163,9 +183,19 @@ namespace Game.Core.Services
 
         #region Raw Accessors
 
+        public IPublisher<TMessage> GetPublisher<TMessage>()
+        {
+            return GlobalMessagePipe.GetPublisher<TMessage>();
+        }
+
         public IPublisher<TKey, TMessage> GetPublisher<TKey, TMessage>()
         {
             return GlobalMessagePipe.GetPublisher<TKey, TMessage>();
+        }
+
+        public ISubscriber<TMessage> GetSubscriber<TMessage>()
+        {
+            return GlobalMessagePipe.GetSubscriber<TMessage>();
         }
 
         public ISubscriber<TKey, TMessage> GetSubscriber<TKey, TMessage>()

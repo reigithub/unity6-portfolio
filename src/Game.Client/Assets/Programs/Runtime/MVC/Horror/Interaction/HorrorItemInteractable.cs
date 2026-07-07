@@ -26,11 +26,10 @@ namespace Game.Horror.Interaction
 
         private bool TryPickUpItem()
         {
-            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.GrantItemId, out var itemMaster))
+            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
                 return false;
 
-            InventorySaveService.Add(itemMaster, Master.GrantQuantity);
-            return true;
+            return InventorySaveService.TryAdd(itemMaster, Master.AcquiredCount);
         }
     }
 }

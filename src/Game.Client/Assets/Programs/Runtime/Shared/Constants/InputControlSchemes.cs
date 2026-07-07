@@ -12,6 +12,9 @@ namespace Game.Shared.Constants
 
     public static class InputConstants
     {
+        /// <summary>入力判定の閾値（magnitude）</summary>
+        public const float InputThreshold = 0.1f;
+
         /// <summary>キーリバインド待機の自動キャンセルまでの秒数。</summary>
         public const float RebindTimeoutSeconds = 3f;
     }

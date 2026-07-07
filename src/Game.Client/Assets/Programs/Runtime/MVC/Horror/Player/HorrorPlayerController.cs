@@ -1,13 +1,20 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Core.Constants;
 using Game.Core.Services;
+using Game.Horror.Constants;
+using Game.Horror.Equipment;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
+using Game.Horror.Services;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
+using Game.Shared.Combat;
+using Game.Shared.Constants;
 using Game.Shared.Enums;
+using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
+using Game.Shared.Scriptable.Database.Tables;
 using R3;
 using UnityEngine;
 
@@ -34,14 +41,38 @@ namespace Game.Horror.Player
         [SerializeField] private float _crouchTransitionSpeed = 8f;
 
         [Tooltip("立ち上がり判定の対象レイヤー。プレイヤー自身のレイヤーは含めないこと")]
-        [SerializeField] private LayerMask _ceilingLayerMask;
+        [SerializeField] private LayerMask _ceilingMask;
 
         [Header("回転速度（度/秒）")]
         [SerializeField] private float _lookRotationSpeed = 0.1f;
 
+        [Header("エイム")]
+        [Tooltip("エイム構え補間の応答速度（1-exp(-k・dt) の k）")]
+        [SerializeField] private float _aimTransitionSpeed = 8f;
+
+        [Tooltip("エイム中のカメラ回転速度倍率")]
+        [SerializeField] private float _aimRotationMultiplier = 0.4f;
+
+        [Tooltip("エイム中にカメラ揺れをゼロへ減衰させる秒数（解除時の復帰も同じ秒数）")]
+        [SerializeField] private float _aimShakeFadeSeconds = 1f;
+
         [Header("インタラクション")]
         [Tooltip("インタラクト対象を検出する検出器（同一 Prefab 上にアタッチ）")]
         [SerializeField] private InteractionDetector _interactionDetector;
+
+        [Header("攻撃（ハンドガン）")]
+        [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
+        [SerializeField] private LayerMask _hitMask;
+
+        [Header("装備（武器モデル表示）")]
+        [Tooltip("装備中武器の一人称モデルを表示するビュー（Camera/WeaponRoot にアタッチ）")]
+        [SerializeField] private HorrorWeaponView _weaponView;
+
+        [Tooltip("装備切替時のショートカット HUD（OverlayCanvas/Equipments にアタッチ）")]
+        [SerializeField] private HorrorEquipmentsView _equipmentsView;
+
+        [Tooltip("エイム連動レティクル（OverlayCanvas/Reticle にアタッチ）")]
+        [SerializeField] private HorrorReticleView _reticleView;
 
         private bool _initialized;
         private InputSystemService _inputService;
@@ -62,6 +93,20 @@ namespace Game.Horror.Player
         private bool _interactTriggered;
         private IInteractable _interactTarget;
 
+        // 攻撃（ハンドガン）：マスター値・銃声発行サービス・起動入力フラグ（硬直経過は AttackingState ローカル）
+        private HorrorWeaponMaster _weaponMaster;
+        private MessagePipeService _messagePipeService;
+        private bool _attackTriggered;
+
+        // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
+        private HorrorEquipmentSaveService _equipmentService;
+        private ScriptableDatabaseService _dbService;
+        private bool _equipTriggered;
+        private int _equipSlotIndex;
+        private InventorySlotType _pendingEquipType;
+        private int _pendingEquipId;
+        private HorrorWeaponMaster _pendingWeaponMaster;
+
         // 走り（トグル/ホールド切替）
         private bool _sprintToggle; // オプション値（false=ホールド, true=トグル）
         private bool _isSprinting;  // 走り状態
@@ -71,6 +116,12 @@ namespace Game.Horror.Player
         private bool _isCrouching;    // 目標姿勢
         private float _crouchBlend;   // 0=立ち, 1=しゃがみ の実補間値（形状・カメラ高さの単一ソース）
         private float _standHeight;   // 立ち時の CharacterController 高さ（Initialize で実測）
+
+        // エイム姿勢（移動ステートと直交する姿勢として保持）
+        private bool _isAiming;          // HOLD 判定（二値: ダメージ・スプレッド・揺れ減衰の目標方向に使用）
+        private float _aimBlend;         // 0=通常, 1=構え の実補間値（FOV・回転倍率・武器構え位置の単一ソース）
+        private float _aimShakeWeight = 1f; // 1=通常揺れ, 0=無揺れ（エイムで線形減衰）
+        private float _baseFov;          // オプション由来の基準 FOV（エイムズームの基準）
 
         // 垂直速度（重力 + ジャンプ）
         private float _verticalVelocity;
@@ -118,6 +169,26 @@ namespace Game.Horror.Player
             _inputService = GameServiceManager.Get<InputSystemService>();
             _inputService.EnablePlayer();
 
+            _messagePipeService = GameServiceManager.Get<MessagePipeService>();
+
+            // Database はプレイヤー生成時点でロード済み
+            _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
+            _equipmentsView.Initialize();
+
+            // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
+            if (_equipmentService.TryGetEquipped(out var slotType, out var id)
+                && slotType == InventorySlotType.Weapon
+                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
+            {
+                _weaponMaster = weaponMaster;
+            }
+
+            // 武器モデル表示ビューの初期化：装備中なら即座に表示し、ショートカット登録武器のモデルは事前ロードしておく
+            _weaponView.Initialize();
+            if (_weaponMaster != null) _weaponView.ShowImmediate(_weaponMaster);
+            _weaponView.PreloadAsync(ResolveEquippableMasters()).Forget();
+
             TryGetComponent(out _characterController);
 
             // 立ち姿勢の基準値を実測で保持（prefab 値の変更に追従させ、しゃがみ補間の不変参照点にする）
@@ -141,6 +212,8 @@ namespace Game.Horror.Player
                     , Player.Jump.OnPerformedAsObservable()
                     , Player.Crouch.OnPerformedAsObservable()
                     , Player.Sprint.OnPerformedAsObservable()
+                    , Player.Equip.OnPerformedAsObservable()
+                    , Player.Aim.OnPerformedAsObservable()
                     )
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
@@ -158,7 +231,8 @@ namespace Game.Horror.Player
 
             _lookAcceleration = data.CameraAcceleration;
             _cameraShake = data.CameraShake;
-            if (_mainCamera != null) _mainCamera.fieldOfView = data.CameraFov;
+            _baseFov = data.CameraFov;
+            ApplyFov();
 
             // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
             _sprintToggle = data.SprintToggle;
@@ -209,20 +283,26 @@ namespace Game.Horror.Player
                 _smoothedLookValue = Vector2.zero;
             }
 
-            // インタラクト中（身体占有）は移動・他アクションを受け付けない
-            var interacting = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
-            if (!interacting)
+            // 身体占有（インタラクト）中は移動・他アクションを受け付けない
+            var restrained = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
+            if (!restrained)
             {
                 // しゃがみ入力（モード別）。移動速度が姿勢に依存するため先に確定させる
                 UpdateCrouchInput();
+                // エイム入力（HOLD）。走りがエイム状態を参照するため先に確定させる
+                UpdateAimInput();
                 // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
                 UpdateSprintInput();
                 // インタラクト起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
                 UpdateInteractInput();
             }
+            else
+            {
+                _isAiming = false;
+            }
 
             // 移動速度更新（拘束中は 0、しゃがみ中は crouchSpeed 優先、それ以外は _isSprinting で走り/歩き）
-            if (interacting)
+            if (restrained)
             {
                 _speed = 0f;
             }
@@ -233,9 +313,26 @@ namespace Game.Horror.Player
             }
 
             // ジャンプ入力受付（拘束中は不可）
-            if (!interacting && Player.Jump.WasPressedThisFrame() && CanJump())
+            if (!restrained && Player.Jump.WasPressedThisFrame() && CanJump())
             {
                 _jumpTriggered = true;
+            }
+
+            // 攻撃（射撃）起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+            if (!restrained && Player.Attack.WasPressedThisFrame() && IsGrounded())
+            {
+                _attackTriggered = true;
+            }
+
+            // 装備切替起動入力：方向からスロット index を解決してフラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
+            if (!restrained && Player.Equip.WasPressedThisFrame() && IsGrounded())
+            {
+                var index = ResolveEquipSlotIndex(Player.Equip.ReadValue<Vector2>());
+                if (index >= 0)
+                {
+                    _equipTriggered = true;
+                    _equipSlotIndex = index;
+                }
             }
         }
 
@@ -248,7 +345,7 @@ namespace Game.Horror.Player
             var canJumpFromState = _stateMachine.IsCurrentState<IdleState>() ||
                                    _stateMachine.IsCurrentState<MovingState>();
 
-            return canJumpFromState && IsGrounded() && !_isCrouching;
+            return canJumpFromState && IsGrounded() && !_isCrouching && !_isAiming;
         }
 
         /// <summary>
@@ -273,6 +370,87 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 立てられた射撃起動フラグを消費し、武器マスターがあれば AttackingState へ遷移すべきと返す。
+        /// Idle/Moving ステートの Update から呼ばれ、実際の発砲は AttackingState.Enter が行う。
+        /// </summary>
+        /// <returns>AttackingState へ遷移すべきなら true。</returns>
+        private bool TryAttack()
+        {
+            if (!_attackTriggered)
+                return false;
+
+            _attackTriggered = false;
+
+            return _weaponMaster != null;
+        }
+
+        /// <summary>
+        /// 立てられた装備切替起動フラグを消費し、ショートカット登録・現在装備・所持を検証して
+        /// EquippingState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
+        /// 実際の装備反映（<see cref="HorrorEquipmentSaveService.TryEquip"/>）は EquippingState.Enter が行う。
+        /// </summary>
+        /// <returns>EquippingState へ遷移すべきなら true。</returns>
+        private bool TryEquip()
+        {
+            if (!_equipTriggered)
+                return false;
+
+            _equipTriggered = false;
+
+            // 空スロット（未登録）は無操作
+            if (!_equipmentService.TryGetSlot(_equipSlotIndex, out var slot))
+                return false;
+
+            // 現在装備と同一スロットの再指定は無操作（要件1）
+            if (_equipmentService.TryGetEquipped(out var currentType, out var currentId)
+                && currentType == slot.SlotType && currentId == slot.Id)
+                return false;
+
+            // Weapon 限定・所持検証。不成立なら硬直を発生させない
+            if (!_equipmentService.CanEquip(slot.SlotType, slot.Id))
+                return false;
+
+            if (!_dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var weaponMaster))
+                return false;
+
+            _pendingEquipType = slot.SlotType;
+            _pendingEquipId = slot.Id;
+            _pendingWeaponMaster = weaponMaster;
+            return true;
+        }
+
+        /// <summary>
+        /// ショートカット4スロット＋現在装備中の Weapon をマスター解決し、武器モデルの事前ロード対象として列挙する。
+        /// 同一 Id は重複排除する。
+        /// </summary>
+        private List<HorrorWeaponMaster> ResolveEquippableMasters()
+        {
+            var masters = new List<HorrorWeaponMaster>();
+            var seenIds = new HashSet<int>();
+
+            for (var i = 0; i < HorrorEquipmentConstants.MaxSlotCount; i++)
+            {
+                if (_equipmentService.TryGetSlot(i, out var slot)
+                    && slot.SlotType == InventorySlotType.Weapon
+                    && seenIds.Add(slot.Id)
+                    && _dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
+                {
+                    masters.Add(slotMaster);
+                }
+            }
+
+            if (_equipmentService.TryGetEquipped(out var equippedType, out var equippedId)
+                && equippedType == InventorySlotType.Weapon
+                && seenIds.Add(equippedId)
+                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(equippedId, out var equippedMaster))
+            {
+                masters.Add(equippedMaster);
+            }
+
+            return masters;
+        }
+
+        /// <summary>
         /// Hold 長押しの進捗（0→1）を算出する。<paramref name="holdSeconds"/> が 0 以下なら
         /// ゼロ除算を避けて即時完了（1）とみなす。表示側で Clamp されるため、
         /// elapsed が holdSeconds を超えた最終フレームでは 1 を超える生値を返しうる。
@@ -280,13 +458,45 @@ namespace Game.Horror.Player
         public static float CalculateHoldProgress(float elapsed, float holdSeconds)
             => holdSeconds > 0f ? elapsed / holdSeconds : 1f;
 
+        /// <summary>
+        /// D-Pad / 2DVector composite の方向入力からショートカットスロット index (0-3) を解決する。
+        /// 閾値 0.5 を両軸とも超える（斜め）入力は判定不能として -1 を返す。
+        /// スロット並びは 1=左(0) / 2=上(1) / 3=右(2) / 4=下(3)。
+        /// </summary>
+        public static int ResolveEquipSlotIndex(Vector2 value)
+        {
+            const float threshold = 0.5f;
+            var xExceeds = Mathf.Abs(value.x) > threshold;
+            var yExceeds = Mathf.Abs(value.y) > threshold;
+
+            if (xExceeds && yExceeds) return -1; // 斜め入力は無視
+
+            if (xExceeds) return value.x < 0f ? 0 : 2; // left / right
+            if (yExceeds) return value.y > 0f ? 1 : 3; // up / down
+
+            return -1;
+        }
+
+        /// <summary>
+        /// 拡散角の範囲内でランダムに逸れた射撃方向を算出する（FPS Microgame の
+        /// GetShotDirectionWithinSpread と同式）。<paramref name="spreadAngle"/> 0 で forward のまま。
+        /// </summary>
+        public static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
+            => Vector3.Slerp(forward, randomUnit, spreadAngle / 180f);
+
+        /// <summary>
+        /// エイム状態を加味した射撃ダメージを算出する。エイム中は倍率を掛けて四捨五入する。
+        /// </summary>
+        public static int CalculateAimedDamage(int baseDamage, bool isAiming, float aimDamageMultiplier)
+            => isAiming ? Mathf.RoundToInt(baseDamage * aimDamageMultiplier) : baseDamage;
+
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
         private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
         private bool IsRunning() => _speed >= _runSpeed;
 
-        private bool IsMoveInput() => _moveValue.magnitude > PlayerPhysicsConstants.InputThreshold;
-        private bool IsLookInput() => _lookValue.magnitude > PlayerPhysicsConstants.InputThreshold;
+        private bool IsMoveInput() => _moveValue.magnitude > InputConstants.InputThreshold;
+        private bool IsLookInput() => _lookValue.magnitude > InputConstants.InputThreshold;
 
         /// <summary>
         /// しゃがみ入力をモード別に処理する。空中（非接地）では姿勢を変更しない。
@@ -327,6 +537,17 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// エイム入力（HOLD）を処理する。武器未装備では構えられない。
+        /// 装備切替の硬直中は強制解除する（HOLD 継続なら硬直明けに自動で再エイムされる）。
+        /// </summary>
+        private void UpdateAimInput()
+        {
+            _isAiming = Player.Aim.IsPressed()
+                        && _weaponMaster != null
+                        && !(_stateMachine.IsProcessing() && _stateMachine.IsCurrentState<EquippingState>());
+        }
+
+        /// <summary>
         /// 走り入力をモード別に処理する。しゃがみ中は走れない（トグル状態も解除）。
         /// トグル時は押下で反転し、移動を止めると解除する。
         /// </summary>
@@ -334,6 +555,9 @@ namespace Game.Horror.Player
         {
             // しゃがみ中は走れない（トグル状態も強制解除）
             if (_isCrouching) { _isSprinting = false; return; }
+
+            // エイム中は走れない（トグル状態も強制解除）
+            if (_isAiming) { _isSprinting = false; return; }
 
             if (_sprintToggle)
             {
@@ -378,7 +602,7 @@ namespace Game.Horror.Player
                 Vector3.up,
                 out _,
                 castDistance,
-                _ceilingLayerMask,
+                _ceilingMask,
                 QueryTriggerInteraction.Ignore);
         }
 
@@ -403,6 +627,14 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, InteractingState>(StateEvent.Interact);
             _stateMachine.AddTransition<InteractingState, IdleState>(StateEvent.EndInteract);
 
+            _stateMachine.AddTransition<IdleState, AttackingState>(StateEvent.Attack);
+            _stateMachine.AddTransition<MovingState, AttackingState>(StateEvent.Attack);
+            _stateMachine.AddTransition<AttackingState, IdleState>(StateEvent.EndAttack);
+
+            _stateMachine.AddTransition<IdleState, EquippingState>(StateEvent.Equip);
+            _stateMachine.AddTransition<MovingState, EquippingState>(StateEvent.Equip);
+            _stateMachine.AddTransition<EquippingState, IdleState>(StateEvent.EndEquip);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
 
             // 初期ステート
@@ -421,6 +653,10 @@ namespace Game.Horror.Player
             Land, // 着地: Jumping → Idle
             Interact, // インタラクト開始: Idle/Moving → Interacting
             EndInteract, // インタラクト終了: Interacting → Idle
+            Attack, // 攻撃開始: Idle/Moving → Attacking
+            EndAttack, // 攻撃終了（発射間隔経過）: Attacking → Idle
+            Equip, // 装備切替開始: Idle/Moving → Equipping
+            EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -428,9 +664,10 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -443,6 +680,20 @@ namespace Game.Horror.Player
                 if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
+                    return;
+                }
+
+                // 攻撃（射撃）起動チェック
+                if (ctx.TryAttack())
+                {
+                    StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // 装備切替起動チェック
+                if (ctx.TryEquip())
+                {
+                    StateMachine.Transition(StateEvent.Equip);
                     return;
                 }
 
@@ -456,7 +707,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 // 静止中も重力を適用
-                Context.ApplyMovementWithGravity(Vector3.zero);
+                Context.UpdateMovementWithGravity(Vector3.zero);
             }
         }
 
@@ -465,9 +716,10 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // ジャンプ入力チェック
                 if (ctx._jumpTriggered && ctx.IsGrounded())
@@ -483,6 +735,20 @@ namespace Game.Horror.Player
                     return;
                 }
 
+                // 攻撃（射撃）起動チェック
+                if (ctx.TryAttack())
+                {
+                    StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // 装備切替起動チェック
+                if (ctx.TryEquip())
+                {
+                    StateMachine.Transition(StateEvent.Equip);
+                    return;
+                }
+
                 // 移動入力がなくなったらIdleへ
                 if (!ctx.IsMoveInput())
                 {
@@ -493,7 +759,7 @@ namespace Game.Horror.Player
             public override void FixedUpdate()
             {
                 var ctx = Context;
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
@@ -509,9 +775,10 @@ namespace Game.Horror.Player
             public override void Update()
             {
                 var ctx = Context;
-                ctx.ApplyRotation();
+                ctx.UpdateRotation();
                 ctx.UpdateCrouchPose();
                 ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
 
                 // 上昇終了 + 接地で着地判定
                 if (ctx._verticalVelocity <= 0f && ctx.IsGrounded())
@@ -524,12 +791,12 @@ namespace Game.Horror.Player
             {
                 var ctx = Context;
                 // 空中でも水平移動を許可
-                ctx.ApplyMovementWithGravity(ctx.ComputeHorizontalVelocity());
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
             }
         }
 
         /// <summary>
-        /// インタラクト実行中の身体占有状態。視点回転のみ許可し水平移動は止める。
+        /// インタラクト実行中の身体占有状態。視点回転とエイム解除の補間のみ許可し水平移動は止める。
         /// 入力タイプを問わず、拒否メッセージ／単発・トグル／長押しを 1 本の非同期シーケンスで処理する。
         /// </summary>
         private class InteractingState : State<HorrorPlayerController, StateEvent>
@@ -544,12 +811,13 @@ namespace Game.Horror.Player
 
             public override void Update()
             {
-                Context.ApplyRotation(); // 拘束中は視点回転のみ許可
+                Context.UpdateRotation(); // 拘束中は視点回転とエイム解除の補間のみ許可
+                Context.UpdateAimPose();
                 if (_completed) StateMachine.Transition(StateEvent.EndInteract);
             }
 
             // 水平移動なし＝拘束（重力のみ適用）
-            public override void FixedUpdate() => Context.ApplyMovementWithGravity(Vector3.zero);
+            public override void FixedUpdate() => Context.UpdateMovementWithGravity(Vector3.zero);
 
             public override void Exit()
             {
@@ -608,6 +876,85 @@ namespace Game.Horror.Player
             }
         }
 
+        /// <summary>
+        /// 射撃実行中の状態。Enter で 1 発発砲し、FireInterval（武器マスター）の間は移動・視点を許可しつつ
+        /// 次弾の発射を待たせる（発射レート制限）。間隔を消化したら Idle へ戻る。将来のリロード/エイム等の器も兼ねる。
+        /// </summary>
+        private class AttackingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+
+            public override void Enter()
+            {
+                // インスタンスはキャッシュ再利用されるため経過時間を必ずリセット
+                _elapsed = 0f;
+                Context.Fire();
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.UpdateRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
+
+                _elapsed += Time.deltaTime;
+                if (_elapsed >= ctx.GetFireInterval())
+                    StateMachine.Transition(StateEvent.EndAttack);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
+        /// <summary>
+        /// 装備切替実行中の状態。Enter で装備をセーブデータへ反映し、EquipDuration（武器マスター）の間は
+        /// 移動・視点を許可しつつ硬直として滞在する。滞在秒を消化したら Idle へ戻る。
+        /// </summary>
+        private class EquippingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+
+            public override void Enter()
+            {
+                // インスタンスはキャッシュ再利用されるため経過時間を必ずリセット
+                _elapsed = 0f;
+
+                var ctx = Context;
+                if (ctx._equipmentService.TryEquip(ctx._pendingEquipType, ctx._pendingEquipId))
+                {
+                    ctx._weaponMaster = ctx._pendingWeaponMaster;
+                    ctx._weaponView.BeginSwitch(ctx._pendingWeaponMaster);
+                    ctx._equipmentsView.Show(ctx._pendingEquipType, ctx._pendingEquipId);
+                    Debug.Log($"{ctx._weaponMaster.Name}");
+                }
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.UpdateRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+
+                _elapsed += Time.deltaTime;
+                ctx._weaponView.TickSwitch(_elapsed, ctx._pendingWeaponMaster.EquipDuration);
+                ctx.UpdateAimPose(); // TickSwitch の後に呼ぶ（下げ量更新 → 位置反映の順序）
+                if (_elapsed >= ctx._pendingWeaponMaster.EquipDuration)
+                    StateMachine.Transition(StateEvent.EndEquip);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
         #endregion
 
         #region Movement
@@ -634,7 +981,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// 重力を適用して CharacterController で移動
         /// </summary>
-        private void ApplyMovementWithGravity(Vector3 horizontalVelocity)
+        private void UpdateMovementWithGravity(Vector3 horizontalVelocity)
         {
             if (IsGrounded() && _verticalVelocity < 0f)
             {
@@ -655,17 +1002,20 @@ namespace Game.Horror.Player
         /// Yaw: Player 本体を Y 軸回転（カメラは子なので自動追従）
         /// Pitch: カメラ Transform の X 軸を localEulerAngles で回転、±89° クランプ
         /// </summary>
-        private void ApplyRotation()
+        private void UpdateRotation()
         {
             if (_mainCamera == null) return;
 
+            // エイム中はカメラ回転を減速する（精密な狙いを支援）
+            var aimMultiplier = Mathf.Lerp(1f, _aimRotationMultiplier, _aimBlend);
+
             // Yaw: Player 本体を Y 軸回転（感度H・反転を適用、入力は加速度スムージング後の値）
             var horizontalInput = _smoothedLookValue.x * _lookSensitivityX * _lookInvertX;
-            transform.Rotate(0f, horizontalInput * _lookRotationSpeed, 0f, Space.Self);
+            transform.Rotate(0f, horizontalInput * _lookRotationSpeed * aimMultiplier, 0f, Space.Self);
 
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
-            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed, -89f, 89f);
+            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed * aimMultiplier, -89f, 89f);
             _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
         }
 
@@ -711,9 +1061,9 @@ namespace Game.Horror.Player
             var idleY = Mathf.Sin(_idlePhase) * IdleSwayAmplitude * idleWeight;
             var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * IdleSwayRoll * idleWeight;
 
-            // 合算 → 全体強度 CameraShake（0 で完全停止）
-            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake;
-            var roll = (bobRoll + idleRoll) * _cameraShake;
+            // 合算 → 全体強度 CameraShake × エイム減衰（エイム中は _aimShakeWeight が 0 へ減衰）
+            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
+            var roll = (bobRoll + idleRoll) * _cameraShake * _aimShakeWeight;
 
             _mainCamera.transform.localPosition = _cameraBasePosition + offset;
             _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
@@ -744,6 +1094,85 @@ namespace Game.Horror.Player
             var eyeDrop = _standHeight - height;
             _cameraBasePosition = _standCameraBasePosition - new Vector3(0f, eyeDrop, 0f);
         }
+
+        /// <summary>
+        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクルを _aimBlend / _aimShakeWeight から導出する。
+        /// 各ステートの Update から呼ばれる（インタラクト拘束中も解除補間・FOV 復帰が必要なため
+        /// InteractingState を含む全ステートが呼ぶ）。装備切替中は TickSwitch の後に呼ぶこと（下げ量更新 → 位置反映の順序）。
+        /// </summary>
+        private void UpdateAimPose()
+        {
+            if (_mainCamera == null || _weaponView == null) return;
+
+            // 目標 0/1 へ指数補間（フレームレート非依存）
+            var target = _isAiming ? 1f : 0f;
+            var ease = 1f - Mathf.Exp(-_aimTransitionSpeed * Time.deltaTime);
+            _aimBlend = Mathf.Lerp(_aimBlend, target, ease);
+
+            ApplyFov();
+
+            // カメラ揺れの重みを線形に減衰/復帰（_aimShakeFadeSeconds でゼロ/1 に到達）
+            _aimShakeWeight = Mathf.MoveTowards(_aimShakeWeight, _isAiming ? 0f : 1f, Time.deltaTime / _aimShakeFadeSeconds);
+
+            _weaponView.UpdatePose(_aimBlend);
+
+            if (_reticleView != null)
+                _reticleView.UpdatePose(_isAiming);
+        }
+
+        /// <summary>
+        /// カメラ FOV を基準 FOV とエイムズームの合成で適用する（唯一の FOV 書き込み点）。
+        /// オプションのランタイム再適用がエイム中のズームを上書きしないよう、常に同一式で導出する。
+        /// </summary>
+        private void ApplyFov()
+        {
+            if (_mainCamera == null) return;
+            var zoomRatio = _weaponMaster?.AimZoomRatio ?? 1f;
+            _mainCamera.fieldOfView = Mathf.Lerp(_baseFov, _baseFov * zoomRatio, _aimBlend);
+        }
+
+        #endregion
+
+        #region Combat
+
+        /// <summary>
+        /// カメラ中心からヒットスキャン（Raycast 即着弾）で射撃する。命中すれば IDamageable にダメージ、
+        /// 命中点（外れたら射程端）で銃声 NoiseEvent を発行する。
+        /// </summary>
+        private void Fire()
+        {
+            if (_mainCamera == null || _weaponMaster == null) return;
+
+            var origin = _mainCamera.transform.position;
+            var direction = _mainCamera.transform.forward;
+
+            // 非エイム（腰だめ）射撃はわずかにランダム拡散する（エイム中はカメラ中心へ正確に飛ぶ）
+            if (!_isAiming)
+            {
+                direction = CalculateShotDirection(direction, Random.insideUnitSphere, _weaponMaster.SpreadAngle);
+            }
+
+            IDamageable target = null;
+            var noisePosition = origin + direction * _weaponMaster.Range;
+
+            if (Physics.Raycast(origin, direction, out var hit, _weaponMaster.Range, _hitMask, QueryTriggerInteraction.Ignore))
+            {
+                target = hit.collider.GetComponentInParent<IDamageable>();
+                noisePosition = hit.point;
+            }
+
+            var damage = CalculateAimedDamage(_weaponMaster.Damage, _isAiming, _weaponMaster.AimDamageMultiplier);
+
+            // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
+            target?.TakeDamage(damage);
+            _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+            _reticleView?.NotifyFired();
+            Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{damage}");
+        }
+
+
+        /// <summary>次弾までの発射間隔（AttackingState 滞在秒）。武器未設定なら 0。</summary>
+        private float GetFireInterval() => _weaponMaster?.FireInterval ?? 0f;
 
         #endregion
     }

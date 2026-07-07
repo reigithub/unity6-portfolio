@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HorrorIcons
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HorrorIcons
+  m_GUID: 16c0acf7ed6610c46af1cd5348f31a40
+  m_SerializeEntries:
+  - m_GUID: 05e0567213a58c840a3ea79a4409bdfd
+    m_Address: ModernGDR_Icons_BrightBackground
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 59ba3652eec0b124fa36521af007fb5d
+    m_Address: Navidtbt_Weapon_Icons_Blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 5ea9a0c86c09d4c47837e460aaf10df5, type: 2}
+    - {fileID: 11400000, guid: 6344834549fcfce4d9bc6c6f35db5d30, type: 2}

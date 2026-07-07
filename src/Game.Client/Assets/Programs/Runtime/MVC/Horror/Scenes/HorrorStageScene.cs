@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
+using Game.Horror.Enemy;
 using Game.Horror.Player;
 using Game.Horror.Services;
 using Game.MVC.Core.Enums;
@@ -25,6 +26,7 @@ namespace Game.Horror.Scenes
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
+        private HorrorEnemyStart[] _enemyStarts;
 
         public override UniTask PreInitialize()
         {
@@ -37,7 +39,8 @@ namespace Game.Horror.Scenes
         public override async UniTask Startup()
         {
             await LoadUnitySceneAsync();
-            await LoadPlayerAsync();
+            var player = await LoadPlayerAsync();
+            await LoadEnemiesAsync(player);
 
             _inputService.UI.Menu.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
@@ -60,6 +63,7 @@ namespace Game.Horror.Scenes
 
         public override async UniTask Terminate()
         {
+            UnloadEnemies();
             UnloadPlayer();
             await UnloadUnitySceneAsync();
             await base.Terminate();
@@ -78,23 +82,50 @@ namespace Game.Horror.Scenes
             _stageSceneInstance = default;
         }
 
-        private async UniTask LoadPlayerAsync()
+        private async UniTask<GameObject> LoadPlayerAsync()
         {
             _playerStart = GameSceneHelper.GetComponentInChildren<HorrorPlayerStart>(_stageSceneInstance.Scene);
-            if (_playerStart != null)
-            {
-                var player = await _playerStart.LoadPlayerAsync();
-                player.Initialize(_optionSaveService.Data);
-                _optionSaveService.OnSaved
-                    .Subscribe(data => player.ApplyOptions(data))
-                    .AddTo(Disposables);
-            }
+            if (_playerStart == null)
+                return null;
+
+            var player = await _playerStart.LoadPlayerAsync();
+            player.Initialize(_optionSaveService.Data);
+            _optionSaveService.OnSaved
+                .Subscribe(data => player.ApplyOptions(data))
+                .AddTo(Disposables);
+            return player.gameObject;
         }
 
         private void UnloadPlayer()
         {
             if (_playerStart != null)
                 _playerStart.UnloadPlayer();
+        }
+
+        private async UniTask LoadEnemiesAsync(GameObject player)
+        {
+            if (player == null)
+                return;
+
+            _enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
+            foreach (var enemyStart in _enemyStarts)
+            {
+                await enemyStart.LoadEnemyAsync(player);
+            }
+        }
+
+        private void UnloadEnemies()
+        {
+            if (_enemyStarts == null)
+                return;
+
+            foreach (var enemyStart in _enemyStarts)
+            {
+                if (enemyStart != null)
+                    enemyStart.UnloadEnemy();
+            }
+
+            _enemyStarts = null;
         }
 
         private async UniTask ShowPauseDialogAsync()

@@ -28,8 +28,8 @@ namespace Game.Shared.Scriptable.Database.Tables
 
         [SerializeField] private int _requiredItemId;
 
-        [SerializeField] private int _grantItemId;
-        [SerializeField] private int _grantQuantity;
+        [SerializeField] private int _acquiredId;
+        [SerializeField] private int _acquiredCount;
 
         [SerializeField] private bool _checkpointSave;
 
@@ -90,17 +90,17 @@ namespace Game.Shared.Scriptable.Database.Tables
         }
 
         /// <summary>効果として付与するアイテム Id。0 はなし。</summary>
-        public int GrantItemId
+        public int AcquiredId
         {
-            get => _grantItemId;
-            set => _grantItemId = value;
+            get => _acquiredId;
+            set => _acquiredId = value;
         }
 
         /// <summary>付与数量。</summary>
-        public int GrantQuantity
+        public int AcquiredCount
         {
-            get => _grantQuantity;
-            set => _grantQuantity = value;
+            get => _acquiredCount;
+            set => _acquiredCount = value;
         }
 
         public bool CheckpointSave

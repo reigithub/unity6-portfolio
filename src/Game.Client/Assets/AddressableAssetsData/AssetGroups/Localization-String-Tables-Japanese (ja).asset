@@ -34,14 +34,14 @@ MonoBehaviour:
     - Locale-ja
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f0f11cffa6a64e04bbde67676c83fe00
-    m_Address: Options_ja
+    m_Address: UITexts_ja
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-ja
     - Preload
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: fe2d28409ae37b34aac88a1b5b8b9caf
-    m_Address: Interactions_ja
+    m_Address: ContextActions_ja
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-ja

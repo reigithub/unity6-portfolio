@@ -1,0 +1,2 @@
+Id	Name	WalkSpeed	ChaseSpeed	SightRange	SightHalfAngle	EyeHeight	HearingRadius	HearingSensitivity	AwarenessFillRate	AwarenessDecayRate	SuspiciousThreshold	AlertThreshold	AttackRange	AttackDamage	AttackCooldown	InvestigateGiveUpTime	RepathInterval	MaxHealth	StaggerDuration
+1	HorrorEnemy	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	100	0

@@ -154,7 +154,7 @@ namespace Game.Horror.Interaction
         protected bool HasItem()
         {
             if (Master == null || Master.RequiredItemId == 0) return true;
-            return InventorySaveService.HasItem(Master.RequiredItemId);
+            return InventorySaveService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
         }
     }
 }
