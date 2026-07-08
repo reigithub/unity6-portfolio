@@ -31,6 +31,9 @@ MonoBehaviour:
     _reloadDuration: 3
     _ammoItemId: 4
     _dryFireSeAssetName:
+    _fireSeAssetName:
+    _muzzleFlashAssetName: MuzzleFlash
+    _recoilCameraPitch: 2.5
   - _id: 2
     _name: Smoke
     _description: 
@@ -49,3 +52,6 @@ MonoBehaviour:
     _reloadDuration: 0
     _ammoItemId: 0
     _dryFireSeAssetName:
+    _fireSeAssetName:
+    _muzzleFlashAssetName:
+    _recoilCameraPitch: 0
