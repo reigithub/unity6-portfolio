@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: 643f0949c0b00ca42aba7ebdcf434368
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - textMesh: {instanceID: 0}
+  - screenRenderer: {instanceID: 0}
+  - emissiveMaterial: {fileID: 2100000, guid: cce71e2a27619d046a3a2c3dd565e391, type: 2}
+  - normalMaterial: {fileID: 2100000, guid: 15bc120910895834e82061eb08e73162, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 326845
+  packageName: GoldenFrame Terminal - FREE
+  packageVersion: 1.0
+  assetPath: Assets/GoldenFrame_Terminal_FREE/Script/GoldenFrame_Terminal_FREE.cs
+  uploadId: 773630
