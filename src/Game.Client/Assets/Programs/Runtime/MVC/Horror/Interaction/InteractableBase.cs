@@ -35,7 +35,6 @@ namespace Game.Horror.Interaction
 
         protected HorrorInteractionSaveService InteractionSaveService { get; private set; }
         protected HorrorInventorySaveService InventorySaveService { get; private set; }
-        protected HorrorCheckpointSaveService CheckpointSaveService { get; private set; }
 
         private IScriptableDatabaseService _databaseService;
         protected ScriptableDatabase Database => _databaseService.Database;
@@ -51,7 +50,6 @@ namespace Game.Horror.Interaction
         {
             InteractionSaveService = GameServiceManager.Resolve<HorrorInteractionSaveService>();
             InventorySaveService = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            CheckpointSaveService = GameServiceManager.Resolve<HorrorCheckpointSaveService>();
 
             _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
             if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
@@ -109,9 +107,6 @@ namespace Game.Horror.Interaction
         public virtual void Interact()
         {
             InteractionSaveService.Add(Master);
-
-            if (Master.CheckpointSave)
-                CheckpointSaveService.SaveIfDirtyAsync().Forget();
         }
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
