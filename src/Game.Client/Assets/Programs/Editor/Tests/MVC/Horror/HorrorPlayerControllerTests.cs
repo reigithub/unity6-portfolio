@@ -133,5 +133,28 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateReloadAmount_MagazineExceedsSize_DoesNotGoNegative()
             => Assert.That(HorrorPlayerController.CalculateReloadAmount(15, 10, 100), Is.EqualTo(0));
+
+        // カメラリコイル表示 pitch：pitch - recoilPitch * weight（±89° クランプ込み）。
+        // weight 0 は無補正、weight 1 は満額減算、中間 weight は按分、クランプは両端で効く。
+
+        [Test]
+        public void CalculateRecoiledPitch_ZeroWeight_ReturnsPitch()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 0f), Is.EqualTo(10f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_FullWeight_SubtractsRecoilPitch()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 1f), Is.EqualTo(7.5f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_DecayedWeight_SubtractsScaledRecoil()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 0.5f), Is.EqualTo(8.75f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_BeyondUpperLimit_ClampsToNegative89()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(-88f, 5f, 1f), Is.EqualTo(-89f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_BeyondLowerLimit_ClampsTo89()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(88f, -5f, 1f), Is.EqualTo(89f).Within(1e-4f));
     }
 }

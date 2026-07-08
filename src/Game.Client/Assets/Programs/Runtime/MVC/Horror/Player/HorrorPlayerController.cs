@@ -64,6 +64,9 @@ namespace Game.Horror.Player
         [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
         [SerializeField] private LayerMask _hitMask;
 
+        [Tooltip("発砲カメラリコイルが収まるまでの秒数（減衰オフセット型・照準は元へ戻る）")]
+        [SerializeField] private float _recoilRecoverSeconds = 0.25f;
+
         [Header("装備（武器モデル表示）")]
         [Tooltip("装備中武器の一人称モデルを表示するビュー（Camera/WeaponRoot にアタッチ）")]
         [SerializeField] private HorrorWeaponView _weaponView;
@@ -100,6 +103,10 @@ namespace Game.Horror.Player
         private HorrorWeaponMaster _weaponMaster;
         private MessagePipeService _messagePipeService;
         private bool _attackTriggered;
+
+        // 発砲カメラリコイル（減衰オフセット型）。強度は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
+        private float _recoilPitchAmount;
+        private float _recoilWeight;
 
         // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
         private HorrorEquipmentSaveService _equipmentService;
@@ -202,6 +209,7 @@ namespace Game.Horror.Player
             // 武器モデル表示ビューの初期化：装備中なら即座に表示し、ショートカット登録武器のモデルは事前ロードしておく
             _weaponView.Initialize();
             if (_weaponMaster != null) _weaponView.ShowImmediate(_weaponMaster);
+
             _weaponView.PreloadAsync(ResolveEquippableMasters()).Forget();
 
             TryGetComponent(out _characterController);
@@ -429,7 +437,7 @@ namespace Game.Horror.Player
         private void HandleDryFire()
         {
             if (!string.IsNullOrEmpty(_weaponMaster.DryFireSeAssetName))
-                _audioService.PlaySoundEffectAsync(_weaponMaster.DryFireSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySoundEffectOneShotAsync(_weaponMaster.DryFireSeAssetName, destroyCancellationToken).Forget();
 
             _ammoView?.Notify();
 
@@ -560,6 +568,13 @@ namespace Game.Horror.Player
         /// </summary>
         public static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
             => Vector3.Slerp(forward, randomUnit, spreadAngle / 180f);
+
+        /// <summary>
+        /// リコイルオフセット（跳ね上げ＝pitch 減算）を合成した表示用 pitch を算出する（±89° クランプ込み）。
+        /// 照準の真値には加算しないため、減衰が終われば照準は発砲前の位置へ戻る。
+        /// </summary>
+        public static float CalculateRecoiledPitch(float pitch, float recoilPitch, float recoilWeight)
+            => Mathf.Clamp(pitch - recoilPitch * recoilWeight, -89f, 89f);
 
         /// <summary>
         /// エイム状態を加味した射撃ダメージを算出する。エイム中は倍率を掛けて四捨五入する。
@@ -1154,6 +1169,9 @@ namespace Game.Horror.Player
             _characterController.Move(motion * Time.fixedDeltaTime);
         }
 
+        // カメラ localEulerAngles へ書き込む際は常にこの表示用 pitch を使う（リコイル合成の単一点）
+        private float GetDisplayPitch() => CalculateRecoiledPitch(_cameraVerticalAngle, _recoilPitchAmount, _recoilWeight);
+
         /// <summary>
         /// 視点回転を適用
         /// Yaw: Player 本体を Y 軸回転（カメラは子なので自動追従）
@@ -1173,12 +1191,16 @@ namespace Game.Horror.Player
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _lookRotationSpeed * aimMultiplier, -89f, 89f);
-            _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+
+            // 発砲リコイルの減衰（全ステートの Update から毎フレーム呼ばれるためここで駆動する）
+            _recoilWeight = Mathf.MoveTowards(_recoilWeight, 0f, Time.deltaTime / Mathf.Max(_recoilRecoverSeconds, 0.0001f));
+
+            _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, 0f);
         }
 
         /// <summary>
         /// カメラ揺れを適用。移動中は figure-8 ヘッドボブ、停止中はアイドルスウェイ（呼吸揺れ）をクロスフェードする。
-        /// 全体強度は CameraShake でスケール。ApplyRotation 直後に呼ばれ、pitch を維持しつつ roll を合成する。
+        /// 全体強度は CameraShake でスケール。ApplyRotation 直後に呼ばれ、表示用 pitch（リコイル込み）を維持しつつ roll を合成する。
         /// </summary>
         private void UpdateHeadBob()
         {
@@ -1188,7 +1210,7 @@ namespace Game.Horror.Player
             if (!Player.enabled)
             {
                 _mainCamera.transform.localPosition = _cameraBasePosition;
-                _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, 0f);
+                _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, 0f);
                 _moveBobWeight = 0f;
                 return;
             }
@@ -1223,7 +1245,7 @@ namespace Game.Horror.Player
             var roll = (bobRoll + idleRoll) * _cameraShake * _aimShakeWeight;
 
             _mainCamera.transform.localPosition = _cameraBasePosition + offset;
-            _mainCamera.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0f, roll);
+            _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, roll);
         }
 
         /// <summary>
@@ -1327,6 +1349,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// カメラ中心からヒットスキャン（Raycast 即着弾）で射撃する。命中すれば IDamageable にダメージ、
         /// 命中点（外れたら射程端）で銃声 NoiseEvent を発行する。
+        /// あわせて武器キック・マズルフラッシュ・カメラリコイル・射撃音の発砲演出を発火する。
         /// </summary>
         private void Fire()
         {
@@ -1357,13 +1380,22 @@ namespace Game.Horror.Player
             {
                 var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize);
                 _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine - 1);
-                _ammoView?.Notify();
+                if (_ammoView != null) _ammoView.Notify();
             }
 
             // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
             target?.TakeDamage(damage);
             _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
-            _reticleView?.NotifyFired();
+            if (_reticleView != null) _reticleView.NotifyFired();
+
+            // 発砲演出：武器ビュー（マズルフラッシュ＋キック）・カメラリコイル・射撃音
+            if (_weaponView != null) _weaponView.NotifyFired();
+            _recoilPitchAmount = _weaponMaster.RecoilCameraPitch;
+            _recoilWeight = 1f;
+
+            if (!string.IsNullOrEmpty(_weaponMaster.FireSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(_weaponMaster.FireSeAssetName, destroyCancellationToken).Forget();
+
             Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{damage}");
         }
 
