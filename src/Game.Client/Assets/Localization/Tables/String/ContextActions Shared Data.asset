@@ -55,6 +55,10 @@ MonoBehaviour:
     m_Key: Shortcut
     m_Metadata:
       m_Items: []
+  - m_Id: 2898428456607745
+    m_Key: Save
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
