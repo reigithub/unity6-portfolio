@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -40,6 +41,9 @@ namespace Game.Shared.Services
         private const float DefaultVoiceFadeDuration = 0.1f;
         private const float DefaultSfxFadeDuration = 0.1f;
 
+        // OneShot 用クリップキャッシュ（Preserve 済みタスクを保持し、同一アセットの同時ロードを一本化する）
+        private readonly Dictionary<string, UniTask<AudioClip>> _oneShotClipTasks = new();
+
         /// <summary>
         /// マスターデータベースを取得（派生クラスで実装）
         /// </summary>
@@ -73,6 +77,7 @@ namespace Game.Shared.Services
             _bgmSource = null;
             _voiceSource = null;
             _sfxSource = null;
+            _oneShotClipTasks.Clear();
             _audioServiceObject.SafeDestroy();
             _audioServiceObject = null;
         }
@@ -138,6 +143,36 @@ namespace Game.Shared.Services
             _sfxSource.loop = false;
             _sfxSource.PlayOneShot(audioClip);
             await UniTask.Delay(TimeSpan.FromSeconds(audioClip.length), DelayType.Realtime, cancellationToken: token);
+        }
+
+        public async UniTask PlaySoundEffectOneShotAsync(string assetName, CancellationToken token = default)
+        {
+            if (_sfxSource == null || string.IsNullOrEmpty(assetName))
+                return;
+
+            if (!_oneShotClipTasks.TryGetValue(assetName, out var task))
+            {
+                // Preserve で複数回 await 可能にし、同一アセットの同時再生要求でもロードを一本化する
+                task = LoadAudioClipAsync(assetName).Preserve();
+                _oneShotClipTasks[assetName] = task;
+            }
+
+            AudioClip clip;
+            try
+            {
+                clip = await task.AttachExternalCancellation(token);
+            }
+            catch
+            {
+                // ロード失敗はキャッシュから除去して再試行可能にする
+                _oneShotClipTasks.Remove(assetName);
+                throw;
+            }
+
+            if (_sfxSource == null || clip == null)
+                return;
+
+            _sfxSource.PlayOneShot(clip);
         }
 
         public UniTask PlayAsync(AudioCategory audioCategory, string audioName, CancellationToken token = default)

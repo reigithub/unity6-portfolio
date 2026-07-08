@@ -16,6 +16,7 @@ namespace Game.MVP.Survivor.Server
         public UniTask StopBgmAsync(CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayVoiceAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlaySoundEffectAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
+        public UniTask PlaySoundEffectOneShotAsync(string assetName, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayAsync(AudioCategory audioCategory, string audioName, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayAsync(int audioId, CancellationToken token = default) => UniTask.CompletedTask;
         public UniTask PlayAsync(int[] audioIds, CancellationToken token = default) => UniTask.CompletedTask;
