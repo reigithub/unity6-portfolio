@@ -31,8 +31,6 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _acquiredId;
         [SerializeField] private int _acquiredCount;
 
-        [SerializeField] private bool _checkpointSave;
-
         #endregion
 
         #region Columns
@@ -101,12 +99,6 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _acquiredCount;
             set => _acquiredCount = value;
-        }
-
-        public bool CheckpointSave
-        {
-            get => _checkpointSave;
-            set => _checkpointSave = value;
         }
 
         #endregion
