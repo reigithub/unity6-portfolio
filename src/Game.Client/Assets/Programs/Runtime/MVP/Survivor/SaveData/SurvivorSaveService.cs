@@ -11,7 +11,7 @@ namespace Game.MVP.Survivor.SaveData
     /// Survivorセーブデータサービス実装
     /// SaveServiceBaseを継承し、Survivor固有のセーブ機能を提供
     /// </summary>
-    public class SurvivorSaveService : SaveServiceBase<SurvivorSaveData>, ISurvivorSaveService
+    public class SurvivorSaveService : SaveRepositoryBase<SurvivorSaveData>, ISurvivorSaveService
     {
         private const int DataVersion = 1;
 

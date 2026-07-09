@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace Game.Tests.Shared
 {
     [TestFixture]
-    public class SaveServiceTests
+    public class SaveRepositoryTests
     {
         #region Test Data and Mock Service
 
@@ -22,7 +22,7 @@ namespace Game.Tests.Shared
             public int Score { get; set; }
         }
 
-        private class TestSaveService : SaveServiceBase<TestSaveData>
+        private class TestSaveRepository : SaveRepositoryBase<TestSaveData>
         {
             public const string TestSaveKey = "test_save";
 
@@ -36,7 +36,7 @@ namespace Game.Tests.Shared
             public bool MigrateDataCalled { get; private set; }
             public int MigratedFromVersion { get; private set; }
 
-            public TestSaveService(ISaveDataStorage storage) : base(storage)
+            public TestSaveRepository(ISaveDataStorage storage) : base(storage)
             {
             }
 
@@ -71,13 +71,13 @@ namespace Game.Tests.Shared
         #region Setup
 
         private ISaveDataStorage _mockStorage;
-        private TestSaveService _service;
+        private TestSaveRepository _repository;
 
         [SetUp]
         public void Setup()
         {
             _mockStorage = Substitute.For<ISaveDataStorage>();
-            _service = new TestSaveService(_mockStorage);
+            _repository = new TestSaveRepository(_mockStorage);
         }
 
         #endregion
@@ -88,17 +88,17 @@ namespace Game.Tests.Shared
         public async Task LoadAsync_WhenDataNotExists_CreatesNewData()
         {
             // Arrange
-            _mockStorage.LoadAsync<TestSaveData>(TestSaveService.TestSaveKey)
+            _mockStorage.LoadAsync<TestSaveData>(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.FromResult<TestSaveData>(null));
 
             // Act
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
 
             // Assert
-            Assert.That(_service.IsLoaded, Is.True);
-            Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.IsDirty, Is.False);
-            Assert.That(_service.OnDataLoadedCalled, Is.False);
+            Assert.That(_repository.IsLoaded, Is.True);
+            Assert.That(_repository.Data, Is.Not.Null);
+            Assert.That(_repository.IsDirty, Is.False);
+            Assert.That(_repository.OnDataLoadedCalled, Is.False);
         }
 
         [Test]
@@ -106,18 +106,18 @@ namespace Game.Tests.Shared
         {
             // Arrange
             var existingData = new TestSaveData { Name = "Test", Score = 100, Version = 1 };
-            _mockStorage.LoadAsync<TestSaveData>(TestSaveService.TestSaveKey)
+            _mockStorage.LoadAsync<TestSaveData>(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.FromResult(existingData));
 
             // Act
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
 
             // Assert
-            Assert.That(_service.IsLoaded, Is.True);
-            Assert.That(_service.Data.Name, Is.EqualTo("Test"));
-            Assert.That(_service.Data.Score, Is.EqualTo(100));
-            Assert.That(_service.OnDataLoadedCalled, Is.True);
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.IsLoaded, Is.True);
+            Assert.That(_repository.Data.Name, Is.EqualTo("Test"));
+            Assert.That(_repository.Data.Score, Is.EqualTo(100));
+            Assert.That(_repository.OnDataLoadedCalled, Is.True);
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         [Test]
@@ -125,37 +125,37 @@ namespace Game.Tests.Shared
         {
             // Arrange
             var oldData = new TestSaveData { Name = "Old", Score = 50, Version = 1 };
-            _mockStorage.LoadAsync<TestSaveData>(TestSaveService.TestSaveKey)
+            _mockStorage.LoadAsync<TestSaveData>(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.FromResult(oldData));
-            _service.TestCurrentVersion = 2;
+            _repository.TestCurrentVersion = 2;
 
             // Act
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
 
             // Assert
-            Assert.That(_service.MigrateDataCalled, Is.True);
-            Assert.That(_service.MigratedFromVersion, Is.EqualTo(1));
+            Assert.That(_repository.MigrateDataCalled, Is.True);
+            Assert.That(_repository.MigratedFromVersion, Is.EqualTo(1));
             // マイグレーション後はダーティフラグがfalse（LoadAsyncの最後でリセット）
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         [Test]
         public async Task LoadAsync_WhenStorageThrows_CreatesNewData()
         {
             // Arrange
-            _mockStorage.LoadAsync<TestSaveData>(TestSaveService.TestSaveKey)
+            _mockStorage.LoadAsync<TestSaveData>(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.FromException<TestSaveData>(new Exception("Storage error")));
 
             // Expect error log
             LogAssert.Expect(LogType.Error, new Regex(@"Failed to load.*Storage error"));
 
             // Act
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
 
             // Assert
-            Assert.That(_service.IsLoaded, Is.True);
-            Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.IsLoaded, Is.True);
+            Assert.That(_repository.Data, Is.Not.Null);
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         #endregion
@@ -167,26 +167,26 @@ namespace Game.Tests.Shared
         {
             // Arrange
             await LoadTestData();
-            _service.Data.Score = 200;
-            _mockStorage.SaveAsync(TestSaveService.TestSaveKey, Arg.Any<TestSaveData>())
+            _repository.Data.Score = 200;
+            _mockStorage.SaveAsync(TestSaveRepository.TestSaveKey, Arg.Any<TestSaveData>())
                 .Returns(UniTask.CompletedTask);
 
             // Act
-            await _service.SaveAsync();
+            await _repository.SaveAsync();
 
             // Assert
             await _mockStorage.Received(1).SaveAsync(
-                TestSaveService.TestSaveKey,
+                TestSaveRepository.TestSaveKey,
                 Arg.Is<TestSaveData>(d => d.Score == 200));
-            Assert.That(_service.OnBeforeSaveCalled, Is.True);
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.OnBeforeSaveCalled, Is.True);
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         [Test]
         public async Task SaveAsync_WhenDataNotLoaded_DoesNotSave()
         {
             // Act
-            await _service.SaveAsync();
+            await _repository.SaveAsync();
 
             // Assert
             await _mockStorage.DidNotReceive().SaveAsync(
@@ -199,19 +199,19 @@ namespace Game.Tests.Shared
         {
             // Arrange
             await LoadTestData();
-            _service.TestMarkDirty();
-            _mockStorage.SaveAsync(TestSaveService.TestSaveKey, Arg.Any<TestSaveData>())
+            _repository.TestMarkDirty();
+            _mockStorage.SaveAsync(TestSaveRepository.TestSaveKey, Arg.Any<TestSaveData>())
                 .Returns(UniTask.FromException(new Exception("Save error")));
 
             // Expect error log
             LogAssert.Expect(LogType.Error, new Regex(@"Failed to save.*Save error"));
 
             // Act
-            await _service.SaveAsync();
+            await _repository.SaveAsync();
 
             // Assert
             // 保存失敗時はダーティフラグは変わらない（例外がキャッチされログ出力のみ）
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         #endregion
@@ -223,16 +223,16 @@ namespace Game.Tests.Shared
         {
             // Arrange
             await LoadTestData();
-            _service.TestMarkDirty();
-            _mockStorage.SaveAsync(TestSaveService.TestSaveKey, Arg.Any<TestSaveData>())
+            _repository.TestMarkDirty();
+            _mockStorage.SaveAsync(TestSaveRepository.TestSaveKey, Arg.Any<TestSaveData>())
                 .Returns(UniTask.CompletedTask);
 
             // Act
-            await _service.SaveIfDirtyAsync();
+            await _repository.SaveIfDirtyAsync();
 
             // Assert
             await _mockStorage.Received(1).SaveAsync(
-                TestSaveService.TestSaveKey,
+                TestSaveRepository.TestSaveKey,
                 Arg.Any<TestSaveData>());
         }
 
@@ -243,7 +243,7 @@ namespace Game.Tests.Shared
             await LoadTestData();
 
             // Act
-            await _service.SaveIfDirtyAsync();
+            await _repository.SaveIfDirtyAsync();
 
             // Assert
             await _mockStorage.DidNotReceive().SaveAsync(
@@ -260,17 +260,17 @@ namespace Game.Tests.Shared
         {
             // Arrange
             await LoadTestData();
-            _service.Data.Score = 999;
-            _mockStorage.DeleteAsync(TestSaveService.TestSaveKey)
+            _repository.Data.Score = 999;
+            _mockStorage.DeleteAsync(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.CompletedTask);
 
             // Act
-            await _service.DeleteAsync();
+            await _repository.DeleteAsync();
 
             // Assert
-            await _mockStorage.Received(1).DeleteAsync(TestSaveService.TestSaveKey);
-            Assert.That(_service.Data.Score, Is.EqualTo(0)); // 新規データのデフォルト値
-            Assert.That(_service.IsDirty, Is.False);
+            await _mockStorage.Received(1).DeleteAsync(TestSaveRepository.TestSaveKey);
+            Assert.That(_repository.Data.Score, Is.EqualTo(0)); // 新規データのデフォルト値
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         #endregion
@@ -282,13 +282,13 @@ namespace Game.Tests.Shared
         {
             // Arrange
             await LoadTestData();
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.IsDirty, Is.False);
 
             // Act
-            _service.TestMarkDirty();
+            _repository.TestMarkDirty();
 
             // Assert
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         #endregion
@@ -298,9 +298,9 @@ namespace Game.Tests.Shared
         private async Task LoadTestData()
         {
             var data = new TestSaveData { Name = "Test", Score = 100, Version = 1 };
-            _mockStorage.LoadAsync<TestSaveData>(TestSaveService.TestSaveKey)
+            _mockStorage.LoadAsync<TestSaveData>(TestSaveRepository.TestSaveKey)
                 .Returns(UniTask.FromResult(data));
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
         }
 
         #endregion

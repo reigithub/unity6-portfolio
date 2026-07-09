@@ -8,7 +8,7 @@ namespace Game.ScoreTimeAttack.SaveData
     /// タイムアタックゲームのセーブサービス
     /// SaveServiceBaseを継承した実装例
     /// </summary>
-    public class TimeAttackSaveService : SaveServiceBase<TimeAttackSaveData>
+    public class TimeAttackSaveService : SaveRepositoryBase<TimeAttackSaveData>
     {
         protected override string SaveKey => "timeattack_save";
         protected override int CurrentVersion => 1;

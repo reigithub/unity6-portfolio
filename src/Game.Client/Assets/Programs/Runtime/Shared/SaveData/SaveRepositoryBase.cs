@@ -10,7 +10,8 @@ namespace Game.Shared.SaveData
     /// 共通の読み書き・ダーティフラグ管理を提供
     /// </summary>
     /// <typeparam name="TData">MemoryPackableなセーブデータ型</typeparam>
-    public abstract class SaveServiceBase<TData> where TData : class, new()
+    public abstract class SaveRepositoryBase<TData> : ISaveRepository<TData>
+        where TData : class, new()
     {
         protected readonly ISaveDataStorage _storage;
 
@@ -36,7 +37,7 @@ namespace Game.Shared.SaveData
         private readonly Subject<TData> _onSaved = new();
         public Observable<TData> OnSaved => _onSaved;
 
-        protected SaveServiceBase(ISaveDataStorage storage)
+        protected SaveRepositoryBase(ISaveDataStorage storage)
         {
             _storage = storage;
         }

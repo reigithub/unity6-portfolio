@@ -6,11 +6,11 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// Horror オプション設定のセーブサービス。<see cref="SaveServiceBase{TData}"/> を継承し、
+    /// Horror オプション設定のセーブサービス。<see cref="SaveRepositoryBase{TData}"/> を継承し、
     /// 各設定の値保持・ダーティ管理・永続化を担う。ゲームへの実適用（Screen/QualitySettings 等）は持たない。
     /// 生成・ロード済みインスタンスを GameServiceManager.Register で共有登録して使う（IGameService）。
     /// </summary>
-    public class HorrorOptionSaveService : SaveServiceBase<HorrorOptionSaveData>, IGameService
+    public class HorrorOptionSaveService : SaveRepositoryBase<HorrorOptionSaveData>, IGameService
     {
         protected override string SaveKey => "horror_option";
         protected override int CurrentVersion => 1;

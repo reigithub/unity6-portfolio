@@ -3,6 +3,7 @@ using Game.Core.Services;
 using Game.Horror.Constants;
 using Game.Horror.Inventory;
 using Game.Horror.SaveData;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Scriptable.Database;
@@ -15,7 +16,7 @@ namespace Game.Horror.Services
     /// Horror セーブデータ（<see cref="HorrorSaveData"/>）の永続化リポジトリ。
     /// 読み書きと区画ごとのマスター整合（正規化）を担い、ビジネスロジックは各ドメインサービスへ委譲する。
     /// </summary>
-    public class HorrorSaveRepository : SaveServiceBase<HorrorSaveData>, IGameService
+    public class HorrorSaveRepository : SaveRepositoryBase<HorrorSaveData>, IHorrorSaveRepository, IGameService
     {
         protected override string SaveKey => "horror_save";
         protected override int CurrentVersion => 1;

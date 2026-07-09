@@ -7,7 +7,7 @@ namespace Game.Shared.SaveData
     /// オーディオ設定セーブサービス
     /// マスター/BGM/ボイス/SEのボリューム設定を永続化
     /// </summary>
-    public class AudioSaveService : SaveServiceBase<AudioSaveData>, IAudioSaveService
+    public class AudioSaveService : SaveRepositoryBase<AudioSaveData>, IAudioSaveService
     {
         private const int MaxVolume = 10;
         private const int MinVolume = 0;
