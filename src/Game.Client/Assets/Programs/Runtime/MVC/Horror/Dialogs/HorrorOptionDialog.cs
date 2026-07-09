@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Constants;
@@ -22,6 +23,7 @@ namespace Game.Horror.Dialogs
         private AudioService _audioService;
 
         private HorrorOptionSaveRepository _optionSaveRepository;
+        private IHorrorOptionService _optionService;
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
         // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
@@ -41,6 +43,7 @@ namespace Game.Horror.Dialogs
             _inputService = GameServiceManager.Get<InputSystemService>();
             _audioService = GameServiceManager.Get<AudioService>();
             _optionSaveRepository = GameServiceManager.Resolve<HorrorOptionSaveRepository>();
+            _optionService = GameServiceManager.Resolve<IHorrorOptionService>();
             return base.PreInitialize();
         }
 
@@ -69,72 +72,72 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnLanguageChanged
                 .Subscribe(code =>
                 {
-                    _optionSaveRepository.SetLanguageCode(code);
+                    _optionService.SetLanguageCode(code);
                     HorrorOptionHelper.ApplyLanguage(code);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnCameraControlHorizontalChanged
-                .Subscribe(b => { _optionSaveRepository.SetCameraControlHorizontal(b); })
+                .Subscribe(b => { _optionService.SetCameraControlHorizontal(b); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraControlVerticalChanged
-                .Subscribe(b => { _optionSaveRepository.SetCameraControlVertical(b); })
+                .Subscribe(b => { _optionService.SetCameraControlVertical(b); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraSensitivityHorizontalChanged
-                .Subscribe(v => { _optionSaveRepository.SetCameraSensitivityHorizontal(v); })
+                .Subscribe(v => { _optionService.SetCameraSensitivityHorizontal(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraSensitivityVerticalChanged
-                .Subscribe(v => { _optionSaveRepository.SetCameraSensitivityVertical(v); })
+                .Subscribe(v => { _optionService.SetCameraSensitivityVertical(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraAccelerationChanged
-                .Subscribe(v => { _optionSaveRepository.SetCameraAcceleration(v); })
+                .Subscribe(v => { _optionService.SetCameraAcceleration(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraShakeChanged
-                .Subscribe(v => { _optionSaveRepository.SetCameraShake(v); })
+                .Subscribe(v => { _optionService.SetCameraShake(v); })
                 .AddTo(Disposables);
             SceneComponent.OnCameraFovChanged
-                .Subscribe(v => { _optionSaveRepository.SetCameraFov(v); })
+                .Subscribe(v => { _optionService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
             SceneComponent.OnSprintModeChanged
-                .Subscribe(b => { _optionSaveRepository.SetSprintToggle(b); })
+                .Subscribe(b => { _optionService.SetSprintToggle(b); })
                 .AddTo(Disposables);
             SceneComponent.OnCrouchModeChanged
-                .Subscribe(b => { _optionSaveRepository.SetCrouchToggle(b); })
+                .Subscribe(b => { _optionService.SetCrouchToggle(b); })
                 .AddTo(Disposables);
 
             // Graphics
             SceneComponent.OnDisplayModeChanged
                 .Subscribe(mode =>
                 {
-                    _optionSaveRepository.SetDisplayMode(mode);
+                    _optionService.SetDisplayMode(mode);
                     HorrorOptionHelper.ApplyResolution(Options.DisplayMode, Options.ResolutionWidth, Options.ResolutionHeight);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnResolutionChanged
                 .Subscribe(res =>
                 {
-                    _optionSaveRepository.SetResolution(res.Width, res.Height);
+                    _optionService.SetResolution(res.Width, res.Height);
                     HorrorOptionHelper.ApplyResolution(Options.DisplayMode, Options.ResolutionWidth, Options.ResolutionHeight);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnFrameRateChanged
                 .Subscribe(fps =>
                 {
-                    _optionSaveRepository.SetFrameRateLimit(Mathf.RoundToInt(fps));
+                    _optionService.SetFrameRateLimit(Mathf.RoundToInt(fps));
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnUncappedFrameRateChanged
                 .Subscribe(uncapped =>
                 {
-                    _optionSaveRepository.SetUncappedFrameRate(uncapped);
+                    _optionService.SetUncappedFrameRate(uncapped);
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnVSyncChanged
                 .Subscribe(vsync =>
                 {
-                    _optionSaveRepository.SetVSync(vsync);
+                    _optionService.SetVSync(vsync);
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
                 })
                 .AddTo(Disposables);
@@ -143,28 +146,28 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnMasterVolumeChanged
                 .Subscribe(volume =>
                 {
-                    _optionSaveRepository.SetMasterVolume(volume);
+                    _optionService.SetMasterVolume(volume);
                     _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnBgmVolumeChanged
                 .Subscribe(volume =>
                 {
-                    _optionSaveRepository.SetBgmVolume(volume);
+                    _optionService.SetBgmVolume(volume);
                     _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnVoiceVolumeChanged
                 .Subscribe(volume =>
                 {
-                    _optionSaveRepository.SetVoiceVolume(volume);
+                    _optionService.SetVoiceVolume(volume);
                     _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnSeVolumeChanged
                 .Subscribe(volume =>
                 {
-                    _optionSaveRepository.SetSeVolume(volume);
+                    _optionService.SetSeVolume(volume);
                     _audioService.SetVolume(Options.MasterVolume, Options.BgmVolume, Options.VoiceVolume, Options.SeVolume);
                 })
                 .AddTo(Disposables);
@@ -190,7 +193,7 @@ namespace Game.Horror.Dialogs
                             {
                                 rebind.SetWaiting(false);
                                 // rebind.SetDisplay(display);
-                                _optionSaveRepository.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+                                _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebind = null;
                                 _rebindTimeout?.Dispose();
                                 _rebindTimeout = null;
@@ -231,7 +234,7 @@ namespace Game.Horror.Dialogs
                 {
                     _inputService.ResetSchemeBindings(scheme);
                     RefreshBindingDisplays();
-                    _optionSaveRepository.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+                    _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                 })
                 .AddTo(Disposables);
 

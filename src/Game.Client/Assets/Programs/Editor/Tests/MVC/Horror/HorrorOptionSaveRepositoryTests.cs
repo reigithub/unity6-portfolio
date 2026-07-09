@@ -14,7 +14,7 @@ namespace Game.Tests.MVC.Horror
     [TestFixture]
     public class HorrorOptionSaveRepositoryTests
     {
-        private const string SaveKey = "horror_option_settings";
+        private const string SaveKey = "horror_option";
 
         private ISaveDataStorage _mockStorage;
         private HorrorOptionSaveRepository _repository;
@@ -53,94 +53,6 @@ namespace Game.Tests.MVC.Horror
 
         #endregion
 
-        #region Setters
-
-        [Test]
-        public async Task SetCameraFov_SetsValueAndMarksDirty()
-        {
-            await LoadDefaultData();
-
-            _repository.SetCameraFov(90f);
-
-            Assert.That(_repository.Data.CameraFov, Is.EqualTo(90f));
-            Assert.That(_repository.IsDirty, Is.True);
-        }
-
-        [Test]
-        public async Task SetResolution_SetsWidthAndHeight()
-        {
-            await LoadDefaultData();
-
-            _repository.SetResolution(1920, 1080);
-
-            Assert.That(_repository.Data.ResolutionWidth, Is.EqualTo(1920));
-            Assert.That(_repository.Data.ResolutionHeight, Is.EqualTo(1080));
-            Assert.That(_repository.IsDirty, Is.True);
-        }
-
-        [Test]
-        public async Task SetDisplayMode_StoresEnum()
-        {
-            await LoadDefaultData();
-
-            _repository.SetDisplayMode(FullScreenMode.Windowed);
-
-            Assert.That(_repository.Data.DisplayMode, Is.EqualTo(FullScreenMode.Windowed));
-        }
-
-        #endregion
-
-        #region Volume Clamp
-
-        [Test]
-        public async Task SetMasterVolume_ClampsToMax()
-        {
-            await LoadDefaultData();
-
-            // 音量範囲は 1〜10。上限超えは 10 にクランプされる
-            _repository.SetMasterVolume(15f);
-
-            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(10f));
-        }
-
-        [Test]
-        public async Task SetMasterVolume_ClampsToMin()
-        {
-            await LoadDefaultData();
-
-            // 音量範囲は 1〜10。下限割れは 1 にクランプされる
-            _repository.SetMasterVolume(-1f);
-
-            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(1f));
-        }
-
-        #endregion
-
-        #region Input Binding Overrides
-
-        [Test]
-        public async Task SetInputBindingOverrides_SetsValueAndMarksDirty()
-        {
-            await LoadDefaultData();
-
-            _repository.SetInputBindingOverrides("{\"bindings\":[]}");
-
-            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo("{\"bindings\":[]}"));
-            Assert.That(_repository.IsDirty, Is.True);
-        }
-
-        [Test]
-        public async Task SetInputBindingOverrides_WhenNull_StoresEmptyString()
-        {
-            await LoadDefaultData();
-
-            _repository.SetInputBindingOverrides(null);
-
-            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""));
-        }
-
-        #endregion
-
         #region Migration
 
         [Test]
@@ -155,24 +67,6 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_repository.Data.Version, Is.EqualTo(1), "現行バージョンへマイグレーションされる");
             Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""), "新フィールドは既定値で補完される");
-        }
-
-        #endregion
-
-        #region Null Guard
-
-        [Test]
-        public void Setters_WhenDataNull_DoNotThrow()
-        {
-            // LoadAsync 未実行 ＝ Data は null
-            Assert.DoesNotThrow(() =>
-            {
-                _repository.SetCameraFov(90f);
-                _repository.SetResolution(1920, 1080);
-                _repository.SetMasterVolume(0.5f);
-                _repository.SetVSync(true);
-                _repository.SetInputBindingOverrides("{}");
-            });
         }
 
         #endregion
@@ -240,7 +134,8 @@ namespace Game.Tests.MVC.Horror
         public async Task SaveAsync_FiresOnSaved_WithSavedData()
         {
             await LoadDefaultData();
-            _repository.SetCameraControlHorizontal(true);   // 変更（dirty）
+            _repository.Data.CameraControlHorizontal = true;   // 変更（dirty）
+            _repository.MarkDirty();
 
             HorrorOptionSaveData received = null;
             using var sub = _repository.OnSaved.Subscribe(d => received = d);

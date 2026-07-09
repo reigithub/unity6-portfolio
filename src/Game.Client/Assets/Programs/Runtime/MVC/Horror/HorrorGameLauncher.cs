@@ -42,21 +42,23 @@ namespace Game.Horror
 
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
-            var optionSaveService = new HorrorOptionSaveRepository(saveDataStorage);
-            await optionSaveService.LoadAsync();
-            GameServiceManager.Register(optionSaveService);
-            HorrorOptionHelper.ApplySaveData(optionSaveService.Data);
+            var optionSaveRepository = new HorrorOptionSaveRepository(saveDataStorage);
+            await optionSaveRepository.LoadAsync();
+            GameServiceManager.Register(optionSaveRepository);
+            var optionService = new HorrorOptionService(optionSaveRepository);
+            GameServiceManager.Register<IHorrorOptionService>(optionService);
+            HorrorOptionHelper.ApplySaveData(optionSaveRepository.Data);
 
             // キーリバインドのオーバーライドを起動時に適用
             var inputSystemService = GameServiceManager.Get<InputSystemService>();
-            inputSystemService.LoadBindingOverrides(optionSaveService.Data.InputBindingOverridesJson);
+            inputSystemService.LoadBindingOverrides(optionSaveRepository.Data.InputBindingOverridesJson);
 
             // オーディオ設定
             audioService.SetVolume(
-                optionSaveService.Data.MasterVolume,
-                optionSaveService.Data.BgmVolume,
-                optionSaveService.Data.VoiceVolume,
-                optionSaveService.Data.SeVolume);
+                optionSaveRepository.Data.MasterVolume,
+                optionSaveRepository.Data.BgmVolume,
+                optionSaveRepository.Data.VoiceVolume,
+                optionSaveRepository.Data.SeVolume);
 
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
