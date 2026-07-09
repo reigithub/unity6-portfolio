@@ -9,15 +9,18 @@ namespace Game.Horror.Services
         private readonly IHorrorInteractionSaveService _interaction;
         private readonly IHorrorInventorySaveService _inventory;
         private readonly IHorrorEquipmentSaveService _equipment;
+        private readonly IHorrorRespawnSaveService _respawn;
 
         public HorrorCheckpointSaveService(
             IHorrorInteractionSaveService interaction,
             IHorrorInventorySaveService inventory,
-            IHorrorEquipmentSaveService equipment)
+            IHorrorEquipmentSaveService equipment,
+            IHorrorRespawnSaveService respawn)
         {
             _interaction = interaction;
             _inventory = inventory;
             _equipment = equipment;
+            _respawn = respawn;
         }
 
         public async UniTask SaveIfDirtyAsync()
@@ -25,6 +28,7 @@ namespace Game.Horror.Services
             await _interaction.SaveIfDirtyAsync();
             await _inventory.SaveIfDirtyAsync();
             await _equipment.SaveIfDirtyAsync();
+            await _respawn.SaveIfDirtyAsync();
         }
     }
 }

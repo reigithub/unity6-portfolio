@@ -263,6 +263,22 @@ namespace Game.Horror.Player
             _crouchToggle = data.CrouchToggle;
         }
 
+        /// <summary>
+        /// プレイヤーを指定位置・向きへ即時移動する。有効な CharacterController への transform 書き換えは
+        /// 次の Move で内部衝突状態と矛盾しうるため、一時的に無効化してから反映し、物理へ即時同期する。
+        /// _characterController を参照するため Initialize 後に呼ぶこと。
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            var wasEnabled = _characterController.enabled;
+            _characterController.enabled = false;
+
+            transform.SetPositionAndRotation(position, rotation);
+
+            _characterController.enabled = wasEnabled;
+            Physics.SyncTransforms();
+        }
+
         #region MonoBehaviour Methods
 
         protected void OnDestroy()

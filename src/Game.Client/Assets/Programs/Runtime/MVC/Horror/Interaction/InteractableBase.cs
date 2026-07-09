@@ -41,6 +41,9 @@ namespace Game.Horror.Interaction
 
         protected HorrorInteractionMaster Master { get; private set; }
 
+        /// <summary>参照する HorrorInteractionMaster の Id。SerializeField のため Start 前でも参照できる。</summary>
+        public int InteractionId => _interactionId;
+
         protected virtual void Awake()
         {
             _colliders = GetComponentsInChildren<Collider>(includeInactive: true);

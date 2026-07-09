@@ -71,7 +71,12 @@ namespace Game.Horror
             await interactionSaveService.LoadAsync();
             GameServiceManager.Register(interactionSaveService);
 
-            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService, equipmentSaveService);
+            // 復帰地点: ロード（マスター整合込み）→ 共有登録（saveDataStorage を共有）
+            var respawnSaveService = new HorrorRespawnSaveService(saveDataStorage, dbService);
+            await respawnSaveService.LoadAsync();
+            GameServiceManager.Register(respawnSaveService);
+
+            var checkpointSaveService = new HorrorCheckpointSaveService(interactionSaveService, inventorySaveService, equipmentSaveService, respawnSaveService);
             GameServiceManager.Register(checkpointSaveService);
 
             // 5. 初期シーン遷移

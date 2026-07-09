@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
 using Game.Horror.Enemy;
+using Game.Horror.Interaction;
 using Game.Horror.Player;
 using Game.Horror.Services;
 using Game.MVC.Core.Enums;
@@ -23,6 +24,7 @@ namespace Game.Horror.Scenes
         private GameSceneService _sceneService;
         private InputSystemService _inputService;
         private HorrorOptionSaveService _optionSaveService;
+        private HorrorRespawnSaveService _respawnSaveService;
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
@@ -33,6 +35,7 @@ namespace Game.Horror.Scenes
             _sceneService = GameServiceManager.Get<GameSceneService>();
             _inputService = GameServiceManager.Get<InputSystemService>();
             _optionSaveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
+            _respawnSaveService = GameServiceManager.Resolve<HorrorRespawnSaveService>();
             return base.PreInitialize();
         }
 
@@ -90,6 +93,7 @@ namespace Game.Horror.Scenes
 
             var player = await _playerStart.LoadPlayerAsync();
             player.Initialize(_optionSaveService.Data);
+            ApplyRespawnPosition(player);
             _optionSaveService.OnSaved
                 .Subscribe(data => player.ApplyOptions(data))
                 .AddTo(Disposables);
@@ -100,6 +104,33 @@ namespace Game.Horror.Scenes
         {
             if (_playerStart != null)
                 _playerStart.UnloadPlayer();
+        }
+
+        /// <summary>
+        /// 記録済みセーブポイントがあれば、そのリスポーン位置・向き（Yaw のみ）から開始する。
+        /// 未記録・シーン内に該当 Id なし・RespawnPoint 未配線は HorrorPlayerStart の位置のまま（フォールバック）。
+        /// シーンロード完了時点で Awake は完了済みで、判定は SerializeField のみに依存するため Start を待つ必要はない。
+        /// </summary>
+        private void ApplyRespawnPosition(HorrorPlayerController player)
+        {
+            var savepointId = _respawnSaveService.LastSavepointId;
+            if (savepointId == 0)
+                return;
+
+            var savePoints = GameSceneHelper.GetComponentsInChildren<HorrorSavepointInteractable>(_stageSceneInstance.Scene);
+            var savepoint = System.Array.Find(savePoints, s => s.InteractionId == savepointId);
+            if (savepoint == null)
+            {
+                Debug.LogWarning($"[{nameof(HorrorStageScene)}] Savepoint (InteractionId={savepointId}) がシーン内に見つからないため初期位置から開始します");
+                return;
+            }
+
+            var respawnPoint = savepoint.RespawnPoint;
+            if (respawnPoint == null)
+                return; // 未配線は RespawnPoint 側で LogError 済み。初期位置フォールバック
+
+            // プレイヤー本体は Yaw のみ持つ（Pitch はカメラ側）ため Yaw だけ反映する
+            player.Teleport(respawnPoint.position, Quaternion.Euler(0f, respawnPoint.eulerAngles.y, 0f));
         }
 
         private async UniTask LoadEnemiesAsync(GameObject player)
