@@ -34,7 +34,7 @@ namespace Game.Shared.SaveData
 
         /// <summary>セーブされたとき</summary>
         private readonly Subject<TData> _onSaved = new();
-        public Observable<TData> OnSaved => _onSaved.AsObservable();
+        public Observable<TData> OnSaved => _onSaved;
 
         protected SaveServiceBase(ISaveDataStorage storage)
         {
