@@ -136,7 +136,7 @@ namespace Game.Shared.SaveData
         /// <summary>
         /// ダーティフラグを設定（派生クラスから呼び出し）
         /// </summary>
-        protected void MarkDirty()
+        public void MarkDirty()
         {
             _isDirty = true;
         }
