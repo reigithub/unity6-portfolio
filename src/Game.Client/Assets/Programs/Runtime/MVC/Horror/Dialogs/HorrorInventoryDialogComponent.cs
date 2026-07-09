@@ -1,7 +1,7 @@
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.Horror.Inventory;
-using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
 using R3;
@@ -52,8 +52,8 @@ namespace Game.Horror.Dialogs
 
         private void BindSlots()
         {
-            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            var slots = inventory.Data.Slots;
+            var inventory = GameServiceManager.Resolve<IHorrorInventoryService>();
+            var slots = inventory.Slots;
             var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {

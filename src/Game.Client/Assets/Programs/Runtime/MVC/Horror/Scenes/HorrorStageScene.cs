@@ -5,6 +5,7 @@ using Game.Horror.Enemy;
 using Game.Horror.Interaction;
 using Game.Horror.Player;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -24,7 +25,7 @@ namespace Game.Horror.Scenes
         private GameSceneService _sceneService;
         private InputSystemService _inputService;
         private HorrorOptionSaveService _optionSaveService;
-        private HorrorRespawnSaveService _respawnSaveService;
+        private IHorrorPlayerService _playerService;
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
@@ -35,7 +36,7 @@ namespace Game.Horror.Scenes
             _sceneService = GameServiceManager.Get<GameSceneService>();
             _inputService = GameServiceManager.Get<InputSystemService>();
             _optionSaveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
-            _respawnSaveService = GameServiceManager.Resolve<HorrorRespawnSaveService>();
+            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             return base.PreInitialize();
         }
 
@@ -113,7 +114,7 @@ namespace Game.Horror.Scenes
         /// </summary>
         private void ApplyRespawnPosition(HorrorPlayerController player)
         {
-            var savepointId = _respawnSaveService.LastSavepointId;
+            var savepointId = _playerService.LastSavepointId;
             if (savepointId == 0)
                 return;
 

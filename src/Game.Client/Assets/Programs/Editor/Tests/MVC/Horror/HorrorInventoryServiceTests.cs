@@ -12,28 +12,30 @@ using NUnit.Framework;
 namespace Game.Tests.MVC.Horror
 {
     [TestFixture]
-    public class HorrorInventorySaveServiceTests
+    public class HorrorInventoryServiceTests
     {
-        private const string SaveKey = "horror_inventory";
+        private const string SaveKey = "horror_save";
 
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
-        private HorrorInventorySaveService _service;
+        private HorrorSaveRepository _repository;
+        private HorrorInventoryService _service;
 
         [SetUp]
         public void Setup()
         {
             _mockStorage = Substitute.For<ISaveDataStorage>();
             _mockDatabase = Substitute.For<IScriptableDatabaseService>();
-            _service = new HorrorInventorySaveService(_mockStorage, _mockDatabase);
+            _repository = new HorrorSaveRepository(_mockStorage, _mockDatabase);
+            _service = new HorrorInventoryService(_repository);
         }
 
         private async Task LoadDefaultData()
         {
             // 保存ファイルが無い状態 → CreateNewData（空インベントリ）が走る。DB は参照しない。
-            _mockStorage.LoadAsync<HorrorInventorySaveData>(SaveKey)
-                .Returns(UniTask.FromResult<HorrorInventorySaveData>(null));
-            await _service.LoadAsync();
+            _mockStorage.LoadAsync<HorrorSaveData>(SaveKey)
+                .Returns(UniTask.FromResult<HorrorSaveData>(null));
+            await _repository.LoadAsync();
         }
 
         private static IHorrorInventorySlotInfo MakeInfo(InventorySlotType type, int id, int maxCount)
@@ -121,12 +123,12 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
             // TryAdd 経由だと既に Dirty になるため、直接 Slots へ登録して Dirty を汚さず前提を作る。
-            _service.Data.Slots.Add(new HorrorInventorySlotData { SlotType = InventorySlotType.Item, Id = 3, Count = 4 });
+            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { SlotType = InventorySlotType.Item, Id = 3, Count = 4 });
 
             var ok = _service.TryConsume(InventorySlotType.Item, 3, 1);
 
             Assert.That(ok, Is.True);
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.IsDirty, Is.True);
         }
     }
 }

@@ -1,7 +1,7 @@
 using Game.Core.Services;
 using Game.Horror.Equipment;
 using Game.Horror.Inventory;
-using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Interfaces;
 using Game.Shared.Services;
@@ -20,7 +20,7 @@ namespace Game.Horror.Dialogs
 
         private InputSystemService _inputService;
         private IScriptableDatabaseService _databaseService;
-        private HorrorEquipmentSaveService _saveService;
+        private IHorrorEquipmentService _equipmentService;
         private IHorrorInventorySlotInfo _target;
         private int _currentIndex;
 
@@ -29,7 +29,7 @@ namespace Game.Horror.Dialogs
             _target = target;
             _inputService = GameServiceManager.Get<InputSystemService>();
             _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
-            _saveService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
+            _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             for (int i = 0; i < _slots.Length; i++)
             {
@@ -54,7 +54,7 @@ namespace Game.Horror.Dialogs
         /// <summary>現在選択中スロットの登録を外す（Dialog の Remove 入力から呼ぶ）。</summary>
         public void RemoveCurrent()
         {
-            if (_saveService.ClearSlot(_currentIndex))
+            if (_equipmentService.ClearSlot(_currentIndex))
                 _slots[_currentIndex].SetEmpty();
         }
 
@@ -63,7 +63,7 @@ namespace Game.Horror.Dialogs
         private void Register(int index)
         {
             if (_target == null) return;
-            if (_saveService.AssignSlot(index, _target.SlotType, _target.Id))
+            if (_equipmentService.TryAssignSlot(index, _target.SlotType, _target.Id))
                 RefreshAllSlots();
         }
 
@@ -76,7 +76,7 @@ namespace Game.Horror.Dialogs
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_saveService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var info))
+            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var info))
                 _slots[index].SetSlot(info);
             else
                 _slots[index].SetEmpty();

@@ -5,7 +5,7 @@ using Game.Horror.Constants;
 using Game.Horror.Equipment;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
-using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Combat;
@@ -109,7 +109,7 @@ namespace Game.Horror.Player
         private float _recoilWeight;
 
         // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
-        private HorrorEquipmentSaveService _equipmentService;
+        private IHorrorEquipmentService _equipmentService;
         private ScriptableDatabaseService _dbService;
         private bool _equipTriggered;
         private int _equipSlotIndex;
@@ -118,7 +118,7 @@ namespace Game.Horror.Player
         private HorrorWeaponMaster _pendingWeaponMaster;
 
         // リロード：インベントリセーブサービス（予備弾の所持数参照）・SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
-        private HorrorInventorySaveService _inventoryService;
+        private IHorrorInventoryService _inventoryService;
         private AudioService _audioService;
         private bool _reloadTriggered;
 
@@ -194,8 +194,8 @@ namespace Game.Horror.Player
 
             // Database はプレイヤー生成時点でロード済み
             _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
-            _equipmentService = GameServiceManager.Resolve<HorrorEquipmentSaveService>();
-            _inventoryService = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
+            _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             _equipmentsView.Initialize();
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
@@ -463,7 +463,7 @@ namespace Game.Horror.Player
         /// <summary>
         /// 立てられた装備切替起動フラグを消費し、ショートカット登録・現在装備・所持を検証して
         /// EquippingState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
-        /// 実際の装備反映（<see cref="HorrorEquipmentSaveService.TryEquip"/>）は EquippingState.Enter が行う。
+        /// 実際の装備反映（<see cref="IHorrorEquipmentService.TryEquip"/>）は EquippingState.Enter が行う。
         /// </summary>
         /// <returns>EquippingState へ遷移すべきなら true。</returns>
         private bool TryEquip()

@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
-using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Localization;
 using Game.Shared.Scriptable.Database;
@@ -33,8 +33,8 @@ namespace Game.Horror.Interaction
         [Tooltip("対象位置に出すプロンプト表示")]
         [SerializeField] private InteractionPromptView _promptView;
 
-        protected HorrorInteractionSaveService InteractionSaveService { get; private set; }
-        protected HorrorInventorySaveService InventorySaveService { get; private set; }
+        protected IHorrorInteractionService InteractionService { get; private set; }
+        protected IHorrorInventoryService InventoryService { get; private set; }
 
         private IScriptableDatabaseService _databaseService;
         protected ScriptableDatabase Database => _databaseService.Database;
@@ -51,8 +51,8 @@ namespace Game.Horror.Interaction
 
         protected virtual void Start()
         {
-            InteractionSaveService = GameServiceManager.Resolve<HorrorInteractionSaveService>();
-            InventorySaveService = GameServiceManager.Resolve<HorrorInventorySaveService>();
+            InteractionService = GameServiceManager.Resolve<IHorrorInteractionService>();
+            InventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
 
             _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
             if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
@@ -103,13 +103,13 @@ namespace Game.Horror.Interaction
 
         public virtual float HoldSeconds => Master != null ? Master.HoldSeconds : 0f;
 
-        public virtual bool WasInteracted() => InteractionSaveService.Contains(_interactionId);
+        public virtual bool WasInteracted() => InteractionService.Contains(_interactionId);
 
         public virtual bool CanInteract() => true;
 
         public virtual void Interact()
         {
-            InteractionSaveService.Add(Master);
+            InteractionService.Add(Master);
         }
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
@@ -152,7 +152,7 @@ namespace Game.Horror.Interaction
         protected bool HasItem()
         {
             if (Master == null || Master.RequiredItemId == 0) return true;
-            return InventorySaveService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
+            return InventoryService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
         }
     }
 }

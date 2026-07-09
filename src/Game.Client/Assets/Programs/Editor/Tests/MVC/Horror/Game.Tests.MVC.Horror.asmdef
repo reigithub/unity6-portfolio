@@ -3,6 +3,7 @@
     "rootNamespace": "Game.Tests.MVC.Horror",
     "references": [
         "Game.MVC.Horror",
+        "Game.MVC.Core",
         "Game.Shared",
         "Game.Library.Shared",
         "UniTask",
