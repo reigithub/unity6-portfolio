@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Horror.SaveData;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.SaveData;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ namespace Game.Horror.Services
     /// 各設定の値保持・ダーティ管理・永続化を担う。ゲームへの実適用（Screen/QualitySettings 等）は持たない。
     /// 生成・ロード済みインスタンスを GameServiceManager.Register で共有登録して使う（IGameService）。
     /// </summary>
-    public class HorrorOptionSaveRepository : SaveRepositoryBase<HorrorOptionSaveData>, IGameService
+    public class HorrorOptionSaveRepository : SaveRepositoryBase<HorrorOptionSaveData>, IHorrorOptionSaveRepository, IGameService
     {
         protected override string SaveKey => "horror_option";
         protected override int CurrentVersion => 1;
