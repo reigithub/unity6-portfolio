@@ -24,7 +24,7 @@ namespace Game.Horror.Scenes
 
         private GameSceneService _sceneService;
         private InputSystemService _inputService;
-        private HorrorOptionSaveService _optionSaveService;
+        private HorrorOptionSaveRepository _optionSaveRepository;
         private IHorrorPlayerService _playerService;
 
         private SceneInstance _stageSceneInstance;
@@ -35,7 +35,7 @@ namespace Game.Horror.Scenes
         {
             _sceneService = GameServiceManager.Get<GameSceneService>();
             _inputService = GameServiceManager.Get<InputSystemService>();
-            _optionSaveService = GameServiceManager.Resolve<HorrorOptionSaveService>();
+            _optionSaveRepository = GameServiceManager.Resolve<HorrorOptionSaveRepository>();
             _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             return base.PreInitialize();
         }
@@ -93,9 +93,9 @@ namespace Game.Horror.Scenes
                 return null;
 
             var player = await _playerStart.LoadPlayerAsync();
-            player.Initialize(_optionSaveService.Data);
+            player.Initialize(_optionSaveRepository.Data);
             ApplyRespawnPosition(player);
-            _optionSaveService.OnSaved
+            _optionSaveRepository.OnSaved
                 .Subscribe(data => player.ApplyOptions(data))
                 .AddTo(Disposables);
             return player.gameObject;

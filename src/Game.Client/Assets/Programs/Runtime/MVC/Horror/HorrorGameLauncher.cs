@@ -42,7 +42,7 @@ namespace Game.Horror
 
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var saveDataStorage = new SaveDataStorage();
-            var optionSaveService = new HorrorOptionSaveService(saveDataStorage);
+            var optionSaveService = new HorrorOptionSaveRepository(saveDataStorage);
             await optionSaveService.LoadAsync();
             GameServiceManager.Register(optionSaveService);
             HorrorOptionHelper.ApplySaveData(optionSaveService.Data);

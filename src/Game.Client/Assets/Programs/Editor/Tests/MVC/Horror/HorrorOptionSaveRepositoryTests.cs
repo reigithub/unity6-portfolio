@@ -12,18 +12,18 @@ using UnityEngine;
 namespace Game.Tests.MVC.Horror
 {
     [TestFixture]
-    public class HorrorOptionSaveServiceTests
+    public class HorrorOptionSaveRepositoryTests
     {
         private const string SaveKey = "horror_option_settings";
 
         private ISaveDataStorage _mockStorage;
-        private HorrorOptionSaveService _service;
+        private HorrorOptionSaveRepository _repository;
 
         [SetUp]
         public void Setup()
         {
             _mockStorage = Substitute.For<ISaveDataStorage>();
-            _service = new HorrorOptionSaveService(_mockStorage);
+            _repository = new HorrorOptionSaveRepository(_mockStorage);
         }
 
         private async Task LoadDefaultData()
@@ -31,7 +31,7 @@ namespace Game.Tests.MVC.Horror
             // 保存ファイルが無い状態 → CreateNewData が走る
             _mockStorage.LoadAsync<HorrorOptionSaveData>(SaveKey)
                 .Returns(UniTask.FromResult<HorrorOptionSaveData>(null));
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
         }
 
         #region Default Data
@@ -41,14 +41,14 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            Assert.That(_service.Data, Is.Not.Null);
-            Assert.That(_service.Data.Version, Is.EqualTo(1));
-            Assert.That(_service.Data.LanguageCode, Is.EqualTo("ja"));
-            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
-            Assert.That(_service.Data.CameraFov, Is.EqualTo(60f));
-            Assert.That(_service.Data.DisplayMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(1f));
-            Assert.That(_service.IsDirty, Is.False);
+            Assert.That(_repository.Data, Is.Not.Null);
+            Assert.That(_repository.Data.Version, Is.EqualTo(1));
+            Assert.That(_repository.Data.LanguageCode, Is.EqualTo("ja"));
+            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""));
+            Assert.That(_repository.Data.CameraFov, Is.EqualTo(60f));
+            Assert.That(_repository.Data.DisplayMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
+            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(1f));
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         #endregion
@@ -60,10 +60,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetCameraFov(90f);
+            _repository.SetCameraFov(90f);
 
-            Assert.That(_service.Data.CameraFov, Is.EqualTo(90f));
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.Data.CameraFov, Is.EqualTo(90f));
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         [Test]
@@ -71,11 +71,11 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetResolution(1920, 1080);
+            _repository.SetResolution(1920, 1080);
 
-            Assert.That(_service.Data.ResolutionWidth, Is.EqualTo(1920));
-            Assert.That(_service.Data.ResolutionHeight, Is.EqualTo(1080));
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.Data.ResolutionWidth, Is.EqualTo(1920));
+            Assert.That(_repository.Data.ResolutionHeight, Is.EqualTo(1080));
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         [Test]
@@ -83,9 +83,9 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetDisplayMode(FullScreenMode.Windowed);
+            _repository.SetDisplayMode(FullScreenMode.Windowed);
 
-            Assert.That(_service.Data.DisplayMode, Is.EqualTo(FullScreenMode.Windowed));
+            Assert.That(_repository.Data.DisplayMode, Is.EqualTo(FullScreenMode.Windowed));
         }
 
         #endregion
@@ -98,9 +98,9 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             // 音量範囲は 1〜10。上限超えは 10 にクランプされる
-            _service.SetMasterVolume(15f);
+            _repository.SetMasterVolume(15f);
 
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(10f));
+            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(10f));
         }
 
         [Test]
@@ -109,9 +109,9 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             // 音量範囲は 1〜10。下限割れは 1 にクランプされる
-            _service.SetMasterVolume(-1f);
+            _repository.SetMasterVolume(-1f);
 
-            Assert.That(_service.Data.MasterVolume, Is.EqualTo(1f));
+            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(1f));
         }
 
         #endregion
@@ -123,10 +123,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetInputBindingOverrides("{\"bindings\":[]}");
+            _repository.SetInputBindingOverrides("{\"bindings\":[]}");
 
-            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo("{\"bindings\":[]}"));
-            Assert.That(_service.IsDirty, Is.True);
+            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo("{\"bindings\":[]}"));
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         [Test]
@@ -134,9 +134,9 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _service.SetInputBindingOverrides(null);
+            _repository.SetInputBindingOverrides(null);
 
-            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""));
+            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""));
         }
 
         #endregion
@@ -151,10 +151,10 @@ namespace Game.Tests.MVC.Horror
             _mockStorage.LoadAsync<HorrorOptionSaveData>(SaveKey)
                 .Returns(UniTask.FromResult(oldData));
 
-            await _service.LoadAsync();
+            await _repository.LoadAsync();
 
-            Assert.That(_service.Data.Version, Is.EqualTo(1), "現行バージョンへマイグレーションされる");
-            Assert.That(_service.Data.InputBindingOverridesJson, Is.EqualTo(""), "新フィールドは既定値で補完される");
+            Assert.That(_repository.Data.Version, Is.EqualTo(1), "現行バージョンへマイグレーションされる");
+            Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""), "新フィールドは既定値で補完される");
         }
 
         #endregion
@@ -167,11 +167,11 @@ namespace Game.Tests.MVC.Horror
             // LoadAsync 未実行 ＝ Data は null
             Assert.DoesNotThrow(() =>
             {
-                _service.SetCameraFov(90f);
-                _service.SetResolution(1920, 1080);
-                _service.SetMasterVolume(0.5f);
-                _service.SetVSync(true);
-                _service.SetInputBindingOverrides("{}");
+                _repository.SetCameraFov(90f);
+                _repository.SetResolution(1920, 1080);
+                _repository.SetMasterVolume(0.5f);
+                _repository.SetVSync(true);
+                _repository.SetInputBindingOverrides("{}");
             });
         }
 
@@ -240,14 +240,14 @@ namespace Game.Tests.MVC.Horror
         public async Task SaveAsync_FiresOnSaved_WithSavedData()
         {
             await LoadDefaultData();
-            _service.SetCameraControlHorizontal(true);   // 変更（dirty）
+            _repository.SetCameraControlHorizontal(true);   // 変更（dirty）
 
             HorrorOptionSaveData received = null;
-            using var sub = _service.OnSaved.Subscribe(d => received = d);
+            using var sub = _repository.OnSaved.Subscribe(d => received = d);
 
-            await _service.SaveAsync();
+            await _repository.SaveAsync();
 
-            Assert.That(received, Is.SameAs(_service.Data), "保存されたデータが通知される");
+            Assert.That(received, Is.SameAs(_repository.Data), "保存されたデータが通知される");
             Assert.That(received.CameraControlHorizontal, Is.True);
         }
 
