@@ -15,10 +15,10 @@ namespace Game.Horror.Services
         /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
         private const int MaxSlotCount = HorrorEquipmentConstants.MaxSlotCount;
 
-        private readonly HorrorSaveRepository _repository;
+        private readonly IHorrorSaveRepository _repository;
         private readonly IHorrorInventoryService _inventoryService;
 
-        public HorrorEquipmentService(HorrorSaveRepository repository, IHorrorInventoryService inventoryService)
+        public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService)
         {
             _repository = repository;
             _inventoryService = inventoryService;

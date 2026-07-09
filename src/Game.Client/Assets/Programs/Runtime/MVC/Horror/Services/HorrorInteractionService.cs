@@ -8,9 +8,9 @@ namespace Game.Horror.Services
     /// </summary>
     public class HorrorInteractionService : IHorrorInteractionService
     {
-        private readonly HorrorSaveRepository _repository;
+        private readonly IHorrorSaveRepository _repository;
 
-        public HorrorInteractionService(HorrorSaveRepository repository)
+        public HorrorInteractionService(IHorrorSaveRepository repository)
         {
             _repository = repository;
         }

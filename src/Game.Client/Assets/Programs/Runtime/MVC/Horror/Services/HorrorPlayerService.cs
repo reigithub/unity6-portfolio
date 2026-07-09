@@ -1,4 +1,3 @@
-using Game.Core.Services;
 using Game.Horror.Services.Interfaces;
 
 namespace Game.Horror.Services
@@ -9,9 +8,9 @@ namespace Game.Horror.Services
     /// </summary>
     public class HorrorPlayerService : IHorrorPlayerService
     {
-        private readonly HorrorSaveRepository _repository;
+        private readonly IHorrorSaveRepository _repository;
 
-        public HorrorPlayerService(HorrorSaveRepository repository)
+        public HorrorPlayerService(IHorrorSaveRepository repository)
         {
             _repository = repository;
         }

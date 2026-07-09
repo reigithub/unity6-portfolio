@@ -1,13 +1,13 @@
 using System.Collections.Generic;
-using Game.Core.Services;
 using Cysharp.Threading.Tasks;
+using Game.Horror.Services.Interfaces;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.Horror.Services
 {
-    public class HorrorIconService : IGameService
+    public class HorrorIconService : IHorrorIconService
     {
         private const string UiIconsKey1 = "ModernGDR_Icons_BrightBackground";
         private const string WeaponIconsKey1 = "Navidtbt_Weapon_Icons_Blue";

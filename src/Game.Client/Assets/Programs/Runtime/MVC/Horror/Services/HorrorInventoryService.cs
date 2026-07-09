@@ -17,13 +17,13 @@ namespace Game.Horror.Services
         private const int MaxSlotCount = HorrorInventoryConstants.MaxSlotCount;
 
         /// <summary>所持アイテム一覧（読み取り専用、追加順）。未ロード時は空。</summary>
-        public IReadOnlyList<HorrorInventorySlotData> Slots => _repository.Data?.Inventory?.Slots ?? EmptySlots;
+        public IReadOnlyList<HorrorInventorySlotData> Slots => _repository.Data?.Inventory?.Slots ?? _emptySlots;
 
-        private static readonly IReadOnlyList<HorrorInventorySlotData> EmptySlots = Array.Empty<HorrorInventorySlotData>();
+        private readonly IReadOnlyList<HorrorInventorySlotData> _emptySlots = Array.Empty<HorrorInventorySlotData>();
 
-        private readonly HorrorSaveRepository _repository;
+        private readonly IHorrorSaveRepository _repository;
 
-        public HorrorInventoryService(HorrorSaveRepository repository)
+        public HorrorInventoryService(IHorrorSaveRepository repository)
         {
             _repository = repository;
         }
