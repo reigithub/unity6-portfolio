@@ -61,8 +61,8 @@ MonoBehaviour:
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _acquiredId: 0
-    _acquiredCount: 0
+    _acquiredId: 3
+    _acquiredCount: 1
   - _id: 6
     _name: Door2
     _inputType: 2
