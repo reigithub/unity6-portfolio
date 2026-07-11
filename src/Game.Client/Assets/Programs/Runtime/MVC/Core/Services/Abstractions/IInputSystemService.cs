@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Game.Shared.Input;
+using R3;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Game.Core.Services
@@ -21,9 +24,56 @@ namespace Game.Core.Services
         ProjectDefaultInputSystem.UIActions UI { get; }
 
         /// <summary>
-        /// リバインド対象となる InputActionAsset 実体（このインスタンス上でゲームが動作する）。
+        /// InputActionAsset 実体（このインスタンス上でゲームが動作する）
         /// </summary>
-        InputActionAsset Asset { get; }
+        InputActionAsset InputActionAsset { get; }
+
+        Observable<string> OnControlSchemeChanged { get; }
+
+        Observable<InputAction> OnBindingChanged { get; }
+
+        /// <summary>
+        /// プレイヤー入力を有効化する
+        /// </summary>
+        void EnablePlayer();
+
+        /// <summary>
+        /// プレイヤー入力を無効化する（メニュー表示中等）
+        /// </summary>
+        void DisablePlayer();
+
+        /// <summary>
+        /// UI入力を有効化する
+        /// </summary>
+        void EnableUI();
+
+        /// <summary>
+        /// UI入力を無効化する
+        /// </summary>
+        void DisableUI();
+
+        /// <summary>
+        /// プレイヤー入力を一時無効化するスコープ
+        /// </summary>
+        IDisposable BlockPlayer();
+
+        /// <summary>
+        /// UI入力を一時無効化するスコープ
+        /// </summary>
+        IDisposable BlockUI();
+
+        /// <summary>
+        /// 特定のインプットアクションを無効化するスコープ
+        /// </summary>
+        IDisposable BlockInputActions(params InputAction[] actions);
+
+        GameObject GetSelectedGameObject();
+
+        void SetSelectedGameObject(GameObject go);
+
+        void UpdateControlScheme(string scheme);
+
+        void ResolveControlScheme(GameObject selectedGameObject = null);
 
         /// <summary>
         /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
@@ -31,6 +81,8 @@ namespace Game.Core.Services
         /// <paramref name="partName"/> を指定すると、コンポジットの該当パート1つのみの表示を返す。
         /// </summary>
         string GetBindingDisplayString(string scheme, string actionName, string partName = null);
+
+        string GetBindingDisplayString(InputAction action);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
@@ -71,35 +123,5 @@ namespace Game.Core.Services
         /// 全アクションマップを対象とし、他スキームのオーバーライドは保持する。
         /// </summary>
         void ResetSchemeBindings(string scheme);
-
-        /// <summary>
-        /// プレイヤー入力を有効化する
-        /// </summary>
-        void EnablePlayer();
-
-        /// <summary>
-        /// プレイヤー入力を無効化する（メニュー表示中等）
-        /// </summary>
-        void DisablePlayer();
-
-        /// <summary>
-        /// プレイヤー入力を一時無効化するスコープ
-        /// </summary>
-        IDisposable BlockPlayer();
-
-        /// <summary>
-        /// UI入力を一時無効化するスコープ
-        /// </summary>
-        IDisposable BlockUI();
-
-        /// <summary>
-        /// UI入力を有効化する
-        /// </summary>
-        void EnableUI();
-
-        /// <summary>
-        /// UI入力を無効化する
-        /// </summary>
-        void DisableUI();
     }
 }

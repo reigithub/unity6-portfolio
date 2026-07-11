@@ -28,11 +28,13 @@ namespace Game.Core.Services
         #region Message Methods (値ありのメッセージ送受信用)
 
         // Message Publish
+        void Publish<TMessage>(TMessage message);
         void Publish<TMessage>(int key, TMessage message);
         void PublishForget<TMessage>(int key, TMessage message);
         UniTask PublishAsync<TMessage>(int key, TMessage message, CancellationToken ct = default);
 
         // Message Subscribe
+        IDisposable Subscribe<TMessage>(Action<TMessage> handler);
         IDisposable Subscribe<TMessage>(int key, Action<TMessage> handler);
         IDisposable SubscribeAsync<TMessage>(int key, Func<TMessage, CancellationToken, UniTask> handler);
 

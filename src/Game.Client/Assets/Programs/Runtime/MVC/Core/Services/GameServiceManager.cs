@@ -5,8 +5,8 @@ namespace Game.Core.Services
 {
     public class GameServiceManager
     {
-        private static readonly Lazy<GameServiceManager> InstanceLazy = new(() => new GameServiceManager());
-        public static GameServiceManager Instance => InstanceLazy.Value;
+        private static readonly Lazy<GameServiceManager> _instanceLazy = new(() => new GameServiceManager());
+        public static GameServiceManager Instance => _instanceLazy.Value;
 
         private readonly Dictionary<Type, IGameService> _gameServices = new();
 
@@ -14,67 +14,17 @@ namespace Game.Core.Services
         {
         }
 
-        public void StartUp()
+        public static void StartUp()
         {
-            _gameServices.Clear();
+            Instance._gameServices.Clear();
         }
 
-        public void Shutdown()
+        public static void Shutdown()
         {
-            foreach (var gameService in _gameServices.Values)
-            {
+            foreach (var gameService in Instance._gameServices.Values)
                 gameService.Shutdown();
-            }
 
-            _gameServices.Clear();
-        }
-
-        private bool TryGetOrAdd<T>(out T service)
-            where T : IGameService, new()
-        {
-            var type = typeof(T);
-            if (_gameServices.TryGetValue(type, out var cache))
-            {
-                service = (T)cache;
-                return false;
-            }
-
-            service = new T();
-            service.Startup();
-            _gameServices.Add(type, service);
-            return true;
-        }
-
-        private bool TryRemove<T>()
-            where T : IGameService
-        {
-            var type = typeof(T);
-            if (_gameServices.TryGetValue(type, out var service))
-            {
-                service.Shutdown();
-                _gameServices.Remove(type);
-                return true;
-            }
-
-            return false;
-        }
-
-        public static T Get<T>() where T : IGameService, new()
-        {
-            Instance.TryGetOrAdd<T>(out var service);
-            return service;
-        }
-
-        public static void Add<T>()
-            where T : IGameService, new()
-        {
-            Instance.TryGetOrAdd<T>(out _);
-        }
-
-        public static void Remove<T>()
-            where T : IGameService
-        {
-            Instance.TryRemove<T>();
+            Instance._gameServices.Clear();
         }
 
         /// <summary>
@@ -83,12 +33,38 @@ namespace Game.Core.Services
         public static void Register<TInterface, TImplement>(TImplement service)
             where TImplement : TInterface, IGameService
         {
-            Instance._gameServices[typeof(TInterface)] = service;
+            var type = typeof(TInterface);
+            if (Instance._gameServices.ContainsKey(type))
+                return;
+
+            service.Startup();
+            Instance._gameServices[type] = service;
         }
+
+        // public static void Register<TInterface>(TInterface service)
+        //     where TInterface : IGameService
+        // {
+        //     var type = typeof(TInterface);
+        //     if (Instance._gameServices.ContainsKey(type))
+        //         return;
+        //
+        //     service.Startup();
+        //     Instance._gameServices[type] = service;
+        // }
 
         public static T Resolve<T>()
         {
             return (T)Instance._gameServices[typeof(T)];
+        }
+
+        public static void Unregister<T>()
+        {
+            var type = typeof(T);
+            if (!Instance._gameServices.TryGetValue(type, out var service))
+                return;
+
+            service.Shutdown();
+            Instance._gameServices.Remove(type);
         }
     }
 }

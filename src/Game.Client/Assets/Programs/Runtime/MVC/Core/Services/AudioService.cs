@@ -1,9 +1,7 @@
 using Cysharp.Threading.Tasks;
-using Game.Core.Services;
 using Game.Client.MasterData;
 using Game.Shared.Services;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 
 namespace Game.Core.Services
 {
@@ -13,23 +11,25 @@ namespace Game.Core.Services
     /// </summary>
     public class AudioService : AudioServiceBase, IGameService
     {
-        private IMasterDataService _masterDataService;
+        private readonly IAddressableAssetService _assetService;
+        private readonly IMasterDataService _masterDataService;
 
-        protected override MemoryDatabase MemoryDatabase
-            => (_masterDataService ??= GameServiceManager.Get<MasterDataService>()).MemoryDatabase;
+        protected override MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
 
-        public AudioService()
+        public AudioService(IAddressableAssetService assetService)
         {
+            _assetService = assetService;
         }
 
-        public AudioService(IMasterDataService masterDataService)
+        public AudioService(IAddressableAssetService assetService, IMasterDataService masterDataService)
         {
+            _assetService = assetService;
             _masterDataService = masterDataService;
         }
 
         protected override async UniTask<AudioClip> LoadAudioClipAsync(string assetName)
         {
-            return await Addressables.LoadAssetAsync<AudioClip>(assetName);
+            return await _assetService.LoadAssetAsync<AudioClip>(assetName);
         }
     }
 }

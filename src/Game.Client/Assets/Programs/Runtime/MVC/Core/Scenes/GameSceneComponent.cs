@@ -24,8 +24,8 @@ namespace Game.MVC.Core.Scenes
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private GameObject _selectedGameObject;
 

@@ -13,8 +13,8 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private readonly List<IGameScene> _gameScenes = new(16);
 
