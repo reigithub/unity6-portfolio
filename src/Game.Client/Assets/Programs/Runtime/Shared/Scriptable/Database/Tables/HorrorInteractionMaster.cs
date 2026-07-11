@@ -21,6 +21,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private InteractionInputType _inputType;
         [SerializeField] private float _holdSeconds;
 
+        [SerializeField] private string _interactionLocalizeKey;
+
         [SerializeField] private string _interactionVerbLocalizeKey;
         [SerializeField] private string _reinteractionVerbLocalizeKey;
 
@@ -60,6 +62,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _holdSeconds;
             set => _holdSeconds = value;
+        }
+
+        public string InteractionLocalizeKey
+        {
+            get => _interactionLocalizeKey;
+            set => _interactionLocalizeKey = value;
         }
 
         public string InteractionVerbLocalizeKey
