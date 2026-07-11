@@ -31,7 +31,7 @@ namespace Game.Horror.Enemy
                 return;
             }
 
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             _enemy = await assetService.InstantiateAsync("HorrorEnemy", transform);
 
             if (_enemy.TryGetComponent<HorrorEnemyController>(out var controller))
@@ -46,7 +46,7 @@ namespace Game.Horror.Enemy
         public void UnloadEnemy()
         {
             if (_enemy == null) return;
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             assetService.ReleaseInstance(_enemy);
             _enemy = null;
         }

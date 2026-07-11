@@ -22,9 +22,9 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorStageScene";
 
-        private GameSceneService _sceneService;
-        private InputSystemService _inputService;
-        private HorrorOptionSaveRepository _optionSaveRepository;
+        private IGameSceneService _sceneService;
+        private IInputSystemService _inputService;
+        private IHorrorOptionSaveRepository _optionSaveRepository;
         private IHorrorPlayerService _playerService;
 
         private SceneInstance _stageSceneInstance;
@@ -33,9 +33,9 @@ namespace Game.Horror.Scenes
 
         public override UniTask PreInitialize()
         {
-            _sceneService = GameServiceManager.Get<GameSceneService>();
-            _inputService = GameServiceManager.Get<InputSystemService>();
-            _optionSaveRepository = GameServiceManager.Resolve<HorrorOptionSaveRepository>();
+            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
             _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             return base.PreInitialize();
         }

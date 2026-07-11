@@ -20,8 +20,8 @@ namespace Game.Tests.MVC.Horror
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
         private IHorrorInventoryService _mockInventory;
-        private HorrorSaveRepository _repository;
-        private HorrorEquipmentService _service;
+        private IHorrorSaveRepository _repository;
+        private IHorrorEquipmentService _service;
 
         [SetUp]
         public void Setup()

@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.SaveData;
 using NSubstitute;
 using NUnit.Framework;
@@ -15,8 +16,8 @@ namespace Game.Tests.MVC.Horror
         private const string SaveKey = "horror_option";
 
         private ISaveDataStorage _mockStorage;
-        private HorrorOptionSaveRepository _repository;
-        private HorrorOptionService _service;
+        private IHorrorOptionSaveRepository _repository;
+        private IHorrorOptionService _service;
 
         [SetUp]
         public void Setup()

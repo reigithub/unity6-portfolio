@@ -86,13 +86,13 @@ namespace Game.Horror.Player
             // モデルインスタンス自体はプレイヤー破棄カスケードで自動破棄されるため、ここではプレハブハンドルのみ解放する
             foreach (var prefab in _prefabs.Values)
             {
-                _assetService?.ReleaseAsset(prefab);
+                _assetService?.Release(prefab);
             }
             _prefabs.Clear();
 
             foreach (var flashPrefab in _muzzleFlashPrefabs.Values)
             {
-                _assetService?.ReleaseAsset(flashPrefab);
+                _assetService?.Release(flashPrefab);
             }
             _muzzleFlashPrefabs.Clear();
         }
@@ -102,7 +102,7 @@ namespace Game.Horror.Player
         /// </summary>
         public void Initialize()
         {
-            _assetService = GameServiceManager.Get<AddressableAssetService>();
+            _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
         }
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace Game.Horror.Player
 
                     if (_disposed)
                     {
-                        _assetService.ReleaseAsset(prefab);
+                        _assetService.Release(prefab);
                         return null;
                     }
 
@@ -286,7 +286,7 @@ namespace Game.Horror.Player
 
                 if (_disposed)
                 {
-                    _assetService.ReleaseAsset(flashPrefab);
+                    _assetService.Release(flashPrefab);
                     return;
                 }
 

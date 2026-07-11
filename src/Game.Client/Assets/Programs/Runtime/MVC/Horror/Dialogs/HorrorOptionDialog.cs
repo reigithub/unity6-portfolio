@@ -20,10 +20,10 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private IAudioService _audioService;
 
-        private HorrorOptionSaveRepository _optionSaveRepository;
+        private IHorrorOptionSaveRepository _optionSaveRepository;
         private IHorrorOptionService _optionService;
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
@@ -35,15 +35,15 @@ namespace Game.Horror.Dialogs
 
         public static async UniTask<bool> RunAsync()
         {
-            var sceneService = GameServiceManager.Get<GameSceneService>();
+            var sceneService = GameServiceManager.Resolve<IGameSceneService>();
             return await sceneService.TransitionDialogAsync<HorrorOptionDialog, bool>();
         }
 
         public override UniTask PreInitialize()
         {
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _audioService = GameServiceManager.Resolve<IAudioService>();
-            _optionSaveRepository = GameServiceManager.Resolve<HorrorOptionSaveRepository>();
+            _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
             _optionService = GameServiceManager.Resolve<IHorrorOptionService>();
             return base.PreInitialize();
         }

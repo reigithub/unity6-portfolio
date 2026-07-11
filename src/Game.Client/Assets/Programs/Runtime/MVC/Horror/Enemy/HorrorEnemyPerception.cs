@@ -131,7 +131,7 @@ namespace Game.Horror.Enemy
                 _occluderMask = LayerMaskConstants.Structure | LayerMaskConstants.Ground;
 
             // 聴覚: NoiseEvent を購読。戻り IDisposable を保持（OnDestroy/OnDisable で破棄）
-            var messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             _noiseSubscription = messagePipeService.Subscribe<NoiseEvent>(OnNoise);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR

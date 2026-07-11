@@ -22,28 +22,29 @@ namespace Game.Horror
         public async UniTask StartupAsync()
         {
             // 1. サービスマネージャー初期化
-            GameServiceManager.Instance.StartUp();
+            GameServiceManager.StartUp();
 
             // 各種サービス取得・初期化
-            var dbService = new ScriptableDatabaseService();
-            await dbService.LoadAsync();
-            GameServiceManager.Register<IScriptableDatabaseService, ScriptableDatabaseService>(dbService);
+            var assetService = new AddressableAssetService();
+            GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
 
-            var audioService = new AudioService();
-            await audioService.LoadAsync();
+            var dbService = new ScriptableDatabaseService(assetService);
+            GameServiceManager.Register<IScriptableDatabaseService, ScriptableDatabaseService>(dbService);
+            await dbService.LoadAsync();
+
+            var audioService = new AudioService(assetService);
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
+            await audioService.LoadAsync();
 
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
 
-            var gameSceneService = GameServiceManager.Get<GameSceneService>();
-
-            // 共通オブジェクト読み込み
-            await HorrorGameRootController.LoadAssetAsync();
+            var gameSceneService = new GameSceneService();
+            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
 
             // アイコン一括ロード
-            var iconService = new HorrorIconService();
-            await iconService.LoadAsync();
+            var iconService = new HorrorIconService(assetService);
             GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
+            await iconService.LoadAsync();
 
             // セーブデータストレージ構築
             var keyProvider = new AppSharedKeyProvider();
@@ -52,14 +53,16 @@ namespace Game.Horror
 
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var optionSaveRepository = new HorrorOptionSaveRepository(saveDataStorage);
-            await optionSaveRepository.LoadAsync();
             GameServiceManager.Register<IHorrorOptionSaveRepository, HorrorOptionSaveRepository>(optionSaveRepository);
+            await optionSaveRepository.LoadAsync();
+
             var optionService = new HorrorOptionService(optionSaveRepository);
             GameServiceManager.Register<IHorrorOptionService, HorrorOptionService>(optionService);
             HorrorOptionHelper.ApplySaveData(optionSaveRepository.Data);
 
             // キーリバインドのオーバーライドを起動時に適用
-            var inputSystemService = GameServiceManager.Get<InputSystemService>();
+            var inputSystemService = new InputSystemService();
+            GameServiceManager.Register<IInputSystemService, InputSystemService>(inputSystemService);
             inputSystemService.LoadBindingOverrides(optionSaveRepository.Data.InputBindingOverridesJson);
 
             // オーディオ設定
@@ -71,8 +74,8 @@ namespace Game.Horror
 
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
-            await saveRepository.LoadAsync();
             GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
+            await saveRepository.LoadAsync();
 
             // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
@@ -87,6 +90,9 @@ namespace Game.Horror
             var playerService = new HorrorPlayerService(saveRepository);
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
 
+            // 共通オブジェクト読み込み
+            await HorrorGameRootController.LoadAssetAsync();
+
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
         }
@@ -94,13 +100,13 @@ namespace Game.Horror
         public async UniTask ShutdownAsync()
         {
             await HorrorGameRootController.UnloadAsync();
-            var gameSceneService = GameServiceManager.Get<GameSceneService>();
+            var gameSceneService = GameServiceManager.Resolve<IGameSceneService>();
             await gameSceneService.TerminateAllAsync();
-            var audioService = GameServiceManager.Get<AudioService>();
+            var audioService = GameServiceManager.Resolve<IAudioService>();
             audioService.Unload();
             var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             iconService.Unload();
-            GameServiceManager.Instance.Shutdown();
+            GameServiceManager.Shutdown();
             await UniTask.Yield();
         }
     }

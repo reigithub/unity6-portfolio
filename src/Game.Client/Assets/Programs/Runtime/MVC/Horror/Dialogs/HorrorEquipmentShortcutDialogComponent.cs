@@ -18,7 +18,7 @@ namespace Game.Horror.Dialogs
     {
         [SerializeField] private HorrorEquipmentSlotView[] _slots;
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private IScriptableDatabaseService _databaseService;
         private IHorrorEquipmentService _equipmentService;
         private IHorrorInventorySlotInfo _target;
@@ -27,7 +27,7 @@ namespace Game.Horror.Dialogs
         public void Initialize(IHorrorInventorySlotInfo target)
         {
             _target = target;
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 

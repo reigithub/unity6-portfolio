@@ -18,7 +18,7 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorSaveDataDialog";
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private IReadOnlyList<HorrorSaveSlotInfo> _slots;
 
         /// <summary>
@@ -29,11 +29,11 @@ namespace Game.Horror.Dialogs
         public static async UniTask<int> RunAsync(IReadOnlyList<HorrorSaveSlotInfo> slots)
         {
             int result;
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
-                var sceneService = GameServiceManager.Get<GameSceneService>();
+                var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, IReadOnlyList<HorrorSaveSlotInfo>, int>(slots);
             }
             return result;
@@ -47,7 +47,7 @@ namespace Game.Horror.Dialogs
 
         public override UniTask PreInitialize()
         {
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             ApplicationEvents.PauseTime();
             return base.PreInitialize();
         }

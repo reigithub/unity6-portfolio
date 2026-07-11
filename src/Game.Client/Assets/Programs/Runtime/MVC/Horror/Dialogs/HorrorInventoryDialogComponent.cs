@@ -22,7 +22,7 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private HorrorInventorySlotView _submittedSlot;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
@@ -34,7 +34,7 @@ namespace Game.Horror.Dialogs
 
         public void Initialize()
         {
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
 
             _tabGroup.Initialize();
             BindSlots();

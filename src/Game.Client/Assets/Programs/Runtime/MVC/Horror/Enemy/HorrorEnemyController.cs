@@ -36,7 +36,7 @@ namespace Game.Horror.Enemy
         private GameObject _player;
         private HorrorEnemyMaster _master;
         private IDamageable _playerDamageable;
-        private MessagePipeService _messagePipeService;
+        private IMessagePipeService _messagePipeService;
 
         // 体力・速度
         private int _health;
@@ -86,7 +86,7 @@ namespace Game.Horror.Enemy
             _perception.Initialize(player.transform, master);
 
             // MessagePipe サービスをキャッシュ（Scream 発火用）
-            _messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
 
             InitializeStateMachine();
             _initialized = true;

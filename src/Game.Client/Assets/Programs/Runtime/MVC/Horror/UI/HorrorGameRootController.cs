@@ -5,6 +5,7 @@ using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,7 +24,7 @@ namespace Game.Core
 
         public static async UniTask LoadAssetAsync()
         {
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             var prefab = await assetService.LoadAssetAsync<GameObject>(Address);
             if (prefab == null)
                 throw new NullReferenceException($"Load Asset Failed. {Address}");
@@ -59,13 +60,13 @@ namespace Game.Core
             // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
             // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
 
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             _playerInput.controlsChangedEvent.AsObservable()
                 .Subscribe(x => inputService.UpdateControlScheme(x.currentControlScheme))
                 .AddTo(this);
 
             // GameScene
-            var messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();

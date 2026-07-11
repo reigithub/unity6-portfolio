@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
@@ -24,7 +25,7 @@ namespace Game.Tests.MVC.Horror
 
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
-        private HorrorSaveRepository _repository;
+        private IHorrorSaveRepository _repository;
 
         [SetUp]
         public void Setup()

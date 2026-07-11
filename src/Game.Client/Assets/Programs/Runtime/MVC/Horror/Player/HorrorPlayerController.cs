@@ -82,7 +82,7 @@ namespace Game.Horror.Player
         [SerializeField] private HorrorAmmoView _ammoView;
 
         private bool _initialized;
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
 
         private CharacterController _characterController;
@@ -102,7 +102,7 @@ namespace Game.Horror.Player
 
         // 攻撃（ハンドガン）：マスター値・銃声発行サービス・起動入力フラグ（硬直経過は AttackingState ローカル）
         private HorrorWeaponMaster _weaponMaster;
-        private MessagePipeService _messagePipeService;
+        private IMessagePipeService _messagePipeService;
         private bool _attackTriggered;
 
         // 発砲カメラリコイル（減衰オフセット型）。強度は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
@@ -187,10 +187,10 @@ namespace Game.Horror.Player
 
         public void Initialize(HorrorOptionSaveData data)
         {
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _inputService.EnablePlayer();
 
-            _messagePipeService = GameServiceManager.Get<MessagePipeService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             _audioService = GameServiceManager.Resolve<IAudioService>();
 
             // Database はプレイヤー生成時点でロード済み

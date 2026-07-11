@@ -11,7 +11,12 @@ namespace Game.Horror.Scenes
         protected override string AssetPathOrAddress => "HorrorTitleScene";
 
         private IGameSceneService _sceneService;
-        private IGameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
+
+        public override UniTask PreInitialize()
+        {
+            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+            return base.PreInitialize();
+        }
 
         public override UniTask Startup()
         {
@@ -19,7 +24,7 @@ namespace Game.Horror.Scenes
                 .SubscribeAwait(async (_, _) =>
                 {
                     SceneComponent.SetInteractable(false);
-                    await SceneService.TransitionAsync<HorrorStageScene>();
+                    await _sceneService.TransitionAsync<HorrorStageScene>();
                 })
                 .AddTo(Disposables);
 
@@ -27,7 +32,7 @@ namespace Game.Horror.Scenes
                 .SubscribeAwait(async (_, _) =>
                 {
                     SceneComponent.SetInteractable(false);
-                    await SceneService.TerminateLastAsync();
+                    await _sceneService.TerminateLastAsync();
                     await ApplicationEvents.RequestReturnToTitleAsync();
                 })
                 .AddTo(Disposables);
