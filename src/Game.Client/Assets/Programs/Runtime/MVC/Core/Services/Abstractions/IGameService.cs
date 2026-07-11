@@ -10,7 +10,7 @@ namespace Game.Core.Services
         /// サービスを起動する
         /// GameServiceManagerから呼び出され、サービスの初期化処理を行う
         /// </summary>
-        public void Startup()
+        void Startup()
         {
         }
 
@@ -18,7 +18,7 @@ namespace Game.Core.Services
         /// サービスを終了する
         /// GameServiceManagerから呼び出され、サービスのクリーンアップ処理を行う
         /// </summary>
-        public void Shutdown()
+        void Shutdown()
         {
         }
     }
