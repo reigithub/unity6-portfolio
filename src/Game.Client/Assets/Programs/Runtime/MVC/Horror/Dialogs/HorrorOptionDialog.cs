@@ -10,6 +10,7 @@ using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
 using Game.Shared.Localization;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -20,7 +21,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
         private InputSystemService _inputService;
-        private AudioService _audioService;
+        private IAudioService _audioService;
 
         private HorrorOptionSaveRepository _optionSaveRepository;
         private IHorrorOptionService _optionService;
@@ -41,7 +42,7 @@ namespace Game.Horror.Dialogs
         public override UniTask PreInitialize()
         {
             _inputService = GameServiceManager.Get<InputSystemService>();
-            _audioService = GameServiceManager.Get<AudioService>();
+            _audioService = GameServiceManager.Resolve<IAudioService>();
             _optionSaveRepository = GameServiceManager.Resolve<HorrorOptionSaveRepository>();
             _optionService = GameServiceManager.Resolve<IHorrorOptionService>();
             return base.PreInitialize();

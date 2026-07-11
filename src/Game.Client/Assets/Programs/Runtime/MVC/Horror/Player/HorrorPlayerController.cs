@@ -120,7 +120,7 @@ namespace Game.Horror.Player
 
         // リロード：インベントリセーブサービス（予備弾の所持数参照）・SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private IHorrorInventoryService _inventoryService;
-        private AudioService _audioService;
+        private IAudioService _audioService;
         private bool _reloadTriggered;
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace Game.Horror.Player
             _inputService.EnablePlayer();
 
             _messagePipeService = GameServiceManager.Get<MessagePipeService>();
-            _audioService = GameServiceManager.Get<AudioService>();
+            _audioService = GameServiceManager.Resolve<IAudioService>();
 
             // Database はプレイヤー生成時点でロード済み
             _dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();

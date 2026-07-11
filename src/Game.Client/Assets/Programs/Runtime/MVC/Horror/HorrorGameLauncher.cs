@@ -29,8 +29,9 @@ namespace Game.Horror
             await dbService.LoadAsync();
             GameServiceManager.Register<IScriptableDatabaseService, ScriptableDatabaseService>(dbService);
 
-            var audioService = GameServiceManager.Get<AudioService>();
+            var audioService = new AudioService();
             await audioService.LoadAsync();
+            GameServiceManager.Register<IAudioService, AudioService>(audioService);
 
             GameServiceManager.Add<MessagePipeService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();

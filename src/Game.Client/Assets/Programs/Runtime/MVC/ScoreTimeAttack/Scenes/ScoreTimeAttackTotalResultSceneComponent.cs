@@ -7,6 +7,7 @@ using Game.ScoreTimeAttack.Data;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Services;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -49,6 +50,9 @@ namespace Game.ScoreTimeAttack.Scenes
 
         [SerializeField]
         private Button _returnButton;
+
+        private IAudioService _audioService;
+        private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
 
         private ScoreTimeAttackStageTotalResultMaster _totalResultMaster;
 

@@ -22,6 +22,9 @@ namespace Game.ScoreTimeAttack.Scenes
 
         [SerializeField] private Animator _animator;
 
+        private IAudioService _audioService;
+        private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
+
         private IGameSceneService _sceneService;
         private IGameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
 
