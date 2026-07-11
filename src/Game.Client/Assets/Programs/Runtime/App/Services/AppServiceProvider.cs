@@ -92,7 +92,7 @@ namespace Game.App.Services
         {
             var addressableService = new Game.Core.Services.AddressableAssetService();
             var masterDataService = new Game.Core.Services.MasterDataService(addressableService);
-            var audioService = new Game.Core.Services.AudioService(masterDataService);
+            var audioService = new Game.Core.Services.AudioService(addressableService, masterDataService);
 
             AddressableAssetService = addressableService;
             MasterDataService = masterDataService;

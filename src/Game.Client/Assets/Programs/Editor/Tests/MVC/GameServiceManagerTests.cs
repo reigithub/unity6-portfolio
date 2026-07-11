@@ -9,7 +9,15 @@ namespace Game.Tests.MVC
     {
         #region Test Service Classes
 
-        private class TestService : IGameService
+        private interface ITestService
+        {
+            public bool IsStarted { get;}
+            public bool IsShutdown { get;}
+            public int StartupCallCount { get;}
+            public int ShutdownCallCount { get; }
+        }
+
+        private class TestService : ITestService, IGameService
         {
             public bool IsStarted { get; private set; }
             public bool IsShutdown { get; private set; }
@@ -29,7 +37,12 @@ namespace Game.Tests.MVC
             }
         }
 
-        private class AnotherTestService : IGameService
+        private interface IAnotherTestService
+        {
+            public bool IsStarted { get; }
+        }
+
+        private class AnotherTestService : IAnotherTestService, IGameService
         {
             public bool IsStarted { get; private set; }
 
@@ -49,13 +62,15 @@ namespace Game.Tests.MVC
         public void Setup()
         {
             // マネージャーをクリーンな状態にリセット
-            GameServiceManager.Instance.StartUp();
+            GameServiceManager.StartUp();
+            GameServiceManager.Register<ITestService, TestService>(new TestService());
+            GameServiceManager.Register<IAnotherTestService, AnotherTestService>(new AnotherTestService());
         }
 
         [TearDown]
         public void TearDown()
         {
-            GameServiceManager.Instance.Shutdown();
+            GameServiceManager.Shutdown();
         }
 
         #region Singleton Tests
@@ -79,7 +94,7 @@ namespace Game.Tests.MVC
         public void Get_FirstCall_CreatesAndStartsService()
         {
             // Act
-            var service = GameServiceManager.Get<TestService>();
+            var service = GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(service, Is.Not.Null);
@@ -91,8 +106,8 @@ namespace Game.Tests.MVC
         public void Get_SecondCall_ReturnsSameInstance()
         {
             // Act
-            var service1 = GameServiceManager.Get<TestService>();
-            var service2 = GameServiceManager.Get<TestService>();
+            var service1 = GameServiceManager.Resolve<ITestService>();
+            var service2 = GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(service1, Is.SameAs(service2));
@@ -102,9 +117,9 @@ namespace Game.Tests.MVC
         public void Get_SecondCall_DoesNotCallStartupAgain()
         {
             // Act
-            var service = GameServiceManager.Get<TestService>();
-            GameServiceManager.Get<TestService>();
-            GameServiceManager.Get<TestService>();
+            var service = GameServiceManager.Resolve<ITestService>();
+            GameServiceManager.Resolve<ITestService>();
+            GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(service.StartupCallCount, Is.EqualTo(1));
@@ -114,8 +129,8 @@ namespace Game.Tests.MVC
         public void Get_DifferentTypes_ReturnsDifferentInstances()
         {
             // Act
-            var service1 = GameServiceManager.Get<TestService>();
-            var service2 = GameServiceManager.Get<AnotherTestService>();
+            var service1 = GameServiceManager.Resolve<ITestService>();
+            var service2 = GameServiceManager.Resolve<AnotherTestService>();
 
             // Assert
             Assert.That(service1, Is.Not.SameAs(service2));
@@ -131,10 +146,10 @@ namespace Game.Tests.MVC
         public void Add_CreatesAndStartsService()
         {
             // Act
-            GameServiceManager.Add<TestService>();
+            GameServiceManager.Register<ITestService, TestService>(new TestService());
 
             // Assert - Get should return the already created service
-            var service = GameServiceManager.Get<TestService>();
+            var service = GameServiceManager.Resolve<ITestService>();
             Assert.That(service.StartupCallCount, Is.EqualTo(1));
         }
 
@@ -142,11 +157,12 @@ namespace Game.Tests.MVC
         public void Add_CalledTwice_DoesNotDuplicate()
         {
             // Act
-            GameServiceManager.Add<TestService>();
-            GameServiceManager.Add<TestService>();
+            var s = new TestService();
+            GameServiceManager.Register<ITestService, TestService>(s);
+            GameServiceManager.Register<ITestService, TestService>(s);
 
             // Assert
-            var service = GameServiceManager.Get<TestService>();
+            var service = GameServiceManager.Resolve<ITestService>();
             Assert.That(service.StartupCallCount, Is.EqualTo(1));
         }
 
@@ -158,10 +174,10 @@ namespace Game.Tests.MVC
         public void Remove_ExistingService_CallsShutdown()
         {
             // Arrange
-            var service = GameServiceManager.Get<TestService>();
+            var service = GameServiceManager.Resolve<ITestService>();
 
             // Act
-            GameServiceManager.Remove<TestService>();
+            GameServiceManager.Unregister<ITestService>();
 
             // Assert
             Assert.That(service.IsShutdown, Is.True);
@@ -172,18 +188,18 @@ namespace Game.Tests.MVC
         public void Remove_NonExistingService_DoesNotThrow()
         {
             // Act & Assert
-            Assert.DoesNotThrow(() => GameServiceManager.Remove<TestService>());
+            Assert.DoesNotThrow(() => GameServiceManager.Unregister<ITestService>());
         }
 
         [Test]
         public void Remove_ThenGet_CreatesNewInstance()
         {
             // Arrange
-            var originalService = GameServiceManager.Get<TestService>();
-            GameServiceManager.Remove<TestService>();
+            var originalService = GameServiceManager.Resolve<ITestService>();
+            GameServiceManager.Unregister<ITestService>();
 
             // Act
-            var newService = GameServiceManager.Get<TestService>();
+            var newService = GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(newService, Is.Not.SameAs(originalService));
@@ -198,11 +214,11 @@ namespace Game.Tests.MVC
         public void Shutdown_CallsShutdownOnAllServices()
         {
             // Arrange
-            var service1 = GameServiceManager.Get<TestService>();
-            var service2 = GameServiceManager.Get<AnotherTestService>();
+            var service1 = GameServiceManager.Resolve<ITestService>();
+            var service2 = GameServiceManager.Resolve<IAnotherTestService>();
 
             // Act
-            GameServiceManager.Instance.Shutdown();
+            GameServiceManager.Shutdown();
 
             // Assert
             Assert.That(service1.IsShutdown, Is.True);
@@ -212,12 +228,12 @@ namespace Game.Tests.MVC
         public void Shutdown_ClearsAllServices()
         {
             // Arrange
-            var originalService = GameServiceManager.Get<TestService>();
-            GameServiceManager.Instance.Shutdown();
+            var originalService = GameServiceManager.Resolve<ITestService>();
+            GameServiceManager.Shutdown();
 
             // Act - StartUp to reset, then Get should create new instance
-            GameServiceManager.Instance.StartUp();
-            var newService = GameServiceManager.Get<TestService>();
+            GameServiceManager.StartUp();
+            var newService = GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(newService, Is.Not.SameAs(originalService));
@@ -231,11 +247,11 @@ namespace Game.Tests.MVC
         public void StartUp_ClearsExistingServices()
         {
             // Arrange
-            var originalService = GameServiceManager.Get<TestService>();
+            var originalService = GameServiceManager.Resolve<ITestService>();
 
             // Act
-            GameServiceManager.Instance.StartUp();
-            var newService = GameServiceManager.Get<TestService>();
+            GameServiceManager.StartUp();
+            var newService = GameServiceManager.Resolve<ITestService>();
 
             // Assert
             Assert.That(newService, Is.Not.SameAs(originalService));

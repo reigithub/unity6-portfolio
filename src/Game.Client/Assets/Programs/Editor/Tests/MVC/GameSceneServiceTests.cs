@@ -16,7 +16,7 @@ namespace Game.Editor.Tests
     [TestFixture]
     public class GameSceneServiceTests
     {
-        private GameSceneService _service;
+        private IGameSceneService _service;
         private List<IGameScene> _gameScenes;
 
         private GameSceneServiceMock _mockService;
