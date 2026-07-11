@@ -6,6 +6,7 @@ using Game.Library.Shared.Enums;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -25,22 +26,26 @@ namespace Game.ScoreTimeAttack.UI
     {
         protected override string AssetPathOrAddress => "GamePauseUI";
 
-        private AudioService _audioService;
-        private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
-
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IAudioService _audioService;
+        private IInputSystemService _inputService;
 
         public static async UniTask<PauseDialogResult> RunAsync()
         {
             PauseDialogResult result;
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             {
-                var sceneService = GameServiceManager.Get<GameSceneService>();
+                var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<GamePauseUIDialog, PauseDialogResult>();
             }
             return result;
+        }
+
+        public override UniTask PreInitialize()
+        {
+            _audioService = GameServiceManager.Resolve<IAudioService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            return base.PreInitialize();
         }
 
         public override UniTask Startup()
@@ -51,7 +56,7 @@ namespace Game.ScoreTimeAttack.UI
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (InputService.UI.Cancel.WasPressedThisFrame() || InputService.UI.Menu.WasPressedThisFrame())
+                    if (_inputService.UI.Cancel.WasPressedThisFrame() || _inputService.UI.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);
                     }
@@ -62,13 +67,13 @@ namespace Game.ScoreTimeAttack.UI
 
         public override UniTask Ready()
         {
-            AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIOpen).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIOpen).Forget();
             return base.Ready();
         }
 
         public override UniTask Terminate()
         {
-            AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIClose).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.UIClose).Forget();
 
             if (Result != PauseDialogResult.ReturnToTitle)
             {

@@ -13,8 +13,8 @@ namespace Game.ScoreTimeAttack.Player
         [SerializeField]
         private Animator _animator;
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private IMessagePipeService _messagePipeService;
+        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
 
         private void Awake()
         {

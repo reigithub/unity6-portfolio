@@ -3,9 +3,11 @@ using Game.Core;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.ScoreTimeAttack.Scenes;
+using Game.ScoreTimeAttack.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
+using Game.Shared.Services;
 
 namespace Game.ScoreTimeAttack
 {
@@ -19,20 +21,27 @@ namespace Game.ScoreTimeAttack
         public async UniTask StartupAsync()
         {
             // 1. サービスマネージャー初期化
-            GameServiceManager.Instance.StartUp();
+            GameServiceManager.StartUp();
 
             // 2. 各種サービス取得・初期化
-            var masterDataService = GameServiceManager.Get<MasterDataService>();
+            var assetService = new AddressableAssetService();
+            GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
+
+            var masterDataService = new MasterDataService(assetService);
+            await masterDataService.LoadMasterDataAsync();
+            GameServiceManager.Register<IMasterDataService, MasterDataService>(masterDataService);
+
+            var audioService = new AudioService(assetService, masterDataService);
+            await audioService.LoadAsync();
+            GameServiceManager.Register<IAudioService, AudioService>(audioService);
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
-            GameServiceManager.Add<AudioService>();
-            var audioService = GameServiceManager.Get<AudioService>();
-            var gameSceneService = GameServiceManager.Get<GameSceneService>();
+            GameServiceManager.Register<IInputSystemService, InputSystemService>(new InputSystemService());
+
+            var gameSceneService = new GameSceneService();
+            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
 
             // 3. 共通オブジェクト読み込み
             await GameRootController.LoadAssetAsync();
-
-            // 4. マスターデータ読み込み
-            await masterDataService.LoadMasterDataAsync();
 
             // 5. オーディオ設定読み込み
             var saveDataStorage = new SaveDataStorage();
@@ -45,14 +54,14 @@ namespace Game.ScoreTimeAttack
 
         public async UniTask ShutdownAsync()
         {
-            var audioService = GameServiceManager.Get<AudioService>();
+            var audioService = GameServiceManager.Resolve<IAudioService>();
             audioService.StopBgmAsync().Forget();
             await audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.GameQuit);
 
             await GameRootController.UnloadAsync();
-            var gameSceneService = GameServiceManager.Get<GameSceneService>();
+            var gameSceneService = GameServiceManager.Resolve<IGameSceneService>();
             await gameSceneService.TerminateAllAsync();
-            GameServiceManager.Instance.Shutdown();
+            GameServiceManager.Shutdown();
             await UniTask.Yield();
         }
     }

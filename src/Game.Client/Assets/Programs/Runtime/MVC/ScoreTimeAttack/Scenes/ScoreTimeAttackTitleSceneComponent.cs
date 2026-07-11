@@ -4,7 +4,6 @@ using Game.Core.Constants;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
-using Game.Client.MasterData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Services;
@@ -23,32 +22,29 @@ namespace Game.ScoreTimeAttack.Scenes
         [SerializeField] private Animator _animator;
 
         private IAudioService _audioService;
-        private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
-
         private IGameSceneService _sceneService;
-        private IGameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
-
         private IMasterDataService _masterDataService;
-        private IMasterDataService MasterDataService => _masterDataService ??= GameServiceManager.Get<MasterDataService>();
-        private MemoryDatabase MemoryDatabase => MasterDataService.MemoryDatabase;
-
         private IMessagePipeService _messagePipeService;
-        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
 
         public void Initialize()
         {
+            _audioService = GameServiceManager.Resolve<IAudioService>();
+            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+            _masterDataService = GameServiceManager.Resolve<IMasterDataService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
+
             if (_startButton)
             {
                 _startButton.OnClickAsObservable()
                     .SubscribeAwait(async (_, token) =>
                     {
                         SetInteractable(false);
-                        AudioService.StopBgmAsync(token).Forget();
-                        await AudioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
+                        _audioService.StopBgmAsync(token).Forget();
+                        await _audioService.PlayRandomOneAsync(AudioPlayTag.GameStart, token);
 
                         // 今のところプレイモードは１つなので
-                        var stageId = MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
-                        await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
+                        var stageId = _masterDataService.MemoryDatabase.ScoreTimeAttackStageMasterTable.All.Min(x => x.Id);
+                        await _sceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(stageId);
                     })
                     .AddTo(this);
             }
@@ -59,7 +55,7 @@ namespace Game.ScoreTimeAttack.Scenes
                     .SubscribeAwait(async (_, _) =>
                     {
                         SetInteractable(false);
-                        await SceneService.TerminateLastAsync();
+                        await _sceneService.TerminateLastAsync();
                         await ApplicationEvents.RequestReturnToTitleAsync();
                     })
                     .AddTo(this);
@@ -81,8 +77,8 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public async UniTask ReadyAsync()
         {
-            MessagePipeService.Publish(MessageKey.Player.PlayAnimation, PlayerConstants.GameTitleSceneAnimatorStateName);
-            await AudioService.PlayRandomOneAsync(AudioPlayTag.GameReady);
+            _messagePipeService.Publish(MessageKey.Player.PlayAnimation, PlayerConstants.GameTitleSceneAnimatorStateName);
+            await _audioService.PlayRandomOneAsync(AudioPlayTag.GameReady);
         }
     }
 }

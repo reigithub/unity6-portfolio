@@ -17,16 +17,6 @@ namespace Game.ScoreTimeAttack.Scenes
 {
     public class ScoreTimeAttackTotalResultSceneComponent : GameSceneComponent
     {
-        private GameSceneService _sceneService;
-        private GameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
-
-        private MasterDataService _masterDataService;
-        private MasterDataService MasterDataService => _masterDataService ??= GameServiceManager.Get<MasterDataService>();
-        private MemoryDatabase MemoryDatabase => MasterDataService.MemoryDatabase;
-
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
         [SerializeField]
         private TextMeshProUGUI _result;
 
@@ -52,12 +42,19 @@ namespace Game.ScoreTimeAttack.Scenes
         private Button _returnButton;
 
         private IAudioService _audioService;
-        private IAudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
+        private IGameSceneService _sceneService;
+        private IMasterDataService _masterDataService;
+        private IMessagePipeService _messagePipeService;
 
         private ScoreTimeAttackStageTotalResultMaster _totalResultMaster;
 
         public void Initialize(ScoreTimeAttackStageTotalResultData data)
         {
+            _audioService = GameServiceManager.Resolve<IAudioService>();
+            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+            _masterDataService = GameServiceManager.Resolve<IMasterDataService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
+
             var currentTime = data.StageResults.Sum(x => x.CurrentTime);
             var totalTime = data.StageResults.Sum(x => x.TotalTime);
             _time.text = Mathf.Abs(currentTime - totalTime).FormatToTimer();
@@ -75,7 +72,7 @@ namespace Game.ScoreTimeAttack.Scenes
             var score = data.CalculateTotalScore();
             _score.text = score.ToString();
 
-            var totalResultMasters = MemoryDatabase.ScoreTimeAttackStageTotalResultMasterTable.All;
+            var totalResultMasters = _masterDataService.MemoryDatabase.ScoreTimeAttackStageTotalResultMasterTable.All;
             _totalResultMaster = totalResultMasters
                 .Where(x => x.TotalScore <= score)
                 .OrderByDescending(x => x.TotalScore)
@@ -86,9 +83,9 @@ namespace Game.ScoreTimeAttack.Scenes
                 .SubscribeAwait(async (_, token) =>
                 {
                     SetInteractable(false);
-                    AudioService.StopBgmAsync(token).Forget();
-                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
-                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
+                    _audioService.StopBgmAsync(token).Forget();
+                    await _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
+                    await _sceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
                 })
                 .AddTo(this);
         }
@@ -98,8 +95,8 @@ namespace Game.ScoreTimeAttack.Scenes
             if (_totalResultMaster != null)
             {
                 var ids = new[] { _totalResultMaster.BgmAudioId, _totalResultMaster.VoiceAudioId, _totalResultMaster.SoundEffectAudioId };
-                AudioService.PlayAsync(ids).Forget();
-                MessagePipeService.Publish(MessageKey.Player.PlayAnimation, _totalResultMaster.AnimatorStateName);
+                _audioService.PlayAsync(ids).Forget();
+                _messagePipeService.Publish(MessageKey.Player.PlayAnimation, _totalResultMaster.AnimatorStateName);
             }
 
             return base.Ready();

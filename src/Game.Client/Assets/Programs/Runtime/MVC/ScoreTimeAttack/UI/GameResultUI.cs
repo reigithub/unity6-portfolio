@@ -7,6 +7,7 @@ using Game.Library.Shared.Enums;
 using Game.MVC.Core.Scenes;
 using Game.ScoreTimeAttack.Data;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -25,8 +26,7 @@ namespace Game.ScoreTimeAttack.UI
     {
         protected override string AssetPathOrAddress => "GameResultUI";
 
-        private AudioService _audioService;
-        private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
+        private IAudioService _audioService;
 
         private ScoreTimeAttackStageResultData _data;
 
@@ -39,13 +39,19 @@ namespace Game.ScoreTimeAttack.UI
         public static async UniTask<ResultDialogResult> RunAsync(ScoreTimeAttackStageResultData data)
         {
             ResultDialogResult result;
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             {
-                var sceneService = GameServiceManager.Get<GameSceneService>();
+                var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<GameResultUIDialog, ScoreTimeAttackStageResultData, ResultDialogResult>(data);
             }
             return result;
+        }
+
+        public override UniTask PreInitialize()
+        {
+            _audioService = GameServiceManager.Resolve<IAudioService>();
+            return base.PreInitialize();
         }
 
         public override UniTask Startup()
@@ -59,9 +65,9 @@ namespace Game.ScoreTimeAttack.UI
         public override UniTask Ready()
         {
             if (_data.StageResult is GameStageResult.Clear)
-                AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageClear).Forget();
+                _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageClear).Forget();
             else
-                AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFailed).Forget();
+                _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFailed).Forget();
             return base.Ready();
         }
 

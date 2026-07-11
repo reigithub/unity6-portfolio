@@ -27,8 +27,8 @@ namespace Game.ScoreTimeAttack.Player
         [SerializeField] private TextMeshProUGUI _currentStamina;
         [SerializeField] private TextMeshProUGUI _maxStamina;
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private IMessagePipeService _messagePipeService;
+        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
 
         private readonly ReactiveProperty<int> _currentHpValue = new();
         private float _maxHpValue = 100;

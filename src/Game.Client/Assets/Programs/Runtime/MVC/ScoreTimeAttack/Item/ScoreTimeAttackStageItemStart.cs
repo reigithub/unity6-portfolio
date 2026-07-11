@@ -1,7 +1,6 @@
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Client.MasterData;
 using Game.Shared.Services;
 using UnityEngine;
 
@@ -12,27 +11,23 @@ namespace Game.ScoreTimeAttack.Item
     /// </summary>
     public class ScoreTimeAttackStageItemStart : MonoBehaviour
     {
-        private AddressableAssetService _assetService;
-        private AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        private MasterDataService _masterDataService;
-        private MemoryDatabase MemoryDatabase => (_masterDataService ??= GameServiceManager.Get<MasterDataService>()).MemoryDatabase;
-
         public async UniTask LoadStageItemAsync(int stageId)
         {
+            var memoryDatabase = GameServiceManager.Resolve<IMasterDataService>().MemoryDatabase;
             // Memo: 本当は配置した生成地点で指定したものが良いが、今はランダムにしておく（マスタ側の設定値にバラつきがなければあまり偏らないため）
-            var groupIds = MemoryDatabase.ScoreTimeAttackStageItemSpawnMasterTable.FindByStageId(stageId).Select(x => x.GroupId).ToArray();
+            var groupIds = memoryDatabase.ScoreTimeAttackStageItemSpawnMasterTable.FindByStageId(stageId).Select(x => x.GroupId).ToArray();
             var randomGroupId = Random.Range(groupIds.Min(), groupIds.Max());
 
-            var spawnMasters = MemoryDatabase.ScoreTimeAttackStageItemSpawnMasterTable.FindByStageId(stageId)
+            var spawnMasters = memoryDatabase.ScoreTimeAttackStageItemSpawnMasterTable.FindByStageId(stageId)
                 .Where(x => x.GroupId == randomGroupId);
 
             transform.localScale = Vector3.one;
 
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             foreach (var spawnMaster in spawnMasters)
             {
-                var itemMaster = MemoryDatabase.ScoreTimeAttackStageItemMasterTable.FindById(spawnMaster.StageItemId);
-                var itemAsset = await AssetService.LoadAssetAsync<GameObject>(itemMaster.AssetName);
+                var itemMaster = memoryDatabase.ScoreTimeAttackStageItemMasterTable.FindById(spawnMaster.StageItemId);
+                var itemAsset = await assetService.LoadAssetAsync<GameObject>(itemMaster.AssetName);
 
                 var spawnCount = Random.Range(spawnMaster.MinSpawnCount, spawnMaster.MaxSpawnCount);
 

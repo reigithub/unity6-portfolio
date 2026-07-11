@@ -15,7 +15,7 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             ApplicationEvents.ShowCursor();
 
-            var gameStageService = GameServiceManager.Get<ScoreTimeAttackStageService>();
+            var gameStageService = GameServiceManager.Resolve<IScoreTimeAttackStageService>();
             var totalResult = gameStageService.CreateTotalResult();
             SceneComponent.Initialize(totalResult);
             return base.Startup();
@@ -29,7 +29,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override UniTask Terminate()
         {
-            GameServiceManager.Remove<ScoreTimeAttackStageService>();
+            GameServiceManager.Unregister<IScoreTimeAttackStageService>();
             return base.Terminate();
         }
     }

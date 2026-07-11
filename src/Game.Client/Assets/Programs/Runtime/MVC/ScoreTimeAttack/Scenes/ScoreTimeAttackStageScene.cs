@@ -9,10 +9,10 @@ using Game.Shared.Extensions;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
-using Game.Client.MasterData;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -24,18 +24,10 @@ namespace Game.ScoreTimeAttack.Scenes
     {
         protected override string AssetPathOrAddress => "ScoreTimeAttackStageScene";
 
-        private AudioService _audioService;
-        private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
-
-        private GameSceneService _sceneService;
-        private GameSceneService SceneService => _sceneService ??= GameServiceManager.Get<GameSceneService>();
-
-        private MasterDataService _masterDataService;
-        private MasterDataService MasterDataService => _masterDataService ??= GameServiceManager.Get<MasterDataService>();
-        private MemoryDatabase MemoryDatabase => MasterDataService.MemoryDatabase;
-
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IAudioService _audioService;
+        private IGameSceneService _sceneService;
+        private IMasterDataService _masterDataService;
+        private IInputSystemService _inputService;
 
         public ScoreTimeAttackStageSceneModel SceneModel { get; set; }
 
@@ -50,6 +42,11 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override UniTask PreInitialize()
         {
+            _audioService = GameServiceManager.Resolve<IAudioService>();
+            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+            _masterDataService = GameServiceManager.Resolve<IMasterDataService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+
             SceneModel = new ScoreTimeAttackStageSceneModel();
             SceneModel.Initialize(_stageId);
             return base.PreInitialize();
@@ -97,25 +94,25 @@ namespace Game.ScoreTimeAttack.Scenes
             SceneModel.StageState = GameStageState.Ready;
             ApplicationEvents.PauseTime();
             ApplicationEvents.ShowCursor();
-            var audioTask = AudioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
+            var audioTask = _audioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
-            InputService.UI.Menu.Enable();
-            InputService.UI.ScrollWheel.Enable();
+            _inputService.UI.Menu.Enable();
+            _inputService.UI.ScrollWheel.Enable();
             ApplicationEvents.ResumeTime();
             ApplicationEvents.HideCursor();
             SceneModel.StageState = GameStageState.Start;
             SceneComponent.DoFadeIn();
             MessagePipeService.Publish(MessageKey.Player.HudFadeIn);
             await audioTask;
-            await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageStart);
+            await _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageStart);
             await base.Ready();
         }
 
         public override async UniTask Terminate()
         {
             await AssetService.UnloadSceneAsync(_stageSceneInstance);
-            AudioService.StopBgmAsync().Forget();
+            _audioService.StopBgmAsync().Forget();
             await base.Terminate();
         }
 
@@ -139,15 +136,15 @@ namespace Game.ScoreTimeAttack.Scenes
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (InputService.UI.Menu.WasPressedThisFrame())
+                    if (_inputService.UI.Menu.WasPressedThisFrame())
                     {
                         ShowPauseAsync().Forget();
                         return;
                     }
 
-                    if (InputService.UI.ScrollWheel.WasPressedThisFrame())
+                    if (_inputService.UI.ScrollWheel.WasPressedThisFrame())
                     {
-                        var scrollWheel = InputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
+                        var scrollWheel = _inputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
                         MessagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
                     }
                 })
@@ -165,13 +162,13 @@ namespace Game.ScoreTimeAttack.Scenes
                 return;
 
             // 今はとりあえず一番近いやつでOK
-            var itemMaster = MemoryDatabase.ScoreTimeAttackStageItemMasterTable.FindClosestByAssetName(other.name);
+            var itemMaster = _masterDataService.MemoryDatabase.ScoreTimeAttackStageItemMasterTable.FindClosestByAssetName(other.name);
             var point = itemMaster?.Point ?? 1;
 
             other.gameObject.SafeDestroy();
 
-            AudioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.PlayerGetPoint).Forget();
-            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetPoint).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.SoundEffect, AudioPlayTag.PlayerGetPoint).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerGetPoint).Forget();
 
             SceneModel.AddPoint(point);
 
@@ -193,7 +190,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
             collision.gameObject.SafeDestroy();
 
-            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.PlayerDamaged).Forget();
 
             SceneModel.PlayerHpDamaged(hpDamage);
 
@@ -208,7 +205,7 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             if (!SceneModel.CanPause()) return;
 
-            AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StagePause, token).Forget();
+            _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StagePause, token).Forget();
 
             // 一時停止メニュー
             var result = await GamePauseUIDialog.RunAsync();
@@ -216,22 +213,22 @@ namespace Game.ScoreTimeAttack.Scenes
             {
                 case PauseDialogResult.Resume:
                 {
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
+                    _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageResume, token).Forget();
                     break;
                 }
                 case PauseDialogResult.Retry:
                 {
                     SceneModel.StageState = GameStageState.Retry;
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
+                    _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageRetry, token).Forget();
                     // 現在のステージへ再遷移
-                    await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(_stageId);
+                    await _sceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(_stageId);
                     break;
                 }
                 case PauseDialogResult.ReturnToTitle:
                 {
-                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
+                    await _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle, token);
                     // 現在のシーンを終了させてタイトルに戻る
-                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
+                    await _sceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
                     break;
                 }
                 case PauseDialogResult.Quit:
@@ -259,22 +256,22 @@ namespace Game.ScoreTimeAttack.Scenes
                 case ResultDialogResult.NextStage:
                 {
                     if (!SceneModel.NextStageId.HasValue) return;
-                    await SceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(SceneModel.NextStageId.Value);
+                    await _sceneService.TransitionAsync<ScoreTimeAttackStageScene, int>(SceneModel.NextStageId.Value);
                     break;
                 }
                 case ResultDialogResult.Finish:
                 {
                     SceneModel.StageState = GameStageState.Finish;
-                    AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish).Forget();
-                    await SceneService.TransitionAsync<ScoreTimeAttackTotalResultScene>();
+                    _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageFinish).Forget();
+                    await _sceneService.TransitionAsync<ScoreTimeAttackTotalResultScene>();
                     break;
                 }
                 case ResultDialogResult.ReturnToTitle:
                 {
-                    await AudioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle);
+                    await _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageReturnTitle);
                     ApplicationEvents.ResumeTime();
                     // 現在のシーンを終了させてタイトルに戻る
-                    await SceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
+                    await _sceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
                     break;
                 }
             }
