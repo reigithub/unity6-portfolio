@@ -826,7 +826,7 @@ namespace Game.MVP.Survivor.Enemy
             // ロードしたプレハブをリリース
             foreach (var prefab in _enemyPrefabs.Values)
             {
-                _assetService.ReleaseAsset(prefab);
+                _assetService.Release(prefab);
             }
             _enemyPrefabs.Clear();
         }

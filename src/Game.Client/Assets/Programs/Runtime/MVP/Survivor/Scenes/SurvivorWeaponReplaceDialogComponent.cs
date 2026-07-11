@@ -43,7 +43,7 @@ namespace Game.MVP.Survivor.Scenes
 
             foreach (var sprite in _iconCache.Values)
             {
-                _assetService.ReleaseAsset(sprite);
+                _assetService.Release(sprite);
             }
             _iconCache.Clear();
 

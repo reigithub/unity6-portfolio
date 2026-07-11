@@ -555,7 +555,7 @@ namespace Game.MVP.Survivor.Weapon
 
                 if (_loadedPrefabs.TryGetValue(assetName, out var prefab))
                 {
-                    AssetService.ReleaseAsset(prefab);
+                    AssetService.Release(prefab);
                     _loadedPrefabs.Remove(assetName);
                 }
 
@@ -623,7 +623,7 @@ namespace Game.MVP.Survivor.Weapon
 
             foreach (var prefab in _loadedPrefabs.Values)
             {
-                AssetService.ReleaseAsset(prefab);
+                AssetService.Release(prefab);
             }
             _loadedPrefabs.Clear();
 

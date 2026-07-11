@@ -460,7 +460,7 @@ namespace Game.MVP.Survivor.Item
             // ロードしたプレハブをリリース
             foreach (var prefab in _prefabCache.Values)
             {
-                _assetService.ReleaseAsset(prefab);
+                _assetService.Release(prefab);
             }
             _prefabCache.Clear();
         }

@@ -178,7 +178,7 @@ namespace Game.MVP.Survivor.Item
             // プレハブリリース
             foreach (var prefab in _prefabs.Values)
             {
-                _assetService?.ReleaseAsset(prefab);
+                _assetService?.Release(prefab);
             }
             _prefabs.Clear();
         }

@@ -153,7 +153,7 @@ namespace Game.MVP.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
-                AssetService.ReleaseAsset(_asset);
+                AssetService.Release(_asset);
                 _asset = null;
                 _canvasGroup = null;
             }
@@ -326,7 +326,7 @@ namespace Game.MVP.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
-                AssetService.ReleaseAsset(_asset);
+                AssetService.Release(_asset);
                 _asset = null;
             }
 

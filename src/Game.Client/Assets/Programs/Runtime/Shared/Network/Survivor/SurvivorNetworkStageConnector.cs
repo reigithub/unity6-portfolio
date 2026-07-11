@@ -228,17 +228,17 @@ namespace Game.Shared.Network.Survivor
         {
             if (_gameStatePrefabAsset != null)
             {
-                _assetService.ReleaseAsset(_gameStatePrefabAsset);
+                _assetService.Release(_gameStatePrefabAsset);
                 _gameStatePrefabAsset = null;
             }
             if (_playerPrefabAsset != null)
             {
-                _assetService.ReleaseAsset(_playerPrefabAsset);
+                _assetService.Release(_playerPrefabAsset);
                 _playerPrefabAsset = null;
             }
             if (_enemyBatchSyncPrefabAsset != null)
             {
-                _assetService.ReleaseAsset(_enemyBatchSyncPrefabAsset);
+                _assetService.Release(_enemyBatchSyncPrefabAsset);
                 _enemyBatchSyncPrefabAsset = null;
             }
         }
