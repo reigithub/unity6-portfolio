@@ -80,11 +80,6 @@ namespace Game.Core.Services
         /// <summary>
         /// 生成済みインスタンス登録
         /// </summary>
-        public static void Register<T>(T service) where T : IGameService
-        {
-            Instance._gameServices[typeof(T)] = service;
-        }
-
         public static void Register<TInterface, TImplement>(TImplement service)
             where TImplement : TInterface, IGameService
         {

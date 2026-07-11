@@ -41,7 +41,7 @@ namespace Game.Horror
             // アイコン一括ロード
             var iconService = new HorrorIconService();
             await iconService.LoadAsync();
-            GameServiceManager.Register<IHorrorIconService>(iconService);
+            GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
 
             // セーブデータストレージ構築
             var keyProvider = new AppSharedKeyProvider();
@@ -51,7 +51,7 @@ namespace Game.Horror
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
             var optionSaveRepository = new HorrorOptionSaveRepository(saveDataStorage);
             await optionSaveRepository.LoadAsync();
-            GameServiceManager.Register(optionSaveRepository);
+            GameServiceManager.Register<IHorrorOptionSaveRepository, HorrorOptionSaveRepository>(optionSaveRepository);
             var optionService = new HorrorOptionService(optionSaveRepository);
             GameServiceManager.Register<IHorrorOptionService, HorrorOptionService>(optionService);
             HorrorOptionHelper.ApplySaveData(optionSaveRepository.Data);
@@ -70,20 +70,20 @@ namespace Game.Horror
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
             await saveRepository.LoadAsync();
-            GameServiceManager.Register(saveRepository);
+            GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
 
             // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
-            GameServiceManager.Register<IHorrorInventoryService>(inventoryService);
+            GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
 
             var equipmentService = new HorrorEquipmentService(saveRepository, inventoryService);
-            GameServiceManager.Register<IHorrorEquipmentService>(equipmentService);
+            GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(equipmentService);
 
             var interactionService = new HorrorInteractionService(saveRepository);
-            GameServiceManager.Register<IHorrorInteractionService>(interactionService);
+            GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(interactionService);
 
             var playerService = new HorrorPlayerService(saveRepository);
-            GameServiceManager.Register<IHorrorPlayerService>(playerService);
+            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
 
             // 5. 初期シーン遷移
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
