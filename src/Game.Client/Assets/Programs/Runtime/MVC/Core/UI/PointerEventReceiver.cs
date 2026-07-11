@@ -12,8 +12,8 @@ namespace Game.Core.UI
     {
         [SerializeField] private Selectable _selectable;
 
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         public void OnPointerEnter(PointerEventData eventData) => OnSelect();
 

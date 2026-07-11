@@ -26,8 +26,8 @@ namespace Game.Core.UI
         // 左右入力とみなす最小の x 絶対値（微小入力・デッドゾーン残差を除外）
         [SerializeField] private float _threshold = 0.5f;
 
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private IDisposable _subscription;
 
