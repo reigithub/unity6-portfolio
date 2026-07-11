@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.Constants;
@@ -10,13 +12,15 @@ using Game.Shared.Services;
 using MemoryPack;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Game.Tests.MVC.Horror
 {
     [TestFixture]
     public class HorrorSaveRepositoryTests
     {
-        private const string SaveKey = "horror_save";
+        private const string SaveKey = "horror_save_slot1";
 
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
@@ -44,13 +48,13 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_repository.Data, Is.Not.Null);
-            Assert.That(_repository.Data.Version, Is.EqualTo(1));
+            Assert.That(_repository.Data.Version, Is.EqualTo(HorrorSaveConstants.SaveDataLatestVersion));
             Assert.That(_repository.Data.Player.LastSavepointId, Is.EqualTo(0));
             Assert.That(_repository.Data.Inventory.Slots, Is.Empty);
             Assert.That(_repository.Data.Interaction.InteractionIds, Is.Empty);
             Assert.That(_repository.Data.Equipment.SlotType, Is.EqualTo(InventorySlotType.None));
             Assert.That(_repository.Data.Equipment.Id, Is.EqualTo(0));
-            Assert.That(_repository.Data.Equipment.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
+            Assert.That(_repository.Data.Equipment.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxEquipmentSlotCount));
             foreach (var slot in _repository.Data.Equipment.Slots)
                 Assert.That(slot.SlotType, Is.EqualTo(InventorySlotType.None));
             Assert.That(_repository.IsDirty, Is.False);
@@ -70,7 +74,7 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
 
             Assert.That(_repository.Data.Equipment.Slots, Is.Not.Null);
-            Assert.That(_repository.Data.Equipment.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxSlotCount));
+            Assert.That(_repository.Data.Equipment.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxEquipmentSlotCount));
         }
 
         [Test]
@@ -149,6 +153,105 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.Equipment.Magazines[0].WeaponId, Is.EqualTo(5));
             Assert.That(restored.Equipment.Magazines[0].Count, Is.EqualTo(12));
             Assert.That(restored.Interaction.InteractionIds, Is.EquivalentTo(new[] { 1, 2, 3 }));
+        }
+
+        [Test]
+        public void Serialization_RoundTrip_PreservesMetaFields()
+        {
+            var savedAt = new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Utc);
+            var original = new HorrorSaveData
+            {
+                Version = 2,
+                SlotNo = 3,
+                SavedAtUtc = savedAt,
+                SavepointId = 42,
+            };
+
+            var bytes = MemoryPackSerializer.Serialize(original);
+            var restored = MemoryPackSerializer.Deserialize<HorrorSaveData>(bytes);
+
+            Assert.That(restored, Is.Not.Null);
+            Assert.That(restored.Version, Is.EqualTo(2));
+            Assert.That(restored.SlotNo, Is.EqualTo(3));
+            Assert.That(restored.SavedAtUtc, Is.EqualTo(savedAt));
+            Assert.That(restored.SavepointId, Is.EqualTo(42));
+        }
+
+        [Test]
+        public async Task SaveToSlotAsync_WithValidSlot_SavesToSlotKeyAndWritesMeta()
+        {
+            await LoadDefaultData();
+            _mockStorage.SaveAsync("horror_save_slot3", Arg.Any<HorrorSaveData>())
+                .Returns(UniTask.CompletedTask);
+            _repository.Data.Player.LastSavepointId = 42;
+
+            await _repository.SaveToSlotAsync(3);
+
+            Assert.That(_repository.CurrentSlot, Is.EqualTo(3));
+            Assert.That(_repository.Data.SlotNo, Is.EqualTo(3));
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(42));
+            Assert.That(_repository.Data.SavedAtUtc, Is.Not.EqualTo(default(DateTime)));
+            await _mockStorage.Received(1).SaveAsync(
+                "horror_save_slot3",
+                Arg.Is<HorrorSaveData>(d => d.SlotNo == 3 && d.SavepointId == 42));
+        }
+
+        [TestCase(0)]
+        [TestCase(11)]
+        public async Task SaveToSlotAsync_WithSlotOutOfRange_DoesNotSave(int slotNumber)
+        {
+            await LoadDefaultData();
+            LogAssert.Expect(LogType.Error, new Regex("Invalid slot number"));
+
+            await _repository.SaveToSlotAsync(slotNumber);
+
+            Assert.That(_repository.CurrentSlot, Is.EqualTo(1));
+            await _mockStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<HorrorSaveData>());
+        }
+
+        [Test]
+        public async Task LoadSlotInfosAsync_WhenSlotEmpty_ReturnsHasDataFalse()
+        {
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult<HorrorSaveData>(null));
+
+            var infos = await _repository.LoadSlotInfosAsync();
+
+            Assert.That(infos.Count, Is.EqualTo(HorrorSaveConstants.MaxSaveSlotCount));
+            Assert.That(infos[0].SlotNo, Is.EqualTo(1));
+            Assert.That(infos[0].HasData, Is.False);
+        }
+
+        [Test]
+        public async Task LoadSlotInfosAsync_WhenSlotHasData_ReturnsMeta()
+        {
+            var savedAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult<HorrorSaveData>(null));
+            _mockStorage.LoadAsync<HorrorSaveData>("horror_save_slot3")
+                .Returns(UniTask.FromResult(new HorrorSaveData { SlotNo = 3, SavedAtUtc = savedAt, SavepointId = 42 }));
+
+            var infos = await _repository.LoadSlotInfosAsync();
+
+            var info = infos[2];
+            Assert.That(info.SlotNo, Is.EqualTo(3));
+            Assert.That(info.HasData, Is.True);
+            Assert.That(info.SavedAtUtc, Is.EqualTo(savedAt));
+            Assert.That(info.SavepointId, Is.EqualTo(42));
+        }
+
+        [Test]
+        public async Task LoadSlotInfosAsync_DoesNotMutateCurrentData()
+        {
+            await LoadDefaultData();
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult<HorrorSaveData>(null));
+
+            var currentData = _repository.Data;
+
+            await _repository.LoadSlotInfosAsync();
+
+            Assert.That(_repository.Data, Is.SameAs(currentData));
         }
     }
 }

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Constants;
 using Game.Horror.Inventory;
@@ -18,17 +20,77 @@ namespace Game.Horror.Services
     /// </summary>
     public class HorrorSaveRepository : SaveRepositoryBase<HorrorSaveData>, IHorrorSaveRepository, IGameService
     {
-        protected override string SaveKey => "horror_save";
-        protected override int CurrentVersion => 1;
+        /// <summary>現在アクティブなスロット番号（初期値 1）。</summary>
+        public int CurrentSlot { get; private set; } = 1;
 
-        /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
-        private const int MaxSlotCount = HorrorEquipmentConstants.MaxSlotCount;
+        protected override string SaveKey => GetSlotKey(CurrentSlot);
+        protected override int CurrentVersion => HorrorSaveConstants.SaveDataLatestVersion;
+
+        private const int MaxSaveSlotCount = HorrorSaveConstants.MaxSaveSlotCount;
+        private const int MaxEquipmentSlotCount = HorrorEquipmentConstants.MaxEquipmentSlotCount;
 
         private readonly IScriptableDatabaseService _databaseService;
 
         public HorrorSaveRepository(ISaveDataStorage storage, IScriptableDatabaseService databaseService) : base(storage)
         {
             _databaseService = databaseService;
+        }
+
+        private static string GetSlotKey(int slot) => $"horror_save_slot{slot}";
+
+        /// <summary>
+        /// 全スロットのメタ情報を並列に取得する。現在ロード中の <see cref="ISaveRepository{TData}.Data"/> は変更しない。
+        /// </summary>
+        public async UniTask<IReadOnlyList<HorrorSaveSlotInfo>> LoadSlotInfosAsync()
+        {
+            var tasks = new UniTask<HorrorSaveData>[MaxSaveSlotCount];
+            for (int slot = 1; slot <= MaxSaveSlotCount; slot++)
+            {
+                tasks[slot - 1] = _storage.LoadAsync<HorrorSaveData>(GetSlotKey(slot));
+            }
+
+            var results = await UniTask.WhenAll(tasks);
+
+            var infos = new List<HorrorSaveSlotInfo>(MaxSaveSlotCount);
+            for (int i = 0; i < results.Length; i++)
+            {
+                var data = results[i];
+                infos.Add(new HorrorSaveSlotInfo
+                {
+                    SlotNo = i + 1,
+                    HasData = data != null,
+                    SavedAtUtc = data?.SavedAtUtc ?? default,
+                    SavepointId = data?.SavepointId ?? 0,
+                });
+            }
+
+            return infos;
+        }
+
+        /// <summary>
+        /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
+        /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に <see cref="OnBeforeSave"/> が刻印する。
+        /// </summary>
+        /// <param name="slotNumber">保存先スロット番号（1〜<see cref="HorrorSaveConstants.MaxSaveSlotCount"/>）。</param>
+        public async UniTask SaveToSlotAsync(int slotNumber)
+        {
+            if (slotNumber < 1 || slotNumber > MaxSaveSlotCount)
+            {
+                Debug.LogError($"[{GetType().Name}] Invalid slot number: {slotNumber}");
+                return;
+            }
+
+            CurrentSlot = slotNumber;
+            await SaveAsync();
+        }
+
+        // どの保存経路（SaveAsync / SaveIfDirtyAsync）でもスロットメタが最新になるよう、保存直前に刻印する。
+        // セーブポイント Id は復帰地点（Player.LastSavepointId）から導出し、真実の源を一つに保つ。
+        protected override void OnBeforeSave(HorrorSaveData data)
+        {
+            data.SlotNo = CurrentSlot;
+            data.SavedAtUtc = DateTime.UtcNow;
+            data.SavepointId = data.Player.LastSavepointId;
         }
 
         protected override HorrorSaveData CreateNewData()
@@ -121,11 +183,11 @@ namespace Game.Horror.Services
         {
             data.Slots ??= new List<HorrorEquipmentSlotData>();
 
-            while (data.Slots.Count < MaxSlotCount)
+            while (data.Slots.Count < MaxEquipmentSlotCount)
                 data.Slots.Add(new HorrorEquipmentSlotData());
 
-            if (data.Slots.Count > MaxSlotCount)
-                data.Slots.RemoveRange(MaxSlotCount, data.Slots.Count - MaxSlotCount);
+            if (data.Slots.Count > MaxEquipmentSlotCount)
+                data.Slots.RemoveRange(MaxEquipmentSlotCount, data.Slots.Count - MaxEquipmentSlotCount);
         }
 
         private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)

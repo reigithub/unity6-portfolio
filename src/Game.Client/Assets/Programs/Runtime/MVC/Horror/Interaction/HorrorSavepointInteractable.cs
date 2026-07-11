@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Dialogs;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using UnityEngine;
@@ -7,9 +8,9 @@ using UnityEngine;
 namespace Game.Horror.Interaction
 {
     /// <summary>
-    /// セーブポイントのインタラクト。進行データの Dirty 分の書き込みを
-    /// <see cref="HorrorSaveRepository"/> に委譲する。保存の発火はマスターデータの
-    /// フラグに依存せず本クラス自身が担い、何度でも再インタラクトできる。
+    /// セーブポイントのインタラクト。<see cref="HorrorSaveDataDialog"/> でスロットを選択させ、
+    /// 選択されたスロットへ進行データの Dirty 分の書き込みを <see cref="HorrorSaveRepository"/>
+    /// に委譲する。キャンセル時は何も書き込まず、何度でも再インタラクトできる。
     /// </summary>
     public class HorrorSavepointInteractable : InteractableBase
     {
@@ -42,10 +43,19 @@ namespace Game.Horror.Interaction
 
         public override void Interact()
         {
-            // 自身のインタラクト記録と復帰地点を先に Dirty 化し、今回の保存に含める
+            InteractAsync().Forget();
+        }
+
+        private async UniTask InteractAsync()
+        {
+            var slots = await _saveRepository.LoadSlotInfosAsync();
+            var selected = await HorrorSaveDataDialog.RunAsync(slots);
+            if (selected == 0) return;
+
+            // 自身のインタラクト記録と復帰地点を選択後に Dirty 化し、今回の保存に含める
             base.Interact();
             _playerService.SetLastSavepoint(InteractionId);
-            _saveRepository.SaveIfDirtyAsync().Forget();
+            await _saveRepository.SaveToSlotAsync(selected);
         }
     }
 }
