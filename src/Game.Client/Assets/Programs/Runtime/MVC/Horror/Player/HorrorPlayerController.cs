@@ -529,7 +529,7 @@ namespace Game.Horror.Player
             var masters = new List<HorrorWeaponMaster>();
             var seenIds = new HashSet<int>();
 
-            for (var i = 0; i < HorrorEquipmentConstants.MaxSlotCount; i++)
+            for (var i = 0; i < HorrorEquipmentConstants.MaxEquipmentSlotCount; i++)
             {
                 if (_equipmentService.TryGetSlot(i, out var slot)
                     && slot.SlotType == InventorySlotType.Weapon

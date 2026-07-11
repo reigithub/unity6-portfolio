@@ -2,6 +2,7 @@
 {
     public static class HorrorEquipmentConstants
     {
-        public const int MaxSlotCount = 4;
+        /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
+        public const int MaxEquipmentSlotCount = 4;
     }
 }
