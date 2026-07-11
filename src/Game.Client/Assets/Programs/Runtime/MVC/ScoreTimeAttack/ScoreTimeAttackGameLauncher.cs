@@ -35,10 +35,8 @@ namespace Game.ScoreTimeAttack
             await audioService.LoadAsync();
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
-            GameServiceManager.Register<IInputSystemService, InputSystemService>(new InputSystemService());
-
-            var gameSceneService = new GameSceneService();
-            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
+            var inputSystemService = new InputSystemService();
+            GameServiceManager.Register<IInputSystemService, InputSystemService>(inputSystemService);
 
             // 3. 共通オブジェクト読み込み
             await GameRootController.LoadAssetAsync();
@@ -49,6 +47,8 @@ namespace Game.ScoreTimeAttack
             await audioSaveService.LoadAsync();
 
             // 6. 初期シーン遷移
+            var gameSceneService = new GameSceneService(inputSystemService);
+            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
         }
 

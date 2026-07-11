@@ -38,9 +38,6 @@ namespace Game.Horror
 
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
 
-            var gameSceneService = new GameSceneService();
-            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
-
             // アイコン一括ロード
             var iconService = new HorrorIconService(assetService);
             GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
@@ -94,6 +91,8 @@ namespace Game.Horror
             await HorrorGameRootController.LoadAssetAsync();
 
             // 5. 初期シーン遷移
+            var gameSceneService = new GameSceneService(inputSystemService);
+            GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
         }
 

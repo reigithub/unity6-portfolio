@@ -13,8 +13,7 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IInputSystemService _inputService;
 
         private readonly List<IGameScene> _gameScenes = new(16);
 
@@ -22,6 +21,11 @@ namespace Game.Core.Services
 
         public GameSceneService()
         {
+        }
+
+        public GameSceneService(IInputSystemService inputService)
+        {
+            _inputService = inputService;
         }
 
         public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
@@ -190,7 +194,7 @@ namespace Game.Core.Services
         {
             gameScene.State = GameSceneState.Processing;
 
-            using (InputService.BlockUI())
+            using (_inputService.BlockUI())
             {
                 if (gameScene.ArgHandler != null)
                     await gameScene.ArgHandler.Invoke(gameScene);
