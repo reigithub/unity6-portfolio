@@ -23,7 +23,7 @@ namespace Game.ScoreTimeAttack
 
             // 2. 各種サービス取得・初期化
             var masterDataService = GameServiceManager.Get<MasterDataService>();
-            GameServiceManager.Add<MessagePipeService>();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
             GameServiceManager.Add<AudioService>();
             var audioService = GameServiceManager.Get<AudioService>();
             var gameSceneService = GameServiceManager.Get<GameSceneService>();

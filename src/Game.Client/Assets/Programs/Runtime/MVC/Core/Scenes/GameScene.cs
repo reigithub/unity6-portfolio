@@ -185,8 +185,8 @@ namespace Game.MVC.Core.Scenes
         private AddressableAssetService _assetService;
         protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
 
-        private MessagePipeService _messagePipeService;
-        protected MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private IMessagePipeService _messagePipeService;
+        protected IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
 
         private GameObject _asset;
         private GameObject _instance;

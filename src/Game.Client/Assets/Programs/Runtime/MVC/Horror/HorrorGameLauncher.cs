@@ -33,7 +33,8 @@ namespace Game.Horror
             await audioService.LoadAsync();
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
 
-            GameServiceManager.Add<MessagePipeService>();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
+
             var gameSceneService = GameServiceManager.Get<GameSceneService>();
 
             // 共通オブジェクト読み込み
