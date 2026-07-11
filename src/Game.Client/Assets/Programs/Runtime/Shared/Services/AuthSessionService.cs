@@ -8,12 +8,12 @@ namespace Game.Shared.Services
 {
     /// <summary>
     /// セッション管理サービス実装
-    /// ISaveDataStorage (MemoryPack) にトークン・ユーザー情報を保存/復元
+    /// ISessionSaveDataStorage (MemoryPack、device-bound構成) にトークン・ユーザー情報を保存/復元
     /// </summary>
     public class AuthSessionService : IAuthSessionService
     {
         private const string SaveKey = "session";
-        private readonly ISaveDataStorage _storage;
+        private readonly ISessionSaveDataStorage _storage;
         private SessionSaveData _data;
         private DateTime? _lastRefreshedAt;
 
@@ -25,7 +25,7 @@ namespace Game.Shared.Services
         /// </summary>
         private readonly TimeSpan _defaultFreshnessThreshold = TimeSpan.FromSeconds(30);
 
-        public AuthSessionService(ISaveDataStorage storage)
+        public AuthSessionService(ISessionSaveDataStorage storage)
         {
             _storage = storage;
         }

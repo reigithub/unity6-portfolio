@@ -62,7 +62,10 @@ namespace Game.App.Services
         private void CreateServices()
         {
             // 共通のセーブデータストレージ（暗号化デコレーター付き）
-            _saveDataStorage = new EncryptedSaveDataStorage(new SaveDataStorage());
+            // Steam Cloud等でのデバイス間セーブ共有を想定したAppShared鍵構成
+            var appSharedKeyProvider = new AppSharedKeyProvider();
+            appSharedKeyProvider.Prewarm();
+            _saveDataStorage = new EncryptedSaveDataStorage(new SaveDataStorage(), appSharedKeyProvider);
 
             // リモートアセットダウンロードサービス
             RemoteAssetDownloadService = new RemoteAssetDownloadService();

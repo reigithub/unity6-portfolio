@@ -40,8 +40,12 @@ namespace Game.Horror
             var iconService = GameServiceManager.Get<HorrorIconService>();
             await iconService.LoadAsync();
 
+            // セーブデータストレージ構築
+            var keyProvider = new AppSharedKeyProvider();
+            keyProvider.Prewarm();
+            var saveDataStorage = new EncryptedSaveDataStorage(new SaveDataStorage(), keyProvider);
+
             // オプション設定: ロード → 共有登録 → 起動時の静的適用
-            var saveDataStorage = new SaveDataStorage();
             var optionSaveRepository = new HorrorOptionSaveRepository(saveDataStorage);
             await optionSaveRepository.LoadAsync();
             GameServiceManager.Register(optionSaveRepository);

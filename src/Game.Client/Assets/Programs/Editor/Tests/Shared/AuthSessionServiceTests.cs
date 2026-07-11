@@ -16,13 +16,13 @@ namespace Game.Tests.Shared.Services
     [TestFixture]
     public class AuthSessionServiceTests
     {
-        private ISaveDataStorage _mockStorage;
+        private ISessionSaveDataStorage _mockStorage;
         private AuthSessionService _service;
 
         [SetUp]
         public void Setup()
         {
-            _mockStorage = Substitute.For<ISaveDataStorage>();
+            _mockStorage = Substitute.For<ISessionSaveDataStorage>();
             _service = new AuthSessionService(_mockStorage);
         }
 
