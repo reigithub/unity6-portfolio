@@ -160,7 +160,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.TrySetSlot(-1, InventorySlotType.Item, 1), Is.False);
-            Assert.That(_service.TrySetSlot(HorrorEquipmentConstants.MaxSlotCount, InventorySlotType.Item, 1), Is.False);
+            Assert.That(_service.TrySetSlot(HorrorEquipmentConstants.MaxEquipmentSlotCount, InventorySlotType.Item, 1), Is.False);
         }
 
         [Test]

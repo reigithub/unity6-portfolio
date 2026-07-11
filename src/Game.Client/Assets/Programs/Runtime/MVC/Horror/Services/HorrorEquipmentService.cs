@@ -13,7 +13,7 @@ namespace Game.Horror.Services
     public class HorrorEquipmentService : IHorrorEquipmentService
     {
         /// <summary>ショートカットスロット数（D-Pad 1〜4）。</summary>
-        private const int MaxSlotCount = HorrorEquipmentConstants.MaxSlotCount;
+        private const int MaxEquipmentSlotCount = HorrorEquipmentConstants.MaxEquipmentSlotCount;
 
         private readonly IHorrorSaveRepository _repository;
         private readonly IHorrorInventoryService _inventoryService;
@@ -64,7 +64,7 @@ namespace Game.Horror.Services
         public bool TrySetSlot(int index, InventorySlotType slotType, int id)
         {
             var data = _repository.Data?.Equipment;
-            if (data == null || index < 0 || index >= MaxSlotCount)
+            if (data == null || index < 0 || index >= MaxEquipmentSlotCount)
                 return false;
 
             var slot = data.Slots[index];
@@ -81,7 +81,7 @@ namespace Game.Horror.Services
         public bool TryAssignSlot(int destIndex, InventorySlotType slotType, int id)
         {
             var data = _repository.Data?.Equipment;
-            if (data == null || destIndex < 0 || destIndex >= MaxSlotCount)
+            if (data == null || destIndex < 0 || destIndex >= MaxEquipmentSlotCount)
                 return false;
 
             int index = GetSlotIndex(data, slotType, id);
@@ -110,7 +110,7 @@ namespace Game.Horror.Services
             if (data == null || slotType == InventorySlotType.None)
                 return -1;
 
-            for (int i = 0; i < MaxSlotCount; i++)
+            for (int i = 0; i < MaxEquipmentSlotCount; i++)
             {
                 var s = data.Slots[i];
                 if (s.SlotType == slotType && s.Id == id)
@@ -123,7 +123,7 @@ namespace Game.Horror.Services
         public bool ClearSlot(int index)
         {
             var data = _repository.Data?.Equipment;
-            if (data == null || index < 0 || index >= MaxSlotCount)
+            if (data == null || index < 0 || index >= MaxEquipmentSlotCount)
                 return false;
 
             var slot = data.Slots[index];
@@ -138,7 +138,7 @@ namespace Game.Horror.Services
         {
             slot = null;
             var data = _repository.Data?.Equipment;
-            if (data == null || index < 0 || index >= MaxSlotCount)
+            if (data == null || index < 0 || index >= MaxEquipmentSlotCount)
                 return false;
 
             var s = data.Slots[index];
