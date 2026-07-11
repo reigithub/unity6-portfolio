@@ -53,7 +53,7 @@ namespace Game.Horror
             await optionSaveRepository.LoadAsync();
             GameServiceManager.Register(optionSaveRepository);
             var optionService = new HorrorOptionService(optionSaveRepository);
-            GameServiceManager.Register<IHorrorOptionService>(optionService);
+            GameServiceManager.Register<IHorrorOptionService, HorrorOptionService>(optionService);
             HorrorOptionHelper.ApplySaveData(optionSaveRepository.Data);
 
             // キーリバインドのオーバーライドを起動時に適用
