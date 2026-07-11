@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Interfaces;
 using R3;
 using UnityEngine;
@@ -66,7 +67,7 @@ namespace Game.Horror.Equipment
                 return;
             }
 
-            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_iconImage != null)

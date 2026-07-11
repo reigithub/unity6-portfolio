@@ -39,8 +39,9 @@ namespace Game.Horror
             await HorrorGameRootController.LoadAssetAsync();
 
             // アイコン一括ロード
-            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var iconService = new HorrorIconService();
             await iconService.LoadAsync();
+            GameServiceManager.Register<IHorrorIconService>(iconService);
 
             // セーブデータストレージ構築
             var keyProvider = new AppSharedKeyProvider();
@@ -95,7 +96,7 @@ namespace Game.Horror
             await gameSceneService.TerminateAllAsync();
             var audioService = GameServiceManager.Get<AudioService>();
             audioService.Unload();
-            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             iconService.Unload();
             GameServiceManager.Instance.Shutdown();
             await UniTask.Yield();
