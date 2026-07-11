@@ -5,10 +5,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Library.Shared.Enums;
-using Game.Client.MasterData;
 using Game.Shared.Extensions;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
 
 namespace Game.Shared.Services
@@ -44,19 +42,12 @@ namespace Game.Shared.Services
         // OneShot 用クリップキャッシュ（Preserve 済みタスクを保持し、同一アセットの同時ロードを一本化する）
         private readonly Dictionary<string, UniTask<AudioClip>> _oneShotClipTasks = new();
 
-        /// <summary>
-        /// マスターデータベースを取得（派生クラスで実装）
-        /// </summary>
-        protected abstract MemoryDatabase MemoryDatabase { get; }
-
-        /// <summary>
-        /// オーディオクリップを読み込む（派生クラスで実装）
-        /// </summary>
-        protected abstract UniTask<AudioClip> LoadAudioClipAsync(string assetName);
+        protected abstract IAddressableAssetService AssetService { get; }
+        protected abstract IMasterDataService MasterDataService { get; }
 
         public async UniTask LoadAsync()
         {
-            var audioService = await Addressables.InstantiateAsync("AudioService");
+            var audioService = await AssetService.InstantiateAsync("AudioService");
             if (audioService == null) return;
 
             _audioServiceObject = audioService;
@@ -81,6 +72,9 @@ namespace Game.Shared.Services
             _audioServiceObject.SafeDestroy();
             _audioServiceObject = null;
         }
+
+        private UniTask<AudioClip> LoadAudioClipAsync(string assetName)
+            => AssetService.LoadAssetAsync<AudioClip>(assetName);
 
         public async UniTask PlayBgmAsync(string assetName, CancellationToken token = default)
         {
@@ -192,7 +186,7 @@ namespace Game.Shared.Services
 
         public UniTask PlayAsync(int audioId, CancellationToken token = default)
         {
-            var audioMaster = MemoryDatabase.AudioMasterTable.FindById(audioId);
+            var audioMaster = MasterDataService.MemoryDatabase.AudioMasterTable.FindById(audioId);
             var audioCategory = (AudioCategory)audioMaster.AudioCategory;
             var audioName = audioMaster.AssetName;
             return PlayAsync(audioCategory, audioName, token);
@@ -209,10 +203,10 @@ namespace Game.Shared.Services
         public async UniTask PlayRandomOneAsync(AudioPlayTag audioPlayTag, CancellationToken token = default)
         {
             var categories = Enum.GetValues(typeof(AudioCategory)).Cast<int>().ToHashSet();
-            var byCategory = MemoryDatabase.AudioPlayTagsMasterTable.FindByAudioPlayTag((int)audioPlayTag)
+            var byCategory = MasterDataService.MemoryDatabase.AudioPlayTagsMasterTable.FindByAudioPlayTag((int)audioPlayTag)
                 .Select(x =>
                 {
-                    if (!MemoryDatabase.AudioMasterTable.TryFindById(x.AudioId, out var audioMaster))
+                    if (!MasterDataService.MemoryDatabase.AudioMasterTable.TryFindById(x.AudioId, out var audioMaster))
                         return (0, null);
 
                     if (!categories.Contains(audioMaster.AudioCategory))
@@ -237,10 +231,10 @@ namespace Game.Shared.Services
 
         public UniTask PlayRandomOneAsync(AudioCategory audioCategory, AudioPlayTag audioPlayTag, CancellationToken token = default)
         {
-            var audioNames = MemoryDatabase.AudioPlayTagsMasterTable.FindByAudioPlayTag((int)audioPlayTag)
+            var audioNames = MasterDataService.MemoryDatabase.AudioPlayTagsMasterTable.FindByAudioPlayTag((int)audioPlayTag)
                 .Select(x =>
                 {
-                    if (!MemoryDatabase.AudioMasterTable.TryFindById(x.AudioId, out var audioMaster))
+                    if (!MasterDataService.MemoryDatabase.AudioMasterTable.TryFindById(x.AudioId, out var audioMaster))
                         return null;
 
                     if (audioMaster.AudioCategory != (int)audioCategory)

@@ -1,7 +1,4 @@
-using Cysharp.Threading.Tasks;
-using Game.Client.MasterData;
 using Game.Shared.Services;
-using UnityEngine;
 using VContainer;
 
 namespace Game.MVP.Core.Services
@@ -15,18 +12,14 @@ namespace Game.MVP.Core.Services
         private readonly IAddressableAssetService _assetService;
         private readonly IMasterDataService _masterDataService;
 
-        protected override MemoryDatabase MemoryDatabase => _masterDataService.MemoryDatabase;
+        protected override IAddressableAssetService AssetService => _assetService;
+        protected override IMasterDataService MasterDataService => _masterDataService;
 
         [Inject]
         public AudioService(IAddressableAssetService assetService, IMasterDataService masterDataService)
         {
             _assetService = assetService;
             _masterDataService = masterDataService;
-        }
-
-        protected override async UniTask<AudioClip> LoadAudioClipAsync(string assetName)
-        {
-            return await _assetService.LoadAssetAsync<AudioClip>(assetName);
         }
     }
 }
