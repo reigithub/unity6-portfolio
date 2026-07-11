@@ -40,7 +40,7 @@ namespace Game.Horror.Equipment
         /// </summary>
         public void Initialize()
         {
-            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
         }
 

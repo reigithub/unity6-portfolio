@@ -4,6 +4,7 @@ using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Localization;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -25,7 +26,7 @@ namespace Game.Horror.Dialogs
         /// </summary>
         public void SetSlotInfos(IReadOnlyList<HorrorSaveSlotInfo> slots)
         {
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
+            var database = GameServiceManager.Resolve<IScriptableDatabaseService>().Database;
 
             foreach (var slot in slots)
             {

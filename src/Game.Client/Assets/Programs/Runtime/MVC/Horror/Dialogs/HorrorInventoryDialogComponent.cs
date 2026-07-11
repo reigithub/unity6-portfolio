@@ -4,6 +4,7 @@ using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -54,7 +55,7 @@ namespace Game.Horror.Dialogs
         {
             var inventory = GameServiceManager.Resolve<IHorrorInventoryService>();
             var slots = inventory.Slots;
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
+            var database = GameServiceManager.Resolve<IScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {
                 _slots[i].Initialize();

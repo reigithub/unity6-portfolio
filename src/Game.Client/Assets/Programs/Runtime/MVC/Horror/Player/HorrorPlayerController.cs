@@ -15,6 +15,7 @@ using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
 using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -110,7 +111,7 @@ namespace Game.Horror.Player
 
         // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
         private IHorrorEquipmentService _equipmentService;
-        private ScriptableDatabaseService _dbService;
+        private IScriptableDatabaseService _dbService;
         private bool _equipTriggered;
         private int _equipSlotIndex;
         private InventorySlotType _pendingEquipType;
@@ -193,7 +194,7 @@ namespace Game.Horror.Player
             _audioService = GameServiceManager.Get<AudioService>();
 
             // Database はプレイヤー生成時点でロード済み
-            _dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             _equipmentsView.Initialize();

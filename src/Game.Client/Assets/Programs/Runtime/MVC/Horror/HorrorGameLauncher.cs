@@ -8,6 +8,7 @@ using Game.Horror.Services.Interfaces;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
+using Game.Shared.Services;
 
 namespace Game.Horror
 {
@@ -24,8 +25,9 @@ namespace Game.Horror
             GameServiceManager.Instance.StartUp();
 
             // 各種サービス取得・初期化
-            var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            var dbService = new ScriptableDatabaseService();
             await dbService.LoadAsync();
+            GameServiceManager.Register<IScriptableDatabaseService, ScriptableDatabaseService>(dbService);
 
             var audioService = GameServiceManager.Get<AudioService>();
             await audioService.LoadAsync();

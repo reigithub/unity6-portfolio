@@ -85,7 +85,13 @@ namespace Game.Core.Services
             Instance._gameServices[typeof(T)] = service;
         }
 
-        public static T Resolve<T>() where T : IGameService
+        public static void Register<TInterface, TImplement>(TImplement service)
+            where TImplement : TInterface, IGameService
+        {
+            Instance._gameServices[typeof(TInterface)] = service;
+        }
+
+        public static T Resolve<T>()
         {
             return (T)Instance._gameServices[typeof(T)];
         }

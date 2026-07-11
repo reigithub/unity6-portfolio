@@ -28,7 +28,7 @@ namespace Game.Horror.Dialogs
         {
             _target = target;
             _inputService = GameServiceManager.Get<InputSystemService>();
-            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             for (int i = 0; i < _slots.Length; i++)

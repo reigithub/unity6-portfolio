@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Shared.Bootstrap;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Enemy
@@ -23,7 +24,7 @@ namespace Game.Horror.Enemy
         /// <param name="player">追跡対象のプレイヤー GameObject</param>
         public async UniTask LoadEnemyAsync(GameObject player)
         {
-            var dbService = GameServiceManager.Get<ScriptableDatabaseService>();
+            var dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             if (!dbService.Database.HorrorEnemyMasterTable.TryFindById(_enemyMasterId, out var master))
             {
                 Debug.LogError($"[HorrorEnemyStart] HorrorEnemyMaster (Id={_enemyMasterId}) が見つかりません。");

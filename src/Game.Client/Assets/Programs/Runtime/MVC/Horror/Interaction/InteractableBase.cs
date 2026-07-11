@@ -54,7 +54,7 @@ namespace Game.Horror.Interaction
             InteractionService = GameServiceManager.Resolve<IHorrorInteractionService>();
             InventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
 
-            _databaseService = GameServiceManager.Get<ScriptableDatabaseService>();
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
                 Master = master;
