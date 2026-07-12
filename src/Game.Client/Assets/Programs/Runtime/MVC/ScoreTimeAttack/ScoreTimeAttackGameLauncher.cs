@@ -8,6 +8,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.ScoreTimeAttack
 {
@@ -26,6 +27,8 @@ namespace Game.ScoreTimeAttack
             // 2. 各種サービス取得・初期化
             var assetService = new AddressableAssetService();
             GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
+            var localizationService = new LocalizationService();
+            GameServiceManager.Register<ILocalizationService, LocalizationService>(localizationService);
 
             var masterDataService = new MasterDataService(assetService);
             await masterDataService.LoadMasterDataAsync();
@@ -35,7 +38,7 @@ namespace Game.ScoreTimeAttack
             await audioService.LoadAsync();
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
-            var inputSystemService = new InputSystemService();
+            var inputSystemService = new InputSystemService(localizationService);
             GameServiceManager.Register<IInputSystemService, InputSystemService>(inputSystemService);
 
             // 3. 共通オブジェクト読み込み
