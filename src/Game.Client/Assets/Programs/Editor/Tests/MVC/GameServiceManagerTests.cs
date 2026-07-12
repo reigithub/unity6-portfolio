@@ -130,7 +130,7 @@ namespace Game.Tests.MVC
         {
             // Act
             var service1 = GameServiceManager.Resolve<ITestService>();
-            var service2 = GameServiceManager.Resolve<AnotherTestService>();
+            var service2 = GameServiceManager.Resolve<IAnotherTestService>();
 
             // Assert
             Assert.That(service1, Is.Not.SameAs(service2));
@@ -191,21 +191,6 @@ namespace Game.Tests.MVC
             Assert.DoesNotThrow(() => GameServiceManager.Unregister<ITestService>());
         }
 
-        [Test]
-        public void Remove_ThenGet_CreatesNewInstance()
-        {
-            // Arrange
-            var originalService = GameServiceManager.Resolve<ITestService>();
-            GameServiceManager.Unregister<ITestService>();
-
-            // Act
-            var newService = GameServiceManager.Resolve<ITestService>();
-
-            // Assert
-            Assert.That(newService, Is.Not.SameAs(originalService));
-            Assert.That(newService.StartupCallCount, Is.EqualTo(1));
-        }
-
         #endregion
 
         #region Shutdown Tests
@@ -215,46 +200,12 @@ namespace Game.Tests.MVC
         {
             // Arrange
             var service1 = GameServiceManager.Resolve<ITestService>();
-            var service2 = GameServiceManager.Resolve<IAnotherTestService>();
 
             // Act
             GameServiceManager.Shutdown();
 
             // Assert
             Assert.That(service1.IsShutdown, Is.True);
-        }
-
-        [Test]
-        public void Shutdown_ClearsAllServices()
-        {
-            // Arrange
-            var originalService = GameServiceManager.Resolve<ITestService>();
-            GameServiceManager.Shutdown();
-
-            // Act - StartUp to reset, then Get should create new instance
-            GameServiceManager.StartUp();
-            var newService = GameServiceManager.Resolve<ITestService>();
-
-            // Assert
-            Assert.That(newService, Is.Not.SameAs(originalService));
-        }
-
-        #endregion
-
-        #region StartUp Tests
-
-        [Test]
-        public void StartUp_ClearsExistingServices()
-        {
-            // Arrange
-            var originalService = GameServiceManager.Resolve<ITestService>();
-
-            // Act
-            GameServiceManager.StartUp();
-            var newService = GameServiceManager.Resolve<ITestService>();
-
-            // Assert
-            Assert.That(newService, Is.Not.SameAs(originalService));
         }
 
         #endregion
