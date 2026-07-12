@@ -55,7 +55,7 @@ namespace Game.Horror.Interaction
             // 自身のインタラクト記録と復帰地点を選択後に Dirty 化し、今回の保存に含める
             base.Interact();
             _playerService.SetLastSavepoint(InteractionId);
-            await _saveRepository.SaveToSlotAsync(selected);
+            await _saveRepository.SaveBySlotAsync(selected);
         }
     }
 }
