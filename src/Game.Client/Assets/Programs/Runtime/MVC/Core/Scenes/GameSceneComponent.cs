@@ -1,10 +1,8 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Shared.Services;
 using R3;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Game.MVC.Core.Scenes
 {
@@ -14,7 +12,7 @@ namespace Game.MVC.Core.Scenes
 
         UniTask Ready() => UniTask.CompletedTask;
 
-        UniTask Sleep() => UniTask.CompletedTask;
+        UniTask Sleep(bool visible) => UniTask.CompletedTask;
 
         UniTask Restart() => UniTask.CompletedTask;
 
@@ -36,9 +34,9 @@ namespace Game.MVC.Core.Scenes
             return UniTask.CompletedTask;
         }
 
-        public virtual UniTask Sleep()
+        public virtual UniTask Sleep(bool visible)
         {
-            return Unfocus();
+            return Unfocus(visible);
         }
 
         public virtual UniTask Restart()
@@ -65,14 +63,14 @@ namespace Game.MVC.Core.Scenes
             InputService.ResolveControlScheme(_selectedGameObject);
         }
 
-        private async UniTask Unfocus()
+        private async UniTask Unfocus(bool visible)
         {
             _selectedGameObject = InputService.GetSelectedGameObject();
             await UniTask.Yield();
-            SetInteractable(false);
+            SetInteractable(false, visible);
         }
 
-        public virtual void SetInteractable(bool interactable)
+        public virtual void SetInteractable(bool interactable, bool visible = false)
         {
             if (TryGetComponent<CanvasGroup>(out var canvasGroup))
             {
@@ -84,17 +82,17 @@ namespace Game.MVC.Core.Scenes
                 }
                 else
                 {
-                    canvasGroup.alpha = 0f;
+                    canvasGroup.alpha = visible ? 1f : 0f;
                     canvasGroup.interactable = false;
                     canvasGroup.blocksRaycasts = false;
                 }
             }
         }
 
-        // public IDisposable BlockInteractable()
+        // public IDisposable BlockInteractable(bool visible = false)
         // {
-        //     SetInteractable(false);
-        //     return Disposable.Create(() => SetInteractable(true));
+        //     SetInteractable(false, visible);
+        //     return Disposable.Create(() => SetInteractable(true, visible));
         // }
     }
 }

@@ -20,10 +20,10 @@ namespace Game.ScoreTimeAttack.Scenes
             return base.Startup();
         }
 
-        public override UniTask Sleep()
+        public override UniTask Sleep(bool visible)
         {
             OnDisable();
-            return base.Sleep();
+            return base.Sleep(visible);
         }
 
         public override async UniTask Ready()

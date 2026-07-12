@@ -30,7 +30,7 @@ namespace Game.MVC.Core.Scenes
         // シーン起動後に演出など
         UniTask Ready() => UniTask.CompletedTask;
 
-        UniTask Sleep() => UniTask.CompletedTask;
+        UniTask Sleep(bool visible) => UniTask.CompletedTask;
 
         UniTask Restart() => UniTask.CompletedTask;
 
@@ -53,7 +53,7 @@ namespace Game.MVC.Core.Scenes
 
         public virtual UniTask Startup() => UniTask.CompletedTask;
 
-        public virtual UniTask Sleep() => UniTask.CompletedTask;
+        public virtual UniTask Sleep(bool visible) => UniTask.CompletedTask;
 
         public virtual UniTask Restart() => UniTask.CompletedTask;
 
@@ -146,10 +146,10 @@ namespace Game.MVC.Core.Scenes
             await base.Ready();
         }
 
-        public override async UniTask Sleep()
+        public override async UniTask Sleep(bool visible)
         {
-            await SceneComponent.Sleep();
-            await base.Sleep();
+            await SceneComponent.Sleep(visible);
+            await base.Sleep(visible);
         }
 
         public override async UniTask Restart()

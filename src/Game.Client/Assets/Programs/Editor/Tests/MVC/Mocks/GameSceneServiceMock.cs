@@ -156,7 +156,7 @@ namespace Game.Editor.Tests
             // モックではフォールバック遷移は行わない
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>() where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>(bool visibleLastScene) where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             var type = typeof(TScene);
             if (IsProcessing(type))
@@ -172,7 +172,7 @@ namespace Game.Editor.Tests
             return await ResultAsync(gameScene, tcs);
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg) where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg, bool visibleLastScene) where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             var type = typeof(TScene);
             if (IsProcessing(type))
@@ -248,7 +248,7 @@ namespace Game.Editor.Tests
         {
             if (operations.HasFlag(GameSceneOperations.Sleep))
             {
-                await SleepAsync();
+                await SleepAsync(false);
             }
             else if (operations.HasFlag(GameSceneOperations.Restart))
             {
@@ -330,13 +330,13 @@ namespace Game.Editor.Tests
             }
         }
 
-        private UniTask SleepAsync()
+        private UniTask SleepAsync(bool visible)
         {
             if (_gameScenes.Count == 0) return UniTask.CompletedTask;
 
             var gameScene = _gameScenes[^1];
             gameScene.State = GameSceneState.Sleep;
-            return gameScene.Sleep();
+            return gameScene.Sleep(visible);
         }
 
         private UniTask RestartAsync()

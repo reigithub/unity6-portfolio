@@ -108,12 +108,12 @@ namespace Game.Core.Services
             }
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TResult>(bool visibleLastScene = false)
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             if (IsProcessing(typeof(TScene))) return default;
 
-            await using (await ScopedSleepAsync())
+            await using (await BlockLastSceneAsync(visibleLastScene))
             {
                 var gameScene = new TScene();
                 var tcs = CreateResultTcs<TResult>(gameScene);
@@ -123,7 +123,7 @@ namespace Game.Core.Services
             }
         }
 
-        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+        public async UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg, bool visibleLastScene = false)
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new()
         {
             // ダイアログは複数開く事ができる
@@ -131,7 +131,7 @@ namespace Game.Core.Services
             if (IsProcessing(typeof(TScene))) return default;
 
             // WARN: MonoBehaviourをnewしない方向で実装する必要がある…
-            await using (await ScopedSleepAsync())
+            await using (await BlockLastSceneAsync(visibleLastScene))
             {
                 var gameScene = new TScene();
                 CreateArgHandler(gameScene, arg);
@@ -150,7 +150,7 @@ namespace Game.Core.Services
 
             if (operations.HasFlag(GameSceneOperations.Sleep))
             {
-                await SleepAsync();
+                await SleepAsync(false);
             }
             else if (operations.HasFlag(GameSceneOperations.Restart))
             {
@@ -234,13 +234,13 @@ namespace Game.Core.Services
             return gameScene.GetType() == type && gameScene.State is GameSceneState.Processing;
         }
 
-        private UniTask SleepAsync()
+        private UniTask SleepAsync(bool visible)
         {
             if (_gameScenes.Count == 0) return UniTask.CompletedTask;
 
             var gameScene = _gameScenes[^1];
             gameScene.State = GameSceneState.Sleep;
-            return gameScene.Sleep();
+            return gameScene.Sleep(visible);
         }
 
         private UniTask RestartAsync()
@@ -340,7 +340,7 @@ namespace Game.Core.Services
             return -1;
         }
 
-        private async UniTask<IAsyncDisposable> ScopedSleepAsync()
+        private async UniTask<IAsyncDisposable> BlockLastSceneAsync(bool visibleLastScene = false)
         {
             if (_gameScenes.Count == 0)
                 return new EmptyAsyncDisposable();
@@ -349,7 +349,7 @@ namespace Game.Core.Services
             if (lastScene.State is GameSceneState.Processing)
             {
                 lastScene.State = GameSceneState.Sleep;
-                await lastScene.Sleep();
+                await lastScene.Sleep(visibleLastScene);
             }
 
             return AsyncDisposable.Create(() =>

@@ -16,7 +16,7 @@ namespace Game.Horror.Dialogs
         private IInputSystemService _inputService;
         private string _message;
 
-        public static async UniTask<bool> RunAsync(string message)
+        public static async UniTask<bool> RunAsync(string message, bool visible = true)
         {
             bool result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -24,7 +24,7 @@ namespace Game.Horror.Dialogs
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorMessageDialog, string, bool>(message);
+                result = await sceneService.TransitionDialogAsync<HorrorMessageDialog, string, bool>(message, visible);
             }
             return result;
         }
