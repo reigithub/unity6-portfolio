@@ -12,8 +12,7 @@ namespace Game.Core.UI
     {
         [SerializeField] private Selectable _selectable;
 
-        private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
 
         public void OnPointerEnter(PointerEventData eventData) => OnSelect();
 
@@ -31,7 +30,7 @@ namespace Game.Core.UI
             OnSelect();
         }
 
-        private void OnSelect() => InputService.SetSelectedGameObject(_selectable.gameObject);
+        private void OnSelect() => _inputService.SetSelectedGameObject(_selectable.gameObject);
 
 #if UNITY_EDITOR
         private void OnValidate()

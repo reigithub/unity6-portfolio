@@ -22,20 +22,20 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        private IInputSystemService _inputService;
-        private HorrorInventorySlotView _submittedSlot;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+        private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+        private HorrorInventorySlotView _slotView;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
                 ContextActionType = x,
-                SlotInfo = _submittedSlot.SlotInfo
+                SlotInfo = _slotView.SlotInfo
             });
 
         public void Initialize()
         {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-
             _tabGroup.Initialize();
             BindSlots();
             _tabGroup.ChangeTab(0);
@@ -53,9 +53,7 @@ namespace Game.Horror.Dialogs
 
         private void BindSlots()
         {
-            var inventory = GameServiceManager.Resolve<IHorrorInventoryService>();
-            var slots = inventory.Slots;
-            var database = GameServiceManager.Resolve<IScriptableDatabaseService>().Database;
+            var slots = _inventoryService.Slots;
             for (int i = 0; i < _slots.Length; i++)
             {
                 _slots[i].Initialize();
@@ -64,7 +62,7 @@ namespace Game.Horror.Dialogs
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    if (HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out var slotInfo))
+                    if (HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var slotInfo))
                     {
                         _slots[i].SetSlot(slotInfo, slot.Count);
                         empty = false;
@@ -99,7 +97,7 @@ namespace Game.Horror.Dialogs
             var entries = slot.SlotInfo.SlotType.ToContextActions();
             if (entries.Length == 0) return;
 
-            _submittedSlot = slot;
+            _slotView = slot;
             SetSlotsInteractable(false);
             _contextMenu.Open(slot.RectTransform, entries);
         }
@@ -114,10 +112,10 @@ namespace Game.Horror.Dialogs
         private void OnSubmenuClosed()
         {
             SetSlotsInteractable(true);
-            if (_submittedSlot != null)
+            if (_slotView != null)
             {
-                _inputService.SetSelectedGameObject(_submittedSlot.gameObject);
-                _submittedSlot = null;
+                _inputService.SetSelectedGameObject(_slotView.gameObject);
+                _slotView = null;
             }
         }
 
