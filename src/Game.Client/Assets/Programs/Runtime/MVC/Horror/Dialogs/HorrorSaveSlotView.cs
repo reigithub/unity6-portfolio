@@ -1,6 +1,8 @@
 using R3;
+using R3.Triggers;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.Horror.Dialogs
@@ -24,14 +26,11 @@ namespace Game.Horror.Dialogs
         private Button _button;
 
         public Observable<Unit> OnClick => _button.OnClickAsObservable();
+        public Observable<BaseEventData> OnSelect => _button.OnSelectAsObservable();
 
-        /// <summary>スロット行の表示テキストを反映する。</summary>
-        /// <param name="slotNoText">スロット番号の表示テキスト。</param>
-        /// <param name="savepointNameText">セーブポイント名称の表示テキスト（空きスロットは空文字）。</param>
-        /// <param name="dateTimeText">保存日時の表示テキスト（空きスロットは空文字）。</param>
-        public void SetInfo(string slotNoText, string savepointNameText, string dateTimeText)
+        public void SetInfo(int slotNo, string savepointNameText, string dateTimeText)
         {
-            _slotNoText.text = slotNoText;
+            _slotNoText.text = slotNo.ToString();
             _savepointNameText.text = savepointNameText;
             _dateTimeText.text = dateTimeText;
         }

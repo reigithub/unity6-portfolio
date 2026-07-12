@@ -11,9 +11,14 @@ namespace Game.Horror.Services.Interfaces
         int CurrentSlot { get; }
 
         /// <summary>
+        /// 指定スロットのメタ情報を走査して取得する。
+        /// </summary>
+        UniTask<HorrorSaveSlotInfo> LoadSlotInfoAsync(int slotNo);
+
+        /// <summary>
         /// 全スロットのメタ情報を走査して取得する。現在ロード中の <see cref="ISaveRepository{TData}.Data"/> は変更しない。
         /// </summary>
-        UniTask<IReadOnlyList<HorrorSaveSlotInfo>> LoadSlotInfosAsync();
+        UniTask<HorrorSaveSlotInfo[]> LoadSlotInfosAsync();
 
         /// <summary>
         /// 指定スロットからロードする
@@ -27,5 +32,11 @@ namespace Game.Horror.Services.Interfaces
         /// </summary>
         /// <param name="slotNo">保存先スロット番号（1〜スロット数上限）。</param>
         UniTask SaveBySlotAsync(int slotNo);
+
+        /// <summary>
+        /// 指定スロットを削除
+        /// </summary>
+        /// <param name="slotNo">スロット番号</param>
+        UniTask DeleteBySlotAsync(int slotNo);
     }
 }

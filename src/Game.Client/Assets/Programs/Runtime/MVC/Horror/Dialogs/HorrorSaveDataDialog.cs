@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -14,19 +14,21 @@ namespace Game.Horror.Dialogs
     /// セーブスロット選択ダイアログ。セーブポイントアクセス時に開き、保存先スロットを選ばせる。
     /// </summary>
     public class HorrorSaveDataDialog : GameDialogScene<HorrorSaveDataDialog, HorrorSaveDataDialogComponent, int>
-        , IGameSceneArg<IReadOnlyList<HorrorSaveSlotInfo>>
+        , IGameSceneArg<HorrorSaveSlotInfo[]>
     {
         protected override string AssetPathOrAddress => "HorrorSaveDataDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-        private IReadOnlyList<HorrorSaveSlotInfo> _slots;
+        private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private HorrorSaveSlotInfo[] _slots;
+        private int _slotNo;
 
         /// <summary>
         /// ダイアログを開き、選択されたスロット番号を返す。
         /// </summary>
         /// <param name="slots">全スロットのメタ情報。</param>
         /// <returns>選択スロット番号（1〜スロット数上限）。0 はキャンセル。</returns>
-        public static async UniTask<int> RunAsync(IReadOnlyList<HorrorSaveSlotInfo> slots)
+        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots)
         {
             int result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -34,12 +36,12 @@ namespace Game.Horror.Dialogs
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, IReadOnlyList<HorrorSaveSlotInfo>, int>(slots);
+                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveSlotInfo[], int>(slots);
             }
             return result;
         }
 
-        public UniTask SetArg(IReadOnlyList<HorrorSaveSlotInfo> slots)
+        public UniTask SetArg(HorrorSaveSlotInfo[] slots)
         {
             _slots = slots;
             return UniTask.CompletedTask;
@@ -58,12 +60,26 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ => TrySetResult(-1))
                 .AddTo(Disposables);
 
-            SceneComponent.OnSlotSelected
+            _inputService.UI.Remove.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .SubscribeAwait(async (_, _) =>
+                {
+                    await _saveRepository.DeleteBySlotAsync(_slotNo);
+                    _slots[_slotNo - 1] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
+                    SceneComponent.SetSlotInfo(_slots[_slotNo - 1]);
+                })
+                .AddTo(Disposables);
+
+            SceneComponent.OnSlotClick
                 .Subscribe(slotNo =>
                 {
                     SceneComponent.SetInteractable(false);
                     TrySetResult(slotNo);
                 })
+                .AddTo(Disposables);
+
+            SceneComponent.OnSlotSelect
+                .Subscribe(slotNo => _slotNo = slotNo)
                 .AddTo(Disposables);
 
             SceneComponent.SetSlotInfos(_slots);
