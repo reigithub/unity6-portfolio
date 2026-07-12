@@ -33,11 +33,11 @@ namespace Game.Horror.Dialogs
                 int index = i;
                 RefreshSlot(index);
 
-                _slots[i].OnSelected
+                _slots[i].OnSelect
                     .Subscribe(_ => _currentIndex = index)
                     .AddTo(Disposables);
 
-                _slots[i].OnSubmit
+                _slots[i].OnClick
                     .Subscribe(_ => Register(index))
                     .AddTo(Disposables);
             }
