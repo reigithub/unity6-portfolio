@@ -7,6 +7,7 @@ using Game.Shared.Localization;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Interaction
@@ -36,6 +37,7 @@ namespace Game.Horror.Interaction
         protected IHorrorInteractionService InteractionService { get; private set; }
         protected IHorrorInventoryService InventoryService { get; private set; }
 
+        private ILocalizationService _localizationService;
         private IScriptableDatabaseService _databaseService;
         protected ScriptableDatabase Database => _databaseService.Database;
 
@@ -54,6 +56,7 @@ namespace Game.Horror.Interaction
             InteractionService = GameServiceManager.Resolve<IHorrorInteractionService>();
             InventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
 
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
             _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
@@ -132,7 +135,7 @@ namespace Game.Horror.Interaction
             if (Master == null || string.IsNullOrEmpty(Master.RejectionMessageLocalizeKey))
                 return UniTask.FromResult(false);
 
-            var message = InteractionMessagesLocalizer.Localize(Master.RejectionMessageLocalizeKey);
+            var message = _localizationService.GetStringByInteractionMessages(Master.RejectionMessageLocalizeKey);
             return HorrorMessageDialog.RunAsync(message);
         }
 

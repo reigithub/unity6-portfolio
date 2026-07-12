@@ -1,5 +1,7 @@
+using Game.Core.Services;
 using Game.Shared.Enums;
 using Game.Shared.Localization;
+using Game.Shared.Services.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -24,7 +26,10 @@ namespace Game.Horror.Inventory
         public void Initialize(InventoryContextActionType contextAction)
         {
             if (_label != null)
-                _label.text = ContextActionsLocalizer.Localize(contextAction.ToString());
+            {
+                var localization = GameServiceManager.Resolve<ILocalizationService>();
+                _label.text = localization.GetStringByContextActions(contextAction.ToString());
+            }
 
             _button.OnClickAsObservable()
                 .Subscribe(_ => _onClicked.OnNext(contextAction))
