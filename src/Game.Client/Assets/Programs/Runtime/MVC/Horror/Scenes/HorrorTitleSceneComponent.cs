@@ -1,4 +1,3 @@
-using Game.Core.Services;
 using Game.MVC.Core.Scenes;
 using R3;
 using UnityEngine;
@@ -28,9 +27,18 @@ namespace Game.Horror.Scenes
         public Observable<Unit> OnLoadGame => _loadGameButton != null ? _loadGameButton.OnClickAsObservable() : Observable.Empty<Unit>();
         public Observable<Unit> OnNewGame => _newGameButton != null ? _newGameButton.OnClickAsObservable() : Observable.Empty<Unit>();
 
-        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-
         public void Initialize(bool hasSaveData)
+        {
+            SetGameStartMenu(hasSaveData);
+
+            if (_titleMenuRoot != null)
+                _titleMenuRoot.SetActive(true);
+
+            if (_gameStartMenuRoot != null)
+                _gameStartMenuRoot.SetActive(false);
+        }
+
+        public void SetGameStartMenu(bool hasSaveData)
         {
             if (_continueGameButton != null)
                 _continueGameButton.gameObject.SetActive(hasSaveData);
@@ -41,11 +49,7 @@ namespace Game.Horror.Scenes
             if (_newGameButton != null)
                 _newGameButton.gameObject.SetActive(true);
 
-            if (_titleMenuRoot != null)
-                _titleMenuRoot.SetActive(true);
-
-            if (_gameStartMenuRoot != null)
-                _gameStartMenuRoot.SetActive(false);
+            ResolveSelectable();
         }
 
         public void OpenGameStartMenu()
@@ -59,7 +63,7 @@ namespace Game.Horror.Scenes
                 _gameStartMenuRoot.SetActive(true);
             }
 
-            _inputService.ResolveControlScheme();
+            ResolveSelectable();
         }
 
         public void CloseGameStartMenu()
@@ -73,7 +77,7 @@ namespace Game.Horror.Scenes
                     _titleMenuRoot.SetActive(true);
             }
 
-            _inputService.ResolveControlScheme();
+            ResolveSelectable();
         }
     }
 }

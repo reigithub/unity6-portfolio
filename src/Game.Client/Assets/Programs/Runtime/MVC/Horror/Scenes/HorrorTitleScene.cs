@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
@@ -20,7 +19,7 @@ namespace Game.Horror.Scenes
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
-        private IReadOnlyList<HorrorSaveSlotInfo> _saveSlots;
+        private HorrorSaveSlotInfo[] _saveSlots;
         private bool _hasSaveData;
 
         public override async UniTask Startup()
@@ -93,6 +92,12 @@ namespace Game.Horror.Scenes
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);
                         await _sceneService.TransitionAsync<HorrorStageScene>();
+                    }
+                    else
+                    {
+                        _hasSaveData = _saveSlots.Any(x => x.HasData);
+                        await UniTask.Yield();
+                        SceneComponent.SetGameStartMenu(_hasSaveData);
                     }
                 })
                 .AddTo(Disposables);
