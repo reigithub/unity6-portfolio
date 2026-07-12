@@ -1,7 +1,5 @@
 using Game.Core.Services;
 using Game.Shared.Enums;
-using Game.Shared.Input;
-using Game.Shared.Localization;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services.Interfaces;
 using R3;
@@ -54,6 +52,7 @@ namespace Game.Horror.Interaction
         {
             _master = master;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
 
             _localizationService.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
             SetInteractionText();
