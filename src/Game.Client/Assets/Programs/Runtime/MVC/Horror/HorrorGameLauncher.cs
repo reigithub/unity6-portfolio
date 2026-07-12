@@ -9,6 +9,7 @@ using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror
 {
@@ -27,6 +28,8 @@ namespace Game.Horror
             // 各種サービス取得・初期化
             var assetService = new AddressableAssetService();
             GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
+            var localizationService = new LocalizationService();
+            GameServiceManager.Register<ILocalizationService, LocalizationService>(localizationService);
 
             var dbService = new ScriptableDatabaseService(assetService);
             GameServiceManager.Register<IScriptableDatabaseService, ScriptableDatabaseService>(dbService);
@@ -58,7 +61,7 @@ namespace Game.Horror
             HorrorOptionHelper.ApplySaveData(optionSaveRepository.Data);
 
             // キーリバインドのオーバーライドを起動時に適用
-            var inputSystemService = new InputSystemService();
+            var inputSystemService = new InputSystemService(localizationService);
             GameServiceManager.Register<IInputSystemService, InputSystemService>(inputSystemService);
             inputSystemService.LoadBindingOverrides(optionSaveRepository.Data.InputBindingOverridesJson);
 

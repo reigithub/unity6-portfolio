@@ -2,15 +2,13 @@ using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
-using Game.Shared.Input;
-using Game.Shared.Localization;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
 
@@ -22,6 +20,7 @@ namespace Game.Horror.Dialogs
 
         private IInputSystemService _inputService;
         private IAudioService _audioService;
+        private ILocalizationService _localizationService;
 
         private IHorrorOptionSaveRepository _optionSaveRepository;
         private IHorrorOptionService _optionService;
@@ -43,6 +42,7 @@ namespace Game.Horror.Dialogs
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _audioService = GameServiceManager.Resolve<IAudioService>();
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
             _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
             _optionService = GameServiceManager.Resolve<IHorrorOptionService>();
             return base.PreInitialize();
@@ -240,10 +240,10 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // ロケール変更でバインド表示名を再ローカライズ
-            LocalizationEvents.OnLocaleChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
+            _localizationService.OnLocaleChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
 
             // コントローラー接続/切替に追従して family 別表示を更新する
-            InputSystemEvents.OnDeviceChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
+            _inputService.OnDeviceChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
 
             return base.Startup();
         }

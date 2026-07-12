@@ -1,8 +1,7 @@
 using Game.Core.Services;
 using Game.Shared.Enums;
-using Game.Shared.Input;
-using Game.Shared.Localization;
 using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -44,6 +43,7 @@ namespace Game.Horror.Interaction
 
         private HorrorInteractionMaster _master;
         private IInputSystemService _inputService;
+        private ILocalizationService _localizationService;
 
         private Camera _viewCamera;
         private bool _interactionToggle;
@@ -52,15 +52,17 @@ namespace Game.Horror.Interaction
         {
             _master = master;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
 
-            LocalizationEvents.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
+            _localizationService.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
             SetInteractionText();
 
             _inputService.OnControlSchemeChanged.Subscribe(_ => SetInputBindingText()).AddTo(this);
+            _inputService.OnDeviceChanged.Subscribe(_ => SetInputBindingText()).AddTo(this);
             _inputService.OnBindingChanged
                 .Where(x => x == _inputService.Player.Interact)
-                .Subscribe(_ => SetInputBindingText()).AddTo(this);
-            InputSystemEvents.OnDeviceChanged.Subscribe(_ => SetInputBindingText()).AddTo(this);
+                .Subscribe(_ => SetInputBindingText())
+                .AddTo(this);
             SetInputBindingText();
 
             _inputTypeRoot.SetActive(master.InputType == InteractionInputType.Hold);
@@ -71,8 +73,8 @@ namespace Game.Horror.Interaction
         private void SetInteractionText()
         {
             _interactionText.text = !_interactionToggle
-                ? ContextActionsLocalizer.Localize(_master.InteractionVerbLocalizeKey)
-                : ContextActionsLocalizer.Localize(_master.ReinteractionVerbLocalizeKey);
+                ? _localizationService.GetStringByContextActions(_master.InteractionVerbLocalizeKey)
+                : _localizationService.GetStringByContextActions(_master.ReinteractionVerbLocalizeKey);
         }
 
         private void SetInputBindingText()

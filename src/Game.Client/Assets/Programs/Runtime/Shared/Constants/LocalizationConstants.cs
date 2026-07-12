@@ -6,5 +6,6 @@ namespace Game.Shared.Constants
         public const string ContextActionsTable = "ContextActions";
         public const string InteractionMessagesTable = "InteractionMessages";
         public const string InteractionsTable = "Interactions";
+        public const string UITextsTable = "UITexts";
     }
 }

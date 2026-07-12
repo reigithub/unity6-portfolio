@@ -18,7 +18,7 @@ namespace Game.Core.UI
         private bool _initialized;
 
         private readonly Subject<int> _onValueChanged = new();
-        public Observable<int> OnValueChanged => _onValueChanged.AsObservable();
+        public Observable<int> OnValueChanged => _onValueChanged;
 
         /// <summary>選択中の index。</summary>
         public int Index => Mathf.RoundToInt(_slider.value);

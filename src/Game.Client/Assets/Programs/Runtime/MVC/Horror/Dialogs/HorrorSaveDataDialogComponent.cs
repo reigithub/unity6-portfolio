@@ -3,8 +3,8 @@ using System.Linq;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Localization;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
 
@@ -27,6 +27,7 @@ namespace Game.Horror.Dialogs
         public void SetSlotInfos(IReadOnlyList<HorrorSaveSlotInfo> slots)
         {
             var database = GameServiceManager.Resolve<IScriptableDatabaseService>().Database;
+            var localization = GameServiceManager.Resolve<ILocalizationService>();
 
             foreach (var slot in slots)
             {
@@ -42,7 +43,7 @@ namespace Game.Horror.Dialogs
                 if (slot.HasData)
                 {
                     if (database.HorrorInteractionMasterTable.TryFindById(slot.SavepointId, out var master))
-                        savepointName = InteractionsLocalizer.Localize(master.InteractionLocalizeKey);
+                        savepointName = localization.GetStringByInteractions(master.InteractionLocalizeKey);
                     else
                         Debug.LogError($"[{GetType().Name}] HorrorInteractionMaster not found: SavepointId={slot.SavepointId}");
 

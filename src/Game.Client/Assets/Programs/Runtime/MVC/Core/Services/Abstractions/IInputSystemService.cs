@@ -28,8 +28,19 @@ namespace Game.Core.Services
         /// </summary>
         InputActionAsset InputActionAsset { get; }
 
+        /// <summary>
+        /// 操作スキーマ変更イベント
+        /// </summary>
         Observable<string> OnControlSchemeChanged { get; }
 
+        /// <summary>
+        /// 操作デバイス切替イベント
+        /// </summary>
+        Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged { get; }
+
+        /// <summary>
+        /// キーバインド変更イベント
+        /// </summary>
         Observable<InputAction> OnBindingChanged { get; }
 
         /// <summary>
