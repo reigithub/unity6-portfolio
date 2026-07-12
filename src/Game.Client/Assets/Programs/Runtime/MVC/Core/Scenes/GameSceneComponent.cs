@@ -58,7 +58,7 @@ namespace Game.MVC.Core.Scenes
         {
             SetInteractable(true);
             await UniTask.Yield();
-            _inputService.ResolveControlScheme(_selectedGameObject);
+            ResolveSelectable();
         }
 
         private async UniTask Unfocus(bool visible)
@@ -67,6 +67,9 @@ namespace Game.MVC.Core.Scenes
             await UniTask.Yield();
             SetInteractable(false, visible);
         }
+
+        protected void ResolveSelectable()
+            => _inputService.ResolveControlScheme(_selectedGameObject);
 
         public virtual void SetInteractable(bool interactable, bool visible = false)
         {
