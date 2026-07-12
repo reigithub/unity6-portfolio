@@ -218,7 +218,7 @@ namespace Game.Tests.MVC.Horror
 
             var infos = await _repository.LoadSlotInfosAsync();
 
-            Assert.That(infos.Count, Is.EqualTo(HorrorSaveConstants.MaxSaveSlotCount));
+            Assert.That(infos.Length, Is.EqualTo(HorrorSaveConstants.MaxSaveSlotCount));
             Assert.That(infos[0].SlotNo, Is.EqualTo(1));
             Assert.That(infos[0].HasData, Is.False);
         }
