@@ -12,7 +12,7 @@ namespace Game.Shared.Localization
         private string[] _strings;
 
         private readonly Subject<string[]> _onChangedLocale = new();
-        public Observable<string[]> OnChangedLocale => _onChangedLocale.AsObservable();
+        public Observable<string[]> OnChangedLocale => _onChangedLocale;
 
         private void Awake()
         {

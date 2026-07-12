@@ -3,7 +3,6 @@ using System.Linq;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Localization;
 using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
 using R3;
