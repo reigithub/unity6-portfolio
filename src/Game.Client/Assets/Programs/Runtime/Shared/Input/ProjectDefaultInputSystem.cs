@@ -717,9 +717,27 @@ namespace Game.Shared.Input
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""Previous2"",
+                    ""type"": ""Button"",
+                    ""id"": ""446dd5e7-64c3-4351-8ca2-0ad296370fe0"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""Next"",
                     ""type"": ""Button"",
                     ""id"": ""dcd979b2-1e00-4e7d-a2b9-66499d5fdd4e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Next2"",
+                    ""type"": ""Button"",
+                    ""id"": ""aae316fa-4601-42d2-b74f-6840a00ad9a4"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1251,6 +1269,28 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
+                    ""id"": ""a6f25601-32ff-4487-baca-3913a5886178"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Previous2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f35bc4eb-b26c-4b4b-999c-1fbe75e765ca"",
+                    ""path"": ""<Keyboard>/z"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Previous2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""0df5ba28-6137-4746-ad8d-69ed12654e5b"",
                     ""path"": ""<Gamepad>/rightShoulder"",
                     ""interactions"": """",
@@ -1268,6 +1308,28 @@ namespace Game.Shared.Input
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Next"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bba9f1fa-1238-4f51-b738-e3107bcb2415"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Next2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a3b2f4b7-3e11-4681-823e-6d0127a7d8d0"",
+                    ""path"": ""<Keyboard>/c"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Next2"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1430,7 +1492,9 @@ namespace Game.Shared.Input
             m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
             m_UI_Menu = m_UI.FindAction("Menu", throwIfNotFound: true);
             m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
+            m_UI_Previous2 = m_UI.FindAction("Previous2", throwIfNotFound: true);
             m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
+            m_UI_Next2 = m_UI.FindAction("Next2", throwIfNotFound: true);
             m_UI_Reset = m_UI.FindAction("Reset", throwIfNotFound: true);
             m_UI_Remove = m_UI.FindAction("Remove", throwIfNotFound: true);
             m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
@@ -1733,7 +1797,9 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_TrackedDeviceOrientation;
         private readonly InputAction m_UI_Menu;
         private readonly InputAction m_UI_Previous;
+        private readonly InputAction m_UI_Previous2;
         private readonly InputAction m_UI_Next;
+        private readonly InputAction m_UI_Next2;
         private readonly InputAction m_UI_Reset;
         private readonly InputAction m_UI_Remove;
         private readonly InputAction m_UI_Inventory;
@@ -1797,9 +1863,17 @@ namespace Game.Shared.Input
             /// </summary>
             public InputAction @Previous => m_Wrapper.m_UI_Previous;
             /// <summary>
+            /// Provides access to the underlying input action "UI/Previous2".
+            /// </summary>
+            public InputAction @Previous2 => m_Wrapper.m_UI_Previous2;
+            /// <summary>
             /// Provides access to the underlying input action "UI/Next".
             /// </summary>
             public InputAction @Next => m_Wrapper.m_UI_Next;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Next2".
+            /// </summary>
+            public InputAction @Next2 => m_Wrapper.m_UI_Next2;
             /// <summary>
             /// Provides access to the underlying input action "UI/Reset".
             /// </summary>
@@ -1874,9 +1948,15 @@ namespace Game.Shared.Input
                 @Previous.started += instance.OnPrevious;
                 @Previous.performed += instance.OnPrevious;
                 @Previous.canceled += instance.OnPrevious;
+                @Previous2.started += instance.OnPrevious2;
+                @Previous2.performed += instance.OnPrevious2;
+                @Previous2.canceled += instance.OnPrevious2;
                 @Next.started += instance.OnNext;
                 @Next.performed += instance.OnNext;
                 @Next.canceled += instance.OnNext;
+                @Next2.started += instance.OnNext2;
+                @Next2.performed += instance.OnNext2;
+                @Next2.canceled += instance.OnNext2;
                 @Reset.started += instance.OnReset;
                 @Reset.performed += instance.OnReset;
                 @Reset.canceled += instance.OnReset;
@@ -1933,9 +2013,15 @@ namespace Game.Shared.Input
                 @Previous.started -= instance.OnPrevious;
                 @Previous.performed -= instance.OnPrevious;
                 @Previous.canceled -= instance.OnPrevious;
+                @Previous2.started -= instance.OnPrevious2;
+                @Previous2.performed -= instance.OnPrevious2;
+                @Previous2.canceled -= instance.OnPrevious2;
                 @Next.started -= instance.OnNext;
                 @Next.performed -= instance.OnNext;
                 @Next.canceled -= instance.OnNext;
+                @Next2.started -= instance.OnNext2;
+                @Next2.performed -= instance.OnNext2;
+                @Next2.canceled -= instance.OnNext2;
                 @Reset.started -= instance.OnReset;
                 @Reset.performed -= instance.OnReset;
                 @Reset.canceled -= instance.OnReset;
@@ -2220,12 +2306,26 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnPrevious(InputAction.CallbackContext context);
             /// <summary>
+            /// Method invoked when associated input action "Previous2" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnPrevious2(InputAction.CallbackContext context);
+            /// <summary>
             /// Method invoked when associated input action "Next" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnNext(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Next2" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNext2(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Reset" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
