@@ -30,6 +30,8 @@ namespace Game.Core.Services
 
         Observable<string> OnControlSchemeChanged { get; }
 
+        Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged { get; }
+
         Observable<InputAction> OnBindingChanged { get; }
 
         /// <summary>

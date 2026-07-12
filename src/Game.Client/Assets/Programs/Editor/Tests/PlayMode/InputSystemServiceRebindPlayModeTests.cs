@@ -24,7 +24,7 @@ namespace Game.Tests.PlayMode
             base.Setup();
             _keyboard = InputSystem.AddDevice<Keyboard>();
             _gamepad = InputSystem.AddDevice<Gamepad>();
-            _service = new InputSystemService();
+            _service = new InputSystemService(new LocalizationService());
         }
 
         public override void TearDown()
@@ -56,7 +56,7 @@ namespace Game.Tests.PlayMode
             Assert.That(json, Is.Not.Null.And.Not.Empty);
 
             // 別インスタンスへロードして再現
-            var service2 = new InputSystemService();
+            var service2 = new InputSystemService(new LocalizationService());
             service2.Startup();
             yield return null;
             service2.LoadBindingOverrides(json);

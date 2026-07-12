@@ -4,37 +4,45 @@ using System.Linq;
 using Game.Shared.Bootstrap;
 using Game.Shared.Constants;
 using Game.Shared.Input;
-using Game.Shared.Localization;
+using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Game.Core.Services
 {
     public class InputSystemService : IInputSystemService, IDisposable
     {
+        private readonly ILocalizationService _localizationService;
+
         private ProjectDefaultInputSystem _inputSystem;
         private bool _isInitialized;
-
-        public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
-        public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
-
-        public InputActionAsset InputActionAsset => _inputSystem?.asset;
-
         private string _controlScheme = InputControlSchemes.DefaultControlScheme;
         private GameObject _selectedGameObject;
 
+        public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
+        public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
+        public InputActionAsset InputActionAsset => _inputSystem?.asset;
+
         private readonly Subject<string> _onControlSchemeChanged = new();
         public Observable<string> OnControlSchemeChanged => _onControlSchemeChanged;
+
+        public Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged
+            => Observable.FromEvent<Action<InputDevice, InputDeviceChange>, (InputDevice, InputDeviceChange)>(
+                h => (a, b) => h((a, b)),
+                h => InputSystem.onDeviceChange += h,
+                h => InputSystem.onDeviceChange -= h);
 
         private readonly Subject<InputAction> _onBindingChanged = new();
         public Observable<InputAction> OnBindingChanged => _onBindingChanged;
 
         #region Setup
 
-        public InputSystemService()
+        public InputSystemService(ILocalizationService localizationService)
         {
+            _localizationService = localizationService;
         }
 
         public void Startup()
@@ -112,9 +120,9 @@ namespace Game.Core.Services
 
         #endregion
 
-        public void ResolveSelectable(GameObject selectedGameObject = null)
+        private void ResolveSelectable(GameObject selectedGameObject = null)
         {
-            var allSelectables = InputSystemHelper.GetAllSelectables();
+            var allSelectables = GetAllSelectables();
             if (allSelectables.Length > 0)
             {
                 GameObject go = null;
@@ -147,6 +155,22 @@ namespace Game.Core.Services
 
             SetSelectedGameObject(null);
             Debug.Log("[InputService] No Selectables found");
+        }
+
+        private static Selectable[] GetAllSelectables()
+        {
+            Selectable[] allSelectables = Array.Empty<Selectable>();
+            int allCount = Selectable.allSelectableCount;
+            if (allCount > 0)
+                allSelectables = new Selectable[allCount];
+            else
+                return allSelectables;
+
+            int count = Selectable.AllSelectablesNoAlloc(allSelectables);
+            if (count > 0) return allSelectables;
+
+            allSelectables = Selectable.allSelectablesArray;
+            return allSelectables;
         }
 
         public GameObject GetSelectedGameObject()
@@ -218,7 +242,7 @@ namespace Game.Core.Services
             {
                 // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
                 var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                parts.Add(InputControlsLocalizer.Localize(deviceLayoutName, controlPath, raw));
+                parts.Add(_localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw));
             }
             return string.Join("/", parts);
         }
