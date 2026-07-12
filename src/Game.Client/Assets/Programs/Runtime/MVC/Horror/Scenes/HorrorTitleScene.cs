@@ -1,7 +1,14 @@
+using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Dialogs;
+using Game.Horror.SaveData;
+using Game.Horror.Services.Interfaces;
+using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Extensions;
 using R3;
 
 namespace Game.Horror.Scenes
@@ -10,22 +17,24 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorTitleScene";
 
-        private IGameSceneService _sceneService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+        private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private IReadOnlyList<HorrorSaveSlotInfo> _saveSlots;
+        private bool _hasSaveData;
 
-        public override UniTask PreInitialize()
+        public override async UniTask Startup()
         {
-            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
-            return base.PreInitialize();
-        }
+            _saveSlots = await _saveRepository.LoadSlotInfosAsync();
+            _hasSaveData = _saveSlots.Any(x => x.HasData);
 
-        public override UniTask Startup()
-        {
+            _inputService.UI.Cancel.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => SceneComponent.CloseGameStartMenu())
+                .AddTo(Disposables);
+
             SceneComponent.OnStart
-                .SubscribeAwait(async (_, _) =>
-                {
-                    SceneComponent.SetInteractable(false);
-                    await _sceneService.TransitionAsync<HorrorStageScene>();
-                })
+                .Subscribe(_ => SceneComponent.OpenGameStartMenu())
                 .AddTo(Disposables);
 
             SceneComponent.OnReturn
@@ -45,7 +54,53 @@ namespace Game.Horror.Scenes
                 })
                 .AddTo(Disposables);
 
-            return base.Startup();
+            SceneComponent.OnContinueGame
+                .SubscribeAwait(async (_, _) =>
+                {
+                    if (!_hasSaveData) return;
+
+                    // TODO: オートセーブスロットを含む最新のデータから開始
+                    var slotInfo = _saveSlots
+                        .Where(x => x.HasData)
+                        .OrderByDescending(x => x.SavedAtUtc)
+                        .FirstOrDefault();
+                    if (slotInfo != null)
+                    {
+                        int slotNo = slotInfo.SlotNo;
+                        if (slotNo > 0)
+                        {
+                            await _saveRepository.LoadBySlotAsync(slotNo);
+                            await _sceneService.TransitionAsync<HorrorStageScene>();
+                        }
+                    }
+                })
+                .AddTo(Disposables);
+
+            SceneComponent.OnLoadGame
+                .SubscribeAwait(async (_, _) =>
+                {
+                    if (!_hasSaveData) return;
+
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots);
+                    if (slotNo > 0)
+                    {
+                        await _saveRepository.LoadBySlotAsync(slotNo);
+                        await _sceneService.TransitionAsync<HorrorStageScene>();
+                    }
+                })
+                .AddTo(Disposables);
+
+            SceneComponent.OnNewGame
+                .SubscribeAwait(async (_, _) =>
+                {
+                    _saveRepository.CreateData();
+                    await _sceneService.TransitionAsync<HorrorStageScene>();
+                })
+                .AddTo(Disposables);
+
+            SceneComponent.Initialize(_hasSaveData);
+
+            await base.Startup();
         }
     }
 }
