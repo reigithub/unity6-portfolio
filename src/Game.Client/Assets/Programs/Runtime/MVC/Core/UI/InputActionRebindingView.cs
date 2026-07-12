@@ -10,7 +10,7 @@ namespace Game.Core.UI
     /// 現在のバインド表示と「変更」ボタンを持ち、押下を Observable で通知する。
     /// リバインド実行・重複判定などの入力ロジックは持たず、表示更新のみを担う。
     /// </summary>
-    public class InputActionRebindView : MonoBehaviour
+    public class InputActionRebindingView : MonoBehaviour
     {
         [Header("Identity")]
         [SerializeField] private string _scheme;            // コントロールスキーム（Keyboard&Mouse / Gamepad）
