@@ -2396,6 +2396,19 @@ Unity6Portfolio/
 | **影響** | 全API呼び出しが統一されたエラーハンドリングを持つ。プリセット（Default/Aggressive/Sensitive等）で呼び出し元の設定負担を最小化 |
 | **状態** | 採用済み |
 
+#### ADR-015: セーブデータ暗号化の鍵導出戦略（device-bound / portable 選択制）
+
+| 項目 | 内容 |
+|-----|------|
+| **決定** | `EncryptedSaveDataStorage` の鍵導出を `ISaveDataKeyProvider` 戦略として分離し、利用側が device-bound（`DeviceBoundKeyProvider`、KeySourceId=0x01）と portable（`AppSharedKeyProvider`、KeySourceId=0x02）を選択できるようにする。暗号化ファイルのヘッダ（FormatVersion=1）に KeySourceId / SaltVersion を記録し、HMAC-SHA256 の署名対象をヘッダ全体+暗号文に拡張する |
+| **背景** | 旧実装は `SystemInfo.deviceUniqueIdentifier` 固定の鍵導出で、(1) AppSalt を変更すると全セーブが改竄扱いになり実質変更不可、(2) Steam Cloud による複数デバイス間のセーブ共有が不可能だった |
+| **選択肢** | A) device-bound 固定を維持 B) 全面 portable 化 C) 鍵導出戦略の選択制（ヘッダに鍵ソースを記録し将来の移行余地を確保） |
+| **判断理由** | session（認証トークン）は端末に閉じ、ゲームセーブはデバイス間可搬にする等、鍵構成の選択は用途ごとに合成ルートが行う。VContainer は同一インターフェースの複数登録を区別できないため、session 用の登録スロットとして専用型 `SessionSaveDataStorage`（`ISessionSaveDataStorage` 実装）を設ける — この型は登録の型区別のみを担い、鍵構成は注入されるプロバイダーで決まる（型は方針を強制しない）。開発初期に検討した複数 readProviders + KeySource 自動アップグレード機構（`allowKeySourceUpgrade`）は、該当データの保有者が未リリースの開発環境のみだったためリリース物には採用せず、リリース前に使い捨てスクリプトで一括変換した上でコードから除去した |
+| **セキュリティ特性** | `AppSharedKeyProvider` の鍵材料はアプリ埋め込み定数であり、IL2CPP バイナリから抽出可能。本機構の保護レベルは全プロファイル共通で「難読化 + HMAC による改竄検知」であり機密保護ではない。`DeviceBoundKeyProvider` は非可搬であり、deviceId 変化時（OS 再インストール等）は復号不能＝新規データ扱いとなる（意図した割り切り） |
+| **Salt ローテーション手順** | 各プロバイダーが Salt 世代辞書を所有し、`ISaveDataKeyProvider.CurrentSaltVersion` を書き込み世代として使用する。ローテーション時は新世代キーを辞書へ追加し既存エントリは変更しない（読み込み互換）。書き込みは常に最新世代、ファイルのヘッダ SaltVersion が最新世代と異なる場合はロード成功時に自動再保存でアップグレードされる（プロバイダー内で完結し、KeySource をまたがない） |
+| **影響** | 物理 I/O（アトミック書き込み・per-key ロック・リトライ）は `SaveDataStorage` の byte[] 層に集約し、暗号化層は単一の `ISaveDataKeyProvider` を保持する薄いデコレーターになった。レガシー平文（非 ESDS）ファイルの読み込み・自動暗号化移行パスは維持（MVC 暗号化有効化時に使用）。開発期の旧レイアウト（KeySourceId を持たない初期フォーマット）の読み込み互換と KeySource をまたぐ自動アップグレードはリリース物に含めない: 該当データはリリース前に使い捨てスクリプトで一括変換し、コードから除去した。FormatVersion はリリースされる形式を 1 として付番する（開発期の中間フォーマットの版数はフィールドに存在しないため引き継がない）。KeySourceId ヘッダバイト（1B）は将来 SteamAccount（KeySourceId=0x03）等への実際の KeySource 移行が要件化した時点で read 側を複数プロバイダー対応に拡張するための予約として維持する |
+| **状態** | 採用済み |
+
 ### 11.2 既知の技術的負債
 
 | 項目                | 内容 | 優先度 | 状態 |

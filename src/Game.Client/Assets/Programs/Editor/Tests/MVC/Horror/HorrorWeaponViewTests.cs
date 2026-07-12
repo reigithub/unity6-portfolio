@@ -69,18 +69,103 @@ namespace Game.Tests.MVC.Horror
 
         [Test]
         public void CalculateLocalPosition_NoLowerNoBlend_IsBase()
-            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 0f), Is.EqualTo(BasePosition));
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 0f, Vector3.zero, 0f), Is.EqualTo(BasePosition));
 
         [Test]
         public void CalculateLocalPosition_FullBlend_IsBasePlusAimOffset()
-            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 1f), Is.EqualTo(BasePosition + AimOffset));
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 1f, Vector3.zero, 0f), Is.EqualTo(BasePosition + AimOffset));
 
         [Test]
         public void CalculateLocalPosition_FullLower_IsBasePlusDownOffset()
-            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 0f), Is.EqualTo(BasePosition + DownOffset));
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 0f, Vector3.zero, 0f), Is.EqualTo(BasePosition + DownOffset));
 
         [Test]
         public void CalculateLocalPosition_FullLowerAndBlend_IsBasePlusBothOffsets()
-            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 1f), Is.EqualTo(BasePosition + DownOffset + AimOffset));
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 1f, AimOffset, 1f, Vector3.zero, 0f), Is.EqualTo(BasePosition + DownOffset + AimOffset));
+
+        // 発砲キックオフセットの合成：recoilWeight は基準位置に recoilOffset を線形加算する。
+
+        private static readonly Vector3 RecoilOffset = new(0f, 0.02f, -0.04f);
+
+        [Test]
+        public void CalculateLocalPosition_FullRecoil_IsBasePlusRecoilOffset()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 0f, RecoilOffset, 1f), Is.EqualTo(BasePosition + RecoilOffset));
+
+        [Test]
+        public void CalculateLocalPosition_HalfRecoil_AddsHalfRecoilOffset()
+            => Assert.That(HorrorWeaponView.CalculateLocalPosition(BasePosition, DownOffset, 0f, AimOffset, 0f, RecoilOffset, 0.5f), Is.EqualTo(BasePosition + RecoilOffset * 0.5f));
+
+        // リロード傾き量：開始 transitionSeconds で 0→1（傾け）、終端 transitionSeconds で 1→0（戻し）、間は 1 を保持する台形カーブ。
+
+        [Test]
+        public void CalculateReloadTiltWeight_AtStart_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0f, 3f, 0.4f), Is.EqualTo(0f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_DuringTiltTransition_IsHalfway()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.2f, 3f, 0.4f), Is.EqualTo(0.5f).Within(1e-4f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_DuringHold_IsOne()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(1.5f, 3f, 0.4f), Is.EqualTo(1f).Within(1e-4f));
+
+        [Test]
+        public void CalculateReloadTiltWeight_AtEnd_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(3f, 3f, 0.4f), Is.EqualTo(0f).Within(1e-4f));
+
+        // duration<=0 はゼロ除算を避けて 0 とみなす
+        [Test]
+        public void CalculateReloadTiltWeight_ZeroDuration_IsZero()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.5f, 0f, 0.4f), Is.EqualTo(0f));
+
+        // transitionSeconds<=0 は最小値でガードされ、例外なく 0-1 に収まる
+        [Test]
+        public void CalculateReloadTiltWeight_ZeroTransitionSeconds_IsClampedWithinUnitRange()
+        {
+            var result = HorrorWeaponView.CalculateReloadTiltWeight(0.5f, 1f, 0f);
+            Assert.That(result, Is.InRange(0f, 1f));
+        }
+
+        // duration より遷移区間（transitionSeconds * 2）が大きい場合、保持区間なしの三角波化しても 0-1 にクランプされる
+        [Test]
+        public void CalculateReloadTiltWeight_TransitionLongerThanDuration_IsClamped()
+            => Assert.That(HorrorWeaponView.CalculateReloadTiltWeight(0.25f, 0.5f, 0.4f), Is.EqualTo(0.625f).Within(1e-4f));
+
+        // WeaponRoot ローカル回転の算出：基準回転にリロード傾き（ロール角 × 傾き量）を合成する。
+
+        private static readonly Quaternion BaseRotation = Quaternion.Euler(10f, 20f, 30f);
+        private const float TiltAngle = -35f;
+
+        [Test]
+        public void CalculateLocalRotation_WeightZero_EqualsBaseRotation()
+            => Assert.That(Quaternion.Angle(HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 0f, 0f, 0f), BaseRotation), Is.EqualTo(0f).Within(1e-3f));
+
+        [Test]
+        public void CalculateLocalRotation_WeightOne_EqualsBaseRotationTimesTilt()
+        {
+            var expected = BaseRotation * Quaternion.Euler(0f, 0f, TiltAngle);
+            var actual = HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 1f, 0f, 0f);
+            Assert.That(Quaternion.Angle(actual, expected), Is.EqualTo(0f).Within(1e-3f));
+        }
+
+        // 発砲キックの跳ね上げ合成：recoilWeight は基準回転に -recoilKickAngle のピッチ回転を合成する（正で銃口が上を向く）。
+
+        private const float RecoilKickAngle = 3f;
+
+        [Test]
+        public void CalculateLocalRotation_FullRecoil_PitchesUpByKickAngle()
+        {
+            var expected = BaseRotation * Quaternion.Euler(-RecoilKickAngle, 0f, 0f);
+            var actual = HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 0f, RecoilKickAngle, 1f);
+            Assert.That(Quaternion.Angle(actual, expected), Is.EqualTo(0f).Within(1e-3f));
+        }
+
+        [Test]
+        public void CalculateLocalRotation_RecoilWithTilt_CombinesBothRotations()
+        {
+            var expected = BaseRotation * Quaternion.Euler(-RecoilKickAngle, 0f, TiltAngle);
+            var actual = HorrorWeaponView.CalculateLocalRotation(BaseRotation, TiltAngle, 1f, RecoilKickAngle, 1f);
+            Assert.That(Quaternion.Angle(actual, expected), Is.EqualTo(0f).Within(1e-3f));
+        }
     }
 }

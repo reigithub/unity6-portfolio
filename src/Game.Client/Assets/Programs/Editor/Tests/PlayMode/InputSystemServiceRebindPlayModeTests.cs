@@ -34,8 +34,8 @@ namespace Game.Tests.PlayMode
             base.TearDown();
         }
 
-        private InputAction PlayerAction(InputSystemService service, string name)
-            => service.Asset.FindActionMap("Player").FindAction(name);
+        private InputAction PlayerAction(IInputSystemService service, string name)
+            => service.InputActionAsset.FindActionMap("Player").FindAction(name);
 
         private int FirstIndex(InputAction action, string scheme)
             => InputSystemService.ResolveSchemeBindingIndices(scheme, action)[0];

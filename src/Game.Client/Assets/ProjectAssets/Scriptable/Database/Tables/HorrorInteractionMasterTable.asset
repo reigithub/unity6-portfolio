@@ -17,87 +17,109 @@ MonoBehaviour:
     _name: Key
     _inputType: 0
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _acquiredId: 1
     _acquiredCount: 1
-    _checkpointSave: 0
   - _id: 2
     _name: Key
     _inputType: 1
     _holdSeconds: 2
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _acquiredId: 2
     _acquiredCount: 1
-    _checkpointSave: 0
   - _id: 3
     _name: Door1
     _inputType: 2
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: Open
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
     _requiredItemId: 2
     _acquiredId: 0
     _acquiredCount: 0
-    _checkpointSave: 0
   - _id: 4
     _name: Soft_Chair
     _inputType: 2
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: Move
     _reinteractionVerbLocalizeKey: Move
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _acquiredId: 0
     _acquiredCount: 0
-    _checkpointSave: 0
   - _id: 5
     _name: Key3
     _inputType: 0
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
-    _acquiredId: 0
-    _acquiredCount: 0
-    _checkpointSave: 1
+    _acquiredId: 3
+    _acquiredCount: 1
   - _id: 6
     _name: Door2
     _inputType: 2
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: Open
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
     _requiredItemId: 3
     _acquiredId: 0
     _acquiredCount: 0
-    _checkpointSave: 0
   - _id: 7
     _name: Handgun
     _inputType: 0
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _acquiredId: 1
     _acquiredCount: 1
-    _checkpointSave: 0
   - _id: 8
     _name: Smoke
     _inputType: 0
     _holdSeconds: 0
+    _interactionLocalizeKey: 
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
     _requiredItemId: 0
     _acquiredId: 2
     _acquiredCount: 1
-    _checkpointSave: 0
+  - _id: 9
+    _name: Handgun Ammo
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionLocalizeKey: 
+    _interactionVerbLocalizeKey: PickUp
+    _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
+    _requiredItemId: 0
+    _acquiredId: 4
+    _acquiredCount: 12
+  - _id: 10
+    _name: Savepoint
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionLocalizeKey: Abandoned_Asylum_1F
+    _interactionVerbLocalizeKey: Save
+    _reinteractionVerbLocalizeKey: 
+    _rejectionMessageLocalizeKey: 
+    _requiredItemId: 0
+    _acquiredId: 0
+    _acquiredCount: 0

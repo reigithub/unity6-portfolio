@@ -12,9 +12,6 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorEquipmentSaveData
     {
-        /// <summary>セーブデータバージョン（マイグレーション用）</summary>
-        public int Version { get; set; } = 1;
-
         /// <summary>装備中のスロット種別。未装備は None。</summary>
         public InventorySlotType SlotType { get; set; }
 
@@ -25,6 +22,9 @@ namespace Game.Horror.SaveData
         /// ショートカットスロット（index 0-3 ↔ 番号 1-4）。スロット数はサービスが 4 に整える。
         /// </summary>
         public List<HorrorEquipmentSlotData> Slots { get; set; } = new();
+
+        /// <summary>武器ごとの弾倉残弾（AmmoItemId>0 の武器のみ記録。未記録は満タン扱い）。</summary>
+        public List<HorrorWeaponMagazineData> Magazines { get; set; } = new();
     }
 
     /// <summary>ショートカット1枠分の保存レコード。空スロットは <see cref="SlotType"/> が None。</summary>
@@ -34,5 +34,14 @@ namespace Game.Horror.SaveData
         public InventorySlotType SlotType { get; set; }
 
         public int Id { get; set; }
+    }
+
+    /// <summary>武器1丁分の弾倉残弾レコード。</summary>
+    [MemoryPackable]
+    public partial class HorrorWeaponMagazineData
+    {
+        public int WeaponId { get; set; }
+
+        public int Count { get; set; }
     }
 }

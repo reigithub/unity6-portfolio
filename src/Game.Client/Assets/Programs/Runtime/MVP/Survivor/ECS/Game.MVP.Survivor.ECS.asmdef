@@ -15,7 +15,8 @@
         "Unity.AI.Navigation",
         "R3.Unity",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

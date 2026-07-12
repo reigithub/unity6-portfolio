@@ -23,10 +23,10 @@ namespace Game.ScoreTimeAttack.UI
         public static async UniTask<bool> RunAsync(float countdown = 3f)
         {
             bool result;
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             {
-                var sceneService = GameServiceManager.Get<GameSceneService>();
+                var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<GameCountdownUIDialog, float, bool>(countdown);
             }
             return result;

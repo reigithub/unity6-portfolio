@@ -20,6 +20,8 @@ namespace Game.Core.Services
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
+        public InputActionAsset InputActionAsset => _inputSystem?.asset;
+
         private string _controlScheme = InputControlSchemes.DefaultControlScheme;
         private GameObject _selectedGameObject;
 
@@ -194,8 +196,6 @@ namespace Game.Core.Services
         }
 
         #region Rebinding
-
-        public InputActionAsset Asset => _inputSystem?.asset;
 
         /// <summary>Player マップから指定名のアクションを解決する（露出対象は Player のみ）。</summary>
         private InputAction ResolveAction(string actionName)

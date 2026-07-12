@@ -84,7 +84,7 @@ namespace Game.Horror.Inventory
         private void FocusFirst()
         {
             if (_entries.Count == 0) return;
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             inputService.SetSelectedGameObject(_entries[0].Selectable.gameObject);
         }
 

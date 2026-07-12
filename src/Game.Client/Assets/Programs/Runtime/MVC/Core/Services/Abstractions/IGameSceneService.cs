@@ -96,5 +96,11 @@ namespace Game.Core.Services
         /// </summary>
         /// <param name="clearHistory">履歴もクリアするか</param>
         UniTask TerminateLastAsync(bool clearHistory = false);
+
+        /// <summary>
+        /// 全てのシーンを終了
+        /// </summary>
+        /// <returns></returns>
+        UniTask TerminateAllAsync();
     }
 }

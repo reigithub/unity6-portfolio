@@ -11,9 +11,6 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorInventorySaveData
     {
-        /// <summary>セーブデータバージョン（マイグレーション用）</summary>
-        public int Version { get; set; } = 1;
-
         /// <summary>所持アイテム一覧（追加順）</summary>
         public List<HorrorInventorySlotData> Slots { get; set; } = new();
     }

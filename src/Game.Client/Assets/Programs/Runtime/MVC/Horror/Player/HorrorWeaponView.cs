@@ -11,10 +11,14 @@ namespace Game.Horror.Player
     /// <summary>
     /// Horror 一人称視点の武器モデル表示。カメラ子ソケット WeaponRoot にアタッチし、
     /// 装備中武器のモデル生成・表示切替を担う。演出クロックは持たず、<see cref="HorrorPlayerController"/> の
-    /// EquippingState が持つ経過時間を <see cref="BeginSwitch"/> / <see cref="TickSwitch"/> 経由で受け取って駆動する
+    /// EquippingState / ReloadingState が持つ経過時間を <see cref="BeginSwitch"/> / <see cref="TickSwitch"/> /
+    /// <see cref="TickReload"/> 経由で受け取って駆動する
     /// （単一クロック設計。View 独自のタイマーや UniTask 演出ループは持たない）。
-    /// WeaponRoot ローカル位置への書き込みは <see cref="UpdatePose"/> に一元化されており、
-    /// 切替演出の下げ量とエイム構えオフセットの合成もそこでのみ行われる。
+    /// 発砲キックのみ例外で、<see cref="NotifyFired"/> が立てたインパルスを <see cref="UpdatePose"/> 内で
+    /// 自己減衰させる（発砲インパルスは AttackingState の滞在時間より長く残り得るため。
+    /// <see cref="HorrorReticleView"/> の NotifyFired と同イディオム）。
+    /// WeaponRoot ローカル位置・回転への書き込みは <see cref="UpdatePose"/> に一元化されており、
+    /// 切替演出の下げ量・エイム構えオフセット・リロード傾き・発砲キックの合成もそこでのみ行われる。
     /// </summary>
     public class HorrorWeaponView : MonoBehaviour
     {
@@ -24,6 +28,21 @@ namespace Game.Horror.Player
         [Tooltip("エイム時に武器を構える相対オフセット（WeaponRoot ローカル座標）")]
         [SerializeField] private Vector3 _aimOffset = new(-0.25f, 0.1f, 0f);
 
+        [Tooltip("リロード演出で武器を傾けるロール角（度）。正で右傾き")]
+        [SerializeField] private float _reloadTiltAngle = 35f;
+
+        [Tooltip("リロード演出の傾け・戻しの遷移秒数")]
+        [SerializeField] private float _reloadTiltSeconds = 0.4f;
+
+        [Tooltip("発砲キックで武器を後退させる相対オフセット（WeaponRoot ローカル座標）")]
+        [SerializeField] private Vector3 _recoilOffset = new(0f, 0.02f, -0.04f);
+
+        [Tooltip("発砲キックの跳ね上げ角（度）。正で銃口が上を向く")]
+        [SerializeField] private float _recoilKickAngle = 3f;
+
+        [Tooltip("発砲キックが収まるまでの秒数")]
+        [SerializeField] private float _recoilRecoverSeconds = 0.15f;
+
         private IAddressableAssetService _assetService;
 
         // 武器マスター Id をキーにした Addressables プレハブハンドルキャッシュ（OnDestroy で ReleaseAsset）
@@ -32,11 +51,20 @@ namespace Game.Horror.Player
         // 武器マスター Id をキーにした生成済みモデルインスタンス（WeaponRoot 子。プレイヤー破棄カスケードで自動破棄）
         private readonly Dictionary<int, GameObject> _models = new();
 
+        // 武器マスター Id をキーにしたマズルフラッシュプレハブハンドルキャッシュ（OnDestroy で ReleaseAsset）
+        private readonly Dictionary<int, GameObject> _muzzleFlashPrefabs = new();
+
+        // 武器マスター Id をキーにした生成済みマズルフラッシュインスタンス（モデルの Muzzle ソケット子。プレイヤー破棄カスケードで自動破棄）
+        private readonly Dictionary<int, ParticleSystem> _muzzleFlashes = new();
+
         // ロード中の Id（ShowImmediate / PreloadAsync / BeginSwitch 起点のロードが同一 Id で重複しないようにする）
         private readonly HashSet<int> _loading = new();
 
         private Vector3 _baseLocalPosition;
+        private Quaternion _baseLocalRotation;
         private float _lowerAmount; // 切替演出の下げ量（0-1）。TickSwitch が更新し UpdatePose が消費する
+        private float _reloadTiltWeight; // リロード演出の傾き量（0-1）。TickReload が更新し UpdatePose が消費する
+        private float _recoilWeight; // 発砲キックのインパルス（0-1）。NotifyFired が 1 にし UpdatePose が自己減衰させながら消費する
         private int _currentId = -1;
         private bool _disposed;
 
@@ -48,6 +76,7 @@ namespace Game.Horror.Player
         private void Awake()
         {
             _baseLocalPosition = transform.localPosition;
+            _baseLocalRotation = transform.localRotation;
         }
 
         private void OnDestroy()
@@ -57,9 +86,15 @@ namespace Game.Horror.Player
             // モデルインスタンス自体はプレイヤー破棄カスケードで自動破棄されるため、ここではプレハブハンドルのみ解放する
             foreach (var prefab in _prefabs.Values)
             {
-                _assetService?.ReleaseAsset(prefab);
+                _assetService?.Release(prefab);
             }
             _prefabs.Clear();
+
+            foreach (var flashPrefab in _muzzleFlashPrefabs.Values)
+            {
+                _assetService?.Release(flashPrefab);
+            }
+            _muzzleFlashPrefabs.Clear();
         }
 
         /// <summary>
@@ -67,7 +102,7 @@ namespace Game.Horror.Player
         /// </summary>
         public void Initialize()
         {
-            _assetService = GameServiceManager.Get<AddressableAssetService>();
+            _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
         }
 
         /// <summary>
@@ -137,13 +172,48 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 武器の構え位置を毎フレーム反映する。<see cref="HorrorPlayerController"/> の各ステート Update
-        /// （装備切替中は TickSwitch の後）から UpdateAimPose 経由で呼ばれ、
-        /// 切替演出の下げ量とエイムブレンドを合成した唯一の位置書き込み点となる。
+        /// リロード演出を毎フレーム進行させる。ReloadingState.Update から呼ばれる。
+        /// ReloadingState の経過時間を唯一のクロックとして受け取り、傾き量を更新する。
+        /// </summary>
+        public void TickReload(float elapsed, float duration)
+        {
+            _reloadTiltWeight = CalculateReloadTiltWeight(elapsed, duration, _reloadTiltSeconds);
+        }
+
+        /// <summary>
+        /// リロード演出の傾きを即時解除する。ReloadingState.Exit から呼ばれる（中断・完了とも確実にリセット）。
+        /// </summary>
+        public void ResetReload()
+        {
+            _reloadTiltWeight = 0f;
+        }
+
+        /// <summary>
+        /// 武器の構え位置・傾きを毎フレーム反映する。<see cref="HorrorPlayerController"/> の各ステート Update
+        /// （装備切替中は TickSwitch の後、リロード中は TickReload の後）から UpdateAimPose 経由で呼ばれ、
+        /// 切替演出の下げ量・エイムブレンド・発砲キックを合成した唯一の位置・回転書き込み点となる。
+        /// 発砲キックのインパルスはここで自己減衰させる（<see cref="NotifyFired"/> 側にはタイマーを持たせない）。
         /// </summary>
         public void UpdatePose(float aimBlend)
         {
-            transform.localPosition = CalculateLocalPosition(_baseLocalPosition, _downOffset, _lowerAmount, _aimOffset, aimBlend);
+            _recoilWeight = Mathf.MoveTowards(_recoilWeight, 0f, Time.deltaTime / Mathf.Max(_recoilRecoverSeconds, 0.0001f));
+            transform.localPosition = CalculateLocalPosition(_baseLocalPosition, _downOffset, _lowerAmount, _aimOffset, aimBlend, _recoilOffset, _recoilWeight);
+            transform.localRotation = CalculateLocalRotation(_baseLocalRotation, _reloadTiltAngle, _reloadTiltWeight, _recoilKickAngle, _recoilWeight);
+        }
+
+        /// <summary>
+        /// 発砲キックを開始する。<see cref="HorrorPlayerController.Fire"/> から呼ばれ、
+        /// 武器モデルが一瞬後退・跳ね上がりながら素早く戻り、マズルフラッシュを再生する。
+        /// </summary>
+        public void NotifyFired()
+        {
+            _recoilWeight = 1f;
+
+            if (_muzzleFlashes.TryGetValue(_currentId, out var flash) && flash != null)
+            {
+                flash.Clear(true);
+                flash.Play(true);
+            }
         }
 
         // 入替点で旧モデルを非表示にし、新モデルが生成済みなら表示する（未生成ならロード完了側で表示される）
@@ -176,7 +246,7 @@ namespace Game.Horror.Player
 
                     if (_disposed)
                     {
-                        _assetService.ReleaseAsset(prefab);
+                        _assetService.Release(prefab);
                         return null;
                     }
 
@@ -192,12 +262,68 @@ namespace Game.Horror.Player
                 model.SetActive(_currentId == master.Id);
                 _models[master.Id] = model;
 
+                if (!string.IsNullOrEmpty(master.MuzzleFlashAssetName))
+                {
+                    await LoadMuzzleFlashAsync(master, model);
+                }
+
                 return model;
             }
             finally
             {
                 _loading.Remove(master.Id);
             }
+        }
+
+        // マズルフラッシュのプレハブをロード（未取得ならキャッシュ）し、モデルの Muzzle ソケット子として生成する。
+        // 既に生成済み（_muzzleFlashes 登録済み）なら何もしない。
+        private async UniTask LoadMuzzleFlashAsync(HorrorWeaponMaster master, GameObject model)
+        {
+            if (!_muzzleFlashPrefabs.TryGetValue(master.Id, out var flashPrefab))
+            {
+                flashPrefab = await _assetService.LoadAssetAsync<GameObject>(master.MuzzleFlashAssetName)
+                    .AttachExternalCancellation(destroyCancellationToken);
+
+                if (_disposed)
+                {
+                    _assetService.Release(flashPrefab);
+                    return;
+                }
+
+                _muzzleFlashPrefabs[master.Id] = flashPrefab;
+            }
+
+            if (_muzzleFlashes.ContainsKey(master.Id)) return;
+
+            var socket = model.transform.Find("Muzzle");
+            if (socket == null)
+            {
+                Debug.LogWarning($"HorrorWeaponView: Muzzle ソケットが見つかりません（武器 Id={master.Id}）。モデルルートへフォールバックします。");
+                socket = model.transform;
+            }
+
+            var flashInstance = Object.Instantiate(flashPrefab, socket);
+            flashInstance.transform.localPosition = Vector3.zero;
+            flashInstance.transform.localRotation = Quaternion.identity;
+            flashInstance.SetLayerRecursively(gameObject.layer);
+
+            // ParticlePack のプレハブはデモ表示用に looping=true / playOnAwake=true で設定されているため、
+            // NotifyFired からの明示 Play/Stop 制御に統一するべく全パーティクルシステムで無効化する
+            foreach (var particle in flashInstance.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = particle.main;
+                main.loop = false;
+                main.playOnAwake = false;
+            }
+
+            if (!flashInstance.TryGetComponent<ParticleSystem>(out var rootParticle))
+            {
+                Debug.LogWarning($"HorrorWeaponView: マズルフラッシュのルートに ParticleSystem がありません（武器 Id={master.Id}）。");
+                return;
+            }
+
+            rootParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            _muzzleFlashes[master.Id] = rootParticle;
         }
 
         /// <summary>
@@ -218,10 +344,10 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 基準位置に切替演出の下げオフセットとエイム構えオフセットを合成した WeaponRoot ローカル位置を算出する。
+        /// 基準位置に切替演出の下げオフセット・エイム構えオフセット・発砲キックオフセットを合成した WeaponRoot ローカル位置を算出する。
         /// </summary>
-        public static Vector3 CalculateLocalPosition(Vector3 basePosition, Vector3 downOffset, float lowerAmount, Vector3 aimOffset, float aimBlend)
-            => basePosition + downOffset * lowerAmount + aimOffset * aimBlend;
+        public static Vector3 CalculateLocalPosition(Vector3 basePosition, Vector3 downOffset, float lowerAmount, Vector3 aimOffset, float aimBlend, Vector3 recoilOffset, float recoilWeight)
+            => basePosition + downOffset * lowerAmount + aimOffset * aimBlend + recoilOffset * recoilWeight;
 
         /// <summary>
         /// モデル入替点（中間点）を通過したかを判定する。初回装備（<paramref name="skipPutDown"/>）は
@@ -231,5 +357,25 @@ namespace Game.Horror.Player
         {
             return skipPutDown || elapsed >= duration * 0.5f;
         }
+
+        /// <summary>
+        /// リロード演出の傾き量（0-1）を算出する。開始から transitionSeconds で 0→1（傾け）、
+        /// 終端の transitionSeconds で 1→0（戻し）、間は 1 を保持する台形カーブ。
+        /// duration が 0 以下なら 0。transitionSeconds が短い duration では自然に三角波化する。
+        /// </summary>
+        public static float CalculateReloadTiltWeight(float elapsed, float duration, float transitionSeconds)
+        {
+            if (duration <= 0f) return 0f;
+
+            var t = Mathf.Max(transitionSeconds, 0.0001f);
+            return Mathf.Clamp01(Mathf.Min(elapsed / t, (duration - elapsed) / t));
+        }
+
+        /// <summary>
+        /// 基準回転にリロード傾き（ロール角 × 傾き量）と発砲キックの跳ね上げ（ピッチ角 × キック量）を合成した
+        /// WeaponRoot ローカル回転を算出する。
+        /// </summary>
+        public static Quaternion CalculateLocalRotation(Quaternion baseRotation, float tiltAngle, float tiltWeight, float recoilKickAngle, float recoilWeight)
+            => baseRotation * Quaternion.Euler(-recoilKickAngle * recoilWeight, 0f, tiltAngle * tiltWeight);
     }
 }

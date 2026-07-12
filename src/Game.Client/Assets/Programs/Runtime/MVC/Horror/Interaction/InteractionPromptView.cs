@@ -43,7 +43,7 @@ namespace Game.Horror.Interaction
         [SerializeField] private TextMeshProUGUI _inputTypeText;
 
         private HorrorInteractionMaster _master;
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
 
         private Camera _viewCamera;
         private bool _interactionToggle;
@@ -51,7 +51,7 @@ namespace Game.Horror.Interaction
         public void Initialize(HorrorInteractionMaster master)
         {
             _master = master;
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
 
             LocalizationEvents.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
             SetInteractionText();

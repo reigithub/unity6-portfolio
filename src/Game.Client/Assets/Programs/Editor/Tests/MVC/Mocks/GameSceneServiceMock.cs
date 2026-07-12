@@ -221,6 +221,11 @@ namespace Game.Editor.Tests
             if (clearHistory) _gameScenes.RemoveAt(lastIndex);
         }
 
+        public UniTask TerminateAllAsync()
+        {
+            return UniTask.CompletedTask;
+        }
+
         // UnitySceneメソッドはモックのため空実装
         public UniTask<SceneInstance> LoadUnitySceneAsync(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Additive, bool activateOnLoad = true)
         {

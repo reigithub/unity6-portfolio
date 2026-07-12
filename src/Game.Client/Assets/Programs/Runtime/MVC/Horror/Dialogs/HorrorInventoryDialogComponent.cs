@@ -1,9 +1,10 @@
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.Horror.Inventory;
-using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -21,7 +22,7 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
         private HorrorInventorySlotView _submittedSlot;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
@@ -33,7 +34,7 @@ namespace Game.Horror.Dialogs
 
         public void Initialize()
         {
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
 
             _tabGroup.Initialize();
             BindSlots();
@@ -52,9 +53,9 @@ namespace Game.Horror.Dialogs
 
         private void BindSlots()
         {
-            var inventory = GameServiceManager.Resolve<HorrorInventorySaveService>();
-            var slots = inventory.Data.Slots;
-            var database = GameServiceManager.Get<ScriptableDatabaseService>().Database;
+            var inventory = GameServiceManager.Resolve<IHorrorInventoryService>();
+            var slots = inventory.Slots;
+            var database = GameServiceManager.Resolve<IScriptableDatabaseService>().Database;
             for (int i = 0; i < _slots.Length; i++)
             {
                 _slots[i].Initialize();

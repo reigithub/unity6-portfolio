@@ -107,5 +107,54 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateAimedDamage_AimingWithUnitMultiplier_ReturnsBaseDamage()
             => Assert.That(HorrorPlayerController.CalculateAimedDamage(34, true, 1.0f), Is.EqualTo(34));
+
+        // リロード装填数：弾倉不足分と予備所持数の小さい方。満タン・予備0は0、異常値（弾倉>容量）でも負にならない。
+
+        [Test]
+        public void CalculateReloadAmount_EmptyMagazineWithEnoughReserve_ReturnsMagazineSize()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(0, 10, 100), Is.EqualTo(10));
+
+        [Test]
+        public void CalculateReloadAmount_PartialMagazine_ReturnsShortfall()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 100), Is.EqualTo(6));
+
+        [Test]
+        public void CalculateReloadAmount_InsufficientReserve_ReturnsReserveAmount()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 3), Is.EqualTo(3));
+
+        [Test]
+        public void CalculateReloadAmount_FullMagazine_ReturnsZero()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(10, 10, 100), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateReloadAmount_ZeroReserve_ReturnsZero()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(4, 10, 0), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateReloadAmount_MagazineExceedsSize_DoesNotGoNegative()
+            => Assert.That(HorrorPlayerController.CalculateReloadAmount(15, 10, 100), Is.EqualTo(0));
+
+        // カメラリコイル表示 pitch：pitch - recoilPitch * weight（±89° クランプ込み）。
+        // weight 0 は無補正、weight 1 は満額減算、中間 weight は按分、クランプは両端で効く。
+
+        [Test]
+        public void CalculateRecoiledPitch_ZeroWeight_ReturnsPitch()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 0f), Is.EqualTo(10f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_FullWeight_SubtractsRecoilPitch()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 1f), Is.EqualTo(7.5f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_DecayedWeight_SubtractsScaledRecoil()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(10f, 2.5f, 0.5f), Is.EqualTo(8.75f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_BeyondUpperLimit_ClampsToNegative89()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(-88f, 5f, 1f), Is.EqualTo(-89f).Within(1e-4f));
+
+        [Test]
+        public void CalculateRecoiledPitch_BeyondLowerLimit_ClampsTo89()
+            => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(88f, -5f, 1f), Is.EqualTo(89f).Within(1e-4f));
     }
 }

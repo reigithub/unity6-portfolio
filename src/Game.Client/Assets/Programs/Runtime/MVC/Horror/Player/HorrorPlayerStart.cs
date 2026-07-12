@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Shared.Extensions;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -14,7 +15,7 @@ namespace Game.Horror.Player
 
         public async UniTask<HorrorPlayerController> LoadPlayerAsync()
         {
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             _player = await assetService.InstantiateAsync("HorrorPlayer", transform);
             if (_player.TryGetComponent<HorrorPlayerController>(out var playerController))
             {
@@ -26,7 +27,7 @@ namespace Game.Horror.Player
 
         public void UnloadPlayer()
         {
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             assetService.ReleaseInstance(_player);
         }
     }

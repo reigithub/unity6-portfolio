@@ -4,6 +4,7 @@ using Game.Shared.Exceptions;
 using Game.Shared.Extensions;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
@@ -19,7 +20,7 @@ namespace Game.Shared.Services
         private const int DefaultMaxRetries = 3;
         private const int DefaultRetryDelayMs = 500;
 
-        public async UniTask<T> LoadAssetAsync<T>(string address) where T : UnityEngine.Object
+        public async UniTask<T> LoadAssetAsync<T>(string address)
         {
             ThrowExceptionIfNullAddress(address);
             return await Addressables.LoadAssetAsync<T>(address);
@@ -43,7 +44,7 @@ namespace Game.Shared.Services
             await Addressables.UnloadSceneAsync(sceneInstance);
         }
 
-        public void ReleaseAsset<T>(T asset) where T : UnityEngine.Object
+        public void Release<T>(T asset)
         {
             if (asset != null)
             {
@@ -67,6 +68,17 @@ namespace Game.Shared.Services
             }
         }
 
+        public AsyncOperationHandle<T> LoadAssetAsyncHandle<T>(string address)
+        {
+            ThrowExceptionIfNullAddress(address);
+            return Addressables.LoadAssetAsync<T>(address);
+        }
+
+        public void Release<T>(AsyncOperationHandle<T> handle)
+        {
+            Addressables.Release(handle);
+        }
+
         /// <summary>
         /// アセットを安全に読み込む（nullチェック付き）
         /// 読み込み失敗時はGameAssetLoadExceptionをスロー
@@ -74,7 +86,7 @@ namespace Game.Shared.Services
         /// <typeparam name="T">アセットの型</typeparam>
         /// <param name="address">アセットアドレス</param>
         /// <returns>読み込まれたアセット</returns>
-        public async UniTask<T> LoadAssetSafeAsync<T>(string address) where T : UnityEngine.Object
+        public async UniTask<T> LoadAssetSafeAsync<T>(string address)
         {
             ThrowExceptionIfNullAddress(address);
 
@@ -118,7 +130,7 @@ namespace Game.Shared.Services
         public async UniTask<T> LoadAssetWithRetryAsync<T>(
             string address,
             int maxRetries = DefaultMaxRetries,
-            int retryDelayMs = DefaultRetryDelayMs) where T : UnityEngine.Object
+            int retryDelayMs = DefaultRetryDelayMs)
         {
             ThrowExceptionIfNullAddress(address);
 

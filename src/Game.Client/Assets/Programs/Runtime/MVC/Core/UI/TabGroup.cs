@@ -23,8 +23,8 @@ namespace Game.Core.UI
     {
         [SerializeField] private TabInfo[] _tabs;
 
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private readonly Subject<int> _onTabChanged = new();
         public Observable<int> OnTabChanged => _onTabChanged.AsObservable();

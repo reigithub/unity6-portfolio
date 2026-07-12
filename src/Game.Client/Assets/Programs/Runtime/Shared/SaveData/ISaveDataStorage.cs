@@ -36,6 +36,20 @@ namespace Game.Shared.SaveData
         UniTask SaveAsync<T>(string key, T data) where T : class;
 
         /// <summary>
+        /// セーブデータを生バイト列として読み込む
+        /// </summary>
+        /// <param name="key">保存キー（ファイル名として使用）</param>
+        /// <returns>読み込んだバイト列。存在しない場合はnull</returns>
+        UniTask<byte[]> LoadBytesAsync(string key);
+
+        /// <summary>
+        /// セーブデータを生バイト列として保存する
+        /// </summary>
+        /// <param name="key">保存キー（ファイル名として使用）</param>
+        /// <param name="data">保存するバイト列</param>
+        UniTask SaveBytesAsync(string key, byte[] data);
+
+        /// <summary>
         /// セーブデータを削除する
         /// </summary>
         /// <param name="key">保存キー</param>

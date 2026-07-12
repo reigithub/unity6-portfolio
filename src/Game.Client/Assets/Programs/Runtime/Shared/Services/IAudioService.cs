@@ -50,6 +50,14 @@ namespace Game.Shared.Services
         UniTask PlaySoundEffectAsync(string assetName, CancellationToken token = default);
 
         /// <summary>
+        /// 効果音（SE）を割り込み・フェードなしで重ね再生する
+        /// 再生中の SE を停止しないため、銃声など連続・多重再生される効果音に使用する
+        /// </summary>
+        /// <param name="assetName">再生する効果音のアセット名</param>
+        /// <param name="token">キャンセレーショントークン</param>
+        UniTask PlaySoundEffectOneShotAsync(string assetName, CancellationToken token = default);
+
+        /// <summary>
         /// 指定したカテゴリとアセット名でオーディオを再生する
         /// </summary>
         /// <param name="audioCategory">オーディオカテゴリ（BGM, Voice, SFX等）</param>

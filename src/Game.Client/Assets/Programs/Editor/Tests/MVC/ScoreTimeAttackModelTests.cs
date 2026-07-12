@@ -1,7 +1,10 @@
 using System.Reflection;
+using Cysharp.Threading.Tasks;
+using Game.Core.Services;
 using Game.ScoreTimeAttack.Data;
 using Game.ScoreTimeAttack.Enums;
 using Game.ScoreTimeAttack.Scenes;
+using Game.Shared.Services;
 using NUnit.Framework;
 
 namespace Game.Tests.MVC
@@ -247,6 +250,8 @@ namespace Game.Tests.MVC
             [SetUp]
             public void Setup()
             {
+                GameServiceManager.StartUp();
+                GameServiceManager.Register<IMasterDataService, MasterDataService>(new MasterDataService());
                 _model = new ScoreTimeAttackStageSceneModel();
             }
 

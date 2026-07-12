@@ -242,7 +242,7 @@ namespace Game.MVP.Survivor.Weapon
             // ロードしたプレハブをリリース
             foreach (var prefab in _prefabCache.Values)
             {
-                _assetService.ReleaseAsset(prefab);
+                _assetService.Release(prefab);
             }
             _prefabCache.Clear();
         }

@@ -8,6 +8,7 @@ using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.Client.MasterData;
 using Game.Shared.Input;
+using Game.Shared.Services;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -42,14 +43,14 @@ namespace Game.ScoreTimeAttack.Player
         [SerializeField]
         private float _jump = 5.0f;
 
-        private AudioService _audioService;
-        private AudioService AudioService => _audioService ??= GameServiceManager.Get<AudioService>();
+        private IAudioService _audioService;
+        private IAudioService AudioService => _audioService ??= GameServiceManager.Resolve<IAudioService>();
 
-        private MessagePipeService _messagePipeService;
-        private MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private IMessagePipeService _messagePipeService;
+        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
 
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private ProjectDefaultInputSystem.PlayerActions Player => InputService.Player;
 

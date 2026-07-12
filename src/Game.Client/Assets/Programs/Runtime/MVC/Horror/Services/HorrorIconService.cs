@@ -1,14 +1,16 @@
 using System.Collections.Generic;
-using Game.Core.Services;
 using Cysharp.Threading.Tasks;
+using Game.Horror.Services.Interfaces;
+using Game.Shared.Services;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.Horror.Services
 {
-    public class HorrorIconService : IGameService
+    public class HorrorIconService : IHorrorIconService
     {
+        private readonly IAddressableAssetService _assetService;
+
         private const string UiIconsKey1 = "ModernGDR_Icons_BrightBackground";
         private const string WeaponIconsKey1 = "Navidtbt_Weapon_Icons_Blue";
 
@@ -18,8 +20,9 @@ namespace Game.Horror.Services
         private Dictionary<string, Sprite> _uiIcons;
         private Dictionary<string, Sprite> _weaponIcons;
 
-        public HorrorIconService()
+        public HorrorIconService(IAddressableAssetService assetService)
         {
+            _assetService = assetService;
         }
 
         public async UniTask LoadAsync()
@@ -30,17 +33,17 @@ namespace Game.Horror.Services
 
         public void Unload()
         {
-            Addressables.Release(_uiIconsHandle);
+            _assetService.Release(_uiIconsHandle);
             _uiIcons.Clear();
             _uiIcons = null;
-            Addressables.Release(_weaponIconsHandle);
+            _assetService.Release(_weaponIconsHandle);
             _weaponIcons.Clear();
             _weaponIcons = null;
         }
 
         private async UniTask LoadUiIconsAsync()
         {
-            _uiIconsHandle = Addressables.LoadAssetAsync<IList<Sprite>>(UiIconsKey1);
+            _uiIconsHandle = _assetService.LoadAssetAsyncHandle<IList<Sprite>>(UiIconsKey1);
             var sprites = await _uiIconsHandle.ToUniTask();
             _uiIcons = new Dictionary<string, Sprite>(sprites.Count);
             foreach (var sprite in sprites) _uiIcons[sprite.name] = sprite;
@@ -48,7 +51,7 @@ namespace Game.Horror.Services
 
         private async UniTask LoadWeaponIconsAsync()
         {
-            _weaponIconsHandle = Addressables.LoadAssetAsync<IList<Sprite>>(WeaponIconsKey1);
+            _weaponIconsHandle = _assetService.LoadAssetAsyncHandle<IList<Sprite>>(WeaponIconsKey1);
             var sprites = await _weaponIconsHandle.ToUniTask();
             _weaponIcons = new Dictionary<string, Sprite>(sprites.Count);
             foreach (var sprite in sprites) _weaponIcons[sprite.name] = sprite;

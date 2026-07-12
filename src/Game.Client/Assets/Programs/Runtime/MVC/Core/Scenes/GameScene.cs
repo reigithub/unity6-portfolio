@@ -6,6 +6,7 @@ using Game.Shared.Extensions;
 using Game.Shared.Scenes;
 using Game.Core.Services;
 using Game.MVC.Core.Enums;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -182,11 +183,11 @@ namespace Game.MVC.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        private AddressableAssetService _assetService;
-        protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+        private IAddressableAssetService _assetService;
+        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
 
-        private MessagePipeService _messagePipeService;
-        protected MessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
+        private IMessagePipeService _messagePipeService;
+        protected IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
 
         private GameObject _asset;
         private GameObject _instance;
@@ -253,8 +254,8 @@ namespace Game.MVC.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        private AddressableAssetService _assetService;
-        protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+        private IAddressableAssetService _assetService;
+        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
 
         protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Additive;
 
@@ -280,8 +281,8 @@ namespace Game.MVC.Core.Scenes
         where TScene : IGameScene
         where TComponent : IGameSceneComponent
     {
-        private AddressableAssetService _assetService;
-        protected AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
+        private IAddressableAssetService _assetService;
+        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
 
         public TResult Result { get; set; }
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }

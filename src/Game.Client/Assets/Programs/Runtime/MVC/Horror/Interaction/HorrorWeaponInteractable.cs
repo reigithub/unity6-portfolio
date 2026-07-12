@@ -30,7 +30,7 @@ namespace Game.Horror.Interaction
             if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
                 return false;
 
-            return InventorySaveService.TryAdd(weaponMaster, Master.AcquiredCount);
+            return InventoryService.TryAdd(weaponMaster, Master.AcquiredCount);
         }
     }
 }

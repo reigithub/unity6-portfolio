@@ -128,10 +128,27 @@ namespace Game.MVP.Survivor
             // builder.Register<ScopedServiceContainer>(Lifetime.Singleton).As<IScopedServiceContainer>();
             // builder.RegisterEntryPoint<TickableService>().As<ITickableService>();
 
-            // Save Data Storage（共通のセーブデータI/O、暗号化デコレーター付き）
+            // Save Data Storage（物理I/O層は単一インスタンスを両ストレージで共有し、per-keyロックを一元化する）
             builder.Register<SaveDataStorage>(Lifetime.Singleton);
+
+            // ゲームセーブ/オーディオ設定用: AppShared鍵構成（Steam Cloud等でのデバイス間セーブ共有を想定）
             builder.Register<ISaveDataStorage>(
-                resolver => new EncryptedSaveDataStorage(resolver.Resolve<SaveDataStorage>()),
+                resolver =>
+                {
+                    var appSharedKeyProvider = new AppSharedKeyProvider();
+                    appSharedKeyProvider.Prewarm();
+                    return new EncryptedSaveDataStorage(resolver.Resolve<SaveDataStorage>(), appSharedKeyProvider);
+                },
+                Lifetime.Singleton);
+
+            // session（認証トークン等）用: DeviceBound鍵構成（端末に閉じるデータのため）
+            builder.Register<ISessionSaveDataStorage>(
+                resolver =>
+                {
+                    var deviceBoundKeyProvider = new DeviceBoundKeyProvider();
+                    deviceBoundKeyProvider.Prewarm();
+                    return new SessionSaveDataStorage(resolver.Resolve<SaveDataStorage>(), deviceBoundKeyProvider);
+                },
                 Lifetime.Singleton);
 
             // Persistent Object Provider（ゲーム起動時に生成される永続オブジェクトを保持）

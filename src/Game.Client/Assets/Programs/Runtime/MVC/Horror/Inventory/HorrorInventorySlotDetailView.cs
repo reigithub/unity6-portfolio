@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Interfaces;
 using TMPro;
@@ -39,7 +40,7 @@ namespace Game.Horror.Inventory
                 return;
             }
 
-            var iconService = GameServiceManager.Get<HorrorIconService>();
+            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_largeIcon != null)

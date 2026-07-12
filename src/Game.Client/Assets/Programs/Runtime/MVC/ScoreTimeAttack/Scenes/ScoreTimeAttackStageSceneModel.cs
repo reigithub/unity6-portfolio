@@ -5,6 +5,7 @@ using Game.Client.MasterData;
 using Game.Core.Services;
 using Game.ScoreTimeAttack.Data;
 using Game.ScoreTimeAttack.Services;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -12,8 +13,7 @@ namespace Game.ScoreTimeAttack.Scenes
 {
     public class ScoreTimeAttackStageSceneModel
     {
-        private MasterDataService _masterDataService;
-        private MemoryDatabase MemoryDatabase => (_masterDataService ??= GameServiceManager.Get<MasterDataService>()).MemoryDatabase;
+        private IMasterDataService _masterDataService;
 
         public ScoreTimeAttackStageMaster StageMaster { get; private set; }
         public ScoreTimeAttackPlayerMaster PlayerMaster { get; private set; }
@@ -37,12 +37,13 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             StageState = GameStageState.None;
             StageResult = GameStageResult.None;
+            _masterDataService = GameServiceManager.Resolve<IMasterDataService>();
         }
 
         public void Initialize(int stageId)
         {
-            var stageMaster = MemoryDatabase.ScoreTimeAttackStageMasterTable.FindById(stageId);
-            var playerMaster = MemoryDatabase.ScoreTimeAttackPlayerMasterTable.FindById(stageMaster.PlayerId ?? 1);
+            var stageMaster = _masterDataService.MemoryDatabase.ScoreTimeAttackStageMasterTable.FindById(stageId);
+            var playerMaster = _masterDataService.MemoryDatabase.ScoreTimeAttackPlayerMasterTable.FindById(stageMaster.PlayerId ?? 1);
             StageMaster = stageMaster;
             PlayerMaster = playerMaster;
 
@@ -54,9 +55,9 @@ namespace Game.ScoreTimeAttack.Scenes
             PlayerCurrentHp = playerMaster.MaxHp;
             PlayerMaxHp = playerMaster.MaxHp;
 
-            var stageMasters = MemoryDatabase.ScoreTimeAttackStageMasterTable.FindByGroupId(StageMaster.GroupId);
+            var stageMasters = _masterDataService.MemoryDatabase.ScoreTimeAttackStageMasterTable.FindByGroupId(StageMaster.GroupId);
             bool isFirstStage = stageMasters.Min(x => x.Order) == stageMaster.Order;
-            if (isFirstStage) GameServiceManager.Add<ScoreTimeAttackStageService>();
+            if (isFirstStage) GameServiceManager.Register<IScoreTimeAttackStageService, ScoreTimeAttackStageService>(new ScoreTimeAttackStageService());
 
             NextStageId = stageMasters.OrderBy(x => x.Order).FirstOrDefault(x => x.Order > stageMaster.Order)?.Id;
         }
@@ -130,7 +131,7 @@ namespace Game.ScoreTimeAttack.Scenes
                 NextStageId = NextStageId,
             };
 
-            GameServiceManager.Get<ScoreTimeAttackStageService>().TryAddResult(result);
+            GameServiceManager.Resolve<IScoreTimeAttackStageService>().TryAddResult(result);
 
             return result;
         }

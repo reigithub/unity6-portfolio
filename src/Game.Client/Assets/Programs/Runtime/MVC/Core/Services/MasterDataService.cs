@@ -11,7 +11,7 @@ namespace Game.Core.Services
     /// </summary>
     public class MasterDataService : MasterDataServiceBase, IGameService
     {
-        private IAddressableAssetService _assetService;
+        private readonly IAddressableAssetService _assetService;
 
         public MasterDataService()
         {
@@ -24,8 +24,6 @@ namespace Game.Core.Services
 
         protected override async UniTask<TextAsset> LoadMasterDataBinaryAsync()
         {
-            _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
             if (_assetService == null)
             {
                 throw new DependencyInjectionException(

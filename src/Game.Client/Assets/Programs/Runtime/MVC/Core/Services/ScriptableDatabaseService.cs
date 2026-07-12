@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Services;
-using UnityEngine.AddressableAssets;
 
 namespace Game.Core.Services
 {
@@ -11,13 +10,16 @@ namespace Game.Core.Services
     /// </summary>
     public class ScriptableDatabaseService : ScriptableDatabaseServiceBase, IGameService
     {
-        public ScriptableDatabaseService()
+        private readonly IAddressableAssetService _assetService;
+
+        public ScriptableDatabaseService(IAddressableAssetService assetService)
         {
+            _assetService = assetService;
         }
 
         protected override async UniTask<ScriptableDatabase> LoadDatabaseAssetAsync()
         {
-            return await Addressables.LoadAssetAsync<ScriptableDatabase>("ScriptableDatabase");
+            return await _assetService.LoadAssetAsync<ScriptableDatabase>("ScriptableDatabase");
         }
     }
 }

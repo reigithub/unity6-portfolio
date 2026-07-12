@@ -1,7 +1,6 @@
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Client.MasterData;
+using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.ScoreTimeAttack.Enemy
@@ -11,21 +10,17 @@ namespace Game.ScoreTimeAttack.Enemy
     /// </summary>
     public class ScoreTimeAttackEnemyStart : MonoBehaviour
     {
-        private AddressableAssetService _assetService;
-        private AddressableAssetService AssetService => _assetService ??= GameServiceManager.Get<AddressableAssetService>();
-
-        private MasterDataService _masterDataService;
-        private MemoryDatabase MemoryDatabase => (_masterDataService ??= GameServiceManager.Get<MasterDataService>()).MemoryDatabase;
-
         public async UniTask LoadEnemyAsync(GameObject player, int stageId)
         {
-            var spawnMasters = MemoryDatabase.ScoreTimeAttackEnemySpawnMasterTable.FindByStageId(stageId);
+            var memoryDatabase = GameServiceManager.Resolve<IMasterDataService>().MemoryDatabase;
+            var spawnMasters = memoryDatabase.ScoreTimeAttackEnemySpawnMasterTable.FindByStageId(stageId);
             // .Where(x => x.GroupId == ???);
 
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             foreach (var spawnMaster in spawnMasters)
             {
-                var enemyMaster = MemoryDatabase.ScoreTimeAttackEnemyMasterTable.FindById(spawnMaster.EnemyId);
-                var enemyAsset = await AssetService.LoadAssetAsync<GameObject>(enemyMaster.AssetName);
+                var enemyMaster = memoryDatabase.ScoreTimeAttackEnemyMasterTable.FindById(spawnMaster.EnemyId);
+                var enemyAsset = await assetService.LoadAssetAsync<GameObject>(enemyMaster.AssetName);
 
                 var spawnCount = Random.Range(spawnMaster.MinSpawnCount, spawnMaster.MaxSpawnCount);
 

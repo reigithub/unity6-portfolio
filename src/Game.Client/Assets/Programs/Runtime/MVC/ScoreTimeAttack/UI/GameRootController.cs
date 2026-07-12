@@ -6,6 +6,7 @@ using Game.Core.Services;
 using Game.ScoreTimeAttack.Player;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -24,7 +25,7 @@ namespace Game.Core
 
         public static async UniTask LoadAssetAsync()
         {
-            var assetService = GameServiceManager.Get<AddressableAssetService>();
+            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             var prefab = await assetService.LoadAssetAsync<GameObject>(Address);
             if (prefab == null)
                 throw new NullReferenceException($"Load Asset Failed. {Address}");
@@ -55,17 +56,17 @@ namespace Game.Core
 
         [SerializeField] private Image _fadeImage;
 
+        private IInputSystemService _inputService;
         private IMessagePipeService _messagePipeService;
-        private IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Get<MessagePipeService>();
-
-        private InputSystemService _inputService;
-        private InputSystemService InputService => _inputService ??= GameServiceManager.Get<InputSystemService>();
 
         private void Initialize()
         {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
+
             _fadeImage.color = new Color(_fadeImage.color.r, _fadeImage.color.g, _fadeImage.color.b, UIAnimationConstants.AlphaOpaque);
             _playerInput.controlsChangedEvent.AsObservable()
-                .Subscribe(x => InputService.UpdateControlScheme(x.currentControlScheme))
+                .Subscribe(x => _inputService.UpdateControlScheme(x.currentControlScheme))
                 .AddTo(this);
             SubscribeEvents();
         }
@@ -73,14 +74,14 @@ namespace Game.Core
         private void SubscribeEvents()
         {
             // GameScene
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
+            _messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration, tcs);
                     await tcs.Task;
                 })
                 .AddTo(this);
-            MessagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
+            _messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration, tcs);
@@ -89,7 +90,7 @@ namespace Game.Core
                 .AddTo(this);
 
             // Player
-            MessagePipeService.Subscribe<GameObject>(MessageKey.Player.SpawnPlayer, player =>
+            _messagePipeService.Subscribe<GameObject>(MessageKey.Player.SpawnPlayer, player =>
                 {
                     // 現在プレイヤーはUnityちゃんしかいない
                     if (player.TryGetComponent<SDUnityChanPlayerController>(out var controller))
@@ -102,7 +103,7 @@ namespace Game.Core
                 .AddTo(this);
 
             // InputSystem
-            MessagePipeService.Subscribe<Vector2>(MessageKey.UI.ScrollWheel, radius =>
+            _messagePipeService.Subscribe<Vector2>(MessageKey.UI.ScrollWheel, radius =>
                 {
                     SetCameraRadius(radius);
                 })

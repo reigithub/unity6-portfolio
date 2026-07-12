@@ -11,7 +11,7 @@ namespace Game.Tests.MVC
     [TestFixture]
     public class MessagePipeServiceTests
     {
-        private MessagePipeService _service;
+        private IMessagePipeService _service;
 
         [SetUp]
         public void Setup()

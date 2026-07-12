@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
@@ -18,7 +19,7 @@ namespace Game.Shared.Services
         /// <param name="address">Addressablesアドレス（アセットのキー）</param>
         /// <returns>読み込まれたアセット</returns>
         /// <remarks>使用後はReleaseAssetで解放すること</remarks>
-        UniTask<T> LoadAssetAsync<T>(string address) where T : Object;
+        UniTask<T> LoadAssetAsync<T>(string address);
 
         /// <summary>
         /// Addressablesからプレハブを読み込んでインスタンス化する
@@ -51,7 +52,7 @@ namespace Game.Shared.Services
         /// <typeparam name="T">アセットの型</typeparam>
         /// <param name="asset">解放するアセット</param>
         /// <remarks>参照カウントが0になるとメモリから解放される</remarks>
-        void ReleaseAsset<T>(T asset) where T : Object;
+        void Release<T>(T asset);
 
         /// <summary>
         /// InstantiateAsyncで生成したインスタンスを解放する
@@ -59,5 +60,17 @@ namespace Game.Shared.Services
         /// <param name="instance">解放するGameObjectインスタンス</param>
         /// <remarks>GameObjectの破棄と参照カウントの減少を行う</remarks>
         void ReleaseInstance(GameObject instance);
+
+        AsyncOperationHandle<T> LoadAssetAsyncHandle<T>(string address);
+
+        void Release<TObject>(AsyncOperationHandle<TObject> handle);
+
+        UniTask<T> LoadAssetSafeAsync<T>(string address);
+
+        UniTask<T> LoadAssetWithRetryAsync<T>(string address, int maxRetries, int retryDelayMs);
+
+        UniTask<GameObject> InstantiateSafeAsync(string address, Transform parent = null);
+
+        UniTask<T> InstantiateWithComponentAsync<T>(string address, Transform parent = null) where T : Component;
     }
 }

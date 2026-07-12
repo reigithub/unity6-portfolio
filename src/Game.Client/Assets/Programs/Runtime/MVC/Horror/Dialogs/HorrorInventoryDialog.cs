@@ -14,16 +14,16 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorInventoryDialog";
 
-        private InputSystemService _inputService;
+        private IInputSystemService _inputService;
 
         public static async UniTask<bool> RunAsync()
         {
-            var inputService = GameServiceManager.Get<InputSystemService>();
+            var inputService = GameServiceManager.Resolve<IInputSystemService>();
             bool result;
             using (inputService.BlockPlayer())
             using (inputService.BlockInputActions(inputService.UI.Menu))
             {
-                var sceneService = GameServiceManager.Get<GameSceneService>();
+                var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorInventoryDialog, bool>();
             }
             return result;
@@ -32,7 +32,7 @@ namespace Game.Horror.Dialogs
         public override UniTask PreInitialize()
         {
             ApplicationEvents.PauseTime();
-            _inputService = GameServiceManager.Get<InputSystemService>();
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             return base.PreInitialize();
         }
 
