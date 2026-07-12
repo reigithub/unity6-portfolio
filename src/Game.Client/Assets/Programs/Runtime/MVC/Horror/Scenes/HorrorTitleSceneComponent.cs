@@ -10,6 +10,7 @@ namespace Game.Horror.Scenes
     {
         [SerializeField] private GameObject _titleMenuRoot;
         [SerializeField] private Button _startButton;
+        [SerializeField] private Button _optionButton;
         [SerializeField] private Button _returnButton;
         [SerializeField] private Button _quitButton;
 
@@ -19,6 +20,7 @@ namespace Game.Horror.Scenes
         [SerializeField] private Button _newGameButton;
 
         public Observable<Unit> OnStart => _startButton != null ? _startButton.OnClickAsObservable() : Observable.Empty<Unit>();
+        public Observable<Unit> OnOption => _optionButton != null ? _optionButton.OnClickAsObservable() : Observable.Empty<Unit>();
         public Observable<Unit> OnReturn => _returnButton != null ? _returnButton.OnClickAsObservable() : Observable.Empty<Unit>();
         public Observable<Unit> OnQuit => _quitButton != null ? _quitButton.OnClickAsObservable() : Observable.Empty<Unit>();
 

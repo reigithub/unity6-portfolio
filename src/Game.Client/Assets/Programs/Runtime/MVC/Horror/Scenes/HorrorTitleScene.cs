@@ -37,6 +37,13 @@ namespace Game.Horror.Scenes
                 .Subscribe(_ => SceneComponent.OpenGameStartMenu())
                 .AddTo(Disposables);
 
+            SceneComponent.OnOption
+                .SubscribeAwait(async (_, _) =>
+                {
+                    await HorrorOptionDialog.RunAsync();
+                })
+                .AddTo(Disposables);
+
             SceneComponent.OnReturn
                 .SubscribeAwait(async (_, _) =>
                 {
@@ -93,6 +100,7 @@ namespace Game.Horror.Scenes
             SceneComponent.OnNewGame
                 .SubscribeAwait(async (_, _) =>
                 {
+                    if (_hasSaveData) return;
                     _saveRepository.CreateData();
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })
