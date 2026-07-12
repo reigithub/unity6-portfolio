@@ -16,10 +16,16 @@ namespace Game.Horror.Services.Interfaces
         UniTask<IReadOnlyList<HorrorSaveSlotInfo>> LoadSlotInfosAsync();
 
         /// <summary>
+        /// 指定スロットからロードする
+        /// </summary>
+        /// <param name="slotNo">スロット番号</param>
+        UniTask LoadBySlotAsync(int slotNo);
+
+        /// <summary>
         /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
         /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に刻印される。
         /// </summary>
-        /// <param name="slotNumber">保存先スロット番号（1〜スロット数上限）。</param>
-        UniTask SaveToSlotAsync(int slotNumber);
+        /// <param name="slotNo">保存先スロット番号（1〜スロット数上限）。</param>
+        UniTask SaveBySlotAsync(int slotNo);
     }
 }
