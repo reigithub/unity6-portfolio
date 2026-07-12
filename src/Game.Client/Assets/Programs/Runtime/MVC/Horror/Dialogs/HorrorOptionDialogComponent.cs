@@ -62,13 +62,13 @@ namespace Game.Horror.Dialogs
 
         public Observable<bool> OnCameraControlHorizontalChanged => _cameraControlHorizontal.OnValueChanged;
         public Observable<bool> OnCameraControlVerticalChanged => _cameraControlVertical.OnValueChanged;
-        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
-        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
         public Observable<float> OnCameraSensitivityHorizontalChanged => _cameraSensitivityHorizontal.OnValueChanged;
         public Observable<float> OnCameraSensitivityVerticalChanged => _cameraSensitivityVertical.OnValueChanged;
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
         public Observable<float> OnCameraShakeChanged => _cameraShake.OnValueChanged;
         public Observable<float> OnCameraFovChanged => _cameraFov.OnValueChanged;
+        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
+        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
 
         #endregion
 
