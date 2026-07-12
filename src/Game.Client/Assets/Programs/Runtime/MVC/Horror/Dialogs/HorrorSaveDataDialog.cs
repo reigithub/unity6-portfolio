@@ -18,7 +18,7 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorSaveDataDialog";
 
-        private IInputSystemService _inputService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private IReadOnlyList<HorrorSaveSlotInfo> _slots;
 
         /// <summary>
@@ -47,7 +47,6 @@ namespace Game.Horror.Dialogs
 
         public override UniTask PreInitialize()
         {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             ApplicationEvents.PauseTime();
             return base.PreInitialize();
         }
@@ -56,14 +55,14 @@ namespace Game.Horror.Dialogs
         {
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ => TrySetResult(-1))
                 .AddTo(Disposables);
 
             SceneComponent.OnSlotSelected
-                .Subscribe(slotNumber =>
+                .Subscribe(slotNo =>
                 {
                     SceneComponent.SetInteractable(false);
-                    TrySetResult(slotNumber);
+                    TrySetResult(slotNo);
                 })
                 .AddTo(Disposables);
 
