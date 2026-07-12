@@ -186,7 +186,7 @@ namespace Game.Tests.MVC.Horror
                 .Returns(UniTask.CompletedTask);
             _repository.Data.Player.LastSavepointId = 42;
 
-            await _repository.SaveToSlotAsync(3);
+            await _repository.SaveBySlotAsync(3);
 
             Assert.That(_repository.CurrentSlot, Is.EqualTo(3));
             Assert.That(_repository.Data.SlotNo, Is.EqualTo(3));
@@ -204,7 +204,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
             LogAssert.Expect(LogType.Error, new Regex("Invalid slot number"));
 
-            await _repository.SaveToSlotAsync(slotNumber);
+            await _repository.SaveBySlotAsync(slotNumber);
 
             Assert.That(_repository.CurrentSlot, Is.EqualTo(1));
             await _mockStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<HorrorSaveData>());
