@@ -44,17 +44,14 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            _inputService.UI.Cancel.OnPerformedAsObservable()
+            _inputService.UI.Submit.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ => TrySetResult(true))
                 .AddTo(Disposables);
 
-            SceneComponent.OnClose
-                .Subscribe(_ =>
-                {
-                    SceneComponent.SetInteractable(false);
-                    TrySetResult(true);
-                })
+            _inputService.UI.Cancel.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => TrySetResult(false))
                 .AddTo(Disposables);
 
             SceneComponent.SetMessage(_message);
