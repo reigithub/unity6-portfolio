@@ -9,6 +9,7 @@ namespace Game.Shared.SaveData
         bool IsLoaded { get; }
         bool IsDirty { get; }
         Observable<TData> OnSaved { get; }
+        void CreateData();
         UniTask LoadAsync();
         UniTask SaveAsync();
         UniTask SaveIfDirtyAsync();

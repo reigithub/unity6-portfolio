@@ -1,8 +1,8 @@
 using Game.Core.Services;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Interfaces;
 using R3;
+using R3.Triggers;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -15,45 +15,21 @@ namespace Game.Horror.Equipment
     /// このコンポーネントは Button と同じ GameObject に付与する。
     /// ※インベントリの HorrorInventorySlotView と同イディオムだが、挙動分岐に備えて独立実装とする。
     /// </summary>
-    public class HorrorEquipmentSlotView : MonoBehaviour, ISelectHandler
+    public class HorrorEquipmentSlotView : MonoBehaviour
     {
         [SerializeField] private Button _button;
         [SerializeField] private Image _iconImage;   // 登録アイテムのアイコン表示
         [SerializeField] private Image _frameImage;  // 枠表示（HUD の装備中ハイライト等。ダイアログ側は未配線=null許容）
 
-        private readonly Subject<HorrorEquipmentSlotView> _onSelected = new();
+        /// <summary>このスロットで決定された通知。Component が購読して登録する。</summary>
+        public Observable<Unit> OnClick => _button.OnClickAsObservable();
 
         /// <summary>このスロットが選択された通知。Component が購読して現在スロットを追跡する。</summary>
-        public Observable<HorrorEquipmentSlotView> OnSelected => _onSelected;
+        public Observable<BaseEventData> OnSelect => _button.OnSelectAsObservable();
 
-        private readonly Subject<HorrorEquipmentSlotView> _onSubmit = new();
+        public void SetSlot(IHorrorInventorySlotInfo info) => SetIcon(info);
 
-        /// <summary>このスロットで決定された通知。Component が購読して登録する。</summary>
-        public Observable<HorrorEquipmentSlotView> OnSubmit => _onSubmit;
-
-        public void Initialize()
-        {
-            _button.OnClickAsObservable()
-                .Subscribe(_ => _onSubmit.OnNext(this))
-                .AddTo(this);
-        }
-
-        public void SetSlot(IHorrorInventorySlotInfo info)
-        {
-            SetIcon(info);
-        }
-
-        public void SetEmpty()
-        {
-            SetIcon(null);
-        }
-
-        /// <summary>枠の色を設定する（HUD の装備中ハイライト表示用）。未配線なら何もしない。</summary>
-        public void SetFrameColor(Color color)
-        {
-            if (_frameImage != null)
-                _frameImage.color = color;
-        }
+        public void SetEmpty() => SetIcon(null);
 
         private void SetIcon(IHorrorInventorySlotInfo item)
         {
@@ -77,15 +53,11 @@ namespace Game.Horror.Equipment
             }
         }
 
-        public void OnSelect(BaseEventData eventData)
+        /// <summary>枠の色を設定する（HUD の装備中ハイライト表示用）。未配線なら何もしない。</summary>
+        public void SetFrameColor(Color color)
         {
-            _onSelected.OnNext(this);
-        }
-
-        private void OnDestroy()
-        {
-            _onSelected.Dispose();
-            _onSubmit.Dispose();
+            if (_frameImage != null)
+                _frameImage.color = color;
         }
     }
 }

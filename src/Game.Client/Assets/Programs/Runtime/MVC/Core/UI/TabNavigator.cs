@@ -1,8 +1,6 @@
-using System;
 using Game.Core.Services;
 using Game.Shared.Extensions;
 using R3;
-using TMPro;
 using UnityEngine;
 
 namespace Game.Core.UI
@@ -27,9 +25,7 @@ namespace Game.Core.UI
         [SerializeField] private float _threshold = 0.5f;
 
         private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
-
-        private IDisposable _subscription;
+        private CompositeDisposable _disposables;
 
         // 立ち上がりエッジ検出用。左右が閾値を超えている間 true にして連続切替を抑止し、
         // ニュートラル/上下に戻った performed で false に戻す。
@@ -46,22 +42,33 @@ namespace Game.Core.UI
         {
             // 親 Content が表示された時だけ Navigate を購読する。
             // 購読は performed のみ（PassThrough のため started/canceled は来ない）。
-            _subscription = InputService.UI.Navigate
+            _disposables = new CompositeDisposable();
+            _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
+            _inputService.UI.Navigate
                 .OnPerformedAsObservable()
-                .Subscribe(_ => OnNavigate());
+                .Subscribe(_ => OnNavigate())
+                .AddTo(_disposables);
+            _inputService.UI.Next2
+                .OnPerformedAsObservable()
+                .Subscribe(_ => _tabGroup.NextTab())
+                .AddTo(_disposables);
+            _inputService.UI.Previous2
+                .OnPerformedAsObservable()
+                .Subscribe(_ => _tabGroup.PreviousTab())
+                .AddTo(_disposables);
         }
 
         private void OnDisable()
         {
             // 親タブが切り替わって Content が非表示になったら購読解除。
-            _subscription?.Dispose();
-            _subscription = null;
+            _disposables?.Dispose();
+            _disposables = null;
             _latched = false;
         }
 
         private void OnNavigate()
         {
-            var v = InputService.UI.Navigate.ReadValue<Vector2>();
+            var v = _inputService.UI.Navigate.ReadValue<Vector2>();
 
             // ニュートラル復帰、または上下が優勢な入力では切替しない。
             // 上下優勢の判定は ">"（x==y の斜めは左右として扱い、斜め右で確実に発火させる）。
@@ -76,8 +83,10 @@ namespace Game.Core.UI
             if (_latched) return;
             _latched = true;
 
-            if (v.x > 0) _tabGroup.NextTab();
-            else _tabGroup.PreviousTab();
+            if (v.x > 0)
+                _tabGroup.NextTab();
+            else
+                _tabGroup.PreviousTab();
         }
     }
 }

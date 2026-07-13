@@ -629,9 +629,27 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Previous2",
+                    "type": "Button",
+                    "id": "446dd5e7-64c3-4351-8ca2-0ad296370fe0",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Next",
                     "type": "Button",
                     "id": "dcd979b2-1e00-4e7d-a2b9-66499d5fdd4e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Next2",
+                    "type": "Button",
+                    "id": "aae316fa-4601-42d2-b74f-6840a00ad9a4",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -1163,6 +1181,28 @@
                 },
                 {
                     "name": "",
+                    "id": "a6f25601-32ff-4487-baca-3913a5886178",
+                    "path": "<Gamepad>/leftTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Previous2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f35bc4eb-b26c-4b4b-999c-1fbe75e765ca",
+                    "path": "<Keyboard>/z",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Previous2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "0df5ba28-6137-4746-ad8d-69ed12654e5b",
                     "path": "<Gamepad>/rightShoulder",
                     "interactions": "",
@@ -1180,6 +1220,28 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Next",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bba9f1fa-1238-4f51-b738-e3107bcb2415",
+                    "path": "<Gamepad>/rightTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Next2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a3b2f4b7-3e11-4681-823e-6d0127a7d8d0",
+                    "path": "<Keyboard>/c",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Next2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

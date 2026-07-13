@@ -18,12 +18,11 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
-        private IInputSystemService _inputService;
-        private IAudioService _audioService;
-        private ILocalizationService _localizationService;
-
-        private IHorrorOptionSaveRepository _optionSaveRepository;
-        private IHorrorOptionService _optionService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
+        private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+        private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
+        private readonly IHorrorOptionService _optionService =  GameServiceManager.Resolve<IHorrorOptionService>();
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
         // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
@@ -36,16 +35,6 @@ namespace Game.Horror.Dialogs
         {
             var sceneService = GameServiceManager.Resolve<IGameSceneService>();
             return await sceneService.TransitionDialogAsync<HorrorOptionDialog, bool>();
-        }
-
-        public override UniTask PreInitialize()
-        {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _audioService = GameServiceManager.Resolve<IAudioService>();
-            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
-            _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
-            _optionService = GameServiceManager.Resolve<IHorrorOptionService>();
-            return base.PreInitialize();
         }
 
         public override UniTask Startup()

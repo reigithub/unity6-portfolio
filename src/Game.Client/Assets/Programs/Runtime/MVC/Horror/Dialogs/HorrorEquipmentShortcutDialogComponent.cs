@@ -18,30 +18,26 @@ namespace Game.Horror.Dialogs
     {
         [SerializeField] private HorrorEquipmentSlotView[] _slots;
 
-        private IInputSystemService _inputService;
-        private IScriptableDatabaseService _databaseService;
-        private IHorrorEquipmentService _equipmentService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+        private readonly IHorrorEquipmentService _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
         private IHorrorInventorySlotInfo _target;
         private int _currentIndex;
 
         public void Initialize(IHorrorInventorySlotInfo target)
         {
             _target = target;
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
-            _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             for (int i = 0; i < _slots.Length; i++)
             {
                 int index = i;
-                _slots[i].Initialize();
                 RefreshSlot(index);
 
-                _slots[i].OnSelected
+                _slots[i].OnSelect
                     .Subscribe(_ => _currentIndex = index)
                     .AddTo(Disposables);
 
-                _slots[i].OnSubmit
+                _slots[i].OnClick
                     .Subscribe(_ => Register(index))
                     .AddTo(Disposables);
             }

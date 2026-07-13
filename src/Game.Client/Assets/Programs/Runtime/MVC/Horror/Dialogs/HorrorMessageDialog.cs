@@ -13,10 +13,10 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorMessageDialog";
 
-        private IInputSystemService _inputService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private string _message;
 
-        public static async UniTask<bool> RunAsync(string message)
+        public static async UniTask<bool> RunAsync(string message, bool visible = true)
         {
             bool result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -24,7 +24,7 @@ namespace Game.Horror.Dialogs
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorMessageDialog, string, bool>(message);
+                result = await sceneService.TransitionDialogAsync<HorrorMessageDialog, string, bool>(message, visible);
             }
             return result;
         }
@@ -38,24 +38,20 @@ namespace Game.Horror.Dialogs
 
         public override UniTask PreInitialize()
         {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             ApplicationEvents.PauseTime();
             return base.PreInitialize();
         }
 
         public override UniTask Startup()
         {
-            _inputService.UI.Cancel.OnPerformedAsObservable()
+            _inputService.UI.Submit.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ => TrySetResult(true))
                 .AddTo(Disposables);
 
-            SceneComponent.OnClose
-                .Subscribe(_ =>
-                {
-                    SceneComponent.SetInteractable(false);
-                    TrySetResult(true);
-                })
+            _inputService.UI.Cancel.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => TrySetResult(false))
                 .AddTo(Disposables);
 
             SceneComponent.SetMessage(_message);

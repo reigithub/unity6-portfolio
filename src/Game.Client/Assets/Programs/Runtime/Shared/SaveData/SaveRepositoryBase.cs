@@ -42,6 +42,12 @@ namespace Game.Shared.SaveData
             _storage = storage;
         }
 
+        public void CreateData()
+        {
+            _data = CreateNewData();
+            _isDirty = false;
+        }
+
         /// <summary>
         /// セーブデータを読み込む
         /// </summary>
@@ -110,10 +116,7 @@ namespace Game.Shared.SaveData
         /// </summary>
         public async UniTask SaveIfDirtyAsync()
         {
-            if (_isDirty)
-            {
-                await SaveAsync();
-            }
+            if (_isDirty) await SaveAsync();
         }
 
         /// <summary>
@@ -137,18 +140,12 @@ namespace Game.Shared.SaveData
         /// <summary>
         /// ダーティフラグを設定（派生クラスから呼び出し）
         /// </summary>
-        public void MarkDirty()
-        {
-            _isDirty = true;
-        }
+        public void MarkDirty() => _isDirty = true;
 
         /// <summary>
         /// 新規セーブデータを作成（派生クラスでオーバーライド可能）
         /// </summary>
-        protected virtual TData CreateNewData()
-        {
-            return new TData();
-        }
+        protected virtual TData CreateNewData() => new();
 
         /// <summary>
         /// データ読み込み後の処理（派生クラスでオーバーライド）

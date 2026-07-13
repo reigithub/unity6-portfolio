@@ -17,8 +17,8 @@ namespace Game.Horror.Interaction
         [Tooltip("セーブ後の復帰時にプレイヤーを開始させる位置・向き（Yaw のみ使用）")]
         [SerializeField] private Transform _respawnPoint;
 
-        private IHorrorSaveRepository _saveRepository;
-        private IHorrorPlayerService _playerService;
+        private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
         /// <summary>
         /// 復帰時のプレイヤー開始 Transform。未設定はシーン配線漏れとして LogError で顕在化し null を返す
@@ -37,8 +37,6 @@ namespace Game.Horror.Interaction
         protected override void Start()
         {
             base.Start();
-            _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
-            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
         }
 
         public override void Interact()
@@ -50,12 +48,13 @@ namespace Game.Horror.Interaction
         {
             var slots = await _saveRepository.LoadSlotInfosAsync();
             var selected = await HorrorSaveDataDialog.RunAsync(slots);
-            if (selected == 0) return;
+            if (selected < 0) return;
 
             // 自身のインタラクト記録と復帰地点を選択後に Dirty 化し、今回の保存に含める
             base.Interact();
+
             _playerService.SetLastSavepoint(InteractionId);
-            await _saveRepository.SaveToSlotAsync(selected);
+            await _saveRepository.SaveBySlotAsync(selected);
         }
     }
 }

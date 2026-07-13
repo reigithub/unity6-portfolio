@@ -14,8 +14,8 @@ namespace Game.Horror.SaveData
         /// <summary>セーブデータバージョン（マイグレーション用）</summary>
         public int Version { get; set; } = HorrorSaveConstants.SaveDataLatestVersion;
 
-        /// <summary>保存先スロット番号（0 = 未保存）</summary>
-        public int SlotNo { get; set; }
+        /// <summary>保存先スロット番号（-1 = 未保存）</summary>
+        public int SlotNo { get; set; } = -1;
 
         /// <summary>保存日時（UTC）</summary>
         public DateTime SavedAtUtc { get; set; }

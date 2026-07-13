@@ -75,7 +75,6 @@ namespace Game.Horror
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
             GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
-            await saveRepository.LoadAsync();
 
             // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);

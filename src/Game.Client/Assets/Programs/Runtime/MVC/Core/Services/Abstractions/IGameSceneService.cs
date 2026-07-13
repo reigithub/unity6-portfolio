@@ -63,7 +63,7 @@ namespace Game.Core.Services
         /// <typeparam name="TScene">ダイアログシーン型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TResult>()
+        UniTask<TResult> TransitionDialogAsync<TScene, TResult>(bool visibleLastScene = false)
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>
@@ -73,8 +73,9 @@ namespace Game.Core.Services
         /// <typeparam name="TArg">引数型</typeparam>
         /// <typeparam name="TResult">戻り値の型</typeparam>
         /// <param name="arg">引数</param>
+        /// <param name="visibleLastScene">前のシーンを隠すか</param>
         /// <returns>ダイアログの結果</returns>
-        UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg)
+        UniTask<TResult> TransitionDialogAsync<TScene, TArg, TResult>(TArg arg, bool visibleLastScene = false)
             where TScene : class, IGameScene, IGameSceneResult<TResult>, new();
 
         /// <summary>

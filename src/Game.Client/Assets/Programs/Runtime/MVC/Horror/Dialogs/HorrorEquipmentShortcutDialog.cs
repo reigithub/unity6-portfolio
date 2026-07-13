@@ -17,7 +17,7 @@ namespace Game.Horror.Dialogs
     {
         protected override string AssetPathOrAddress => "HorrorEquipmentShortcutDialog";
 
-        private IInputSystemService _inputService;
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private IHorrorInventorySlotInfo _target;
 
         public static async UniTask<bool> RunAsync(IHorrorInventorySlotInfo target)
@@ -30,12 +30,6 @@ namespace Game.Horror.Dialogs
         {
             _target = target;
             return UniTask.CompletedTask;
-        }
-
-        public override UniTask PreInitialize()
-        {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            return base.PreInitialize();
         }
 
         public override UniTask Startup()

@@ -20,11 +20,10 @@ namespace Game.Horror.Services
     /// </summary>
     public class HorrorSaveRepository : SaveRepositoryBase<HorrorSaveData>, IHorrorSaveRepository, IGameService
     {
-        /// <summary>現在アクティブなスロット番号（初期値 1）。</summary>
-        public int CurrentSlot { get; private set; } = 1;
-
-        protected override string SaveKey => GetSlotKey(CurrentSlot);
+        protected override string SaveKey => GetSaveKeyBySlot(CurrentSlot);
         protected override int CurrentVersion => HorrorSaveConstants.SaveDataLatestVersion;
+
+        public int CurrentSlot { get; private set; } = -1;
 
         private const int MaxSaveSlotCount = HorrorSaveConstants.MaxSaveSlotCount;
         private const int MaxEquipmentSlotCount = HorrorEquipmentConstants.MaxEquipmentSlotCount;
@@ -36,58 +35,89 @@ namespace Game.Horror.Services
             _databaseService = databaseService;
         }
 
-        private static string GetSlotKey(int slot) => $"horror_save_slot{slot}";
+        private static string GetSaveKeyBySlot(int slotNo) => $"horror_save_slot{slotNo}";
+
+        public async UniTask<HorrorSaveSlotInfo> LoadSlotInfoAsync(int slotNo)
+        {
+            var data = await _storage.LoadAsync<HorrorSaveData>(GetSaveKeyBySlot(slotNo));
+
+            return new HorrorSaveSlotInfo
+            {
+                SlotNo = slotNo,
+                HasData = data != null,
+                SavedAtUtc = data?.SavedAtUtc ?? default,
+                SavepointId = data?.SavepointId ?? 0
+            };
+        }
 
         /// <summary>
         /// 全スロットのメタ情報を並列に取得する。現在ロード中の <see cref="ISaveRepository{TData}.Data"/> は変更しない。
         /// </summary>
-        public async UniTask<IReadOnlyList<HorrorSaveSlotInfo>> LoadSlotInfosAsync()
+        public async UniTask<HorrorSaveSlotInfo[]> LoadSlotInfosAsync()
         {
-            var tasks = new UniTask<HorrorSaveData>[MaxSaveSlotCount];
-            for (int slot = 1; slot <= MaxSaveSlotCount; slot++)
+            var tasks = new UniTask<HorrorSaveSlotInfo>[MaxSaveSlotCount];
+            for (int slot = 0; slot < MaxSaveSlotCount; slot++)
             {
-                tasks[slot - 1] = _storage.LoadAsync<HorrorSaveData>(GetSlotKey(slot));
+                tasks[slot] = LoadSlotInfoAsync(slot);
             }
 
-            var results = await UniTask.WhenAll(tasks);
+            return await UniTask.WhenAll(tasks);
+        }
 
-            var infos = new List<HorrorSaveSlotInfo>(MaxSaveSlotCount);
-            for (int i = 0; i < results.Length; i++)
-            {
-                var data = results[i];
-                infos.Add(new HorrorSaveSlotInfo
-                {
-                    SlotNo = i + 1,
-                    HasData = data != null,
-                    SavedAtUtc = data?.SavedAtUtc ?? default,
-                    SavepointId = data?.SavepointId ?? 0,
-                });
-            }
+        public async UniTask LoadBySlotAsync(int slotNo)
+        {
+            if (!IsValidSlot(slotNo)) return;
 
-            return infos;
+            CurrentSlot = slotNo;
+            await LoadAsync();
         }
 
         /// <summary>
         /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
         /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に <see cref="OnBeforeSave"/> が刻印する。
         /// </summary>
-        /// <param name="slotNumber">保存先スロット番号（1〜<see cref="HorrorSaveConstants.MaxSaveSlotCount"/>）。</param>
-        public async UniTask SaveToSlotAsync(int slotNumber)
+        /// <param name="slotNo">保存先スロット番号（0〜<see cref="HorrorSaveConstants.MaxSaveSlotCount"/> - 1）。</param>
+        public async UniTask SaveBySlotAsync(int slotNo)
         {
-            if (slotNumber < 1 || slotNumber > MaxSaveSlotCount)
+            if (!IsValidSlot(slotNo)) return;
+
+            CurrentSlot = slotNo;
+            await SaveAsync();
+        }
+
+        public async UniTask DeleteBySlotAsync(int slotNo)
+        {
+            if (!IsValidSlot(slotNo)) return;
+
+            int slot = CurrentSlot;
+            try
             {
-                Debug.LogError($"[{GetType().Name}] Invalid slot number: {slotNumber}");
-                return;
+                CurrentSlot = slotNo;
+                await DeleteAsync();
+            }
+            finally
+            {
+                CurrentSlot = slot;
+            }
+        }
+
+        private bool IsValidSlot(int slotNo)
+        {
+            if (slotNo < 0 || slotNo >= MaxSaveSlotCount)
+            {
+                Debug.LogError($"[{GetType().Name}] Invalid slot number: {slotNo}");
+                return false;
             }
 
-            CurrentSlot = slotNumber;
-            await SaveAsync();
+            return true;
         }
 
         // どの保存経路（SaveAsync / SaveIfDirtyAsync）でもスロットメタが最新になるよう、保存直前に刻印する。
         // セーブポイント Id は復帰地点（Player.LastSavepointId）から導出し、真実の源を一つに保つ。
         protected override void OnBeforeSave(HorrorSaveData data)
         {
+            if (CurrentSlot < 0) throw new InvalidOperationException($"[{GetType().Name}] Slot {CurrentSlot} is invalid");
+
             data.SlotNo = CurrentSlot;
             data.SavedAtUtc = DateTime.UtcNow;
             data.SavepointId = data.Player.LastSavepointId;

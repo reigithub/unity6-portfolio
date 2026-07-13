@@ -53,7 +53,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
             _service.SetLastSavepoint(10);
-            await _repository.SaveAsync();
+            await _repository.SaveBySlotAsync(0);
             Assert.That(_repository.IsDirty, Is.False);
 
             _service.SetLastSavepoint(10);

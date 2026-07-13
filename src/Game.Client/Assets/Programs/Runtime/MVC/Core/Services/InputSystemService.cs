@@ -128,7 +128,7 @@ namespace Game.Core.Services
                 GameObject go = null;
                 bool found = false;
 
-                if (selectedGameObject != null)
+                if (selectedGameObject != null && selectedGameObject.activeSelf)
                 {
                     foreach (var selectable in allSelectables)
                     {
