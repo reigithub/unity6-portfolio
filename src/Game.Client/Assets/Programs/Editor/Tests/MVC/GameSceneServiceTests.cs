@@ -1039,7 +1039,7 @@ namespace Game.Editor.Tests
                 return UniTask.CompletedTask;
             }
 
-            public UniTask Sleep()
+            public UniTask Sleep(bool visible)
             {
                 SleepCalled = true;
                 return UniTask.CompletedTask;
