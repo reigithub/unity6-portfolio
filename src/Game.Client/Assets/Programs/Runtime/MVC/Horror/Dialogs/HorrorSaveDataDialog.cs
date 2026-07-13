@@ -21,13 +21,13 @@ namespace Game.Horror.Dialogs
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private HorrorSaveSlotInfo[] _slots;
-        private int _slotNo;
+        private int _slotNo = -1;
 
         /// <summary>
         /// ダイアログを開き、選択されたスロット番号を返す。
         /// </summary>
         /// <param name="slots">全スロットのメタ情報。</param>
-        /// <returns>選択スロット番号（1〜スロット数上限）。0 はキャンセル。</returns>
+        /// <returns>選択スロット番号（0〜スロット数上限 - 1）。負値はキャンセル。</returns>
         public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots)
         {
             int result;
@@ -64,9 +64,10 @@ namespace Game.Horror.Dialogs
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) =>
                 {
+                    if (_slotNo < 0) return;
                     await _saveRepository.DeleteBySlotAsync(_slotNo);
-                    _slots[_slotNo - 1] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
-                    SceneComponent.SetSlotInfo(_slots[_slotNo - 1]);
+                    _slots[_slotNo] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
+                    SceneComponent.SetSlotInfo(_slots[_slotNo]);
                 })
                 .AddTo(Disposables);
 

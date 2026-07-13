@@ -30,7 +30,7 @@ namespace Game.Horror.Services.Interfaces
         /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
         /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に刻印される。
         /// </summary>
-        /// <param name="slotNo">保存先スロット番号（1〜スロット数上限）。</param>
+        /// <param name="slotNo">保存先スロット番号（0〜スロット数上限 - 1）。</param>
         UniTask SaveBySlotAsync(int slotNo);
 
         /// <summary>

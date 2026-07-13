@@ -21,7 +21,7 @@ namespace Game.Tests.MVC.Horror
     [TestFixture]
     public class HorrorSaveRepositoryTests
     {
-        private const string SaveKey = "horror_save_slot1";
+        private const string SaveKey = "horror_save_slot0";
 
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
@@ -197,8 +197,8 @@ namespace Game.Tests.MVC.Horror
                 Arg.Is<HorrorSaveData>(d => d.SlotNo == 3 && d.SavepointId == 42));
         }
 
-        [TestCase(0)]
-        [TestCase(11)]
+        [TestCase(-1)]
+        [TestCase(10)]
         public async Task SaveToSlotAsync_WithSlotOutOfRange_DoesNotSave(int slotNumber)
         {
             await LoadDefaultData();
@@ -206,7 +206,7 @@ namespace Game.Tests.MVC.Horror
 
             await _repository.SaveBySlotAsync(slotNumber);
 
-            Assert.That(_repository.CurrentSlot, Is.EqualTo(1));
+            Assert.That(_repository.CurrentSlot, Is.EqualTo(-1));
             await _mockStorage.DidNotReceive().SaveAsync(Arg.Any<string>(), Arg.Any<HorrorSaveData>());
         }
 
@@ -219,7 +219,7 @@ namespace Game.Tests.MVC.Horror
             var infos = await _repository.LoadSlotInfosAsync();
 
             Assert.That(infos.Length, Is.EqualTo(HorrorSaveConstants.MaxSaveSlotCount));
-            Assert.That(infos[0].SlotNo, Is.EqualTo(1));
+            Assert.That(infos[0].SlotNo, Is.EqualTo(0));
             Assert.That(infos[0].HasData, Is.False);
         }
 
@@ -234,7 +234,7 @@ namespace Game.Tests.MVC.Horror
 
             var infos = await _repository.LoadSlotInfosAsync();
 
-            var info = infos[2];
+            var info = infos[3];
             Assert.That(info.SlotNo, Is.EqualTo(3));
             Assert.That(info.HasData, Is.True);
             Assert.That(info.SavedAtUtc, Is.EqualTo(savedAt));

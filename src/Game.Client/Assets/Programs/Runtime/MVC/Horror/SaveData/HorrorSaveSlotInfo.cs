@@ -7,7 +7,7 @@ namespace Game.Horror.SaveData
     /// </summary>
     public class HorrorSaveSlotInfo
     {
-        /// <summary>スロット番号。</summary>
+        /// <summary>スロット番号（0始まり）。</summary>
         public int SlotNo { get; set; }
 
         /// <summary>データが存在するか。</summary>

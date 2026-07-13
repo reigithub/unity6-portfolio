@@ -72,12 +72,8 @@ namespace Game.Horror.Scenes
                         .FirstOrDefault();
                     if (slotInfo != null)
                     {
-                        int slotNo = slotInfo.SlotNo;
-                        if (slotNo > 0)
-                        {
-                            await _saveRepository.LoadBySlotAsync(slotNo);
-                            await _sceneService.TransitionAsync<HorrorStageScene>();
-                        }
+                        await _saveRepository.LoadBySlotAsync(slotInfo.SlotNo);
+                        await _sceneService.TransitionAsync<HorrorStageScene>();
                     }
                 })
                 .AddTo(Disposables);
@@ -88,7 +84,7 @@ namespace Game.Horror.Scenes
                     if (!_hasSaveData) return;
 
                     var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots);
-                    if (slotNo > 0)
+                    if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);
                         await _sceneService.TransitionAsync<HorrorStageScene>();
@@ -105,7 +101,6 @@ namespace Game.Horror.Scenes
             SceneComponent.OnNewGame
                 .SubscribeAwait(async (_, _) =>
                 {
-                    if (_hasSaveData) return;
                     _saveRepository.CreateData();
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })
