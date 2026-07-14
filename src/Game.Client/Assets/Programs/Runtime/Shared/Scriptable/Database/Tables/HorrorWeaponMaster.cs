@@ -22,7 +22,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _damage;              // 着弾ダメージ（IDamageable.TakeDamage へ渡す）
         [SerializeField] private float _range;             // 射程（Raycast 最大距離, m）
         [SerializeField] private float _fireInterval;      // 発砲後の硬直（AttackingState 滞在秒）
-        [SerializeField] private float _noiseLoudness;     // 銃声の大きさ（NoiseEvent.Loudness）
+        [SerializeField] private float _noiseLoudness;     // 銃声の大きさ（HorrorSignals.Noise.Occurred.Loudness）
         [SerializeField] private float _equipDuration;     // 装備切替の硬直（EquippingState 滞在秒）
         [SerializeField] private float _aimZoomRatio;      // エイム時 FOV 倍率（1=ズーム無し、小さいほどズーム）
         [SerializeField] private float _aimDamageMultiplier; // エイム射撃のダメージ倍率

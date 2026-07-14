@@ -1,7 +1,7 @@
 using System;
 using Game.Core.Services;
+using Game.Horror.Signals;
 using Game.Shared.Constants;
-using Game.Shared.Events;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
 
@@ -10,7 +10,7 @@ namespace Game.Horror.Enemy
     /// <summary>
     /// ホラーゲームのゾンビ型敵 AI 知覚センサー。
     /// 視覚（距離 → 視野角 → 遮蔽 Raycast の多段評価）と
-    /// 聴覚（<see cref="NoiseEvent"/> の MessagePipe 購読）を統合し、
+    /// 聴覚（<see cref="HorrorSignals.Noise.Occurred"/> の MessagePipe 購読）を統合し、
     /// 警戒度ゲージ <see cref="Awareness"/>（0〜1）を駆動する。
     /// コントローラーから <see cref="Initialize"/> で注入を受けた後、
     /// Update で自律的に知覚を更新する。
@@ -130,9 +130,9 @@ namespace Game.Horror.Enemy
             if (_occluderMask.value == 0)
                 _occluderMask = LayerMaskConstants.Structure | LayerMaskConstants.Ground;
 
-            // 聴覚: NoiseEvent を購読。戻り IDisposable を保持（OnDestroy/OnDisable で破棄）
+            // 聴覚: HorrorSignals.Noise.Occurred を購読。戻り IDisposable を保持（OnDestroy/OnDisable で破棄）
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            _noiseSubscription = messagePipeService.Subscribe<NoiseEvent>(OnNoise);
+            _noiseSubscription = messagePipeService.Subscribe<HorrorSignals.Noise.Occurred>(OnNoise);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log($"[HorrorEnemyPerception] Initialize: target={target.name}, sightRange={master.SightRange}, hearingRadius={master.HearingRadius}");
@@ -264,10 +264,10 @@ namespace Game.Horror.Enemy
         #region 聴覚
 
         /// <summary>
-        /// NoiseEvent を受信したときの処理。
+        /// HorrorSignals.Noise.Occurred を受信したときの処理。
         /// 到達半径内なら <see cref="LastHeardPosition"/> を更新し、警戒度を加算する。
         /// </summary>
-        private void OnNoise(NoiseEvent evt)
+        private void OnNoise(HorrorSignals.Noise.Occurred evt)
         {
             if (_master == null) return;
 

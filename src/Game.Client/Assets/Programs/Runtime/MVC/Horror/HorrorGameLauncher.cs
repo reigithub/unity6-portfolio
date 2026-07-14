@@ -1,14 +1,13 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
-using Game.Horror.Events;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.Signals;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
-using Game.Shared.Events;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
@@ -47,8 +46,8 @@ namespace Game.Horror
                 messagePipeService.AddMessageBroker<int, bool>();
                 messagePipeService.AddMessageBroker<int, string>();
             }
-            messagePipeService.AddMessageBroker<NoiseEvent>();
-            messagePipeService.AddMessageBroker<HorrorDamageAppliedEvent>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Noise.Occurred>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Combat.DamageApplied>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 

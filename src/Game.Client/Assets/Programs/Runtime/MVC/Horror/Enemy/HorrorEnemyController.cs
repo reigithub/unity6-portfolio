@@ -1,7 +1,7 @@
 using Game.Core.Services;
+using Game.Horror.Signals;
 using Game.Library.Shared;
 using Game.Shared.Combat;
-using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
@@ -295,12 +295,12 @@ namespace Game.Horror.Enemy
         #region Combat / Sound
 
         /// <summary>
-        /// ホード伝播用のスクリーム NoiseEvent を MessagePipe で Publish する。
+        /// ホード伝播用のスクリーム HorrorSignals.Noise.Occurred を MessagePipe で Publish する。
         /// ChaseState への突入時に呼ぶ。
         /// </summary>
         private void PublishScream()
         {
-            _messagePipeService?.Publish(new NoiseEvent(transform.position, ScreamLoudness, NoiseType.Scream));
+            _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, ScreamLoudness, NoiseType.Scream));
         }
 
         /// <summary>

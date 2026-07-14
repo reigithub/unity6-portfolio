@@ -6,12 +6,12 @@ using Game.Horror.Equipment;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.Signals;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Combat;
 using Game.Shared.Constants;
 using Game.Shared.Enums;
-using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Input;
 using Game.Shared.Scriptable.Database.Tables;
@@ -1365,7 +1365,7 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// カメラ中心からヒットスキャン（Raycast 即着弾）で射撃する。命中すれば IDamageable にダメージ、
-        /// 命中点（外れたら射程端）で銃声 NoiseEvent を発行する。
+        /// 命中点（外れたら射程端）で銃声 HorrorSignals.Noise.Occurred を発行する。
         /// あわせて武器キック・マズルフラッシュ・カメラリコイル・射撃音の発砲演出を発火する。
         /// </summary>
         private void Fire()
@@ -1400,9 +1400,12 @@ namespace Game.Horror.Player
                 if (_ammoView != null) _ammoView.Notify();
             }
 
-            // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 NoiseEvent（Gunshot）を発行して周囲の敵を誘引する。
+            // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 HorrorSignals.Noise.Occurred（Gunshot）を発行して周囲の敵を誘引する。
+            // ポップアップはダメージが実際に適用された時のみ。致死打で TakeDamage 後は IsDead=true になるため事前判定
+            var damageApplied = target != null && !target.IsDead;
             target?.TakeDamage(damage);
-            _messagePipeService?.Publish(new NoiseEvent(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+            if (damageApplied) _messagePipeService?.Publish(new HorrorSignals.Combat.DamageApplied(hit.point, damage));
+            _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
             if (_reticleView != null) _reticleView.NotifyFired();
 
             // 発砲演出：武器ビュー（マズルフラッシュ＋キック）・カメラリコイル・射撃音
