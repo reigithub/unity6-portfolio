@@ -353,7 +353,7 @@ namespace Game.Horror.Enemy
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
                 Debug.Log($"[HorrorEnemyController] DeathState: 敵が死亡した ({ctx.name})");
-                ctx.gameObject.SafeDestroy();
+                // ctx.gameObject.SafeDestroy();
 #endif
             }
         }

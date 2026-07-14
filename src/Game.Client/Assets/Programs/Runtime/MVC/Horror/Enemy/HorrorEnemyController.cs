@@ -281,13 +281,13 @@ namespace Game.Horror.Enemy
         /// <summary>NavMeshAgent を停止する。</summary>
         private void StopAgent()
         {
-            if (_navMeshAgent != null) _navMeshAgent.isStopped = true;
+            if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh) _navMeshAgent.isStopped = true;
         }
 
         /// <summary>NavMeshAgent を再開する。</summary>
         private void ResumeAgent()
         {
-            if (_navMeshAgent != null) _navMeshAgent.isStopped = false;
+            if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh) _navMeshAgent.isStopped = false;
         }
 
         #endregion
