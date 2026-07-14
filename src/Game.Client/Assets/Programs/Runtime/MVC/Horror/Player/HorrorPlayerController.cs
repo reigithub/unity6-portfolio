@@ -1404,7 +1404,7 @@ namespace Game.Horror.Player
             // ポップアップはダメージが実際に適用された時のみ。致死打で TakeDamage 後は IsDead=true になるため事前判定
             var damageApplied = target != null && !target.IsDead;
             target?.TakeDamage(damage);
-            if (damageApplied) _messagePipeService?.Publish(new HorrorSignals.Combat.DamageApplied(hit.point, damage));
+            if (damageApplied) _messagePipeService?.Publish(new HorrorSignals.Combat.Damaged(hit.point, damage));
             _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
             if (_reticleView != null) _reticleView.NotifyFired();
 

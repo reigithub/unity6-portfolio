@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.Horror.Player
 {
     /// <summary>
-    /// OverlayCanvas/DamagePopups にアタッチ。MessagePipe で <see cref="HorrorSignals.Combat.DamageApplied"/> を購読し、
+    /// OverlayCanvas/DamagePopups にアタッチ。MessagePipe で <see cref="HorrorSignals.Combat.Damaged"/> を購読し、
     /// 内部プールからポップアップを再生する。
     /// </summary>
     public class HorrorDamageSpawner : MonoBehaviour
@@ -29,10 +29,10 @@ namespace Game.Horror.Player
 
             // ダメージ適用イベントを購読。戻り IDisposable を保持する（OnDestroy で破棄）
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            _subscription = messagePipeService.Subscribe<HorrorSignals.Combat.DamageApplied>(OnDamageApplied);
+            _subscription = messagePipeService.Subscribe<HorrorSignals.Combat.Damaged>(OnDamageApplied);
         }
 
-        private void OnDamageApplied(HorrorSignals.Combat.DamageApplied e)
+        private void OnDamageApplied(HorrorSignals.Combat.Damaged e)
         {
             if (_popupPrefab == null || _camera == null) return;
 

@@ -35,12 +35,12 @@ namespace Game.Horror.Signals
             /// ダメージ適用イベントのデータ（ヒット位置のダメージ数値ポップアップ表示等の演出に使用）。
             /// Position はヒット位置のワールド座標。
             /// </summary>
-            public readonly struct DamageApplied
+            public readonly struct Damaged
             {
                 public readonly Vector3 Position;
                 public readonly int Damage;
 
-                public DamageApplied(Vector3 position, int damage)
+                public Damaged(Vector3 position, int damage)
                 {
                     Position = position;
                     Damage = damage;

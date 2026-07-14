@@ -47,7 +47,7 @@ namespace Game.Horror
                 messagePipeService.AddMessageBroker<int, string>();
             }
             messagePipeService.AddMessageBroker<HorrorSignals.Noise.Occurred>();
-            messagePipeService.AddMessageBroker<HorrorSignals.Combat.DamageApplied>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Combat.Damaged>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 
