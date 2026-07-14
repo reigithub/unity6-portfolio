@@ -22,9 +22,9 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
-        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
-        private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+        private IInputSystemService _inputService;
+        private IScriptableDatabaseService _databaseService;
+        private IHorrorInventoryService _inventoryService;
         private HorrorInventorySlotView _slotView;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
@@ -36,6 +36,10 @@ namespace Game.Horror.Dialogs
 
         public void Initialize()
         {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+            _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+
             _tabGroup.Initialize();
             BindSlots();
             _tabGroup.ChangeTab(0);
