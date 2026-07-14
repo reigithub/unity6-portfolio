@@ -1,6 +1,5 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Shared.Bootstrap;
 using Game.Shared.Services;
 using UnityEngine;
 
@@ -32,7 +31,7 @@ namespace Game.Horror.Enemy
             }
 
             var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
-            _enemy = await assetService.InstantiateAsync("HorrorEnemy", transform);
+            _enemy = await assetService.InstantiateAsync(master.ModelAssetName, transform);
 
             if (_enemy.TryGetComponent<HorrorEnemyController>(out var controller))
             {
