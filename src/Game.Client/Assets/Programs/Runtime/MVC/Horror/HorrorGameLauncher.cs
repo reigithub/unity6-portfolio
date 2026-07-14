@@ -1,12 +1,14 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
 using Game.Core.Services;
+using Game.Horror.Events;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
+using Game.Shared.Events;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
@@ -39,7 +41,16 @@ namespace Game.Horror
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
             await audioService.LoadAsync();
 
-            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
+            var messagePipeService = new MessagePipeService();
+            {
+                // 動作させるための暫定登録
+                messagePipeService.AddMessageBroker<int, bool>();
+                messagePipeService.AddMessageBroker<int, string>();
+            }
+            messagePipeService.AddMessageBroker<NoiseEvent>();
+            messagePipeService.AddMessageBroker<HorrorDamageAppliedEvent>();
+            messagePipeService.Build();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 
             // アイコン一括ロード
             var iconService = new HorrorIconService(assetService);

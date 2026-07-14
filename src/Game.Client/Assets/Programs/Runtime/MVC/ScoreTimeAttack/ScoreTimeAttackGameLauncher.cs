@@ -3,12 +3,12 @@ using Game.Core;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.ScoreTimeAttack.Scenes;
-using Game.ScoreTimeAttack.Services;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
+using UnityEngine;
 
 namespace Game.ScoreTimeAttack
 {
@@ -30,6 +30,16 @@ namespace Game.ScoreTimeAttack
             var localizationService = new LocalizationService();
             GameServiceManager.Register<ILocalizationService, LocalizationService>(localizationService);
 
+            var messagePipeService = new MessagePipeService();
+            messagePipeService.AddMessageBroker<int, int>();
+            messagePipeService.AddMessageBroker<int, float>();
+            messagePipeService.AddMessageBroker<int, bool>();
+            messagePipeService.AddMessageBroker<int, string>();
+            messagePipeService.AddMessageBroker<int, GameObject>();
+            messagePipeService.AddMessageBroker<int, Vector2>();
+            messagePipeService.Build();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
+
             var masterDataService = new MasterDataService(assetService);
             await masterDataService.LoadMasterDataAsync();
             GameServiceManager.Register<IMasterDataService, MasterDataService>(masterDataService);
@@ -37,7 +47,6 @@ namespace Game.ScoreTimeAttack
             var audioService = new AudioService(assetService, masterDataService);
             await audioService.LoadAsync();
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
-            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
             var inputSystemService = new InputSystemService(localizationService);
             GameServiceManager.Register<IInputSystemService, InputSystemService>(inputSystemService);
 

@@ -17,6 +17,11 @@ namespace Game.Tests.MVC
         public void Setup()
         {
             _service = new MessagePipeService();
+            _service.AddMessageBroker<int, int>();
+            _service.AddMessageBroker<int, float>();
+            _service.AddMessageBroker<int, bool>();
+            _service.AddMessageBroker<int, string>();
+            _service.Build();
             _service.Startup();
         }
 

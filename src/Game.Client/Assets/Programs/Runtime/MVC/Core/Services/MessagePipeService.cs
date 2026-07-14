@@ -2,8 +2,6 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MessagePipe;
-using Game.Shared.Events;
-using UnityEngine;
 
 namespace Game.Core.Services
 {
@@ -13,7 +11,7 @@ namespace Game.Core.Services
     /// </summary>
     public class MessagePipeService : IMessagePipeService
     {
-        private readonly BuiltinContainerBuilder _builder;
+        private BuiltinContainerBuilder _builder;
         private IServiceProvider _serviceProvider;
 
         public MessagePipeService()
@@ -30,46 +28,27 @@ namespace Game.Core.Services
 
         public void Startup()
         {
-            // 使用するメッセージタイプを登録
-            RegisterMessageBrokers();
-            Build();
         }
 
         public void Shutdown()
         {
+            _builder = null;
             _serviceProvider = null;
         }
 
         #region Registration
 
-        private void RegisterMessageBrokers()
+        public void AddMessageBroker<TKey, TMessage>()
         {
-            // 基本型
-            _builder.AddMessageBroker<int, int>();
-            _builder.AddMessageBroker<int, int?>();
-            _builder.AddMessageBroker<int, float>();
-            _builder.AddMessageBroker<int, bool>();
-            _builder.AddMessageBroker<int, string>();
-
-            // Unity型
-            _builder.AddMessageBroker<int, GameObject>();
-            _builder.AddMessageBroker<int, Collision>();
-            _builder.AddMessageBroker<int, Collider>();
-            _builder.AddMessageBroker<int, Vector2>();
-            _builder.AddMessageBroker<int, Vector3>();
-            _builder.AddMessageBroker<int, Material>();
-
-            // UniTask型
-            _builder.AddMessageBroker<int, UniTaskCompletionSource<int>>();
-            _builder.AddMessageBroker<int, UniTaskCompletionSource<bool>>();
-
-            // 音イベント
-            _builder.AddMessageBroker<NoiseEvent>();
-
-            // _builder.AddRequestHandler<TRequest, TResponse, THandler>();
+            _builder.AddMessageBroker<TKey, TMessage>();
         }
 
-        private void Build()
+        public void AddMessageBroker<TMessage>()
+        {
+            _builder.AddMessageBroker<TMessage>();
+        }
+
+        public void Build()
         {
             _serviceProvider = _builder.BuildServiceProvider();
             GlobalMessagePipe.SetProvider(_serviceProvider);
@@ -211,16 +190,6 @@ namespace Game.Core.Services
         public IAsyncSubscriber<TKey, TMessage> GetAsyncSubscriber<TKey, TMessage>()
         {
             return GlobalMessagePipe.GetAsyncSubscriber<TKey, TMessage>();
-        }
-
-        public IRequestHandler<TRequest, TResponse> GetRequestHandler<TRequest, TResponse>()
-        {
-            return GlobalMessagePipe.GetRequestHandler<TRequest, TResponse>();
-        }
-
-        public IAsyncRequestHandler<TRequest, TResponse> GetAsyncRequestHandler<TRequest, TResponse>()
-        {
-            return GlobalMessagePipe.GetAsyncRequestHandler<TRequest, TResponse>();
         }
 
         #endregion

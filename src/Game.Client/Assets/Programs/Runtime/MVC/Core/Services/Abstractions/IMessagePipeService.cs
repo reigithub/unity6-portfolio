@@ -12,6 +12,15 @@ namespace Game.Core.Services
     /// </summary>
     public interface IMessagePipeService : IGameService
     {
+        #region Register
+
+        void AddMessageBroker<TKey, TMessage>();
+        void AddMessageBroker<TMessage>();
+
+        void Build();
+
+        #endregion
+
         #region Signal Methods (値なしのイベント通知用)
 
         // Signal Publish (値なし)
