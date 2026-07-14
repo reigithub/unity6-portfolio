@@ -174,8 +174,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9452bc5f5382ed54189a4c0052bc51a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Enemy.HorrorEnemyController
-  _navMeshAgent: {fileID: 0}
-  _animator: {fileID: 0}
+  _navMeshAgent: {fileID: 5643750735384886182}
+  _animator: {fileID: 8099407939943057828}
   _perception: {fileID: 3290983910790862230}
   _startDormant: 0
 --- !u!114 &3290983910790862230
