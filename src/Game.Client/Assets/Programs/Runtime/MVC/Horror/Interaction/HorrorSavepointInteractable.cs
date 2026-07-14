@@ -17,8 +17,8 @@ namespace Game.Horror.Interaction
         [Tooltip("セーブ後の復帰時にプレイヤーを開始させる位置・向き（Yaw のみ使用）")]
         [SerializeField] private Transform _respawnPoint;
 
-        private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
-        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
+        private IHorrorSaveRepository _saveRepository;
+        private IHorrorPlayerService _playerService;
 
         /// <summary>
         /// 復帰時のプレイヤー開始 Transform。未設定はシーン配線漏れとして LogError で顕在化し null を返す
@@ -36,6 +36,8 @@ namespace Game.Horror.Interaction
 
         protected override void Start()
         {
+            _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             base.Start();
         }
 

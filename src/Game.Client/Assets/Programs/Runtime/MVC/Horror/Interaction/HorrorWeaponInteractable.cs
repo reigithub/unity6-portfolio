@@ -1,3 +1,6 @@
+using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
+
 namespace Game.Horror.Interaction
 {
     /// <summary>
@@ -30,7 +33,8 @@ namespace Game.Horror.Interaction
             if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
                 return false;
 
-            return InventoryService.TryAdd(weaponMaster, Master.AcquiredCount);
+            var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            return inventoryService.TryAdd(weaponMaster, Master.AcquiredCount);
         }
     }
 }

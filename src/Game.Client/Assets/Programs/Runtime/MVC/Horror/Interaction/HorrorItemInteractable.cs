@@ -1,3 +1,6 @@
+using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
+
 namespace Game.Horror.Interaction
 {
     /// <summary>
@@ -9,7 +12,6 @@ namespace Game.Horror.Interaction
         protected override void Start()
         {
             base.Start();
-
             gameObject.SetActive(!WasInteracted());
         }
 
@@ -29,7 +31,8 @@ namespace Game.Horror.Interaction
             if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
                 return false;
 
-            return InventoryService.TryAdd(itemMaster, Master.AcquiredCount);
+            var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            return inventoryService.TryAdd(itemMaster, Master.AcquiredCount);
         }
     }
 }

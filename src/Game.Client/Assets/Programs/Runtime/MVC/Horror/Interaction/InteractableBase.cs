@@ -34,11 +34,10 @@ namespace Game.Horror.Interaction
         [Tooltip("対象位置に出すプロンプト表示")]
         [SerializeField] private InteractionPromptView _promptView;
 
-        protected readonly IHorrorInteractionService InteractionService = GameServiceManager.Resolve<IHorrorInteractionService>();
-        protected readonly IHorrorInventoryService InventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
-
-        private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
-        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+        private IHorrorInteractionService _interactionService;
+        private IHorrorInventoryService _inventoryService;
+        private ILocalizationService _localizationService;
+        private IScriptableDatabaseService _databaseService;
         protected ScriptableDatabase Database => _databaseService.Database;
 
         protected HorrorInteractionMaster Master { get; private set; }
@@ -52,6 +51,11 @@ namespace Game.Horror.Interaction
 
         protected virtual void Start()
         {
+            _interactionService = GameServiceManager.Resolve<IHorrorInteractionService>();
+            _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+
             if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(_interactionId, out var master))
             {
                 Master = master;
@@ -100,11 +104,11 @@ namespace Game.Horror.Interaction
 
         public virtual float HoldSeconds => Master != null ? Master.HoldSeconds : 0f;
 
-        public virtual bool WasInteracted() => InteractionService.Contains(_interactionId);
+        public virtual bool WasInteracted() => _interactionService.Contains(_interactionId);
 
         public virtual bool CanInteract() => true;
 
-        public virtual void Interact() => InteractionService.Add(Master);
+        public virtual void Interact() => _interactionService.Add(Master);
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
         {
@@ -148,7 +152,7 @@ namespace Game.Horror.Interaction
             if (Master == null || Master.RequiredItemId == 0)
                 return true;
 
-            return InventoryService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
+            return _inventoryService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
         }
     }
 }
