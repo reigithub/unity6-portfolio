@@ -61,7 +61,7 @@ namespace Game.MVP.Survivor.ECS
         /// <param name="seed">乱数シード</param>
         /// <param name="results">結果を格納するNativeArray（呼び出し側が確保・解放）</param>
         /// <returns>完了可能なJobHandle</returns>
-        public static JobHandle ScheduleCalculation(
+        private static JobHandle ScheduleCalculation(
             int count,
             float3 playerPosition,
             float minDistance,

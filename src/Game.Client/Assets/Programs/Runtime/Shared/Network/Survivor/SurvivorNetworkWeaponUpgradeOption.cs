@@ -15,7 +15,7 @@ namespace Game.Shared.Network.Survivor
         public NetworkBool IsNewWeapon;
         public int CurrentLevel;
 
-        public static SurvivorNetworkWeaponUpgradeOption FromDto(WeaponUpgradeOptionSnapshot dto)
+        public SurvivorNetworkWeaponUpgradeOption FromDto(WeaponUpgradeOptionSnapshot dto)
         {
             return new SurvivorNetworkWeaponUpgradeOption
             {

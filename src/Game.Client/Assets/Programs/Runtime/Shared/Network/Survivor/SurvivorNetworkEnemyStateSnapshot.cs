@@ -21,7 +21,7 @@ namespace Game.Shared.Network.Survivor
             set { SyncTypeByte = (byte)value; }
         }
 
-        public static SurvivorNetworkEnemyStateSnapshot FromDto(EnemyStateSnapshot dto)
+        internal static SurvivorNetworkEnemyStateSnapshot FromDto(EnemyStateSnapshot dto)
         {
             return new SurvivorNetworkEnemyStateSnapshot
             {
