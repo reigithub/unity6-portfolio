@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53f502a802c8b684faaa1d32a85ffe60, type: 3}
+  m_Name: HorrorPlayerMasterTable
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorPlayerMasterTable
+  records:
+  - _id: 1
+    _name: Default
+    _walkSpeed: 2
+    _runSpeed: 5
+    _jump: 5
+    _gravity: -20
+    _crouchSpeed: 1.2
+    _crouchHeight: 1
+    _crouchTransitionSpeed: 8
+    _lookRotationSpeed: 0.1
+    _aimTransitionSpeed: 8
+    _aimRotationMultiplier: 0.4
+    _aimShakeFadeSeconds: 1
+    _bobWalkAmplitude: 0.04
+    _bobRunAmplitude: 0.06
+    _bobWalkSpeed: 10
+    _bobRunSpeed: 15
+    _bobHorizontalRatio: 0.5
+    _bobWalkRoll: 0.05
+    _bobRunRoll: 0.1
+    _bobAmplitudeResponse: 10
+    _idleSwaySpeed: 1.2
+    _idleSwayAmplitude: 0.05
+    _idleSwayRoll: 0.01

@@ -35,6 +35,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _fireSeAssetName;      // 射撃 SE アセット名（空文字=再生しない）
         [SerializeField] private string _muzzleFlashAssetName; // マズルフラッシュ VFX アセット名（空文字=表示しない）
         [SerializeField] private float _recoilCameraPitch;     // 発砲カメラリコイルの跳ね上げピッチ角（度）
+        [SerializeField] private float _recoilRecoverSeconds;  // 発砲カメラリコイルが収まるまでの秒数（減衰オフセット型）
 
         #endregion
 
@@ -171,6 +172,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _recoilCameraPitch;
             set => _recoilCameraPitch = value;
+        }
+
+        public float RecoilRecoverSeconds
+        {
+            get => _recoilRecoverSeconds;
+            set => _recoilRecoverSeconds = value;
         }
 
         #endregion

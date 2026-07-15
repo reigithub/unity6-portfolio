@@ -27,6 +27,8 @@ namespace Game.Horror.Player
     [RequireComponent(typeof(CharacterController))]
     public class HorrorPlayerController : MonoBehaviour
     {
+        [SerializeField] private int _playerId = 1;
+
         [SerializeField] private Camera _mainCamera;
 
         [SerializeField] private float _walkSpeed = 2.0f;
@@ -65,7 +67,7 @@ namespace Game.Horror.Player
         [Tooltip("射撃 Raycast の対象レイヤー。敵＋遮蔽（壁）を含めること")]
         [SerializeField] private LayerMask _hitMask;
 
-        [Tooltip("発砲カメラリコイルが収まるまでの秒数（減衰オフセット型・照準は元へ戻る）")]
+        [Tooltip("発砲カメラリコイルが収まるまでの秒数（減衰オフセット型・照準は元へ戻る）。発砲時に武器マスター値で上書きされる")]
         [SerializeField] private float _recoilRecoverSeconds = 0.25f;
 
         [Header("装備（武器モデル表示）")]
@@ -105,7 +107,7 @@ namespace Game.Horror.Player
         private IMessagePipeService _messagePipeService;
         private bool _attackTriggered;
 
-        // 発砲カメラリコイル（減衰オフセット型）。強度は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
+        // 発砲カメラリコイル（減衰オフセット型）。強度・回復秒は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
         private float _recoilPitchAmount;
         private float _recoilWeight;
 
@@ -170,18 +172,19 @@ namespace Game.Horror.Player
         private float _moveBobWeight;     // 0=停止, 1=移動（ease）。cameraShake とは分離
         private float _cameraShake = 1f;
 
-        private const float BobWalkAmplitude = 0.04f;   // 歩き：縦位置振幅（m）
-        private const float BobRunAmplitude = 0.06f;    // 走り：縦位置振幅（m）
-        private const float BobWalkSpeed = 10f;         // 歩き：位相速度 rad/s（ゆっくり）
-        private const float BobRunSpeed = 15f;          // 走り：位相速度 rad/s（少しだけ速い）
-        private const float BobHorizontalRatio = 0.5f;  // 横位置/縦位置 比
-        private const float BobWalkRoll = 0.05f;         // 歩き：ロール角（度）＝知覚される横揺れ
-        private const float BobRunRoll = 0.1f;          // 走り：ロール角（度）
-        private const float BobAmplitudeResponse = 10f; // 強度イーズの応答
+        // ヘッドボブ/アイドルスウェイ調整値（HorrorPlayerMaster から Initialize で上書き。初期値はマスター欠落時のフォールバック）
+        private float _bobWalkAmplitude = 0.04f;   // 歩き：縦位置振幅（m）
+        private float _bobRunAmplitude = 0.06f;    // 走り：縦位置振幅（m）
+        private float _bobWalkSpeed = 10f;         // 歩き：位相速度 rad/s（ゆっくり）
+        private float _bobRunSpeed = 15f;          // 走り：位相速度 rad/s（少しだけ速い）
+        private float _bobHorizontalRatio = 0.5f;  // 横位置/縦位置 比
+        private float _bobWalkRoll = 0.05f;         // 歩き：ロール角（度）＝知覚される横揺れ
+        private float _bobRunRoll = 0.1f;          // 走り：ロール角（度）
+        private float _bobAmplitudeResponse = 10f; // 強度イーズの応答
 
-        private const float IdleSwaySpeed = 1.2f;       // アイドル：位相速度 rad/s（呼吸 ~5秒周期）
-        private const float IdleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
-        private const float IdleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
+        private float _idleSwaySpeed = 1.2f;       // アイドル：位相速度 rad/s（呼吸 ~5秒周期）
+        private float _idleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
+        private float _idleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
 
         private const float CeilingCheckBuffer = 0.15f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
 
@@ -197,6 +200,9 @@ namespace Game.Horror.Player
             _dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+
+            ApplyPlayerMaster();
+
             _equipmentsView.Initialize();
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
@@ -244,6 +250,40 @@ namespace Game.Horror.Player
                 .AddTo(this);
 
             _initialized = true;
+        }
+
+        public void ApplyPlayerMaster()
+        {
+            // プレイヤー調整値をマスターデータで上書き（SerializeField/既定値はマスター欠落時のフォールバック）
+            if (_dbService.Database.HorrorPlayerMasterTable.TryFindById(_playerId, out var playerMaster))
+            {
+                _walkSpeed = playerMaster.WalkSpeed;
+                _runSpeed = playerMaster.RunSpeed;
+                _jump = playerMaster.Jump;
+                _gravity = playerMaster.Gravity;
+                _crouchSpeed = playerMaster.CrouchSpeed;
+                _crouchHeight = playerMaster.CrouchHeight;
+                _crouchTransitionSpeed = playerMaster.CrouchTransitionSpeed;
+                _lookRotationSpeed = playerMaster.LookRotationSpeed;
+                _aimTransitionSpeed = playerMaster.AimTransitionSpeed;
+                _aimRotationMultiplier = playerMaster.AimRotationMultiplier;
+                _aimShakeFadeSeconds = playerMaster.AimShakeFadeSeconds;
+                _bobWalkAmplitude = playerMaster.BobWalkAmplitude;
+                _bobRunAmplitude = playerMaster.BobRunAmplitude;
+                _bobWalkSpeed = playerMaster.BobWalkSpeed;
+                _bobRunSpeed = playerMaster.BobRunSpeed;
+                _bobHorizontalRatio = playerMaster.BobHorizontalRatio;
+                _bobWalkRoll = playerMaster.BobWalkRoll;
+                _bobRunRoll = playerMaster.BobRunRoll;
+                _bobAmplitudeResponse = playerMaster.BobAmplitudeResponse;
+                _idleSwaySpeed = playerMaster.IdleSwaySpeed;
+                _idleSwayAmplitude = playerMaster.IdleSwayAmplitude;
+                _idleSwayRoll = playerMaster.IdleSwayRoll;
+            }
+            else
+            {
+                Debug.LogError($"HorrorPlayerMaster が見つかりません Id={_playerId}。Inspector/既定値で継続します。", this);
+            }
         }
 
         public void ApplyOptions(HorrorOptionSaveData data)
@@ -1237,25 +1277,25 @@ namespace Game.Horror.Player
             var active = IsGrounded() && IsMoving();
             var running = IsRunning();
 
-            var ease = 1f - Mathf.Exp(-BobAmplitudeResponse * Time.deltaTime);
+            var ease = 1f - Mathf.Exp(-_bobAmplitudeResponse * Time.deltaTime);
             _moveBobWeight = Mathf.Lerp(_moveBobWeight, active ? 1f : 0f, ease);
 
             if (active)
-                _bobPhase += (running ? BobRunSpeed : BobWalkSpeed) * Time.deltaTime;
-            _idlePhase += IdleSwaySpeed * Time.deltaTime; // アイドルは常時進む
+                _bobPhase += (running ? _bobRunSpeed : _bobWalkSpeed) * Time.deltaTime;
+            _idlePhase += _idleSwaySpeed * Time.deltaTime; // アイドルは常時進む
 
             // ヘッドボブ（移動）：縦は位相、横はストライド（半周期）＝figure-8。横揺れの知覚はロールが主成分。
-            var moveAmplitude = (running ? BobRunAmplitude : BobWalkAmplitude) * _moveBobWeight;
-            var moveRoll = (running ? BobRunRoll : BobWalkRoll) * _moveBobWeight;
-            var bobX = Mathf.Sin(_bobPhase * 0.5f) * moveAmplitude * BobHorizontalRatio;
+            var moveAmplitude = (running ? _bobRunAmplitude : _bobWalkAmplitude) * _moveBobWeight;
+            var moveRoll = (running ? _bobRunRoll : _bobWalkRoll) * _moveBobWeight;
+            var bobX = Mathf.Sin(_bobPhase * 0.5f) * moveAmplitude * _bobHorizontalRatio;
             var bobY = Mathf.Sin(_bobPhase) * moveAmplitude;
             var bobRoll = Mathf.Sin(_bobPhase * 0.5f) * moveRoll;
 
             // アイドルスウェイ（停止）：別周波数の遅い sin を重ねて有機的に
             var idleWeight = 1f - _moveBobWeight;
-            var idleX = Mathf.Sin(_idlePhase * 1.3f) * IdleSwayAmplitude * BobHorizontalRatio * idleWeight;
-            var idleY = Mathf.Sin(_idlePhase) * IdleSwayAmplitude * idleWeight;
-            var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * IdleSwayRoll * idleWeight;
+            var idleX = Mathf.Sin(_idlePhase * 1.3f) * _idleSwayAmplitude * _bobHorizontalRatio * idleWeight;
+            var idleY = Mathf.Sin(_idlePhase) * _idleSwayAmplitude * idleWeight;
+            var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * _idleSwayRoll * idleWeight;
 
             // 合算 → 全体強度 CameraShake × エイム減衰（エイム中は _aimShakeWeight が 0 へ減衰）
             var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
@@ -1418,6 +1458,7 @@ namespace Game.Horror.Player
             // 発砲演出：武器ビュー（マズルフラッシュ＋キック）・カメラリコイル・射撃音
             if (_weaponView != null) _weaponView.NotifyFired();
             _recoilPitchAmount = _weaponMaster.RecoilCameraPitch;
+            _recoilRecoverSeconds = _weaponMaster.RecoilRecoverSeconds;
             _recoilWeight = 1f;
 
             if (!string.IsNullOrEmpty(_weaponMaster.FireSeAssetName))

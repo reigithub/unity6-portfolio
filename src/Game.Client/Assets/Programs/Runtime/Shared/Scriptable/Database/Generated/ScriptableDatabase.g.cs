@@ -16,6 +16,9 @@ namespace Game.Shared.Scriptable.Database
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorItemMasterTable horrorItemMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorItemMasterTable HorrorItemMasterTable => horrorItemMasterTable;
 
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorPlayerMasterTable horrorPlayerMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorPlayerMasterTable HorrorPlayerMasterTable => horrorPlayerMasterTable;
+
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorWeaponMasterTable horrorWeaponMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorWeaponMasterTable HorrorWeaponMasterTable => horrorWeaponMasterTable;
     }
