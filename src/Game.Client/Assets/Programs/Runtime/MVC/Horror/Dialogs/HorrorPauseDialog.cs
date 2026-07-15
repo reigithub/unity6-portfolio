@@ -8,28 +8,28 @@ using R3;
 
 namespace Game.Horror.Dialogs
 {
-    public enum PauseResult
+    public enum HorrorPauseResult
     {
         Resume,
         ReturnToTitle,
         Quit
     }
 
-    public class HorrorPauseDialog : GameDialogScene<HorrorPauseDialog, HorrorPauseDialogComponent, PauseResult>
+    public class HorrorPauseDialog : GameDialogScene<HorrorPauseDialog, HorrorPauseDialogComponent, HorrorPauseResult>
     {
         protected override string AssetPathOrAddress => "HorrorPauseDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
 
-        public static async UniTask<PauseResult> RunAsync()
+        public static async UniTask<HorrorPauseResult> RunAsync()
         {
-            PauseResult result;
+            HorrorPauseResult result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             using (inputService.BlockInputActions(inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorPauseDialog, PauseResult>();
+                result = await sceneService.TransitionDialogAsync<HorrorPauseDialog, HorrorPauseResult>();
             }
             return result;
         }
@@ -51,7 +51,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ =>
                 {
                     SceneComponent.SetInteractable(false);
-                    TrySetResult(PauseResult.Resume);
+                    TrySetResult(HorrorPauseResult.Resume);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnOption
@@ -64,14 +64,14 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ =>
                 {
                     SceneComponent.SetInteractable(false);
-                    TrySetResult(PauseResult.ReturnToTitle);
+                    TrySetResult(HorrorPauseResult.ReturnToTitle);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnQuit
                 .Subscribe(_ =>
                 {
                     SceneComponent.SetInteractable(false);
-                    TrySetResult(PauseResult.Quit);
+                    TrySetResult(HorrorPauseResult.Quit);
                 })
                 .AddTo(Disposables);
 
