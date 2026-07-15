@@ -159,12 +159,12 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": ""Equip"",
-                    ""type"": ""Button"",
+                    ""type"": ""Value"",
                     ""id"": ""51885bf7-9541-4473-a2d6-00883fe00cc5"",
-                    ""expectedControlType"": """",
+                    ""expectedControlType"": ""Vector2"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
                 },
                 {
                     ""name"": ""Fire"",
