@@ -41,6 +41,7 @@ namespace Game.Horror.Enemy
         // 体力・速度
         private int _health;
         private float _currentTargetSpeed;
+        private float _currentAnimSpeed; // Animator に渡す平滑化済みの Speed 値
 
         // 目的地更新の間引き管理（震え防止）
         private Vector3 _lastDestination;
@@ -57,6 +58,7 @@ namespace Game.Horror.Enemy
         private const float ScreamLoudness = 2f;
         private const float VelocityThreshold = 0.001f;
         private const float RotationSmoothSpeed = 10f;
+        private const float AnimSpeedResponse = 8f; // アニメーター Speed 補間の応答速度（大きいほど速く追従）
 
         /// <summary>
         /// コントローラーを初期化する。スポーナーまたはシーン初期化から呼ぶ。
@@ -172,10 +174,11 @@ namespace Game.Horror.Enemy
                     RotationSmoothSpeed * Time.deltaTime);
             }
 
-            // アニメーター Speed 更新
+            // アニメーター Speed 更新（目標値へ指数補間で追従させ BlendTree の急変を防ぐ。停止時の 0 落下も同経路で滑らかになる）
             bool isMoving = _navMeshAgent.velocity.sqrMagnitude > VelocityThreshold;
-            float animSpeed = isMoving ? _currentTargetSpeed : 0f;
-            if (_animator) _animator.SetFloat(_animHashSpeed, animSpeed);
+            float targetAnimSpeed = isMoving ? _currentTargetSpeed : 0f;
+            _currentAnimSpeed = CalculateSmoothedAnimSpeed(_currentAnimSpeed, targetAnimSpeed, AnimSpeedResponse, Time.deltaTime);
+            if (_animator) _animator.SetFloat(_animHashSpeed, _currentAnimSpeed);
         }
 
         #endregion
@@ -191,6 +194,10 @@ namespace Game.Horror.Enemy
             if (_navMeshAgent != null) _navMeshAgent.speed = speed;
             _currentTargetSpeed = speed;
         }
+
+        /// <summary>アニメーター Speed の平滑化値を算出する（指数補間・フレームレート非依存）。</summary>
+        public static float CalculateSmoothedAnimSpeed(float current, float target, float response, float deltaTime)
+            => Mathf.Lerp(current, target, 1f - Mathf.Exp(-response * deltaTime));
 
         #endregion
 
