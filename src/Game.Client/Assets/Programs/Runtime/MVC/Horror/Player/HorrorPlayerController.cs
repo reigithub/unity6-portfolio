@@ -557,7 +557,7 @@ namespace Game.Horror.Player
         /// ゼロ除算を避けて即時完了（1）とみなす。表示側で Clamp されるため、
         /// elapsed が holdSeconds を超えた最終フレームでは 1 を超える生値を返しうる。
         /// </summary>
-        public static float CalculateHoldProgress(float elapsed, float holdSeconds)
+        internal static float CalculateHoldProgress(float elapsed, float holdSeconds)
             => holdSeconds > 0f ? elapsed / holdSeconds : 1f;
 
         /// <summary>
@@ -565,7 +565,7 @@ namespace Game.Horror.Player
         /// 閾値 0.5 を両軸とも超える（斜め）入力は判定不能として -1 を返す。
         /// スロット並びは 1=左(0) / 2=上(1) / 3=右(2) / 4=下(3)。
         /// </summary>
-        public static int ResolveEquipSlotIndex(Vector2 value)
+        internal static int ResolveEquipSlotIndex(Vector2 value)
         {
             const float threshold = 0.5f;
             var xExceeds = Mathf.Abs(value.x) > threshold;
@@ -583,26 +583,26 @@ namespace Game.Horror.Player
         /// 拡散角の範囲内でランダムに逸れた射撃方向を算出する（FPS Microgame の
         /// GetShotDirectionWithinSpread と同式）。<paramref name="spreadAngle"/> 0 で forward のまま。
         /// </summary>
-        public static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
+        internal static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
             => Vector3.Slerp(forward, randomUnit, spreadAngle / 180f);
 
         /// <summary>
         /// リコイルオフセット（跳ね上げ＝pitch 減算）を合成した表示用 pitch を算出する（±89° クランプ込み）。
         /// 照準の真値には加算しないため、減衰が終われば照準は発砲前の位置へ戻る。
         /// </summary>
-        public static float CalculateRecoiledPitch(float pitch, float recoilPitch, float recoilWeight)
+        internal static float CalculateRecoiledPitch(float pitch, float recoilPitch, float recoilWeight)
             => Mathf.Clamp(pitch - recoilPitch * recoilWeight, -89f, 89f);
 
         /// <summary>
         /// エイム状態を加味した射撃ダメージを算出する。エイム中は倍率を掛けて四捨五入する。
         /// </summary>
-        public static int CalculateAimedDamage(int baseDamage, bool isAiming, float aimDamageMultiplier)
+        internal static int CalculateAimedDamage(int baseDamage, bool isAiming, float aimDamageMultiplier)
             => isAiming ? Mathf.RoundToInt(baseDamage * aimDamageMultiplier) : baseDamage;
 
         /// <summary>
         /// リロードの装填数（=予備弾の消費数）を算出する。弾倉の不足分と予備所持数の小さい方。満タン・予備 0 は 0。
         /// </summary>
-        public static int CalculateReloadAmount(int magazine, int magazineSize, int reserve)
+        internal static int CalculateReloadAmount(int magazine, int magazineSize, int reserve)
             => Mathf.Max(0, Mathf.Min(magazineSize - magazine, reserve));
 
         private bool IsGrounded() => _characterController.isGrounded;
@@ -1326,7 +1326,7 @@ namespace Game.Horror.Player
         {
             if (_ammoView == null) return;
 
-            var mode = HorrorAmmoView.ResolveDisplayMode(_weaponMaster != null, _weaponMaster?.AmmoItemId ?? 0);
+            var mode = HorrorAmmoView.ResolveViewMode(_weaponMaster != null, _weaponMaster?.AmmoItemId ?? 0);
             var keepVisible = _isAiming
                 || (_stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>());
 
@@ -1335,12 +1335,12 @@ namespace Game.Horror.Player
             var reserve = 0;
             switch (mode)
             {
-                case HorrorAmmoView.DisplayMode.MagazineAndReserve:
+                case HorrorAmmoViewMode.MagazineAndReserve:
                     magazineSize = _weaponMaster.MagazineSize;
                     magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
                     reserve = _inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId);
                     break;
-                case HorrorAmmoView.DisplayMode.CountOnly:
+                case HorrorAmmoViewMode.CountOnly:
                     magazine = _inventoryService.GetCount(InventorySlotType.Weapon, _weaponMaster.Id); // 武器アイテム自体の所持数（例: Smoke）
                     break;
             }

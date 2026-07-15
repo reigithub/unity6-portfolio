@@ -196,7 +196,7 @@ namespace Game.Horror.Enemy
         }
 
         /// <summary>アニメーター Speed の平滑化値を算出する（指数補間・フレームレート非依存）。</summary>
-        public static float CalculateSmoothedAnimSpeed(float current, float target, float response, float deltaTime)
+        internal static float CalculateSmoothedAnimSpeed(float current, float target, float response, float deltaTime)
             => Mathf.Lerp(current, target, 1f - Mathf.Exp(-response * deltaTime));
 
         #endregion

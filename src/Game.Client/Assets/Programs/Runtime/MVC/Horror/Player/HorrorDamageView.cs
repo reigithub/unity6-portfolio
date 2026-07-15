@@ -99,7 +99,7 @@ namespace Game.Horror.Player
         /// <param name="riseOffset">上昇演出による y オフセット（px）</param>
         /// <param name="position">算出結果の表示位置（false の場合は既定値）</param>
         /// <returns>表示可能なら true、カメラ背後で非表示にすべきなら false</returns>
-        public static bool TryCalculateScreenPosition(Vector3 screenPoint, float riseOffset, out Vector3 position)
+        internal static bool TryCalculateScreenPosition(Vector3 screenPoint, float riseOffset, out Vector3 position)
         {
             if (screenPoint.z < 0f)
             {

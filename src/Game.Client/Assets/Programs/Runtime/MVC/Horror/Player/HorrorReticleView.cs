@@ -157,27 +157,27 @@ namespace Game.Horror.Player
         /// <summary>
         /// セグメントの中心からの距離を、拡散量（spread）と発砲キック量の合成で算出する。
         /// </summary>
-        public static float CalculateSegmentDistance(float spread, float expandedDistance, float kick, float kickDistance)
+        internal static float CalculateSegmentDistance(float spread, float expandedDistance, float kick, float kickDistance)
             => spread * expandedDistance + kick * kickDistance;
 
         /// <summary>
         /// フェード段階の経過時間から不透明度比率（1→0）を算出する。<paramref name="fadeSeconds"/> が
         /// 0 以下ならゼロ除算を避けて 0 を返す。
         /// </summary>
-        public static float CalculateFadeAlpha(float elapsed, float fadeSeconds)
+        internal static float CalculateFadeAlpha(float elapsed, float fadeSeconds)
             => fadeSeconds <= 0f ? 0f : Mathf.Clamp01(1f - elapsed / fadeSeconds);
 
         /// <summary>
         /// ドット表示の不透明度を、ドット段階かどうかと常時表示オプションから算出する。
         /// </summary>
-        public static float CalculateDotAlpha(bool isDotPhase, float master, bool alwaysShowDot)
+        internal static float CalculateDotAlpha(bool isDotPhase, float master, bool alwaysShowDot)
             => Mathf.Clamp01((isDotPhase ? master : 0f) + (alwaysShowDot ? 1f : 0f));
 
         /// <summary>
         /// セグメント表示の不透明度を、セグメント表示段階かどうかと発砲キック量から算出する
         /// （キック中は表示段階に依らず最低限の不透明度を保証する）。
         /// </summary>
-        public static float CalculateSegmentAlpha(bool segPhaseActive, float master, float kick)
+        internal static float CalculateSegmentAlpha(bool segPhaseActive, float master, float kick)
             => Mathf.Max(segPhaseActive ? master : 0f, kick);
     }
 }

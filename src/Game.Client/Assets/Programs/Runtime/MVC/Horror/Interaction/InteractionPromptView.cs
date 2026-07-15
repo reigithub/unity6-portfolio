@@ -150,7 +150,7 @@ namespace Game.Horror.Interaction
         /// <param name="fovDegrees">カメラの垂直 FOV（度）</param>
         /// <param name="screenSizeFactor">画面に対する目標サイズ係数</param>
         /// <param name="parentLossyScale">親の lossyScale（一様前提の代表軸）。0 以下は下限でガード</param>
-        public static float CalculateUniformLocalScale(float depth, float fovDegrees, float screenSizeFactor, float parentLossyScale)
+        internal static float CalculateUniformLocalScale(float depth, float fovDegrees, float screenSizeFactor, float parentLossyScale)
         {
             float worldHeightAtDepth = 2f * depth * Mathf.Tan(fovDegrees * 0.5f * Mathf.Deg2Rad);
             float desiredWorldScale = screenSizeFactor * worldHeightAtDepth;

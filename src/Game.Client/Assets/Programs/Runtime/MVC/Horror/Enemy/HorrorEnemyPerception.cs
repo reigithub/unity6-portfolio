@@ -8,6 +8,21 @@ using UnityEngine;
 namespace Game.Horror.Enemy
 {
     /// <summary>
+    /// 警戒レベル（<see cref="HorrorEnemyPerception.Awareness"/> を閾値で量子化した値）
+    /// </summary>
+    public enum AwarenessLevel
+    {
+        /// <summary>平常：脅威を認識していない</summary>
+        Unaware,
+
+        /// <summary>警戒：何かがおかしいと感じている</summary>
+        Suspicious,
+
+        /// <summary>発見：プレイヤーを確定認識している</summary>
+        Alert,
+    }
+
+    /// <summary>
     /// ホラーゲームのゾンビ型敵 AI 知覚センサー。
     /// 視覚（距離 → 視野角 → 遮蔽 Raycast の多段評価）と
     /// 聴覚（<see cref="HorrorSignals.Noise.Occurred"/> の MessagePipe 購読）を統合し、
@@ -68,21 +83,6 @@ namespace Game.Horror.Enemy
         private bool _gizmoTargetInRange;
 #endif
 
-        /// <summary>
-        /// 警戒レベル（<see cref="Awareness"/> を閾値で量子化した値）
-        /// </summary>
-        public enum AwarenessLevel
-        {
-            /// <summary>平常：脅威を認識していない</summary>
-            Unaware,
-
-            /// <summary>警戒：何かがおかしいと感じている</summary>
-            Suspicious,
-
-            /// <summary>発見：プレイヤーを確定認識している</summary>
-            Alert,
-        }
-
         #region 公開 API
 
         /// <summary>現在の警戒レベル</summary>
@@ -108,6 +108,12 @@ namespace Game.Horror.Enemy
 
         /// <summary>警戒度ゲージ（0〜1、デバッグ/UI 用）</summary>
         public float Awareness => _awareness;
+
+        /// <summary>脅威を確定認識しているか（視認中、または警戒レベルが Alert）</summary>
+        public bool IsThreatConfirmed => HasConfirmedSight || Level == AwarenessLevel.Alert;
+
+        /// <summary>不審以上の警戒状態か（警戒レベルが Suspicious 以上）</summary>
+        public bool IsSuspiciousOrHigher => Level >= AwarenessLevel.Suspicious;
 
         #endregion
 
@@ -286,7 +292,7 @@ namespace Game.Horror.Enemy
 
         #endregion
 
-        #region 純粋計算ヘルパー（EditMode テスト用に public static）
+        #region 純粋計算ヘルパー
 
         /// <summary>
         /// 方向ベクトルが視野錐の内側にあるかを判定する。
@@ -296,7 +302,7 @@ namespace Game.Horror.Enemy
         /// <param name="toTargetNormalized">センサーからターゲットへの方向（正規化済み）</param>
         /// <param name="cosHalfAngle">視野半角の余弦（<c>Mathf.Cos(halfAngle * Deg2Rad)</c> の事前計算値）</param>
         /// <returns>視野錐内なら true</returns>
-        public static bool IsInSightCone(Vector3 forward, Vector3 toTargetNormalized, float cosHalfAngle)
+        internal static bool IsInSightCone(Vector3 forward, Vector3 toTargetNormalized, float cosHalfAngle)
         {
             return Vector3.Dot(forward, toTargetNormalized) >= cosHalfAngle;
         }
@@ -308,7 +314,7 @@ namespace Game.Horror.Enemy
         /// <param name="loudness">音の大きさ（0=無音、1=通常、それ以上=特大）</param>
         /// <param name="sensitivity">聴覚感度倍率（マスターデータの HearingSensitivity）</param>
         /// <returns>実効到達半径（メートル）</returns>
-        public static float HearingRadiusFor(float baseRadius, float loudness, float sensitivity)
+        internal static float HearingRadiusFor(float baseRadius, float loudness, float sensitivity)
         {
             return baseRadius * loudness * sensitivity;
         }
@@ -324,7 +330,7 @@ namespace Game.Horror.Enemy
         /// <param name="decayRate">減衰レート（/秒）</param>
         /// <param name="dt">経過時間（deltaTime）</param>
         /// <returns>更新後の警戒度（0〜1 にクランプ済み）</returns>
-        public static float UpdateAwareness(
+        internal static float UpdateAwareness(
             float current,
             bool hasSight,
             float distance01,

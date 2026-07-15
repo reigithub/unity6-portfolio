@@ -11,33 +11,33 @@ namespace Game.Tests.MVC.Horror
 
         [Test]
         public void ResolveDisplayMode_NoWeapon_IsNone()
-            => Assert.That(HorrorAmmoView.ResolveDisplayMode(false, 4), Is.EqualTo(HorrorAmmoView.DisplayMode.None));
+            => Assert.That(HorrorAmmoView.ResolveViewMode(false, 4), Is.EqualTo(HorrorAmmoViewMode.Hidden));
 
         [Test]
         public void ResolveDisplayMode_WeaponWithAmmoItem_IsMagazineAndReserve()
-            => Assert.That(HorrorAmmoView.ResolveDisplayMode(true, 4), Is.EqualTo(HorrorAmmoView.DisplayMode.MagazineAndReserve));
+            => Assert.That(HorrorAmmoView.ResolveViewMode(true, 4), Is.EqualTo(HorrorAmmoViewMode.MagazineAndReserve));
 
         [Test]
         public void ResolveDisplayMode_WeaponWithoutAmmoItem_IsCountOnly()
-            => Assert.That(HorrorAmmoView.ResolveDisplayMode(true, 0), Is.EqualTo(HorrorAmmoView.DisplayMode.CountOnly));
+            => Assert.That(HorrorAmmoView.ResolveViewMode(true, 0), Is.EqualTo(HorrorAmmoViewMode.CountOnly));
 
         // 目標アルファ：None は常に 0。表示維持中または保持時間内は 1、保持時間超過で 0。
 
         [Test]
         public void CalculateTargetAlpha_None_IsZeroEvenIfKeepVisible()
-            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoView.DisplayMode.None, true, 0f, 2f), Is.EqualTo(0f));
+            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoViewMode.Hidden, true, 0f, 2f), Is.EqualTo(0f));
 
         [Test]
         public void CalculateTargetAlpha_KeepVisible_IsOne()
-            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoView.DisplayMode.CountOnly, true, 999f, 2f), Is.EqualTo(1f));
+            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoViewMode.CountOnly, true, 999f, 2f), Is.EqualTo(1f));
 
         [Test]
         public void CalculateTargetAlpha_WithinHoldDuration_IsOne()
-            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoView.DisplayMode.CountOnly, false, 1f, 2f), Is.EqualTo(1f));
+            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoViewMode.CountOnly, false, 1f, 2f), Is.EqualTo(1f));
 
         [Test]
         public void CalculateTargetAlpha_PastHoldDuration_IsZero()
-            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoView.DisplayMode.CountOnly, false, 2f, 2f), Is.EqualTo(0f));
+            => Assert.That(HorrorAmmoView.CalculateTargetAlpha(HorrorAmmoViewMode.CountOnly, false, 2f, 2f), Is.EqualTo(0f));
 
         // 弾倉側文字色：MagazineAndReserve かつ満タンのみ強調色。それ以外（CountOnly を含む）は通常色。
 
@@ -47,19 +47,19 @@ namespace Game.Tests.MVC.Horror
 
         [Test]
         public void CalculateMagazineColor_FullMagazine_IsFull()
-            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoView.DisplayMode.MagazineAndReserve, 10, 10, Full, Normal), Is.EqualTo(Full));
+            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoViewMode.MagazineAndReserve, 10, 10, Full, Normal), Is.EqualTo(Full));
 
         [Test]
         public void CalculateMagazineColor_NotFullMagazine_IsNormal()
-            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoView.DisplayMode.MagazineAndReserve, 5, 10, Full, Normal), Is.EqualTo(Normal));
+            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoViewMode.MagazineAndReserve, 5, 10, Full, Normal), Is.EqualTo(Normal));
 
         [Test]
         public void CalculateMagazineColor_ZeroMagazineSize_IsNormal()
-            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoView.DisplayMode.MagazineAndReserve, 0, 0, Full, Normal), Is.EqualTo(Normal));
+            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoViewMode.MagazineAndReserve, 0, 0, Full, Normal), Is.EqualTo(Normal));
 
         [Test]
         public void CalculateMagazineColor_CountOnly_IsAlwaysNormal()
-            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoView.DisplayMode.CountOnly, 10, 10, Full, Normal), Is.EqualTo(Normal));
+            => Assert.That(HorrorAmmoView.CalculateMagazineColor(HorrorAmmoViewMode.CountOnly, 10, 10, Full, Normal), Is.EqualTo(Normal));
 
         // 予備側文字色：0 以下は警告色、正数は通常色。
 

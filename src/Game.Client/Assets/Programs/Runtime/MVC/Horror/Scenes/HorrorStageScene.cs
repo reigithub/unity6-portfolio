@@ -165,16 +165,16 @@ namespace Game.Horror.Scenes
             var result = await HorrorPauseDialog.RunAsync();
             switch (result)
             {
-                case PauseResult.Resume:
+                case HorrorPauseResult.Resume:
                 {
                     break;
                 }
-                case PauseResult.ReturnToTitle:
+                case HorrorPauseResult.ReturnToTitle:
                 {
                     await _sceneService.TransitionAsync<HorrorTitleScene>();
                     break;
                 }
-                case PauseResult.Quit:
+                case HorrorPauseResult.Quit:
                 {
                     ApplicationEvents.RequestShutdown();
                     break;

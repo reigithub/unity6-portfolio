@@ -277,7 +277,7 @@ namespace Game.Horror.Interaction
         /// 後ろ（深度 z&lt;0）へ回り込む近距離でも反転・破綻しない。
         /// <paramref name="aimPoint"/> は遮蔽判定に使う狙い点（交差時は交差点、非交差時は bounds 上の最近接点）。
         /// </summary>
-        public static float CalculateAimScore(Bounds bounds, Ray centerRay, Vector3 cameraPosition, Vector3 cameraForward, out Vector3 aimPoint)
+        internal static float CalculateAimScore(Bounds bounds, Ray centerRay, Vector3 cameraPosition, Vector3 cameraForward, out Vector3 aimPoint)
         {
             if (bounds.IntersectRay(centerRay, out float distance))
             {

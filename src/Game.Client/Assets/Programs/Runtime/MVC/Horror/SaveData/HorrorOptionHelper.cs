@@ -39,8 +39,8 @@ namespace Game.Horror.SaveData
             Application.targetFrameRate = ResolveTargetFrameRate(uncapped, limit);
         }
 
-        /// <summary>上限解除なら -1（無制限）、それ以外は上限値。純粋関数（テスト対象）。</summary>
-        public static int ResolveTargetFrameRate(bool uncapped, int limit)
+        /// <summary>上限解除なら -1（無制限）、それ以外は上限値。アセンブリ内部の純粋関数。</summary>
+        internal static int ResolveTargetFrameRate(bool uncapped, int limit)
         {
             return uncapped ? -1 : limit;
         }
