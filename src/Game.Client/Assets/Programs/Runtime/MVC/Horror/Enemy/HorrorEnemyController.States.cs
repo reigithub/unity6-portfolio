@@ -32,6 +32,27 @@ namespace Game.Horror.Enemy
             GiveUp,
         }
 
+        /// <summary>Stagger 復帰時の行動。</summary>
+        public enum StaggerRecovery
+        {
+            /// <summary>視認中または Alert → 追跡</summary>
+            Chase,
+
+            /// <summary>Suspicious → 音源（LastHeardPosition）の調査</summary>
+            Investigate,
+
+            /// <summary>刺激なし → 徘徊へ復帰</summary>
+            Wander,
+        }
+
+        /// <summary>Stagger 復帰先を判定する。分岐の根拠は <see cref="StaggerRecovery"/> の各メンバ doc を参照。</summary>
+        public static StaggerRecovery DecideStaggerRecovery(bool hasSight, HorrorEnemyPerception.AwarenessLevel level)
+        {
+            if (hasSight || level == HorrorEnemyPerception.AwarenessLevel.Alert) return StaggerRecovery.Chase;
+            if (level >= HorrorEnemyPerception.AwarenessLevel.Suspicious) return StaggerRecovery.Investigate;
+            return StaggerRecovery.Wander;
+        }
+
         /// <summary>
         /// ステートマシンを構築し遷移テーブルを登録する。
         /// </summary>
@@ -59,6 +80,7 @@ namespace Game.Horror.Enemy
             _stateMachine.AddTransition<AttackState, ChaseState>(StateEvent.AttackDone);
 
             // Stagger から各ステートへの復帰遷移（ForceTransition で入ってきた後）
+            _stateMachine.AddTransition<StaggerState, InvestigateState>(StateEvent.Suspect);
             _stateMachine.AddTransition<StaggerState, ChaseState>(StateEvent.Spot);
             _stateMachine.AddTransition<StaggerState, WanderState>(StateEvent.GiveUp);
 
@@ -294,7 +316,8 @@ namespace Game.Horror.Enemy
 
         /// <summary>
         /// のけぞり状態。TakeDamage から ForceTransition で割り込む。
-        /// StaggerDuration 経過後: 視認中なら ChaseState へ、それ以外は WanderState へ復帰する。
+        /// StaggerDuration 経過後、<see cref="DecideStaggerRecovery"/> の判定に従って
+        /// ChaseState / InvestigateState / WanderState へ復帰する。
         /// </summary>
         private class StaggerState : State<HorrorEnemyController, StateEvent>
         {
@@ -314,16 +337,19 @@ namespace Game.Horror.Enemy
                 _timer += Time.deltaTime;
                 if (_timer < ctx._master.StaggerDuration) return;
 
-                if (ctx._perception.HasConfirmedSight
-                    || ctx._perception.Level == HorrorEnemyPerception.AwarenessLevel.Alert)
+                ctx.ResumeAgent();
+
+                switch (DecideStaggerRecovery(ctx._perception.HasConfirmedSight, ctx._perception.Level))
                 {
-                    ctx.ResumeAgent();
-                    StateMachine.Transition(StateEvent.Spot);
-                }
-                else
-                {
-                    ctx.ResumeAgent();
-                    StateMachine.Transition(StateEvent.GiveUp);
+                    case StaggerRecovery.Chase:
+                        StateMachine.Transition(StateEvent.Spot);
+                        break;
+                    case StaggerRecovery.Investigate:
+                        StateMachine.Transition(StateEvent.Suspect);
+                        break;
+                    default:
+                        StateMachine.Transition(StateEvent.GiveUp);
+                        break;
                 }
             }
         }

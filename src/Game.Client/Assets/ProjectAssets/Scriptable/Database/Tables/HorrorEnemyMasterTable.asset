@@ -24,7 +24,7 @@ MonoBehaviour:
     _hearingRadius: 30
     _hearingSensitivity: 1
     _awarenessFillRate: 1
-    _awarenessDecayRate: 1
+    _awarenessDecayRate: 0.2
     _suspiciousThreshold: 0.4
     _alertThreshold: 0.8
     _attackRange: 1

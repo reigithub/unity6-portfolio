@@ -1365,7 +1365,7 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// カメラ中心からヒットスキャン（Raycast 即着弾）で射撃する。命中すれば IDamageable にダメージ、
-        /// 命中点（外れたら射程端）で銃声 HorrorSignals.Noise.Occurred を発行する。
+        /// 発砲音 HorrorSignals.Noise.Occurred（Gunshot・射手位置）と着弾音（Object・命中点/外れたら射程端。誘引用）を発行する。
         /// あわせて武器キック・マズルフラッシュ・カメラリコイル・射撃音の発砲演出を発火する。
         /// </summary>
         private void Fire()
@@ -1382,12 +1382,12 @@ namespace Game.Horror.Player
             }
 
             IDamageable target = null;
-            var noisePosition = origin + direction * _weaponMaster.Range;
+            var impactPosition = origin + direction * _weaponMaster.Range;
 
             if (Physics.Raycast(origin, direction, out var hit, _weaponMaster.Range, _hitMask, QueryTriggerInteraction.Ignore))
             {
                 target = hit.collider.GetComponentInParent<IDamageable>();
-                noisePosition = hit.point;
+                impactPosition = hit.point;
             }
 
             var damage = CalculateAimedDamage(_weaponMaster.Damage, _isAiming, _weaponMaster.AimDamageMultiplier);
@@ -1400,12 +1400,19 @@ namespace Game.Horror.Player
                 if (_ammoView != null) _ammoView.Notify();
             }
 
-            // 命中対象があればダメージを与え、 命中の有無に依らず発砲位置に銃声 HorrorSignals.Noise.Occurred（Gunshot）を発行して周囲の敵を誘引する。
+            // 命中対象があればダメージを与える。
             // ポップアップはダメージが実際に適用された時のみ。致死打で TakeDamage 後は IsDead=true になるため事前判定
             var damageApplied = target != null && !target.IsDead;
             target?.TakeDamage(damage);
             if (damageApplied) _messagePipeService?.Publish(new HorrorSignals.Combat.Damaged(hit.point, damage));
-            _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(noisePosition, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+
+            // 騒音: 着弾音（着弾点・誘引用）→ 発砲音（射手位置）の順で発行する。
+            // OnNoise の LastHeardPosition は後着優先のため、両方聞こえた敵には発砲音（射手位置）が優先される
+            if (_weaponMaster.ImpactNoiseLoudness > 0f)
+                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(impactPosition, _weaponMaster.ImpactNoiseLoudness, NoiseType.Object));
+            if (_weaponMaster.NoiseLoudness > 0f)
+                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(origin, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+
             if (_reticleView != null) _reticleView.NotifyFired();
 
             // 発砲演出：武器ビュー（マズルフラッシュ＋キック）・カメラリコイル・射撃音

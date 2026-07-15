@@ -58,5 +58,29 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(current - target, Is.LessThan(0.01f));
         }
+
+        [Test]
+        public void DecideStaggerRecovery_HasSight_ReturnsChaseEvenWhenUnaware()
+            => Assert.That(
+                HorrorEnemyController.DecideStaggerRecovery(true, HorrorEnemyPerception.AwarenessLevel.Unaware),
+                Is.EqualTo(HorrorEnemyController.StaggerRecovery.Chase));
+
+        [Test]
+        public void DecideStaggerRecovery_NoSightAlertLevel_ReturnsChase()
+            => Assert.That(
+                HorrorEnemyController.DecideStaggerRecovery(false, HorrorEnemyPerception.AwarenessLevel.Alert),
+                Is.EqualTo(HorrorEnemyController.StaggerRecovery.Chase));
+
+        [Test]
+        public void DecideStaggerRecovery_NoSightSuspiciousLevel_ReturnsInvestigate()
+            => Assert.That(
+                HorrorEnemyController.DecideStaggerRecovery(false, HorrorEnemyPerception.AwarenessLevel.Suspicious),
+                Is.EqualTo(HorrorEnemyController.StaggerRecovery.Investigate));
+
+        [Test]
+        public void DecideStaggerRecovery_NoSightUnawareLevel_ReturnsWander()
+            => Assert.That(
+                HorrorEnemyController.DecideStaggerRecovery(false, HorrorEnemyPerception.AwarenessLevel.Unaware),
+                Is.EqualTo(HorrorEnemyController.StaggerRecovery.Wander));
     }
 }

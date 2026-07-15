@@ -23,6 +23,7 @@ MonoBehaviour:
     _range: 50
     _fireInterval: 1
     _noiseLoudness: 2.5
+    _impactNoiseLoudness: 1
     _equipDuration: 1
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
@@ -43,7 +44,8 @@ MonoBehaviour:
     _damage: 0
     _range: 50
     _fireInterval: 0.3
-    _noiseLoudness: 2.5
+    _noiseLoudness: 0
+    _impactNoiseLoudness: 2.5
     _equipDuration: 1
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
