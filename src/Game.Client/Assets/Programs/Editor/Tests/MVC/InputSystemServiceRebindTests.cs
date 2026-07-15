@@ -133,66 +133,6 @@ namespace Game.Tests.MVC
 
         #endregion
 
-        #region WouldConflict
-
-        [Test]
-        public void WouldConflict_SameSchemeDuplicate_ReturnsTrue()
-        {
-            // Jump(KBM) を対象に、別アクション(Attack)が KBM で使用中のキーを候補にすると衝突
-            var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
-
-            var attack = Action("Attack");
-            var attackIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, attack)[0];
-            var attackPath = attack.bindings[attackIndex].effectivePath;
-
-            var conflict = InputSystemService.WouldConflict(
-                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, attackPath);
-
-            Assert.That(conflict, Is.True);
-        }
-
-        [Test]
-        public void WouldConflict_DifferentScheme_ReturnsFalse()
-        {
-            // Gamepad のパスは KBM スキームでは衝突対象にならない
-            var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
-
-            var conflict = InputSystemService.WouldConflict(
-                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Gamepad>/buttonSouth");
-
-            Assert.That(conflict, Is.False);
-        }
-
-        [Test]
-        public void WouldConflict_OwnCurrentPath_ReturnsFalse()
-        {
-            // 自分自身の現在パスは衝突扱いしない
-            var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
-            var ownPath = jump.bindings[jumpIndex].effectivePath;
-
-            var conflict = InputSystemService.WouldConflict(
-                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, ownPath);
-
-            Assert.That(conflict, Is.False);
-        }
-
-        [Test]
-        public void WouldConflict_UnusedKey_ReturnsFalse()
-        {
-            var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
-
-            var conflict = InputSystemService.WouldConflict(
-                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/numpad5");
-
-            Assert.That(conflict, Is.False);
-        }
-
-        #endregion
-
         #region TryFindConflict
 
         [Test]
@@ -229,6 +169,35 @@ namespace Game.Tests.MVC
             Assert.That(found, Is.False);
             Assert.That(conflictAction, Is.Null);
             Assert.That(conflictIndex, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void TryFindConflict_DifferentScheme_ReturnsFalse()
+        {
+            // Gamepad のパスは KBM スキームでは衝突対象にならない
+            var jump = Action("Jump");
+            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+
+            var found = InputSystemService.TryFindConflict(
+                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Gamepad>/buttonSouth",
+                out _, out _);
+
+            Assert.That(found, Is.False);
+        }
+
+        [Test]
+        public void TryFindConflict_OwnCurrentPath_ReturnsFalse()
+        {
+            // 自分自身の現在パスは衝突扱いしない
+            var jump = Action("Jump");
+            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+            var ownPath = jump.bindings[jumpIndex].effectivePath;
+
+            var found = InputSystemService.TryFindConflict(
+                _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, ownPath,
+                out _, out _);
+
+            Assert.That(found, Is.False);
         }
 
         #endregion

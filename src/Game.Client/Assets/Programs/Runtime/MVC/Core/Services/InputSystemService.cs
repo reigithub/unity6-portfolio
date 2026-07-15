@@ -397,11 +397,11 @@ namespace Game.Core.Services
         }
 
         /// <summary>
-        /// 指定アクション・スキームに属するリバインド対象の binding index 群を返す。純粋関数（テスト対象）。
+        /// 指定アクション・スキームに属するリバインド対象の binding index 群を返す。アセンブリ内部の純粋関数。
         /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
         /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        public static IReadOnlyList<int> ResolveSchemeBindingIndices(string scheme, InputAction action, string partName = null)
+        internal static IReadOnlyList<int> ResolveSchemeBindingIndices(string scheme, InputAction action, string partName = null)
         {
             var result = new List<int>();
             if (action == null) return result;
@@ -433,17 +433,11 @@ namespace Game.Core.Services
         }
 
         /// <summary>
-        /// 候補パスが同一スキーム内の他バインド（自分自身を除く）と衝突するか判定する。純粋関数（テスト対象）。
-        /// </summary>
-        public static bool WouldConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath)
-            => TryFindConflict(asset, scheme, targetAction, targetBindingIndex, candidatePath, out _, out _);
-
-        /// <summary>
-        /// 候補パスが同一スキーム内の他バインド（自分自身を除く）と衝突する場合、その相手バインドを返す。純粋関数（テスト対象）。
+        /// 候補パスが同一スキーム内の他バインド（自分自身を除く）と衝突する場合、その相手バインドを返す。アセンブリ内部の純粋関数。
         /// swap（入れ替え）処理で相手バインドへターゲットの旧キーを渡すために用いる。
         /// invariant 上、衝突は高々1件のため最初にヒットしたものを返す。
         /// </summary>
-        public static bool TryFindConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath, out InputAction conflictAction, out int conflictBindingIndex)
+        internal static bool TryFindConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath, out InputAction conflictAction, out int conflictBindingIndex)
         {
             conflictAction = null;
             conflictBindingIndex = -1;
