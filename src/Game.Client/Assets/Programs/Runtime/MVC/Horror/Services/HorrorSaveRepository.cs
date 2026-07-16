@@ -64,6 +64,13 @@ namespace Game.Horror.Services
             return await UniTask.WhenAll(tasks);
         }
 
+        public async UniTask LoadByCurrentSlotAsync()
+        {
+            if (!IsValidSlot(CurrentSlot)) return;
+
+            await LoadAsync();
+        }
+
         public async UniTask LoadBySlotAsync(int slotNo)
         {
             if (!IsValidSlot(slotNo)) return;
