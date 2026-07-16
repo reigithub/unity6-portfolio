@@ -42,6 +42,11 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _idleSwayAmplitude;      // アイドルスウェイ：縦位置振幅（m, ヘッドボブより小）
         [SerializeField] private float _idleSwayRoll;           // アイドルスウェイ：ロール角（度, 小）
 
+        [SerializeField] private float _footstepStride;         // 足音の歩幅（m）。この距離を移動するたびに1歩発火
+        [SerializeField] private float _footstepWalkLoudness;   // 歩き足音の大きさ（HorrorSignals.Noise.Occurred.Loudness）
+        [SerializeField] private float _footstepRunLoudness;    // 走り足音の大きさ（同上）
+        [SerializeField] private string _footstepSeAssetName;   // 足音 SE アセット名（空文字=再生しない）
+
         #endregion
 
         #region Database
@@ -189,6 +194,30 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _idleSwayRoll;
             set => _idleSwayRoll = value;
+        }
+
+        public float FootstepStride
+        {
+            get => _footstepStride;
+            set => _footstepStride = value;
+        }
+
+        public float FootstepWalkLoudness
+        {
+            get => _footstepWalkLoudness;
+            set => _footstepWalkLoudness = value;
+        }
+
+        public float FootstepRunLoudness
+        {
+            get => _footstepRunLoudness;
+            set => _footstepRunLoudness = value;
+        }
+
+        public string FootstepSeAssetName
+        {
+            get => _footstepSeAssetName;
+            set => _footstepSeAssetName = value;
         }
 
         #endregion

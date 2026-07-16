@@ -156,5 +156,74 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateRecoiledPitch_BeyondLowerLimit_ClampsTo89()
             => Assert.That(HorrorPlayerController.CalculateRecoiledPitch(88f, -5f, 1f), Is.EqualTo(89f).Within(1e-4f));
+
+        // 足音の歩幅積算ステップ：stride 到達で発火し超過分のみ持ち越す。複数歩分を1フレームで
+        // 移動しても発火は1回・剰余は [0, stride) に収まる。stride 0 以下は無限発火防止で発火せず 0 固定。
+
+        [Test]
+        public void StepFootstep_BelowStride_DoesNotFireAndAccumulates()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0.5f, 0.25f, 1.25f);
+            Assert.That(fired, Is.False);
+            Assert.That(next, Is.EqualTo(0.75f).Within(1e-4f));
+        }
+
+        [Test]
+        public void StepFootstep_ExactlyAtStride_FiresAndResetsToZero()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0.75f, 0.5f, 1.25f);
+            Assert.That(fired, Is.True);
+            Assert.That(next, Is.EqualTo(0f).Within(1e-4f));
+        }
+
+        [Test]
+        public void StepFootstep_ExceedsStride_FiresAndKeepsRemainder()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(1.0f, 0.5f, 1.25f);
+            Assert.That(fired, Is.True);
+            Assert.That(next, Is.EqualTo(0.25f).Within(1e-4f));
+        }
+
+        [Test]
+        public void StepFootstep_MultipleStridesInOneFrame_FiresOnceAndRemainderStaysBelowStride()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0f, 2.6f, 1.25f);
+            Assert.That(fired, Is.True);
+            Assert.That(next, Is.EqualTo(0.1f).Within(1e-4f));
+        }
+
+        [Test]
+        public void StepFootstep_NoMovement_DoesNotFireAndUnchanged()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0.6f, 0f, 1.25f);
+            Assert.That(fired, Is.False);
+            Assert.That(next, Is.EqualTo(0.6f).Within(1e-4f));
+        }
+
+        [Test]
+        public void StepFootstep_ZeroStride_DoesNotFireAndReturnsZero()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0.5f, 10f, 0f);
+            Assert.That(fired, Is.False);
+            Assert.That(next, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void StepFootstep_NegativeStride_DoesNotFireAndReturnsZero()
+        {
+            var (fired, next) = HorrorPlayerController.StepFootstep(0.5f, 10f, -1f);
+            Assert.That(fired, Is.False);
+            Assert.That(next, Is.EqualTo(0f));
+        }
+
+        // 足音 Loudness：走りは走り値、歩き（エイム歩行含む）は歩き値。しゃがみ無音は UpdateFootstep 側のガードで保証。
+
+        [Test]
+        public void CalculateFootstepLoudness_Running_ReturnsRunLoudness()
+            => Assert.That(HorrorPlayerController.CalculateFootstepLoudness(true, 0.5f, 1f), Is.EqualTo(1f));
+
+        [Test]
+        public void CalculateFootstepLoudness_Walking_ReturnsWalkLoudness()
+            => Assert.That(HorrorPlayerController.CalculateFootstepLoudness(false, 0.5f, 1f), Is.EqualTo(0.5f));
     }
 }

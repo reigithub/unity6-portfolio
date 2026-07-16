@@ -37,3 +37,7 @@ MonoBehaviour:
     _idleSwaySpeed: 1.2
     _idleSwayAmplitude: 0.05
     _idleSwayRoll: 0.01
+    _footstepStride: 1.25
+    _footstepWalkLoudness: 0.5
+    _footstepRunLoudness: 1
+    _footstepSeAssetName: 

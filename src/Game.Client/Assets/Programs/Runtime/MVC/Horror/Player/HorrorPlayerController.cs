@@ -139,6 +139,7 @@ namespace Game.Horror.Player
         private bool _isCrouching;    // 目標姿勢
         private float _crouchBlend;   // 0=立ち, 1=しゃがみ の実補間値（形状・カメラ高さの単一ソース）
         private float _standHeight;   // 立ち時の CharacterController 高さ（Initialize で実測）
+        private const float CeilingCheckBuffer = 0.15f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
 
         // エイム姿勢（移動ステートと直交する姿勢として保持）
         private bool _isAiming;          // HOLD 判定（二値: ダメージ・スプレッド・揺れ減衰の目標方向に使用）
@@ -186,7 +187,14 @@ namespace Game.Horror.Player
         private float _idleSwayAmplitude = 0.05f;  // アイドル：縦位置振幅（m, ヘッドボブより小）
         private float _idleSwayRoll = 0.01f;       // アイドル：ロール角（度, 小）
 
-        private const float CeilingCheckBuffer = 0.15f; // しゃがみ：立ち上がりに必要な頭上余裕（m）
+        // 足音調整値（HorrorPlayerMaster から Initialize で上書き。初期値はマスター欠落時のフォールバック）
+        private float _footstepStride = 1.25f;       // 1歩とみなす移動距離（m）
+        private float _footstepWalkLoudness = 0.5f;  // 歩き足音の Loudness（HearingRadius 30 × 0.5 = 15m 到達）
+        private float _footstepRunLoudness = 1f;     // 走り足音の Loudness（30m 到達）
+        private string _footstepSeAssetName = "";    // 足音 SE アセット名（空=再生しない）
+
+        // 足音の歩幅積算（m）。しゃがみ・非接地・入力ブロック中はリセット
+        private float _footstepAccumulatedDistance;
 
         public void Initialize(HorrorOptionSaveData data)
         {
@@ -252,7 +260,7 @@ namespace Game.Horror.Player
             _initialized = true;
         }
 
-        public void ApplyPlayerMaster()
+        private void ApplyPlayerMaster()
         {
             // プレイヤー調整値をマスターデータで上書き（SerializeField/既定値はマスター欠落時のフォールバック）
             if (_dbService.Database.HorrorPlayerMasterTable.TryFindById(_playerId, out var playerMaster))
@@ -279,6 +287,10 @@ namespace Game.Horror.Player
                 _idleSwaySpeed = playerMaster.IdleSwaySpeed;
                 _idleSwayAmplitude = playerMaster.IdleSwayAmplitude;
                 _idleSwayRoll = playerMaster.IdleSwayRoll;
+                _footstepStride = playerMaster.FootstepStride;
+                _footstepWalkLoudness = playerMaster.FootstepWalkLoudness;
+                _footstepRunLoudness = playerMaster.FootstepRunLoudness;
+                _footstepSeAssetName = playerMaster.FootstepSeAssetName;
             }
             else
             {
@@ -644,6 +656,26 @@ namespace Game.Horror.Player
         /// </summary>
         internal static int CalculateReloadAmount(int magazine, int magazineSize, int reserve)
             => Mathf.Max(0, Mathf.Min(magazineSize - magazine, reserve));
+
+        /// <summary>
+        /// 足音の歩幅積算を1ステップ進め、1歩分（stride）到達の発火判定と次の積算値を算出する。
+        /// stride 到達時は超過分のみ持ち越す（1 物理フレームで複数歩分を移動しても発火は1回に
+        /// 集約し、剰余は [0, stride) に収まる）。stride が 0 以下なら無限発火を避けて発火しない。
+        /// </summary>
+        internal static (bool Fired, float Next) StepFootstep(float accumulated, float movedDistance, float stride)
+        {
+            if (stride <= 0f) return (false, 0f);
+
+            var total = accumulated + movedDistance;
+            return (total >= stride, Mathf.Repeat(total, stride));
+        }
+
+        /// <summary>
+        /// 足音の Loudness を決定する。走り中は走り値、歩き（エイム歩行含む）は歩き値。
+        /// しゃがみ中の無音は UpdateFootstep の積算ガード（Publish と SE を両方止める唯一の地点）で保証する。
+        /// </summary>
+        internal static float CalculateFootstepLoudness(bool isRunning, float walkLoudness, float runLoudness)
+            => isRunning ? runLoudness : walkLoudness;
 
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
@@ -1223,7 +1255,47 @@ namespace Game.Horror.Player
             }
 
             var motion = horizontalVelocity + Vector3.up * _verticalVelocity;
+            var positionBeforeMove = transform.position;
             _characterController.Move(motion * Time.fixedDeltaTime);
+            UpdateFootstep(positionBeforeMove);
+        }
+
+        /// <summary>
+        /// 足音の歩幅積算を実移動距離（Move 前後の水平位置差分）で進め、1歩ごとに騒音発行＋SE再生する。
+        /// しゃがみ・非接地・入力ブロック（ポーズ）中は積算をリセットして無音を保証する
+        /// （しゃがみ→立ちの瞬間に持ち越し積算で即発火させないためのリセット）。
+        /// 実移動ベースのため、壁押し付け（視覚上静止）や Teleport では発火しない。
+        /// </summary>
+        private void UpdateFootstep(Vector3 positionBeforeMove)
+        {
+            if (_isCrouching || !IsGrounded() || !Player.enabled)
+            {
+                _footstepAccumulatedDistance = 0f;
+                return;
+            }
+
+            var delta = transform.position - positionBeforeMove;
+            delta.y = 0f;
+
+            var (fired, next) = StepFootstep(_footstepAccumulatedDistance, delta.magnitude, _footstepStride);
+            if (fired)
+                EmitFootstep();
+
+            _footstepAccumulatedDistance = next;
+        }
+
+        /// <summary>
+        /// 足音の副作用（騒音 Publish と SE 再生）。Loudness 0 以下は発行しない・SE 名が空なら再生しない
+        /// （発砲ノイズ・発砲 SE と同じイディオム）。
+        /// </summary>
+        private void EmitFootstep()
+        {
+            var loudness = CalculateFootstepLoudness(IsRunning(), _footstepWalkLoudness, _footstepRunLoudness);
+            if (loudness > 0f)
+                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, loudness, NoiseType.Footstep));
+
+            if (!string.IsNullOrEmpty(_footstepSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(_footstepSeAssetName, destroyCancellationToken).Forget();
         }
 
         // カメラ localEulerAngles へ書き込む際は常にこの表示用 pitch を使う（リコイル合成の単一点）
