@@ -11,6 +11,12 @@ namespace Game.Horror.Dialogs
         private Button _resumeButton;
 
         [SerializeField]
+        private Button _restartButton;
+
+        [SerializeField]
+        private Button _loadGameButton;
+
+        [SerializeField]
         private Button _optionButton;
 
         [SerializeField]
@@ -20,6 +26,8 @@ namespace Game.Horror.Dialogs
         private Button _quitButton;
 
         public Observable<Unit> OnResume => _resumeButton.OnClickAsObservable();
+        public Observable<Unit> OnRestart => _restartButton.OnClickAsObservable();
+        public Observable<Unit> OnLoadGame => _loadGameButton.OnClickAsObservable();
         public Observable<Unit> OnOption => _optionButton.OnClickAsObservable();
         public Observable<Unit> OnReturn => _returnButton.OnClickAsObservable();
         public Observable<Unit> OnQuit => _quitButton.OnClickAsObservable();
