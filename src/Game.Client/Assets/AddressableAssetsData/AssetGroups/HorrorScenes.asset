@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: HorrorScenes
   m_GUID: 1e0ce9587ad9ff24b901b56d8bb3da6f
   m_SerializeEntries:
+  - m_GUID: 094364c160b114e4dba809befc69171a
+    m_Address: HorrorGameOverDialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 25545f51a6c8d10439ed6f34f00651b3
     m_Address: HorrorEquipmentShortcutDialog
     m_ReadOnly: 0
