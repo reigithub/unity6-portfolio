@@ -10,11 +10,17 @@ using R3;
 
 namespace Game.Horror.Dialogs
 {
+    public record HorrorSaveDataDialogArgs
+    {
+        public HorrorSaveSlotInfo[] Slots;
+        public bool SaveMode = true;
+    }
+
     /// <summary>
     /// セーブスロット選択ダイアログ。セーブポイントアクセス時に開き、保存先スロットを選ばせる。
     /// </summary>
     public class HorrorSaveDataDialog : GameDialogScene<HorrorSaveDataDialog, HorrorSaveDataDialogComponent, int>
-        , IGameSceneArg<HorrorSaveSlotInfo[]>
+        , IGameSceneArg<HorrorSaveDataDialogArgs>
     {
         protected override string AssetPathOrAddress => "HorrorSaveDataDialog";
 
@@ -22,13 +28,15 @@ namespace Game.Horror.Dialogs
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private HorrorSaveSlotInfo[] _slots;
         private int _slotNo = -1;
+        private bool _saveMode = true;
 
         /// <summary>
         /// ダイアログを開き、選択されたスロット番号を返す。
         /// </summary>
         /// <param name="slots">全スロットのメタ情報。</param>
+        /// <param name="saveMode">スロット選択時にセーブする</param>
         /// <returns>選択スロット番号（0〜スロット数上限 - 1）。負値はキャンセル。</returns>
-        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots)
+        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots, bool saveMode = true)
         {
             int result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -36,14 +44,16 @@ namespace Game.Horror.Dialogs
             using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveSlotInfo[], int>(slots);
+                var args = new HorrorSaveDataDialogArgs { Slots = slots, SaveMode = saveMode };
+                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveDataDialogArgs, int>(args);
             }
             return result;
         }
 
-        public UniTask SetArg(HorrorSaveSlotInfo[] slots)
+        public UniTask SetArg(HorrorSaveDataDialogArgs args)
         {
-            _slots = slots;
+            _slots = args.Slots;
+            _saveMode = args.SaveMode;
             return UniTask.CompletedTask;
         }
 
@@ -65,6 +75,7 @@ namespace Game.Horror.Dialogs
                 .SubscribeAwait(async (_, _) =>
                 {
                     if (_slotNo < 0) return;
+                    if (!_slots[_slotNo].HasData) return;
                     await _saveRepository.DeleteBySlotAsync(_slotNo);
                     _slots[_slotNo] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
                     SceneComponent.SetSlotInfo(_slots[_slotNo]);
@@ -74,6 +85,7 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnSlotClick
                 .Subscribe(slotNo =>
                 {
+                    if (!_saveMode && !_slots[_slotNo].HasData) return;
                     SceneComponent.SetInteractable(false);
                     TrySetResult(slotNo);
                 })
