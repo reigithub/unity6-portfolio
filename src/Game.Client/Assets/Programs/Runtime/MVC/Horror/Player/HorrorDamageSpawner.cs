@@ -13,7 +13,7 @@ namespace Game.Horror.Player
     public class HorrorDamageSpawner : MonoBehaviour
     {
         [Tooltip("ダメージポップアップの prefab")]
-        [SerializeField] private HorrorDamageView _popupPrefab;
+        [SerializeField] private HorrorDamageView _prefab;
 
         [Tooltip("ワールド→スクリーン変換に使うカメラ。HorrorPlayer.prefab 内の Camera を配線")]
         [SerializeField] private Camera _camera;
@@ -34,7 +34,7 @@ namespace Game.Horror.Player
 
         private void OnDamageApplied(HorrorSignals.Combat.Damaged e)
         {
-            if (_popupPrefab == null || _camera == null) return;
+            if (_prefab == null || _camera == null) return;
 
             var popup = GetFromPool();
             popup.Play(_camera, e.Position, e.Damage, _returnView);
@@ -51,7 +51,7 @@ namespace Game.Horror.Player
                 return pooled;
             }
 
-            return Instantiate(_popupPrefab, transform);
+            return Instantiate(_prefab, transform);
         }
 
         private void ReturnView(HorrorDamageView view)
