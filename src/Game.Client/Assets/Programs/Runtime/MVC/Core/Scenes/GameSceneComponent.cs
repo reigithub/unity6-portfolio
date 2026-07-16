@@ -22,7 +22,9 @@ namespace Game.MVC.Core.Scenes
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
-        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private IInputSystemService _inputService;
+        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
+
         private GameObject _selectedGameObject;
 
         public CompositeDisposable Disposables { get; } = new();
@@ -63,13 +65,13 @@ namespace Game.MVC.Core.Scenes
 
         private async UniTask Unfocus(bool visible)
         {
-            _selectedGameObject = _inputService.GetSelectedGameObject();
+            _selectedGameObject = InputService.GetSelectedGameObject();
             await UniTask.Yield();
             SetInteractable(false, visible);
         }
 
         protected void ResolveSelectable()
-            => _inputService.ResolveControlScheme(_selectedGameObject);
+            => InputService.ResolveControlScheme(_selectedGameObject);
 
         public virtual void SetInteractable(bool interactable, bool visible = false)
         {
