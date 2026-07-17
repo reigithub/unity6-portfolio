@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Core.Services;
 using Game.Horror.Signals;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -20,16 +21,15 @@ namespace Game.Horror.Player
 
         private readonly Queue<HorrorDamageView> _pool = new();
         private Action<HorrorDamageView> _returnView;
-        private IDisposable _subscription;
 
         private void Start()
         {
             // メソッドグループ変換によるヒット毎のデリゲート生成を避けるため一度だけ生成する
             _returnView = ReturnView;
 
-            // ダメージ適用イベントを購読。戻り IDisposable を保持する（OnDestroy で破棄）
+            // ダメージ適用イベントを購読（GameObject 破棄時に自動解放）
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            _subscription = messagePipeService.Subscribe<HorrorSignals.Combat.Damaged>(OnDamageApplied);
+            messagePipeService.Subscribe<HorrorSignals.Combat.Damaged>(OnDamageApplied).AddTo(this);
         }
 
         private void OnDamageApplied(HorrorSignals.Combat.Damaged e)
@@ -58,12 +58,6 @@ namespace Game.Horror.Player
         {
             view.gameObject.SetActive(false);
             _pool.Enqueue(view);
-        }
-
-        private void OnDestroy()
-        {
-            _subscription?.Dispose();
-            _subscription = null;
         }
     }
 }

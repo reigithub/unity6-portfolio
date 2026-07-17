@@ -1,7 +1,7 @@
-using System;
 using DG.Tweening;
 using Game.Core.Services;
 using Game.Horror.Signals;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Player
@@ -23,7 +23,6 @@ namespace Game.Horror.Player
         [SerializeField] private float _fadeOutSeconds = 0.4f;
 
         private Sequence _sequence;
-        private IDisposable _subscription;
 
         private void Awake()
         {
@@ -33,9 +32,9 @@ namespace Game.Horror.Player
 
         private void Start()
         {
-            // 被弾イベントを購読。戻り IDisposable を保持する（OnDestroy で破棄）
+            // 被弾イベントを購読（GameObject 破棄時に自動解放）
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            _subscription = messagePipeService.Subscribe<HorrorSignals.Player.Damaged>(OnDamaged);
+            messagePipeService.Subscribe<HorrorSignals.Player.Damaged>(OnDamaged).AddTo(this);
         }
 
         private void OnDamaged(HorrorSignals.Player.Damaged e)
@@ -52,8 +51,6 @@ namespace Game.Horror.Player
         private void OnDestroy()
         {
             if (_sequence != null && _sequence.IsActive()) _sequence.Kill();
-            _subscription?.Dispose();
-            _subscription = null;
         }
     }
 }
