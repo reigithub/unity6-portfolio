@@ -1,11 +1,10 @@
 using Game.Core.Services;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Interfaces;
 using R3;
+using R3.Triggers;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.Horror.Inventory
@@ -15,7 +14,7 @@ namespace Game.Horror.Inventory
     /// 選択されるのは Selectable（子 Button）自身なので、このコンポーネントは Button と同じ GameObject に付与する。
     /// マウスホバー（PointerEventReceiver）・パッド/キー操作のどちらも EventSystem の選択に集約され OnSelect に届く。
     /// </summary>
-    public class HorrorInventorySlotView : MonoBehaviour, ISelectHandler, IDeselectHandler
+    public class HorrorInventorySlotView : MonoBehaviour
     {
         [SerializeField] private RectTransform _rectTransform;
         [SerializeField] private Button _button;
@@ -35,12 +34,17 @@ namespace Game.Horror.Inventory
         /// <summary>サブメニューの表示位置決めに用いる自身の RectTransform。</summary>
         public RectTransform RectTransform => _rectTransform;
 
+        public Selectable Selectable => _button;
+
         public IHorrorInventorySlotInfo SlotInfo { get; private set; }
 
         public void Initialize()
         {
             _button.OnClickAsObservable()
                 .Subscribe(_ => _onSubmit.OnNext(this))
+                .AddTo(this);
+            _button.OnSelectAsObservable()
+                .Subscribe(_ => _onSelected.OnNext(this))
                 .AddTo(this);
         }
 
@@ -84,21 +88,6 @@ namespace Game.Horror.Inventory
                 _iconImage.sprite = icon;
                 _iconImage.enabled = icon != null;
             }
-        }
-
-        public void OnSelect(BaseEventData eventData)
-        {
-            _onSelected.OnNext(this);
-        }
-
-        public void OnDeselect(BaseEventData eventData)
-        {
-        }
-
-        private void OnDestroy()
-        {
-            _onSelected.Dispose();
-            _onSubmit.Dispose();
         }
     }
 }

@@ -118,7 +118,7 @@ namespace Game.Horror.Dialogs
             SetSlotsInteractable(true);
             if (_slotView != null)
             {
-                _inputService.SetSelectedGameObject(_slotView.gameObject);
+                _inputService.SetSelectedGameObject(_slotView.Selectable.gameObject);
                 _slotView = null;
             }
         }
