@@ -699,6 +699,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8991699478713405481}
   - component: {fileID: 4690843827305814176}
+  - component: {fileID: 6522526999336005918}
   m_Layer: 5
   m_Name: Hp
   m_TagString: Untagged
@@ -739,6 +740,23 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &6522526999336005918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727685895699626299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6daf46a7497b1614e8cb3736ffc1d543, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.HorrorHealthView
+  _canvasGroup: {fileID: 4690843827305814176}
+  _hpGauge: {fileID: 3015141126700027830}
+  _fadeInSeconds: 0.15
+  _holdSeconds: 3.5
+  _fadeOutSeconds: 0.5
 --- !u!1 &1807372559117701934
 GameObject:
   m_ObjectHideFlags: 0
@@ -913,6 +931,7 @@ RectTransform:
   - {fileID: 255595296482849502}
   - {fileID: 8991699478713405481}
   - {fileID: 8879865977805897905}
+  - {fileID: 2533231517190509599}
   m_Father: {fileID: 78722406302841152}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1575,6 +1594,111 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.RotationLagFollower
   _camera: {fileID: 6031481874108313397}
   _followSpeed: 36
+--- !u!1 &3206553409993923016
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2533231517190509599}
+  - component: {fileID: 8710035828429658813}
+  - component: {fileID: 3676772581333920125}
+  - component: {fileID: 6110474329693225041}
+  - component: {fileID: 3542886337880116483}
+  m_Layer: 0
+  m_Name: DamageFlash
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2533231517190509599
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206553409993923016}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5126711315736670585}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &8710035828429658813
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206553409993923016}
+  m_CullTransparentMesh: 1
+--- !u!114 &3676772581333920125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206553409993923016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.8, g: 0, b: 0, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!225 &6110474329693225041
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206553409993923016}
+  m_Enabled: 1
+  m_Alpha: 0
+  m_Interactable: 0
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
+--- !u!114 &3542886337880116483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206553409993923016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10106bf43718b134e8462b39ff40aad3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Player.HorrorDamageFlashView
+  _canvasGroup: {fileID: 6110474329693225041}
+  _peakAlpha: 0.35
+  _fadeInSeconds: 0.05
+  _fadeOutSeconds: 0.4
 --- !u!1 &3476529272647521003
 GameObject:
   m_ObjectHideFlags: 0
@@ -1817,6 +1941,7 @@ MonoBehaviour:
   _equipmentsView: {fileID: 6051565467554838924}
   _reticleView: {fileID: 887419405440126031}
   _ammoView: {fileID: 628614656750989931}
+  _healthView: {fileID: 6522526999336005918}
 --- !u!114 &8001035782658720818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3577,7 +3702,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0.5
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

@@ -48,6 +48,29 @@ namespace Game.Horror.Signals
             }
         }
 
+        // --- Player ---
+
+        public static class Player
+        {
+            /// <summary>
+            /// プレイヤー被弾イベントのデータ（画面フラッシュ・低 HP 演出等のプレイヤー専用フィードバックに使用）。
+            /// CurrentHealth はダメージ適用後の残 HP。
+            /// </summary>
+            public readonly struct Damaged
+            {
+                public readonly int Damage;
+                public readonly int CurrentHealth;
+                public readonly int MaxHealth;
+
+                public Damaged(int damage, int currentHealth, int maxHealth)
+                {
+                    Damage = damage;
+                    CurrentHealth = currentHealth;
+                    MaxHealth = maxHealth;
+                }
+            }
+        }
+
         // --- Noise ---
 
         public static class Noise

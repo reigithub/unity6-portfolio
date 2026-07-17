@@ -41,3 +41,6 @@ MonoBehaviour:
     _footstepWalkLoudness: 0.5
     _footstepRunLoudness: 1
     _footstepSeAssetName: 
+    _maxHealth: 100
+    _invincibleSeconds: 0.8
+    _damageSeAssetName: 

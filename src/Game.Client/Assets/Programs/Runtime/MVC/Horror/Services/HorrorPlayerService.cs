@@ -30,5 +30,22 @@ namespace Game.Horror.Services
             data.LastSavepointId = interactionId;
             _repository.MarkDirty();
         }
+
+        /// <summary>残 HP（0 = 未記録・未ロード。復元側で最大 HP へ正規化する）。</summary>
+        public int CurrentHealth => _repository.Data?.Player?.CurrentHealth ?? 0;
+
+        /// <summary>
+        /// 残 HP を記録する。未ロード・同値の場合は何もしない（同値で Dirty にしない）。
+        /// 0 も有効値として記録する（死亡時。ゲームオーバー後は Continue/Load でデータごと置き換わる）。
+        /// </summary>
+        public void SetCurrentHealth(int health)
+        {
+            var data = _repository.Data?.Player;
+            if (data == null || data.CurrentHealth == health)
+                return;
+
+            data.CurrentHealth = health;
+            _repository.MarkDirty();
+        }
     }
 }

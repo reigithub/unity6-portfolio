@@ -47,6 +47,10 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _footstepRunLoudness;    // 走り足音の大きさ（同上）
         [SerializeField] private string _footstepSeAssetName;   // 足音 SE アセット名（空文字=再生しない）
 
+        [SerializeField] private int _maxHealth;                // 最大 HP
+        [SerializeField] private float _invincibleSeconds;      // 被弾後の無敵時間（秒）
+        [SerializeField] private string _damageSeAssetName;     // 被弾 SE アセット名（空文字=再生しない）
+
         #endregion
 
         #region Database
@@ -218,6 +222,24 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _footstepSeAssetName;
             set => _footstepSeAssetName = value;
+        }
+
+        public int MaxHealth
+        {
+            get => _maxHealth;
+            set => _maxHealth = value;
+        }
+
+        public float InvincibleSeconds
+        {
+            get => _invincibleSeconds;
+            set => _invincibleSeconds = value;
+        }
+
+        public string DamageSeAssetName
+        {
+            get => _damageSeAssetName;
+            set => _damageSeAssetName = value;
         }
 
         #endregion

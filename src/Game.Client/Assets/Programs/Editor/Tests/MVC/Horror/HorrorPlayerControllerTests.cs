@@ -225,5 +225,71 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CalculateFootstepLoudness_Walking_ReturnsWalkLoudness()
             => Assert.That(HorrorPlayerController.CalculateFootstepLoudness(false, 0.5f, 1f), Is.EqualTo(0.5f));
+
+        // 被弾後の無敵時間判定：窓内は無敵、境界（経過==秒数）で無敵終了。未被弾（負の無限大）と秒数 0 以下は常に無敵なし。
+
+        [Test]
+        public void IsInvincible_WithinWindow_IsTrue()
+            => Assert.That(HorrorPlayerController.IsInvincible(1.0f, 0.7f, 0.5f), Is.True);
+
+        [Test]
+        public void IsInvincible_AtExactBoundary_IsFalse()
+            => Assert.That(HorrorPlayerController.IsInvincible(1.2f, 0.7f, 0.5f), Is.False);
+
+        [Test]
+        public void IsInvincible_AfterWindow_IsFalse()
+            => Assert.That(HorrorPlayerController.IsInvincible(2.0f, 0.7f, 0.5f), Is.False);
+
+        [Test]
+        public void IsInvincible_NeverDamaged_NegativeInfinity_IsFalse()
+            => Assert.That(HorrorPlayerController.IsInvincible(0f, float.NegativeInfinity, 0.5f), Is.False);
+
+        [Test]
+        public void IsInvincible_SameFrameAsDamage_IsTrue()
+            => Assert.That(HorrorPlayerController.IsInvincible(1.0f, 1.0f, 0.5f), Is.True);
+
+        [Test]
+        public void IsInvincible_ZeroSeconds_IsFalse()
+            => Assert.That(HorrorPlayerController.IsInvincible(1.0f, 1.0f, 0f), Is.False);
+
+        // 被弾後の残 HP：通常減算、致死ちょうど・過剰ダメージは 0 で止まる（負にならない）。
+
+        [Test]
+        public void CalculateDamagedHealth_Normal_Subtracts()
+            => Assert.That(HorrorPlayerController.CalculateDamagedHealth(100, 10), Is.EqualTo(90));
+
+        [Test]
+        public void CalculateDamagedHealth_ExactKill_IsZero()
+            => Assert.That(HorrorPlayerController.CalculateDamagedHealth(10, 10), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateDamagedHealth_Overkill_ClampsToZero()
+            => Assert.That(HorrorPlayerController.CalculateDamagedHealth(5, 999), Is.EqualTo(0));
+
+        [Test]
+        public void CalculateDamagedHealth_ZeroDamage_Unchanged()
+            => Assert.That(HorrorPlayerController.CalculateDamagedHealth(50, 0), Is.EqualTo(50));
+
+        // ロード HP の正規化：0 以下（旧セーブ既定値・新規・不正値）は Max へ、Max 超はクランプ、正常値はそのまま。
+
+        [Test]
+        public void NormalizeLoadedHealth_Zero_ReturnsMax()
+            => Assert.That(HorrorPlayerController.NormalizeLoadedHealth(0, 100), Is.EqualTo(100));
+
+        [Test]
+        public void NormalizeLoadedHealth_Negative_ReturnsMax()
+            => Assert.That(HorrorPlayerController.NormalizeLoadedHealth(-5, 100), Is.EqualTo(100));
+
+        [Test]
+        public void NormalizeLoadedHealth_Normal_ReturnsSaved()
+            => Assert.That(HorrorPlayerController.NormalizeLoadedHealth(40, 100), Is.EqualTo(40));
+
+        [Test]
+        public void NormalizeLoadedHealth_AboveMax_ClampsToMax()
+            => Assert.That(HorrorPlayerController.NormalizeLoadedHealth(150, 100), Is.EqualTo(100));
+
+        [Test]
+        public void NormalizeLoadedHealth_AtMax_ReturnsMax()
+            => Assert.That(HorrorPlayerController.NormalizeLoadedHealth(100, 100), Is.EqualTo(100));
     }
 }

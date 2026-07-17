@@ -83,5 +83,52 @@ namespace Game.Tests.MVC.Horror
         {
             Assert.That(_service.LastSavepointId, Is.EqualTo(0));
         }
+
+        // 残 HP の永続化：記録+Dirty 化、同値は Dirty にしない、未ロードは安全に no-op。
+        // 新規データの既定 0 は「未記録」を意味し、復元側（NormalizeLoadedHealth）が Max へ正規化する前提。
+
+        [Test]
+        public async Task SetCurrentHealth_RecordsAndMarksDirty()
+        {
+            await LoadDefaultData();
+
+            _service.SetCurrentHealth(40);
+
+            Assert.That(_service.CurrentHealth, Is.EqualTo(40));
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task SetCurrentHealth_SameValue_DoesNotMarkDirty()
+        {
+            await LoadDefaultData();
+            _service.SetCurrentHealth(40);
+            await _repository.SaveBySlotAsync(0);
+            Assert.That(_repository.IsDirty, Is.False);
+
+            _service.SetCurrentHealth(40);
+
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public void SetCurrentHealth_WhenDataNull_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _service.SetCurrentHealth(40));
+        }
+
+        [Test]
+        public void CurrentHealth_WhenDataNull_ReturnsZero()
+        {
+            Assert.That(_service.CurrentHealth, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CurrentHealth_NewData_IsZero()
+        {
+            await LoadDefaultData();
+
+            Assert.That(_service.CurrentHealth, Is.EqualTo(0));
+        }
     }
 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Constants;
+using Game.Horror.Dialogs;
 using Game.Horror.Equipment;
 using Game.Horror.Interaction;
 using Game.Horror.SaveData;
@@ -25,7 +26,7 @@ namespace Game.Horror.Player
     /// Horror 用プレイヤーコントローラー（CharacterController ベース）
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class HorrorPlayerController : MonoBehaviour
+    public class HorrorPlayerController : MonoBehaviour, IDamageable
     {
         [SerializeField] private int _playerId = 1;
 
@@ -82,6 +83,9 @@ namespace Game.Horror.Player
 
         [Tooltip("残弾 HUD（OverlayCanvas/Ammo にアタッチ）")]
         [SerializeField] private HorrorAmmoView _ammoView;
+
+        [Tooltip("HP ゲージ HUD（OverlayCanvas/Hp にアタッチ）")]
+        [SerializeField] private HorrorHealthView _healthView;
 
         private bool _initialized;
         private IInputSystemService _inputService;
@@ -196,6 +200,18 @@ namespace Game.Horror.Player
         // 足音の歩幅積算（m）。しゃがみ・非接地・入力ブロック中はリセット
         private float _footstepAccumulatedDistance;
 
+        // 体力・無敵時間（HorrorPlayerMaster から Initialize で上書き。初期値はマスター欠落時のフォールバック）
+        private int _maxHealth = 100;             // 最大 HP
+        private float _invincibleSeconds = 0.8f;  // 被弾後の無敵時間（秒）
+        private string _damageSeAssetName = "";   // 被弾 SE アセット名（空=再生しない）
+
+        private int _currentHealth;                              // 残 HP（Initialize でセーブデータから復元）
+        private float _lastDamageTime = float.NegativeInfinity;  // 最終被弾時刻（Time.time）。負の無限大=未被弾
+        private IHorrorPlayerService _playerService;
+
+        // 死亡から GameOverDialog 表示までの演出ディレイ（ms）。被弾フラッシュ・SE を見せてから遷移する
+        private const int GameOverDelayMilliseconds = 1200;
+
         public void Initialize(HorrorOptionSaveData data)
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -208,8 +224,17 @@ namespace Game.Horror.Player
             _dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
             ApplyPlayerMaster();
+
+            // 残 HP をセーブデータから復元（0 以下=旧セーブ・新規データは Max へ正規化し、結果を書き戻す）
+            _currentHealth = NormalizeLoadedHealth(_playerService.CurrentHealth, _maxHealth);
+            _playerService.SetCurrentHealth(_currentHealth);
+            if (_healthView != null)
+                _healthView.UpdateHealth(_currentHealth, _maxHealth);
+            else
+                Debug.LogError("HorrorHealthView が未配線です。HP ゲージは表示されませんが継続します。", this);
 
             _equipmentsView.Initialize();
 
@@ -291,6 +316,9 @@ namespace Game.Horror.Player
                 _footstepWalkLoudness = playerMaster.FootstepWalkLoudness;
                 _footstepRunLoudness = playerMaster.FootstepRunLoudness;
                 _footstepSeAssetName = playerMaster.FootstepSeAssetName;
+                _maxHealth = playerMaster.MaxHealth;
+                _invincibleSeconds = playerMaster.InvincibleSeconds;
+                _damageSeAssetName = playerMaster.DamageSeAssetName;
             }
             else
             {
@@ -331,6 +359,56 @@ namespace Game.Horror.Player
             _characterController.enabled = wasEnabled;
             Physics.SyncTransforms();
         }
+
+        #region IDamageable
+
+        /// <summary>死亡フラグ（体力が 0 以下）</summary>
+        public bool IsDead => _currentHealth <= 0;
+
+        /// <summary>
+        /// ダメージを受ける。死亡中・無敵時間中は無視する。
+        /// HUD 反映・被弾シグナル・SE は致死判定より先に行い、致死打でもゲージ 0 と演出を発火させる。
+        /// 残 HP はセーブデータへ同期し、実書き込みはセーブポイントに委ねる。
+        /// </summary>
+        public void TakeDamage(int damage)
+        {
+            if (IsDead) return;
+            if (IsInvincible(Time.time, _lastDamageTime, _invincibleSeconds)) return;
+
+            _lastDamageTime = Time.time;
+            _currentHealth = CalculateDamagedHealth(_currentHealth, damage);
+            _playerService.SetCurrentHealth(_currentHealth);
+
+            if (_healthView != null)
+            {
+                _healthView.UpdateHealth(_currentHealth, _maxHealth);
+                _healthView.Notify();
+            }
+
+            _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _currentHealth, _maxHealth));
+
+            if (!string.IsNullOrEmpty(_damageSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(_damageSeAssetName, destroyCancellationToken).Forget();
+
+            if (IsDead && _stateMachine != null && _stateMachine.IsProcessing())
+                _stateMachine.ForceTransition<DeadState>();
+        }
+
+        /// <summary>
+        /// 死亡演出ディレイの後にゲームオーバーダイアログを起動する。
+        /// ディレイ中のポーズ/インベントリ起動は BlockInputActions で防ぐ（表示後はダイアログ自身が同アクションをブロック）。
+        /// シーン遷移によるプレイヤー破棄で起動前ならキャンセルされる（destroyCancellationToken）。
+        /// </summary>
+        private async UniTask RunGameOverAsync()
+        {
+            using (_inputService.BlockInputActions(_inputService.UI.Menu, _inputService.UI.Inventory))
+            {
+                await UniTask.Delay(GameOverDelayMilliseconds, DelayType.UnscaledDeltaTime, cancellationToken: destroyCancellationToken);
+                await HorrorGameOverDialog.RunAsync();
+            }
+        }
+
+        #endregion
 
         #region MonoBehaviour Methods
 
@@ -376,8 +454,9 @@ namespace Game.Horror.Player
                 _smoothedLookValue = Vector2.zero;
             }
 
-            // 身体占有（インタラクト）中は移動・他アクションを受け付けない
-            var restrained = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<InteractingState>();
+            // 身体占有（インタラクト）中・死亡後は移動・他アクションを受け付けない
+            var restrained = _stateMachine.IsProcessing()
+                && (_stateMachine.IsCurrentState<InteractingState>() || _stateMachine.IsCurrentState<DeadState>());
 
             // リロード硬直中は攻撃・インタラクト・リロード再入力を受け付けない（完了後の遅延発火も禁止するため、フラグ自体を立てない）
             var reloading = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>();
@@ -508,7 +587,7 @@ namespace Game.Horror.Player
             if (!string.IsNullOrEmpty(_weaponMaster.DryFireSeAssetName))
                 _audioService.PlaySoundEffectOneShotAsync(_weaponMaster.DryFireSeAssetName, destroyCancellationToken).Forget();
 
-            _ammoView?.Notify();
+            NotifyHudViews();
 
             if (AutoReloadOnEmpty) _reloadTriggered = true;
         }
@@ -677,6 +756,26 @@ namespace Game.Horror.Player
         internal static float CalculateFootstepLoudness(bool isRunning, float walkLoudness, float runLoudness)
             => isRunning ? runLoudness : walkLoudness;
 
+        /// <summary>
+        /// 被弾後の無敵時間中かを判定する（Time.time 基準）。未被弾（lastDamageTime = 負の無限大）は
+        /// 常に false。境界（経過 == invincibleSeconds）は無敵終了とみなし、invincibleSeconds 0 以下は無敵なし。
+        /// </summary>
+        internal static bool IsInvincible(float time, float lastDamageTime, float invincibleSeconds)
+            => time - lastDamageTime < invincibleSeconds;
+
+        /// <summary>
+        /// 被弾後の残 HP を算出する（0 未満に落ちない）。
+        /// </summary>
+        internal static int CalculateDamagedHealth(int current, int damage)
+            => Mathf.Max(0, current - damage);
+
+        /// <summary>
+        /// セーブデータからロードした残 HP を正規化する。0 以下（旧セーブの既定値・新規データ・不正値）は
+        /// 最大値へ、最大値超（マスター変更後の旧セーブ）は最大値へクランプする。
+        /// </summary>
+        internal static int NormalizeLoadedHealth(int saved, int max)
+            => saved <= 0 ? max : Mathf.Min(saved, max);
+
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
         private bool IsWalking() => _speed >= _walkSpeed && _speed < _runSpeed;
@@ -797,9 +896,20 @@ namespace Game.Horror.Player
 
         #region StateMachine
 
+        /// <summary>
+        /// ForceTransition を許可するプレイヤー専用ステートマシン。
+        /// 死亡（DeadState）への割り込み遷移（TakeDamage 内）で使用する。
+        /// </summary>
+        private sealed class PlayerStateMachine : StateMachine<HorrorPlayerController, StateEvent>
+        {
+            public PlayerStateMachine(HorrorPlayerController ctx) : base(ctx) { }
+
+            protected override bool AllowForceTransition => true;
+        }
+
         private void InitializeStateMachine()
         {
-            _stateMachine = new StateMachine<HorrorPlayerController, StateEvent>(this);
+            _stateMachine = new PlayerStateMachine(this);
 
             // 状態遷移テーブルの構築
             _stateMachine.AddTransition<IdleState, MovingState>(StateEvent.Move);
@@ -1062,11 +1172,11 @@ namespace Game.Horror.Player
 
                 while (true)
                 {
-                    // 中断条件：対象喪失 / 視線を外した / ボタン解放 / 実行不可化
+                    // 中断条件：対象喪失 / 視線を外した / ボタン解放 / 実行不可化 / 死亡
                     var stillAimed = ctx._interactionDetector != null
                                      && ctx._interactionDetector.TryGetTarget(out var current)
                                      && current == target;
-                    if (!stillAimed || !ctx.Player.Interact.IsPressed() || !target.CanInteract())
+                    if (!stillAimed || !ctx.Player.Interact.IsPressed() || !target.CanInteract() || ctx.IsDead)
                         return;
 
                     elapsed += Time.deltaTime;
@@ -1180,8 +1290,7 @@ namespace Game.Horror.Player
                 _elapsed = 0f;
                 _applied = false;
                 _duration = ctx._weaponMaster.ReloadDuration;
-                if (ctx._ammoView != null)
-                    ctx._ammoView.Notify();
+                ctx.NotifyHudViews();
             }
 
             public override void Update()
@@ -1214,6 +1323,36 @@ namespace Game.Horror.Player
                 // 中断・完了とも傾き演出を確実に解除する
                 Context._weaponView.ResetReload();
             }
+        }
+
+        /// <summary>
+        /// 死亡状態（終端）。TakeDamage から ForceTransition で割り込む（遷移テーブル未登録・出口なし。
+        /// 復帰は GameOverDialog のシーン遷移＝プレイヤー再生成で行われる）。
+        /// 入力は UpdateInput の restrained（死亡込み）で遮断し、水平移動を止め重力のみ適用する。
+        /// Enter で演出ディレイ → HorrorGameOverDialog.RunAsync のシーケンスを起動する。
+        /// </summary>
+        private class DeadState : State<HorrorPlayerController, StateEvent>
+        {
+            public override void Enter()
+            {
+                var ctx = Context;
+
+                // 遷移フレームからエイム解除の補間を開始する（他の入力フラグは終端ステートでは読まれないため触らない。
+                // 次フレーム以降は UpdateInput の restrained 分岐が毎フレーム解除を保証する）
+                ctx._isAiming = false;
+
+                // ヘッドボブの残オフセットを rest 位置へ戻す（以降 UpdateHeadBob は呼ばない）
+                if (ctx._mainCamera != null)
+                    ctx._mainCamera.transform.localPosition = ctx._cameraBasePosition;
+
+                ctx.RunGameOverAsync().Forget();
+            }
+
+            // 視点回転なし。エイム解除補間・FOV 復帰・残弾 HUD フェードアウトのみ進める
+            public override void Update() => Context.UpdateAimPose();
+
+            // 水平移動なし＝拘束（重力のみ適用）— InteractingState と同じ
+            public override void FixedUpdate() => Context.UpdateMovementWithGravity(Vector3.zero);
         }
 
         #endregion
@@ -1404,7 +1543,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクル・残弾 HUD を _aimBlend / _aimShakeWeight から導出する。
+        /// エイム姿勢を毎フレーム補間する。FOV・揺れ減衰・武器構え位置・レティクル・残弾/HP HUD を _aimBlend / _aimShakeWeight から導出する。
         /// 各ステートの Update から呼ばれる（インタラクト拘束中も解除補間・FOV 復帰が必要なため
         /// InteractingState を含む全ステートが呼ぶ）。装備切替中は TickSwitch の後に呼ぶこと（下げ量更新 → 位置反映の順序）。
         /// </summary>
@@ -1427,20 +1566,22 @@ namespace Game.Horror.Player
             if (_reticleView != null)
                 _reticleView.UpdatePose(_isAiming);
 
-            UpdateAmmoHud();
+            // エイム中・リロード中は両 HUD の表示を維持する（keepVisible の唯一の計算点）
+            var keepVisible = _isAiming
+                || (_stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>());
+            UpdateAmmoView(keepVisible);
+            UpdateHealthView(keepVisible);
         }
 
         /// <summary>
         /// 残弾 HUD を毎フレーム駆動する。表示内容（弾倉/予備・所持数のみ・非表示）と最新値をプル型で渡し、
-        /// 値の変更検出と表示演出は View 側が担う。エイム中・リロード中は表示を維持する。
+        /// 値の変更検出と表示演出は View 側が担う。
         /// </summary>
-        private void UpdateAmmoHud()
+        private void UpdateAmmoView(bool keepVisible)
         {
             if (_ammoView == null) return;
 
             var mode = HorrorAmmoView.ResolveViewMode(_weaponMaster != null, _weaponMaster?.AmmoItemId ?? 0);
-            var keepVisible = _isAiming
-                || (_stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>());
 
             var magazine = 0;
             var magazineSize = 0;
@@ -1458,6 +1599,26 @@ namespace Game.Horror.Player
             }
 
             _ammoView.UpdatePose(mode, keepVisible, magazine, magazineSize, reserve);
+        }
+
+        /// <summary>
+        /// HP HUD を毎フレーム駆動する。フェード演出は View 側が担う。
+        /// 値の反映は Initialize / TakeDamage のプッシュ駆動（UpdateHealth）で行い、ここでは表示状態のみ更新する。
+        /// </summary>
+        private void UpdateHealthView(bool keepVisible)
+        {
+            if (_healthView == null) return;
+            _healthView.UpdatePose(keepVisible);
+        }
+
+        /// <summary>
+        /// 武器アクション（発砲・空撃ち・リロード）起点の HUD 表示キック。残弾と HP を常に対でキックする
+        /// （被弾時の HP 単独キックは TakeDamage 側で行う意図的な非対称）。
+        /// </summary>
+        private void NotifyHudViews()
+        {
+            if (_ammoView != null) _ammoView.Notify();
+            if (_healthView != null) _healthView.Notify();
         }
 
         /// <summary>
@@ -1509,7 +1670,7 @@ namespace Game.Horror.Player
             {
                 var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize);
                 _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine - 1);
-                if (_ammoView != null) _ammoView.Notify();
+                NotifyHudViews();
             }
 
             // 命中対象があればダメージを与える。
@@ -1560,7 +1721,7 @@ namespace Game.Horror.Player
             if (!_inventoryService.TryConsume(InventorySlotType.Item, _weaponMaster.AmmoItemId, amount)) return;
 
             _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine + amount);
-            _ammoView?.Notify();
+            NotifyHudViews();
         }
 
         #endregion

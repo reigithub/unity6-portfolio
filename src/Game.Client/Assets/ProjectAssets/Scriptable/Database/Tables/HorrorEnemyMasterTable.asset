@@ -27,7 +27,7 @@ MonoBehaviour:
     _awarenessDecayRate: 0.2
     _suspiciousThreshold: 0.4
     _alertThreshold: 0.8
-    _attackRange: 1
+    _attackRange: 1.5
     _attackDamage: 10
     _attackCooldown: 1
     _investigateGiveUpTime: 5
