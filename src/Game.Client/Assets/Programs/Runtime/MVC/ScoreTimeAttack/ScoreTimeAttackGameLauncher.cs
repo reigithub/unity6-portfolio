@@ -59,7 +59,7 @@ namespace Game.ScoreTimeAttack
             await audioSaveService.LoadAsync();
 
             // 6. 初期シーン遷移
-            var gameSceneService = new GameSceneService(inputSystemService);
+            var gameSceneService = new GameSceneService();
             GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<ScoreTimeAttackTitleScene>();
         }

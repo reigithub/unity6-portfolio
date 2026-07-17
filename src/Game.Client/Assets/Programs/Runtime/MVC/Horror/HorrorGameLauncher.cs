@@ -1,5 +1,4 @@
 using Cysharp.Threading.Tasks;
-using Game.Core;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
@@ -105,7 +104,7 @@ namespace Game.Horror
             await HorrorGameRootController.LoadAssetAsync();
 
             // 5. 初期シーン遷移
-            var gameSceneService = new GameSceneService(inputSystemService);
+            var gameSceneService = new GameSceneService();
             GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
         }

@@ -13,19 +13,12 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private readonly IInputSystemService _inputService;
-
         private readonly List<IGameScene> _gameScenes = new(16);
 
         private const GameSceneOperations DefaultOperations = GameSceneConstants.DefaultOperations;
 
         public GameSceneService()
         {
-        }
-
-        public GameSceneService(IInputSystemService inputService)
-        {
-            _inputService = inputService;
         }
 
         public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
@@ -180,9 +173,7 @@ namespace Game.Core.Services
         private UniTaskCompletionSource<TResult> CreateResultTcs<TResult>(IGameScene gameScene)
         {
             if (gameScene is IGameSceneResult<TResult> result)
-            {
                 return result.ResultTcs = new UniTaskCompletionSource<TResult>();
-            }
 
             return null;
         }
@@ -363,18 +354,12 @@ namespace Game.Core.Services
 
         private async UniTask DoFadeInAsync(IGameScene gameScene)
         {
-            if (gameScene is IGameSceneFader fader)
-            {
-                await fader.FadeInAsync();
-            }
+            if (gameScene is IGameSceneFader fader) await fader.FadeInAsync();
         }
 
         private async UniTask DoFadeOutAsync(IGameScene gameScene)
         {
-            if (gameScene is IGameSceneFader fader)
-            {
-                await fader.FadeOutAsync();
-            }
+            if (gameScene is IGameSceneFader fader) await fader.FadeOutAsync();
         }
     }
 }
