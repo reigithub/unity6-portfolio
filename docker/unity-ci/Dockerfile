@@ -20,7 +20,7 @@
 # 設定方法: .env ファイルで UNITY_MODULE を変更
 
 # ビルド引数でプラットフォームを指定可能
-ARG UNITY_VERSION=6000.3.8f1
+ARG UNITY_VERSION=6000.3.20f1
 ARG UNITY_MODULE=windows-mono
 ARG IMAGE_VERSION=3
 

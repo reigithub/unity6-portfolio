@@ -28,10 +28,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        UNITY_VERSION: ${UNITY_VERSION:-6000.3.8f1}
+        UNITY_VERSION: ${UNITY_VERSION:-6000.3.20f1}
         UNITY_MODULE: ${UNITY_MODULE:-windows-mono}
         IMAGE_VERSION: ${IMAGE_VERSION:-3}
-    image: unity-ci-windows-mono:${UNITY_VERSION:-6000.3.8f1}
+    image: unity-ci-windows-mono:${UNITY_VERSION:-6000.3.20f1}
     container_name: unity-ci-windows-mono
     restart: unless-stopped
 
@@ -102,10 +102,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        UNITY_VERSION: ${UNITY_VERSION:-6000.3.8f1}
+        UNITY_VERSION: ${UNITY_VERSION:-6000.3.20f1}
         UNITY_MODULE: linux-il2cpp
         IMAGE_VERSION: ${IMAGE_VERSION:-3}
-    image: unity-ci-linux-il2cpp:${UNITY_VERSION:-6000.3.8f1}
+    image: unity-ci-linux-il2cpp:${UNITY_VERSION:-6000.3.20f1}
     container_name: unity-ci-linux-il2cpp
     restart: unless-stopped
 
