@@ -23,25 +23,15 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorStageScene";
 
-        private IAddressableAssetService _assetService;
-        private IGameSceneService _sceneService;
-        private IInputSystemService _inputService;
-        private IHorrorOptionSaveRepository _optionSaveRepository;
-        private IHorrorPlayerService _playerService;
+        private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
+        private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
+        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
         private HorrorEnemyStart[] _enemyStarts;
-
-        public override UniTask PreInitialize()
-        {
-            _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
-            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
-            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
-            return base.PreInitialize();
-        }
 
         public override async UniTask Startup()
         {
