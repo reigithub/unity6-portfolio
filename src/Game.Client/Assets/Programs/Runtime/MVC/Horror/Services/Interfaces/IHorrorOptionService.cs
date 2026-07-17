@@ -51,6 +51,9 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>フレームレート上限を無効化するか設定する。</summary>
         void SetUncappedFrameRate(bool uncapped);
 
+        /// <summary>フレームレートを表示するか</summary>
+        void SetShowFrameRate(bool show);
+
         /// <summary>VSync の有効・無効を設定する。</summary>
         void SetVSync(bool enabled);
 

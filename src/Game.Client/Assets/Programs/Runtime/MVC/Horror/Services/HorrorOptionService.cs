@@ -135,6 +135,13 @@ namespace Game.Horror.Services
             _repository.MarkDirty();
         }
 
+        public void SetShowFrameRate(bool show)
+        {
+            if (_repository.Data == null) return;
+            _repository.Data.ShowFrameRate = show;
+            _repository.MarkDirty();
+        }
+
         /// <summary>VSync の有効・無効を設定する。</summary>
         public void SetVSync(bool enabled)
         {

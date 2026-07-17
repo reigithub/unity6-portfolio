@@ -124,6 +124,12 @@ namespace Game.Horror.Dialogs
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
                 })
                 .AddTo(Disposables);
+            SceneComponent.OnShowFrameRateChanged
+                .Subscribe(show =>
+                {
+                    _optionService.SetShowFrameRate(show);
+                })
+                .AddTo(Disposables);
             SceneComponent.OnVSyncChanged
                 .Subscribe(vsync =>
                 {

@@ -46,6 +46,7 @@ namespace Game.Horror.Dialogs
 
         [SerializeField] private SliderValueSelector _frameRate;
         [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
+        [SerializeField] private SliderBooleanSelector _showFrameRate;
         [SerializeField] private SliderBooleanSelector _vSync;
 
         [Header("Options - Audio")]
@@ -78,6 +79,7 @@ namespace Game.Horror.Dialogs
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
         public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
         public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged;
+        public Observable<bool> OnShowFrameRateChanged => _showFrameRate.OnValueChanged;
         public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged;
 
         #endregion
@@ -125,6 +127,7 @@ namespace Game.Horror.Dialogs
             _resolution.SetIndex(ResolveResolutionIndex(d.ResolutionWidth, d.ResolutionHeight));
             _frameRate.SetValue(d.FrameRateLimit);
             _uncappedFrameRate.SetBool(d.UncappedFrameRate);
+            _showFrameRate.SetBool(d.ShowFrameRate);
             _vSync.SetBool(d.VSync);
 
             // Audio

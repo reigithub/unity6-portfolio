@@ -64,6 +64,9 @@ namespace Game.Horror.SaveData
         /// <summary>フレームレート上限を解除する</summary>
         public bool UncappedFrameRate { get; set; }
 
+        /// <summary>フレームレートを表示する</summary>
+        public bool ShowFrameRate { get; set; }
+
         /// <summary>垂直同期</summary>
         public bool VSync { get; set; }
 

@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
@@ -50,7 +51,8 @@ namespace Game.Horror
 
         [SerializeField] private Camera _mainCamera;
         [SerializeField] private PlayerInput _playerInput;
-        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private CanvasGroup _fadeCanvasGroup;
+        [SerializeField] private GameObject _fpsView;
 
         private void Initialize()
         {
@@ -68,16 +70,24 @@ namespace Game.Horror
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, token) =>
                 {
-                    await _canvasGroup.DOFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration)
+                    await _fadeCanvasGroup.DOFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration)
                         .SetUpdate(true)
                         .ToUniTask(cancellationToken: token);
                 })
                 .AddTo(this);
             messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, token) =>
                 {
-                    await _canvasGroup.DOFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration)
+                    await _fadeCanvasGroup.DOFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration)
                         .SetUpdate(true)
                         .ToUniTask(cancellationToken: token);
+                })
+                .AddTo(this);
+
+            var optionRepo = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
+            optionRepo.OnSaved
+                .Subscribe(x =>
+                {
+                    _fpsView.SetActive(x.ShowFrameRate);
                 })
                 .AddTo(this);
         }

@@ -436,7 +436,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Core.HorrorGameRootController
   _mainCamera: {fileID: 321870069083936469}
   _playerInput: {fileID: 6886398616898211612}
-  _canvasGroup: {fileID: 6234857363212153463}
+  _fadeCanvasGroup: {fileID: 6234857363212153463}
+  _fpsView: {fileID: 3636908543278468921}
 --- !u!1 &3636908543278468921
 GameObject:
   m_ObjectHideFlags: 0
