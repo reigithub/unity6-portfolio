@@ -194,17 +194,14 @@ namespace Game.Core.Services
         {
             gameScene.State = GameSceneState.Processing;
 
-            using (_inputService.BlockUI())
-            {
-                if (gameScene.ArgHandler != null)
-                    await gameScene.ArgHandler.Invoke(gameScene);
+            if (gameScene.ArgHandler != null)
+                await gameScene.ArgHandler.Invoke(gameScene);
 
-                await gameScene.PreInitialize();
-                await gameScene.LoadAsset();
-                await gameScene.Startup();
-                await DoFadeInAsync(gameScene);
-                await gameScene.Ready();
-            }
+            await gameScene.PreInitialize();
+            await gameScene.LoadAsset();
+            await gameScene.Startup();
+            await DoFadeInAsync(gameScene);
+            await gameScene.Ready();
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)

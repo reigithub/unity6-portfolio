@@ -11,6 +11,7 @@ using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -22,6 +23,7 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorStageScene";
 
+        private IAddressableAssetService _assetService;
         private IGameSceneService _sceneService;
         private IInputSystemService _inputService;
         private IHorrorOptionSaveRepository _optionSaveRepository;
@@ -33,6 +35,7 @@ namespace Game.Horror.Scenes
 
         public override UniTask PreInitialize()
         {
+            _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             _sceneService = GameServiceManager.Resolve<IGameSceneService>();
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
@@ -76,13 +79,13 @@ namespace Game.Horror.Scenes
         private async UniTask LoadUnitySceneAsync()
         {
             Physics.simulationMode = SimulationMode.FixedUpdate;
-            _stageSceneInstance = await AssetService.LoadSceneAsync("Abandoned_Asylum");
+            _stageSceneInstance = await _assetService.LoadSceneAsync("Abandoned_Asylum");
             SceneManager.SetActiveScene(_stageSceneInstance.Scene);
         }
 
         private async UniTask UnloadUnitySceneAsync()
         {
-            await AssetService.UnloadSceneAsync(_stageSceneInstance);
+            await _assetService.UnloadSceneAsync(_stageSceneInstance);
             _stageSceneInstance = default;
         }
 

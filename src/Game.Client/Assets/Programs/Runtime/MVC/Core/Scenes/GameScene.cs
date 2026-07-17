@@ -132,6 +132,7 @@ namespace Game.MVC.Core.Scenes
             SceneComponent = GetSceneComponent();
             if (Disposables.IsDisposed)
                 Disposables = new CompositeDisposable();
+            await SceneComponent.PreInitialize();
         }
 
         public override async UniTask Startup()
@@ -183,11 +184,8 @@ namespace Game.MVC.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        private IAddressableAssetService _assetService;
-        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
-
-        private IMessagePipeService _messagePipeService;
-        protected IMessagePipeService MessagePipeService => _messagePipeService ??= GameServiceManager.Resolve<IMessagePipeService>();
+        private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
+        private readonly IMessagePipeService _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
 
         private GameObject _asset;
         private GameObject _instance;
@@ -195,7 +193,7 @@ namespace Game.MVC.Core.Scenes
 
         protected override async UniTask LoadScene()
         {
-            _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
+            _asset = await _assetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             Scene scene = GameSceneHelper.GetGameRootScene();
             _instance = scene.IsValid()
                 ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
@@ -209,6 +207,7 @@ namespace Game.MVC.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
+                _assetService.Release(_asset);
                 _asset = null;
                 _canvasGroup = null;
             }
@@ -232,7 +231,7 @@ namespace Game.MVC.Core.Scenes
                 _canvasGroup.blocksRaycasts = true;
             }
 
-            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
+            await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
         }
 
         public async UniTask FadeOutAsync(float duration = 0.3f)
@@ -245,7 +244,7 @@ namespace Game.MVC.Core.Scenes
                 _instance.SetActive(false);
             }
 
-            await MessagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
+            await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
         }
     }
 
@@ -254,8 +253,7 @@ namespace Game.MVC.Core.Scenes
         where TGameScene : IGameScene
         where TGameSceneComponent : IGameSceneComponent
     {
-        private IAddressableAssetService _assetService;
-        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
+        private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
 
         protected virtual LoadSceneMode LoadSceneMode => LoadSceneMode.Additive;
 
@@ -263,13 +261,13 @@ namespace Game.MVC.Core.Scenes
 
         protected override async UniTask LoadScene()
         {
-            _instance = await AssetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
+            _instance = await _assetService.LoadSceneAsync(AssetPathOrAddress, LoadSceneMode, activateOnLoad: true);
             if (LoadSceneMode is LoadSceneMode.Additive) SceneManager.SetActiveScene(_instance.Scene);
         }
 
         protected override async UniTask UnloadScene()
         {
-            await AssetService.UnloadSceneAsync(_instance);
+            await _assetService.UnloadSceneAsync(_instance);
         }
 
         protected override TGameSceneComponent GetSceneComponent()
@@ -281,25 +279,13 @@ namespace Game.MVC.Core.Scenes
         where TScene : IGameScene
         where TComponent : IGameSceneComponent
     {
-        private IAddressableAssetService _assetService;
-        protected IAddressableAssetService AssetService => _assetService ??= GameServiceManager.Resolve<IAddressableAssetService>();
+        private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
 
         public TResult Result { get; set; }
         public UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
         private GameObject _asset;
         private GameObject _instance;
-
-        public override UniTask PreInitialize()
-        {
-            return UniTask.CompletedTask;
-        }
-
-        public override async UniTask LoadAsset()
-        {
-            await LoadScene();
-            SceneComponent = GetSceneComponent();
-        }
 
         public override UniTask Terminate()
         {
@@ -309,7 +295,7 @@ namespace Game.MVC.Core.Scenes
 
         protected override async UniTask LoadScene()
         {
-            _asset = await AssetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
+            _asset = await _assetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
             Scene scene = GameSceneHelper.GetGameRootScene();
             _instance = scene.IsValid()
                 ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
@@ -322,6 +308,7 @@ namespace Game.MVC.Core.Scenes
             {
                 _instance.SafeDestroy();
                 _instance = null;
+                _assetService.Release(_asset);
                 _asset = null;
             }
 

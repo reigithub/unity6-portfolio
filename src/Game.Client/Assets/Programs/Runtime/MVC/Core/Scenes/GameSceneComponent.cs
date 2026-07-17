@@ -1,4 +1,3 @@
-using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using R3;
@@ -8,6 +7,8 @@ namespace Game.MVC.Core.Scenes
 {
     public interface IGameSceneComponent : ICompositeDisposable
     {
+        UniTask PreInitialize() => UniTask.CompletedTask;
+
         UniTask Startup() => UniTask.CompletedTask;
 
         UniTask Ready() => UniTask.CompletedTask;
@@ -23,11 +24,15 @@ namespace Game.MVC.Core.Scenes
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
         private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
-
         private GameObject _selectedGameObject;
 
         public CompositeDisposable Disposables { get; } = new();
+
+        public virtual UniTask PreInitialize()
+        {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            return UniTask.CompletedTask;
+        }
 
         public virtual UniTask Startup()
         {
@@ -65,13 +70,13 @@ namespace Game.MVC.Core.Scenes
 
         private async UniTask Unfocus(bool visible)
         {
-            _selectedGameObject = InputService.GetSelectedGameObject();
+            _selectedGameObject = _inputService.GetSelectedGameObject();
             await UniTask.Yield();
             SetInteractable(false, visible);
         }
 
         protected void ResolveSelectable()
-            => InputService.ResolveControlScheme(_selectedGameObject);
+            => _inputService.ResolveControlScheme(_selectedGameObject);
 
         public virtual void SetInteractable(bool interactable, bool visible = false)
         {

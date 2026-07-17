@@ -24,10 +24,12 @@ namespace Game.ScoreTimeAttack.Scenes
     {
         protected override string AssetPathOrAddress => "ScoreTimeAttackStageScene";
 
+        private IAddressableAssetService _assetService;
         private IAudioService _audioService;
         private IGameSceneService _sceneService;
         private IMasterDataService _masterDataService;
         private IInputSystemService _inputService;
+        private IMessagePipeService _messagePipeService;
 
         public ScoreTimeAttackStageSceneModel SceneModel { get; set; }
 
@@ -42,10 +44,12 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override UniTask PreInitialize()
         {
+            _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
             _audioService = GameServiceManager.Resolve<IAudioService>();
             _sceneService = GameServiceManager.Resolve<IGameSceneService>();
             _masterDataService = GameServiceManager.Resolve<IMasterDataService>();
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
 
             SceneModel = new ScoreTimeAttackStageSceneModel();
             SceneModel.Initialize(_stageId);
@@ -58,7 +62,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
             Physics.simulationMode = SimulationMode.FixedUpdate;
             // 追加でStageMasterに対応したUnityシーン(3Dフィールド)をロードする
-            _stageSceneInstance = await AssetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
+            _stageSceneInstance = await _assetService.LoadSceneAsync(SceneModel.StageMaster.AssetName);
         }
 
         public override async UniTask Startup()
@@ -103,7 +107,7 @@ namespace Game.ScoreTimeAttack.Scenes
             ApplicationEvents.HideCursor();
             SceneModel.StageState = GameStageState.Start;
             SceneComponent.DoFadeIn();
-            MessagePipeService.Publish(MessageKey.Player.HudFadeIn);
+            _messagePipeService.Publish(MessageKey.Player.HudFadeIn);
             await audioTask;
             await _audioService.PlayRandomOneAsync(AudioCategory.Voice, AudioPlayTag.StageStart);
             await base.Ready();
@@ -111,7 +115,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
         public override async UniTask Terminate()
         {
-            await AssetService.UnloadSceneAsync(_stageSceneInstance);
+            await _assetService.UnloadSceneAsync(_stageSceneInstance);
             _audioService.StopBgmAsync().Forget();
             await base.Terminate();
         }
@@ -145,7 +149,7 @@ namespace Game.ScoreTimeAttack.Scenes
                     if (_inputService.UI.ScrollWheel.WasPressedThisFrame())
                     {
                         var scrollWheel = _inputService.UI.ScrollWheel.ReadValue<Vector2>().normalized;
-                        MessagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
+                        _messagePipeService.Publish(MessageKey.UI.ScrollWheel, scrollWheel);
                     }
                 })
                 .AddTo(Disposables);
@@ -194,7 +198,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
             SceneModel.PlayerHpDamaged(hpDamage);
 
-            MessagePipeService.Publish(MessageKey.Player.HpChanged, SceneModel.PlayerCurrentHp);
+            _messagePipeService.Publish(MessageKey.Player.HpChanged, SceneModel.PlayerCurrentHp);
 
             TryShowResultAsync().Forget();
         }
@@ -246,7 +250,7 @@ namespace Game.ScoreTimeAttack.Scenes
 
             SceneModel.StageState = GameStageState.Result;
             SceneComponent.DoFadeOut();
-            MessagePipeService.Publish(MessageKey.Player.HudFadeOut);
+            _messagePipeService.Publish(MessageKey.Player.HudFadeOut);
 
             var stageResult = SceneModel.CreateStageResult();
 
