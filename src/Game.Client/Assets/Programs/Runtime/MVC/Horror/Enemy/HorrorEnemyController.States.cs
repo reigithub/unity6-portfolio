@@ -379,6 +379,8 @@ namespace Game.Horror.Enemy
         /// </summary>
         private class DeathState : State<HorrorEnemyController, StateEvent>
         {
+            private float _delay = 10f;
+
             public override void Enter()
             {
                 var ctx = Context;
@@ -396,6 +398,13 @@ namespace Game.Horror.Enemy
                 Debug.Log($"[HorrorEnemyController] DeathState: 敵が死亡した ({ctx.name})");
                 // ctx.gameObject.SafeDestroy();
 #endif
+            }
+
+            public override void Update()
+            {
+                _delay -= Time.unscaledDeltaTime;
+                if (_delay <= 0f)
+                    Context.gameObject.SetActive(false);
             }
         }
 
