@@ -1,8 +1,8 @@
-using System;
 using Game.Core.Services;
 using Game.Horror.Signals;
 using Game.Shared.Constants;
 using Game.Shared.Scriptable.Database.Tables;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Enemy
@@ -48,8 +48,8 @@ namespace Game.Horror.Enemy
         // 視覚スキャンのタイマー
         private float _nextScanTime;
 
-        // MessagePipe 聴覚購読の解放ハンドル（破棄漏れ防止）
-        private IDisposable _noiseSubscription;
+        // MessagePipe 購読の一括解放コンテナ（OnDisable で Clear、OnDestroy で Dispose）
+        private readonly CompositeDisposable _subscriptions = new();
 
         // 警戒度ゲージ（0..1）
         private float _awareness;
@@ -136,9 +136,10 @@ namespace Game.Horror.Enemy
             if (_occluderMask.value == 0)
                 _occluderMask = LayerMaskConstants.Structure | LayerMaskConstants.Ground;
 
-            // 聴覚: HorrorSignals.Noise.Occurred を購読。戻り IDisposable を保持（OnDestroy/OnDisable で破棄）
+            // 聴覚（Noise.Occurred）とプレイヤー死亡（Player.Died）を購読する
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            _noiseSubscription = messagePipeService.Subscribe<HorrorSignals.Noise.Occurred>(OnNoise);
+            messagePipeService.Subscribe<HorrorSignals.Noise.Occurred>(OnNoise).AddTo(_subscriptions);
+            messagePipeService.Subscribe<HorrorSignals.Player.Died>(OnPlayerDied).AddTo(_subscriptions);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log($"[HorrorEnemyPerception] Initialize: target={target.name}, sightRange={master.SightRange}, hearingRadius={master.HearingRadius}");
@@ -176,16 +177,14 @@ namespace Game.Horror.Enemy
 
         private void OnDisable()
         {
-            _noiseSubscription?.Dispose();
-            _noiseSubscription = null;
+            _subscriptions.Clear();
             _hasConfirmedSight = false;
             _nextScanTime = 0f;
         }
 
         private void OnDestroy()
         {
-            _noiseSubscription?.Dispose();
-            _noiseSubscription = null;
+            _subscriptions.Dispose();
         }
 
         #endregion
@@ -275,7 +274,9 @@ namespace Game.Horror.Enemy
         /// </summary>
         private void OnNoise(HorrorSignals.Noise.Occurred evt)
         {
-            if (_master == null) return;
+            // _target == null は知覚断絶（プレイヤー死亡後）。Update が停止し警戒度が減衰しないため、
+            // ここで加算すると凍結した警戒度による Wander↔Investigate ループが起きる
+            if (_master == null || _target == null) return;
 
             float reachRadius = HearingRadiusFor(_master.HearingRadius, evt.Loudness, _master.HearingSensitivity);
             float dist = Vector3.Distance(transform.position, evt.Position);
@@ -288,6 +289,26 @@ namespace Game.Horror.Enemy
             float distRatio = reachRadius > 0f ? Mathf.Clamp01(1f - dist / reachRadius) : 1f;
             float addition = evt.Loudness * distRatio * 0.3f;
             _awareness = Mathf.Clamp01(_awareness + addition);
+        }
+
+        #endregion
+
+        #region プレイヤー死亡
+
+        /// <summary>
+        /// HorrorSignals.Player.Died を受信したときの処理。知覚を断絶する。
+        /// _target=null で以後の視覚スキャン・警戒度更新（Update の early return）が停止するため、
+        /// 減衰に頼れない _awareness と、再スキャンで消えない _hasConfirmedSight は明示的にクリアする
+        /// （放置すると凍結値で IsThreatConfirmed が恒真化し Chase から抜けられない）。
+        /// 位置履歴（_lastKnownPosition/_lastHeardPosition）は意図的に保持する：
+        /// 消すと Chase→LostTarget→Investigate.Enter が Vector3.zero（原点）へ移動してしまう。
+        /// FSM は既存遷移（LostTarget→Investigate→GiveUp→Wander）で自然に平常へ戻る。
+        /// </summary>
+        private void OnPlayerDied(HorrorSignals.Player.Died evt)
+        {
+            _target = null;
+            _awareness = 0f;
+            _hasConfirmedSight = false;
         }
 
         #endregion

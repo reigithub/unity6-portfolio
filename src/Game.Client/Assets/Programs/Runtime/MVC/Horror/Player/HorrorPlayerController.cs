@@ -390,8 +390,15 @@ namespace Game.Horror.Player
             if (!string.IsNullOrEmpty(_damageSeAssetName))
                 _audioService.PlaySoundEffectOneShotAsync(_damageSeAssetName, destroyCancellationToken).Forget();
 
-            if (IsDead && _stateMachine != null && _stateMachine.IsProcessing())
-                _stateMachine.ForceTransition<DeadState>();
+            if (IsDead)
+            {
+                // エネミー知覚の断絶用。DeadState 遷移（GameOver シーケンス起動）より先に
+                // 同期配信で全エネミーへ死亡を通知する
+                _messagePipeService?.Publish(new HorrorSignals.Player.Died(transform.position));
+
+                if (_stateMachine != null && _stateMachine.IsProcessing())
+                    _stateMachine.ForceTransition<DeadState>();
+            }
         }
 
         /// <summary>
@@ -401,11 +408,8 @@ namespace Game.Horror.Player
         /// </summary>
         private async UniTask RunGameOverAsync()
         {
-            using (_inputService.BlockInputActions(_inputService.UI.Menu, _inputService.UI.Inventory))
-            {
-                await UniTask.Delay(GameOverDelayMilliseconds, DelayType.UnscaledDeltaTime, cancellationToken: destroyCancellationToken);
-                await HorrorGameOverDialog.RunAsync();
-            }
+            await UniTask.Delay(GameOverDelayMilliseconds, DelayType.UnscaledDeltaTime, cancellationToken: destroyCancellationToken);
+            await HorrorGameOverDialog.RunAsync();
         }
 
         #endregion

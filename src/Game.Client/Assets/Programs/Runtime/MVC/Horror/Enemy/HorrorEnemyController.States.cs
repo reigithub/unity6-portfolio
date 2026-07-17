@@ -206,9 +206,16 @@ namespace Game.Horror.Enemy
         #region State: Chase（追跡）
 
         /// <summary>
-        /// 追跡状態。プレイヤー現在位置へ ChaseSpeed で追尾する。
-        /// Enter 時に Scream を Publish してホード伝播させる。
-        /// 攻撃間合いに入ったら Attack へ、視認・警戒を喪失したら Investigate へ遷移する。
+        /// 視認喪失中の追跡先を決定する（純粋関数）。LKP（最終目撃位置）を優先し、
+        /// 未視認（zero）なら聴覚位置へフォールバックする。Vector3.zero は「未記録」のセンチネル。
+        /// InvestigateState.Enter は聴覚優先で優先順位が逆（捜索は音起点、追跡は視覚起点の別ポリシー）。
+        /// </summary>
+        internal static Vector3 ResolveLostSightDestination(Vector3 lastKnownPosition, Vector3 lastHeardPosition)
+            => lastKnownPosition != Vector3.zero ? lastKnownPosition : lastHeardPosition;
+
+        /// <summary>
+        /// 追跡状態。視認中はプレイヤー現在位置へ、視認喪失中（Alert 継続）は最終知覚位置へ ChaseSpeed で追尾する。
+        /// 攻撃間合いに入ったら（視認中のみ）Attack へ、視認・警戒を喪失したら Investigate へ遷移する。
         /// </summary>
         private class ChaseState : State<HorrorEnemyController, StateEvent>
         {
@@ -226,15 +233,25 @@ namespace Game.Horror.Enemy
             {
                 var ctx = Context;
 
-                if (ctx.IsWithinAttackRange())
+                if (ctx._perception.HasConfirmedSight)
                 {
-                    StateMachine.Transition(StateEvent.EnterAttack);
+                    // 攻撃遷移は視認中のみ許可する（壁越し・プレイヤー死亡後の死体への攻撃遷移を防ぐ）
+                    if (ctx.IsWithinAttackRange())
+                    {
+                        StateMachine.Transition(StateEvent.EnterAttack);
+                        return;
+                    }
+
+                    ctx.MoveToThrottled(ctx._player.transform.position);
                     return;
                 }
 
                 if (ctx._perception.IsThreatConfirmed)
                 {
-                    ctx.MoveToThrottled(ctx._player.transform.position);
+                    // 視認喪失中（Alert 継続）は最終知覚位置へ向かう。真位置は追わない＝壁越し追跡の防止
+                    ctx.MoveToThrottled(ResolveLostSightDestination(
+                        ctx._perception.LastKnownPosition,
+                        ctx._perception.LastHeardPosition));
                     return;
                 }
 
@@ -267,6 +284,16 @@ namespace Game.Horror.Enemy
             public override void Update()
             {
                 var ctx = Context;
+
+                // プレイヤー死亡なら攻撃を打ち切る（AttackState だけ知覚を参照しないための直接ガード。
+                // AttackDone→Chase 後は知覚断絶により LostTarget→Investigate へ自然遷移する）
+                if (ctx._playerDamageable.IsDead)
+                {
+                    ctx.ResumeAgent();
+                    StateMachine.Transition(StateEvent.AttackDone);
+                    return;
+                }
+
                 ctx.FaceTarget();
 
                 _cooldownTimer += Time.deltaTime;

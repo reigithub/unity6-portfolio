@@ -69,6 +69,20 @@ namespace Game.Horror.Signals
                     MaxHealth = maxHealth;
                 }
             }
+
+            /// <summary>
+            /// プレイヤー死亡イベントのデータ（エネミー知覚の断絶等に使用）。
+            /// Position は死亡地点のワールド座標（将来の死体演出用）。
+            /// </summary>
+            public readonly struct Died
+            {
+                public readonly Vector3 Position;
+
+                public Died(Vector3 position)
+                {
+                    Position = position;
+                }
+            }
         }
 
         // --- Noise ---
