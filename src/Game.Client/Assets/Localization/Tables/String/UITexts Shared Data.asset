@@ -237,6 +237,10 @@ MonoBehaviour:
     m_Key: ShowFrameRate
     m_Metadata:
       m_Items: []
+  - m_Id: 17270524204818432
+    m_Key: BasicSettings
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

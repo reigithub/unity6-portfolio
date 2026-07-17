@@ -29,10 +29,10 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
+        [Header("Options - Control")]
         [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
-        [Header("Options - Control")]
         [SerializeField] private InputActionRebindingView[] _rebindViews;
         [SerializeField] private Button _resetKeyboardBindingsButton;
         [SerializeField] private Button _resetGamepadBindingsButton;
@@ -68,12 +68,13 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
         public Observable<float> OnCameraShakeChanged => _cameraShake.OnValueChanged;
         public Observable<float> OnCameraFovChanged => _cameraFov.OnValueChanged;
-        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
-        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
 
         #endregion
 
         #region Options - Graphics
+
+        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
+        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
 
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);

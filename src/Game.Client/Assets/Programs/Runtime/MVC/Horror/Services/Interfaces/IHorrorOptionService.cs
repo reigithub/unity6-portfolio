@@ -33,12 +33,6 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>カメラの視野角（FOV）を設定する。</summary>
         void SetCameraFov(float fov);
 
-        /// <summary>走り入力モードを保持する（false=ホールド, true=トグル）。</summary>
-        void SetSprintToggle(bool toggle);
-
-        /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
-        void SetCrouchToggle(bool toggle);
-
         /// <summary>画面表示モード（ウィンドウ/フルスクリーン等）を設定する。</summary>
         void SetDisplayMode(FullScreenMode mode);
 
@@ -56,6 +50,12 @@ namespace Game.Horror.Services.Interfaces
 
         /// <summary>VSync の有効・無効を設定する。</summary>
         void SetVSync(bool enabled);
+
+        /// <summary>走り入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        void SetSprintToggle(bool toggle);
+
+        /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        void SetCrouchToggle(bool toggle);
 
         /// <summary>
         /// キーリバインドのオーバーライド JSON を保持する（InputActionAsset.SaveBindingOverridesAsJson の出力）。

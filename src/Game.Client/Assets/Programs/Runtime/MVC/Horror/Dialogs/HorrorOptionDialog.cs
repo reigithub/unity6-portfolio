@@ -88,6 +88,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(v => { _optionService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
+            // Controls - BasicSettings
             SceneComponent.OnSprintModeChanged
                 .Subscribe(b => { _optionService.SetSprintToggle(b); })
                 .AddTo(Disposables);
