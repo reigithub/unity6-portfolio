@@ -97,16 +97,14 @@ namespace Game.Library.Shared
         }
 
         private readonly Dictionary<Type, IState> _states = new();
-        private readonly Dictionary<TEvent, Dictionary<IState, IState>> _fromToTransitionTable = new();
-        private readonly Dictionary<TEvent, HashSet<IState>> _anyTransitionTable = new();
+        private readonly Dictionary<TEvent, Dictionary<IState, IState>> _fromToTransitions = new();
+        private readonly Dictionary<TEvent, IState> _anyTransitions = new();
 
         private StatePhase _currentPhase = StatePhase.Idle;
         private IState _currentState;
         private IState _nextState;
 
         public TContext Context { get; }
-
-        protected virtual bool AllowForceTransition => false;
 
         public StateMachine(TContext context)
         {
@@ -135,9 +133,9 @@ namespace Game.Library.Shared
             var from = GetOrAddState<TFromState>();
             var to = GetOrAddState<TToState>();
 
-            if (!_fromToTransitionTable.TryGetValue(eventKey, out var transitionDict))
+            if (!_fromToTransitions.TryGetValue(eventKey, out var transitionDict))
             {
-                _fromToTransitionTable[eventKey] = transitionDict = new Dictionary<IState, IState>();
+                _fromToTransitions[eventKey] = transitionDict = new Dictionary<IState, IState>();
             }
 
             // WARN: Unity2020以降なら動作する
@@ -151,7 +149,6 @@ namespace Game.Library.Shared
         /// <summary>
         /// 任意ステートから遷移先に指定できるステートを設定
         /// </summary>
-        /// <remarks>WARN: 優先度が低く遷移テーブルに見つからない場合のみ使用されます</remarks>
         public void AddTransition<TAnyState>(TEvent eventKey) where TAnyState : State<TContext, TEvent>, new()
         {
             if (_currentState != null)
@@ -159,15 +156,10 @@ namespace Game.Library.Shared
 
             var any = GetOrAddState<TAnyState>();
 
-            if (!_anyTransitionTable.TryGetValue(eventKey, out var anySet))
-            {
-                _anyTransitionTable[eventKey] = anySet = new HashSet<IState>();
-            }
-
-            if (!anySet.Add(any))
-            {
+            if (!_anyTransitions.TryGetValue(eventKey, out _))
+                _anyTransitions[eventKey] = any;
+            else
                 throw new InvalidOperationException($"Transition already exists: {typeof(TAnyState).Name}, EventId: {eventKey}");
-            }
         }
 
         /// <summary>
@@ -228,38 +220,21 @@ namespace Game.Library.Shared
             if (_nextState != null)
                 return StateEventResult.Waiting;
 
-            if (_fromToTransitionTable.TryGetValue(eventKey, out var transitionDict) &&
-                transitionDict.TryGetValue(_currentState, out var toState))
+            if (_anyTransitions.TryGetValue(eventKey, out var anyState))
+            {
+                _nextState = anyState;
+                return StateEventResult.Succeeded;
+            }
+
+            if (_fromToTransitions.TryGetValue(eventKey, out var rules) &&
+                rules.TryGetValue(_currentState, out var toState))
             {
                 _nextState = toState;
                 return StateEventResult.Succeeded;
             }
 
-            if (_anyTransitionTable.TryGetValue(eventKey, out var anySet) &&
-                anySet.Contains(_currentState))
-            {
-                _nextState = _currentState;
-                return StateEventResult.Succeeded;
-            }
-
             // 遷移情報が登録されていない
             return StateEventResult.Failed;
-        }
-
-        /// <summary>
-        /// 遷移テーブルを無視したState直接指定の遷移
-        /// WARN: 強制的に次に遷移すべきステートを上書きします
-        /// </summary>
-        public void ForceTransition<TState>() where TState : State<TContext, TEvent>, new()
-        {
-            if (_currentPhase == StatePhase.Exiting)
-                throw new InvalidOperationException("Cannot transition during Exit");
-
-            // 強制的な遷移が許可されていない
-            if (!AllowForceTransition)
-                throw new InvalidOperationException("Disallow force transition");
-
-            _nextState = GetOrAddState<TState>();
         }
 
         #endregion
