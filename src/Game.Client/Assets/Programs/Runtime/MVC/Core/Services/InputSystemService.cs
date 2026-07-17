@@ -21,6 +21,8 @@ namespace Game.Core.Services
         private bool _isInitialized;
         private string _controlScheme = InputControlSchemes.DefaultControlScheme;
         private GameObject _selectedGameObject;
+        private int _playerBlockCount;
+        private int _uiBlockCount;
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
@@ -98,14 +100,30 @@ namespace Game.Core.Services
 
         public IDisposable BlockPlayer()
         {
-            DisablePlayer();
-            return Disposable.Create(() => EnablePlayer());
+            if (_playerBlockCount++ <= 0) DisablePlayer();
+
+            return Disposable.Create(() =>
+            {
+                if (--_playerBlockCount <= 0)
+                {
+                    EnablePlayer();
+                    _playerBlockCount = 0;
+                }
+            });
         }
 
         public IDisposable BlockUI()
         {
-            DisableUI();
-            return Disposable.Create(() => EnableUI());
+            if (_uiBlockCount++ <= 0) DisableUI();
+
+            return Disposable.Create(() =>
+            {
+                if (--_uiBlockCount <= 0)
+                {
+                    EnableUI();
+                    _uiBlockCount = 0;
+                }
+            });
         }
 
         public IDisposable BlockInputActions(params InputAction[] actions)
