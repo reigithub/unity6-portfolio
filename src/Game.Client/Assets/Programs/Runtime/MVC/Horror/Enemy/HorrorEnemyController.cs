@@ -29,7 +29,7 @@ namespace Game.Horror.Enemy
         [Tooltip("true の場合、初期ステートを Dormant にする（配置済み敵の遅延起動用）")]
         [SerializeField] private bool _startDormant;
 
-        private EnemyStateMachine _stateMachine;
+        private StateMachine<HorrorEnemyController, StateEvent> _stateMachine;
         private bool _initialized;
 
         // Initialize で注入されるデータ
@@ -69,7 +69,9 @@ namespace Game.Horror.Enemy
         {
             _player = player;
             _master = master;
-            _playerDamageable = player.GetComponent<IDamageable>();
+
+            if (player.TryGetComponent<IDamageable>(out var damageable))
+                _playerDamageable = damageable;
 
             // TryGetComponent(out _navMeshAgent);
             // TryGetComponent(out _animator);
@@ -140,12 +142,12 @@ namespace Game.Horror.Enemy
             {
                 _health = 0;
                 if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.ForceTransition<DeathState>();
+                    _stateMachine.Transition(StateEvent.Dead);
             }
             else
             {
                 if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.ForceTransition<StaggerState>();
+                    _stateMachine.Transition(StateEvent.Stagger);
             }
         }
 
@@ -335,22 +337,6 @@ namespace Game.Horror.Enemy
         private void TriggerDeath()
         {
             if (_animator != null) _animator.SetTrigger(_animHashDeath);
-        }
-
-        #endregion
-
-        #region StateMachine Nested Class
-
-        /// <summary>
-        /// ForceTransition を許可する敵専用ステートマシン。
-        /// Stagger/Death への割り込み遷移（TakeDamage 内）で使用する。
-        /// </summary>
-        private sealed class EnemyStateMachine : StateMachine<HorrorEnemyController, StateEvent>
-        {
-            public EnemyStateMachine(HorrorEnemyController ctx) : base(ctx) { }
-
-            /// <summary>ForceTransition を許可する</summary>
-            protected override bool AllowForceTransition => true;
         }
 
         #endregion

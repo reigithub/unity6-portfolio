@@ -57,8 +57,12 @@ namespace Game.Horror.Enemy
         // 公開状態
         private bool _hasConfirmedSight;
         private float _sightDistance;
-        private Vector3 _lastKnownPosition;
-        private Vector3 _lastHeardPosition;
+
+        // 統合知覚位置
+        private Vector3 _perceivedPlayerPosition;   // プレイヤー知覚位置（視認・足音・銃声）
+        private bool _hasPerceivedPlayerPosition;
+        private Vector3 _noticedPosition;           // 注意対象位置（視認・全種の音）
+        private bool _hasNoticedPosition;
 
 #if UNITY_EDITOR
         [Header("Debug Gizmos")]
@@ -100,11 +104,26 @@ namespace Game.Horror.Enemy
         /// <summary>直近スキャンで視線が通ったか</summary>
         public bool HasConfirmedSight => _hasConfirmedSight;
 
-        /// <summary>視覚で最後に確認したプレイヤー位置</summary>
-        public Vector3 LastKnownPosition => _lastKnownPosition;
+        /// <summary>
+        /// 最後にプレイヤー本体を知覚した位置（視認、または足音/銃声）を取得する。
+        /// 一度も知覚していなければ false（デコイ由来の音では更新されない）。
+        /// 鮮度の概念はなく、一度でも知覚すれば以後の Chase で常にデコイ注意より優先される（受容済みの制限。
+        /// 逆転が体感される場合は鮮度失効の導入を検討する）。
+        /// </summary>
+        public bool TryGetLastPerceivedPlayerPosition(out Vector3 position)
+        {
+            position = _perceivedPlayerPosition;
+            return _hasPerceivedPlayerPosition;
+        }
 
-        /// <summary>聴覚で最後に検知した音の発生位置</summary>
-        public Vector3 LastHeardPosition => _lastHeardPosition;
+        /// <summary>
+        /// 最後に注意を引かれた位置（視認・全種の音の最新）を取得する。刺激未受信なら false。
+        /// </summary>
+        public bool TryGetLastNoticedPosition(out Vector3 position)
+        {
+            position = _noticedPosition;
+            return _hasNoticedPosition;
+        }
 
         /// <summary>警戒度ゲージ（0〜1、デバッグ/UI 用）</summary>
         public float Awareness => _awareness;
@@ -261,7 +280,7 @@ namespace Game.Horror.Enemy
             // 視認成立
             _hasConfirmedSight = true;
             _sightDistance = distance;
-            _lastKnownPosition = _target.position;
+            RecordPlayerPerceived(_target.position);
         }
 
         #endregion
@@ -270,7 +289,8 @@ namespace Game.Horror.Enemy
 
         /// <summary>
         /// HorrorSignals.Noise.Occurred を受信したときの処理。
-        /// 到達半径内なら <see cref="LastHeardPosition"/> を更新し、警戒度を加算する。
+        /// 到達半径内なら知覚位置（プレイヤー由来の音はプレイヤー知覚位置も、それ以外は注意対象位置のみ）を更新し、
+        /// 警戒度を加算する。
         /// </summary>
         private void OnNoise(HorrorSignals.Noise.Occurred evt)
         {
@@ -283,12 +303,41 @@ namespace Game.Horror.Enemy
 
             if (dist > reachRadius) return;
 
-            _lastHeardPosition = evt.Position;
+            if (IsPlayerLocatedNoise(evt.Type))
+                RecordPlayerPerceived(evt.Position);
+            else
+                RecordNoticed(evt.Position);
 
             // 近いほど・音が大きいほど警戒度を多く加算
             float distRatio = reachRadius > 0f ? Mathf.Clamp01(1f - dist / reachRadius) : 1f;
             float addition = evt.Loudness * distRatio * 0.3f;
             _awareness = Mathf.Clamp01(_awareness + addition);
+        }
+
+        #endregion
+
+        #region 知覚位置の記録
+
+        /// <summary>
+        /// プレイヤー知覚位置を記録する。プレイヤーの知覚は注意対象でもあるため、注意対象位置の更新を必ず伴う
+        /// （包含関係の単一実装点）。
+        /// </summary>
+        private void RecordPlayerPerceived(Vector3 position)
+        {
+            _perceivedPlayerPosition = position;
+            _hasPerceivedPlayerPosition = true;
+            RecordNoticed(position);
+        }
+
+        /// <summary>
+        /// 注意対象位置のみを記録する（デコイ可能な着弾音・敵自身の悲鳴など）。
+        /// 同フレームに複数の音が届いた場合は後着優先（HorrorPlayerController.Fire はこの規則に依存して
+        /// 着弾音→発砲音の順で発行している）。
+        /// </summary>
+        private void RecordNoticed(Vector3 position)
+        {
+            _noticedPosition = position;
+            _hasNoticedPosition = true;
         }
 
         #endregion
@@ -300,8 +349,8 @@ namespace Game.Horror.Enemy
         /// _target=null で以後の視覚スキャン・警戒度更新（Update の early return）が停止するため、
         /// 減衰に頼れない _awareness と、再スキャンで消えない _hasConfirmedSight は明示的にクリアする
         /// （放置すると凍結値で IsThreatConfirmed が恒真化し Chase から抜けられない）。
-        /// 位置履歴（_lastKnownPosition/_lastHeardPosition）は意図的に保持する：
-        /// 消すと Chase→LostTarget→Investigate.Enter が Vector3.zero（原点）へ移動してしまう。
+        /// 位置履歴（_perceivedPlayerPosition/_noticedPosition と各 _has フラグ）は意図的に保持する：
+        /// クリアすると Investigate がその場見回しに退化し、最終知覚位置へ捜索移動する自然な余韻が失われる。
         /// FSM は既存遷移（LostTarget→Investigate→GiveUp→Wander）で自然に平常へ戻る。
         /// </summary>
         private void OnPlayerDied(HorrorSignals.Player.Died evt)
@@ -339,6 +388,13 @@ namespace Game.Horror.Enemy
         {
             return baseRadius * loudness * sensitivity;
         }
+
+        /// <summary>
+        /// 音種がプレイヤーの実位置に相関するか（発生位置=プレイヤー所在とみなせるか）を判定する。
+        /// Footstep/Gunshot はプレイヤー自身から発生する。Object（着弾等）は着弾点=デコイ可能、Scream は敵自身の発声。
+        /// </summary>
+        internal static bool IsPlayerLocatedNoise(NoiseType type)
+            => type is NoiseType.Footstep or NoiseType.Gunshot;
 
         /// <summary>
         /// 警戒度ゲージを 1 ステップ更新する（純粋関数）。

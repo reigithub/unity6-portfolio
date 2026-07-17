@@ -30,6 +30,12 @@ namespace Game.Horror.Enemy
 
             /// <summary>捜索タイムアウト または Stagger 復帰で視認なし → WanderState へ</summary>
             GiveUp,
+
+            /// <summary>のけぞりステート</summary>
+            Stagger,
+
+            /// <summary>死亡ステート</summary>
+            Dead,
         }
 
         /// <summary>
@@ -37,7 +43,7 @@ namespace Game.Horror.Enemy
         /// </summary>
         private void InitializeStateMachine()
         {
-            _stateMachine = new EnemyStateMachine(this);
+            _stateMachine = new StateMachine<HorrorEnemyController, StateEvent>(this);
 
             // Dormant から各ステートへの遷移
             _stateMachine.AddTransition<DormantState, InvestigateState>(StateEvent.Suspect);
@@ -62,6 +68,9 @@ namespace Game.Horror.Enemy
             _stateMachine.AddTransition<StaggerState, InvestigateState>(StateEvent.Suspect);
             _stateMachine.AddTransition<StaggerState, ChaseState>(StateEvent.Spot);
             _stateMachine.AddTransition<StaggerState, WanderState>(StateEvent.GiveUp);
+
+            _stateMachine.AddTransition<StaggerState>(StateEvent.Stagger);
+            _stateMachine.AddTransition<DeathState>(StateEvent.Dead);
 
             if (_startDormant)
                 _stateMachine.SetInitState<DormantState>();
@@ -143,7 +152,7 @@ namespace Game.Horror.Enemy
         #region State: Investigate（捜索）
 
         /// <summary>
-        /// 捜索状態。LastHeardPosition または LastKnownPosition へ WalkSpeed で向かい、
+        /// 捜索状態。注意対象位置（視認・全種の音の最新）へ WalkSpeed で向かい、
         /// 到着後は周囲を緩やかに見回す。
         /// InvestigateGiveUpTime 経過で諦めて WanderState へ戻る。
         /// </summary>
@@ -158,10 +167,10 @@ namespace Game.Horror.Enemy
                 ctx.SetSpeed(ctx._master.WalkSpeed);
                 _giveUpTimer = 0f;
 
-                // 聴覚位置を優先し、なければ視覚の最終確認位置（LKP）へ向かう
-                Vector3 dest = ctx._perception.LastHeardPosition != Vector3.zero
-                    ? ctx._perception.LastHeardPosition
-                    : ctx._perception.LastKnownPosition;
+                // 注意対象位置（視認・全種の音の最新）へ向かう。刺激履歴が皆無なら現在位置に留まり見回す
+                Vector3 dest = ctx._perception.TryGetLastNoticedPosition(out var noticed)
+                    ? noticed
+                    : ctx.transform.position;
 
                 if (ctx._navMeshAgent != null)
                 {
@@ -206,15 +215,9 @@ namespace Game.Horror.Enemy
         #region State: Chase（追跡）
 
         /// <summary>
-        /// 視認喪失中の追跡先を決定する（純粋関数）。LKP（最終目撃位置）を優先し、
-        /// 未視認（zero）なら聴覚位置へフォールバックする。Vector3.zero は「未記録」のセンチネル。
-        /// InvestigateState.Enter は聴覚優先で優先順位が逆（捜索は音起点、追跡は視覚起点の別ポリシー）。
-        /// </summary>
-        internal static Vector3 ResolveLostSightDestination(Vector3 lastKnownPosition, Vector3 lastHeardPosition)
-            => lastKnownPosition != Vector3.zero ? lastKnownPosition : lastHeardPosition;
-
-        /// <summary>
-        /// 追跡状態。視認中はプレイヤー現在位置へ、視認喪失中（Alert 継続）は最終知覚位置へ ChaseSpeed で追尾する。
+        /// 追跡状態。視認中はプレイヤー現在位置へ、視認喪失中（Alert 継続）はプレイヤー知覚位置
+        /// （視認・足音・銃声の最新。デコイでは動かない）へ ChaseSpeed で追尾する。
+        /// プレイヤー知覚が皆無のまま Alert に達した敵（デコイ音のみ）は注意対象位置へ突進する（意図した仕様）。
         /// 攻撃間合いに入ったら（視認中のみ）Attack へ、視認・警戒を喪失したら Investigate へ遷移する。
         /// </summary>
         private class ChaseState : State<HorrorEnemyController, StateEvent>
@@ -242,20 +245,34 @@ namespace Game.Horror.Enemy
                         return;
                     }
 
+                    Debug.Log("[HorrorEnemyController] Chase -> HasConfirmedSight");
                     ctx.MoveToThrottled(ctx._player.transform.position);
                     return;
                 }
 
                 if (ctx._perception.IsThreatConfirmed)
                 {
-                    // 視認喪失中（Alert 継続）は最終知覚位置へ向かう。真位置は追わない＝壁越し追跡の防止
-                    ctx.MoveToThrottled(ResolveLostSightDestination(
-                        ctx._perception.LastKnownPosition,
-                        ctx._perception.LastHeardPosition));
-                    return;
+                    // 視認喪失中（Alert 継続）はプレイヤー知覚位置を追う。真位置は追わない＝壁越し追跡の防止
+                    if (ctx._perception.TryGetLastPerceivedPlayerPosition(out var playerPos))
+                    {
+                        Debug.Log("[HorrorEnemyController] Chase -> LastPerceivedPlayerPosition");
+                        ctx.MoveToThrottled(playerPos);
+                        return;
+                    }
+
+                    // プレイヤー知覚が皆無（着弾音・悲鳴のみで Alert 到達）なら注意対象位置へ突進する
+                    if (ctx._perception.TryGetLastNoticedPosition(out var noticedPos))
+                    {
+                        Debug.Log("[HorrorEnemyController] Chase -> LastNoticedPosition");
+                        ctx.MoveToThrottled(noticedPos);
+                        return;
+                    }
+
+                    // 刺激履歴が皆無（実質到達不能）は防御的に LostTarget へ落とす
                 }
 
-                // 視認・警戒が両方消えたら LKP を辿る Investigate へ
+                // 視認・警戒が両方消えたら最終知覚位置を辿る Investigate へ
+                Debug.Log("[HorrorEnemyController] LostTarget");
                 StateMachine.Transition(StateEvent.LostTarget);
             }
         }

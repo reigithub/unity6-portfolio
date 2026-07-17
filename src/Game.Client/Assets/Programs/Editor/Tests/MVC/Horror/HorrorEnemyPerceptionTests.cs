@@ -1,4 +1,5 @@
 using Game.Horror.Enemy;
+using Game.Horror.Signals;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -91,5 +92,24 @@ namespace Game.Tests.MVC.Horror
             var result = HorrorEnemyPerception.UpdateAwareness(0.5f, true, 0f, 0.1f, 0.05f, 0f);
             Assert.That(result, Is.EqualTo(0.5f).Within(1e-4f));
         }
+
+        // 音種分類：Footstep/Gunshot はプレイヤー実位置に相関（プレイヤー知覚位置を更新）、
+        // Object（着弾=デコイ可能）/Scream（敵自身の発声）は注意対象位置のみ。
+
+        [Test]
+        public void IsPlayerLocatedNoise_Footstep_IsTrue()
+            => Assert.That(HorrorEnemyPerception.IsPlayerLocatedNoise(NoiseType.Footstep), Is.True);
+
+        [Test]
+        public void IsPlayerLocatedNoise_Gunshot_IsTrue()
+            => Assert.That(HorrorEnemyPerception.IsPlayerLocatedNoise(NoiseType.Gunshot), Is.True);
+
+        [Test]
+        public void IsPlayerLocatedNoise_Object_IsFalse()
+            => Assert.That(HorrorEnemyPerception.IsPlayerLocatedNoise(NoiseType.Object), Is.False);
+
+        [Test]
+        public void IsPlayerLocatedNoise_Scream_IsFalse()
+            => Assert.That(HorrorEnemyPerception.IsPlayerLocatedNoise(NoiseType.Scream), Is.False);
     }
 }

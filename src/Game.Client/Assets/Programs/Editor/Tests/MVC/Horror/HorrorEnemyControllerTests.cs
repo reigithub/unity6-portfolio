@@ -59,19 +59,5 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(current - target, Is.LessThan(0.01f));
         }
-
-        // 視認喪失中の追跡先：LKP（最終目撃位置）を優先し、未視認（zero センチネル）なら聴覚位置へフォールバック。
-
-        [Test]
-        public void ResolveLostSightDestination_WithLastKnown_ReturnsLastKnown()
-            => Assert.That(
-                HorrorEnemyController.ResolveLostSightDestination(new Vector3(5f, 0f, 5f), new Vector3(9f, 0f, 9f)),
-                Is.EqualTo(new Vector3(5f, 0f, 5f)));
-
-        [Test]
-        public void ResolveLostSightDestination_ZeroLastKnown_ReturnsLastHeard()
-            => Assert.That(
-                HorrorEnemyController.ResolveLostSightDestination(Vector3.zero, new Vector3(9f, 0f, 9f)),
-                Is.EqualTo(new Vector3(9f, 0f, 9f)));
     }
 }

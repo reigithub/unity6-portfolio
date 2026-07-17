@@ -397,7 +397,7 @@ namespace Game.Horror.Player
                 _messagePipeService?.Publish(new HorrorSignals.Player.Died(transform.position));
 
                 if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.ForceTransition<DeadState>();
+                    _stateMachine.Transition(StateEvent.Dead);
             }
         }
 
@@ -900,20 +900,9 @@ namespace Game.Horror.Player
 
         #region StateMachine
 
-        /// <summary>
-        /// ForceTransition を許可するプレイヤー専用ステートマシン。
-        /// 死亡（DeadState）への割り込み遷移（TakeDamage 内）で使用する。
-        /// </summary>
-        private sealed class PlayerStateMachine : StateMachine<HorrorPlayerController, StateEvent>
-        {
-            public PlayerStateMachine(HorrorPlayerController ctx) : base(ctx) { }
-
-            protected override bool AllowForceTransition => true;
-        }
-
         private void InitializeStateMachine()
         {
-            _stateMachine = new PlayerStateMachine(this);
+            _stateMachine = new StateMachine<HorrorPlayerController, StateEvent>(this);
 
             // 状態遷移テーブルの構築
             _stateMachine.AddTransition<IdleState, MovingState>(StateEvent.Move);
@@ -941,6 +930,7 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<ReloadingState, IdleState>(StateEvent.EndReload);
 
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
+            _stateMachine.AddTransition<DeadState>(StateEvent.Dead);
 
             // 初期ステート
             _stateMachine.SetInitState<IdleState>();
@@ -964,6 +954,7 @@ namespace Game.Horror.Player
             EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
             Reload, // リロード開始: Idle/Moving → Reloading
             EndReload, // リロード終了（ReloadDuration経過）: Reloading → Idle
+            Dead,
         }
 
         private class IdleState : State<HorrorPlayerController, StateEvent>
@@ -1683,8 +1674,8 @@ namespace Game.Horror.Player
             target?.TakeDamage(damage);
             if (damageApplied) _messagePipeService?.Publish(new HorrorSignals.Combat.Damaged(hit.point, damage));
 
-            // 騒音: 着弾音（着弾点・誘引用）→ 発砲音（射手位置）の順で発行する。
-            // OnNoise の LastHeardPosition は後着優先のため、両方聞こえた敵には発砲音（射手位置）が優先される
+            // 騒音: 着弾音（着弾点・誘引用）→ 発砲音（射手位置）の順で発行する。この順序は変更不可:
+            // 敵の注意対象位置は同フレームでは後着優先のため、両方聞こえた敵の注意対象は発砲音（射手位置）で確定する
             if (_weaponMaster.ImpactNoiseLoudness > 0f)
                 _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(impactPosition, _weaponMaster.ImpactNoiseLoudness, NoiseType.Object));
             if (_weaponMaster.NoiseLoudness > 0f)
