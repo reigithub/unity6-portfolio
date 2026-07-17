@@ -9,9 +9,8 @@ using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
-namespace Game.Core
+namespace Game.Horror
 {
     /// <summary>
     /// ゲーム全体に関わるオブジェクトを管理する
@@ -51,7 +50,7 @@ namespace Game.Core
 
         [SerializeField] private Camera _mainCamera;
         [SerializeField] private PlayerInput _playerInput;
-        [SerializeField] private Image _fadeImage;
+        [SerializeField] private CanvasGroup _canvasGroup;
 
         private void Initialize()
         {
@@ -67,38 +66,20 @@ namespace Game.Core
 
             // GameScene
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
+            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, token) =>
                 {
-                    var tcs = new UniTaskCompletionSource<bool>();
-                    DoFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration, tcs);
-                    await tcs.Task;
+                    await _canvasGroup.DOFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration)
+                        .SetUpdate(true)
+                        .ToUniTask(cancellationToken: token);
                 })
                 .AddTo(this);
-            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
+            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, token) =>
                 {
-                    var tcs = new UniTaskCompletionSource<bool>();
-                    DoFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration, tcs);
-                    await tcs.Task;
+                    await _canvasGroup.DOFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration)
+                        .SetUpdate(true)
+                        .ToUniTask(cancellationToken: token);
                 })
                 .AddTo(this);
-        }
-
-        private void DoFade(float endValue, float duration, UniTaskCompletionSource<bool> tcs)
-        {
-            try
-            {
-                _fadeImage.DOFade(endValue, duration).SetUpdate(true)
-                    .onComplete += () => { tcs.TrySetResult(true); };
-            }
-            catch (OperationCanceledException)
-            {
-                tcs.TrySetCanceled();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[GameRootController] Fade animation failed: {ex.Message}");
-                tcs.TrySetCanceled();
-            }
         }
     }
 }
