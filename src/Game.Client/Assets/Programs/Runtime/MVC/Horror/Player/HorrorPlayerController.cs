@@ -1321,7 +1321,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 死亡状態（終端）。TakeDamage から ForceTransition で割り込む（遷移テーブル未登録・出口なし。
+        /// 死亡状態（終端）
         /// 復帰は GameOverDialog のシーン遷移＝プレイヤー再生成で行われる）。
         /// 入力は UpdateInput の restrained（死亡込み）で遮断し、水平移動を止め重力のみ適用する。
         /// Enter で演出ディレイ → HorrorGameOverDialog.RunAsync のシーケンスを起動する。

@@ -64,7 +64,7 @@ namespace Game.Horror.Enemy
             // Attack から Chase への復帰（間合い外に出た）
             _stateMachine.AddTransition<AttackState, ChaseState>(StateEvent.AttackDone);
 
-            // Stagger から各ステートへの復帰遷移（ForceTransition で入ってきた後）
+            // Stagger から各ステートへの復帰遷移
             _stateMachine.AddTransition<StaggerState, InvestigateState>(StateEvent.Suspect);
             _stateMachine.AddTransition<StaggerState, ChaseState>(StateEvent.Spot);
             _stateMachine.AddTransition<StaggerState, WanderState>(StateEvent.GiveUp);

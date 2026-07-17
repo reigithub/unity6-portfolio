@@ -128,10 +128,6 @@ namespace Game.Horror.Enemy
         /// <summary>死亡フラグ（体力が 0 以下）</summary>
         public bool IsDead => _health <= 0;
 
-        /// <summary>
-        /// ダメージを受ける。致死なら Death、非致死なら Stagger へ ForceTransition で割り込む。
-        /// </summary>
-        /// <param name="damage">受けるダメージ量</param>
         public void TakeDamage(int damage)
         {
             if (IsDead) return;
