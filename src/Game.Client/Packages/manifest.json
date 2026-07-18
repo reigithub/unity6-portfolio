@@ -29,6 +29,7 @@
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.collections": "2.6.6",
     "com.unity.dedicated-server": "2.0.2",
+    "com.unity.device-simulator.devices": "1.0.1",
     "com.unity.entities": "1.4.6",
     "com.unity.entities.graphics": "1.4.19",
     "com.unity.ext.nunit": "2.0.5",
