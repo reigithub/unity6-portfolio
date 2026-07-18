@@ -59,6 +59,38 @@ MonoBehaviour:
     m_Key: Move
     m_Metadata:
       m_Items: []
+  - m_Id: 11710666294435840
+    m_Key: Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11710856673894400
+    m_Key: Aim
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11711954906259456
+    m_Key: EquipSlot1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11712643908771840
+    m_Key: Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11712901485174784
+    m_Key: EquipSlot2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11713160324063232
+    m_Key: EquipSlot3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11713418957430784
+    m_Key: EquipSlot4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11718485202706432
+    m_Key: EquipSlot
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
