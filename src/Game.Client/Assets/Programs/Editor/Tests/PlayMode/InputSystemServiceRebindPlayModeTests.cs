@@ -149,7 +149,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -185,7 +185,7 @@ namespace Game.Tests.PlayMode
             attack.ApplyBindingOverride(attackIdx, "<Keyboard>/j");
 
             var completed = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => completed = true,
                 () => { });
             yield return null;
@@ -216,7 +216,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
                 _ => { },
                 () => canceled = true);
             yield return null;

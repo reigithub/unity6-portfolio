@@ -300,7 +300,7 @@ namespace Game.Core.Services
                 action.RemoveBindingOverride(index);
         }
 
-        public IDisposable StartRebind(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled)
+        public IDisposable StartRebinding(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled)
         {
             var action = ResolveAction(actionName);
             if (action == null)

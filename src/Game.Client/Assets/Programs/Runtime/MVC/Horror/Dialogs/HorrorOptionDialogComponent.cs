@@ -33,7 +33,7 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
-        [SerializeField] private InputActionRebindingView[] _rebindViews;
+        [SerializeField] private InputActionRebindingView[] _rebindingViews;
         [SerializeField] private Button _resetKeyboardBindingsButton;
         [SerializeField] private Button _resetGamepadBindingsButton;
 
@@ -88,7 +88,7 @@ namespace Game.Horror.Dialogs
         #region Controls
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputActionRebindingView> RebindViews => _rebindViews;
+        public IReadOnlyList<InputActionRebindingView> RebindingViews => _rebindingViews;
 
         /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
         public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(

@@ -25,11 +25,11 @@ namespace Game.Horror.Dialogs
         private readonly IHorrorOptionService _optionService =  GameServiceManager.Resolve<IHorrorOptionService>();
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
-        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
-        private IDisposable _currentRebind;
+        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）
+        private IDisposable _currentRebinding;
 
-        // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）。_currentRebind と対で管理。
-        private IDisposable _rebindTimeout;
+        // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）
+        private IDisposable _currentRebindingTimeout;
 
         public static async UniTask<bool> RunAsync()
         {
@@ -170,19 +170,19 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // Controls（キーリバインド）
-            foreach (var rebindView in SceneComponent.RebindViews)
+            foreach (var rebindView in SceneComponent.RebindingViews)
             {
                 var rebind = rebindView;
                 rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
                 rebind.OnRebindRequested
-                    .Where(_ => State.IsProcessing() && _currentRebind == null)
+                    .Where(_ => State.IsProcessing() && _currentRebinding == null)
                     .Subscribe(_ =>
                     {
                         rebind.SetWaiting(true);
                         rebind.SetTimeoutProgress(1f);
-                        _currentRebind = _inputService.StartRebind(
+                        _currentRebinding = _inputService.StartRebinding(
                             rebind.Scheme,
                             rebind.ActionName,
                             rebind.CompositePartName,
@@ -191,9 +191,9 @@ namespace Game.Horror.Dialogs
                                 rebind.SetWaiting(false);
                                 // rebind.SetDisplay(display);
                                 _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
-                                _currentRebind = null;
-                                _rebindTimeout?.Dispose();
-                                _rebindTimeout = null;
+                                _currentRebinding = null;
+                                _currentRebindingTimeout?.Dispose();
+                                _currentRebindingTimeout = null;
                                 // swap で旧キーが移った相手行も含め全行を再表示（ターゲット行も更新される）
                                 RefreshBindingDisplays();
                                 _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
@@ -202,31 +202,31 @@ namespace Game.Horror.Dialogs
                             {
                                 rebind.SetWaiting(false);
                                 rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
-                                _currentRebind = null;
-                                _rebindTimeout?.Dispose();
-                                _rebindTimeout = null;
+                                _currentRebinding = null;
+                                _currentRebindingTimeout?.Dispose();
+                                _currentRebindingTimeout = null;
                                 _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
                             });
-                        _currentRebind.AddTo(Disposables);
+                        _currentRebinding.AddTo(Disposables);
 
                         // 開始から3秒で自動キャンセル（完了していない時のみ）。残り時間をバーで提示。
                         var elapsed = 0f;
-                        _rebindTimeout = Observable.EveryUpdate(UnityFrameProvider.Update)
+                        _currentRebindingTimeout = Observable.EveryUpdate(UnityFrameProvider.Update)
                             .Subscribe(_ =>
                             {
                                 elapsed += Time.unscaledDeltaTime; // ポーズ中(timeScale=0)でも進行
                                 rebind.SetTimeoutProgress(1f - elapsed / InputConstants.RebindTimeoutSeconds);
                                 if (elapsed >= InputConstants.RebindTimeoutSeconds)
-                                    _currentRebind?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
+                                    _currentRebinding?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
                             });
-                        _rebindTimeout.AddTo(Disposables);
+                        _currentRebindingTimeout.AddTo(Disposables);
                     })
                     .AddTo(Disposables);
             }
 
             // 指定スキームのバインドのみ既定へ戻して全行を再表示・保存する。
             SceneComponent.OnResetSchemeBindingsRequested
-                .Where(_ => State.IsProcessing() && _currentRebind == null)
+                .Where(_ => State.IsProcessing() && _currentRebinding == null)
                 .Subscribe(scheme =>
                 {
                     _inputService.ResetSchemeBindings(scheme);
@@ -246,8 +246,8 @@ namespace Game.Horror.Dialogs
 
         private void RefreshBindingDisplays()
         {
-            if (_currentRebind != null) return;
-            foreach (var rebind in SceneComponent.RebindViews)
+            if (_currentRebinding != null) return;
+            foreach (var rebind in SceneComponent.RebindingViews)
                 rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
         }
 

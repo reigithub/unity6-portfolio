@@ -106,7 +106,7 @@ namespace Game.Core.Services
         /// <param name="partName">コンポジットのパート名（up/down/left/right）。空＝全体/単体</param>
         /// <param name="onComplete">確定後に呼ばれる。引数は確定後の表示文字列</param>
         /// <param name="onCanceled">キャンセル時に呼ばれる</param>
-        IDisposable StartRebind(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled);
+        IDisposable StartRebinding(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled);
 
         /// <summary>
         /// 現在のバインドオーバーライドを JSON 文字列として取得する（永続化用）。
