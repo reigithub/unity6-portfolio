@@ -1,7 +1,9 @@
 using System;
 using Game.Shared.Constants;
+using Game.Shared.Input;
 using Game.Shared.Services.Interfaces;
 using R3;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
@@ -38,7 +40,7 @@ namespace Game.Shared.Services
         {
             if (string.IsNullOrEmpty(controlPath)) return fallback;
 
-            var prefix = ResolveFamilyPrefix(deviceLayoutName);
+            var prefix = ResolveDevicePrefix(deviceLayoutName);
             if (prefix.Length > 0)
             {
                 var localized = GetLocalizedString(LocalizationConstants.InputControlsTable, prefix + controlPath);
@@ -49,13 +51,11 @@ namespace Game.Shared.Services
         }
 
         /// <summary>デバイスレイアウトを family プレフィックスへ分類する（未知/未接続は空＝無印）。</summary>
-        private static string ResolveFamilyPrefix(string deviceLayoutName)
+        private static string ResolveDevicePrefix(string deviceLayoutName)
         {
-            if (string.IsNullOrEmpty(deviceLayoutName)) return string.Empty;
-            if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "DualShockGamepad")) return "ps/";
-            if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "SwitchProControllerHID")) return "switch/";
-            if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "XInputController")) return "xbox/";
-            return string.Empty;
+            var deviceName = InputSystemHelper.ResolveDeviceName(deviceLayoutName);
+            if (string.IsNullOrEmpty(deviceName)) return string.Empty;
+            return deviceName + "/";
         }
 
         public string GetStringByInteractions(string localizeKey)
