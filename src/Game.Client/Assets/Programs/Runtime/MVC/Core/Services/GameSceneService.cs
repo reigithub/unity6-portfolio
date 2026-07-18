@@ -191,8 +191,8 @@ namespace Game.Core.Services
             await gameScene.PreInitialize();
             await gameScene.LoadAsset();
             await gameScene.Startup();
-            await DoFadeInAsync(gameScene);
             await gameScene.Ready();
+            await DoFadeInAsync(gameScene);
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)

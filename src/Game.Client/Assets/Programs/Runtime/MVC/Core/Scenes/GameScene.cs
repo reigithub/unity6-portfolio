@@ -189,7 +189,6 @@ namespace Game.MVC.Core.Scenes
 
         private GameObject _asset;
         private GameObject _instance;
-        private CanvasGroup _canvasGroup;
 
         protected override async UniTask LoadScene()
         {
@@ -198,7 +197,6 @@ namespace Game.MVC.Core.Scenes
             _instance = scene.IsValid()
                 ? UnityEngine.Object.Instantiate(_asset, new InstantiateParameters { scene = scene })
                 : UnityEngine.Object.Instantiate(_asset);
-            _instance.TryGetComponent(out _canvasGroup);
         }
 
         protected override UniTask UnloadScene()
@@ -209,7 +207,6 @@ namespace Game.MVC.Core.Scenes
                 _instance = null;
                 _assetService.Release(_asset);
                 _asset = null;
-                _canvasGroup = null;
             }
 
             return UniTask.CompletedTask;
@@ -220,30 +217,11 @@ namespace Game.MVC.Core.Scenes
 
         public async UniTask FadeInAsync(float duration = 0.3f)
         {
-            if (_canvasGroup != null)
-            {
-                _canvasGroup.alpha = 0f;
-                _canvasGroup.interactable = false;
-                _canvasGroup.blocksRaycasts = false;
-                _instance.SetActive(true);
-                await _canvasGroup.DOFade(1f, duration).SetUpdate(true).ToUniTask();
-                _canvasGroup.interactable = true;
-                _canvasGroup.blocksRaycasts = true;
-            }
-
             await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
         }
 
         public async UniTask FadeOutAsync(float duration = 0.3f)
         {
-            if (_canvasGroup != null)
-            {
-                _canvasGroup.interactable = false;
-                _canvasGroup.blocksRaycasts = false;
-                await _canvasGroup.DOFade(0f, duration).SetUpdate(true).ToUniTask();
-                _instance.SetActive(false);
-            }
-
             await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
         }
     }
