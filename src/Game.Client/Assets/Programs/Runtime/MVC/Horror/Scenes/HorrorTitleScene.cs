@@ -92,7 +92,6 @@ namespace Game.Horror.Scenes
                     else
                     {
                         _hasSaveData = _saveSlots.Any(x => x.HasData);
-                        await UniTask.Yield();
                         SceneComponent.SetGameStartMenu(_hasSaveData);
                     }
                 })
