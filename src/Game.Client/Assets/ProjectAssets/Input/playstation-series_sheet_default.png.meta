@@ -2248,7 +2248,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_96
+      name: ps_dpad_right
       rect:
         serializedVersion: 2
         x: 0
@@ -2292,7 +2292,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_98
+      name: ps_dpad_up
       rect:
         serializedVersion: 2
         x: 128
@@ -2578,7 +2578,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_111
+      name: ps_dpad
       rect:
         serializedVersion: 2
         x: 192
@@ -2622,7 +2622,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_113
+      name: ps_dpad_down
       rect:
         serializedVersion: 2
         x: 320
@@ -2710,7 +2710,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_117
+      name: ps_dpad_left
       rect:
         serializedVersion: 2
         x: 576
@@ -3334,13 +3334,10 @@ TextureImporter:
       playstation-series_sheet_default_109: 705897568
       playstation-series_sheet_default_11: 1395524782
       playstation-series_sheet_default_110: 1833809273
-      playstation-series_sheet_default_111: -1561436731
       playstation-series_sheet_default_112: -1377348845
-      playstation-series_sheet_default_113: 832841647
       playstation-series_sheet_default_114: 817883726
       playstation-series_sheet_default_115: 1311975958
       playstation-series_sheet_default_116: -1694734352
-      playstation-series_sheet_default_117: 224782394
       playstation-series_sheet_default_118: 548748943
       playstation-series_sheet_default_119: 408584704
       playstation-series_sheet_default_12: -1060995670
@@ -3439,14 +3436,17 @@ TextureImporter:
       playstation-series_sheet_default_91: 1783666705
       playstation-series_sheet_default_92: -214358582
       playstation-series_sheet_default_93: 1080749353
-      playstation-series_sheet_default_96: -2134272749
       playstation-series_sheet_default_97: -488054809
-      playstation-series_sheet_default_98: 663178050
       playstation-series_sheet_default_99: -2124673491
       ps_buttonEast: 969838676
       ps_buttonNorth: -101151586
       ps_buttonSouth: 2113944208
       ps_buttonWest: 2053928895
+      ps_dpad: -1561436731
+      ps_dpad_down: 832841647
+      ps_dpad_left: 224782394
+      ps_dpad_right: -2134272749
+      ps_dpad_up: 663178050
       ps_leftShoulder: 1050830083
       ps_leftShoulder_alternative: -71466924
       ps_leftShoulder_alternative_outline: 1583588638
