@@ -41,42 +41,42 @@ namespace Game.Tests.MVC
         public void Resolve_Jump_KeyboardMouse_ReturnsSingleKeyboardBinding()
         {
             var action = Action("Jump");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action);
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/space"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Keyboard>/space"));
         }
 
         [Test]
         public void Resolve_Jump_Gamepad_ReturnsSingleGamepadBinding()
         {
             var action = Action("Jump");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.Gamepad, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.Gamepad, action);
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Gamepad>/buttonSouth"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Gamepad>/buttonSouth"));
         }
 
         [Test]
         public void Resolve_Move_KeyboardMouse_ReturnsFourCompositeParts()
         {
             var action = Action("Move");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action);
 
             // WASD コンポジットの4パート（up/down/left/right）
             Assert.That(indices.Count, Is.EqualTo(4));
-            foreach (var index in indices)
-                Assert.That(action.bindings[index].isPartOfComposite, Is.True);
+            foreach (var info in indices)
+                Assert.That(action.bindings[info.Index].isPartOfComposite, Is.True);
         }
 
         [Test]
         public void Resolve_Move_Gamepad_ReturnsLeftStick()
         {
             var action = Action("Move");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.Gamepad, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.Gamepad, action);
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Gamepad>/leftStick"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Gamepad>/leftStick"));
         }
 
         [Test]
@@ -84,10 +84,10 @@ namespace Game.Tests.MVC
         {
             // Reset（UI マップ）の KBM バインドが解決されることを確認
             var action = Action("Reset");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action);
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/r"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Keyboard>/r"));
         }
 
         [Test]
@@ -95,30 +95,30 @@ namespace Game.Tests.MVC
         {
             // Reset（UI マップ）は Gamepad バインド（buttonNorth）も持つ
             var action = Action("Reset");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.Gamepad, action);
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.Gamepad, action);
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Gamepad>/buttonNorth"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Gamepad>/buttonNorth"));
         }
 
         [Test]
         public void Resolve_Move_KeyboardMouse_PartUp_ReturnsSingleW()
         {
             var action = Action("Move");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action, "up");
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action, "up");
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/w"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Keyboard>/w"));
         }
 
         [Test]
         public void Resolve_Move_KeyboardMouse_PartDown_ReturnsSingleS()
         {
             var action = Action("Move");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action, "down");
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action, "down");
 
             Assert.That(indices.Count, Is.EqualTo(1));
-            Assert.That(action.bindings[indices[0]].effectivePath, Is.EqualTo("<Keyboard>/s"));
+            Assert.That(action.bindings[indices[0].Index].effectivePath, Is.EqualTo("<Keyboard>/s"));
         }
 
         [Test]
@@ -126,7 +126,7 @@ namespace Game.Tests.MVC
         {
             // 単体アクション（Jump）に partName を指定しても該当パートは存在しない
             var action = Action("Jump");
-            var indices = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, action, "up");
+            var indices = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, action, "up");
 
             Assert.That(indices.Count, Is.EqualTo(0));
         }
@@ -140,14 +140,14 @@ namespace Game.Tests.MVC
         {
             // Jump を対象に、別アクションへ既定割当した <Keyboard>/numpad5 を候補にすると、その相手が返る
             var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+            var jumpIndex = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, jump)[0].Index;
 
             // Attack(KBM) を numpad5 に固定し、衝突相手として特定できることを確認
             var attack = Action("Attack");
-            var attackIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, attack)[0];
+            var attackIndex = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, attack)[0].Index;
             attack.ApplyBindingOverride(attackIndex, "<Keyboard>/numpad5");
 
-            var found = InputSystemService.TryFindConflict(
+            var found = InputSystemService.TryFindConflictAction(
                 _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/numpad5",
                 out var conflictAction, out var conflictIndex);
 
@@ -160,9 +160,9 @@ namespace Game.Tests.MVC
         public void TryFindConflict_UnusedKey_ReturnsFalseAndNullOut()
         {
             var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+            var jumpIndex = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, jump)[0].Index;
 
-            var found = InputSystemService.TryFindConflict(
+            var found = InputSystemService.TryFindConflictAction(
                 _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Keyboard>/numpad5",
                 out var conflictAction, out var conflictIndex);
 
@@ -176,9 +176,9 @@ namespace Game.Tests.MVC
         {
             // Gamepad のパスは KBM スキームでは衝突対象にならない
             var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+            var jumpIndex = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, jump)[0].Index;
 
-            var found = InputSystemService.TryFindConflict(
+            var found = InputSystemService.TryFindConflictAction(
                 _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, "<Gamepad>/buttonSouth",
                 out _, out _);
 
@@ -190,10 +190,10 @@ namespace Game.Tests.MVC
         {
             // 自分自身の現在パスは衝突扱いしない
             var jump = Action("Jump");
-            var jumpIndex = InputSystemService.ResolveSchemeBindingIndices(InputControlSchemes.KeyboardAndMouse, jump)[0];
+            var jumpIndex = InputSystemService.GetBindingsByControlScheme(InputControlSchemes.KeyboardAndMouse, jump)[0].Index;
             var ownPath = jump.bindings[jumpIndex].effectivePath;
 
-            var found = InputSystemService.TryFindConflict(
+            var found = InputSystemService.TryFindConflictAction(
                 _asset, InputControlSchemes.KeyboardAndMouse, jump, jumpIndex, ownPath,
                 out _, out _);
 

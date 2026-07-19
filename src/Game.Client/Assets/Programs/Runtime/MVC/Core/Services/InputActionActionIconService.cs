@@ -75,11 +75,16 @@ namespace Game.Core.Services
             foreach (var sprite in sprites) _xboxIcons[sprite.name] = sprite;
         }
 
-        public Sprite GetSprite(string deviceLayoutName, string controlPath)
+        public Sprite GetSprite(string deviceLayoutName, string controlPath, string partName = null)
         {
             var deviceType = InputSystemHelper.GetInputDeviceType(deviceLayoutName);
             var identifier = deviceType.ToIdentifier();
             var spriteName = identifier + "_" + controlPath;
+            if (!string.IsNullOrEmpty(partName))
+            {
+                var direction = partName.ToLower();
+                spriteName += "_" + direction;
+            }
             switch (deviceType)
             {
                 case InputDeviceType.Keyboard:

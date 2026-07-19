@@ -23,6 +23,11 @@ namespace Game.Core.Services
         ProjectDefaultInputSystem.UIActions UI { get; }
 
         /// <summary>
+        /// 現在のコントロールスキーマ
+        /// </summary>
+        string ControlScheme { get; }
+
+        /// <summary>
         /// 操作スキーマ変更イベント
         /// </summary>
         Observable<string> OnControlSchemeChanged { get; }
@@ -30,7 +35,7 @@ namespace Game.Core.Services
         /// <summary>
         /// 操作デバイス切替イベント
         /// </summary>
-        Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged { get; }
+        Observable<InputDeviceChangeInfo> OnDeviceChanged { get; }
 
         /// <summary>
         /// キーバインド変更イベント
@@ -89,11 +94,11 @@ namespace Game.Core.Services
         /// </summary>
         string[] GetBindingDisplayStrings(string scheme, string actionName, string partName = null);
 
-        string GetBindingDisplayString(InputAction action);
+        string GetBindingDisplayString(InputAction action, string partName = null);
 
-        (string deviceLayoutName, string controlPath)[] GetDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null);
+        InputDeviceControlPathInfo[] GetInputDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null);
 
-        (string deviceLayoutName, string controlPath) GetDeviceControlPath(string actionMapName, string actionName);
+        InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。

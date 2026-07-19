@@ -19,7 +19,6 @@ namespace Game.Core.Services
 
         private ProjectDefaultInputSystem _inputSystem;
         private bool _isInitialized;
-        private string _controlScheme = InputControlSchemes.DefaultControlScheme;
         private GameObject _selectedGameObject;
         private int _playerBlockCount;
         private int _uiBlockCount;
@@ -27,12 +26,14 @@ namespace Game.Core.Services
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
 
+        public string ControlScheme { get; private set; } = InputControlSchemes.DefaultControlScheme;
+
         private readonly Subject<string> _onControlSchemeChanged = new();
         public Observable<string> OnControlSchemeChanged => _onControlSchemeChanged;
 
-        public Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged
-            => Observable.FromEvent<Action<InputDevice, InputDeviceChange>, (InputDevice, InputDeviceChange)>(
-                h => (a, b) => h((a, b)),
+        public Observable<InputDeviceChangeInfo> OnDeviceChanged
+            => Observable.FromEvent<Action<InputDevice, InputDeviceChange>, InputDeviceChangeInfo>(
+                h => (a, b) => h(new InputDeviceChangeInfo(a, b)),
                 h => InputSystem.onDeviceChange += h,
                 h => InputSystem.onDeviceChange -= h);
 
@@ -52,6 +53,23 @@ namespace Game.Core.Services
 
             _inputSystem = new ProjectDefaultInputSystem();
             _inputSystem.Enable();
+
+            foreach (var controlScheme in _inputSystem.controlSchemes)
+            {
+                var scheme = controlScheme.name;
+
+                foreach (var map in _inputSystem.asset.actionMaps)
+                {
+                    foreach (var action in map.actions)
+                    {
+                        var paths = GetInputDeviceControlPaths(scheme, map.name, action.name);
+                        foreach (var path in paths)
+                        {
+                            Debug.Log($"[InputSystemService] scheme:{scheme}, map:{map.name}, action:{action.name} path:{path.DeviceLayoutName} + {path.ControlPath}");
+                        }
+                    }
+                }
+            }
 
             // デフォルトでUI入力を有効化
             EnableUI();
@@ -208,15 +226,15 @@ namespace Game.Core.Services
 
         public void UpdateControlScheme(string device)
         {
-            bool changed = _controlScheme != device;
-            _controlScheme = device;
+            bool changed = ControlScheme != device;
+            ControlScheme = device;
             if (changed) _onControlSchemeChanged.OnNext(device);
             ResolveControlScheme(_selectedGameObject);
         }
 
         public void ResolveControlScheme(GameObject selectedGameObject = null)
         {
-            switch (_controlScheme)
+            switch (ControlScheme)
             {
                 case InputControlSchemes.Gamepad:
                 case InputControlSchemes.Joystick:
@@ -250,49 +268,49 @@ namespace Game.Core.Services
             var action = FindInputAction(InputActionMaps.Player, actionName);
             if (action == null) return Array.Empty<string>();
 
-            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
+            var indices = GetBindingsByControlScheme(scheme, action, partName);
             if (indices.Count == 0) return Array.Empty<string>();
 
             var parts = new string[indices.Count];
             int partsIndex = 0;
-            foreach (var index in indices)
+            foreach (var info in indices)
             {
                 // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
-                var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                var raw = action.GetBindingDisplayString(info.Index, out var deviceLayoutName, out var controlPath);
                 parts[partsIndex] = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw);
                 partsIndex++;
             }
             return parts;
         }
 
-        public string GetBindingDisplayString(InputAction action)
+        public string GetBindingDisplayString(InputAction action, string partName = null)
         {
-            return GetBindingDisplayStrings(_controlScheme, action.name)[0];
+            return GetBindingDisplayStrings(ControlScheme, action.name, partName)[0];
         }
 
-        public (string deviceLayoutName, string controlPath)[] GetDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null)
+        public InputDeviceControlPathInfo[] GetInputDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null)
         {
             var action = FindInputAction(actionMapName, actionName);
-            if (action == null) return Array.Empty<(string, string)>();
+            if (action == null) return Array.Empty<InputDeviceControlPathInfo>();
 
-            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
-            if (indices.Count == 0) return Array.Empty<(string, string)>();
+            var indices = GetBindingsByControlScheme(scheme, action, partName);
+            if (indices.Count == 0) return Array.Empty<InputDeviceControlPathInfo>();
 
-            var parts = new (string deviceLayoutName, string controlPath)[indices.Count];
+            var parts = new InputDeviceControlPathInfo[indices.Count];
             int partsIndex = 0;
-            foreach (var index in indices)
+            foreach (var info in indices)
             {
-                _ = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                parts[partsIndex] = (deviceLayoutName, controlPath);
+                _ = action.GetBindingDisplayString(info.Index, out var deviceLayoutName, out var controlPath);
+                parts[partsIndex] = new InputDeviceControlPathInfo { DeviceLayoutName = deviceLayoutName, ControlPath = controlPath, IsPartOfComposite = info.IsPartOfComposite };
                 partsIndex++;
             }
 
             return parts;
         }
 
-        public (string deviceLayoutName, string controlPath) GetDeviceControlPath(string actionMapName, string actionName)
+        public InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null)
         {
-            return GetDeviceControlPaths(_controlScheme, actionMapName, actionName)[0];
+            return GetInputDeviceControlPaths(ControlScheme, actionMapName, actionName, partName)[0];
         }
 
         public string SaveBindingOverridesAsJson()
@@ -313,16 +331,16 @@ namespace Game.Core.Services
             // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する
             foreach (var map in _inputSystem.asset.actionMaps)
                 foreach (var action in map.actions)
-                    foreach (var index in ResolveSchemeBindingIndices(scheme, action))
-                        action.RemoveBindingOverride(index);
+                    foreach (var info in GetBindingsByControlScheme(scheme, action))
+                        action.RemoveBindingOverride(info.Index);
         }
 
         public void ResetBinding(string scheme, string actionName, string partName = null)
         {
             var action = FindInputAction(InputActionMaps.Player, actionName);
             if (action == null) return;
-            foreach (var index in ResolveSchemeBindingIndices(scheme, action, partName))
-                action.RemoveBindingOverride(index);
+            foreach (var info in GetBindingsByControlScheme(scheme, action, partName))
+                action.RemoveBindingOverride(info.Index);
         }
 
         public IDisposable StartRebinding(string scheme, string actionName, string partName, Action onComplete, Action onCanceled)
@@ -334,8 +352,8 @@ namespace Game.Core.Services
                 return Disposable.Empty;
             }
 
-            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
-            if (indices.Count == 0)
+            var bindings = GetBindingsByControlScheme(scheme, action, partName);
+            if (bindings.Count == 0)
             {
                 onCanceled?.Invoke();
                 return Disposable.Empty;
@@ -362,14 +380,14 @@ namespace Game.Core.Services
 
             void RebindAt(int listIndex)
             {
-                if (listIndex >= indices.Count)
+                if (listIndex >= bindings.Count)
                 {
                     Finish();
                     onComplete?.Invoke();
                     return;
                 }
 
-                var bindingIndex = indices[listIndex];
+                var bindingIndex = bindings[listIndex].Index;
                 // swap 用にターゲットの旧 effectivePath（override 無しなら既定パス）を退避
                 var originalEffectivePath = action.bindings[bindingIndex].effectivePath;
 
@@ -392,7 +410,7 @@ namespace Game.Core.Services
                     .OnComplete(op =>
                     {
                         var newPath = action.bindings[bindingIndex].effectivePath;
-                        if (TryFindConflict(_inputSystem.asset, scheme, action, bindingIndex, newPath, out var conflictAction, out var conflictIndex))
+                        if (TryFindConflictAction(_inputSystem.asset, scheme, action, bindingIndex, newPath, out var conflictAction, out var conflictIndex))
                         {
                             // 同一スキーム内で重複 → 相手へターゲットの旧キーを渡して入れ替える（swap）。
                             // 旧キーが相手の既定パスと一致するなら override を残さず解除する。
@@ -444,31 +462,31 @@ namespace Game.Core.Services
         /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
         /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        internal static IReadOnlyList<int> ResolveSchemeBindingIndices(string scheme, InputAction action, string partName = null)
+        internal static IReadOnlyList<InputBidingInfo> GetBindingsByControlScheme(string scheme, InputAction action, string partName = null)
         {
-            var result = new List<int>();
+            var result = new List<InputBidingInfo>();
             if (action == null) return result;
 
             var hasPart = !string.IsNullOrEmpty(partName);
             var bindings = action.bindings;
-            for (var i = 0; i < bindings.Count; i++)
+            for (int i = 0; i < bindings.Count; i++)
             {
                 var binding = bindings[i];
                 if (binding.isComposite)
                 {
                     // コンポジットコンテナ自身はパス無し。直後のパート群を見る
-                    for (var j = i + 1; j < bindings.Count && bindings[j].isPartOfComposite; j++)
+                    for (int j = i + 1; j < bindings.Count && bindings[j].isPartOfComposite; j++)
                     {
-                        if (!BelongsToScheme(bindings[j], scheme)) continue;
+                        if (!ExistsBingingByControlScheme(bindings[j], scheme)) continue;
                         if (hasPart && !string.Equals(bindings[j].name, partName, StringComparison.OrdinalIgnoreCase)) continue;
-                        result.Add(j);
+                        result.Add(new InputBidingInfo { Index = j, IsPartOfComposite = true });
                     }
                 }
                 else if (!binding.isPartOfComposite)
                 {
-                    if (hasPart) continue; // パート指定時は単体 binding を対象としない
-                    if (BelongsToScheme(binding, scheme))
-                        result.Add(i);
+                    // if (hasPart) continue; // パート指定時は単体 binding を対象としない
+                    if (ExistsBingingByControlScheme(binding, scheme))
+                        result.Add(new InputBidingInfo { Index = i, IsPartOfComposite = false });
                 }
             }
 
@@ -480,7 +498,7 @@ namespace Game.Core.Services
         /// swap（入れ替え）処理で相手バインドへターゲットの旧キーを渡すために用いる。
         /// invariant 上、衝突は高々1件のため最初にヒットしたものを返す。
         /// </summary>
-        internal static bool TryFindConflict(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath, out InputAction conflictAction, out int conflictBindingIndex)
+        internal static bool TryFindConflictAction(InputActionAsset asset, string scheme, InputAction targetAction, int targetBindingIndex, string candidatePath, out InputAction conflictAction, out int conflictBindingIndex)
         {
             conflictAction = null;
             conflictBindingIndex = -1;
@@ -498,7 +516,7 @@ namespace Game.Core.Services
 
                     var binding = bindings[i];
                     if (binding.isComposite) continue; // コンテナはパス無し
-                    if (!BelongsToScheme(binding, scheme)) continue;
+                    if (!ExistsBingingByControlScheme(binding, scheme)) continue;
                     if (binding.effectivePath == candidatePath)
                     {
                         conflictAction = action;
@@ -512,7 +530,7 @@ namespace Game.Core.Services
         }
 
         /// <summary>バインドが指定スキーム（groups）に属するか。groups は ';' 区切り。</summary>
-        private static bool BelongsToScheme(InputBinding binding, string scheme)
+        private static bool ExistsBingingByControlScheme(InputBinding binding, string scheme)
         {
             if (string.IsNullOrEmpty(binding.groups) || string.IsNullOrEmpty(scheme)) return false;
             foreach (var group in binding.groups.Split(InputBinding.Separator))

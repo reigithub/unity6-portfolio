@@ -13,8 +13,10 @@ namespace Game.Core.UI
         [SerializeField] private bool _initializeOnStart = true;
 
         [Header("Identity")]
+        [SerializeField] private string _controlScheme;
         [SerializeField] private string _actionMapName = InputActionMaps.UI;
         [SerializeField] private string _actionName;
+        [SerializeField] private string _compositePartName;
 
         [Header("Display")]
         [SerializeField] private Image _actionIcon;
@@ -37,7 +39,7 @@ namespace Game.Core.UI
             _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
             _inputService.OnControlSchemeChanged.Subscribe(_ => OnDeviceChanged()).AddTo(this);
             _inputService.OnDeviceChanged
-                .Where(x => !x.deviceChange.IsDisconnected())
+                .Where(x => !x.DeviceChange.IsDisconnected())
                 .Subscribe(_ => OnDeviceChanged())
                 .AddTo(this);
             OnDeviceChanged();
@@ -46,8 +48,17 @@ namespace Game.Core.UI
 
         private void OnDeviceChanged()
         {
-            (string deviceLayoutName, string controlPath) = _inputService.GetDeviceControlPath(_actionMapName, _actionName);
-            var sprite = _inputActionIconService.GetSprite(deviceLayoutName, controlPath);
+            Sprite sprite = null;
+
+            if (string.IsNullOrEmpty(_controlScheme) || string.Equals(_controlScheme, _inputService.ControlScheme))
+            {
+                var info = _inputService.GetInputDeviceControlPath(_actionMapName, _actionName, _compositePartName);
+                if (info.IsPartOfComposite)
+                    sprite = _inputActionIconService.GetSprite(info.DeviceLayoutName, info.ControlPath); // 既にControlPathがCompositePartName相当
+                else
+                    sprite = _inputActionIconService.GetSprite(info.DeviceLayoutName, info.ControlPath, _compositePartName); // D-Padなど非Compositeを分割し、方向キー入力を出し分ける
+            }
+
             if (sprite != null)
             {
                 _actionIcon.color = Color.white;

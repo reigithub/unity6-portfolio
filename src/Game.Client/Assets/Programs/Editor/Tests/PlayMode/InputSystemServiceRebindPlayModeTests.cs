@@ -38,7 +38,7 @@ namespace Game.Tests.PlayMode
             => service.FindInputAction(InputActionMaps.Player, name);
 
         private int FirstIndex(InputAction action, string scheme)
-            => InputSystemService.ResolveSchemeBindingIndices(scheme, action)[0];
+            => InputSystemService.GetBindingsByControlScheme(scheme, action)[0].Index;
 
         #region Save / Load
 
