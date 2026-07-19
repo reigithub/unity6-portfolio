@@ -510,7 +510,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: xbox-series_sheet_default_17
+      name: xbox_rightStick
       rect:
         serializedVersion: 2
         x: 448
@@ -774,7 +774,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: xbox-series_sheet_default_29
+      name: xbox_leftStick
       rect:
         serializedVersion: 2
         x: 576
@@ -1346,7 +1346,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: xbox-dpad
+      name: xbox_dpad
       rect:
         serializedVersion: 2
         x: 320
@@ -2351,7 +2351,6 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      xbox-dpad: -114779054
       xbox-series_sheet_default_0: 634760638
       xbox-series_sheet_default_1: 430596229
       xbox-series_sheet_default_10: 1941012080
@@ -2361,7 +2360,6 @@ TextureImporter:
       xbox-series_sheet_default_14: -836708694
       xbox-series_sheet_default_15: -1690843337
       xbox-series_sheet_default_16: -1934058831
-      xbox-series_sheet_default_17: -2088862489
       xbox-series_sheet_default_18: -2059813359
       xbox-series_sheet_default_19: -1110797121
       xbox-series_sheet_default_2: -1595541970
@@ -2370,7 +2368,6 @@ TextureImporter:
       xbox-series_sheet_default_25: -847565622
       xbox-series_sheet_default_26: -1255748903
       xbox-series_sheet_default_28: -1068865898
-      xbox-series_sheet_default_29: 2101061837
       xbox-series_sheet_default_3: 2012900676
       xbox-series_sheet_default_30: -611652819
       xbox-series_sheet_default_31: 607704457
@@ -2432,6 +2429,7 @@ TextureImporter:
       xbox_buttonNorth: 583349138
       xbox_buttonSouth: 1840922463
       xbox_buttonWest: -432314029
+      xbox_dpad: -114779054
       xbox_dpad2: 653407509
       xbox_dpad_down: 1391471089
       xbox_dpad_down2: 1153049883
@@ -2443,10 +2441,12 @@ TextureImporter:
       xbox_dpad_up2: -1722144977
       xbox_leftShoulder: -754886117
       xbox_leftShoulder_outline: 1295277029
+      xbox_leftStick: 2101061837
       xbox_leftStickPress: 1995513856
       xbox_leftTrigger: -1256309454
       xbox_rightShoulder: 1929155964
       xbox_rightShoulder_outline: 927134285
+      xbox_rightStick: -2088862489
       xbox_rightStickPress: -555935678
       xbox_rightTrigger: 609503163
       xbox_select: -1435558901

@@ -2028,7 +2028,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_86
+      name: ps_rightStick
       rect:
         serializedVersion: 2
         x: 128
@@ -2380,7 +2380,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: playstation-series_sheet_default_102
+      name: ps_leftStick
       rect:
         serializedVersion: 2
         x: 384
@@ -3324,7 +3324,6 @@ TextureImporter:
       playstation-series_sheet_default_10: -1320452209
       playstation-series_sheet_default_100: -1101990320
       playstation-series_sheet_default_101: 589322049
-      playstation-series_sheet_default_102: -186810108
       playstation-series_sheet_default_103: -700348297
       playstation-series_sheet_default_104: -2115634761
       playstation-series_sheet_default_105: 35036713
@@ -3427,7 +3426,6 @@ TextureImporter:
       playstation-series_sheet_default_81: 1650485899
       playstation-series_sheet_default_84: -1213576530
       playstation-series_sheet_default_85: -1879050832
-      playstation-series_sheet_default_86: 2130326302
       playstation-series_sheet_default_87: -375745801
       playstation-series_sheet_default_88: -415083249
       playstation-series_sheet_default_89: 1880020441
@@ -3451,6 +3449,7 @@ TextureImporter:
       ps_leftShoulder_alternative: -71466924
       ps_leftShoulder_alternative_outline: 1583588638
       ps_leftShoulder_outline: 1445679797
+      ps_leftStick: -186810108
       ps_leftStickPress: 232402194
       ps_leftTrigger: -1719609571
       ps_micButton: -2032050081
@@ -3458,6 +3457,7 @@ TextureImporter:
       ps_rightShoulder_alternative: -1417793098
       ps_rightShoulder_alternative_outline: -243902031
       ps_rightShoulder_outline: 216251154
+      ps_rightStick: 2130326302
       ps_rightStickPress: 913815709
       ps_rightTrigger: -659821427
       ps_select: 713700300
