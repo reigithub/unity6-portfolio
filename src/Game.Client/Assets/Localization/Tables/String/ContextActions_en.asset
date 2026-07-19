@@ -62,6 +62,26 @@ MonoBehaviour:
     m_Localized: Save
     m_Metadata:
       m_Items: []
+  - m_Id: 8704920440537088
+    m_Localized: Submit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8705142377938944
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8705362595676160
+    m_Localized: Reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8716247565336576
+    m_Localized: Remove
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8724977921032192
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

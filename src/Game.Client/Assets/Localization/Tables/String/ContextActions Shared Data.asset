@@ -59,6 +59,30 @@ MonoBehaviour:
     m_Key: Save
     m_Metadata:
       m_Items: []
+  - m_Id: 8704920440537088
+    m_Key: Submit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8705142377938944
+    m_Key: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8705362595676160
+    m_Key: Reset
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8716247565336576
+    m_Key: Remove
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8720956409774080
+    m_Key: Clos
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8724977921032192
+    m_Key: Cancel
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
