@@ -14,14 +14,23 @@ namespace Game.Shared.Input
         }
     }
 
-    public struct InputDeviceControlPathInfo
+    public struct InputBindingInfo
     {
+        public string ControlScheme { get; init; }
+        public string ActionMapName { get; init; }
+        public string ActionName { get; init; }
+        public string CompositePartName { get; init; }
+
+        public string DisplayName { get; init; }
+
         public string DeviceLayoutName { get; init; }
         public string ControlPath { get; init; }
+
+        public int BindingIndex { get; init; }
         public bool IsPartOfComposite { get; init; }
     }
 
-    public struct InputBidingInfo
+    public struct InputBindingIndexInfo
     {
         public int Index { get; init; }
         public bool IsPartOfComposite { get; init; }

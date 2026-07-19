@@ -89,16 +89,13 @@ namespace Game.Core.Services
 
         /// <summary>
         /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
-        /// コンポジット（WASD 等）は各パートを "/" 区切りで結合して返す。
         /// <paramref name="partName"/> を指定すると、コンポジットの該当パート1つのみの表示を返す。
         /// </summary>
-        string[] GetBindingDisplayStrings(string scheme, string actionName, string partName = null);
-
         string GetBindingDisplayString(InputAction action, string partName = null);
 
-        InputDeviceControlPathInfo[] GetInputDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null);
+        InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null);
 
-        InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
+        InputBindingInfo GetBindingInfo(string scheme, string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。

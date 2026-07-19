@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Game.Shared.Input;
 using UnityEngine;
 
 namespace Game.Core.Services
@@ -7,7 +8,6 @@ namespace Game.Core.Services
     {
         UniTask LoadAsync();
         void Unload();
-        // Sprite GetSprite(string deviceLayoutName, string controlPath);
-        Sprite GetSprite(string deviceLayoutName, string controlPath, string partName = null);
+        Sprite GetSprite(InputBindingInfo info);
     }
 }

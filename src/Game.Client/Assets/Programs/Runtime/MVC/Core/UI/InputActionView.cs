@@ -52,11 +52,9 @@ namespace Game.Core.UI
 
             if (string.IsNullOrEmpty(_controlScheme) || string.Equals(_controlScheme, _inputService.ControlScheme))
             {
-                var info = _inputService.GetInputDeviceControlPath(_actionMapName, _actionName, _compositePartName, fallbackScheme: InputControlSchemes.KeyboardAndMouse);
-                if (info.IsPartOfComposite)
-                    sprite = _inputActionIconService.GetSprite(info.DeviceLayoutName, info.ControlPath); // 既にControlPathがCompositePartName相当
-                else
-                    sprite = _inputActionIconService.GetSprite(info.DeviceLayoutName, info.ControlPath, _compositePartName); // D-Padなど非Compositeを分割し、方向キー入力を出し分ける
+                const string FallbackScheme = InputControlSchemes.KeyboardAndMouse;
+                var info = _inputService.GetBindingInfo(_controlScheme ?? FallbackScheme, _actionMapName, _actionName, _compositePartName, FallbackScheme);
+                sprite = _inputActionIconService.GetSprite(info);
             }
 
             if (sprite != null)

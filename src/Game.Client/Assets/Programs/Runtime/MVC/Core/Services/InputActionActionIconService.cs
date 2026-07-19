@@ -75,14 +75,17 @@ namespace Game.Core.Services
             foreach (var sprite in sprites) _xboxIcons[sprite.name] = sprite;
         }
 
-        public Sprite GetSprite(string deviceLayoutName, string controlPath, string partName = null)
+        public Sprite GetSprite(InputBindingInfo info)
         {
-            if (string.IsNullOrEmpty(deviceLayoutName) || string.IsNullOrEmpty(controlPath))
+            if (string.IsNullOrEmpty(info.DeviceLayoutName) || string.IsNullOrEmpty(info.ControlPath))
                 return null;
 
-            var deviceType = InputSystemHelper.GetInputDeviceType(deviceLayoutName);
+            var deviceType = InputSystemHelper.GetInputDeviceType(info.DeviceLayoutName);
             var identifier = deviceType.ToIdentifier();
-            var spriteName = identifier + "_" + controlPath;
+            var spriteName = identifier + "_" + info.ControlPath;
+            var partName = info.IsPartOfComposite
+                ? string.Empty            // 既にControlPathがCompositePartName相当
+                : info.CompositePartName; // D-Padなど非Compositeを分割し、方向キー入力を出し分ける
             if (!string.IsNullOrEmpty(partName))
             {
                 var direction = partName.ToLower();

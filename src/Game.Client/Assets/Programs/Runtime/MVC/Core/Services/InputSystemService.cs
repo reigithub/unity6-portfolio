@@ -62,7 +62,7 @@ namespace Game.Core.Services
                 {
                     foreach (var action in map.actions)
                     {
-                        var paths = GetInputDeviceControlPaths(scheme, map.name, action.name);
+                        var paths = GetBindingInfos(scheme, map.name, action.name);
                         foreach (var path in paths)
                         {
                             Debug.Log($"[InputSystemService] scheme:{scheme}, map:{map.name}, action:{action.name} path:{path.DeviceLayoutName} + {path.ControlPath}");
@@ -263,63 +263,55 @@ namespace Game.Core.Services
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
-        public string[] GetBindingDisplayStrings(string scheme, string actionName, string partName = null)
-        {
-            var action = FindInputAction(InputActionMaps.Player, actionName);
-            if (action == null) return Array.Empty<string>();
-
-            var indices = GetBindingsByControlScheme(scheme, action, partName);
-            if (indices.Count == 0) return Array.Empty<string>();
-
-            var parts = new string[indices.Count];
-            int partsIndex = 0;
-            foreach (var info in indices)
-            {
-                // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
-                var raw = action.GetBindingDisplayString(info.Index, out var deviceLayoutName, out var controlPath);
-                parts[partsIndex] = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw);
-                partsIndex++;
-            }
-            return parts;
-        }
-
         public string GetBindingDisplayString(InputAction action, string partName = null)
         {
-            return GetBindingDisplayStrings(ControlScheme, action.name, partName)[0];
+            return GetBindingInfo(ControlScheme, action.name, partName).DisplayName;
         }
 
-        public InputDeviceControlPathInfo[] GetInputDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null)
+        public InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null)
         {
             var action = FindInputAction(actionMapName, actionName);
-            if (action == null) return Array.Empty<InputDeviceControlPathInfo>();
+            if (action == null) return Array.Empty<InputBindingInfo>();
 
+            // Compositeに対して、partName = nullを指定すると複数バインド情報が返る
             var indices = GetBindingsByControlScheme(scheme, action, partName);
-            if (indices.Count == 0) return Array.Empty<InputDeviceControlPathInfo>();
+            if (indices.Count == 0) return Array.Empty<InputBindingInfo>();
 
-            var parts = new InputDeviceControlPathInfo[indices.Count];
+            var parts = new InputBindingInfo[indices.Count];
             int partsIndex = 0;
             foreach (var info in indices)
             {
-                _ = action.GetBindingDisplayString(info.Index, out var deviceLayoutName, out var controlPath);
-                parts[partsIndex] = new InputDeviceControlPathInfo { DeviceLayoutName = deviceLayoutName, ControlPath = controlPath, IsPartOfComposite = info.IsPartOfComposite };
+                var raw = action.GetBindingDisplayString(info.Index, out var deviceLayoutName, out var controlPath);
+                parts[partsIndex] = new InputBindingInfo
+                {
+                    ControlScheme = scheme,
+                    ActionMapName = actionMapName,
+                    ActionName = actionName,
+                    CompositePartName = partName,
+                    DisplayName = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw),
+                    DeviceLayoutName = deviceLayoutName,
+                    ControlPath = controlPath,
+                    BindingIndex = info.Index,
+                    IsPartOfComposite = info.IsPartOfComposite
+                };
                 partsIndex++;
             }
 
             return parts;
         }
 
-        public InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null, string fallbackScheme = null)
+        public InputBindingInfo GetBindingInfo(string scheme, string actionMapName, string actionName, string partName = null, string fallbackScheme = null)
         {
-            var paths = GetInputDeviceControlPaths(ControlScheme, actionMapName, actionName, partName);
+            var paths = GetBindingInfos(scheme, actionMapName, actionName, partName);
             if (paths.Length == 0)
             {
                 if (!string.IsNullOrEmpty(fallbackScheme))
                 {
-                    var fallbacks = GetInputDeviceControlPaths(fallbackScheme, actionMapName, actionName, partName);
+                    var fallbacks = GetBindingInfos(fallbackScheme, actionMapName, actionName, partName);
                     if (fallbacks.Length > 0) return fallbacks[0];
                 }
 
-                return new InputDeviceControlPathInfo();
+                return new InputBindingInfo();
             }
 
             return paths[0];
@@ -474,9 +466,9 @@ namespace Game.Core.Services
         /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
         /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        internal static IReadOnlyList<InputBidingInfo> GetBindingsByControlScheme(string scheme, InputAction action, string partName = null)
+        internal static IReadOnlyList<InputBindingIndexInfo> GetBindingsByControlScheme(string scheme, InputAction action, string partName = null)
         {
-            var result = new List<InputBidingInfo>();
+            var result = new List<InputBindingIndexInfo>();
             if (action == null) return result;
 
             var hasPart = !string.IsNullOrEmpty(partName);
@@ -491,14 +483,14 @@ namespace Game.Core.Services
                     {
                         if (!ExistsBingingByControlScheme(bindings[j], scheme)) continue;
                         if (hasPart && !string.Equals(bindings[j].name, partName, StringComparison.OrdinalIgnoreCase)) continue;
-                        result.Add(new InputBidingInfo { Index = j, IsPartOfComposite = true });
+                        result.Add(new InputBindingIndexInfo { Index = j, IsPartOfComposite = true });
                     }
                 }
                 else if (!binding.isPartOfComposite)
                 {
                     // if (hasPart) continue; // パート指定時は単体 binding を対象としない
                     if (ExistsBingingByControlScheme(binding, scheme))
-                        result.Add(new InputBidingInfo { Index = i, IsPartOfComposite = false });
+                        result.Add(new InputBindingIndexInfo { Index = i, IsPartOfComposite = false });
                 }
             }
 

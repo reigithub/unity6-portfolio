@@ -1,3 +1,4 @@
+using Game.Shared.Constants;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -13,26 +14,31 @@ namespace Game.Core.UI
     public class InputActionRebindingView : MonoBehaviour
     {
         [Header("Identity")]
-        [SerializeField] private string _scheme;            // コントロールスキーム（Keyboard&Mouse / Gamepad）
+        [SerializeField] private string _controlScheme;     // コントロールスキーム（Keyboard&Mouse / Gamepad）
+        [SerializeField] private string _actionMapName = InputActionMaps.Player;
         [SerializeField] private string _actionName;        // Player マップのアクション名（例: Jump）
         [SerializeField] private string _compositePartName; // コンポジットのパート名（up/down/left/right）。空＝非コンポジット
 
         [Header("Display")]
         [SerializeField] private TextMeshProUGUI _actionLabel;
         [SerializeField] private TextMeshProUGUI _bindingLabel;
+        [SerializeField] private Image _actionIcon;
 
         [Header("Buttons")]
         [SerializeField] private Button _rebindButton;
         [SerializeField] private bool _rebindable = true;
 
         [Header("Waiting")]
-        [SerializeField] private GameObject _waitingOverlay;   // 任意: リバインド待機中の表示
-        [SerializeField] private Image _timeoutFill;           // 任意: 自動キャンセルまでの残り時間バー/リング（fillAmount 1→0）
+        [SerializeField] private GameObject _waitingOverlay;   // リバインド待機中の表示
+        [SerializeField] private Image _timeoutFill;           // 自動キャンセルまでの残り時間バー/リング（fillAmount 1→0）
 
         /// <summary>コントロールスキーム（Keyboard＆Mouse / Gamepad）。</summary>
-        public string Scheme => _scheme;
+        public string ControlScheme => _controlScheme;
 
-        /// <summary>Player マップのアクション名。</summary>
+        /// <summary>入力アクションマップ名</summary>
+        public string ActionMapName => _actionMapName;
+
+        /// <summary>入力アクション名</summary>
         public string ActionName => _actionName;
 
         /// <summary>コンポジットのパート名（up/down/left/right）。空＝非コンポジット（単体 binding）。</summary>
@@ -57,6 +63,12 @@ namespace Game.Core.UI
         {
             if (_bindingLabel != null)
                 _bindingLabel.text = string.Join("/", bindingTexts);
+        }
+
+        public void SetIcon(Sprite icon)
+        {
+            if (_actionIcon != null)
+                _actionIcon.sprite = icon;
         }
 
         /// <summary>タイムアウトの残り時間表示を更新する（1=満タン, 0=タイムアウト）。</summary>
