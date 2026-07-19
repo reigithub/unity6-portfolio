@@ -130,7 +130,7 @@ namespace Game.Horror.Interaction
             if (Master == null || string.IsNullOrEmpty(Master.RejectionMessageLocalizeKey))
                 return UniTask.FromResult(false);
 
-            var message = _localizationService.GetStringByInteractionMessages(Master.RejectionMessageLocalizeKey);
+            var message = _localizationService.GetStringByMessages(Master.RejectionMessageLocalizeKey);
             return HorrorMessageDialog.RunAsync(message);
         }
 
