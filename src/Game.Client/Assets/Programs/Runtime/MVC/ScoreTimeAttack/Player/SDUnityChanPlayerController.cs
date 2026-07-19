@@ -52,7 +52,7 @@ namespace Game.ScoreTimeAttack.Player
         private IInputSystemService _inputService;
         private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
-        private ProjectDefaultInputSystem.PlayerActions Player => InputService.Player;
+        private ProjectInputActions.PlayerActions Player => InputService.Player;
 
         private Animator _animator;
         private Rigidbody _rigidbody;

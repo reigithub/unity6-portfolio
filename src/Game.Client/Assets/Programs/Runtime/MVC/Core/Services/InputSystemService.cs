@@ -17,14 +17,14 @@ namespace Game.Core.Services
     {
         private readonly ILocalizationService _localizationService;
 
-        private ProjectDefaultInputSystem _inputSystem;
+        private ProjectInputActions _inputActions;
         private bool _isInitialized;
         private GameObject _selectedGameObject;
         private int _playerBlockCount;
         private int _uiBlockCount;
 
-        public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
-        public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
+        public ProjectInputActions.PlayerActions Player => _inputActions.Player;
+        public ProjectInputActions.UIActions UI => _inputActions.UI;
 
         public string ControlScheme { get; private set; } = InputControlSchemes.DefaultControlScheme;
 
@@ -51,14 +51,14 @@ namespace Game.Core.Services
         {
             if (_isInitialized) return;
 
-            _inputSystem = new ProjectDefaultInputSystem();
-            _inputSystem.Enable();
+            _inputActions = new ProjectInputActions();
+            _inputActions.Enable();
 
-            foreach (var controlScheme in _inputSystem.controlSchemes)
+            foreach (var controlScheme in _inputActions.controlSchemes)
             {
                 var scheme = controlScheme.name;
 
-                foreach (var map in _inputSystem.asset.actionMaps)
+                foreach (var map in _inputActions.asset.actionMaps)
                 {
                     foreach (var action in map.actions)
                     {
@@ -84,8 +84,8 @@ namespace Game.Core.Services
 
             DisablePlayer();
             DisableUI();
-            _inputSystem?.Dispose();
-            _inputSystem = null;
+            _inputActions?.Dispose();
+            _inputActions = null;
             _isInitialized = false;
 
             Debug.Log("[InputService] Shutdown");
@@ -258,8 +258,8 @@ namespace Game.Core.Services
 
         public InputAction FindInputAction(string actionMapName, string actionName)
         {
-            if (_inputSystem == null || string.IsNullOrEmpty(actionName)) return null;
-            var map = _inputSystem.asset.FindActionMap(actionMapName, throwIfNotFound: false);
+            if (_inputActions == null || string.IsNullOrEmpty(actionName)) return null;
+            var map = _inputActions.asset.FindActionMap(actionMapName, throwIfNotFound: false);
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
@@ -326,22 +326,22 @@ namespace Game.Core.Services
         }
 
         public string SaveBindingOverridesAsJson()
-            => _inputSystem != null ? _inputSystem.asset.SaveBindingOverridesAsJson() : string.Empty;
+            => _inputActions != null ? _inputActions.asset.SaveBindingOverridesAsJson() : string.Empty;
 
         public void LoadBindingOverrides(string json)
         {
-            if (_inputSystem == null || string.IsNullOrEmpty(json)) return;
-            _inputSystem.asset.LoadBindingOverridesFromJson(json);
+            if (_inputActions == null || string.IsNullOrEmpty(json)) return;
+            _inputActions.asset.LoadBindingOverridesFromJson(json);
         }
 
         public void ResetAllBindings()
-            => _inputSystem?.asset.RemoveAllBindingOverrides();
+            => _inputActions?.asset.RemoveAllBindingOverrides();
 
         public void ResetControlSchemeBindings(string scheme)
         {
-            if (_inputSystem == null || string.IsNullOrEmpty(scheme)) return;
+            if (_inputActions == null || string.IsNullOrEmpty(scheme)) return;
             // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する
-            foreach (var map in _inputSystem.asset.actionMaps)
+            foreach (var map in _inputActions.asset.actionMaps)
                 foreach (var action in map.actions)
                     foreach (var info in GetBindingsByControlScheme(scheme, action))
                         action.RemoveBindingOverride(info.Index);
@@ -422,7 +422,7 @@ namespace Game.Core.Services
                     .OnComplete(op =>
                     {
                         var newPath = action.bindings[bindingIndex].effectivePath;
-                        if (TryFindConflictAction(_inputSystem.asset, scheme, action, bindingIndex, newPath, out var conflictAction, out var conflictIndex))
+                        if (TryFindConflictAction(_inputActions.asset, scheme, action, bindingIndex, newPath, out var conflictAction, out var conflictIndex))
                         {
                             // 同一スキーム内で重複 → 相手へターゲットの旧キーを渡して入れ替える（swap）。
                             // 旧キーが相手の既定パスと一致するなら override を残さず解除する。

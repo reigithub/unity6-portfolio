@@ -11,13 +11,13 @@ namespace Game.Shared.Services
     /// </summary>
     public class InputService : IInputService, IDisposable
     {
-        private ProjectDefaultInputSystem _inputSystem;
+        private ProjectInputActions _inputSystem;
         private bool _isPlayerEnabled;
         private bool _isUIEnabled;
         private bool _isInitialized;
 
-        public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
-        public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
+        public ProjectInputActions.PlayerActions Player => _inputSystem.Player;
+        public ProjectInputActions.UIActions UI => _inputSystem.UI;
 
         public InputService()
         {
@@ -31,7 +31,7 @@ namespace Game.Shared.Services
         {
             if (_isInitialized) return;
 
-            _inputSystem = new ProjectDefaultInputSystem();
+            _inputSystem = new ProjectInputActions();
             _inputSystem.Enable();
 
             // デフォルトでUI入力を有効化

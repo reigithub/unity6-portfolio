@@ -13,13 +13,13 @@ namespace Game.Tests.MVC
     [TestFixture]
     public class InputSystemServiceRebindTests
     {
-        private ProjectDefaultInputSystem _input;
+        private ProjectInputActions _input;
         private InputActionAsset _asset;
 
         [SetUp]
         public void Setup()
         {
-            _input = new ProjectDefaultInputSystem();
+            _input = new ProjectInputActions();
             _asset = _input.asset;
         }
 

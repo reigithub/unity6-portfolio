@@ -89,7 +89,7 @@ namespace Game.Horror.Player
 
         private bool _initialized;
         private IInputSystemService _inputService;
-        private ProjectDefaultInputSystem.PlayerActions Player => _inputService.Player;
+        private ProjectInputActions.PlayerActions Player => _inputService.Player;
 
         private CharacterController _characterController;
 

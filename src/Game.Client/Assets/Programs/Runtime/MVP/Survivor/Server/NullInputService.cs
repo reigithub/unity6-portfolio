@@ -11,10 +11,10 @@ namespace Game.MVP.Survivor.Server
     /// </summary>
     public class NullInputService : IInputService
     {
-        private ProjectDefaultInputSystem _inputSystem = new();
+        private ProjectInputActions _inputSystem = new();
 
-        public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
-        public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
+        public ProjectInputActions.PlayerActions Player => _inputSystem.Player;
+        public ProjectInputActions.UIActions UI => _inputSystem.UI;
 
         public void Startup()
         {
