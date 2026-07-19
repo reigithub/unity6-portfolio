@@ -257,17 +257,10 @@ namespace Game.Core.Services
             int partsIndex = 0;
             foreach (var index in indices)
             {
-                {
-                    // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                    parts[partsIndex] = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw);
-                    partsIndex++;
-                }
-
-                {
-                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontUseShortDisplayNames);
-                    Debug.Log($"{InputBinding.DisplayStringOptions.DontUseShortDisplayNames}: {deviceLayoutName} : {controlPath} : {raw}");
-                }
+                // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
+                var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                parts[partsIndex] = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw);
+                partsIndex++;
             }
             return parts;
         }

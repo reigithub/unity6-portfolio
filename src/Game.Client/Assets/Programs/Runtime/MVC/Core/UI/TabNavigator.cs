@@ -33,6 +33,8 @@ namespace Game.Core.UI
         // ニュートラル/上下に戻った performed で false に戻す。
         private bool _latched;
 
+        public Observable<int> OnTabChanged => _tabGroup.OnTabChanged;
+
         private void Start()
         {
             // 初期化は初回のみ。子タブを構成し先頭タブを選択状態にする。
