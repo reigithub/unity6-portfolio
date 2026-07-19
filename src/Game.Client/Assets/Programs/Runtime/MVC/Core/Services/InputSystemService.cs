@@ -308,9 +308,21 @@ namespace Game.Core.Services
             return parts;
         }
 
-        public InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null)
+        public InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null, string fallbackScheme = null)
         {
-            return GetInputDeviceControlPaths(ControlScheme, actionMapName, actionName, partName)[0];
+            var paths = GetInputDeviceControlPaths(ControlScheme, actionMapName, actionName, partName);
+            if (paths.Length == 0)
+            {
+                if (!string.IsNullOrEmpty(fallbackScheme))
+                {
+                    var fallbacks = GetInputDeviceControlPaths(fallbackScheme, actionMapName, actionName, partName);
+                    if (fallbacks.Length > 0) return fallbacks[0];
+                }
+
+                return new InputDeviceControlPathInfo();
+            }
+
+            return paths[0];
         }
 
         public string SaveBindingOverridesAsJson()

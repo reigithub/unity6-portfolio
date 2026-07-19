@@ -52,7 +52,7 @@ namespace Game.Core.UI
 
             if (string.IsNullOrEmpty(_controlScheme) || string.Equals(_controlScheme, _inputService.ControlScheme))
             {
-                var info = _inputService.GetInputDeviceControlPath(_actionMapName, _actionName, _compositePartName);
+                var info = _inputService.GetInputDeviceControlPath(_actionMapName, _actionName, _compositePartName, fallbackScheme: InputControlSchemes.KeyboardAndMouse);
                 if (info.IsPartOfComposite)
                     sprite = _inputActionIconService.GetSprite(info.DeviceLayoutName, info.ControlPath); // 既にControlPathがCompositePartName相当
                 else

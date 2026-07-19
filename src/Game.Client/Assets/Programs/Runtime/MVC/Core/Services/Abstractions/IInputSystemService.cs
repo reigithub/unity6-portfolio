@@ -98,7 +98,7 @@ namespace Game.Core.Services
 
         InputDeviceControlPathInfo[] GetInputDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null);
 
-        InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null);
+        InputDeviceControlPathInfo GetInputDeviceControlPath(string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。

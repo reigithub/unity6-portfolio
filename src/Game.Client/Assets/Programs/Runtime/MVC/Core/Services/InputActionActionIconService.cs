@@ -77,6 +77,9 @@ namespace Game.Core.Services
 
         public Sprite GetSprite(string deviceLayoutName, string controlPath, string partName = null)
         {
+            if (string.IsNullOrEmpty(deviceLayoutName) || string.IsNullOrEmpty(controlPath))
+                return null;
+
             var deviceType = InputSystemHelper.GetInputDeviceType(deviceLayoutName);
             var identifier = deviceType.ToIdentifier();
             var spriteName = identifier + "_" + controlPath;
