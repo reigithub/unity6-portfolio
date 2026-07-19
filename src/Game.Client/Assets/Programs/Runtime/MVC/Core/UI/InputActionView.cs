@@ -21,7 +21,7 @@ namespace Game.Core.UI
 
         private bool _initialized;
         private IInputSystemService _inputService;
-        private IInputIconService _inputIconService;
+        private IInputActionIconService _inputActionIconService;
 
         public InputAction InputAction => _inputService.FindInputAction(_actionMapName, _actionName);
 
@@ -34,7 +34,7 @@ namespace Game.Core.UI
         {
             if (_initialized) return;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _inputIconService = GameServiceManager.Resolve<IInputIconService>();
+            _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
             _inputService.OnControlSchemeChanged.Subscribe(_ => OnDeviceChanged()).AddTo(this);
             _inputService.OnDeviceChanged
                 .Where(x => !x.deviceChange.IsDisconnected())
@@ -47,7 +47,7 @@ namespace Game.Core.UI
         private void OnDeviceChanged()
         {
             (string deviceLayoutName, string controlPath) = _inputService.GetDeviceControlPath(_actionMapName, _actionName);
-            var sprite = _inputIconService.GetSprite(deviceLayoutName, controlPath);
+            var sprite = _inputActionIconService.GetSprite(deviceLayoutName, controlPath);
             if (sprite != null)
             {
                 _actionIcon.color = Color.white;

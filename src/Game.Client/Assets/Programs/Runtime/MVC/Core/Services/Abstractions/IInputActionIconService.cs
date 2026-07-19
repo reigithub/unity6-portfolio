@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Game.Core.Services
 {
-    public interface IInputIconService
+    public interface IInputActionIconService
     {
         UniTask LoadAsync();
         void Unload();
