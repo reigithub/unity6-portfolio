@@ -35,7 +35,7 @@ namespace Game.Tests.PlayMode
         }
 
         private InputAction PlayerAction(IInputSystemService service, string name)
-            => service.InputActionAsset.FindActionMap("Player").FindAction(name);
+            => service.FindInputAction(InputActionMaps.Player, name);
 
         private int FirstIndex(InputAction action, string scheme)
             => InputSystemService.ResolveSchemeBindingIndices(scheme, action)[0];
@@ -150,7 +150,7 @@ namespace Game.Tests.PlayMode
 
             var completed = false;
             var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => completed = true,
+                () => completed = true,
                 () => { });
             yield return null;
 
@@ -186,7 +186,7 @@ namespace Game.Tests.PlayMode
 
             var completed = false;
             var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => completed = true,
+                () => completed = true,
                 () => { });
             yield return null;
 
@@ -217,7 +217,7 @@ namespace Game.Tests.PlayMode
 
             var canceled = false;
             var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => { },
+                () => { },
                 () => canceled = true);
             yield return null;
 

@@ -53,10 +53,10 @@ namespace Game.Core.UI
         }
 
         /// <summary>現在のバインド表示文字列を設定する。</summary>
-        public void SetDisplay(string bindingText)
+        public void SetDisplay(params string[] bindingTexts)
         {
             if (_bindingLabel != null)
-                _bindingLabel.text = bindingText;
+                _bindingLabel.text = string.Join("/", bindingTexts);
         }
 
         /// <summary>タイムアウトの残り時間表示を更新する（1=満タン, 0=タイムアウト）。</summary>

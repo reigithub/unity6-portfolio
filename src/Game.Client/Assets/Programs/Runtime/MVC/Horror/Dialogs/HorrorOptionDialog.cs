@@ -173,7 +173,7 @@ namespace Game.Horror.Dialogs
             foreach (var rebindView in SceneComponent.RebindingViews)
             {
                 var rebind = rebindView;
-                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
                 rebind.OnRebindRequested
@@ -186,10 +186,9 @@ namespace Game.Horror.Dialogs
                             rebind.Scheme,
                             rebind.ActionName,
                             rebind.CompositePartName,
-                            display =>
+                            () =>
                             {
                                 rebind.SetWaiting(false);
-                                // rebind.SetDisplay(display);
                                 _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebinding = null;
                                 _currentRebindingTimeout?.Dispose();
@@ -201,7 +200,7 @@ namespace Game.Horror.Dialogs
                             () =>
                             {
                                 rebind.SetWaiting(false);
-                                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
                                 _currentRebinding = null;
                                 _currentRebindingTimeout?.Dispose();
                                 _currentRebindingTimeout = null;
@@ -215,8 +214,8 @@ namespace Game.Horror.Dialogs
                             .Subscribe(_ =>
                             {
                                 elapsed += Time.unscaledDeltaTime; // ポーズ中(timeScale=0)でも進行
-                                rebind.SetTimeoutProgress(1f - elapsed / InputConstants.RebindTimeoutSeconds);
-                                if (elapsed >= InputConstants.RebindTimeoutSeconds)
+                                rebind.SetTimeoutProgress(1f - elapsed / InputConstants.RebindingTimeoutSeconds);
+                                if (elapsed >= InputConstants.RebindingTimeoutSeconds)
                                     _currentRebinding?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
                             });
                         _currentRebindingTimeout.AddTo(Disposables);
@@ -248,7 +247,7 @@ namespace Game.Horror.Dialogs
         {
             if (_currentRebinding != null) return;
             foreach (var rebind in SceneComponent.RebindingViews)
-                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
         }
 
         public override async UniTask Terminate()

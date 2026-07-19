@@ -1,10 +1,9 @@
 using System;
 using Game.Shared.Constants;
+using Game.Shared.Enums;
 using Game.Shared.Input;
 using Game.Shared.Services.Interfaces;
 using R3;
-using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 
@@ -53,7 +52,7 @@ namespace Game.Shared.Services
         /// <summary>デバイスレイアウトを family プレフィックスへ分類する（未知/未接続は空＝無印）。</summary>
         private static string ResolveDevicePrefix(string deviceLayoutName)
         {
-            var deviceName = InputSystemHelper.ResolveDeviceName(deviceLayoutName);
+            var deviceName = InputSystemHelper.GetInputDeviceType(deviceLayoutName).ToIdentifier();
             if (string.IsNullOrEmpty(deviceName)) return string.Empty;
             return deviceName + "/";
         }

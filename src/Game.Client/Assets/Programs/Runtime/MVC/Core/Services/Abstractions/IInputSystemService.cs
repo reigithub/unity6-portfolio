@@ -24,11 +24,6 @@ namespace Game.Core.Services
         ProjectDefaultInputSystem.UIActions UI { get; }
 
         /// <summary>
-        /// InputActionAsset 実体（このインスタンス上でゲームが動作する）
-        /// </summary>
-        InputActionAsset InputActionAsset { get; }
-
-        /// <summary>
         /// 操作スキーマ変更イベント
         /// </summary>
         Observable<string> OnControlSchemeChanged { get; }
@@ -86,14 +81,20 @@ namespace Game.Core.Services
 
         void ResolveControlScheme(GameObject selectedGameObject = null);
 
+        InputAction FindInputAction(string actionMapName, string actionName);
+
         /// <summary>
         /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
         /// コンポジット（WASD 等）は各パートを "/" 区切りで結合して返す。
         /// <paramref name="partName"/> を指定すると、コンポジットの該当パート1つのみの表示を返す。
         /// </summary>
-        string GetBindingDisplayString(string scheme, string actionName, string partName = null);
+        string[] GetBindingDisplayStrings(string scheme, string actionName, string partName = null);
 
         string GetBindingDisplayString(InputAction action);
+
+        (string deviceLayoutName, string controlPath)[] GetDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null);
+
+        (string deviceLayoutName, string controlPath) GetDeviceControlPath(string actionMapName, string actionName);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
@@ -106,7 +107,7 @@ namespace Game.Core.Services
         /// <param name="partName">コンポジットのパート名（up/down/left/right）。空＝全体/単体</param>
         /// <param name="onComplete">確定後に呼ばれる。引数は確定後の表示文字列</param>
         /// <param name="onCanceled">キャンセル時に呼ばれる</param>
-        IDisposable StartRebinding(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled);
+        IDisposable StartRebinding(string scheme, string actionName, string partName, Action onComplete, Action onCanceled);
 
         /// <summary>
         /// 現在のバインドオーバーライドを JSON 文字列として取得する（永続化用）。

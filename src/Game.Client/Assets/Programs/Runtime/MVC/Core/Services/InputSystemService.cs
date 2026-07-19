@@ -26,7 +26,6 @@ namespace Game.Core.Services
 
         public ProjectDefaultInputSystem.PlayerActions Player => _inputSystem.Player;
         public ProjectDefaultInputSystem.UIActions UI => _inputSystem.UI;
-        public InputActionAsset InputActionAsset => _inputSystem?.asset;
 
         private readonly Subject<string> _onControlSchemeChanged = new();
         public Observable<string> OnControlSchemeChanged => _onControlSchemeChanged;
@@ -239,35 +238,68 @@ namespace Game.Core.Services
 
         #region Rebinding
 
-        /// <summary>Player マップから指定名のアクションを解決する（露出対象は Player のみ）。</summary>
-        private InputAction ResolveAction(string actionName)
+        public InputAction FindInputAction(string actionMapName, string actionName)
         {
             if (_inputSystem == null || string.IsNullOrEmpty(actionName)) return null;
-            var map = _inputSystem.asset.FindActionMap("Player", throwIfNotFound: false);
+            var map = _inputSystem.asset.FindActionMap(actionMapName, throwIfNotFound: false);
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
-        public string GetBindingDisplayString(string scheme, string actionName, string partName = null)
+        public string[] GetBindingDisplayStrings(string scheme, string actionName, string partName = null)
         {
-            var action = ResolveAction(actionName);
-            if (action == null) return string.Empty;
+            var action = FindInputAction(InputActionMaps.Player, actionName);
+            if (action == null) return Array.Empty<string>();
 
             var indices = ResolveSchemeBindingIndices(scheme, action, partName);
-            if (indices.Count == 0) return string.Empty;
+            if (indices.Count == 0) return Array.Empty<string>();
 
-            var parts = new List<string>(indices.Count);
+            var parts = new string[indices.Count];
+            int partsIndex = 0;
             foreach (var index in indices)
             {
-                // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
-                var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
-                parts.Add(_localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw));
+                {
+                    // 既定の英語表示・デバイスレイアウト・controlPath を取得し、family 別ローカライズ名へ変換（未登録は英語へフォールバック）
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                    parts[partsIndex] = _localizationService.GetStringByInputControls(deviceLayoutName, controlPath, raw);
+                    partsIndex++;
+                }
+
+                {
+                    var raw = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath, InputBinding.DisplayStringOptions.DontUseShortDisplayNames);
+                    Debug.Log($"{InputBinding.DisplayStringOptions.DontUseShortDisplayNames}: {deviceLayoutName} : {controlPath} : {raw}");
+                }
             }
-            return string.Join("/", parts);
+            return parts;
         }
 
         public string GetBindingDisplayString(InputAction action)
         {
-            return GetBindingDisplayString(_controlScheme, action.name);
+            return GetBindingDisplayStrings(_controlScheme, action.name)[0];
+        }
+
+        public (string deviceLayoutName, string controlPath)[] GetDeviceControlPaths(string scheme, string actionMapName, string actionName, string partName = null)
+        {
+            var action = FindInputAction(actionMapName, actionName);
+            if (action == null) return Array.Empty<(string, string)>();
+
+            var indices = ResolveSchemeBindingIndices(scheme, action, partName);
+            if (indices.Count == 0) return Array.Empty<(string, string)>();
+
+            var parts = new (string deviceLayoutName, string controlPath)[indices.Count];
+            int partsIndex = 0;
+            foreach (var index in indices)
+            {
+                _ = action.GetBindingDisplayString(index, out var deviceLayoutName, out var controlPath);
+                parts[partsIndex] = (deviceLayoutName, controlPath);
+                partsIndex++;
+            }
+
+            return parts;
+        }
+
+        public (string deviceLayoutName, string controlPath) GetDeviceControlPath(string actionMapName, string actionName)
+        {
+            return GetDeviceControlPaths(_controlScheme, actionMapName, actionName)[0];
         }
 
         public string SaveBindingOverridesAsJson()
@@ -294,15 +326,15 @@ namespace Game.Core.Services
 
         public void ResetBinding(string scheme, string actionName, string partName = null)
         {
-            var action = ResolveAction(actionName);
+            var action = FindInputAction(InputActionMaps.Player, actionName);
             if (action == null) return;
             foreach (var index in ResolveSchemeBindingIndices(scheme, action, partName))
                 action.RemoveBindingOverride(index);
         }
 
-        public IDisposable StartRebinding(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled)
+        public IDisposable StartRebinding(string scheme, string actionName, string partName, Action onComplete, Action onCanceled)
         {
-            var action = ResolveAction(actionName);
+            var action = FindInputAction(InputActionMaps.Player, actionName);
             if (action == null)
             {
                 onCanceled?.Invoke();
@@ -340,7 +372,7 @@ namespace Game.Core.Services
                 if (listIndex >= indices.Count)
                 {
                     Finish();
-                    onComplete?.Invoke(GetBindingDisplayString(scheme, actionName, partName));
+                    onComplete?.Invoke();
                     return;
                 }
 
