@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Core.UI;
 using Game.Horror.Enums;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
@@ -20,6 +21,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IInputActionIconService _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
         private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
         private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
@@ -192,41 +194,41 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // Controls（キーリバインド）
-            foreach (var rebindView in SceneComponent.RebindingViews)
+            foreach (var rebindingView in SceneComponent.RebindingViews)
             {
-                var rebind = rebindView;
-                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                var rebinding = rebindingView;
+                RefreshBindingDisplay(rebinding);
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
-                rebind.OnRebindRequested
+                rebinding.OnRebindRequested
                     .Where(_ => State.IsProcessing() && _currentRebinding == null)
                     .Subscribe(_ =>
                     {
-                        rebind.SetWaiting(true);
-                        rebind.SetTimeoutProgress(1f);
+                        rebinding.SetWaiting(true);
+                        rebinding.SetTimeoutProgress(1f);
                         _currentRebinding = _inputService.StartRebinding(
-                            rebind.Scheme,
-                            rebind.ActionName,
-                            rebind.CompositePartName,
+                            rebinding.ControlScheme,
+                            rebinding.ActionName,
+                            rebinding.CompositePartName,
                             () =>
                             {
-                                rebind.SetWaiting(false);
+                                rebinding.SetWaiting(false);
                                 _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
                                 _currentRebinding = null;
                                 _currentRebindingTimeout?.Dispose();
                                 _currentRebindingTimeout = null;
                                 // swap で旧キーが移った相手行も含め全行を再表示（ターゲット行も更新される）
                                 RefreshBindingDisplays();
-                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
+                                _inputService.SetSelectedGameObject(rebinding.Selectable.gameObject);
                             },
                             () =>
                             {
-                                rebind.SetWaiting(false);
-                                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                                rebinding.SetWaiting(false);
                                 _currentRebinding = null;
                                 _currentRebindingTimeout?.Dispose();
                                 _currentRebindingTimeout = null;
-                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
+                                RefreshBindingDisplay(rebinding);
+                                _inputService.SetSelectedGameObject(rebinding.Selectable.gameObject);
                             });
                         _currentRebinding.AddTo(Disposables);
 
@@ -237,7 +239,7 @@ namespace Game.Horror.Dialogs
                             {
                                 const float TimeoutSec = InputConstants.RebindingTimeoutSeconds;
                                 elapsed += Time.unscaledDeltaTime; // ポーズ中(timeScale=0)でも進行
-                                rebind.SetTimeoutProgress(1f - elapsed / TimeoutSec);
+                                rebinding.SetTimeoutProgress(1f - elapsed / TimeoutSec);
                                 if (elapsed >= TimeoutSec)
                                     _currentRebinding?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
                             });
@@ -287,11 +289,18 @@ namespace Game.Horror.Dialogs
             _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
         }
 
+        private void RefreshBindingDisplay(InputActionRebindingView view)
+        {
+            var info = _inputService.GetBindingInfo(view.ControlScheme, view.ActionMapName, view.ActionName, view.CompositePartName);
+            view.SetDisplay(info.DisplayName);
+            view.SetIcon(_inputActionIconService.GetSprite(info));
+        }
+
         private void RefreshBindingDisplays()
         {
             if (_currentRebinding != null) return;
-            foreach (var rebind in SceneComponent.RebindingViews)
-                rebind.SetDisplay(_inputService.GetBindingDisplayStrings(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+            foreach (var rebindingView in SceneComponent.RebindingViews)
+                RefreshBindingDisplay(rebindingView);
         }
 
         private void SetInputActionGuide()
