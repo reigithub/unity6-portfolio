@@ -307,7 +307,7 @@ namespace Game.Core.Services
         public void ResetAllBindings()
             => _inputSystem?.asset.RemoveAllBindingOverrides();
 
-        public void ResetSchemeBindings(string scheme)
+        public void ResetControlSchemeBindings(string scheme)
         {
             if (_inputSystem == null || string.IsNullOrEmpty(scheme)) return;
             // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する

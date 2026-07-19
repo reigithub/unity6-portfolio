@@ -125,7 +125,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(padIdx, "<Gamepad>/buttonNorth");
 
             // Gamepad のみリセット
-            _service.ResetSchemeBindings(InputControlSchemes.Gamepad);
+            _service.ResetControlSchemeBindings(InputControlSchemes.Gamepad);
 
             Assert.That(jump.bindings[padIdx].effectivePath, Is.EqualTo(padDefault),
                 "対象スキーム（Gamepad）は既定へ戻る");
@@ -133,7 +133,7 @@ namespace Game.Tests.PlayMode
                 "他スキーム（KBM）の override は保持される");
 
             // KBM もリセットすると既定へ戻る
-            _service.ResetSchemeBindings(InputControlSchemes.KeyboardAndMouse);
+            _service.ResetControlSchemeBindings(InputControlSchemes.KeyboardAndMouse);
             Assert.That(jump.bindings[kbmIdx].effectivePath, Is.EqualTo(kbmDefault));
             yield return null;
         }

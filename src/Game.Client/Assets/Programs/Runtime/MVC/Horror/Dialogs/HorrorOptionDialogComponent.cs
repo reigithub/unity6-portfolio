@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Game.Core.UI;
+using Game.Horror.Enums;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Constants;
 using R3;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace Game.Horror.Dialogs
 {
@@ -13,7 +13,16 @@ namespace Game.Horror.Dialogs
     {
         #region SerializeField
 
+        [Header("MainTab")]
         [SerializeField] private TabGroup _tabGroup;
+        [SerializeField] private GenericValues<HorrorOptionTabCategory> _tabCategories;
+
+        [Header("SubTab")]
+        [SerializeField] private TabGroup _controlsTabGroup;
+        [SerializeField] private GenericValues<HorrorOptionTabSubCategory> _controlsTabCategories;
+
+        [Header("InputAction Guide")]
+        [SerializeField] private InputActionGuildView _inputActionGuildView;
 
         [Header("Options - Gameplay")]
         [SerializeField] private SliderIndexSelector _language;
@@ -29,13 +38,13 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
-        [Header("Options - Control")]
+        [Header("Options - Controls")]
         [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
         [SerializeField] private InputActionRebindingView[] _rebindingViews;
-        [SerializeField] private Button _resetKeyboardBindingsButton;
-        [SerializeField] private Button _resetGamepadBindingsButton;
+        // [SerializeField] private Button _resetKeyboardBindingsButton;
+        // [SerializeField] private Button _resetGamepadBindingsButton;
 
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _displayMode;
@@ -56,6 +65,18 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _seVolume;
 
         #endregion
+
+        #region Observables
+
+        public Observable<HorrorOptionTabCategory> OnCategoryChanged => _tabGroup.OnTabChanged.Select(x => _tabCategories[x]);
+
+        public Observable<HorrorOptionTabSubCategory> OnSubCategoryChanged
+            => _controlsTabGroup.OnTabChanged.Select(x => _controlsTabCategories[x]);
+            // Multiple Sub TabGroup
+            // => Observable.Merge(
+            //     _gameTabGroup.OnTabChanged.Select(x => _gameTabCategories[x]),
+            //     _controlsTabGroup.OnTabChanged.Select(x => _controlsTabCategories[x])
+            //     );
 
         #region Options - Game
 
@@ -91,9 +112,9 @@ namespace Game.Horror.Dialogs
         public IReadOnlyList<InputActionRebindingView> RebindingViews => _rebindingViews;
 
         /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
-        public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
-            _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.KeyboardAndMouse),
-            _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.Gamepad));
+        // public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
+        //     _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.KeyboardAndMouse),
+        //     _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.Gamepad));
 
         #endregion
 
@@ -106,9 +127,12 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
+        #endregion
+
         public void Initialize(HorrorOptionSaveData d)
         {
             _tabGroup.Initialize();
+            _inputActionGuildView.Initialize();
 
             // Gameplay
             _language.SetIndex(_languageValues[d.LanguageCode]);
@@ -155,5 +179,8 @@ namespace Game.Horror.Dialogs
             }
             return 0;
         }
+
+        public void SetInputActionGuide(params InputAction[] actions)
+            => _inputActionGuildView.SetInputActions(actions);
     }
 }

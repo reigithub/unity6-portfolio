@@ -9249,6 +9249,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 1
   _actionMapName: UI
   _actionName: Previous
   _actionIcon: {fileID: 1147456718713932609}
@@ -9633,7 +9634,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2774c497ed3947f2b6b56bb5bdb0edfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Dialogs.HorrorOptionDialogComponent
-  _tabGroup: {fileID: 6001746278845215726}
+  _tabGroup: {fileID: 2346590540820486383}
+  _tabCategories:
+    _values: 00000000010000000200000003000000
+  _controlsTabGroup: {fileID: 5541348642751782154}
+  _controlsTabCategories:
+    _values: 010000000200000003000000
+  _inputActionGuildView: {fileID: 8460447253640126928}
   _language: {fileID: 8057969084045309149}
   _languageValues:
     _values:
@@ -9646,7 +9653,6 @@ MonoBehaviour:
   _cameraAcceleration: {fileID: 5034806626400326733}
   _cameraShake: {fileID: 6091120944871176203}
   _cameraFov: {fileID: 5931232012331526539}
-  _controlTabSubGroup: {fileID: 5338442195648686779}
   _sprintMode: {fileID: 340475140887257042}
   _crouchMode: {fileID: 5203628292959742774}
   _rebindingViews:
@@ -9676,8 +9682,6 @@ MonoBehaviour:
   - {fileID: 8306092837982272885}
   - {fileID: 555912328776376991}
   - {fileID: 8824862592561209085}
-  _resetKeyboardBindingsButton: {fileID: 8376106062699799602}
-  _resetGamepadBindingsButton: {fileID: 528605016438781577}
   _displayMode: {fileID: 2085120412950753882}
   _displayModeValues:
     _values: 020000000100000003000000
@@ -10056,6 +10060,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 1
   _actionMapName: UI
   _actionName: Previous2
   _actionIcon: {fileID: 1371159982471288822}
@@ -13548,7 +13553,7 @@ MonoBehaviour:
     m_Mode: 4
     m_WrapAround: 1
     m_SelectOnUp: {fileID: 7097949041855434345}
-    m_SelectOnDown: {fileID: 528605016438781577}
+    m_SelectOnDown: {fileID: 829779532068614232}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
@@ -19765,6 +19770,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 0
   _actionMapName: UI
   _actionName: Cancel
   _actionIcon: {fileID: 5873864285022377865}
@@ -21779,7 +21785,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4198531181667878670
 RectTransform:
   m_ObjectHideFlags: 0
@@ -25143,6 +25149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 1
   _actionMapName: UI
   _actionName: Next2
   _actionIcon: {fileID: 5775188374464411120}
@@ -27294,7 +27301,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 1
-    m_SelectOnUp: {fileID: 8376106062699799602}
+    m_SelectOnUp: {fileID: 2935972373493514892}
     m_SelectOnDown: {fileID: 5008640546479254672}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
@@ -31393,6 +31400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 0
   _actionMapName: UI
   _actionName: Reset
   _actionIcon: {fileID: 915677447492804300}
@@ -33686,6 +33694,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 0
   _actionMapName: UI
   _actionName: Submit
   _actionIcon: {fileID: 6029993426612051876}
@@ -38410,7 +38419,7 @@ MonoBehaviour:
   m_Navigation:
     m_Mode: 4
     m_WrapAround: 1
-    m_SelectOnUp: {fileID: 528605016438781577}
+    m_SelectOnUp: {fileID: 4366145169459543112}
     m_SelectOnDown: {fileID: 2817452229197730604}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
@@ -41717,7 +41726,7 @@ MonoBehaviour:
     m_Mode: 4
     m_WrapAround: 1
     m_SelectOnUp: {fileID: 2847389677065127522}
-    m_SelectOnDown: {fileID: 8376106062699799602}
+    m_SelectOnDown: {fileID: 4423970100486267297}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
@@ -45272,8 +45281,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7083184264077400265}
   - component: {fileID: 4239424254074935478}
+  - component: {fileID: 8460447253640126928}
   m_Layer: 5
-  m_Name: InputGuideMenu
+  m_Name: InputActionGuide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45327,6 +45337,22 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &8460447253640126928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7174632854588927583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0936944d90394a699231913b0801290b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuildView
+  _inputActionViews:
+  - {fileID: 4109276114088587859}
+  - {fileID: 4216360280635644287}
+  - {fileID: 2633319891441544900}
 --- !u!1 &7178903521677035077
 GameObject:
   m_ObjectHideFlags: 0
@@ -47591,7 +47617,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8611613387751344051
 RectTransform:
   m_ObjectHideFlags: 0
@@ -56618,6 +56644,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f7e9c6cb45745549e43a2f565ee13bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.InputActionGuideView
+  _initializeOnStart: 1
   _actionMapName: UI
   _actionName: Next
   _actionIcon: {fileID: 5887993031673203058}

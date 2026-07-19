@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Game.Shared.Input;
 using R3;
 using UnityEngine;
@@ -134,6 +133,6 @@ namespace Game.Core.Services
         /// 指定スキーム（Keyboard&amp;Mouse / Gamepad 等）に属するバインドオーバーライドのみを既定へ戻す。
         /// 全アクションマップを対象とし、他スキームのオーバーライドは保持する。
         /// </summary>
-        void ResetSchemeBindings(string scheme);
+        void ResetControlSchemeBindings(string scheme);
     }
 }
