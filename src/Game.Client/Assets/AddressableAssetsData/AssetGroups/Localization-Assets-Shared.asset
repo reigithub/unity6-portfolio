@@ -16,7 +16,7 @@ MonoBehaviour:
   m_GUID: 451666f5d0e2643409edecbc7af33bb7
   m_SerializeEntries:
   - m_GUID: 0252908f50cdd1b4699d01422aa45d9b
-    m_Address: Assets/Localization/Tables/String/InteractionMessages Shared Data.asset
+    m_Address: Assets/Localization/Tables/String/Messages Shared Data.asset
     m_ReadOnly: 1
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

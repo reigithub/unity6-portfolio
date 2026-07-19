@@ -41,7 +41,7 @@ MonoBehaviour:
     - Locale-en
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a9aa40b0a66e2b747a851c060038d943
-    m_Address: InteractionMessages_en
+    m_Address: Messages_en
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-en

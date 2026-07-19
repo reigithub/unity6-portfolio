@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
-  m_Name: InteractionMessages Shared Data
+  m_Name: Messages Shared Data
   m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
-  m_TableCollectionName: InteractionMessages
+  m_TableCollectionName: Messages
   m_TableCollectionNameGuidString: 0252908f50cdd1b4699d01422aa45d9b
   m_Entries:
   - m_Id: 2000202125312

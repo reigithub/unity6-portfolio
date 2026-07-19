@@ -22,7 +22,7 @@ MonoBehaviour:
     - Locale-ja
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5ee0655136a28074b9b2f60a229d32c2
-    m_Address: InteractionMessages_ja
+    m_Address: Messages_ja
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-ja
