@@ -57,6 +57,10 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
             await iconService.LoadAsync();
 
+            var inputIconService = new InputIconService(assetService);
+            GameServiceManager.Register<IInputIconService, InputIconService>(inputIconService);
+            await inputIconService.LoadAsync();
+
             // セーブデータストレージ構築
             var keyProvider = new AppSharedKeyProvider();
             keyProvider.Prewarm();
