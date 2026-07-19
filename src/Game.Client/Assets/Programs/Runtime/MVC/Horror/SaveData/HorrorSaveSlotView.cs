@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Game.Horror.Dialogs
+namespace Game.Horror.SaveData
 {
     /// <summary>
     /// セーブスロット一覧のスロット行 View。表示テキストの反映のみを担い、
