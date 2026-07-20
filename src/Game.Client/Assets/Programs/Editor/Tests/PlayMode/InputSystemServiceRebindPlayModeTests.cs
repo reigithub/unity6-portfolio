@@ -209,6 +209,8 @@ namespace Game.Tests.PlayMode
         public IEnumerator StartRebind_Dispose_CancelsAndRestoresEnabled()
         {
             _service.Startup();
+            // StartRebinding は開始前の enabled 状態へ復元する仕様のため、復元対象となる有効状態を事前に作る
+            _service.EnablePlayer();
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");

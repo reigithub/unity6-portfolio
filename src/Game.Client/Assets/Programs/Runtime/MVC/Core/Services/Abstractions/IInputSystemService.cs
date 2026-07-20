@@ -45,7 +45,7 @@ namespace Game.Core.Services
         /// <summary>
         /// プレイヤー入力を有効化する
         /// </summary>
-        void EnablePlayer();
+        void EnablePlayer(bool forceEnable = false);
 
         /// <summary>
         /// プレイヤー入力を無効化する（メニュー表示中等）
@@ -55,7 +55,7 @@ namespace Game.Core.Services
         /// <summary>
         /// UI入力を有効化する
         /// </summary>
-        void EnableUI();
+        void EnableUI(bool forceEnable = false);
 
         /// <summary>
         /// UI入力を無効化する
@@ -75,7 +75,7 @@ namespace Game.Core.Services
         /// <summary>
         /// 特定のインプットアクションを無効化するスコープ
         /// </summary>
-        IDisposable BlockInputActions(params InputAction[] actions);
+        IDisposable BlockInputAction(InputAction action);
 
         GameObject GetSelectedGameObject();
 

@@ -91,6 +91,13 @@ namespace Game.Horror.Player
         private IInputSystemService _inputService;
         private ProjectInputActions.PlayerActions Player => _inputService.Player;
 
+        private IAudioService _audioService;
+        private IMessagePipeService _messagePipeService;
+        private IScriptableDatabaseService _dbService;
+        private IHorrorEquipmentService _equipmentService;
+        private IHorrorInventoryService _inventoryService;
+        private IHorrorPlayerService _playerService;
+
         private CharacterController _characterController;
 
         // ステートマシーン
@@ -108,7 +115,6 @@ namespace Game.Horror.Player
 
         // 攻撃（ハンドガン）：マスター値・銃声発行サービス・起動入力フラグ（硬直経過は AttackingState ローカル）
         private HorrorWeaponMaster _weaponMaster;
-        private IMessagePipeService _messagePipeService;
         private bool _attackTriggered;
 
         // 発砲カメラリコイル（減衰オフセット型）。強度・回復秒は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
@@ -116,17 +122,13 @@ namespace Game.Horror.Player
         private float _recoilWeight;
 
         // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
-        private IHorrorEquipmentService _equipmentService;
-        private IScriptableDatabaseService _dbService;
         private bool _equipTriggered;
         private int _equipSlotIndex;
         private InventorySlotType _pendingEquipType;
         private int _pendingEquipId;
         private HorrorWeaponMaster _pendingWeaponMaster;
 
-        // リロード：インベントリセーブサービス（予備弾の所持数参照）・SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
-        private IHorrorInventoryService _inventoryService;
-        private IAudioService _audioService;
+        // リロード：SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private bool _reloadTriggered;
 
         /// <summary>
@@ -207,7 +209,6 @@ namespace Game.Horror.Player
 
         private int _currentHealth;                              // 残 HP（Initialize でセーブデータから復元）
         private float _lastDamageTime = float.NegativeInfinity;  // 最終被弾時刻（Time.time）。負の無限大=未被弾
-        private IHorrorPlayerService _playerService;
 
         // 死亡から GameOverDialog 表示までの演出ディレイ（ms）。被弾フラッシュ・SE を見せてから遷移する
         private const int GameOverDelayMilliseconds = 1200;
@@ -215,7 +216,7 @@ namespace Game.Horror.Player
         public void Initialize(HorrorOptionSaveData data)
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _inputService.EnablePlayer();
+            _inputService.EnablePlayer(forceEnable: true);
 
             _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             _audioService = GameServiceManager.Resolve<IAudioService>();

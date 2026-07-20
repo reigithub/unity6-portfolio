@@ -21,7 +21,7 @@ namespace Game.Horror.Dialogs
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             bool result;
             using (inputService.BlockPlayer())
-            using (inputService.BlockInputActions(inputService.UI.Menu))
+            using (inputService.BlockInputAction(inputService.UI.Menu))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorInventoryDialog, bool>();

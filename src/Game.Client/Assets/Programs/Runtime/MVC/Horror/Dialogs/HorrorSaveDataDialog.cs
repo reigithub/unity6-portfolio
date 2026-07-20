@@ -41,7 +41,8 @@ namespace Game.Horror.Dialogs
             int result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
-            using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
+            using (inputService.BlockInputAction(inputService.UI.Menu))
+            using (inputService.BlockInputAction(inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 var args = new HorrorSaveDataDialogArgs { Slots = slots, SaveMode = saveMode };

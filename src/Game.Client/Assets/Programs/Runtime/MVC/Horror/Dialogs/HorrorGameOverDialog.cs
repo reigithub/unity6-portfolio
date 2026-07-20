@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
@@ -7,6 +8,7 @@ using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using R3;
+using UnityEngine.InputSystem;
 
 namespace Game.Horror.Dialogs
 {
@@ -23,7 +25,8 @@ namespace Game.Horror.Dialogs
             bool result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
-            using (inputService.BlockInputActions(inputService.UI.Menu, inputService.UI.Inventory))
+            using (inputService.BlockInputAction(inputService.UI.Menu))
+            using (inputService.BlockInputAction(inputService.UI.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorGameOverDialog, bool>();

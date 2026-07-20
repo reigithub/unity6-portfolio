@@ -210,14 +210,10 @@ namespace Game.MVC.Core.Scenes
             => GameSceneHelper.GetSceneComponent<TGameSceneComponent>(_instance);
 
         public async UniTask FadeInAsync(float duration = 0.3f)
-        {
-            await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeIn, true);
-        }
+            => await _messagePipeService.PublishAsync(new MessageSignals.GameScene.FadeIn());
 
         public async UniTask FadeOutAsync(float duration = 0.3f)
-        {
-            await _messagePipeService.PublishAsync(MessageKey.GameScene.FadeOut, true);
-        }
+            => await _messagePipeService.PublishAsync(new MessageSignals.GameScene.FadeOut());
     }
 
     // コンポーネント付きのUnityScene

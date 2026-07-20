@@ -19,9 +19,8 @@ namespace Game.Core.Services
 
         private ProjectInputActions _inputActions;
         private bool _isInitialized;
+        private readonly Dictionary<InputAction, int> _blockCounts = new();
         private GameObject _selectedGameObject;
-        private int _playerBlockCount;
-        private int _uiBlockCount;
 
         public ProjectInputActions.PlayerActions Player => _inputActions.Player;
         public ProjectInputActions.UIActions UI => _inputActions.UI;
@@ -52,7 +51,17 @@ namespace Game.Core.Services
             if (_isInitialized) return;
 
             _inputActions = new ProjectInputActions();
-            _inputActions.Enable();
+            // _inputActions.Enable();
+
+            // デフォルトでUI入力を有効化
+            _inputActions.Player.Disable();
+            _inputActions.UI.Enable();
+
+            foreach (var action in _inputActions)
+                _blockCounts[action] = 0;
+
+            _isInitialized = true;
+            Debug.Log("[InputService] Initialized");
 
             // foreach (var controlScheme in _inputActions.controlSchemes)
             // {
@@ -70,87 +79,87 @@ namespace Game.Core.Services
             //         }
             //     }
             // }
-
-            // デフォルトでUI入力を有効化
-            EnableUI();
-
-            _isInitialized = true;
-            Debug.Log("[InputService] Initialized");
         }
 
         public void Shutdown()
         {
             if (!_isInitialized) return;
 
-            DisablePlayer();
-            DisableUI();
+            _inputActions.Disable();
             _inputActions?.Dispose();
             _inputActions = null;
-            _isInitialized = false;
 
+            _blockCounts.Clear();
+
+            _isInitialized = false;
             Debug.Log("[InputService] Shutdown");
         }
 
-        public void EnablePlayer()
-        {
-            if (Player.enabled) return;
-            Player.Enable();
-        }
+        public void EnablePlayer(bool forceEnable = false)
+            => EnableInputActionMap(Player.Get(), forceEnable);
 
         public void DisablePlayer()
-        {
-            if (!Player.enabled) return;
-            Player.Disable();
-        }
+            => DisableInputActionMap(Player.Get());
 
-        public void EnableUI()
-        {
-            if (UI.enabled) return;
-            UI.Enable();
-        }
+        public void EnableUI(bool forceEnable = false)
+            => EnableInputActionMap(UI.Get(), forceEnable);
 
         public void DisableUI()
-        {
-            if (!UI.enabled) return;
-            UI.Disable();
-        }
+            => DisableInputActionMap(UI.Get());
 
-        public IDisposable BlockPlayer()
+        public IDisposable BlockPlayer() => BlockInputActionMap(Player.Get());
+
+        public IDisposable BlockUI() => BlockInputActionMap(UI.Get());
+
+        public IDisposable BlockInputAction(InputAction action)
         {
-            if (_playerBlockCount++ <= 0) DisablePlayer();
+            if (_blockCounts[action]++ <= 0)
+                action.Disable();
 
             return Disposable.Create(() =>
             {
-                if (--_playerBlockCount <= 0)
+                if (--_blockCounts[action] <= 0)
                 {
-                    EnablePlayer();
-                    _playerBlockCount = 0;
+                    action.Enable();
+                    _blockCounts[action] = 0;
                 }
             });
         }
 
-        public IDisposable BlockUI()
-        {
-            if (_uiBlockCount++ <= 0) DisableUI();
+        private IDisposable BlockInputActionMap(InputActionMap actionMap)
+            => BlockInputActions(actionMap.actions);
 
-            return Disposable.Create(() =>
-            {
-                if (--_uiBlockCount <= 0)
-                {
-                    EnableUI();
-                    _uiBlockCount = 0;
-                }
-            });
+        private IDisposable BlockInputActions(IReadOnlyList<InputAction> actions)
+        {
+            DisableInputActions(actions);
+            return Disposable.Create(() => EnableInputActions(actions));
         }
 
-        public IDisposable BlockInputActions(params InputAction[] actions)
-        {
-            foreach (var action in actions) action.Disable();
+        private void EnableInputActionMap(InputActionMap actionMap, bool forceEnable = false)
+            => EnableInputActions(actionMap.actions, forceEnable);
 
-            return Disposable.Create(() =>
+        private void DisableInputActionMap(InputActionMap actionMap)
+            => DisableInputActions(actionMap.actions);
+
+        private void EnableInputActions(IReadOnlyList<InputAction> actions, bool forceEnable = false)
+        {
+            foreach (InputAction action in actions)
             {
-                foreach (var action in actions) action.Enable();
-            });
+                if (forceEnable || --_blockCounts[action] <= 0)
+                {
+                    action.Enable();
+                    _blockCounts[action] = 0;
+                }
+            }
+        }
+
+        private void DisableInputActions(IReadOnlyList<InputAction> actions)
+        {
+            foreach (InputAction action in actions)
+            {
+                if (_blockCounts[action]++ <= 0)
+                    action.Disable();
+            }
         }
 
         #endregion
