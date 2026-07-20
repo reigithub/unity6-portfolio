@@ -398,7 +398,7 @@ GameObject:
   - component: {fileID: 7538165943794404469}
   - component: {fileID: 7064016815977362283}
   m_Layer: 0
-  m_Name: HorrorGameRootController
+  m_Name: HorrorGameRootContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

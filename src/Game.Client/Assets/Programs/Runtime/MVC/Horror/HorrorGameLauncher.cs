@@ -103,7 +103,10 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
 
             // 共通オブジェクト読み込み
-            await HorrorGameRootController.LoadAssetAsync();
+            var gameRootService = new HorrorGameRootService(assetService, inputSystemService, messagePipeService, optionSaveRepository);
+            GameServiceManager.Register<IHorrorGameRootService, HorrorGameRootService>(gameRootService);
+            await gameRootService.LoadAsync();
+            await gameRootService.GlobalFadeOutAsync();
 
             // 5. 初期シーン遷移
             var gameSceneService = new GameSceneService();
@@ -113,13 +116,16 @@ namespace Game.Horror
 
         public async UniTask ShutdownAsync()
         {
-            await HorrorGameRootController.UnloadAsync();
+            var gameRootService = GameServiceManager.Resolve<IHorrorGameRootService>();
+            await gameRootService.GlobalFadeOutAsync();
             var gameSceneService = GameServiceManager.Resolve<IGameSceneService>();
             await gameSceneService.TerminateAllAsync();
             var audioService = GameServiceManager.Resolve<IAudioService>();
             audioService.Unload();
             var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             iconService.Unload();
+            gameRootService.Unload();
+            await UniTask.Yield();
             GameServiceManager.Shutdown();
             await UniTask.Yield();
         }
