@@ -1269,6 +1269,17 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
+                    ""id"": ""fbf1ad26-0d02-4a0f-a608-4300311bf6fb"",
+                    ""path"": ""<Mouse>/forwardButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Previous"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""a6f25601-32ff-4487-baca-3913a5886178"",
                     ""path"": ""<Gamepad>/leftTrigger"",
                     ""interactions"": """",
@@ -1304,6 +1315,17 @@ namespace Game.Shared.Input
                     ""name"": """",
                     ""id"": ""b44df29f-8999-4151-b7ff-5f239b8f1a1c"",
                     ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Next"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3b122ae0-6f03-42ef-a20b-c96a069de823"",
+                    ""path"": ""<Mouse>/backButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
