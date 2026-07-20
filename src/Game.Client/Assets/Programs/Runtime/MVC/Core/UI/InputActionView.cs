@@ -17,6 +17,7 @@ namespace Game.Core.UI
         [SerializeField] private string _actionMapName = InputActionMaps.UI;
         [SerializeField] private string _actionName;
         [SerializeField] private string _compositePartName;
+        [SerializeField] private string _fallbackControlScheme = InputControlSchemes.KeyboardAndMouse;
 
         [Header("Display")]
         [SerializeField] private Image _actionIcon;
@@ -52,7 +53,7 @@ namespace Game.Core.UI
 
             if (string.IsNullOrEmpty(_controlScheme) || string.Equals(_controlScheme, _inputService.ControlScheme))
             {
-                var info = _inputService.GetBindingInfo(ResolveControlScheme(), _actionMapName, _actionName, _compositePartName, InputControlSchemes.KeyboardAndMouse);
+                var info = _inputService.GetBindingInfo(ResolveControlScheme(), _actionMapName, _actionName, _compositePartName, _fallbackControlScheme);
                 sprite = _inputActionIconService.GetSprite(info);
             }
 
@@ -72,7 +73,7 @@ namespace Game.Core.UI
         {
             if (!string.IsNullOrEmpty(_controlScheme)) return _controlScheme;
             if (!string.IsNullOrEmpty(_inputService.ControlScheme)) return _inputService.ControlScheme;
-            return InputControlSchemes.KeyboardAndMouse;
+            return _fallbackControlScheme;
         }
     }
 }
