@@ -1095,6 +1095,16 @@ namespace Game.Editor.Tests
             public UniTask Sleep() => UniTask.CompletedTask;
             public UniTask Restart() => UniTask.CompletedTask;
             public UniTask Terminate() => UniTask.CompletedTask;
+
+            public bool TrySetResult(int result)
+            {
+                Result = result;
+                return ResultTcs.TrySetResult(result);
+            }
+
+            public bool TrySetCanceled() => ResultTcs.TrySetCanceled();
+
+            public bool TrySetException(Exception e) => ResultTcs.TrySetException(e);
         }
 
         private class MockGameSceneWithArg : IGameScene, IGameSceneArg<string>

@@ -311,6 +311,7 @@ namespace Game.Core.Services
                 await DoFadeOutAsync(gameScene);
                 await gameScene.Terminate();
                 gameScene.Disposables?.Dispose();
+                if (gameScene is IGameSceneResult result) result.TrySetCanceled();
             }
         }
 

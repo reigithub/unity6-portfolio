@@ -79,6 +79,8 @@ namespace Game.MVC.Core.Scenes
 
     public interface IGameSceneResult
     {
+        bool TrySetCanceled();
+        bool TrySetException(Exception e);
     }
 
     public interface IGameSceneResult<TResult> : IGameSceneResult
@@ -87,15 +89,7 @@ namespace Game.MVC.Core.Scenes
 
         UniTaskCompletionSource<TResult> ResultTcs { get; set; }
 
-        bool TrySetResult(TResult result)
-        {
-            Result = result;
-            return ResultTcs?.TrySetResult(result) ?? false;
-        }
-
-        bool TrySetCanceled() => ResultTcs?.TrySetCanceled() ?? false;
-
-        bool TrySetException(Exception e) => ResultTcs?.TrySetException(e) ?? false;
+        bool TrySetResult(TResult result);
     }
 
     public interface ICompositeDisposable
@@ -265,12 +259,6 @@ namespace Game.MVC.Core.Scenes
         private GameObject _asset;
         private GameObject _instance;
 
-        public override UniTask Terminate()
-        {
-            TrySetCanceled();
-            return base.Terminate();
-        }
-
         protected override async UniTask LoadScene()
         {
             _asset = await _assetService.LoadAssetAsync<GameObject>(AssetPathOrAddress);
@@ -306,9 +294,10 @@ namespace Game.MVC.Core.Scenes
         /// ダイアログをキャンセルして閉じる
         /// </summary>
         public bool TrySetCanceled()
-        {
-            return ResultTcs?.TrySetCanceled() ?? false;
-        }
+            => ResultTcs?.TrySetCanceled() ?? false;
+
+        public bool TrySetException(Exception e)
+            => ResultTcs?.TrySetException(e) ?? false;
 
         protected override TComponent GetSceneComponent()
             => GameSceneHelper.GetSceneComponent<TComponent>(_instance);
