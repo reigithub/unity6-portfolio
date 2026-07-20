@@ -85,11 +85,9 @@ namespace Game.Horror
 
             var optionRepo = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
             optionRepo.OnSaved
-                .Subscribe(x =>
-                {
-                    _fpsView.SetActive(x.ShowFrameRate);
-                })
+                .Subscribe(x => _fpsView.SetActive(x.ShowFrameRate))
                 .AddTo(this);
+            _fpsView.SetActive(optionRepo.Data.ShowFrameRate);
         }
     }
 }
