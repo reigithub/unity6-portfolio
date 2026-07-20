@@ -4,15 +4,8 @@
     {
         private struct Offset
         {
-            public const int GameScene = 100;
             public const int Player = 500;
             public const int UI = 600;
-        }
-
-        public struct GameScene
-        {
-            public const int FadeIn = Offset.GameScene + 0;
-            public const int FadeOut = Offset.GameScene + 1;
         }
 
         public struct Player

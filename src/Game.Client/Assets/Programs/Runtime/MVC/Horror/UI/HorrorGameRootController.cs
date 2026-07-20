@@ -68,14 +68,14 @@ namespace Game.Horror
 
             // GameScene
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, token) =>
+            messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeOut>(async (_, token) =>
                 {
                     await _fadeCanvasGroup.DOFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration)
                         .SetUpdate(true)
                         .ToUniTask(cancellationToken: token);
                 })
                 .AddTo(this);
-            messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, token) =>
+            messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeIn>(async (_, token) =>
                 {
                     await _fadeCanvasGroup.DOFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration)
                         .SetUpdate(true)

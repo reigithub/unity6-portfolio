@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
@@ -40,11 +41,8 @@ namespace Game.Horror
             await audioService.LoadAsync();
 
             var messagePipeService = new MessagePipeService();
-            {
-                // 動作させるための暫定登録
-                messagePipeService.AddMessageBroker<int, bool>();
-                messagePipeService.AddMessageBroker<int, string>();
-            }
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeIn>();
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeOut>();
             messagePipeService.AddMessageBroker<HorrorSignals.Noise.Occurred>();
             messagePipeService.AddMessageBroker<HorrorSignals.Combat.Damaged>();
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Damaged>();

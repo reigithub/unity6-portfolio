@@ -137,6 +137,14 @@ namespace Game.Core.Services
         /// <summary>
         /// メッセージを非同期Publish (Fire and Forget)
         /// </summary>
+        public void PublishForget<TMessage>(TMessage message)
+        {
+            GetAsyncPublisher<TMessage>().Publish(message);
+        }
+
+        /// <summary>
+        /// メッセージを非同期Publish (Fire and Forget)
+        /// </summary>
         public void PublishForget<TMessage>(int key, TMessage message)
         {
             GetAsyncPublisher<int, TMessage>().Publish(key, message);
@@ -145,9 +153,25 @@ namespace Game.Core.Services
         /// <summary>
         /// メッセージを非同期Publish (await可能)
         /// </summary>
+        public UniTask PublishAsync<TMessage>(TMessage message, CancellationToken ct = default)
+        {
+            return GetAsyncPublisher<TMessage>().PublishAsync(message, ct);
+        }
+
+        /// <summary>
+        /// メッセージを非同期Publish (await可能)
+        /// </summary>
         public UniTask PublishAsync<TMessage>(int key, TMessage message, CancellationToken ct = default)
         {
             return GetAsyncPublisher<int, TMessage>().PublishAsync(key, message, ct);
+        }
+
+        /// <summary>
+        /// メッセージを非同期Subscribe
+        /// </summary>
+        public IDisposable SubscribeAsync<TMessage>(Func<TMessage, CancellationToken, UniTask> handler)
+        {
+            return GetAsyncSubscriber<TMessage>().Subscribe(handler);
         }
 
         /// <summary>
@@ -182,9 +206,19 @@ namespace Game.Core.Services
             return GlobalMessagePipe.GetSubscriber<TKey, TMessage>();
         }
 
+        public IAsyncPublisher<TMessage> GetAsyncPublisher<TMessage>()
+        {
+            return GlobalMessagePipe.GetAsyncPublisher<TMessage>();
+        }
+
         public IAsyncPublisher<TKey, TMessage> GetAsyncPublisher<TKey, TMessage>()
         {
             return GlobalMessagePipe.GetAsyncPublisher<TKey, TMessage>();
+        }
+
+        public IAsyncSubscriber<TMessage> GetAsyncSubscriber<TMessage>()
+        {
+            return GlobalMessagePipe.GetAsyncSubscriber<TMessage>();
         }
 
         public IAsyncSubscriber<TKey, TMessage> GetAsyncSubscriber<TKey, TMessage>()

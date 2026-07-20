@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Game.Core.MessagePipe;
 using MessagePipe;
 
 namespace Game.Core.Services
@@ -39,12 +38,15 @@ namespace Game.Core.Services
         // Message Publish
         void Publish<TMessage>(TMessage message);
         void Publish<TMessage>(int key, TMessage message);
+        void PublishForget<TMessage>(TMessage message);
         void PublishForget<TMessage>(int key, TMessage message);
+        UniTask PublishAsync<TMessage>(TMessage message, CancellationToken ct = default);
         UniTask PublishAsync<TMessage>(int key, TMessage message, CancellationToken ct = default);
 
         // Message Subscribe
         IDisposable Subscribe<TMessage>(Action<TMessage> handler);
         IDisposable Subscribe<TMessage>(int key, Action<TMessage> handler);
+        IDisposable SubscribeAsync<TMessage>(Func<TMessage, CancellationToken, UniTask> handler);
         IDisposable SubscribeAsync<TMessage>(int key, Func<TMessage, CancellationToken, UniTask> handler);
 
         #endregion

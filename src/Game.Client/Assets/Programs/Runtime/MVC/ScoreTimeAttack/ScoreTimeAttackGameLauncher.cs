@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core;
+using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Library.Shared.Enums;
 using Game.ScoreTimeAttack.Scenes;
@@ -37,6 +38,8 @@ namespace Game.ScoreTimeAttack
             messagePipeService.AddMessageBroker<int, string>();
             messagePipeService.AddMessageBroker<int, GameObject>();
             messagePipeService.AddMessageBroker<int, Vector2>();
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeIn>();
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeOut>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 

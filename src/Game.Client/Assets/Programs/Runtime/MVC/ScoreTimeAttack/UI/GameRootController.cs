@@ -74,14 +74,14 @@ namespace Game.Core
         private void SubscribeEvents()
         {
             // GameScene
-            _messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeOut, async (_, _) =>
+            _messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeOut>(async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaOpaque, UIAnimationConstants.SceneTransitionFadeInDuration, tcs);
                     await tcs.Task;
                 })
                 .AddTo(this);
-            _messagePipeService.SubscribeAsync<bool>(MessageKey.GameScene.FadeIn, async (_, _) =>
+            _messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeIn>(async (_, _) =>
                 {
                     var tcs = new UniTaskCompletionSource<bool>();
                     DoFade(UIAnimationConstants.AlphaTransparent, UIAnimationConstants.SceneTransitionFadeOutDuration, tcs);

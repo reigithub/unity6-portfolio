@@ -2967,37 +2967,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 100264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 5775238505604765058}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
---- !u!1 &2923606163782267879 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
-  m_PrefabInstance: {fileID: 2923606163782366287}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &5775238505604765058
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2923606163782267879}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69292d4a1fa345f587398a460363aa80, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Contents.Player.SDUnityChanAnimatorReceiver
-  _animator: {fileID: 2923606163791741231}
 --- !u!4 &2923606163782496199 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
-  m_PrefabInstance: {fileID: 2923606163782366287}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &2923606163791741231 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 9500000, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
   m_PrefabInstance: {fileID: 2923606163782366287}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7912463684145335142
