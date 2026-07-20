@@ -13,6 +13,7 @@ namespace Game.Shared.Input
             if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "DualShockGamepad")) return InputDeviceType.PlayStation;
             if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "SwitchProControllerHID")) return InputDeviceType.NintendoSwitch;
             if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "XInputController")) return InputDeviceType.Xbox;
+            if (InputSystem.IsFirstLayoutBasedOnSecond(deviceLayoutName, "Gamepad")) return InputDeviceType.Xbox; // Memo: ゲームパッド未接続時のフォールバック
             return InputDeviceType.None;
         }
     }
