@@ -52,8 +52,7 @@ namespace Game.Core.UI
 
             if (string.IsNullOrEmpty(_controlScheme) || string.Equals(_controlScheme, _inputService.ControlScheme))
             {
-                const string FallbackScheme = InputControlSchemes.KeyboardAndMouse;
-                var info = _inputService.GetBindingInfo(_controlScheme ?? FallbackScheme, _actionMapName, _actionName, _compositePartName, FallbackScheme);
+                var info = _inputService.GetBindingInfo(ResolveControlScheme(), _actionMapName, _actionName, _compositePartName, InputControlSchemes.KeyboardAndMouse);
                 sprite = _inputActionIconService.GetSprite(info);
             }
 
@@ -67,6 +66,13 @@ namespace Game.Core.UI
                 _actionIcon.color = Color.clear;
                 _actionIcon.sprite = null;
             }
+        }
+
+        private string ResolveControlScheme()
+        {
+            if (!string.IsNullOrEmpty(_controlScheme)) return _controlScheme;
+            if (!string.IsNullOrEmpty(_inputService.ControlScheme)) return _inputService.ControlScheme;
+            return InputControlSchemes.KeyboardAndMouse;
         }
     }
 }

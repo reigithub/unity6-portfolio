@@ -208,6 +208,7 @@ namespace Game.Horror.Dialogs
                         rebinding.SetTimeoutProgress(1f);
                         _currentRebinding = _inputService.StartRebinding(
                             rebinding.ControlScheme,
+                            rebinding.ActionMapName,
                             rebinding.ActionName,
                             rebinding.CompositePartName,
                             () =>

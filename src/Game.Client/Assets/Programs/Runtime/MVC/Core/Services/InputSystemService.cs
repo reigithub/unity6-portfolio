@@ -54,22 +54,22 @@ namespace Game.Core.Services
             _inputActions = new ProjectInputActions();
             _inputActions.Enable();
 
-            foreach (var controlScheme in _inputActions.controlSchemes)
-            {
-                var scheme = controlScheme.name;
-
-                foreach (var map in _inputActions.asset.actionMaps)
-                {
-                    foreach (var action in map.actions)
-                    {
-                        var paths = GetBindingInfos(scheme, map.name, action.name);
-                        foreach (var path in paths)
-                        {
-                            Debug.Log($"[InputSystemService] scheme:{scheme}, map:{map.name}, action:{action.name} path:{path.DeviceLayoutName} + {path.ControlPath}");
-                        }
-                    }
-                }
-            }
+            // foreach (var controlScheme in _inputActions.controlSchemes)
+            // {
+            //     var scheme = controlScheme.name;
+            //
+            //     foreach (var map in _inputActions.asset.actionMaps)
+            //     {
+            //         foreach (var action in map.actions)
+            //         {
+            //             var paths = GetBindingInfos(scheme, map.name, action.name);
+            //             foreach (var path in paths)
+            //             {
+            //                 Debug.Log($"[InputSystemService] scheme:{scheme}, map:{map.name}, action:{action.name} path:{path.DeviceLayoutName} + {path.ControlPath}");
+            //             }
+            //         }
+            //     }
+            // }
 
             // デフォルトでUI入力を有効化
             EnableUI();
@@ -265,7 +265,7 @@ namespace Game.Core.Services
 
         public string GetBindingDisplayString(InputAction action, string partName = null)
         {
-            return GetBindingInfo(ControlScheme, action.name, partName).DisplayName;
+            return GetBindingInfo(ControlScheme, action.actionMap.name, action.name, partName).DisplayName;
         }
 
         public InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null)
@@ -274,7 +274,7 @@ namespace Game.Core.Services
             if (action == null) return Array.Empty<InputBindingInfo>();
 
             // Compositeに対して、partName = nullを指定すると複数バインド情報が返る
-            var indices = GetBindingsByControlScheme(scheme, action, partName);
+            var indices = GetBindingIndicesByControlScheme(scheme, action, partName);
             if (indices.Count == 0) return Array.Empty<InputBindingInfo>();
 
             var parts = new InputBindingInfo[indices.Count];
@@ -335,28 +335,28 @@ namespace Game.Core.Services
             // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する
             foreach (var map in _inputActions.asset.actionMaps)
                 foreach (var action in map.actions)
-                    foreach (var info in GetBindingsByControlScheme(scheme, action))
+                    foreach (var info in GetBindingIndicesByControlScheme(scheme, action))
                         action.RemoveBindingOverride(info.Index);
         }
 
-        public void ResetBinding(string scheme, string actionName, string partName = null)
+        public void ResetBinding(string scheme, string actionMapName, string actionName, string partName = null)
         {
-            var action = FindInputAction(InputActionMaps.Player, actionName);
+            var action = FindInputAction(actionMapName, actionName);
             if (action == null) return;
-            foreach (var info in GetBindingsByControlScheme(scheme, action, partName))
+            foreach (var info in GetBindingIndicesByControlScheme(scheme, action, partName))
                 action.RemoveBindingOverride(info.Index);
         }
 
-        public IDisposable StartRebinding(string scheme, string actionName, string partName, Action onComplete, Action onCanceled)
+        public IDisposable StartRebinding(string scheme, string actionMapName, string actionName, string partName, Action onComplete, Action onCanceled)
         {
-            var action = FindInputAction(InputActionMaps.Player, actionName);
+            var action = FindInputAction(actionMapName, actionName);
             if (action == null)
             {
                 onCanceled?.Invoke();
                 return Disposable.Empty;
             }
 
-            var bindings = GetBindingsByControlScheme(scheme, action, partName);
+            var bindings = GetBindingIndicesByControlScheme(scheme, action, partName);
             if (bindings.Count == 0)
             {
                 onCanceled?.Invoke();
@@ -402,6 +402,7 @@ namespace Game.Core.Services
                     .WithControlsExcluding("<Gamepad>/leftStick")
                     .WithControlsExcluding("<Gamepad>/rightStick")
                     .WithCancelingThrough("<Keyboard>/escape")
+                    // .WithCancelingThrough("<Gamepad>/start")
                     .WithActionEventNotificationsBeingSuppressed();
                 ApplySchemeFilter(currentOp, scheme);
 
@@ -466,7 +467,7 @@ namespace Game.Core.Services
         /// <paramref name="partName"/> 指定時はコンポジット内の該当パート（name 一致）1つのみを返し、単体 binding は対象外。
         /// 未指定時は単体アクションは該当 binding、コンポジットは当該スキームの各パートを返す。
         /// </summary>
-        internal static IReadOnlyList<InputBindingIndexInfo> GetBindingsByControlScheme(string scheme, InputAction action, string partName = null)
+        internal static IReadOnlyList<InputBindingIndexInfo> GetBindingIndicesByControlScheme(string scheme, InputAction action, string partName = null)
         {
             var result = new List<InputBindingIndexInfo>();
             if (action == null) return result;

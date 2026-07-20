@@ -104,11 +104,12 @@ namespace Game.Core.Services
         /// 戻り値を Dispose すると進行中のリバインドをキャンセルする。
         /// </summary>
         /// <param name="scheme">コントロールスキーム（Keyboard&amp;Mouse / Gamepad）</param>
-        /// <param name="actionName">Player マップのアクション名</param>
+        /// <param name="actionMapName">マップ名</param>
+        /// <param name="actionName">マップのアクション名</param>
         /// <param name="partName">コンポジットのパート名（up/down/left/right）。空＝全体/単体</param>
         /// <param name="onComplete">確定後に呼ばれる。引数は確定後の表示文字列</param>
         /// <param name="onCanceled">キャンセル時に呼ばれる</param>
-        IDisposable StartRebinding(string scheme, string actionName, string partName, Action onComplete, Action onCanceled);
+        IDisposable StartRebinding(string scheme, string actionMapName, string actionName, string partName, Action onComplete, Action onCanceled);
 
         /// <summary>
         /// 現在のバインドオーバーライドを JSON 文字列として取得する（永続化用）。
@@ -124,7 +125,7 @@ namespace Game.Core.Services
         /// 指定アクション・スキームのバインドオーバーライドを既定へ戻す。
         /// <paramref name="partName"/> を指定すると、コンポジットの該当パートのみを戻す。
         /// </summary>
-        void ResetBinding(string scheme, string actionName, string partName = null);
+        void ResetBinding(string scheme, string actionMapName, string actionName, string partName = null);
 
         /// <summary>
         /// 全アクションのバインドオーバーライドを既定へ戻す。

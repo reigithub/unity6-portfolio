@@ -38,7 +38,7 @@ namespace Game.Tests.PlayMode
             => service.FindInputAction(InputActionMaps.Player, name);
 
         private int FirstIndex(InputAction action, string scheme)
-            => InputSystemService.GetBindingsByControlScheme(scheme, action)[0].Index;
+            => InputSystemService.GetBindingIndicesByControlScheme(scheme, action)[0].Index;
 
         #region Save / Load
 
@@ -103,7 +103,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(idx, "<Keyboard>/j");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
-            _service.ResetBinding(InputControlSchemes.KeyboardAndMouse, "Jump");
+            _service.ResetBinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo(defaultPath));
             yield return null;
         }
@@ -149,7 +149,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
                 () => completed = true,
                 () => { });
             yield return null;
@@ -185,7 +185,7 @@ namespace Game.Tests.PlayMode
             attack.ApplyBindingOverride(attackIdx, "<Keyboard>/j");
 
             var completed = false;
-            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
                 () => completed = true,
                 () => { });
             yield return null;
@@ -216,7 +216,7 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, "Jump", null,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
                 () => { },
                 () => canceled = true);
             yield return null;
