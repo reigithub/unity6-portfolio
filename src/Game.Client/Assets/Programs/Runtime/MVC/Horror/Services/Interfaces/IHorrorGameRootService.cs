@@ -1,11 +1,12 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Horror.Interaction;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services.Interfaces
 {
-    public interface IHorrorGameRootService
+    public interface IHorrorGameRootService : IGameService
     {
         UniTask LoadAsync();
         void Unload();

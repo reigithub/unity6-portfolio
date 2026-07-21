@@ -9,7 +9,7 @@ using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services
 {
-    public class HorrorGameRootService : IHorrorGameRootService, IGameService
+    public class HorrorGameRootService : IHorrorGameRootService
     {
         private readonly IAddressableAssetService _assetService;
         private readonly IInputSystemService _inputSystemService;
