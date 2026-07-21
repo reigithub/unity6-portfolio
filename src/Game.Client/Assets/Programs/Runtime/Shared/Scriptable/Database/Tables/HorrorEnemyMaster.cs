@@ -13,6 +13,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         #region SerializeField
 
         [SerializeField] private int _id;                          // 識別ID
+        [SerializeField] private string _developOnlyName;          // 開発時のみの識別名
         [SerializeField] private string _name;                     // 識別名
 
         [SerializeField] private string _modelAssetName;
