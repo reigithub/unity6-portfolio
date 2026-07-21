@@ -55,8 +55,8 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
             await iconService.LoadAsync();
 
-            var inputIconService = new InputActionActionIconService(assetService);
-            GameServiceManager.Register<IInputActionIconService, InputActionActionIconService>(inputIconService);
+            var inputIconService = new InputActionIconService(assetService);
+            GameServiceManager.Register<IInputActionIconService, InputActionIconService>(inputIconService);
             await inputIconService.LoadAsync();
 
             // セーブデータストレージ構築
@@ -103,7 +103,7 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
 
             // 共通オブジェクト読み込み
-            var gameRootService = new HorrorGameRootService(assetService, inputSystemService, messagePipeService, optionSaveRepository);
+            var gameRootService = new HorrorGameRootService(assetService);
             GameServiceManager.Register<IHorrorGameRootService, HorrorGameRootService>(gameRootService);
             await gameRootService.LoadAsync();
             await gameRootService.GlobalFadeOutAsync();

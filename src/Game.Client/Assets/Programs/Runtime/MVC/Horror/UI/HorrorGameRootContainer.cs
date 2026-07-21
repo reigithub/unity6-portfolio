@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Core.MessagePipe;
 using Game.Core.Services;
+using Game.Horror.Interaction;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Constants;
 using R3;
@@ -20,34 +21,37 @@ namespace Game.Horror
         [SerializeField] private PlayerInput _playerInput;
         [SerializeField] private CanvasGroup _fadeCanvasGroup;
         [SerializeField] private GameObject _fpsView;
+        [SerializeField] private InteractionPromptPool _promptPool;
 
         public Camera Camera => _mainCamera;
+        public InteractionPromptPool PromptPool => _promptPool;
 
-        public void Initialize(
-            IInputSystemService inputSystemService,
-            IMessagePipeService messagePipeService,
-            IHorrorOptionSaveRepository optionRepository
-            )
+        public void Initialize()
         {
             // playerInput.controlsChangedEvent.AddListener(UpdateControlScheme);
             // InputSystem.onEvent += (inputEventPtr, device) => { Debug.Log($"InputSystem InputDevice: {device}"); };
             // Keyboard.current / Mouse.current / Gamepad.current / Pointer.current / Touchscreen.current;
             // playerInput.SwitchCurrentControlScheme(InputConstants.Gamepad);
 
+            var inputSystemService = GameServiceManager.Resolve<IInputSystemService>();
             _playerInput.controlsChangedEvent.AsObservable()
                 .Subscribe(x => inputSystemService.UpdateControlScheme(x.currentControlScheme))
                 .AddTo(this);
 
             // GameScene
+            var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeOut>(async (_, token) => await GlobalFadeOutAsync(token))
                 .AddTo(this);
             messagePipeService.SubscribeAsync<MessageSignals.GameScene.FadeIn>(async (_, token) => await GlobalFadeInAsync(token))
                 .AddTo(this);
 
+            var optionRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
             optionRepository.OnSaved
                 .Subscribe(x => SetActiveFpsView(x.ShowFrameRate))
                 .AddTo(this);
             SetActiveFpsView(optionRepository.Data.ShowFrameRate);
+
+            _promptPool.Initialize();
         }
 
         public UniTask GlobalFadeInAsync(CancellationToken token = default)

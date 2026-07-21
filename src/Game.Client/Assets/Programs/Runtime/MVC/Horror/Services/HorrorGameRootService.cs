@@ -1,9 +1,11 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Interaction;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services
 {
@@ -13,20 +15,13 @@ namespace Game.Horror.Services
         private readonly IInputSystemService _inputSystemService;
         private readonly IMessagePipeService _messagePipeService;
         private readonly IHorrorOptionSaveRepository _optionRepository;
+        private readonly ILocalizationService _localizationService;
 
         private HorrorGameRootContainer _container;
 
-        public HorrorGameRootService(
-            IAddressableAssetService assetService,
-            IInputSystemService inputSystemService,
-            IMessagePipeService messagePipeService,
-            IHorrorOptionSaveRepository optionRepository
-            )
+        public HorrorGameRootService(IAddressableAssetService assetService)
         {
             _assetService = assetService;
-            _inputSystemService = inputSystemService;
-            _messagePipeService = messagePipeService;
-            _optionRepository = optionRepository;
         }
 
         public async UniTask LoadAsync()
@@ -37,7 +32,7 @@ namespace Game.Horror.Services
             if (go.TryGetComponent<HorrorGameRootContainer>(out var component))
             {
                 _container = component;
-                _container.Initialize(_inputSystemService, _messagePipeService, _optionRepository);
+                _container.Initialize();
             }
 
             UnityEngine.Object.DontDestroyOnLoad(go);
@@ -51,6 +46,8 @@ namespace Game.Horror.Services
         }
 
         public UnityEngine.Camera Camera => _container.Camera;
+
+        public IInteractionPromptPool PromptPool => _container.PromptPool;
 
         public UniTask GlobalFadeInAsync(CancellationToken token = default)
             => _container.GlobalFadeInAsync(token);
