@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: PropTexts Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: PropTexts
+  m_TableCollectionNameGuidString: 0c4ffabf8dd85254d84805227319e77b
+  m_Entries:
+  - m_Id: 20063977472
+    m_Key: item_1_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1965512196096
+    m_Key: item_1_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 909218676736
+    m_Key: item_2_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2936522932224
+    m_Key: item_2_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1618366431232
+    m_Key: item_3_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3004315467776
+    m_Key: item_3_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1685894725632
+    m_Key: item_4_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3082140778496
+    m_Key: item_4_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6184436760576
+    m_Key: weapon_1_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6330654392320
+    m_Key: weapon_1_desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8018622676992
+    m_Key: weapon_2_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8022145892352
+    m_Key: weapon_2_desc
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 8935594006025863599
+  references:
+    version: 2
+    RefIds:
+    - rid: 8935594006025863599
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1784649567701
