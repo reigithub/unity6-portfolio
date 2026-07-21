@@ -97,6 +97,8 @@ namespace Game.Core.Services
 
         InputBindingInfo GetBindingInfo(string scheme, string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
 
+        InputBindingInfo GetBindingInfo(InputAction action, string partName = null);
+
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
         /// <paramref name="partName"/> が空ならコンポジットは各パートを順にリバインドし、指定時はその1パートのみをリバインドする。

@@ -326,6 +326,11 @@ namespace Game.Core.Services
             return paths[0];
         }
 
+        public InputBindingInfo GetBindingInfo(InputAction action, string partName = null)
+        {
+            return GetBindingInfo(ControlScheme, action.actionMap.name, action.name, partName);
+        }
+
         public string SaveBindingOverridesAsJson()
             => _inputActions != null ? _inputActions.asset.SaveBindingOverridesAsJson() : string.Empty;
 
