@@ -41,7 +41,7 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
         }
 
-        private int CountOf(InventorySlotType type, int id)
+        private int CountOf(ObjectCategory type, int id)
         {
             int count = 0;
             foreach (var s in _repository.Data.Equipment.Slots)
@@ -54,13 +54,13 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_WeaponPossessed_SucceedsAndMarksDirty()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Weapon, 5).Returns(true);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
 
-            var ok = _service.TryEquip(InventorySlotType.Weapon, 5);
+            var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetEquipped(out var type, out var id), Is.True);
-            Assert.That(type, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(type, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(id, Is.EqualTo(5));
             Assert.That(_repository.IsDirty, Is.True);
         }
@@ -69,9 +69,9 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_Item_ReturnsFalse()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Item, 3).Returns(true);
+            _mockInventory.HasItem(ObjectCategory.Item, 3).Returns(true);
 
-            var ok = _service.TryEquip(InventorySlotType.Item, 3);
+            var ok = _service.TryEquip(ObjectCategory.Item, 3);
 
             Assert.That(ok, Is.False);
             Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
@@ -82,9 +82,9 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_NotPossessed_ReturnsFalse()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Weapon, 5).Returns(false);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(false);
 
-            var ok = _service.TryEquip(InventorySlotType.Weapon, 5);
+            var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.False);
             Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
@@ -95,14 +95,14 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_SameWeaponAgain_ReturnsTrueIdempotently()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Weapon, 5).Returns(true);
-            _service.TryEquip(InventorySlotType.Weapon, 5);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
 
-            var ok = _service.TryEquip(InventorySlotType.Weapon, 5);
+            var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetEquipped(out var type, out var id), Is.True);
-            Assert.That(type, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(type, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(id, Is.EqualTo(5));
         }
 
@@ -112,7 +112,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
 
             Assert.That(_service.TryGetEquipped(out var type, out var id), Is.False);
-            Assert.That(type, Is.EqualTo(InventorySlotType.None));
+            Assert.That(type, Is.EqualTo(ObjectCategory.None));
             Assert.That(id, Is.EqualTo(0));
         }
 
@@ -122,7 +122,7 @@ namespace Game.Tests.MVC.Horror
             // LoadAsync 未実行 ＝ Data は null
             Assert.DoesNotThrow(() =>
             {
-                Assert.That(_service.TryEquip(InventorySlotType.Weapon, 1), Is.False);
+                Assert.That(_service.TryEquip(ObjectCategory.Weapon, 1), Is.False);
                 Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
             });
         }
@@ -132,11 +132,11 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            var ok = _service.TrySetSlot(1, InventorySlotType.Weapon, 5);
+            var ok = _service.TrySetSlot(1, ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
             Assert.That(_repository.IsDirty, Is.True);
         }
@@ -145,7 +145,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Clear_RemovesRegistrationAndMarksDirty()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(2, InventorySlotType.Item, 3);
+            _service.TrySetSlot(2, ObjectCategory.Item, 3);
 
             var ok = _service.ClearSlot(2);
 
@@ -159,21 +159,21 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            Assert.That(_service.TrySetSlot(-1, InventorySlotType.Item, 1), Is.False);
-            Assert.That(_service.TrySetSlot(HorrorEquipmentConstants.MaxEquipmentSlotCount, InventorySlotType.Item, 1), Is.False);
+            Assert.That(_service.TrySetSlot(-1, ObjectCategory.Item, 1), Is.False);
+            Assert.That(_service.TrySetSlot(HorrorEquipmentConstants.MaxEquipmentSlotCount, ObjectCategory.Item, 1), Is.False);
         }
 
         [Test]
         public async Task Assign_RegisteredElsewhere_ToEmptySlot_Moves()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(0, InventorySlotType.Weapon, 5);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
 
-            var ok = _service.TryAssignSlot(1, InventorySlotType.Weapon, 5);
+            var ok = _service.TryAssignSlot(1, ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
             Assert.That(_service.TryGetSlot(0, out _), Is.False, "旧スロットは空になる（移動）");
         }
@@ -182,17 +182,17 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_RegisteredElsewhere_ToOccupiedSlot_Swaps()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(0, InventorySlotType.Weapon, 5);
-            _service.TrySetSlot(1, InventorySlotType.Item, 3);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _service.TrySetSlot(1, ObjectCategory.Item, 3);
 
-            var ok = _service.TryAssignSlot(1, InventorySlotType.Weapon, 5);
+            var ok = _service.TryAssignSlot(1, ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
             Assert.That(_service.TryGetSlot(0, out var src), Is.True, "元 dest の item が旧スロットへ入替");
-            Assert.That(src.SlotType, Is.EqualTo(InventorySlotType.Item));
+            Assert.That(src.SlotType, Is.EqualTo(ObjectCategory.Item));
             Assert.That(src.Id, Is.EqualTo(3));
         }
 
@@ -200,28 +200,28 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_Unregistered_ToOccupiedSlot_Overwrites()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(1, InventorySlotType.Item, 3);
+            _service.TrySetSlot(1, ObjectCategory.Item, 3);
 
-            var ok = _service.TryAssignSlot(1, InventorySlotType.Weapon, 5);
+            var ok = _service.TryAssignSlot(1, ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
-            Assert.That(CountOf(InventorySlotType.Item, 3), Is.EqualTo(0), "元の item は上書きで消える");
+            Assert.That(CountOf(ObjectCategory.Item, 3), Is.EqualTo(0), "元の item は上書きで消える");
         }
 
         [Test]
         public async Task Assign_ToSameSlot_ReturnsFalseAndNoChange()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(2, InventorySlotType.Weapon, 5);
+            _service.TrySetSlot(2, ObjectCategory.Weapon, 5);
 
-            var ok = _service.TryAssignSlot(2, InventorySlotType.Weapon, 5);
+            var ok = _service.TryAssignSlot(2, ObjectCategory.Weapon, 5);
 
             Assert.That(ok, Is.False);
             Assert.That(_service.TryGetSlot(2, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
         }
 
@@ -229,11 +229,11 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_KeepsSingleRegistration()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(0, InventorySlotType.Weapon, 5);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
 
-            _service.TryAssignSlot(2, InventorySlotType.Weapon, 5);
+            _service.TryAssignSlot(2, ObjectCategory.Weapon, 5);
 
-            Assert.That(CountOf(InventorySlotType.Weapon, 5), Is.EqualTo(1), "同一装備は常に1スロットのみ");
+            Assert.That(CountOf(ObjectCategory.Weapon, 5), Is.EqualTo(1), "同一装備は常に1スロットのみ");
             Assert.That(_service.TryGetSlot(2, out _), Is.True);
             Assert.That(_service.TryGetSlot(0, out _), Is.False);
         }
@@ -244,7 +244,7 @@ namespace Game.Tests.MVC.Horror
             // LoadAsync 未実行 ＝ Data は null
             Assert.DoesNotThrow(() =>
             {
-                Assert.That(_service.TrySetSlot(0, InventorySlotType.Item, 1), Is.False);
+                Assert.That(_service.TrySetSlot(0, ObjectCategory.Item, 1), Is.False);
                 Assert.That(_service.ClearSlot(0), Is.False);
                 Assert.That(_service.TryGetSlot(0, out _), Is.False);
             });
@@ -254,13 +254,13 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_DoesNotAffectSlots()
         {
             await LoadDefaultData();
-            _service.TrySetSlot(0, InventorySlotType.Weapon, 5);
-            _mockInventory.HasItem(InventorySlotType.Weapon, 7).Returns(true);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 7).Returns(true);
 
-            _service.TryEquip(InventorySlotType.Weapon, 7);
+            _service.TryEquip(ObjectCategory.Weapon, 7);
 
             Assert.That(_service.TryGetSlot(0, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
         }
 
@@ -268,13 +268,13 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Weapon, 5).Returns(true);
-            _service.TryEquip(InventorySlotType.Weapon, 5);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
 
-            _service.TryAssignSlot(0, InventorySlotType.Item, 3);
+            _service.TryAssignSlot(0, ObjectCategory.Item, 3);
 
             Assert.That(_service.TryGetEquipped(out var type, out var id), Is.True);
-            Assert.That(type, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(type, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(id, Is.EqualTo(5));
         }
 
@@ -282,15 +282,15 @@ namespace Game.Tests.MVC.Horror
         public async Task Clear_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(InventorySlotType.Weapon, 5).Returns(true);
-            _service.TrySetSlot(0, InventorySlotType.Weapon, 5);
-            _service.TryEquip(InventorySlotType.Weapon, 5);
+            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
 
             _service.ClearSlot(0);
 
             Assert.That(_service.TryGetSlot(0, out _), Is.False);
             Assert.That(_service.TryGetEquipped(out var type, out var id), Is.True);
-            Assert.That(type, Is.EqualTo(InventorySlotType.Weapon));
+            Assert.That(type, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(id, Is.EqualTo(5));
         }
 

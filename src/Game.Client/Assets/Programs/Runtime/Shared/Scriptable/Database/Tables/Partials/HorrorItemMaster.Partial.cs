@@ -5,6 +5,6 @@ namespace Game.Shared.Scriptable.Database.Tables
 {
     public partial class HorrorItemMaster : IHorrorInventorySlotInfo
     {
-        public InventorySlotType SlotType => InventorySlotType.Item;
+        public ObjectCategory SlotType => ObjectCategory.Item;
     }
 }

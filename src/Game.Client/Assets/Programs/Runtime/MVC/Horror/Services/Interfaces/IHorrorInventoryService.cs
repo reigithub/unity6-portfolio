@@ -20,12 +20,12 @@ namespace Game.Horror.Services.Interfaces
         bool TryAdd(IHorrorInventorySlotInfo info, int addCount);
 
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
-        bool HasItem(InventorySlotType type, int id);
+        bool HasItem(ObjectCategory type, int id);
 
         /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
-        int GetCount(InventorySlotType type, int id);
+        int GetCount(ObjectCategory type, int id);
 
         /// <summary>指定数を消費する。所持数不足なら何もせず false（部分消費しない）。</summary>
-        bool TryConsume(InventorySlotType type, int id, int count);
+        bool TryConsume(ObjectCategory type, int id, int count);
     }
 }

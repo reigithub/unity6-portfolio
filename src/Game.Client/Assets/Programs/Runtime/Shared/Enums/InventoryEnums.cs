@@ -2,7 +2,7 @@ using System;
 
 namespace Game.Shared.Enums
 {
-    public enum InventorySlotType
+    public enum ObjectCategory
     {
         None = 0,
         Item = 1,
@@ -44,13 +44,13 @@ namespace Game.Shared.Enums
         private static readonly ContextActionType[] _empty = Array.Empty<ContextActionType>();
 
         /// <summary>スロット種別に対応するアクション列を返す。未対応種別は空。</summary>
-        public static ContextActionType[] ToContextActions(this InventorySlotType slotType)
+        public static ContextActionType[] ToContextActions(this ObjectCategory slotType)
         {
             switch (slotType)
             {
-                case InventorySlotType.Item:
+                case ObjectCategory.Item:
                     return _itemActions;
-                case InventorySlotType.Weapon:
+                case ObjectCategory.Weapon:
                     return _weaponActions;
                 default:
                     return _empty;

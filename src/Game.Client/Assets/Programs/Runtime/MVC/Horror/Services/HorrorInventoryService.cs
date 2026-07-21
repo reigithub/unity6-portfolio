@@ -62,7 +62,7 @@ namespace Game.Horror.Services
             return true;
         }
 
-        private static bool TryGet(HorrorInventorySaveData data, InventorySlotType type, int id, out HorrorInventorySlotData slot)
+        private static bool TryGet(HorrorInventorySaveData data, ObjectCategory type, int id, out HorrorInventorySlotData slot)
         {
             foreach (var slotData in data.Slots)
             {
@@ -78,14 +78,14 @@ namespace Game.Horror.Services
         }
 
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
-        public bool HasItem(InventorySlotType type, int id)
+        public bool HasItem(ObjectCategory type, int id)
         {
             var data = _repository.Data?.Inventory;
             return data != null && TryGet(data, type, id, out _);
         }
 
         /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
-        public int GetCount(InventorySlotType type, int id)
+        public int GetCount(ObjectCategory type, int id)
         {
             var data = _repository.Data?.Inventory;
             return data != null && TryGet(data, type, id, out var slot) ? slot.Count : 0;
@@ -95,7 +95,7 @@ namespace Game.Horror.Services
         /// 指定数を消費する。所持数不足なら何もせず false（部分消費しない）。
         /// 0 到達でスロットを除去し、Dirty にする。
         /// </summary>
-        public bool TryConsume(InventorySlotType type, int id, int count)
+        public bool TryConsume(ObjectCategory type, int id, int count)
         {
             var data = _repository.Data?.Inventory;
             if (data == null || count <= 0)

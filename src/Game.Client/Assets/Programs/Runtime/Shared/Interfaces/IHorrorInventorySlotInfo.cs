@@ -4,7 +4,7 @@ namespace Game.Shared.Interfaces
 {
     public interface IHorrorInventorySlotInfo
     {
-        InventorySlotType SlotType { get; }
+        ObjectCategory SlotType { get; }
         int Id { get; }
         string Name { get; }
         string Description { get; }

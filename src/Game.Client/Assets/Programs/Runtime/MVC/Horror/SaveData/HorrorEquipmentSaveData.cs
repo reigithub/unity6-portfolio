@@ -13,7 +13,7 @@ namespace Game.Horror.SaveData
     public partial class HorrorEquipmentSaveData
     {
         /// <summary>装備中のスロット種別。未装備は None。</summary>
-        public InventorySlotType SlotType { get; set; }
+        public ObjectCategory SlotType { get; set; }
 
         /// <summary>装備中の Id（マスター PrimaryKey）。未装備時は無効（0）。</summary>
         public int Id { get; set; }
@@ -31,7 +31,7 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorEquipmentSlotData
     {
-        public InventorySlotType SlotType { get; set; }
+        public ObjectCategory SlotType { get; set; }
 
         public int Id { get; set; }
     }

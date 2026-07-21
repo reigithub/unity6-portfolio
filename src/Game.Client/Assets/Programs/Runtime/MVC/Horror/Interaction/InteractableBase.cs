@@ -193,7 +193,7 @@ namespace Game.Horror.Interaction
             if (Master == null || Master.RequiredItemId == 0)
                 return true;
 
-            return _inventoryService.HasItem(InventorySlotType.Item, Master.RequiredItemId);
+            return _inventoryService.HasItem(ObjectCategory.Item, Master.RequiredItemId);
         }
     }
 }

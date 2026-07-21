@@ -39,7 +39,7 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
         }
 
-        private static IHorrorInventorySlotInfo MakeInfo(InventorySlotType type, int id, int maxCount)
+        private static IHorrorInventorySlotInfo MakeInfo(ObjectCategory type, int id, int maxCount)
         {
             var info = Substitute.For<IHorrorInventorySlotInfo>();
             info.SlotType.Returns(type);
@@ -53,70 +53,70 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(0));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(0));
         }
 
         [Test]
         public async Task GetCount_AfterTryAdd_ReturnsAddedCount()
         {
             await LoadDefaultData();
-            var info = MakeInfo(InventorySlotType.Item, 3, 10);
+            var info = MakeInfo(ObjectCategory.Item, 3, 10);
 
             _service.TryAdd(info, 4);
 
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(4));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(4));
         }
 
         [Test]
         public async Task TryConsume_FullAmount_RemovesSlotAndReturnsTrue()
         {
             await LoadDefaultData();
-            var info = MakeInfo(InventorySlotType.Item, 3, 10);
+            var info = MakeInfo(ObjectCategory.Item, 3, 10);
             _service.TryAdd(info, 4);
 
-            var ok = _service.TryConsume(InventorySlotType.Item, 3, 4);
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 4);
 
             Assert.That(ok, Is.True);
-            Assert.That(_service.HasItem(InventorySlotType.Item, 3), Is.False);
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(0));
+            Assert.That(_service.HasItem(ObjectCategory.Item, 3), Is.False);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(0));
         }
 
         [Test]
         public async Task TryConsume_PartialAmount_ReturnsTrueAndLeavesRemainder()
         {
             await LoadDefaultData();
-            var info = MakeInfo(InventorySlotType.Item, 3, 10);
+            var info = MakeInfo(ObjectCategory.Item, 3, 10);
             _service.TryAdd(info, 4);
 
-            var ok = _service.TryConsume(InventorySlotType.Item, 3, 1);
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
 
             Assert.That(ok, Is.True);
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(3));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(3));
         }
 
         [Test]
         public async Task TryConsume_InsufficientCount_ReturnsFalseAndLeavesUnchanged()
         {
             await LoadDefaultData();
-            var info = MakeInfo(InventorySlotType.Item, 3, 10);
+            var info = MakeInfo(ObjectCategory.Item, 3, 10);
             _service.TryAdd(info, 2);
 
-            var ok = _service.TryConsume(InventorySlotType.Item, 3, 5);
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 5);
 
             Assert.That(ok, Is.False);
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(2));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(2));
         }
 
         [Test]
         public async Task TryConsume_ZeroOrNegativeCount_ReturnsFalse()
         {
             await LoadDefaultData();
-            var info = MakeInfo(InventorySlotType.Item, 3, 10);
+            var info = MakeInfo(ObjectCategory.Item, 3, 10);
             _service.TryAdd(info, 2);
 
-            Assert.That(_service.TryConsume(InventorySlotType.Item, 3, 0), Is.False);
-            Assert.That(_service.TryConsume(InventorySlotType.Item, 3, -1), Is.False);
-            Assert.That(_service.GetCount(InventorySlotType.Item, 3), Is.EqualTo(2));
+            Assert.That(_service.TryConsume(ObjectCategory.Item, 3, 0), Is.False);
+            Assert.That(_service.TryConsume(ObjectCategory.Item, 3, -1), Is.False);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(2));
         }
 
         [Test]
@@ -124,9 +124,9 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
             // TryAdd 経由だと既に Dirty になるため、直接 Slots へ登録して Dirty を汚さず前提を作る。
-            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { SlotType = InventorySlotType.Item, Id = 3, Count = 4 });
+            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { SlotType = ObjectCategory.Item, Id = 3, Count = 4 });
 
-            var ok = _service.TryConsume(InventorySlotType.Item, 3, 1);
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
 
             Assert.That(ok, Is.True);
             Assert.That(_repository.IsDirty, Is.True);

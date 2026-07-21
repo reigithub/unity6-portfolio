@@ -185,14 +185,14 @@ namespace Game.Horror.Services
             {
                 if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out _))
                 {
-                    slot.SlotType = InventorySlotType.None;
+                    slot.SlotType = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.SlotType != InventorySlotType.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
+            if (data.SlotType != ObjectCategory.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
             {
-                data.SlotType = InventorySlotType.None;
+                data.SlotType = ObjectCategory.None;
                 data.Id = 0;
             }
 

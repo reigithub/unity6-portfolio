@@ -50,7 +50,7 @@ namespace Game.Horror.Equipment
         /// </summary>
         /// <param name="equippedType">装備中アイテムのスロット種別</param>
         /// <param name="equippedId">装備中アイテムの Id</param>
-        public void Show(InventorySlotType equippedType, int equippedId)
+        public void Show(ObjectCategory equippedType, int equippedId)
         {
             // 1. 登録内容の更新（ダイアログの RefreshSlot と同イディオム）
             for (int i = 0; i < _slots.Length; i++)

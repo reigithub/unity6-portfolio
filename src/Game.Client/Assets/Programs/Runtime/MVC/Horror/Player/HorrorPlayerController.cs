@@ -124,7 +124,7 @@ namespace Game.Horror.Player
         // 装備（ショートカット呼び出し）：セーブサービス（装備状態とショートカットを一元管理）・DB参照・起動入力フラグ・遷移時キャッシュ（硬直経過は EquippingState ローカル）
         private bool _equipTriggered;
         private int _equipSlotIndex;
-        private InventorySlotType _pendingEquipType;
+        private ObjectCategory _pendingEquipType;
         private int _pendingEquipId;
         private HorrorWeaponMaster _pendingWeaponMaster;
 
@@ -241,7 +241,7 @@ namespace Game.Horror.Player
 
             // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
             if (_equipmentService.TryGetEquipped(out var slotType, out var id)
-                && slotType == InventorySlotType.Weapon
+                && slotType == ObjectCategory.Weapon
                 && _dbService.Database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
             {
                 _weaponMaster = weaponMaster;
@@ -651,7 +651,7 @@ namespace Game.Horror.Player
             if (_equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize) >= _weaponMaster.MagazineSize)
                 return false;
 
-            if (_inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId) <= 0)
+            if (_inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId) <= 0)
                 return false;
 
             return true;
@@ -669,7 +669,7 @@ namespace Game.Horror.Player
             for (var i = 0; i < HorrorEquipmentConstants.MaxEquipmentSlotCount; i++)
             {
                 if (_equipmentService.TryGetSlot(i, out var slot)
-                    && slot.SlotType == InventorySlotType.Weapon
+                    && slot.SlotType == ObjectCategory.Weapon
                     && seenIds.Add(slot.Id)
                     && _dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
                 {
@@ -678,7 +678,7 @@ namespace Game.Horror.Player
             }
 
             if (_equipmentService.TryGetEquipped(out var equippedType, out var equippedId)
-                && equippedType == InventorySlotType.Weapon
+                && equippedType == ObjectCategory.Weapon
                 && seenIds.Add(equippedId)
                 && _dbService.Database.HorrorWeaponMasterTable.TryFindById(equippedId, out var equippedMaster))
             {
@@ -1587,10 +1587,10 @@ namespace Game.Horror.Player
                 case HorrorAmmoViewMode.MagazineAndReserve:
                     magazineSize = _weaponMaster.MagazineSize;
                     magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
-                    reserve = _inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId);
+                    reserve = _inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId);
                     break;
                 case HorrorAmmoViewMode.CountOnly:
-                    magazine = _inventoryService.GetCount(InventorySlotType.Weapon, _weaponMaster.Id); // 武器アイテム自体の所持数（例: Smoke）
+                    magazine = _inventoryService.GetCount(ObjectCategory.Weapon, _weaponMaster.Id); // 武器アイテム自体の所持数（例: Smoke）
                     break;
             }
 
@@ -1710,11 +1710,11 @@ namespace Game.Horror.Player
 
             var magazineSize = _weaponMaster.MagazineSize;
             var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
-            var reserve = _inventoryService.GetCount(InventorySlotType.Item, _weaponMaster.AmmoItemId);
+            var reserve = _inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId);
             var amount = CalculateReloadAmount(magazine, magazineSize, reserve);
 
             if (amount <= 0) return;
-            if (!_inventoryService.TryConsume(InventorySlotType.Item, _weaponMaster.AmmoItemId, amount)) return;
+            if (!_inventoryService.TryConsume(ObjectCategory.Item, _weaponMaster.AmmoItemId, amount)) return;
 
             _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine + amount);
             NotifyHudViews();
