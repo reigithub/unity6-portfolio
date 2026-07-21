@@ -44,7 +44,7 @@ namespace Game.Horror.Interaction
 
         /// <summary>
         /// 提示状態を反映する。対象側がアウトラインやプロンプト表示を切り替える。
-        /// <paramref name="viewCamera"/> は対象側プロンプトがビルボードで正対するための視点カメラ
+        /// <paramref name="viewCamera"/> は対象側プロンプトのスクリーン座標変換に使う視点カメラ
         /// （検出器が保持する唯一の視点。<see cref="InteractionState.Hidden"/> 時は未使用で null 可）。
         /// </summary>
         void SetInteractionState(InteractionState state, Camera viewCamera);

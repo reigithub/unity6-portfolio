@@ -14,7 +14,7 @@ namespace Game.Horror.Interaction
     /// </summary>
     public class InteractionDetector : MonoBehaviour
     {
-        [Tooltip("視界・遮蔽判定とビルボード視点の基準カメラ")]
+        [Tooltip("視界・遮蔽判定とスクリーン座標変換の基準カメラ")]
         [SerializeField] private Camera _camera;
 
         [Tooltip("発見可能とみなす最大距離（m, プレイヤー基準）")]
