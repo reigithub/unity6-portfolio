@@ -62,11 +62,11 @@ namespace Game.Horror.Services
             return true;
         }
 
-        private static bool TryGet(HorrorInventorySaveData data, ObjectCategory type, int id, out HorrorInventorySlotData slot)
+        private static bool TryGet(HorrorInventorySaveData data, ObjectCategory category, int id, out HorrorInventorySlotData slot)
         {
             foreach (var slotData in data.Slots)
             {
-                if (slotData.ObjectCategory == type && slotData.Id == id)
+                if (slotData.ObjectCategory == category && slotData.Id == id)
                 {
                     slot = slotData;
                     return true;
@@ -77,31 +77,31 @@ namespace Game.Horror.Services
             return false;
         }
 
-        /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
-        public bool HasItem(ObjectCategory type, int id)
+        /// <summary>指定オブジェクトを所持しているか判定する。</summary>
+        public bool HasItem(ObjectCategory category, int id)
         {
             var data = _repository.Data?.Inventory;
-            return data != null && TryGet(data, type, id, out _);
+            return data != null && TryGet(data, category, id, out _);
         }
 
-        /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
-        public int GetCount(ObjectCategory type, int id)
+        /// <summary>指定オブジェクトの所持数を取得する。未所持は 0。</summary>
+        public int GetCount(ObjectCategory category, int id)
         {
             var data = _repository.Data?.Inventory;
-            return data != null && TryGet(data, type, id, out var slot) ? slot.Count : 0;
+            return data != null && TryGet(data, category, id, out var slot) ? slot.Count : 0;
         }
 
         /// <summary>
         /// 指定数を消費する。所持数不足なら何もせず false（部分消費しない）。
         /// 0 到達でスロットを除去し、Dirty にする。
         /// </summary>
-        public bool TryConsume(ObjectCategory type, int id, int count)
+        public bool TryConsume(ObjectCategory category, int id, int count)
         {
             var data = _repository.Data?.Inventory;
             if (data == null || count <= 0)
                 return false;
 
-            if (!TryGet(data, type, id, out var slot) || slot.Count < count)
+            if (!TryGet(data, category, id, out var slot) || slot.Count < count)
                 return false;
 
             slot.Count -= count;
@@ -110,6 +110,36 @@ namespace Game.Horror.Services
 
             _repository.MarkDirty();
             return true;
+        }
+
+        public void Discard(ObjectCategory category, int id, int count)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null || count <= 0)
+                return;
+
+            if (!TryGet(data, category, id, out var slot) || slot.Count < count)
+                return;
+
+            slot.Count -= count;
+            if (slot.Count <= 0)
+                data.Slots.Remove(slot);
+
+            _repository.MarkDirty();
+        }
+
+        public void DiscardAll(ObjectCategory category, int id)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null)
+                return;
+
+            if (!TryGet(data, category, id, out var slot))
+                return;
+
+            data.Slots.Remove(slot);
+
+            _repository.MarkDirty();
         }
     }
 }

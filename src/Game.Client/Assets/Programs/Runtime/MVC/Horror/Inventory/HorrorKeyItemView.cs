@@ -1,6 +1,7 @@
 using Game.Core.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Interfaces;
+using Game.Shared.Services.Interfaces;
 using R3;
 using R3.Triggers;
 using TMPro;
@@ -24,14 +25,19 @@ namespace Game.Horror.Inventory
 
         public Selectable Selectable => _button;
 
-        public IObjectInfo ItemInfo { get; private set; }
-
+        private ILocalizationService _localizationService;
         private IHorrorIconService _iconService;
+
+        private IObjectInfo _itemInfo;
 
         public void Initialize()
         {
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
             _iconService = GameServiceManager.Resolve<IHorrorIconService>();
 
+            _localizationService.OnLocaleChanged
+                .Subscribe(_ => SetText())
+                .AddTo(this);
             _button.OnClickAsObservable()
                 .Subscribe(_ => _onSubmit.OnNext(this))
                 .AddTo(this);
@@ -40,25 +46,26 @@ namespace Game.Horror.Inventory
                 .AddTo(this);
         }
 
-        public void SetItem(IObjectInfo info, int count)
+        public void SetItem(IObjectInfo info)
         {
-            ItemInfo = info;
-            SetIcon(info);
+            _itemInfo = info;
+            SetIcon();
+            SetText();
         }
 
-        public void SetEmpty()
+        private void SetText()
         {
-            ItemInfo = null;
-            SetIcon(null);
+            _nameText.text = _localizationService.GetStringByPropTexts(_itemInfo.Name);
+            _descText.text = _localizationService.GetStringByPropTexts(_itemInfo.Description);
         }
 
-        private void SetIcon(IObjectInfo item)
+        private void SetIcon()
         {
             Sprite sprite = null;
 
-            if (item != null && !string.IsNullOrEmpty(item.IconAssetName))
+            if (_itemInfo != null && !string.IsNullOrEmpty(_itemInfo.IconAssetName))
             {
-                sprite = _iconService.GetSprite(item.IconAssetName);
+                sprite = _iconService.GetSprite(_itemInfo.IconAssetName);
             }
 
             if (_icon != null)

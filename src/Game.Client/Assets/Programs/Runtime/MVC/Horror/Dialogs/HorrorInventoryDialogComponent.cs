@@ -5,6 +5,7 @@ using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
+using Game.Shared.Extensions;
 using Game.Shared.Services;
 using R3;
 using UnityEngine;
@@ -48,6 +49,7 @@ namespace Game.Horror.Dialogs
             BindSlots();
             _slotDetailView.Initialize();
             UpdateDetail(_slots[0]);
+            BindKeyItems();
             _tabGroup.ChangeTab(0);
 
             if (_contextMenu != null)
@@ -60,6 +62,8 @@ namespace Game.Horror.Dialogs
 
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
+
+        #region InventorySlots
 
         private void BindSlots()
         {
@@ -129,5 +133,30 @@ namespace Game.Horror.Dialogs
             _slotsCanvasGroup.interactable = value;
             _slotsCanvasGroup.blocksRaycasts = value;
         }
+
+        #endregion
+
+        #region KeyItems
+
+        private void BindKeyItems()
+        {
+            foreach (Transform keyItem in _keyItemContentRoot)
+            {
+                keyItem.gameObject.SafeDestroy();
+            }
+
+            var slots = _inventoryService.Slots;
+            foreach (var slot in slots)
+            {
+                if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var slotInfo))
+                {
+                    var keyItem = Instantiate(_keyItemPrefab, _keyItemContentRoot);
+                    keyItem.Initialize();
+                    keyItem.SetItem(slotInfo);
+                }
+            }
+        }
+
+        #endregion
     }
 }
