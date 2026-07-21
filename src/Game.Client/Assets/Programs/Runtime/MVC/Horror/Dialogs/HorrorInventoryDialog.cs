@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -15,6 +16,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorInventoryDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
 
         public static async UniTask<bool> RunAsync()
         {
@@ -69,15 +71,27 @@ namespace Game.Horror.Dialogs
             // アクション選択：Shortcut はショートカット登録ダイアログをネストで開く。他は従来通り。
             SceneComponent.OnContextActionClicked
                 .Where(_ => State.IsProcessing())
-                .SubscribeAwait(async (info, _) =>
+                .SubscribeAwait(async (ctx, _) =>
                 {
-                    var slotInfo = info.SlotInfo;
+                    var info = ctx.SlotView.SlotInfo;
                     SceneComponent.CloseSubmenu();
 
-                    if (info.ContextActionType == ContextActionType.Shortcut)
-                        await HorrorEquipmentShortcutDialog.RunAsync(slotInfo);
-                    else
-                        Debug.Log($"[HorrorInventory] Action selected: {info.ContextActionType}");
+                    Debug.Log($"[HorrorInventory] Action selected: {ctx.ContextActionType}");
+                    switch (ctx.ContextActionType)
+                    {
+                        case ContextActionType.Use:
+                        case ContextActionType.Inspect:
+                            break;
+                        case ContextActionType.Discard:
+                            _inventoryService.DiscardAll(info.ObjectCategory, info.Id);
+                            ctx.SlotView.SetEmpty();
+                            break;
+                        case ContextActionType.Equip:
+                            break;
+                        case ContextActionType.Shortcut:
+                            await HorrorEquipmentShortcutDialog.RunAsync(info);
+                            break;
+                    }
                 })
                 .AddTo(Disposables);
 

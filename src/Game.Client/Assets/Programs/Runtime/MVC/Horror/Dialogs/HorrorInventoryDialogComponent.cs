@@ -36,7 +36,7 @@ namespace Game.Horror.Dialogs
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
                 ContextActionType = x,
-                SlotInfo = _slotView.SlotInfo
+                SlotView = _slotView
             });
 
         public void Initialize()
