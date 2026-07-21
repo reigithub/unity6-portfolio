@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Core.UI;
+using Game.Horror.Database;
 using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
@@ -71,7 +72,7 @@ namespace Game.Horror.Dialogs
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    if (HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var slotInfo))
+                    if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var slotInfo))
                     {
                         _slots[i].SetSlot(slotInfo, slot.Count);
                         empty = false;

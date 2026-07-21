@@ -1,6 +1,6 @@
 using Game.Core.Services;
 using Game.Horror.Equipment;
-using Game.Horror.Inventory;
+using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Interfaces;
@@ -75,7 +75,7 @@ namespace Game.Horror.Dialogs
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var info))
+            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var info))
                 _slots[index].SetSlot(info);
             else
                 _slots[index].SetEmpty();

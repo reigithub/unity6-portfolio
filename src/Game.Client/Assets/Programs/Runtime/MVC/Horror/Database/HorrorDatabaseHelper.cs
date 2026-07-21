@@ -2,11 +2,11 @@ using Game.Shared.Enums;
 using Game.Shared.Interfaces;
 using Game.Shared.Scriptable.Database;
 
-namespace Game.Horror.Inventory
+namespace Game.Horror.Database
 {
-    public static class HorrorInventoryHelper
+    public static class HorrorDatabaseHelper
     {
-        public static bool TryGetSlotInfo(ScriptableDatabase database, ObjectCategory type, int id, out IObjectInfo info)
+        public static bool TryGetInfo(ScriptableDatabase database, ObjectCategory type, int id, out IObjectInfo info)
         {
             info = null;
             switch (type)

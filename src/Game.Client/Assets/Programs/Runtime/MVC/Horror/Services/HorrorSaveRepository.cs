@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Core.Services;
 using Game.Horror.Constants;
-using Game.Horror.Inventory;
+using Game.Horror.Database;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
@@ -170,7 +169,7 @@ namespace Game.Horror.Services
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.ObjectCategory, slot.Id, out var info))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out var info))
                     data.Slots.RemoveAt(i);
                 else
                     data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
@@ -183,14 +182,14 @@ namespace Game.Horror.Services
 
             foreach (var slot in data.Slots)
             {
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.ObjectCategory, slot.Id, out _))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _))
                 {
                     slot.ObjectCategory = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.ObjectCategory, data.Id, out _))
+            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _))
             {
                 data.ObjectCategory = ObjectCategory.None;
                 data.Id = 0;
