@@ -63,6 +63,9 @@ namespace Game.Shared.Services
         public string GetStringByMessages(string localizeKey)
             => GetLocalizedString(LocalizationConstants.InteractionMessagesTable, localizeKey);
 
+        public string GetStringByPropTexts(string localizeKey)
+            => GetLocalizedString(LocalizationConstants.PropTextsTable, localizeKey);
+
         public string GetStringByUITexts(string localizeKey)
             => GetLocalizedString(LocalizationConstants.UITextsTable, localizeKey);
     }

@@ -19,6 +19,8 @@ namespace Game.Shared.Services.Interfaces
 
         string GetStringByMessages(string localizeKey);
 
+        string GetStringByPropTexts(string localizeKey);
+
         string GetStringByUITexts(string localizeKey);
     }
 }
