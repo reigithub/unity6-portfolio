@@ -3,8 +3,8 @@ using Game.Shared.Interfaces;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {
-    public partial class HorrorItemMaster : IHorrorInventorySlotInfo
+    public partial class HorrorItemMaster : IObjectInfo
     {
-        public ObjectCategory SlotType => ObjectCategory.Item;
+        public ObjectCategory ObjectCategory => ObjectCategory.Item;
     }
 }

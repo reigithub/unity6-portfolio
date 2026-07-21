@@ -27,11 +27,11 @@ namespace Game.Horror.Equipment
         /// <summary>このスロットが選択された通知。Component が購読して現在スロットを追跡する。</summary>
         public Observable<BaseEventData> OnSelect => _button.OnSelectAsObservable();
 
-        public void SetSlot(IHorrorInventorySlotInfo info) => SetIcon(info);
+        public void SetSlot(IObjectInfo info) => SetIcon(info);
 
         public void SetEmpty() => SetIcon(null);
 
-        private void SetIcon(IHorrorInventorySlotInfo item)
+        private void SetIcon(IObjectInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {

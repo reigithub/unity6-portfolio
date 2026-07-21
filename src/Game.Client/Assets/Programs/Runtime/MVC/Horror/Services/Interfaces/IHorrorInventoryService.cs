@@ -17,7 +17,7 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>
         /// アイテムをインベントリに追加する。同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        bool TryAdd(IHorrorInventorySlotInfo info, int addCount);
+        bool TryAdd(IObjectInfo info, int addCount);
 
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
         bool HasItem(ObjectCategory type, int id);

@@ -27,7 +27,7 @@ namespace Game.Horror.Inventory
             _iconService = GameServiceManager.Resolve<IHorrorIconService>();
         }
 
-        public void SetSlotDetail(IHorrorInventorySlotInfo info)
+        public void SetSlotDetail(IObjectInfo info)
         {
             SetIcon(info);
 
@@ -38,7 +38,7 @@ namespace Game.Horror.Inventory
                 _descriptionText.text = _localizationService.GetStringByPropTexts(info?.Description);
         }
 
-        private void SetIcon(IHorrorInventorySlotInfo item)
+        private void SetIcon(IObjectInfo item)
         {
             if (item == null || string.IsNullOrEmpty(item.IconAssetName))
             {

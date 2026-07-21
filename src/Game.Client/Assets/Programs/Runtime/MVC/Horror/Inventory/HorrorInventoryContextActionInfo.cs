@@ -7,6 +7,6 @@ namespace Game.Horror.Inventory
     {
         public ContextActionType ContextActionType { get; set; }
 
-        public IHorrorInventorySlotInfo SlotInfo { get; set; }
+        public IObjectInfo SlotInfo { get; set; }
     }
 }

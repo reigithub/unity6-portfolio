@@ -32,13 +32,13 @@ namespace Game.Horror.Services
         /// アイテムをインベントリに追加する。
         /// 同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        public bool TryAdd(IHorrorInventorySlotInfo info, int addCount)
+        public bool TryAdd(IObjectInfo info, int addCount)
         {
             var data = _repository.Data?.Inventory;
             if (data == null || info == null || addCount <= 0)
                 return false;
 
-            if (TryGet(data, info.SlotType, info.Id, out var slot))
+            if (TryGet(data, info.ObjectCategory, info.Id, out var slot))
             {
                 if (slot.Count >= info.MaxCount)
                     return false;
@@ -52,7 +52,7 @@ namespace Game.Horror.Services
 
                 data.Slots.Add(new HorrorInventorySlotData
                 {
-                    SlotType = info.SlotType,
+                    SlotType = info.ObjectCategory,
                     Id = info.Id,
                     Count = Mathf.Min(addCount, info.MaxCount)
                 });

@@ -13,20 +13,20 @@ namespace Game.Horror.Dialogs
     /// 対象アイテムを D-Pad 4スロットへ登録／解除する。時間停止は親（インベントリ）が保持するため触れない。
     /// </summary>
     public class HorrorEquipmentShortcutDialog : GameDialogScene<HorrorEquipmentShortcutDialog, HorrorEquipmentShortcutDialogComponent, bool>
-        , IGameSceneArg<IHorrorInventorySlotInfo>
+        , IGameSceneArg<IObjectInfo>
     {
         protected override string AssetPathOrAddress => "HorrorEquipmentShortcutDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-        private IHorrorInventorySlotInfo _target;
+        private IObjectInfo _target;
 
-        public static async UniTask<bool> RunAsync(IHorrorInventorySlotInfo target)
+        public static async UniTask<bool> RunAsync(IObjectInfo target)
         {
             var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-            return await sceneService.TransitionDialogAsync<HorrorEquipmentShortcutDialog, IHorrorInventorySlotInfo, bool>(target);
+            return await sceneService.TransitionDialogAsync<HorrorEquipmentShortcutDialog, IObjectInfo, bool>(target);
         }
 
-        public UniTask SetArg(IHorrorInventorySlotInfo target)
+        public UniTask SetArg(IObjectInfo target)
         {
             _target = target;
             return UniTask.CompletedTask;

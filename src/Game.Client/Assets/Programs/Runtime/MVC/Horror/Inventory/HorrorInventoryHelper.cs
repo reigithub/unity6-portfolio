@@ -6,7 +6,7 @@ namespace Game.Horror.Inventory
 {
     public static class HorrorInventoryHelper
     {
-        public static bool TryGetSlotInfo(ScriptableDatabase database, ObjectCategory type, int id, out IHorrorInventorySlotInfo info)
+        public static bool TryGetSlotInfo(ScriptableDatabase database, ObjectCategory type, int id, out IObjectInfo info)
         {
             info = null;
             switch (type)

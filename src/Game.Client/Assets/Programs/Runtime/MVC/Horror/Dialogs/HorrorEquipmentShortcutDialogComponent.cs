@@ -21,10 +21,10 @@ namespace Game.Horror.Dialogs
         private IInputSystemService _inputService;
         private IScriptableDatabaseService _databaseService;
         private IHorrorEquipmentService _equipmentService;
-        private IHorrorInventorySlotInfo _target;
+        private IObjectInfo _target;
         private int _currentIndex;
 
-        public void Initialize(IHorrorInventorySlotInfo target)
+        public void Initialize(IObjectInfo target)
         {
             _target = target;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -62,7 +62,7 @@ namespace Game.Horror.Dialogs
         private void Register(int index)
         {
             if (_target == null) return;
-            if (_equipmentService.TryAssignSlot(index, _target.SlotType, _target.Id))
+            if (_equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.Id))
                 RefreshAllSlots();
         }
 

@@ -39,10 +39,10 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
         }
 
-        private static IHorrorInventorySlotInfo MakeInfo(ObjectCategory type, int id, int maxCount)
+        private static IObjectInfo MakeInfo(ObjectCategory type, int id, int maxCount)
         {
-            var info = Substitute.For<IHorrorInventorySlotInfo>();
-            info.SlotType.Returns(type);
+            var info = Substitute.For<IObjectInfo>();
+            info.ObjectCategory.Returns(type);
             info.Id.Returns(id);
             info.MaxCount.Returns(maxCount);
             return info;
