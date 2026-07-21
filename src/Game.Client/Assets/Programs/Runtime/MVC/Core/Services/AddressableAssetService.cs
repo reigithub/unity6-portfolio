@@ -6,7 +6,7 @@ namespace Game.Core.Services
     /// MVC用Addressablesアセット読み込みサービス
     /// GameServiceManager経由で使用
     /// </summary>
-    public class AddressableAssetService : AddressableAssetServiceBase, IGameService
+    public class AddressableAssetService : AddressableAssetServiceBase
     {
         public AddressableAssetService()
         {

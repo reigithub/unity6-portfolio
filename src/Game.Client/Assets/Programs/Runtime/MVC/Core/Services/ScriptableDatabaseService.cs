@@ -8,7 +8,7 @@ namespace Game.Core.Services
     /// MVC 用 ScriptableDatabase ロードサービス。GameServiceManager 経由で使用。
     /// MVC <c>MasterDataService</c> と同じく Addressables からコンテナ資産をロードする。
     /// </summary>
-    public class ScriptableDatabaseService : ScriptableDatabaseServiceBase, IGameService
+    public class ScriptableDatabaseService : ScriptableDatabaseServiceBase
     {
         private readonly IAddressableAssetService _assetService;
 

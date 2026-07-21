@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Game.MVC.Core.Constants;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Core.Services
 {

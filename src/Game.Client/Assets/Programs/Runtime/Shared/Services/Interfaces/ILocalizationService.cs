@@ -3,7 +3,7 @@ using UnityEngine.Localization;
 
 namespace Game.Shared.Services.Interfaces
 {
-    public interface ILocalizationService
+    public interface ILocalizationService : IGameService
     {
         Locale SelectedLocale { get; }
 

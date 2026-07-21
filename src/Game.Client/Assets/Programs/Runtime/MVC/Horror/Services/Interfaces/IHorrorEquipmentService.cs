@@ -1,6 +1,6 @@
-using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services.Interfaces
 {

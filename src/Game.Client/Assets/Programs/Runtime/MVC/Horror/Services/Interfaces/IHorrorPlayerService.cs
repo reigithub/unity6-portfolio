@@ -1,4 +1,4 @@
-using Game.Core.Services;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services.Interfaces
 {

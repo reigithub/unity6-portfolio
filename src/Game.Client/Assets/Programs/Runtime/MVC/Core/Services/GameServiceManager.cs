@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Core.Services
 {
@@ -41,16 +42,19 @@ namespace Game.Core.Services
             Instance._gameServices[type] = service;
         }
 
-        // public static void Register<TInterface>(TInterface service)
-        //     where TInterface : IGameService
-        // {
-        //     var type = typeof(TInterface);
-        //     if (Instance._gameServices.ContainsKey(type))
-        //         return;
-        //
-        //     service.Startup();
-        //     Instance._gameServices[type] = service;
-        // }
+        /// <summary>
+        /// Memo: テスト用サービス登録窓口
+        /// </summary>
+        public static void Register<TInterface>(TInterface service)
+            where TInterface : IGameService
+        {
+            var type = typeof(TInterface);
+            if (Instance._gameServices.ContainsKey(type))
+                return;
+
+            service.Startup();
+            Instance._gameServices[type] = service;
+        }
 
         public static T Resolve<T>()
         {

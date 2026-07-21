@@ -10,6 +10,7 @@ using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services

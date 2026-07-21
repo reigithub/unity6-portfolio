@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Shared.Services.Interfaces;
 using MessagePipe;
 
 namespace Game.Core.Services

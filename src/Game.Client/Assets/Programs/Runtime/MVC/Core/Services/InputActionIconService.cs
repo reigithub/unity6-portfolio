@@ -8,7 +8,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.Core.Services
 {
-    public class InputActionIconService : IInputActionIconService, IGameService
+    public class InputActionIconService : IInputActionIconService
     {
         private readonly IAddressableAssetService _assetService;
 

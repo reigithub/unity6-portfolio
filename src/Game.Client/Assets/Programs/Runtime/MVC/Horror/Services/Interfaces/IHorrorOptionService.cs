@@ -1,4 +1,4 @@
-using Game.Core.Services;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services.Interfaces

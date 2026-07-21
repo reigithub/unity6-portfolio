@@ -9,7 +9,7 @@ namespace Game.Core.Services
     /// MVC用マスターデータサービス
     /// GameServiceManager経由で使用
     /// </summary>
-    public class MasterDataService : MasterDataServiceBase, IGameService
+    public class MasterDataService : MasterDataServiceBase
     {
         private readonly IAddressableAssetService _assetService;
 
