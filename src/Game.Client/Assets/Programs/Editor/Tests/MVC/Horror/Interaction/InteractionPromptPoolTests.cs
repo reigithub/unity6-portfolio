@@ -32,15 +32,18 @@ namespace Game.Tests.MVC.Horror.Interaction
         // TearDown で内部アセットを DestroyImmediate する。
         private ProjectInputActions _inputActions;
 
+        [SetUp]
+        public void TearUp()
+        {
+            GameServiceManager.StartUp();
+            GameServiceManager.Register(CreateLocalizationService());
+            GameServiceManager.Register(CreateInputSystemService());
+            GameServiceManager.Register(CreateInputActionIconService());
+        }
+
         [TearDown]
         public void TearDown()
         {
-            // GameServiceManager.StartUp();
-            // var addressableAssetService = new AddressableAssetService();
-            // var localizationService = new LocalizationService();
-            // GameServiceManager.Register<IInputSystemService, InputSystemService>(new InputSystemService(localizationService));
-            // GameServiceManager.Register<IInputActionIconService, InputActionIconService>(new InputActionIconService(addressableAssetService));
-
             if (_anchorGo != null) Object.DestroyImmediate(_anchorGo);
             if (_poolGo != null) Object.DestroyImmediate(_poolGo);
             if (_prefab != null) Object.DestroyImmediate(_prefab.gameObject);
@@ -55,7 +58,7 @@ namespace Game.Tests.MVC.Horror.Interaction
 
         // GetStringByContextActions はキーをそのまま返すため、Bind 時の動詞キー選択（toggle 反映）を
         // テキストの一致で直接検証できる
-        private static ILocalizationService CreateLocalizationSubstitute()
+        private static ILocalizationService CreateLocalizationService()
         {
             var localization = Substitute.For<ILocalizationService>();
             localization.OnLocaleChanged.Returns(new Subject<Locale>());
@@ -64,7 +67,7 @@ namespace Game.Tests.MVC.Horror.Interaction
         }
 
         // Construct が購読する Observable 群と Player.Interact 参照のみ意味を持たせる
-        private IInputSystemService CreateInputServiceSubstitute()
+        private IInputSystemService CreateInputSystemService()
         {
             _inputActions = new ProjectInputActions();
 
@@ -76,6 +79,18 @@ namespace Game.Tests.MVC.Horror.Interaction
             input.GetBindingDisplayString(Arg.Any<InputAction>(), Arg.Any<string>()).Returns("TestBinding");
             input.GetBindingInfo(Arg.Any<InputAction>(), Arg.Any<string>()).Returns(new InputBindingInfo());
             return input;
+        }
+
+        private IInputActionIconService CreateInputActionIconService()
+        {
+            var icon = Substitute.For<IInputActionIconService>();
+            // Texture2D texture = new Texture2D(128, 128);
+            // Rect rect = new Rect(0, 0, 128, 128);
+            // Vector2 pivot = new Vector2(0.5f, 0.5f);
+            // Sprite dummySprite = Sprite.Create(texture, rect, pivot);
+            // icon.GetSprite(new InputBindingInfo()).Returns(dummySprite);
+            icon.GetSprite(new InputBindingInfo()).Returns(_ => null);
+            return icon;
         }
 
         // ---- ヘルパー ----
@@ -95,12 +110,17 @@ namespace Game.Tests.MVC.Horror.Interaction
             inputBindingTextGo.transform.SetParent(go.transform);
             var inputBindingText = inputBindingTextGo.AddComponent<TextMeshProUGUI>();
 
+            var inputActionIconGo = new GameObject("InputActionIcon", typeof(RectTransform));
+            inputActionIconGo.transform.SetParent(go.transform);
+            var inputActionIcon = inputActionIconGo.AddComponent<Image>();
+
             var holdGaugeGo = new GameObject("HoldGauge");
             holdGaugeGo.transform.SetParent(go.transform);
             var holdGauge = holdGaugeGo.AddComponent<Image>();
 
             SetPrivateField(view, "_interactionText", interactionText);
             SetPrivateField(view, "_inputBindingText", inputBindingText);
+            SetPrivateField(view, "_inputActionIcon", inputActionIcon);
             SetPrivateField(view, "_holdGauge", holdGauge);
 
             return view;

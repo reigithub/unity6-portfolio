@@ -122,13 +122,12 @@ namespace Game.Tests.MVC
         }
 
         [Test]
-        public void Resolve_SingleAction_WithPartName_ReturnsEmpty()
+        public void Resolve_SingleAction_WithPartName_ReturnsSingle()
         {
-            // 単体アクション（Jump）に partName を指定しても該当パートは存在しない
             var action = Action("Jump");
             var indices = InputSystemService.GetBindingIndicesByControlScheme(InputControlSchemes.KeyboardAndMouse, action, "up");
 
-            Assert.That(indices.Count, Is.EqualTo(0));
+            Assert.That(indices.Count, Is.EqualTo(1));
         }
 
         #endregion
