@@ -26,6 +26,22 @@ namespace Game.Horror.Interaction
             base.Interact();
         }
 
+        public override InteractionTargetInfo GetInteractionTargetInfo()
+        {
+            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
+                return base.GetInteractionTargetInfo();
+
+            return new InteractionTargetInfo
+            {
+                Type = "item",
+                Id = itemMaster.Id,
+                Name = itemMaster.Name,
+                Description = itemMaster.Description,
+                Count = Master.AcquiredCount,
+                IconAssetName = itemMaster.IconAssetName
+            };
+        }
+
         private bool TryPickUpItem()
         {
             if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))

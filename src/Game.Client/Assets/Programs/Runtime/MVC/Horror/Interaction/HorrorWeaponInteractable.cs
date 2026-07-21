@@ -28,6 +28,22 @@ namespace Game.Horror.Interaction
             base.Interact();
         }
 
+        public override InteractionTargetInfo GetInteractionTargetInfo()
+        {
+            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
+                return base.GetInteractionTargetInfo();
+
+            return new InteractionTargetInfo
+            {
+                Type = "weapon",
+                Id = weaponMaster.Id,
+                Name = weaponMaster.Name,
+                Description = weaponMaster.Description,
+                Count = Master.AcquiredCount,
+                IconAssetName = weaponMaster.IconAssetName
+            };
+        }
+
         private bool TryPickUpWeapon()
         {
             if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
