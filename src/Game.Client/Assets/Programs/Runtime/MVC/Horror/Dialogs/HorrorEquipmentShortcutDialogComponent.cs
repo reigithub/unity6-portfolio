@@ -33,6 +33,8 @@ namespace Game.Horror.Dialogs
 
             for (int i = 0; i < _slots.Length; i++)
             {
+                _slots[i].Initialize();
+
                 int index = i;
                 RefreshSlot(index);
 

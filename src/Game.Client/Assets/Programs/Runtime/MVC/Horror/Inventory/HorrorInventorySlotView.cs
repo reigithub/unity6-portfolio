@@ -38,8 +38,11 @@ namespace Game.Horror.Inventory
 
         public IObjectInfo SlotInfo { get; private set; }
 
+        private IHorrorIconService _iconService;
+
         public void Initialize()
         {
+            _iconService = GameServiceManager.Resolve<IHorrorIconService>();
             _button.OnClickAsObservable()
                 .Subscribe(_ => _onSubmit.OnNext(this))
                 .AddTo(this);
@@ -70,23 +73,16 @@ namespace Game.Horror.Inventory
 
         private void SetIcon(IObjectInfo item)
         {
-            if (item == null || string.IsNullOrEmpty(item.IconAssetName))
+            Sprite sprite = null;
+            if (item != null && !string.IsNullOrEmpty(item.IconAssetName))
             {
-                if (_iconImage != null)
-                {
-                    _iconImage.sprite = null;
-                    _iconImage.enabled = false;
-                }
-                return;
+                sprite = _iconService.GetSprite(item.IconAssetName);
             }
-
-            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
-            var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_iconImage != null)
             {
-                _iconImage.sprite = icon;
-                _iconImage.enabled = icon != null;
+                _iconImage.sprite = sprite;
+                _iconImage.enabled = sprite != null;
             }
         }
     }

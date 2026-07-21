@@ -40,22 +40,16 @@ namespace Game.Horror.Inventory
 
         private void SetIcon(IObjectInfo item)
         {
-            if (item == null || string.IsNullOrEmpty(item.IconAssetName))
+            Sprite sprite = null;
+            if (item != null && !string.IsNullOrEmpty(item.IconAssetName))
             {
-                if (_largeIcon != null)
-                {
-                    _largeIcon.sprite = null;
-                    _largeIcon.enabled = false;
-                }
-                return;
+                sprite = _iconService.GetSprite(item.IconAssetName);
             }
-
-            var icon = _iconService.GetSprite(item.IconAssetName);
 
             if (_largeIcon != null)
             {
-                _largeIcon.sprite = icon;
-                _largeIcon.enabled = icon != null;
+                _largeIcon.sprite = sprite;
+                _largeIcon.enabled = sprite != null;
             }
         }
 

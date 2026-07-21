@@ -13,7 +13,6 @@ namespace Game.Horror.Equipment
     /// ショートカットダイアログ / HUD 共用の1スロット（D-Pad 1〜4）。登録アイテムのアイコンを表示し、
     /// 選択(ISelectHandler)・決定(Button)を通知する。選択されるのは Selectable（子 Button）自身なので、
     /// このコンポーネントは Button と同じ GameObject に付与する。
-    /// ※インベントリの HorrorInventorySlotView と同イディオムだが、挙動分岐に備えて独立実装とする。
     /// </summary>
     public class HorrorEquipmentSlotView : MonoBehaviour
     {
@@ -27,29 +26,27 @@ namespace Game.Horror.Equipment
         /// <summary>このスロットが選択された通知。Component が購読して現在スロットを追跡する。</summary>
         public Observable<BaseEventData> OnSelect => _button.OnSelectAsObservable();
 
+        private IHorrorIconService _iconService;
+
+        public void Initialize()
+            => _iconService = GameServiceManager.Resolve<IHorrorIconService>();
+
         public void SetSlot(IObjectInfo info) => SetIcon(info);
 
         public void SetEmpty() => SetIcon(null);
 
-        private void SetIcon(IObjectInfo item)
+        private void SetIcon(IObjectInfo info)
         {
-            if (item == null || string.IsNullOrEmpty(item.IconAssetName))
+            Sprite sprite = null;
+            if (info != null && !string.IsNullOrEmpty(info.IconAssetName))
             {
-                if (_iconImage != null)
-                {
-                    _iconImage.sprite = null;
-                    _iconImage.enabled = false;
-                }
-                return;
+                sprite = _iconService.GetSprite(info.IconAssetName);
             }
-
-            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
-            var icon = iconService.GetSprite(item.IconAssetName);
 
             if (_iconImage != null)
             {
-                _iconImage.sprite = icon;
-                _iconImage.enabled = icon != null;
+                _iconImage.sprite = sprite;
+                _iconImage.enabled = sprite != null;
             }
         }
 
