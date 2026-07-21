@@ -121,10 +121,7 @@ namespace Game.Horror.Interaction
 
         public virtual void Interact() => _interactionService.Add(Master);
 
-        public virtual InteractionTargetInfo GetInteractionTargetInfo()
-        {
-            return new InteractionTargetInfo();
-        }
+        public virtual InteractionTargetInfo GetTargetInfo() => new();
 
         public void SetInteractionState(InteractionState state, Camera viewCamera)
         {
@@ -140,7 +137,7 @@ namespace Game.Horror.Interaction
                 {
                     _rentedView = _gameRootService.PromptPool.Rent();
                     _rentedView.Bind(Master, PromptAnchor, _interactionToggle);
-                    _rentedView.SetTargetInfo(GetInteractionTargetInfo());
+                    _rentedView.SetTargetInfo(GetTargetInfo());
                 }
 
                 _rentedView.SetState(state, viewCamera);

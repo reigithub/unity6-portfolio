@@ -28,10 +28,10 @@ namespace Game.Horror.Interaction
             base.Interact();
         }
 
-        public override InteractionTargetInfo GetInteractionTargetInfo()
+        public override InteractionTargetInfo GetTargetInfo()
         {
             if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
-                return base.GetInteractionTargetInfo();
+                return base.GetTargetInfo();
 
             return new InteractionTargetInfo
             {

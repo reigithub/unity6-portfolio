@@ -48,14 +48,13 @@ namespace Game.Horror.Interaction
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _countText;
 
-        private RectTransform _rectTransform;
-
-        private HorrorInteractionMaster _master;
         private IInputSystemService _inputService;
         private IInputActionIconService _inputActionIconService;
         private ILocalizationService _localizationService;
         private IHorrorIconService _iconService;
 
+        private RectTransform _rectTransform;
+        private HorrorInteractionMaster _master;
         private Transform _anchor;
         private Camera _viewCamera;
         private bool _interactionToggle;

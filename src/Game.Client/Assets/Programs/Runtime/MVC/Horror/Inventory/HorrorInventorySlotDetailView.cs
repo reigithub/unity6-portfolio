@@ -1,9 +1,5 @@
-using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Horror.Interaction;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
-using Game.Shared.Enums;
 using Game.Shared.Interfaces;
 using Game.Shared.Services.Interfaces;
 using TMPro;
