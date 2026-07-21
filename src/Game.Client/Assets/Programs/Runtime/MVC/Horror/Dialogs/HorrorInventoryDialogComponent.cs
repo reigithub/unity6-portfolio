@@ -42,6 +42,8 @@ namespace Game.Horror.Dialogs
 
             _tabGroup.Initialize();
             BindSlots();
+            _slotDetailView.Initialize();
+            UpdateDetail(_slots[0]);
             _tabGroup.ChangeTab(0);
 
             if (_contextMenu != null)
@@ -83,14 +85,13 @@ namespace Game.Horror.Dialogs
                     .Subscribe(OpenSubmenu)
                     .AddTo(Disposables);
             }
-
-            UpdateDetail(_slots[0]);
         }
 
         private void UpdateDetail(HorrorInventorySlotView slot)
             => _slotDetailView.SetSlotDetail(slot.SlotInfo);
 
-        public bool IsSubmenuOpen() => _contextMenu != null && _contextMenu.IsOpen;
+        public bool IsSubmenuOpen()
+            => _contextMenu != null && _contextMenu.IsOpen;
 
         // サブメニュー展開：非空スロットの決定で種別に応じたエントリを開く。空スロットは無視。
         private void OpenSubmenu(HorrorInventorySlotView slot)

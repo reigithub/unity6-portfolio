@@ -1,9 +1,11 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Interaction;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Interfaces;
+using Game.Shared.Services.Interfaces;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,12 +22,24 @@ namespace Game.Horror.Inventory
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _descriptionText;
 
+        private ILocalizationService _localizationService;
+        private IHorrorIconService _iconService;
+
+        public void Initialize()
+        {
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+            _iconService = GameServiceManager.Resolve<IHorrorIconService>();
+        }
+
         public void SetSlotDetail(IHorrorInventorySlotInfo info)
         {
             SetIcon(info);
 
-            if (_nameText != null) _nameText.text = info?.Name;
-            if (_descriptionText != null) _descriptionText.text = info?.Description;
+            if (_nameText != null)
+                _nameText.text = _localizationService.GetStringByPropTexts(info?.Name);
+
+            if (_descriptionText != null)
+                _descriptionText.text = _localizationService.GetStringByPropTexts(info?.Description);
         }
 
         private void SetIcon(IHorrorInventorySlotInfo item)
@@ -40,8 +54,7 @@ namespace Game.Horror.Inventory
                 return;
             }
 
-            var iconService = GameServiceManager.Resolve<IHorrorIconService>();
-            var icon = iconService.GetSprite(item.IconAssetName);
+            var icon = _iconService.GetSprite(item.IconAssetName);
 
             if (_largeIcon != null)
             {
