@@ -245,7 +245,7 @@ namespace Game.Horror.Enemy
                         return;
                     }
 
-                    Debug.Log("[HorrorEnemyController] Chase -> HasConfirmedSight");
+                    // Debug.Log("[HorrorEnemyController] Chase -> HasConfirmedSight");
                     ctx.MoveToThrottled(ctx._player.transform.position);
                     return;
                 }
@@ -255,7 +255,7 @@ namespace Game.Horror.Enemy
                     // 視認喪失中（Alert 継続）はプレイヤー知覚位置を追う。真位置は追わない＝壁越し追跡の防止
                     if (ctx._perception.TryGetLastPerceivedPlayerPosition(out var playerPos))
                     {
-                        Debug.Log("[HorrorEnemyController] Chase -> LastPerceivedPlayerPosition");
+                        // Debug.Log("[HorrorEnemyController] Chase -> LastPerceivedPlayerPosition");
                         ctx.MoveToThrottled(playerPos);
                         return;
                     }
@@ -263,7 +263,7 @@ namespace Game.Horror.Enemy
                     // プレイヤー知覚が皆無（着弾音・悲鳴のみで Alert 到達）なら注意対象位置へ突進する
                     if (ctx._perception.TryGetLastNoticedPosition(out var noticedPos))
                     {
-                        Debug.Log("[HorrorEnemyController] Chase -> LastNoticedPosition");
+                        // Debug.Log("[HorrorEnemyController] Chase -> LastNoticedPosition");
                         ctx.MoveToThrottled(noticedPos);
                         return;
                     }
@@ -272,7 +272,7 @@ namespace Game.Horror.Enemy
                 }
 
                 // 視認・警戒が両方消えたら最終知覚位置を辿る Investigate へ
-                Debug.Log("[HorrorEnemyController] LostTarget");
+                // Debug.Log("[HorrorEnemyController] LostTarget");
                 StateMachine.Transition(StateEvent.LostTarget);
             }
         }
