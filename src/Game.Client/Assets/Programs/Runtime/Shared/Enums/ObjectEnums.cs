@@ -21,11 +21,7 @@ namespace Game.Shared.Enums
         Shortcut,
     }
 
-    /// <summary>
-    /// スロット種別ごとにコンテキストサブメニューの表示エントリと表示ラベルを解決する純粋ヘルパー。
-    /// 副作用を持たないためユニットテスト対象。
-    /// </summary>
-    public static partial class InventorySlotTypeExtensions
+    public static partial class ObjectCategoryExtensions
     {
         private static readonly ContextActionType[] _itemActions =
         {
@@ -44,9 +40,9 @@ namespace Game.Shared.Enums
         private static readonly ContextActionType[] _empty = Array.Empty<ContextActionType>();
 
         /// <summary>スロット種別に対応するアクション列を返す。未対応種別は空。</summary>
-        public static ContextActionType[] ToContextActions(this ObjectCategory slotType)
+        public static ContextActionType[] ToContextActions(this ObjectCategory category)
         {
-            switch (slotType)
+            switch (category)
             {
                 case ObjectCategory.Item:
                     return _itemActions;
