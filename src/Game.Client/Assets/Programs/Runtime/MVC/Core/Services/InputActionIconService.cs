@@ -8,7 +8,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace Game.Core.Services
 {
-    public class InputActionActionIconService : IInputActionIconService, IGameService
+    public class InputActionIconService : IInputActionIconService, IGameService
     {
         private readonly IAddressableAssetService _assetService;
 
@@ -24,7 +24,7 @@ namespace Game.Core.Services
         private Dictionary<string, Sprite> _psIcons;
         private Dictionary<string, Sprite> _xboxIcons;
 
-        public InputActionActionIconService(IAddressableAssetService assetService)
+        public InputActionIconService(IAddressableAssetService assetService)
         {
             _assetService = assetService;
         }
