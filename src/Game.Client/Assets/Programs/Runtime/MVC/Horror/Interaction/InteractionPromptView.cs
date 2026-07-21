@@ -1,4 +1,5 @@
 using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services.Interfaces;
@@ -21,15 +22,16 @@ namespace Game.Horror.Interaction
     /// </summary>
     public class InteractionPromptView : MonoBehaviour
     {
-        [Tooltip("発見可能（対象だと分かる）状態の見た目")]
-        [SerializeField] private GameObject _discoverableView;
+        [Tooltip("表示/非表示のフェード制御用 CanvasGroup（カメラ背後判定時の非表示にも使用）")]
+        [SerializeField] private CanvasGroup _canvasGroup;
 
         [Tooltip("実行可能（インタラクトできる）状態の見た目")]
         [SerializeField] private GameObject _actionableView;
 
-        [Tooltip("Hold 長押しの進捗を示す円形ゲージ（Image: Type=Filled / FillMethod=Radial360）。押下中のみ表示する")]
-        [SerializeField] private Image _holdGauge;
+        [Tooltip("発見可能（対象だと分かる）状態の見た目")]
+        [SerializeField] private GameObject _discoverableView;
 
+        [Header("Input Controls")]
         [SerializeField] private TextMeshProUGUI _interactionText;
         [SerializeField] private TextMeshProUGUI _inputBindingText;
         [SerializeField] private Image _inputActionIcon;
@@ -37,8 +39,14 @@ namespace Game.Horror.Interaction
         [SerializeField] private GameObject _inputTypeRoot;
         [SerializeField] private TextMeshProUGUI _inputTypeText;
 
-        [Tooltip("表示/非表示のフェード制御用 CanvasGroup（カメラ背後判定時の非表示にも使用）")]
-        [SerializeField] private CanvasGroup _canvasGroup;
+        [Tooltip("Hold 長押しの進捗を示す円形ゲージ（Image: Type=Filled / FillMethod=Radial360）。押下中のみ表示する")]
+        [SerializeField] private Image _holdGauge;
+
+        [Header("Target Info")]
+        [SerializeField] private GameObject _targetInfoRoot;
+        [SerializeField] private Image _icon;
+        [SerializeField] private TextMeshProUGUI _nameText;
+        [SerializeField] private TextMeshProUGUI _countText;
 
         private RectTransform _rectTransform;
 
@@ -46,10 +54,12 @@ namespace Game.Horror.Interaction
         private IInputSystemService _inputService;
         private IInputActionIconService _inputActionIconService;
         private ILocalizationService _localizationService;
+        private IHorrorIconService _iconService;
 
         private Transform _anchor;
         private Camera _viewCamera;
         private bool _interactionToggle;
+        private InteractionTargetInfo _targetInfo;
 
         private void Awake()
         {
@@ -65,8 +75,11 @@ namespace Game.Horror.Interaction
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
             _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+            _iconService = GameServiceManager.Resolve<IHorrorIconService>();
 
-            _localizationService.OnLocaleChanged.Subscribe(_ => SetInteractionText()).AddTo(this);
+            _localizationService.OnLocaleChanged
+                .Subscribe(_ => { SetInteractionText(); SetTargetNameText(); })
+                .AddTo(this);
             _inputService.OnControlSchemeChanged.Subscribe(_ => SetInputBinding()).AddTo(this);
             _inputService.OnDeviceChanged.Subscribe(_ => SetInputBinding()).AddTo(this);
             _inputService.OnBindingChanged
@@ -111,6 +124,31 @@ namespace Game.Horror.Interaction
             _viewCamera = null;
 
             gameObject.SetActive(false);
+        }
+
+        public void SetTargetInfo(InteractionTargetInfo info)
+        {
+            _targetInfo = info;
+
+            bool active = !string.IsNullOrEmpty(info.Type) && info.Id > 0;
+            _targetInfoRoot.SetActive(active);
+            if (!active) return;
+
+            var sprite = _iconService.GetSprite(info.IconAssetName);
+            _icon.gameObject.SetActive(sprite != null);
+            _icon.sprite = sprite;
+
+            SetTargetNameText();
+            _countText.gameObject.SetActive(info.Count > 1);
+            _countText.text = "(" + info.Count + ")";
+        }
+
+        private void SetTargetNameText()
+        {
+            if (!_targetInfoRoot.activeSelf) return;
+
+            string localizeKey = _targetInfo.Name;
+            _nameText.text = _localizationService.GetStringByPropTexts(localizeKey);
         }
 
         private void SetInteractionText()
