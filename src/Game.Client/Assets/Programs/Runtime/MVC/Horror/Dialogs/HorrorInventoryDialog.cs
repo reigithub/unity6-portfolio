@@ -74,7 +74,7 @@ namespace Game.Horror.Dialogs
                     var slotInfo = info.SlotInfo;
                     SceneComponent.CloseSubmenu();
 
-                    if (info.ContextActionType == InventoryContextActionType.Shortcut)
+                    if (info.ContextActionType == ContextActionType.Shortcut)
                         await HorrorEquipmentShortcutDialog.RunAsync(slotInfo);
                     else
                         Debug.Log($"[HorrorInventory] Action selected: {info.ContextActionType}");

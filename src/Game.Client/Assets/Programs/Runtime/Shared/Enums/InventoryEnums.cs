@@ -12,7 +12,7 @@ namespace Game.Shared.Enums
     /// <summary>
     /// インベントリのコンテキストサブメニューで選択できるアクション種別。
     /// </summary>
-    public enum InventoryContextActionType
+    public enum ContextActionType
     {
         Use,
         Inspect,
@@ -27,24 +27,24 @@ namespace Game.Shared.Enums
     /// </summary>
     public static partial class InventorySlotTypeExtensions
     {
-        private static readonly InventoryContextActionType[] _itemActions =
+        private static readonly ContextActionType[] _itemActions =
         {
-            InventoryContextActionType.Use,
-            InventoryContextActionType.Inspect,
-            InventoryContextActionType.Discard,
+            ContextActionType.Use,
+            ContextActionType.Inspect,
+            ContextActionType.Discard,
         };
 
-        private static readonly InventoryContextActionType[] _weaponActions =
+        private static readonly ContextActionType[] _weaponActions =
         {
-            InventoryContextActionType.Equip,
-            InventoryContextActionType.Shortcut,
-            InventoryContextActionType.Inspect,
+            ContextActionType.Equip,
+            ContextActionType.Shortcut,
+            ContextActionType.Inspect,
         };
 
-        private static readonly InventoryContextActionType[] _empty = Array.Empty<InventoryContextActionType>();
+        private static readonly ContextActionType[] _empty = Array.Empty<ContextActionType>();
 
         /// <summary>スロット種別に対応するアクション列を返す。未対応種別は空。</summary>
-        public static InventoryContextActionType[] ToContextActions(this InventorySlotType slotType)
+        public static ContextActionType[] ToContextActions(this InventorySlotType slotType)
         {
             switch (slotType)
             {
