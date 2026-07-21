@@ -24,7 +24,7 @@ namespace Game.Horror.Inventory
 
         public Selectable Selectable => _button;
 
-        public IObjectInfo SlotInfo { get; private set; }
+        public IObjectInfo ItemInfo { get; private set; }
 
         private IHorrorIconService _iconService;
 
@@ -40,36 +40,31 @@ namespace Game.Horror.Inventory
                 .AddTo(this);
         }
 
-        public void SetSlot(IObjectInfo info, int count)
+        public void SetItem(IObjectInfo info, int count)
         {
-            SlotInfo = info;
+            ItemInfo = info;
             SetIcon(info);
         }
 
         public void SetEmpty()
         {
-            SlotInfo = null;
+            ItemInfo = null;
             SetIcon(null);
         }
 
         private void SetIcon(IObjectInfo item)
         {
-            if (item == null || string.IsNullOrEmpty(item.IconAssetName))
-            {
-                if (_icon != null)
-                {
-                    _icon.sprite = null;
-                    _icon.enabled = false;
-                }
-                return;
-            }
+            Sprite sprite = null;
 
-            var icon = _iconService.GetSprite(item.IconAssetName);
+            if (item != null && !string.IsNullOrEmpty(item.IconAssetName))
+            {
+                sprite = _iconService.GetSprite(item.IconAssetName);
+            }
 
             if (_icon != null)
             {
-                _icon.sprite = icon;
-                _icon.enabled = icon != null;
+                _icon.sprite = sprite;
+                _icon.enabled = sprite != null;
             }
         }
     }
