@@ -52,7 +52,7 @@ namespace Game.Horror.Services
 
                 data.Slots.Add(new HorrorInventorySlotData
                 {
-                    SlotType = info.ObjectCategory,
+                    ObjectCategory = info.ObjectCategory,
                     Id = info.Id,
                     Count = Mathf.Min(addCount, info.MaxCount)
                 });
@@ -66,7 +66,7 @@ namespace Game.Horror.Services
         {
             foreach (var slotData in data.Slots)
             {
-                if (slotData.SlotType == type && slotData.Id == id)
+                if (slotData.ObjectCategory == type && slotData.Id == id)
                 {
                     slot = slotData;
                     return true;

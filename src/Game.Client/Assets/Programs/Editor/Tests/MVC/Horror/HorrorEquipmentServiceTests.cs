@@ -45,7 +45,7 @@ namespace Game.Tests.MVC.Horror
         {
             int count = 0;
             foreach (var s in _repository.Data.Equipment.Slots)
-                if (s.SlotType == type && s.Id == id)
+                if (s.ObjectCategory == type && s.Id == id)
                     count++;
             return count;
         }
@@ -136,7 +136,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
             Assert.That(_repository.IsDirty, Is.True);
         }
@@ -173,7 +173,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(dest.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
             Assert.That(_service.TryGetSlot(0, out _), Is.False, "旧スロットは空になる（移動）");
         }
@@ -189,10 +189,10 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(dest.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
             Assert.That(_service.TryGetSlot(0, out var src), Is.True, "元 dest の item が旧スロットへ入替");
-            Assert.That(src.SlotType, Is.EqualTo(ObjectCategory.Item));
+            Assert.That(src.ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(src.Id, Is.EqualTo(3));
         }
 
@@ -206,7 +206,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.TryGetSlot(1, out var dest), Is.True);
-            Assert.That(dest.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(dest.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(dest.Id, Is.EqualTo(5));
             Assert.That(CountOf(ObjectCategory.Item, 3), Is.EqualTo(0), "元の item は上書きで消える");
         }
@@ -221,7 +221,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.False);
             Assert.That(_service.TryGetSlot(2, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
         }
 
@@ -260,7 +260,7 @@ namespace Game.Tests.MVC.Horror
             _service.TryEquip(ObjectCategory.Weapon, 7);
 
             Assert.That(_service.TryGetSlot(0, out var slot), Is.True);
-            Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(slot.Id, Is.EqualTo(5));
         }
 

@@ -124,7 +124,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
             // TryAdd 経由だと既に Dirty になるため、直接 Slots へ登録して Dirty を汚さず前提を作る。
-            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { SlotType = ObjectCategory.Item, Id = 3, Count = 4 });
+            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4 });
 
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
 

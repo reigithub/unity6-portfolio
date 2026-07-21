@@ -170,7 +170,7 @@ namespace Game.Horror.Services
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out var info))
+                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.ObjectCategory, slot.Id, out var info))
                     data.Slots.RemoveAt(i);
                 else
                     data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
@@ -183,16 +183,16 @@ namespace Game.Horror.Services
 
             foreach (var slot in data.Slots)
             {
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out _))
+                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.ObjectCategory, slot.Id, out _))
                 {
-                    slot.SlotType = ObjectCategory.None;
+                    slot.ObjectCategory = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.SlotType != ObjectCategory.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
+            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.ObjectCategory, data.Id, out _))
             {
-                data.SlotType = ObjectCategory.None;
+                data.ObjectCategory = ObjectCategory.None;
                 data.Id = 0;
             }
 

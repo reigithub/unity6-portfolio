@@ -59,7 +59,7 @@ namespace Game.Horror.Equipment
             // 2. 枠色の明示適用（装備中スロットのみハイライト、それ以外は毎回通常色に戻す）
             for (int i = 0; i < _slots.Length; i++)
             {
-                var isEquipped = _equipmentService.TryGetSlot(i, out var slot) && slot.SlotType == equippedType && slot.Id == equippedId;
+                var isEquipped = _equipmentService.TryGetSlot(i, out var slot) && slot.ObjectCategory == equippedType && slot.Id == equippedId;
                 _slots[i].SetFrameColor(isEquipped ? _equippedFrameColor : _normalFrameColor);
             }
 
@@ -77,7 +77,7 @@ namespace Game.Horror.Equipment
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var info))
+            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var info))
                 _slots[index].SetSlot(info);
             else
                 _slots[index].SetEmpty();

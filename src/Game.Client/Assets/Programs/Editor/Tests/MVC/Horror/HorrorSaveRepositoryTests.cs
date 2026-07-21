@@ -53,11 +53,11 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.Player.LastSavepointId, Is.EqualTo(0));
             Assert.That(_repository.Data.Inventory.Slots, Is.Empty);
             Assert.That(_repository.Data.Interaction.InteractionIds, Is.Empty);
-            Assert.That(_repository.Data.Equipment.SlotType, Is.EqualTo(ObjectCategory.None));
+            Assert.That(_repository.Data.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.None));
             Assert.That(_repository.Data.Equipment.Id, Is.EqualTo(0));
             Assert.That(_repository.Data.Equipment.Slots.Count, Is.EqualTo(HorrorEquipmentConstants.MaxEquipmentSlotCount));
             foreach (var slot in _repository.Data.Equipment.Slots)
-                Assert.That(slot.SlotType, Is.EqualTo(ObjectCategory.None));
+                Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.None));
             Assert.That(_repository.IsDirty, Is.False);
         }
 
@@ -108,19 +108,19 @@ namespace Game.Tests.MVC.Horror
                 {
                     Slots = new List<HorrorInventorySlotData>
                     {
-                        new() { SlotType = ObjectCategory.Item, Id = 3, Count = 4 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4 },
                     },
                 },
                 Equipment = new HorrorEquipmentSaveData
                 {
-                    SlotType = ObjectCategory.Weapon,
+                    ObjectCategory = ObjectCategory.Weapon,
                     Id = 5,
                     Slots = new List<HorrorEquipmentSlotData>
                     {
-                        new() { SlotType = ObjectCategory.Weapon, Id = 5 },
-                        new() { SlotType = ObjectCategory.None, Id = 0 },
-                        new() { SlotType = ObjectCategory.Item, Id = 3 },
-                        new() { SlotType = ObjectCategory.None, Id = 0 },
+                        new() { ObjectCategory = ObjectCategory.Weapon, Id = 5 },
+                        new() { ObjectCategory = ObjectCategory.None, Id = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 3 },
+                        new() { ObjectCategory = ObjectCategory.None, Id = 0 },
                     },
                     Magazines = new List<HorrorWeaponMagazineData>
                     {
@@ -140,15 +140,15 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.Version, Is.EqualTo(1));
             Assert.That(restored.Player.LastSavepointId, Is.EqualTo(42));
             Assert.That(restored.Inventory.Slots.Count, Is.EqualTo(1));
-            Assert.That(restored.Inventory.Slots[0].SlotType, Is.EqualTo(ObjectCategory.Item));
+            Assert.That(restored.Inventory.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.Inventory.Slots[0].Id, Is.EqualTo(3));
             Assert.That(restored.Inventory.Slots[0].Count, Is.EqualTo(4));
-            Assert.That(restored.Equipment.SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(restored.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(restored.Equipment.Id, Is.EqualTo(5));
             Assert.That(restored.Equipment.Slots.Count, Is.EqualTo(4));
-            Assert.That(restored.Equipment.Slots[0].SlotType, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(restored.Equipment.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(restored.Equipment.Slots[0].Id, Is.EqualTo(5));
-            Assert.That(restored.Equipment.Slots[2].SlotType, Is.EqualTo(ObjectCategory.Item));
+            Assert.That(restored.Equipment.Slots[2].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.Equipment.Slots[2].Id, Is.EqualTo(3));
             Assert.That(restored.Equipment.Magazines.Count, Is.EqualTo(1));
             Assert.That(restored.Equipment.Magazines[0].WeaponId, Is.EqualTo(5));

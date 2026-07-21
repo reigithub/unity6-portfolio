@@ -39,7 +39,7 @@ namespace Game.Horror.Services
             if (data == null || !CanEquip(type, id))
                 return false;
 
-            data.SlotType = type;
+            data.ObjectCategory = type;
             data.Id = id;
             _repository.MarkDirty();
             return true;
@@ -52,10 +52,10 @@ namespace Game.Horror.Services
             id = 0;
 
             var data = _repository.Data?.Equipment;
-            if (data == null || data.SlotType == ObjectCategory.None)
+            if (data == null || data.ObjectCategory == ObjectCategory.None)
                 return false;
 
-            type = data.SlotType;
+            type = data.ObjectCategory;
             id = data.Id;
             return true;
         }
@@ -68,7 +68,7 @@ namespace Game.Horror.Services
                 return false;
 
             var slot = data.Slots[index];
-            slot.SlotType = slotType;
+            slot.ObjectCategory = slotType;
             slot.Id = id;
             _repository.MarkDirty();
             return true;
@@ -93,12 +93,12 @@ namespace Game.Horror.Services
             {
                 // 既登録 → 旧スロットへ dest の旧内容を移す（dest が空なら旧が空になり「移動」、占有なら入替）
                 var src = data.Slots[index];
-                src.SlotType = dest.SlotType;
+                src.ObjectCategory = dest.ObjectCategory;
                 src.Id = dest.Id;
             }
 
             // dest に対象を置く（未登録時は上書き）
-            dest.SlotType = slotType;
+            dest.ObjectCategory = slotType;
             dest.Id = id;
             _repository.MarkDirty();
             return true;
@@ -113,7 +113,7 @@ namespace Game.Horror.Services
             for (int i = 0; i < MaxEquipmentSlotCount; i++)
             {
                 var s = data.Slots[i];
-                if (s.SlotType == slotType && s.Id == id)
+                if (s.ObjectCategory == slotType && s.Id == id)
                     return i;
             }
             return -1;
@@ -127,7 +127,7 @@ namespace Game.Horror.Services
                 return false;
 
             var slot = data.Slots[index];
-            slot.SlotType = ObjectCategory.None;
+            slot.ObjectCategory = ObjectCategory.None;
             slot.Id = 0;
             _repository.MarkDirty();
             return true;
@@ -142,7 +142,7 @@ namespace Game.Horror.Services
                 return false;
 
             var s = data.Slots[index];
-            if (s.SlotType == ObjectCategory.None)
+            if (s.ObjectCategory == ObjectCategory.None)
                 return false;
 
             slot = s;

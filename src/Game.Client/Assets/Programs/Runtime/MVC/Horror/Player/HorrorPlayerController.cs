@@ -616,17 +616,17 @@ namespace Game.Horror.Player
 
             // 現在装備と同一スロットの再指定は無操作（要件1）
             if (_equipmentService.TryGetEquipped(out var currentType, out var currentId)
-                && currentType == slot.SlotType && currentId == slot.Id)
+                && currentType == slot.ObjectCategory && currentId == slot.Id)
                 return false;
 
             // Weapon 限定・所持検証。不成立なら硬直を発生させない
-            if (!_equipmentService.CanEquip(slot.SlotType, slot.Id))
+            if (!_equipmentService.CanEquip(slot.ObjectCategory, slot.Id))
                 return false;
 
             if (!_dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var weaponMaster))
                 return false;
 
-            _pendingEquipType = slot.SlotType;
+            _pendingEquipType = slot.ObjectCategory;
             _pendingEquipId = slot.Id;
             _pendingWeaponMaster = weaponMaster;
             return true;
@@ -669,7 +669,7 @@ namespace Game.Horror.Player
             for (var i = 0; i < HorrorEquipmentConstants.MaxEquipmentSlotCount; i++)
             {
                 if (_equipmentService.TryGetSlot(i, out var slot)
-                    && slot.SlotType == ObjectCategory.Weapon
+                    && slot.ObjectCategory == ObjectCategory.Weapon
                     && seenIds.Add(slot.Id)
                     && _dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
                 {
