@@ -20,6 +20,9 @@ namespace Game.Horror.Dialogs
         [SerializeField] private HorrorInventorySlotDetailView _slotDetailView;
         [SerializeField] private HorrorInventoryContextMenu _contextMenu;
 
+        [SerializeField] private Transform _keyItemContentRoot;
+        [SerializeField] private HorrorKeyItemView _keyItemPrefab;
+
         #endregion
 
         private IInputSystemService _inputService;
@@ -77,13 +80,8 @@ namespace Game.Horror.Dialogs
 
                 if (empty) _slots[i].SetEmpty();
 
-                _slots[i].OnSelected
-                    .Subscribe(UpdateDetail)
-                    .AddTo(Disposables);
-
-                _slots[i].OnSubmit
-                    .Subscribe(OpenSubmenu)
-                    .AddTo(Disposables);
+                _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
+                _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
             }
         }
 
