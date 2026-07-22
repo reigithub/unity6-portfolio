@@ -89,7 +89,11 @@ namespace Game.Horror.Dialogs
                     switch (ctx.ContextActionType)
                     {
                         case ContextActionType.Use:
+                            // ダイアログを閉じて回復アイテムを使用
+                            break;
                         case ContextActionType.Inspect:
+                            // アイテム詳細ダイアログを実装して開く
+                            // await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
                             _inventoryService.DiscardAll(info.ObjectCategory, info.Id);
@@ -97,10 +101,10 @@ namespace Game.Horror.Dialogs
                             break;
                         case ContextActionType.Equip:
                             _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.Id };
-
                             break;
                         case ContextActionType.Shortcut:
                             await HorrorEquipmentShortcutDialog.RunAsync(info);
+                            SceneComponent.RefreshSlots();
                             break;
                     }
                 })

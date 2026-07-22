@@ -3,6 +3,7 @@ using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -147,6 +148,39 @@ namespace Game.Horror.Services
 
             slot = s;
             return true;
+        }
+
+        private bool TryGetSlot(ObjectCategory category, int id, out HorrorEquipmentSlotData slot, out int index)
+        {
+            slot = null;
+            index = -1;
+            var data = _repository.Data?.Equipment;
+            if (data == null)
+                return false;
+
+            for (int i = 0; i < data.Slots.Count; i++)
+            {
+                var s = data.Slots[i];
+                if (s.ObjectCategory == category && s.Id == id)
+                {
+                    slot = s;
+                    index = i;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public string GetSlotInputDirection(ObjectCategory category, int id)
+        {
+            if (!TryGetSlot(category, id, out _, out int index))
+                return string.Empty;
+
+            if (!HorrorEquipmentConstants.SlotInputDirections.TryGetValue(index, out string direction))
+                return string.Empty;
+
+            return direction;
         }
 
         /// <summary>

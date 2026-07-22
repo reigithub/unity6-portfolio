@@ -92,6 +92,14 @@ namespace Game.Horror.Dialogs
             }
         }
 
+        public void RefreshSlots()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                _slots[i].RefreshSlot();
+            }
+        }
+
         private void UpdateDetail(HorrorInventorySlotView slot)
             => _slotDetailView.SetSlotDetail(slot.SlotInfo);
 

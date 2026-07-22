@@ -18,8 +18,10 @@ namespace Game.Horror.Inventory
     {
         [SerializeField] private RectTransform _rectTransform;
         [SerializeField] private Button _button;
-        [SerializeField] private Image _iconImage;            // アイコン表示（自身の Image を流用）
-        [SerializeField] private TextMeshProUGUI _countText;  // 個数（スタック > 1 のときのみ表示）
+        [SerializeField] private Image _iconImage;           // アイコン表示（自身の Image を流用）
+        [SerializeField] private TextMeshProUGUI _countText; // 個数（スタック > 1 のときのみ表示）
+
+        [SerializeField] private Image _inputActionIcon;
 
         private readonly Subject<HorrorInventorySlotView> _onSelected = new();
 
@@ -39,28 +41,39 @@ namespace Game.Horror.Inventory
         public IObjectInfo SlotInfo { get; private set; }
 
         private IHorrorIconService _iconService;
+        private IHorrorEquipmentService _equipmentService;
+        private IInputSystemService _inputSystemService;
+        private IInputActionIconService _inputActionIconService;
 
         public void Initialize()
         {
             _iconService = GameServiceManager.Resolve<IHorrorIconService>();
+            _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
+            _inputSystemService = GameServiceManager.Resolve<IInputSystemService>();
+            _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
+
             _button.OnClickAsObservable()
                 .Subscribe(_ => _onSubmit.OnNext(this))
                 .AddTo(this);
             _button.OnSelectAsObservable()
                 .Subscribe(_ => _onSelected.OnNext(this))
                 .AddTo(this);
+
+            _inputSystemService.OnControlSchemeChanged.Subscribe(_ => SetInputActionIcon(SlotInfo)).AddTo(this);
+            _inputSystemService.OnDeviceChanged.Subscribe(_ => SetInputActionIcon(SlotInfo)).AddTo(this);
         }
 
         public void SetSlot(IObjectInfo info, int count)
         {
             SlotInfo = info;
-            SetIcon(info);
+            SetIcon(info?.IconAssetName);
             if (_countText != null)
             {
                 var show = info != null && count > 1;
                 _countText.gameObject.SetActive(show);
                 if (show) _countText.text = count.ToString();
             }
+            SetInputActionIcon(info);
         }
 
         public void SetEmpty()
@@ -69,20 +82,47 @@ namespace Game.Horror.Inventory
             SetIcon(null);
             if (_countText != null)
                 _countText.gameObject.SetActive(false);
+            SetInputActionIcon(null);
         }
 
-        private void SetIcon(IObjectInfo item)
+        public void RefreshSlot()
+        {
+            SetIcon(SlotInfo?.IconAssetName);
+            SetInputActionIcon(SlotInfo);
+        }
+
+        private void SetIcon(string assetName)
         {
             Sprite sprite = null;
-            if (item != null && !string.IsNullOrEmpty(item.IconAssetName))
+            if (!string.IsNullOrEmpty(assetName))
             {
-                sprite = _iconService.GetSprite(item.IconAssetName);
+                sprite = _iconService.GetSprite(assetName);
             }
 
             if (_iconImage != null)
             {
                 _iconImage.sprite = sprite;
                 _iconImage.enabled = sprite != null;
+            }
+        }
+
+        private void SetInputActionIcon(IObjectInfo item)
+        {
+            Sprite sprite = null;
+            if (item != null)
+            {
+                var dir = _equipmentService.GetSlotInputDirection(item.ObjectCategory, item.Id);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    var info = _inputSystemService.GetBindingInfo(_inputSystemService.Player.Equip, partName: dir);
+                    sprite = _inputActionIconService.GetSprite(info);
+                }
+            }
+
+            if (_inputActionIcon != null)
+            {
+                _inputActionIcon.sprite = sprite;
+                _inputActionIcon.enabled = sprite != null;
             }
         }
     }

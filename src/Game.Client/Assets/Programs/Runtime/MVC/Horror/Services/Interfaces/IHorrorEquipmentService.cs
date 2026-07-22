@@ -30,6 +30,9 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>指定スロットの登録を取得する。空(None)または範囲外なら false。</summary>
         bool TryGetSlot(int index, out HorrorEquipmentSlotData slot);
 
+        /// <summary>指定スロットの入力方向を文字列で取得する</summary>
+        string GetSlotInputDirection(ObjectCategory category, int id);
+
         /// <summary>指定武器の弾倉残弾を取得する。未記録・未ロードなら満タン（magazineSize）を返す。</summary>
         int GetMagazineCount(int weaponId, int magazineSize);
 
