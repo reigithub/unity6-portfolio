@@ -21,7 +21,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 1
     _acquiredCount: 1
   - _id: 2
@@ -32,7 +33,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 2
     _acquiredCount: 1
   - _id: 3
@@ -43,7 +45,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: Open
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
-    _requiredItemId: 2
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 4
@@ -54,7 +57,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: Move
     _reinteractionVerbLocalizeKey: Move
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 1
+    _requiredObjectId: 2
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 5
@@ -65,7 +69,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 3
     _acquiredCount: 1
   - _id: 6
@@ -76,7 +81,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: Open
     _reinteractionVerbLocalizeKey: Close
     _rejectionMessageLocalizeKey: Locked_with_a_Key
-    _requiredItemId: 3
+    _requiredObjectCategory: 1
+    _requiredObjectId: 3
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 7
@@ -87,7 +93,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 1
     _acquiredCount: 1
   - _id: 8
@@ -98,7 +105,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 2
     _acquiredCount: 1
   - _id: 9
@@ -109,7 +117,8 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: PickUp
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 4
     _acquiredCount: 12
   - _id: 10
@@ -120,6 +129,7 @@ MonoBehaviour:
     _interactionVerbLocalizeKey: Save
     _reinteractionVerbLocalizeKey: 
     _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
     _acquiredId: 0
     _acquiredCount: 0
