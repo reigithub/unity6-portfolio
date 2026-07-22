@@ -30,6 +30,7 @@ namespace Game.Horror.Dialogs
         private IInputSystemService _inputService;
         private IScriptableDatabaseService _databaseService;
         private IHorrorInventoryService _inventoryService;
+        private IHorrorKeyItemService _keyItemService;
         private HorrorInventorySlotView _slotView;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
@@ -44,6 +45,7 @@ namespace Game.Horror.Dialogs
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            _keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
 
             _tabGroup.Initialize();
             BindSlots();
@@ -145,10 +147,10 @@ namespace Game.Horror.Dialogs
                 keyItem.gameObject.SafeDestroy();
             }
 
-            var slots = _inventoryService.Slots;
-            foreach (var slot in slots)
+            var keyItems = _keyItemService.KeyItems;
+            foreach (var item in keyItems)
             {
-                if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var slotInfo))
+                if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, item.ObjectCategory, item.Id, out var slotInfo))
                 {
                     var keyItem = Instantiate(_keyItemPrefab, _keyItemContentRoot);
                     keyItem.Initialize();

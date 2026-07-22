@@ -2,6 +2,6 @@
 {
     public static class HorrorInventoryConstants
     {
-        public const int MaxSlotCount = 30;
+        public const int MaxSlotCount = 55;
     }
 }

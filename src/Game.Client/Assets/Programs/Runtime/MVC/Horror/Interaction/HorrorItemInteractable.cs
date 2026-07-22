@@ -47,6 +47,12 @@ namespace Game.Horror.Interaction
             if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
                 return false;
 
+            if (itemMaster.KeyItem)
+            {
+                var keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
+                return keyItemService.TryAdd(itemMaster, Master.AcquiredCount);
+            }
+
             var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             return inventoryService.TryAdd(itemMaster, Master.AcquiredCount);
         }

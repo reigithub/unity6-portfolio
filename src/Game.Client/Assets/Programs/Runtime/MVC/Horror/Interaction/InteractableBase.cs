@@ -38,6 +38,7 @@ namespace Game.Horror.Interaction
 
         private IHorrorInteractionService _interactionService;
         private IHorrorInventoryService _inventoryService;
+        private IHorrorKeyItemService _keyItemService;
         private ILocalizationService _localizationService;
         private IScriptableDatabaseService _databaseService;
         private IHorrorGameRootService _gameRootService;
@@ -67,6 +68,7 @@ namespace Game.Horror.Interaction
         {
             _interactionService = GameServiceManager.Resolve<IHorrorInteractionService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            _keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
             _localizationService = GameServiceManager.Resolve<ILocalizationService>();
             _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _gameRootService = GameServiceManager.Resolve<IHorrorGameRootService>();
@@ -193,7 +195,7 @@ namespace Game.Horror.Interaction
             if (Master == null || Master.RequiredItemId == 0)
                 return true;
 
-            return _inventoryService.HasItem(ObjectCategory.Item, Master.RequiredItemId);
+            return _keyItemService.HasItem(ObjectCategory.Item, Master.RequiredItemId);
         }
     }
 }

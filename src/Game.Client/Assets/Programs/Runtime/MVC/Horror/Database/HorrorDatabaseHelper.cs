@@ -6,10 +6,10 @@ namespace Game.Horror.Database
 {
     public static class HorrorDatabaseHelper
     {
-        public static bool TryGetInfo(ScriptableDatabase database, ObjectCategory type, int id, out IObjectInfo info)
+        public static bool TryGetInfo(ScriptableDatabase database, ObjectCategory category, int id, out IObjectInfo info)
         {
             info = null;
-            switch (type)
+            switch (category)
             {
                 case ObjectCategory.Item:
                     if (database.HorrorItemMasterTable.TryFindById(id, out var itemMaster))
