@@ -15,6 +15,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _description;
         [SerializeField] private string _iconAssetName;
         [SerializeField] private int _maxCount;
+        [SerializeField] private bool _keyItem;
 
         #endregion
 
@@ -49,6 +50,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _maxCount;
             set => _maxCount = value;
+        }
+
+        public bool KeyItem
+        {
+            get => _keyItem;
+            set => _keyItem = value;
         }
 
         #endregion
