@@ -25,10 +25,12 @@ namespace Game.Horror.SaveData
 
         public HorrorPlayerSaveData Player { get; set; } = new();
 
+        public HorrorInteractionSaveData Interaction { get; set; } = new();
+
         public HorrorInventorySaveData Inventory { get; set; } = new();
 
         public HorrorEquipmentSaveData Equipment { get; set; } = new();
 
-        public HorrorInteractionSaveData Interaction { get; set; } = new();
+        public HorrorKeyItemSaveData KeyItem { get; set; } = new();
     }
 }

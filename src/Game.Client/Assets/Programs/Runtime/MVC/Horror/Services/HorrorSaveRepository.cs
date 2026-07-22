@@ -140,16 +140,27 @@ namespace Game.Horror.Services
         protected override void OnDataLoaded(HorrorSaveData data)
         {
             data.Player ??= new HorrorPlayerSaveData();
+            data.Interaction ??= new HorrorInteractionSaveData();
             data.Inventory ??= new HorrorInventorySaveData();
             data.Equipment ??= new HorrorEquipmentSaveData();
-            data.Interaction ??= new HorrorInteractionSaveData();
+            data.KeyItem ??= new HorrorKeyItemSaveData();
 
             var database = _databaseService.Database;
 
+            NormalizePlayer(data.Player, database);
             NormalizeInteraction(data.Interaction, database);
             NormalizeInventory(data.Inventory, database);
             NormalizeEquipment(data.Equipment, database);
-            NormalizePlayer(data.Player, database);
+            NormalizeKeyItem(data.KeyItem, database);
+        }
+
+        private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)
+        {
+            // マスター不在 Id は未記録(0)へ戻す。シーン内に該当セーブポイントが無いケースは復元側のフォールバックが担う
+            if (data.LastSavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.LastSavepointId, out _))
+            {
+                data.LastSavepointId = 0;
+            }
         }
 
         private static void NormalizeInteraction(HorrorInteractionSaveData data, ScriptableDatabase database)
@@ -227,12 +238,15 @@ namespace Game.Horror.Services
                 data.Slots.RemoveRange(MaxEquipmentSlotCount, data.Slots.Count - MaxEquipmentSlotCount);
         }
 
-        private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)
+        private static void NormalizeKeyItem(HorrorKeyItemSaveData data, ScriptableDatabase database)
         {
-            // マスター不在 Id は未記録(0)へ戻す。シーン内に該当セーブポイントが無いケースは復元側のフォールバックが担う
-            if (data.LastSavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.LastSavepointId, out _))
+            // 逆順走査
+            for (int i = data.KeyItems.Count - 1; i >= 0; i--)
             {
-                data.LastSavepointId = 0;
+                var keyItem = data.KeyItems[i];
+                if (HorrorDatabaseHelper.TryGetInfo(database, keyItem.ObjectCategory, keyItem.Id, out _))
+                    continue;
+                data.KeyItems.RemoveAt(i);
             }
         }
 

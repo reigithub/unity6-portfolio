@@ -131,6 +131,13 @@ namespace Game.Tests.MVC.Horror
                 {
                     InteractionIds = new List<int> { 1, 2, 3 },
                 },
+                KeyItem = new HorrorKeyItemSaveData
+                {
+                    KeyItems = new List<HorrorKeyItemData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 3 },
+                    },
+                },
             };
 
             var bytes = MemoryPackSerializer.Serialize(original);
@@ -154,6 +161,9 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.Equipment.Magazines[0].WeaponId, Is.EqualTo(5));
             Assert.That(restored.Equipment.Magazines[0].Count, Is.EqualTo(12));
             Assert.That(restored.Interaction.InteractionIds, Is.EquivalentTo(new[] { 1, 2, 3 }));
+            Assert.That(restored.KeyItem.KeyItems.Count, Is.EqualTo(1));
+            Assert.That(restored.KeyItem.KeyItems[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
+            Assert.That(restored.KeyItem.KeyItems[0].Id, Is.EqualTo(3));
         }
 
         [Test]

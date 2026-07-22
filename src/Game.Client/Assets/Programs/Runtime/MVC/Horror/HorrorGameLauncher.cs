@@ -92,15 +92,10 @@ namespace Game.Horror
             // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
             GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
-
-            var equipmentService = new HorrorEquipmentService(saveRepository, inventoryService);
-            GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(equipmentService);
-
-            var interactionService = new HorrorInteractionService(saveRepository);
-            GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(interactionService);
-
-            var playerService = new HorrorPlayerService(saveRepository);
-            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
+            GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(new HorrorEquipmentService(saveRepository, inventoryService));
+            GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
+            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository));
+            GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
 
             // 共通オブジェクト読み込み
             var gameRootService = new HorrorGameRootService(assetService);
