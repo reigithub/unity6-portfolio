@@ -6,5 +6,6 @@ namespace Game.Shared.Scriptable.Database.Tables
     public partial class HorrorWeaponMaster : IObjectInfo
     {
         public ObjectCategory ObjectCategory => ObjectCategory.Weapon;
+        public int ObjectId => Id;
     }
 }

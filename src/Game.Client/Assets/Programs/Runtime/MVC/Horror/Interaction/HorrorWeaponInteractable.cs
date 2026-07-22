@@ -30,27 +30,27 @@ namespace Game.Horror.Interaction
 
         public override InteractionTargetInfo GetTargetInfo()
         {
-            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
+            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var master))
                 return base.GetTargetInfo();
 
             return new InteractionTargetInfo
             {
-                Type = "weapon",
-                Id = weaponMaster.Id,
-                Name = weaponMaster.Name,
-                Description = weaponMaster.Description,
+                ObjectCategory = master.ObjectCategory,
+                Id = master.Id,
+                Name = master.Name,
+                Description = master.Description,
                 Count = Master.AcquiredCount,
-                IconAssetName = weaponMaster.IconAssetName
+                IconAssetName = master.IconAssetName
             };
         }
 
         private bool TryPickUpWeapon()
         {
-            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
+            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var master))
                 return false;
 
             var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
-            return inventoryService.TryAdd(weaponMaster, Master.AcquiredCount);
+            return inventoryService.TryAdd(master.ObjectCategory, master.Id, Master.AcquiredCount, master.MaxCount);
         }
     }
 }

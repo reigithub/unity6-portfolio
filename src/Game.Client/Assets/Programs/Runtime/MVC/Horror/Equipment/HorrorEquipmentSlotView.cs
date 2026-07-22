@@ -1,6 +1,7 @@
 using Game.Core.Services;
+using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
-using Game.Shared.Interfaces;
+using Game.Shared.Enums;
 using R3;
 using R3.Triggers;
 using UnityEngine;
@@ -20,10 +21,7 @@ namespace Game.Horror.Equipment
         [SerializeField] private Image _iconImage;   // 登録アイテムのアイコン表示
         [SerializeField] private Image _frameImage;  // 枠表示（HUD の装備中ハイライト等。ダイアログ側は未配線=null許容）
 
-        /// <summary>このスロットで決定された通知。Component が購読して登録する。</summary>
         public Observable<Unit> OnClick => _button.OnClickAsObservable();
-
-        /// <summary>このスロットが選択された通知。Component が購読して現在スロットを追跡する。</summary>
         public Observable<BaseEventData> OnSelect => _button.OnSelectAsObservable();
 
         private IHorrorIconService _iconService;
@@ -31,16 +29,22 @@ namespace Game.Horror.Equipment
         public void Initialize()
             => _iconService = GameServiceManager.Resolve<IHorrorIconService>();
 
-        public void SetSlot(IObjectInfo info) => SetIcon(info);
+        public void SetSlot(ObjectCategory category, int id)
+        {
+            if (HorrorDatabaseHelper.TryGetInfo(category, id, out var info))
+                SetIcon(info.IconAssetName);
+            else
+                SetEmpty();
+        }
 
         public void SetEmpty() => SetIcon(null);
 
-        private void SetIcon(IObjectInfo info)
+        private void SetIcon(string iconAssetName)
         {
             Sprite sprite = null;
-            if (info != null && !string.IsNullOrEmpty(info.IconAssetName))
+            if (!string.IsNullOrEmpty(iconAssetName))
             {
-                sprite = _iconService.GetSprite(info.IconAssetName);
+                sprite = _iconService.GetSprite(iconAssetName);
             }
 
             if (_iconImage != null)

@@ -4,7 +4,6 @@ using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
-using Game.Shared.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -32,18 +31,18 @@ namespace Game.Horror.Services
         /// アイテムをインベントリに追加する。
         /// 同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        public bool TryAdd(IObjectInfo info, int addCount)
+        public bool TryAdd(ObjectCategory category, int id, int addCount, int maxCount)
         {
             var data = _repository.Data?.Inventory;
-            if (data == null || info == null || addCount <= 0)
+            if (data == null || addCount <= 0)
                 return false;
 
-            if (TryGet(data, info.ObjectCategory, info.Id, out var slot))
+            if (TryGet(data, category, id, out var slot))
             {
-                if (slot.Count >= info.MaxCount)
+                if (slot.Count >= maxCount)
                     return false;
 
-                slot.Count = Mathf.Min(slot.Count + addCount, info.MaxCount);
+                slot.Count = Mathf.Min(slot.Count + addCount, maxCount);
             }
             else
             {
@@ -52,9 +51,9 @@ namespace Game.Horror.Services
 
                 data.Slots.Add(new HorrorInventorySlotData
                 {
-                    ObjectCategory = info.ObjectCategory,
-                    Id = info.Id,
-                    Count = Mathf.Min(addCount, info.MaxCount)
+                    ObjectCategory = category,
+                    Id = id,
+                    Count = Mathf.Min(addCount, maxCount)
                 });
             }
 

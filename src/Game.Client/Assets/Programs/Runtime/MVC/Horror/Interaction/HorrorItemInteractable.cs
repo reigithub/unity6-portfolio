@@ -28,33 +28,33 @@ namespace Game.Horror.Interaction
 
         public override InteractionTargetInfo GetTargetInfo()
         {
-            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
+            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var master))
                 return base.GetTargetInfo();
 
             return new InteractionTargetInfo
             {
-                Type = "item",
-                Id = itemMaster.Id,
-                Name = itemMaster.Name,
-                Description = itemMaster.Description,
+                ObjectCategory = master.ObjectCategory,
+                Id = master.Id,
+                Name = master.Name,
+                Description = master.Description,
                 Count = Master.AcquiredCount,
-                IconAssetName = itemMaster.IconAssetName
+                IconAssetName = master.IconAssetName
             };
         }
 
         private bool TryPickUpItem()
         {
-            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var itemMaster))
+            if (Master == null || !Database.HorrorItemMasterTable.TryFindById(Master.AcquiredId, out var master))
                 return false;
 
-            if (itemMaster.KeyItem)
+            if (master.KeyItem)
             {
                 var keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
-                return keyItemService.TryAdd(itemMaster, Master.AcquiredCount);
+                return keyItemService.TryAdd(master.ObjectCategory, master.Id, Master.AcquiredCount);
             }
 
             var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
-            return inventoryService.TryAdd(itemMaster, Master.AcquiredCount);
+            return inventoryService.TryAdd(master.ObjectCategory, master.Id, Master.AcquiredCount, master.MaxCount);
         }
     }
 }

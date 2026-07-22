@@ -1,12 +1,10 @@
 using Game.Core.Services;
 using Game.Core.UI;
-using Game.Horror.Database;
 using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
 using Game.Shared.Extensions;
-using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -28,9 +26,9 @@ namespace Game.Horror.Dialogs
         #endregion
 
         private IInputSystemService _inputService;
-        private IScriptableDatabaseService _databaseService;
         private IHorrorInventoryService _inventoryService;
         private IHorrorKeyItemService _keyItemService;
+
         private HorrorInventorySlotView _slotView;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
@@ -43,7 +41,6 @@ namespace Game.Horror.Dialogs
         public void Initialize()
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             _keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
 
@@ -78,11 +75,8 @@ namespace Game.Horror.Dialogs
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var slotInfo))
-                    {
-                        _slots[i].SetSlot(slotInfo, slot.Count);
-                        empty = false;
-                    }
+                    _slots[i].SetSlot(slot.ObjectCategory, slot.Id, slot.Count);
+                    empty = false;
                 }
 
                 if (empty) _slots[i].SetEmpty();
@@ -158,12 +152,9 @@ namespace Game.Horror.Dialogs
             var keyItems = _keyItemService.KeyItems;
             foreach (var item in keyItems)
             {
-                if (HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, item.ObjectCategory, item.Id, out var slotInfo))
-                {
-                    var keyItem = Instantiate(_keyItemPrefab, _keyItemContentRoot);
-                    keyItem.Initialize();
-                    keyItem.SetItem(slotInfo);
-                }
+                var keyItem = Instantiate(_keyItemPrefab, _keyItemContentRoot);
+                keyItem.Initialize();
+                keyItem.SetItem(item.ObjectCategory, item.Id);
             }
         }
 

@@ -1,6 +1,9 @@
 using Game.Core.Services;
+using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
+using Game.Shared.Enums;
 using Game.Shared.Interfaces;
+using Game.Shared.Services;
 using R3;
 using R3.Triggers;
 using TMPro;
@@ -23,15 +26,8 @@ namespace Game.Horror.Inventory
 
         [SerializeField] private Image _inputActionIcon;
 
-        private readonly Subject<HorrorInventorySlotView> _onSelected = new();
-
-        /// <summary>このスロットが選択された通知。Component が購読して詳細表示を更新する。</summary>
-        public Observable<HorrorInventorySlotView> OnSelected => _onSelected;
-
-        private readonly Subject<HorrorInventorySlotView> _onSubmit = new();
-
-        /// <summary>このスロットで決定された通知。Component が購読してサブメニューを開く。</summary>
-        public Observable<HorrorInventorySlotView> OnSubmit => _onSubmit;
+        public Observable<HorrorInventorySlotView> OnSelected => _button.OnSelectAsObservable().Select(_ => this);
+        public Observable<HorrorInventorySlotView> OnSubmit => _button.OnClickAsObservable().Select(_ => this);
 
         /// <summary>サブメニューの表示位置決めに用いる自身の RectTransform。</summary>
         public RectTransform RectTransform => _rectTransform;
@@ -52,28 +48,29 @@ namespace Game.Horror.Inventory
             _inputSystemService = GameServiceManager.Resolve<IInputSystemService>();
             _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
 
-            _button.OnClickAsObservable()
-                .Subscribe(_ => _onSubmit.OnNext(this))
+            _inputSystemService.OnControlSchemeChanged
+                .Subscribe(_ => SetInputActionIcon(SlotInfo))
                 .AddTo(this);
-            _button.OnSelectAsObservable()
-                .Subscribe(_ => _onSelected.OnNext(this))
+            _inputSystemService.OnDeviceChanged
+                .Subscribe(_ => SetInputActionIcon(SlotInfo))
                 .AddTo(this);
-
-            _inputSystemService.OnControlSchemeChanged.Subscribe(_ => SetInputActionIcon(SlotInfo)).AddTo(this);
-            _inputSystemService.OnDeviceChanged.Subscribe(_ => SetInputActionIcon(SlotInfo)).AddTo(this);
         }
 
-        public void SetSlot(IObjectInfo info, int count)
+        public void SetSlot(ObjectCategory category, int id, int count)
         {
-            SlotInfo = info;
-            SetIcon(info?.IconAssetName);
+            if (HorrorDatabaseHelper.TryGetInfo(category, id, out var info))
+            {
+                SlotInfo = info;
+            }
+
+            SetIcon(SlotInfo?.IconAssetName);
             if (_countText != null)
             {
                 var show = info != null && count > 1;
                 _countText.gameObject.SetActive(show);
                 if (show) _countText.text = count.ToString();
             }
-            SetInputActionIcon(info);
+            SetInputActionIcon(SlotInfo);
         }
 
         public void SetEmpty()
@@ -82,7 +79,7 @@ namespace Game.Horror.Inventory
             SetIcon(null);
             if (_countText != null)
                 _countText.gameObject.SetActive(false);
-            SetInputActionIcon(null);
+            SetInputActionIcon(SlotInfo);
         }
 
         public void RefreshSlot()
@@ -111,7 +108,7 @@ namespace Game.Horror.Inventory
             Sprite sprite = null;
             if (item != null)
             {
-                var dir = _equipmentService.GetSlotInputDirection(item.ObjectCategory, item.Id);
+                var dir = _equipmentService.GetSlotInputDirection(item.ObjectCategory, item.ObjectId);
                 if (!string.IsNullOrEmpty(dir))
                 {
                     var info = _inputSystemService.GetBindingInfo(_inputSystemService.Player.Equip, partName: dir);

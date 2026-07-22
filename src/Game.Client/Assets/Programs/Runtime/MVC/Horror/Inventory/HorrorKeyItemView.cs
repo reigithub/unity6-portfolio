@@ -1,11 +1,15 @@
 using Game.Core.Services;
+using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
+using Game.Shared.Enums;
 using Game.Shared.Interfaces;
+using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
 using R3;
 using R3.Triggers;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.Horror.Inventory
@@ -17,12 +21,8 @@ namespace Game.Horror.Inventory
         [SerializeField] private TextMeshProUGUI _nameText;
         [SerializeField] private TextMeshProUGUI _descText;
 
-        private readonly Subject<HorrorKeyItemView> _onSelected = new();
-        public Observable<HorrorKeyItemView> OnSelected => _onSelected;
-
-        private readonly Subject<HorrorKeyItemView> _onSubmit = new();
-        public Observable<HorrorKeyItemView> OnSubmit => _onSubmit;
-
+        public Observable<Unit> OnSubmit => _button.OnClickAsObservable();
+        public Observable<BaseEventData> OnSelected => _button.OnSelectAsObservable();
         public Selectable Selectable => _button;
 
         private ILocalizationService _localizationService;
@@ -38,19 +38,16 @@ namespace Game.Horror.Inventory
             _localizationService.OnLocaleChanged
                 .Subscribe(_ => SetText())
                 .AddTo(this);
-            _button.OnClickAsObservable()
-                .Subscribe(_ => _onSubmit.OnNext(this))
-                .AddTo(this);
-            _button.OnSelectAsObservable()
-                .Subscribe(_ => _onSelected.OnNext(this))
-                .AddTo(this);
         }
 
-        public void SetItem(IObjectInfo info)
+        public void SetItem(ObjectCategory category, int id)
         {
+            if (!HorrorDatabaseHelper.TryGetInfo(category, id, out var info))
+                return;
+
             _itemInfo = info;
-            SetIcon();
             SetText();
+            SetIcon();
         }
 
         private void SetText()
@@ -63,7 +60,7 @@ namespace Game.Horror.Inventory
         {
             Sprite sprite = null;
 
-            if (_itemInfo != null && !string.IsNullOrEmpty(_itemInfo.IconAssetName))
+            if (!string.IsNullOrEmpty(_itemInfo.IconAssetName))
             {
                 sprite = _iconService.GetSprite(_itemInfo.IconAssetName);
             }

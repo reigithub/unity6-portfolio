@@ -52,7 +52,5 @@ namespace Game.Horror.Inventory
                 _largeIcon.enabled = sprite != null;
             }
         }
-
-        public void Clear() => SetSlotDetail(null);
     }
 }

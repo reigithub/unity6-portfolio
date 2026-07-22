@@ -96,11 +96,11 @@ namespace Game.Horror.Dialogs
                             // await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
-                            _inventoryService.DiscardAll(info.ObjectCategory, info.Id);
+                            _inventoryService.DiscardAll(info.ObjectCategory, info.ObjectId);
                             ctx.SlotView.SetEmpty();
                             break;
                         case ContextActionType.Equip:
-                            _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.Id };
+                            _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.ObjectId };
                             break;
                         case ContextActionType.Shortcut:
                             await HorrorEquipmentShortcutDialog.RunAsync(info);

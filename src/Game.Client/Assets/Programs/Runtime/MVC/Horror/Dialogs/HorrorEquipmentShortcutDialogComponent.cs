@@ -1,6 +1,5 @@
 using Game.Core.Services;
 using Game.Horror.Equipment;
-using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Interfaces;
@@ -19,7 +18,6 @@ namespace Game.Horror.Dialogs
         [SerializeField] private HorrorEquipmentSlotView[] _slots;
 
         private IInputSystemService _inputService;
-        private IScriptableDatabaseService _databaseService;
         private IHorrorEquipmentService _equipmentService;
         private IObjectInfo _target;
         private int _currentIndex;
@@ -28,7 +26,6 @@ namespace Game.Horror.Dialogs
         {
             _target = target;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             for (int i = 0; i < _slots.Length; i++)
@@ -64,7 +61,7 @@ namespace Game.Horror.Dialogs
         private void Register(int index)
         {
             if (_target == null) return;
-            if (_equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.Id))
+            if (_equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.ObjectId))
                 RefreshAllSlots();
         }
 
@@ -77,8 +74,8 @@ namespace Game.Horror.Dialogs
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var info))
-                _slots[index].SetSlot(info);
+            if (_equipmentService.TryGetSlot(index, out var slot))
+                _slots[index].SetSlot(slot.ObjectCategory, slot.Id);
             else
                 _slots[index].SetEmpty();
         }

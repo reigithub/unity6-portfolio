@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
-using Game.Shared.Interfaces;
 using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services.Interfaces
@@ -17,7 +16,7 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>
         /// アイテムをインベントリに追加する。同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        bool TryAdd(IObjectInfo info, int addCount);
+        bool TryAdd(ObjectCategory category, int id, int addCount, int maxCount);
 
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
         bool HasItem(ObjectCategory category, int id);

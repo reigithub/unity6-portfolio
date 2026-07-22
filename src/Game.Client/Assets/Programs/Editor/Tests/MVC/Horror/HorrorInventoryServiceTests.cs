@@ -4,7 +4,6 @@ using Game.Horror.SaveData;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
-using Game.Shared.Interfaces;
 using Game.Shared.SaveData;
 using Game.Shared.Services;
 using NSubstitute;
@@ -39,15 +38,6 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
         }
 
-        private static IObjectInfo MakeInfo(ObjectCategory type, int id, int maxCount)
-        {
-            var info = Substitute.For<IObjectInfo>();
-            info.ObjectCategory.Returns(type);
-            info.Id.Returns(id);
-            info.MaxCount.Returns(maxCount);
-            return info;
-        }
-
         [Test]
         public async Task GetCount_NotPossessed_ReturnsZero()
         {
@@ -60,9 +50,7 @@ namespace Game.Tests.MVC.Horror
         public async Task GetCount_AfterTryAdd_ReturnsAddedCount()
         {
             await LoadDefaultData();
-            var info = MakeInfo(ObjectCategory.Item, 3, 10);
-
-            _service.TryAdd(info, 4);
+            _service.TryAdd(ObjectCategory.Item, 3, 4, 10);
 
             Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(4));
         }
@@ -71,8 +59,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryConsume_FullAmount_RemovesSlotAndReturnsTrue()
         {
             await LoadDefaultData();
-            var info = MakeInfo(ObjectCategory.Item, 3, 10);
-            _service.TryAdd(info, 4);
+            _service.TryAdd(ObjectCategory.Item, 3, 4, 10);
 
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 4);
 
@@ -85,8 +72,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryConsume_PartialAmount_ReturnsTrueAndLeavesRemainder()
         {
             await LoadDefaultData();
-            var info = MakeInfo(ObjectCategory.Item, 3, 10);
-            _service.TryAdd(info, 4);
+            _service.TryAdd(ObjectCategory.Item, 3, 4, 10);
 
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
 
@@ -98,8 +84,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryConsume_InsufficientCount_ReturnsFalseAndLeavesUnchanged()
         {
             await LoadDefaultData();
-            var info = MakeInfo(ObjectCategory.Item, 3, 10);
-            _service.TryAdd(info, 2);
+            _service.TryAdd(ObjectCategory.Item, 3, 2, 10);
 
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 5);
 
@@ -111,8 +96,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryConsume_ZeroOrNegativeCount_ReturnsFalse()
         {
             await LoadDefaultData();
-            var info = MakeInfo(ObjectCategory.Item, 3, 10);
-            _service.TryAdd(info, 2);
+            _service.TryAdd(ObjectCategory.Item, 3, 2, 10);
 
             Assert.That(_service.TryConsume(ObjectCategory.Item, 3, 0), Is.False);
             Assert.That(_service.TryConsume(ObjectCategory.Item, 3, -1), Is.False);
