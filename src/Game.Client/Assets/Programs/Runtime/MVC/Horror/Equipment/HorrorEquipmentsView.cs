@@ -78,7 +78,10 @@ namespace Game.Horror.Equipment
         private void RefreshSlot(int index)
         {
             if (_equipmentService.TryGetSlot(index, out var slot) && HorrorDatabaseHelper.TryGetInfo(_databaseService.Database, slot.ObjectCategory, slot.Id, out var info))
+            {
+                _slots[index].Initialize();
                 _slots[index].SetSlot(info);
+            }
             else
                 _slots[index].SetEmpty();
         }

@@ -31,6 +31,7 @@ namespace Game.Horror.Scenes
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
+        private HorrorPlayerController _player;
         private HorrorEnemyStart[] _enemyStarts;
 
         public override async UniTask Startup()
@@ -46,7 +47,7 @@ namespace Game.Horror.Scenes
 
             _inputService.UI.Inventory.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .SubscribeAwait(async (_, _) => await HorrorInventoryDialog.RunAsync())
+                .SubscribeAwait(async (_, _) => await ShowInventoryDialogAsync())
                 .AddTo(Disposables);
 
             await base.Startup();
@@ -85,19 +86,20 @@ namespace Game.Horror.Scenes
             if (_playerStart == null)
                 return null;
 
-            var player = await _playerStart.LoadPlayerAsync();
-            player.Initialize(_optionSaveRepository.Data);
-            ApplyRespawnPosition(player);
+            _player = await _playerStart.LoadPlayerAsync();
+            _player.Initialize(_optionSaveRepository.Data);
+            ApplyRespawnPosition(_player);
             _optionSaveRepository.OnSaved
-                .Subscribe(data => player.ApplyOptions(data))
+                .Subscribe(data => _player.ApplyOptions(data))
                 .AddTo(Disposables);
-            return player.gameObject;
+            return _player.gameObject;
         }
 
         private void UnloadPlayer()
         {
             if (_playerStart != null)
                 _playerStart.UnloadPlayer();
+            _player = null;
         }
 
         /// <summary>
@@ -173,6 +175,13 @@ namespace Game.Horror.Scenes
                     break;
                 }
             }
+        }
+
+        private async UniTask ShowInventoryDialogAsync()
+        {
+            var result = await HorrorInventoryDialog.RunAsync();
+            if (result.HasEquipRequest && _player != null)
+                _player.RequestEquip(result.EquipCategory, result.EquipId);
         }
     }
 }

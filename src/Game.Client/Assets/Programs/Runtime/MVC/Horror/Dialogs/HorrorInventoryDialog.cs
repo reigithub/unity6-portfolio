@@ -11,22 +11,31 @@ using UnityEngine;
 
 namespace Game.Horror.Dialogs
 {
-    public class HorrorInventoryDialog : GameDialogScene<HorrorInventoryDialog, HorrorInventoryDialogComponent, bool>
+    public readonly struct HorrorInventoryResult
+    {
+        public ObjectCategory EquipCategory { get; init; }
+        public int EquipId { get; init; }
+        public bool HasEquipRequest => EquipCategory != ObjectCategory.None;
+    }
+
+    public class HorrorInventoryDialog : GameDialogScene<HorrorInventoryDialog, HorrorInventoryDialogComponent, HorrorInventoryResult>
     {
         protected override string AssetPathOrAddress => "HorrorInventoryDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
 
-        public static async UniTask<bool> RunAsync()
+        private HorrorInventoryResult _result;
+
+        public static async UniTask<HorrorInventoryResult> RunAsync()
         {
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
-            bool result;
+            HorrorInventoryResult result;
             using (inputService.BlockPlayer())
             using (inputService.BlockInputAction(inputService.UI.Menu))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                result = await sceneService.TransitionDialogAsync<HorrorInventoryDialog, bool>();
+                result = await sceneService.TransitionDialogAsync<HorrorInventoryDialog, HorrorInventoryResult>();
             }
             return result;
         }
@@ -47,14 +56,14 @@ namespace Game.Horror.Dialogs
                     if (SceneComponent.IsSubmenuOpen())
                         SceneComponent.CloseSubmenu();
                     else
-                        TrySetResult(default);
+                        TrySetResult(_result);
                 })
                 .AddTo(Disposables);
 
             // インベントリトグルでダイアログを閉じる（サブメニュー展開中は無効）
             _inputService.UI.Inventory.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ => TrySetResult(_result))
                 .AddTo(Disposables);
 
             // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中は無効）
@@ -87,6 +96,8 @@ namespace Game.Horror.Dialogs
                             ctx.SlotView.SetEmpty();
                             break;
                         case ContextActionType.Equip:
+                            _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.Id };
+
                             break;
                         case ContextActionType.Shortcut:
                             await HorrorEquipmentShortcutDialog.RunAsync(info);

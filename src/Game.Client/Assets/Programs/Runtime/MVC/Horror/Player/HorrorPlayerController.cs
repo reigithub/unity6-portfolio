@@ -128,6 +128,11 @@ namespace Game.Horror.Player
         private int _pendingEquipId;
         private HorrorWeaponMaster _pendingWeaponMaster;
 
+        // 装備（インベントリ Equip 予約呼び出し）：閉じたダイアログから (category, id) 直値で要求される。ショートカットの _equipTriggered とは別経路
+        private bool _equipRequested;
+        private ObjectCategory _requestedEquipCategory;
+        private int _requestedEquipId;
+
         // リロード：SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private bool _reloadTriggered;
 
@@ -359,6 +364,19 @@ namespace Game.Horror.Player
 
             _characterController.enabled = wasEnabled;
             Physics.SyncTransforms();
+        }
+
+        /// <summary>
+        /// インベントリの Equip アクションから装備を要求する。フラグと対象を記録するのみで、
+        /// 検証・消費は Idle/Moving ステートの Update（<see cref="TryEquip"/>）が次フレーム以降に行う。
+        /// </summary>
+        /// <param name="category">装備対象のカテゴリ。</param>
+        /// <param name="id">装備対象の ID。</param>
+        public void RequestEquip(ObjectCategory category, int id)
+        {
+            _equipRequested = true;
+            _requestedEquipCategory = category;
+            _requestedEquipId = id;
         }
 
         #region IDamageable
@@ -598,13 +616,22 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 立てられた装備切替起動フラグを消費し、ショートカット登録・現在装備・所持を検証して
+        /// 立てられた装備切替起動フラグを消費し、共通検証（<see cref="TryPrepareEquip"/>）を経て
         /// EquippingState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
         /// 実際の装備反映（<see cref="IHorrorEquipmentService.TryEquip"/>）は EquippingState.Enter が行う。
+        /// インベントリからの直接指定（<see cref="RequestEquip"/>）を優先消費し、ショートカット起動フラグは
+        /// 同フレームの競合防止のため合わせて破棄する。
         /// </summary>
         /// <returns>EquippingState へ遷移すべきなら true。</returns>
         private bool TryEquip()
         {
+            if (_equipRequested)
+            {
+                _equipRequested = false;
+                _equipTriggered = false;
+                return TryPrepareEquip(_requestedEquipCategory, _requestedEquipId);
+            }
+
             if (!_equipTriggered)
                 return false;
 
@@ -614,20 +641,33 @@ namespace Game.Horror.Player
             if (!_equipmentService.TryGetSlot(_equipSlotIndex, out var slot))
                 return false;
 
+            return TryPrepareEquip(slot.ObjectCategory, slot.Id);
+        }
+
+        /// <summary>
+        /// 指定した装備対象について現在装備・所持を検証し、成立すれば EquippingState 遷移用のキャッシュへ
+        /// ステージングする。<see cref="TryEquip"/> の各起動経路（インベントリ直接指定／ショートカット）に
+        /// 共通の検証ロジック。
+        /// </summary>
+        /// <param name="category">装備対象のカテゴリ。</param>
+        /// <param name="id">装備対象の ID。</param>
+        /// <returns>検証に成功し EquippingState へ遷移すべきなら true。</returns>
+        private bool TryPrepareEquip(ObjectCategory category, int id)
+        {
             // 現在装備と同一スロットの再指定は無操作（要件1）
             if (_equipmentService.TryGetEquipped(out var currentType, out var currentId)
-                && currentType == slot.ObjectCategory && currentId == slot.Id)
+                && currentType == category && currentId == id)
                 return false;
 
             // Weapon 限定・所持検証。不成立なら硬直を発生させない
-            if (!_equipmentService.CanEquip(slot.ObjectCategory, slot.Id))
+            if (!_equipmentService.CanEquip(category, id))
                 return false;
 
-            if (!_dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var weaponMaster))
+            if (!_dbService.Database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
                 return false;
 
-            _pendingEquipType = slot.ObjectCategory;
-            _pendingEquipId = slot.Id;
+            _pendingEquipType = category;
+            _pendingEquipId = id;
             _pendingWeaponMaster = weaponMaster;
             return true;
         }
