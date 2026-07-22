@@ -129,7 +129,7 @@ namespace Game.Horror.Interaction
         {
             _targetInfo = info;
 
-            bool active = !string.IsNullOrEmpty(info.Type) && info.Id > 0;
+            bool active = info.ObjectCategory > 0 && info.Id > 0;
             _targetInfoRoot.SetActive(active);
             if (!active) return;
 
