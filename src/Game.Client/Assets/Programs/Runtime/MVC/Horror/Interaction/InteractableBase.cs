@@ -190,12 +190,12 @@ namespace Game.Horror.Interaction
         }
 
         /// <summary>インベントリに指定アイテムを1つ以上所持しているか。</summary>
-        protected bool HasItem()
+        protected bool HasObject()
         {
-            if (Master == null || Master.RequiredItemId == 0)
+            if (Master == null || Master.RequiredObjectCategory <= 0 || Master.RequiredObjectId == 0)
                 return true;
 
-            return _keyItemService.HasItem(ObjectCategory.Item, Master.RequiredItemId);
+            return _keyItemService.HasObject(Master.RequiredObjectCategory, Master.RequiredObjectId);
         }
     }
 }

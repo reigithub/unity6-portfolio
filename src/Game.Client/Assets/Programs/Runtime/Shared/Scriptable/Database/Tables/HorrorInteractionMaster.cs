@@ -28,7 +28,8 @@ namespace Game.Shared.Scriptable.Database.Tables
 
         [SerializeField] private string _rejectionMessageLocalizeKey;
 
-        [SerializeField] private int _requiredItemId;
+        [SerializeField] private ObjectCategory _requiredObjectCategory;
+        [SerializeField] private int _requiredObjectId;
 
         [SerializeField] private int _acquiredId;
         [SerializeField] private int _acquiredCount;
@@ -88,11 +89,17 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _rejectionMessageLocalizeKey = value;
         }
 
-        /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>
-        public int RequiredItemId
+        public ObjectCategory RequiredObjectCategory
         {
-            get => _requiredItemId;
-            set => _requiredItemId = value;
+            get => _requiredObjectCategory;
+            set => _requiredObjectCategory = value;
+        }
+
+        /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>
+        public int RequiredObjectId
+        {
+            get => _requiredObjectId;
+            set => _requiredObjectId = value;
         }
 
         /// <summary>効果として付与するアイテム Id。0 はなし。</summary>

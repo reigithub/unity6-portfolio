@@ -11,6 +11,6 @@ namespace Game.Horror.Services.Interfaces
 
         bool TryAdd(ObjectCategory category, int id, int addCount);
 
-        bool HasItem(ObjectCategory category, int id);
+        bool HasObject(ObjectCategory category, int id);
     }
 }

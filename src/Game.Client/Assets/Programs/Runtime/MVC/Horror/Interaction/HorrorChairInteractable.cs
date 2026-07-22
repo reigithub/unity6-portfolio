@@ -18,7 +18,7 @@ namespace Game.Horror.Interaction
             base.Start();
         }
 
-        public override bool CanInteract() => HasItem();
+        public override bool CanInteract() => HasObject();
 
         public override void Interact()
         {

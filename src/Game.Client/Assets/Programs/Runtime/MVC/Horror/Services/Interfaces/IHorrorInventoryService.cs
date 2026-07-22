@@ -19,7 +19,7 @@ namespace Game.Horror.Services.Interfaces
         bool TryAdd(ObjectCategory category, int id, int addCount, int maxCount);
 
         /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
-        bool HasItem(ObjectCategory category, int id);
+        bool HasObject(ObjectCategory category, int id);
 
         /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
         int GetCount(ObjectCategory category, int id);

@@ -77,7 +77,7 @@ namespace Game.Horror.Services
         }
 
         /// <summary>指定オブジェクトを所持しているか判定する。</summary>
-        public bool HasItem(ObjectCategory category, int id)
+        public bool HasObject(ObjectCategory category, int id)
         {
             var data = _repository.Data?.Inventory;
             return data != null && TryGet(data, category, id, out _);

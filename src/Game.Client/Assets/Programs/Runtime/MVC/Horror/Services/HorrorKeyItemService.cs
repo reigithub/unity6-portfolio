@@ -56,7 +56,7 @@ namespace Game.Horror.Services
             return false;
         }
 
-        public bool HasItem(ObjectCategory category, int id)
+        public bool HasObject(ObjectCategory category, int id)
         {
             var data = _repository.Data?.KeyItem;
             return data != null && TryGet(data, category, id, out _);

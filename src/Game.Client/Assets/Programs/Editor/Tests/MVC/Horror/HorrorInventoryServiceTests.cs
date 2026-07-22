@@ -64,7 +64,7 @@ namespace Game.Tests.MVC.Horror
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 4);
 
             Assert.That(ok, Is.True);
-            Assert.That(_service.HasItem(ObjectCategory.Item, 3), Is.False);
+            Assert.That(_service.HasObject(ObjectCategory.Item, 3), Is.False);
             Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(0));
         }
 

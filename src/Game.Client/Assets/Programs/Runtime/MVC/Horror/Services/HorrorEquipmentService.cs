@@ -28,7 +28,7 @@ namespace Game.Horror.Services
         /// <summary>
         /// 指定 (SlotType, Id) が装備可能か判定する。装備対象は Weapon のみで、かつ所持している必要がある。
         /// </summary>
-        public bool CanEquip(ObjectCategory type, int id) => type == ObjectCategory.Weapon && _inventoryService.HasItem(type, id);
+        public bool CanEquip(ObjectCategory type, int id) => type == ObjectCategory.Weapon && _inventoryService.HasObject(type, id);
 
         /// <summary>
         /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立する場合のみ反映して Dirty にする。

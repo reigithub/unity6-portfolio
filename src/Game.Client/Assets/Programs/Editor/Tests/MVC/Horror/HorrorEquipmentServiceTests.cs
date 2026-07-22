@@ -54,7 +54,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_WeaponPossessed_SucceedsAndMarksDirty()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
 
             var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
 
@@ -69,7 +69,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_Item_ReturnsFalse()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Item, 3).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Item, 3).Returns(true);
 
             var ok = _service.TryEquip(ObjectCategory.Item, 3);
 
@@ -82,7 +82,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_NotPossessed_ReturnsFalse()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(false);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(false);
 
             var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
 
@@ -95,7 +95,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_SameWeaponAgain_ReturnsTrueIdempotently()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
             var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
@@ -255,7 +255,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
             _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
-            _mockInventory.HasItem(ObjectCategory.Weapon, 7).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 7).Returns(true);
 
             _service.TryEquip(ObjectCategory.Weapon, 7);
 
@@ -268,7 +268,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
             _service.TryAssignSlot(0, ObjectCategory.Item, 3);
@@ -282,7 +282,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Clear_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
-            _mockInventory.HasItem(ObjectCategory.Weapon, 5).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
