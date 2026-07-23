@@ -16,6 +16,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _iconAssetName;
         [SerializeField] private int _maxCount;
         [SerializeField] private int _effect;
+        [SerializeField] private float _effectDuration;      // 効果持続時間
+        [SerializeField] private float _effectApplyDuration; // 効果適用にかかる時間
         [SerializeField] private bool _keyItem;
 
         #endregion
@@ -57,6 +59,18 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _effect;
             set => _effect = value;
+        }
+
+        public float EffectDuration
+        {
+            get => _effectDuration;
+            set => _effectDuration = value;
+        }
+
+        public float EffectApplyDuration
+        {
+            get => _effectApplyDuration;
+            set => _effectApplyDuration = value;
         }
 
         public bool KeyItem
