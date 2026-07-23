@@ -1,10 +1,10 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
 using Game.Horror.Enemy;
 using Game.Horror.Interaction;
 using Game.Horror.Player;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
@@ -41,11 +41,13 @@ namespace Game.Horror.Scenes
             await LoadEnemiesAsync(player);
 
             _inputService.Player.Menu.OnPerformedAsObservable()
+                .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
 
             _inputService.Player.Inventory.OnPerformedAsObservable()
+                .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowInventoryDialogAsync())
                 .AddTo(Disposables);

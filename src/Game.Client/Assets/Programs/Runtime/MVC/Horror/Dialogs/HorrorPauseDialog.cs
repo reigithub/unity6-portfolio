@@ -7,6 +7,7 @@ using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
+using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using R3;
 
@@ -50,7 +51,7 @@ namespace Game.Horror.Dialogs
         {
             _saveSlots = await _saveRepository.LoadSlotInfosAsync();
 
-            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.Player.Menu.OnPerformedAsObservable())
+            Observable.Race(_inputService.Player.Menu.OnPerformedAsObservable(), _inputService.UI.Cancel.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
