@@ -95,6 +95,10 @@ namespace Game.Core.Services
             Debug.Log("[InputService] Shutdown");
         }
 
+        #endregion
+
+        #region InputActions
+
         public void EnablePlayer(bool forceEnable = false)
             => EnableInputActions(Player.Get().actions, forceEnable);
 
@@ -115,17 +119,8 @@ namespace Game.Core.Services
 
         public IDisposable BlockInputAction(InputAction action)
         {
-            if (_blockCounts[action]++ <= 0)
-                action.Disable();
-
-            return Disposable.Create(() =>
-            {
-                if (--_blockCounts[action] <= 0)
-                {
-                    action.Enable();
-                    _blockCounts[action] = 0;
-                }
-            });
+            DisableInputAction(action);
+            return Disposable.Create(() => EnableInputAction(action));
         }
 
         private IDisposable BlockInputActions(IReadOnlyList<InputAction> actions, params InputAction[] ignoreActions)
@@ -134,17 +129,27 @@ namespace Game.Core.Services
             return Disposable.Create(() => EnableInputActions(actions, false, ignoreActions));
         }
 
+        private void EnableInputAction(InputAction action, bool forceEnable = false)
+        {
+            if (forceEnable || --_blockCounts[action] <= 0)
+            {
+                action.Enable();
+                _blockCounts[action] = 0;
+            }
+        }
+
+        private void DisableInputAction(InputAction action)
+        {
+            if (_blockCounts[action]++ <= 0)
+                action.Disable();
+        }
+
         private void EnableInputActions(IReadOnlyList<InputAction> actions, bool forceEnable = false, params InputAction[] ignoreActions)
         {
             foreach (InputAction action in actions)
             {
                 if (ignoreActions.Contains(action)) continue;
-
-                if (forceEnable || --_blockCounts[action] <= 0)
-                {
-                    action.Enable();
-                    _blockCounts[action] = 0;
-                }
+                EnableInputAction(action, forceEnable);
             }
         }
 
@@ -153,11 +158,7 @@ namespace Game.Core.Services
             foreach (InputAction action in actions)
             {
                 if (ignoreActions.Contains(action)) continue;
-
-                if (_blockCounts[action]++ <= 0)
-                {
-                    action.Disable();
-                }
+                DisableInputAction(action);
             }
         }
 
