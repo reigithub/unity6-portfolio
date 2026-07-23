@@ -673,15 +673,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Menu",
-                    "type": "Button",
-                    "id": "a8b045ff-5c42-4504-9495-7a8b5be17bd3",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Previous",
                     "type": "Button",
                     "id": "1de0bc2d-8575-47c4-bb16-bf78f8756735",
@@ -730,15 +721,6 @@
                     "name": "Remove",
                     "type": "Button",
                     "id": "698161ab-cd33-4abf-90e0-22d68a05a6d5",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Inventory",
-                    "type": "Button",
-                    "id": "1ea20a20-8377-431b-a1a2-e85a694e0fe3",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -1210,28 +1192,6 @@
                 },
                 {
                     "name": "",
-                    "id": "e29c5e83-cc60-421b-a788-38b389d52afd",
-                    "path": "<Keyboard>/escape",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Menu",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "f6badb9e-8234-412c-94b9-cc00098d9e14",
-                    "path": "<Gamepad>/start",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Menu",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "fa39f7a1-912c-43eb-a4ab-ccd899dd5f1b",
                     "path": "<Gamepad>/leftShoulder",
                     "interactions": "",
@@ -1381,28 +1341,6 @@
                     "processors": "",
                     "groups": ";Gamepad",
                     "action": "Remove",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "a9359f78-776c-422b-a0c4-43c84dd1d650",
-                    "path": "<Keyboard>/e",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Inventory",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "32c207fc-cd77-45ff-86d2-59712d3a8319",
-                    "path": "<Gamepad>/select",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Inventory",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

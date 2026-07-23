@@ -761,15 +761,6 @@ namespace Game.Shared.Input
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Menu"",
-                    ""type"": ""Button"",
-                    ""id"": ""a8b045ff-5c42-4504-9495-7a8b5be17bd3"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
                     ""name"": ""Previous"",
                     ""type"": ""Button"",
                     ""id"": ""1de0bc2d-8575-47c4-bb16-bf78f8756735"",
@@ -818,15 +809,6 @@ namespace Game.Shared.Input
                     ""name"": ""Remove"",
                     ""type"": ""Button"",
                     ""id"": ""698161ab-cd33-4abf-90e0-22d68a05a6d5"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""Inventory"",
-                    ""type"": ""Button"",
-                    ""id"": ""1ea20a20-8377-431b-a1a2-e85a694e0fe3"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1298,28 +1280,6 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""e29c5e83-cc60-421b-a788-38b389d52afd"",
-                    ""path"": ""<Keyboard>/escape"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Menu"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""f6badb9e-8234-412c-94b9-cc00098d9e14"",
-                    ""path"": ""<Gamepad>/start"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Menu"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""fa39f7a1-912c-43eb-a4ab-ccd899dd5f1b"",
                     ""path"": ""<Gamepad>/leftShoulder"",
                     ""interactions"": """",
@@ -1471,28 +1431,6 @@ namespace Game.Shared.Input
                     ""action"": ""Remove"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""a9359f78-776c-422b-a0c4-43c84dd1d650"",
-                    ""path"": ""<Keyboard>/e"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Inventory"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""32c207fc-cd77-45ff-86d2-59712d3a8319"",
-                    ""path"": ""<Gamepad>/select"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Inventory"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1587,14 +1525,12 @@ namespace Game.Shared.Input
             m_UI_ScrollWheel = m_UI.FindAction("ScrollWheel", throwIfNotFound: true);
             m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
             m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
-            m_UI_Menu = m_UI.FindAction("Menu", throwIfNotFound: true);
             m_UI_Previous = m_UI.FindAction("Previous", throwIfNotFound: true);
             m_UI_Previous2 = m_UI.FindAction("Previous2", throwIfNotFound: true);
             m_UI_Next = m_UI.FindAction("Next", throwIfNotFound: true);
             m_UI_Next2 = m_UI.FindAction("Next2", throwIfNotFound: true);
             m_UI_Reset = m_UI.FindAction("Reset", throwIfNotFound: true);
             m_UI_Remove = m_UI.FindAction("Remove", throwIfNotFound: true);
-            m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
         }
 
         ~@ProjectInputActions()
@@ -1914,14 +1850,12 @@ namespace Game.Shared.Input
         private readonly InputAction m_UI_ScrollWheel;
         private readonly InputAction m_UI_TrackedDevicePosition;
         private readonly InputAction m_UI_TrackedDeviceOrientation;
-        private readonly InputAction m_UI_Menu;
         private readonly InputAction m_UI_Previous;
         private readonly InputAction m_UI_Previous2;
         private readonly InputAction m_UI_Next;
         private readonly InputAction m_UI_Next2;
         private readonly InputAction m_UI_Reset;
         private readonly InputAction m_UI_Remove;
-        private readonly InputAction m_UI_Inventory;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1974,10 +1908,6 @@ namespace Game.Shared.Input
             /// </summary>
             public InputAction @TrackedDeviceOrientation => m_Wrapper.m_UI_TrackedDeviceOrientation;
             /// <summary>
-            /// Provides access to the underlying input action "UI/Menu".
-            /// </summary>
-            public InputAction @Menu => m_Wrapper.m_UI_Menu;
-            /// <summary>
             /// Provides access to the underlying input action "UI/Previous".
             /// </summary>
             public InputAction @Previous => m_Wrapper.m_UI_Previous;
@@ -2001,10 +1931,6 @@ namespace Game.Shared.Input
             /// Provides access to the underlying input action "UI/Remove".
             /// </summary>
             public InputAction @Remove => m_Wrapper.m_UI_Remove;
-            /// <summary>
-            /// Provides access to the underlying input action "UI/Inventory".
-            /// </summary>
-            public InputAction @Inventory => m_Wrapper.m_UI_Inventory;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -2061,9 +1987,6 @@ namespace Game.Shared.Input
                 @TrackedDeviceOrientation.started += instance.OnTrackedDeviceOrientation;
                 @TrackedDeviceOrientation.performed += instance.OnTrackedDeviceOrientation;
                 @TrackedDeviceOrientation.canceled += instance.OnTrackedDeviceOrientation;
-                @Menu.started += instance.OnMenu;
-                @Menu.performed += instance.OnMenu;
-                @Menu.canceled += instance.OnMenu;
                 @Previous.started += instance.OnPrevious;
                 @Previous.performed += instance.OnPrevious;
                 @Previous.canceled += instance.OnPrevious;
@@ -2082,9 +2005,6 @@ namespace Game.Shared.Input
                 @Remove.started += instance.OnRemove;
                 @Remove.performed += instance.OnRemove;
                 @Remove.canceled += instance.OnRemove;
-                @Inventory.started += instance.OnInventory;
-                @Inventory.performed += instance.OnInventory;
-                @Inventory.canceled += instance.OnInventory;
             }
 
             /// <summary>
@@ -2126,9 +2046,6 @@ namespace Game.Shared.Input
                 @TrackedDeviceOrientation.started -= instance.OnTrackedDeviceOrientation;
                 @TrackedDeviceOrientation.performed -= instance.OnTrackedDeviceOrientation;
                 @TrackedDeviceOrientation.canceled -= instance.OnTrackedDeviceOrientation;
-                @Menu.started -= instance.OnMenu;
-                @Menu.performed -= instance.OnMenu;
-                @Menu.canceled -= instance.OnMenu;
                 @Previous.started -= instance.OnPrevious;
                 @Previous.performed -= instance.OnPrevious;
                 @Previous.canceled -= instance.OnPrevious;
@@ -2147,9 +2064,6 @@ namespace Game.Shared.Input
                 @Remove.started -= instance.OnRemove;
                 @Remove.performed -= instance.OnRemove;
                 @Remove.canceled -= instance.OnRemove;
-                @Inventory.started -= instance.OnInventory;
-                @Inventory.performed -= instance.OnInventory;
-                @Inventory.canceled -= instance.OnInventory;
             }
 
             /// <summary>
@@ -2425,13 +2339,6 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnTrackedDeviceOrientation(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Menu" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnMenu(InputAction.CallbackContext context);
-            /// <summary>
             /// Method invoked when associated input action "Previous" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
@@ -2473,13 +2380,6 @@ namespace Game.Shared.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnRemove(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "Inventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnInventory(InputAction.CallbackContext context);
         }
     }
 }
