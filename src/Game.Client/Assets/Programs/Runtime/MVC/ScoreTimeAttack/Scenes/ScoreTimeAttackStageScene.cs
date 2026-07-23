@@ -101,7 +101,7 @@ namespace Game.ScoreTimeAttack.Scenes
             var audioTask = _audioService.PlayRandomOneAsync(AudioPlayTag.StageReady);
             //カウントダウンしてスタート
             await GameCountdownUIDialog.RunAsync();
-            _inputService.UI.Menu.Enable();
+            _inputService.Player.Menu.Enable();
             _inputService.UI.ScrollWheel.Enable();
             ApplicationEvents.ResumeTime();
             ApplicationEvents.HideCursor();
@@ -140,7 +140,7 @@ namespace Game.ScoreTimeAttack.Scenes
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (_inputService.UI.Menu.WasPressedThisFrame())
+                    if (_inputService.Player.Menu.WasPressedThisFrame())
                     {
                         ShowPauseAsync().Forget();
                         return;
