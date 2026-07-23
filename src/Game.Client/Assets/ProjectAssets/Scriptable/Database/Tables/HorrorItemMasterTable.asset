@@ -41,3 +41,10 @@ MonoBehaviour:
     _iconAssetName: Weapon/Sprite sheet Blue_45
     _maxCount: 120
     _keyItem: 0
+  - _id: 5
+    _developOnlyName: "\u56DE\u5FA9\u30DC\u30C8\u30EB"
+    _name: item_5_name
+    _description: item_5_desc
+    _iconAssetName: UI/Heart01_BrightBG
+    _maxCount: 1
+    _keyItem: 0
