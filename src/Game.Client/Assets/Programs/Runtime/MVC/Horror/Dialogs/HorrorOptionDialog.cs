@@ -294,6 +294,7 @@ namespace Game.Horror.Dialogs
         {
             var info = _inputService.GetBindingInfo(view.ControlScheme, view.ActionMapName, view.ActionName, view.CompositePartName);
             // Debug.Log($"{info.ControlScheme}, {view.ActionMapName}, {view.ActionName}, {view.CompositePartName} : {info.DisplayName}, {info.DeviceLayoutName}, {info.ControlPath}");
+            view.Initialize();
             view.SetDisplay(info.DisplayName);
             view.SetIcon(_inputActionIconService.GetSprite(info));
         }

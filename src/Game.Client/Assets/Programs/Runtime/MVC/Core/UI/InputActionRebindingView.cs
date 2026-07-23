@@ -51,6 +51,14 @@ namespace Game.Core.UI
         public Observable<Unit> OnRebindRequested
             => _rebindable ? _rebindButton.OnClickAsObservable() : Observable.Empty<Unit>();
 
+        public void Initialize()
+        {
+            if (_rebindButton.TryGetComponent<Image>(out var image))
+            {
+                image.color = _rebindable ? Color.white : Color.gray;
+            }
+        }
+
         /// <summary>アクション名ラベルを設定する。</summary>
         public void SetActionLabel(string text)
         {
