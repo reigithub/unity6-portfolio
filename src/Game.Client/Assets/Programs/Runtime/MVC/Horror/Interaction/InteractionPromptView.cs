@@ -155,8 +155,8 @@ namespace Game.Horror.Interaction
             if (_master == null) return;
 
             _interactionText.text = !_interactionToggle
-                ? _localizationService.GetStringByContextActions(_master.InteractionVerbLocalizeKey)
-                : _localizationService.GetStringByContextActions(_master.ReinteractionVerbLocalizeKey);
+                ? _localizationService.GetStringByContextActions(_master.InteractionVerb)
+                : _localizationService.GetStringByContextActions(_master.ReinteractionVerb);
         }
 
         private void SetInputBinding()

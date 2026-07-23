@@ -161,8 +161,8 @@ namespace Game.Tests.MVC.Horror.Interaction
         private static HorrorInteractionMaster CreateMaster() => new()
         {
             Id = 1,
-            InteractionVerbLocalizeKey = "VerbOpen",
-            ReinteractionVerbLocalizeKey = "VerbClose",
+            InteractionVerb = "VerbOpen",
+            ReinteractionVerb = "VerbClose",
             InputType = InteractionInputType.Instant,
         };
 

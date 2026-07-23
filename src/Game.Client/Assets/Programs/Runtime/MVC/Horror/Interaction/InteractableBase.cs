@@ -158,10 +158,10 @@ namespace Game.Horror.Interaction
 
         public UniTask<bool> TryShowRejectionMessage()
         {
-            if (Master == null || string.IsNullOrEmpty(Master.RejectionMessageLocalizeKey))
+            if (Master == null || string.IsNullOrEmpty(Master.RejectionMessage))
                 return UniTask.FromResult(false);
 
-            var message = _localizationService.GetStringByMessages(Master.RejectionMessageLocalizeKey);
+            var message = _localizationService.GetStringByMessages(Master.RejectionMessage);
             return HorrorMessageDialog.RunAsync(message);
         }
 
