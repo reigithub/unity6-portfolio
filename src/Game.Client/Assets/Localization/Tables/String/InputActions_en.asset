@@ -91,7 +91,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 11718485202706432
-    m_Localized: EquipSlot
+    m_Localized: Equip Slot
     m_Metadata:
       m_Items: []
   references:
