@@ -465,7 +465,7 @@ namespace Game.Horror.Player
             // 視点入力受付
             _lookValue = Player.Look.ReadValue<Vector2>();
 
-            if (Player.enabled)
+            if (Player.Look.enabled)
             {
                 // 加速度（入力スムージング）：実効 look を生入力へ追従。応答が高いほど即時、低いほど滑らか。
                 var acceleration = Mathf.Max(_lookAcceleration, 0.01f);
@@ -1443,7 +1443,7 @@ namespace Game.Horror.Player
         /// </summary>
         private void UpdateFootstep(Vector3 positionBeforeMove)
         {
-            if (_isCrouching || !IsGrounded() || !Player.enabled)
+            if (_isCrouching || !IsGrounded() || !Player.Move.enabled)
             {
                 _footstepAccumulatedDistance = 0f;
                 return;
@@ -1511,7 +1511,7 @@ namespace Game.Horror.Player
             if (_mainCamera == null) return;
 
             // 入力ブロック中（ポーズ等）は neutral に戻す（Time.deltaTime=0 凍結による残オフセット防止）
-            if (!Player.enabled)
+            if (!Player.Move.enabled)
             {
                 _mainCamera.transform.localPosition = _cameraBasePosition;
                 _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, 0f);
