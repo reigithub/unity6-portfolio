@@ -70,6 +70,14 @@ MonoBehaviour:
       pin is pulled and it is thrown
     m_Metadata:
       m_Items: []
+  - m_Id: 759920394240000
+    m_Localized: Restores a small amount of Health.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759911493926912
+    m_Localized: Medical First Aid Bottle
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
