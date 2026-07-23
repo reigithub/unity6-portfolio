@@ -54,7 +54,7 @@ namespace Game.Horror.Dialogs
             if (slot.HasData)
             {
                 if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(slot.SavepointId, out var master))
-                    savepointName = _localizationService.GetStringByInteractions(master.InteractionLocalizeKey);
+                    savepointName = _localizationService.GetStringByInteractions(master.Name);
                 else
                     Debug.LogError($"[{GetType().Name}] HorrorInteractionMaster not found: SavepointId={slot.SavepointId}");
 
