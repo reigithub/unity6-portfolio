@@ -1115,8 +1115,8 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""aecdeb0a-abb3-45b7-869e-f89a53f48270"",
-                    ""path"": ""<Keyboard>/escape"",
+                    ""id"": ""59f7414b-3aa3-4f78-bbf4-85eff9012867"",
+                    ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
@@ -1126,8 +1126,8 @@ namespace Game.Shared.Input
                 },
                 {
                     ""name"": """",
-                    ""id"": ""59f7414b-3aa3-4f78-bbf4-85eff9012867"",
-                    ""path"": ""<Mouse>/rightButton"",
+                    ""id"": ""aecdeb0a-abb3-45b7-869e-f89a53f48270"",
+                    ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
