@@ -274,17 +274,7 @@ namespace Game.Horror.Player
             InitializeStateMachine();
 
             // プレイヤー入力監視
-            Observable.Merge(Player.Move.OnPerformedAsObservable()
-                    , Player.Look.OnPerformedAsObservable()
-                    , Player.Interact.OnPerformedAsObservable()
-                    , Player.Jump.OnPerformedAsObservable()
-                    , Player.Crouch.OnPerformedAsObservable()
-                    , Player.Sprint.OnPerformedAsObservable()
-                    , Player.Equip.OnPerformedAsObservable()
-                    , Player.Fire.OnPerformedAsObservable()
-                    , Player.Aim.OnPerformedAsObservable()
-                    , Player.Reload.OnPerformedAsObservable()
-                    )
+            Observable.Merge(Player.Move.OnPerformedAsObservable(), Player.Look.OnPerformedAsObservable())
                 .Subscribe(_ => ApplicationEvents.HideCursor())
                 .AddTo(this);
 
