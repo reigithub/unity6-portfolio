@@ -69,6 +69,12 @@ namespace Game.Core.Services
         IDisposable BlockPlayer();
 
         /// <summary>
+        /// プレイヤー入力を一時無効化するスコープ
+        /// </summary>
+        /// <param name="ignores">無効化せず無視する入力アクション</param>
+        IDisposable BlockPlayer(params InputAction[] ignores);
+
+        /// <summary>
         /// UI入力を一時無効化するスコープ
         /// </summary>
         IDisposable BlockUI();

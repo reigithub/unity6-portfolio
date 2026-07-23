@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;

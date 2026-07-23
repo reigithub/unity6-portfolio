@@ -31,8 +31,7 @@ namespace Game.Horror.Dialogs
         {
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             HorrorInventoryResult result;
-            using (inputService.BlockPlayer())
-            using (inputService.BlockInputAction(inputService.UI.Menu))
+            using (inputService.BlockPlayer(inputService.Player.Menu, inputService.Player.Inventory))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorInventoryDialog, HorrorInventoryResult>();
@@ -61,7 +60,7 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // インベントリトグルでダイアログを閉じる（サブメニュー展開中は無効）
-            _inputService.UI.Inventory.OnPerformedAsObservable()
+            Observable.Merge(_inputService.Player.Menu.OnPerformedAsObservable(), _inputService.Player.Inventory.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
                 .Subscribe(_ => TrySetResult(_result))
                 .AddTo(Disposables);

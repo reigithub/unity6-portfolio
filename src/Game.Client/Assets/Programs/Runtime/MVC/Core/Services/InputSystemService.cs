@@ -96,20 +96,22 @@ namespace Game.Core.Services
         }
 
         public void EnablePlayer(bool forceEnable = false)
-            => EnableInputActionMap(Player.Get(), forceEnable);
+            => EnableInputActions(Player.Get().actions, forceEnable);
 
         public void DisablePlayer()
-            => DisableInputActionMap(Player.Get());
+            => DisableInputActions(Player.Get().actions);
 
         public void EnableUI(bool forceEnable = false)
-            => EnableInputActionMap(UI.Get(), forceEnable);
+            => EnableInputActions(UI.Get().actions, forceEnable);
 
         public void DisableUI()
-            => DisableInputActionMap(UI.Get());
+            => DisableInputActions(UI.Get().actions);
 
-        public IDisposable BlockPlayer() => BlockInputActionMap(Player.Get());
+        public IDisposable BlockPlayer() => BlockInputActions(Player.Get().actions);
 
-        public IDisposable BlockUI() => BlockInputActionMap(UI.Get());
+        public IDisposable BlockPlayer(params InputAction[] ignores) => BlockInputActions(Player.Get().actions, ignores);
+
+        public IDisposable BlockUI() => BlockInputActions(UI.Get().actions);
 
         public IDisposable BlockInputAction(InputAction action)
         {
@@ -126,25 +128,18 @@ namespace Game.Core.Services
             });
         }
 
-        private IDisposable BlockInputActionMap(InputActionMap actionMap)
-            => BlockInputActions(actionMap.actions);
-
-        private IDisposable BlockInputActions(IReadOnlyList<InputAction> actions)
+        private IDisposable BlockInputActions(IReadOnlyList<InputAction> actions, params InputAction[] ignoreActions)
         {
-            DisableInputActions(actions);
-            return Disposable.Create(() => EnableInputActions(actions));
+            DisableInputActions(actions, ignoreActions);
+            return Disposable.Create(() => EnableInputActions(actions, false, ignoreActions));
         }
 
-        private void EnableInputActionMap(InputActionMap actionMap, bool forceEnable = false)
-            => EnableInputActions(actionMap.actions, forceEnable);
-
-        private void DisableInputActionMap(InputActionMap actionMap)
-            => DisableInputActions(actionMap.actions);
-
-        private void EnableInputActions(IReadOnlyList<InputAction> actions, bool forceEnable = false)
+        private void EnableInputActions(IReadOnlyList<InputAction> actions, bool forceEnable = false, params InputAction[] ignoreActions)
         {
             foreach (InputAction action in actions)
             {
+                if (ignoreActions.Contains(action)) continue;
+
                 if (forceEnable || --_blockCounts[action] <= 0)
                 {
                     action.Enable();
@@ -153,12 +148,16 @@ namespace Game.Core.Services
             }
         }
 
-        private void DisableInputActions(IReadOnlyList<InputAction> actions)
+        private void DisableInputActions(IReadOnlyList<InputAction> actions, params InputAction[] ignoreActions)
         {
             foreach (InputAction action in actions)
             {
+                if (ignoreActions.Contains(action)) continue;
+
                 if (_blockCounts[action]++ <= 0)
+                {
                     action.Disable();
+                }
             }
         }
 

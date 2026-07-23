@@ -40,12 +40,12 @@ namespace Game.Horror.Scenes
             var player = await LoadPlayerAsync();
             await LoadEnemiesAsync(player);
 
-            _inputService.UI.Menu.OnPerformedAsObservable()
+            _inputService.Player.Menu.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
 
-            _inputService.UI.Inventory.OnPerformedAsObservable()
+            _inputService.Player.Inventory.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowInventoryDialogAsync())
                 .AddTo(Disposables);

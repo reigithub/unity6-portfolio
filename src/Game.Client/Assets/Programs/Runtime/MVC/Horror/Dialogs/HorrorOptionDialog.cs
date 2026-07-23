@@ -43,7 +43,7 @@ namespace Game.Horror.Dialogs
         public override UniTask Startup()
         {
             // ダイアログキャンセル
-            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.UI.Menu.OnPerformedAsObservable())
+            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.Player.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);

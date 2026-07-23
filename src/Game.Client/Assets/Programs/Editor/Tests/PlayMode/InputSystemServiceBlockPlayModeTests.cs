@@ -40,7 +40,7 @@ namespace Game.Tests.PlayMode
         {
             _service.Startup();
 
-            Assert.IsTrue(_service.UI.Menu.enabled, "Startup 直後は UI 入力が有効のはず");
+            Assert.IsTrue(_service.UI.Cancel.enabled, "Startup 直後は UI 入力が有効のはず");
             Assert.IsTrue(_service.UI.Submit.enabled);
             Assert.IsFalse(_service.Player.Move.enabled, "Startup 直後は Player 入力が無効のはず");
             Assert.IsFalse(_service.Player.Jump.enabled);
@@ -50,13 +50,13 @@ namespace Game.Tests.PlayMode
         public void Shutdown_Restartup_DoesNotCarryOverBlockCounts()
         {
             _service.Startup();
-            _service.BlockInputAction(_service.UI.Menu); // 意図的に未解放のまま
-            Assert.IsFalse(_service.UI.Menu.enabled);
+            _service.BlockInputAction(_service.UI.Click); // 意図的に未解放のまま
+            Assert.IsFalse(_service.UI.Click.enabled);
 
             _service.Shutdown();
             _service.Startup();
 
-            Assert.IsTrue(_service.UI.Menu.enabled, "再 Startup 後にブロックカウントが持ち越されないはず");
+            Assert.IsTrue(_service.UI.Click.enabled, "再 Startup 後にブロックカウントが持ち越されないはず");
         }
 
         [Test]
@@ -78,12 +78,12 @@ namespace Game.Tests.PlayMode
         {
             _service.Startup();
 
-            var scope = _service.BlockInputAction(_service.UI.Menu);
-            Assert.IsFalse(_service.UI.Menu.enabled, "ブロック中は無効のはず");
+            var scope = _service.BlockInputAction(_service.UI.Cancel);
+            Assert.IsFalse(_service.UI.Cancel.enabled, "ブロック中は無効のはず");
             Assert.IsTrue(_service.UI.Submit.enabled, "他のアクションには影響しないはず");
 
             scope.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled, "解放後は有効に戻るはず");
+            Assert.IsTrue(_service.UI.Cancel.enabled, "解放後は有効に戻るはず");
         }
 
         [Test]
@@ -92,20 +92,20 @@ namespace Game.Tests.PlayMode
             _service.Startup();
 
             // 取得と逆順（LIFO）の解放
-            var outer = _service.BlockInputAction(_service.UI.Menu);
-            var inner = _service.BlockInputAction(_service.UI.Menu);
+            var outer = _service.BlockInputAction(_service.UI.Click);
+            var inner = _service.BlockInputAction(_service.UI.Click);
             inner.Dispose();
-            Assert.IsFalse(_service.UI.Menu.enabled, "他方のブロックが残っている間は無効のはず");
+            Assert.IsFalse(_service.UI.Click.enabled, "他方のブロックが残っている間は無効のはず");
             outer.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled);
+            Assert.IsTrue(_service.UI.Click.enabled);
 
             // 取得順（FIFO）の解放でも同じ結果になる
-            var first = _service.BlockInputAction(_service.UI.Menu);
-            var second = _service.BlockInputAction(_service.UI.Menu);
+            var first = _service.BlockInputAction(_service.UI.Click);
+            var second = _service.BlockInputAction(_service.UI.Click);
             first.Dispose();
-            Assert.IsFalse(_service.UI.Menu.enabled, "解放順に関わらず残ブロックがあれば無効のはず");
+            Assert.IsFalse(_service.UI.Click.enabled, "解放順に関わらず残ブロックがあれば無効のはず");
             second.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled);
+            Assert.IsTrue(_service.UI.Click.enabled);
         }
 
         [Test]
@@ -113,16 +113,16 @@ namespace Game.Tests.PlayMode
         {
             _service.Startup();
 
-            var disposed = _service.BlockInputAction(_service.UI.Menu);
-            var alive = _service.BlockInputAction(_service.UI.Menu);
+            var disposed = _service.BlockInputAction(_service.UI.Click);
+            var alive = _service.BlockInputAction(_service.UI.Click);
 
             disposed.Dispose();
             disposed.Dispose(); // 二重解放
 
-            Assert.IsFalse(_service.UI.Menu.enabled, "二重 Dispose で生存中のブロックが解除されないはず");
+            Assert.IsFalse(_service.UI.Click.enabled, "二重 Dispose で生存中のブロックが解除されないはず");
 
             alive.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled);
+            Assert.IsTrue(_service.UI.Click.enabled);
         }
 
         [Test]
@@ -150,7 +150,7 @@ namespace Game.Tests.PlayMode
             Assert.IsFalse(_service.Player.Move.enabled);
             Assert.IsFalse(_service.Player.Jump.enabled);
             Assert.IsFalse(_service.Player.Attack.enabled);
-            Assert.IsTrue(_service.UI.Menu.enabled, "UI 側には影響しないはず");
+            Assert.IsTrue(_service.UI.Click.enabled, "UI 側には影響しないはず");
 
             scope.Dispose();
             Assert.IsTrue(_service.Player.Move.enabled);
@@ -164,11 +164,11 @@ namespace Game.Tests.PlayMode
             _service.Startup();
 
             var scope = _service.BlockUI();
-            Assert.IsFalse(_service.UI.Menu.enabled);
+            Assert.IsFalse(_service.UI.Cancel.enabled);
             Assert.IsFalse(_service.UI.Submit.enabled);
 
             scope.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled);
+            Assert.IsTrue(_service.UI.Cancel.enabled);
             Assert.IsTrue(_service.UI.Submit.enabled);
         }
 
@@ -197,29 +197,17 @@ namespace Game.Tests.PlayMode
             _service.EnablePlayer();
 
             var outerPlayer = _service.BlockPlayer();
-            var outerMenu = _service.BlockInputAction(_service.UI.Menu);
-            var outerInventory = _service.BlockInputAction(_service.UI.Inventory);
 
             var innerPlayer = _service.BlockPlayer();
-            var innerMenu = _service.BlockInputAction(_service.UI.Menu);
-            var innerInventory = _service.BlockInputAction(_service.UI.Inventory);
 
-            innerInventory.Dispose();
-            innerMenu.Dispose();
             innerPlayer.Dispose();
 
             Assert.IsFalse(_service.Player.Move.enabled, "親ダイアログのブロックが維持されるはず");
-            Assert.IsFalse(_service.UI.Menu.enabled);
-            Assert.IsFalse(_service.UI.Inventory.enabled);
             Assert.IsTrue(_service.UI.Submit.enabled, "ブロック対象外の UI 入力は生きているはず");
 
-            outerInventory.Dispose();
-            outerMenu.Dispose();
             outerPlayer.Dispose();
 
             Assert.IsTrue(_service.Player.Move.enabled);
-            Assert.IsTrue(_service.UI.Menu.enabled);
-            Assert.IsTrue(_service.UI.Inventory.enabled);
         }
 
         #endregion
@@ -307,10 +295,10 @@ namespace Game.Tests.PlayMode
             var uiScope = _service.BlockUI();
             _service.EnablePlayer(forceEnable: true);
 
-            Assert.IsFalse(_service.UI.Menu.enabled, "Player の force が UI 側のブロックへ影響しないはず");
+            Assert.IsFalse(_service.UI.Click.enabled, "Player の force が UI 側のブロックへ影響しないはず");
 
             uiScope.Dispose();
-            Assert.IsTrue(_service.UI.Menu.enabled);
+            Assert.IsTrue(_service.UI.Click.enabled);
         }
 
         [Test]
@@ -372,7 +360,7 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             bool menuFired = false;
-            _service.UI.Menu.performed += _ => menuFired = true;
+            _service.UI.Click.performed += _ => menuFired = true;
 
             using (_service.BlockPlayer())
             {
