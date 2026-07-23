@@ -623,7 +623,7 @@ namespace Game.Shared.Input
                 {
                     ""name"": """",
                     ""id"": ""452ee35c-2917-4477-81e5-fb998c0917b2"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""path"": ""<Keyboard>/tab"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
