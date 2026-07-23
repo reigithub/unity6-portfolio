@@ -32,7 +32,7 @@ namespace Game.Horror.Dialogs
         {
             HorrorPauseResult result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
-            using (inputService.BlockPlayer())
+            using (inputService.BlockPlayer(inputService.Player.Menu))
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 result = await sceneService.TransitionDialogAsync<HorrorPauseDialog, HorrorPauseResult>();
@@ -50,7 +50,7 @@ namespace Game.Horror.Dialogs
         {
             _saveSlots = await _saveRepository.LoadSlotInfosAsync();
 
-            _inputService.UI.Cancel.OnPerformedAsObservable()
+            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.Player.Menu.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
