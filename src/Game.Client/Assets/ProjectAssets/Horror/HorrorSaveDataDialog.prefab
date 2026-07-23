@@ -159,7 +159,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 40}
-  m_SizeDelta: {x: 0, y: 80}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3729270468667367697
 MonoBehaviour:
@@ -1863,8 +1863,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -2178,8 +2178,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3057,8 +3057,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 63.505005, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 59.505, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2217040962182073288
 MonoBehaviour:
@@ -3077,6 +3077,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Submit
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 6541124574369201377}
 --- !u!114 &8075821807951096597
 MonoBehaviour:
@@ -4096,8 +4097,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 393.52502, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 369.52502, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &4286846459524405750
 MonoBehaviour:
@@ -4116,6 +4117,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Remove
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 7115053382440976520}
 --- !u!114 &6133758744781735600
 MonoBehaviour:
@@ -6118,8 +6120,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 210.51501, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 198.51501, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &251073775258186006
 MonoBehaviour:
@@ -6138,6 +6140,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Cancel
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 5214467778199624838}
 --- !u!114 &4736592825493878215
 MonoBehaviour:
@@ -7060,8 +7063,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

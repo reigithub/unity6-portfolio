@@ -93,8 +93,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1982,7 +1982,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 40}
-  m_SizeDelta: {x: 0, y: 80}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &264985015857558021
 MonoBehaviour:
@@ -2100,7 +2100,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 1
-  m_Spacing: 20
+  m_Spacing: 15
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
@@ -2338,8 +2338,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -2460,8 +2460,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 210.51501, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 198.51501, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &6922111698068796719
 MonoBehaviour:
@@ -2480,6 +2480,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Cancel
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 722780972203438775}
 --- !u!114 &5390074929342069810
 MonoBehaviour:
@@ -2830,8 +2831,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 63.505005, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 59.505, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3229302795502569078
 MonoBehaviour:
@@ -2850,6 +2851,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Submit
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 2218329098820566882}
 --- !u!114 &7013482839337579544
 MonoBehaviour:

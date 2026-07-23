@@ -148,8 +148,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 210.51501, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 198.51501, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &7435788980822675054
 MonoBehaviour:
@@ -168,6 +168,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Cancel
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 710227879483235892}
 --- !u!114 &8694205126499566858
 MonoBehaviour:
@@ -517,7 +518,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &5944751889499783478
 MonoBehaviour:
@@ -536,6 +537,7 @@ MonoBehaviour:
   _actionMapName: Player
   _actionName: Equip
   _compositePartName: Down
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 1999540554858388602}
 --- !u!114 &6652610047287358744
 MonoBehaviour:
@@ -620,7 +622,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2875030625291132278
 MonoBehaviour:
@@ -639,6 +641,7 @@ MonoBehaviour:
   _actionMapName: Player
   _actionName: Equip
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 2560579299037800302}
 --- !u!114 &3803270435487295312
 MonoBehaviour:
@@ -2400,8 +2403,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -2522,7 +2525,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &4524987830135689830
 MonoBehaviour:
@@ -2541,6 +2544,7 @@ MonoBehaviour:
   _actionMapName: Player
   _actionName: Equip
   _compositePartName: Right
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 7991473938453130648}
 --- !u!114 &3649139900706961575
 MonoBehaviour:
@@ -2700,7 +2704,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &7267290698638349741
 MonoBehaviour:
@@ -2719,6 +2723,7 @@ MonoBehaviour:
   _actionMapName: Player
   _actionName: Equip
   _compositePartName: Up
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 1290292573868273563}
 --- !u!114 &1368066845357514969
 MonoBehaviour:
@@ -2878,7 +2883,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 60, y: 60}
+  m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &23736869485650805
 MonoBehaviour:
@@ -2897,6 +2902,7 @@ MonoBehaviour:
   _actionMapName: Player
   _actionName: Equip
   _compositePartName: Left
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 1778280925835293539}
 --- !u!114 &3774770137800109732
 MonoBehaviour:
@@ -3037,8 +3043,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3159,8 +3165,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 393.52502, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 369.52502, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3421327358153918751
 MonoBehaviour:
@@ -3179,6 +3185,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Remove
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 1665471622749077524}
 --- !u!114 &2279525975635211717
 MonoBehaviour:
@@ -3259,7 +3266,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 40}
-  m_SizeDelta: {x: 0, y: 80}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1814245047519642797
 MonoBehaviour:
@@ -3411,8 +3418,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3533,8 +3540,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 63.505005, y: -40}
-  m_SizeDelta: {x: 0, y: 60}
+  m_AnchoredPosition: {x: 59.505, y: -25}
+  m_SizeDelta: {x: 0, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1461073281637719042
 MonoBehaviour:
@@ -3553,6 +3560,7 @@ MonoBehaviour:
   _actionMapName: UI
   _actionName: Submit
   _compositePartName: 
+  _fallbackControlScheme: Keyboard&Mouse
   _actionIcon: {fileID: 7324790958516602428}
 --- !u!114 &1363320506850884574
 MonoBehaviour:
