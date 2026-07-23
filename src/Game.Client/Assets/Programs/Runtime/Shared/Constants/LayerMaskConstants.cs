@@ -8,5 +8,6 @@ namespace Game.Shared.Constants
         public static readonly int Ground = 1 << LayerConstants.Ground;
         public static readonly int Structure = 1 << LayerConstants.Structure;
         public static readonly int Item = 1 << LayerConstants.Item;
+        public static readonly int Interactable = 1 << LayerConstants.Interactable;
     }
 }

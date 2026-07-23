@@ -35,7 +35,7 @@ namespace Game.Horror.Enemy
         [Tooltip("視覚スキャンの間引き間隔（秒）。毎フレームではなく間引く")]
         [SerializeField] private float _scanInterval = 0.1f;
 
-        [Tooltip("遮蔽判定の対象レイヤー（壁・床・構造物）。Initialize 時に 0 なら Structure|Ground を既定設定する")]
+        [Tooltip("遮蔽判定の対象レイヤー（壁・床・構造物）。Interactable レイヤーは実行時に常時合成される。Initialize 時に 0 なら Structure|Ground を既定設定する")]
         [SerializeField] private LayerMask _occluderMask;
 
         // 追跡対象と調整値（Initialize で注入）
@@ -251,7 +251,7 @@ namespace Game.Horror.Enemy
                 return;
             }
 
-            // Step 3: 視線遮蔽（目の高さから Raycast。構造物/地形を遮蔽判定）
+            // Step 3: 視線遮蔽（目の高さから Raycast。構造物/地形に加え、Interactable 家具も視線を遮る）
             Vector3 eyePos = transform.position + Vector3.up * _master.EyeHeight;
             Vector3 eyeToTarget = _target.position - eyePos;
             float eyeDist = eyeToTarget.magnitude;
@@ -260,7 +260,7 @@ namespace Game.Horror.Enemy
                 eyePos,
                 eyeToTarget / eyeDist,
                 eyeDist,
-                _occluderMask,
+                _occluderMask | LayerMaskConstants.Interactable,
                 QueryTriggerInteraction.Ignore);
 
 #if UNITY_EDITOR

@@ -9,6 +9,7 @@ namespace Game.Horror.Interaction
     /// 検出範囲(<see cref="_discoverRadius"/>)内・カメラ視界内・非遮蔽の対象を「発見可能(Discoverable)」とし、
     /// そのうちインタラクト距離(<see cref="_interactRadius"/>)内で画面中心（レティクル）に最も近い 1 つだけを「実行可能(Actionable)」とする。
     /// 距離判定はプレイヤー位置、視界・遮蔽・狙いはカメラ基準（一人称で視点が頭前方にあるため）。
+    /// 遮蔽物は構造物・地形に加え他の Interactable も含み、対象自身のコライダーのみ参照一致で除外する。
     /// 対象は点でなく <see cref="IInteractable.WorldBounds"/>(AABB) で扱い、狙いは画面中心 ray への交差/角度で測る。
     /// 物理 SphereCast を使わないため、対象へ密着しても（cast 開始位置のめり込みで）検出が落ちることがない。
     /// </summary>
@@ -29,7 +30,7 @@ namespace Game.Horror.Interaction
         [Tooltip("候補収集の対象レイヤー（Interactable）")]
         [SerializeField] private LayerMask _interactableMask = ~0;
 
-        [Tooltip("遮蔽判定の対象レイヤー（壁・床・構造物）。対象自身のレイヤー(Interactable)は含めないこと")]
+        [Tooltip("遮蔽判定の対象レイヤー（壁・床・構造物）。Interactable レイヤーは実行時に常時合成され、対象自身のコライダーは参照一致で除外される")]
         [SerializeField] private LayerMask _occluderMask = ~0;
 
         [Tooltip("実行可能とみなすエイムアシスト半角（度）。画面中心からこの角度以内の対象のみ Actionable 候補。レティクル直撃は 0 度")]
@@ -38,11 +39,13 @@ namespace Game.Horror.Interaction
         [Tooltip("現在の Actionable を維持しやすくするヒステリシス角度（度）。僅差での対象切替・点滅を抑える")]
         [SerializeField] private float _actionableStickiness = 5f;
 
-        // 遮蔽レイを対象表面の手前で止め、対象自身の collider への自己ヒットを避けるための余白
+        // 遮蔽レイを対象表面の手前で止める余白。自己ヒット除外の正本は参照一致（IsOccluded）で、
+        // これは AABB 境界ちょうどの際どいヒットを避ける補助
         private const float OcclusionMargin = 0.05f;
 
         // 物理クエリ・候補集計用の再利用バッファ（毎スキャンで Clear し GC を避ける）
         private readonly Collider[] _hitBuffer = new Collider[16];
+        private readonly RaycastHit[] _occlusionHitBuffer = new RaycastHit[16];
         private readonly HashSet<IInteractable> _seen = new();
         private readonly List<IInteractable> _visible = new();
         private readonly Plane[] _frustumPlanes = new Plane[6];
@@ -187,6 +190,9 @@ namespace Game.Horror.Interaction
             var camForward = camTransform.forward;
             var centerRay = _camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
 
+            // 遮蔽マスク: シリアライズ値は変えず Interactable を常時合成し、対象同士の遮蔽も成立させる
+            int occlusionMask = _occluderMask | _interactableMask;
+
             GeometryUtility.CalculateFrustumPlanes(_camera, _frustumPlanes);
 
             int hitCount = Physics.OverlapSphereNonAlloc(playerPos, _discoverRadius, _hitBuffer, _interactableMask, QueryTriggerInteraction.Collide);
@@ -215,11 +221,8 @@ namespace Game.Horror.Interaction
                 // 狙いスコア（0=レティクル直撃、度）と、遮蔽判定に使う aimPoint を同時に得る
                 float aimScore = CalculateAimScore(bounds, centerRay, camPos, camForward, out var aimPoint);
 
-                // 遮蔽（壁越し）を除外：カメラ → aimPoint の間に遮蔽物があれば不可視
-                var toAim = aimPoint - camPos;
-                float aimDist = toAim.magnitude;
-                if (aimDist > OcclusionMargin &&
-                    Physics.Raycast(camPos, toAim, aimDist - OcclusionMargin, _occluderMask, QueryTriggerInteraction.Ignore))
+                // 遮蔽（壁越し）を除外：カメラ → aimPoint の間に対象自身以外の遮蔽物（構造物・他の Interactable）があれば不可視
+                if (IsOccluded(camPos, aimPoint, interactable, occlusionMask, _occlusionHitBuffer))
                 {
 #if UNITY_EDITOR
                     _gizmoCandidates.Add(new GizmoCandidate(interactable, bounds, aimPoint, aimScore, GizmoCandidateKind.Occluded));
@@ -233,7 +236,7 @@ namespace Game.Horror.Interaction
 
 #if UNITY_EDITOR
                 _gizmoCandidates.Add(new GizmoCandidate(interactable, bounds, aimPoint, aimScore, GizmoCandidateKind.Discoverable));
-                if (aimDist > OcclusionMargin)
+                if ((aimPoint - camPos).magnitude > OcclusionMargin)
                 {
                     _gizmoOcclusionRays.Add(new GizmoOcclusionRay(camPos, aimPoint, blocked: false));
                 }
@@ -287,6 +290,41 @@ namespace Game.Horror.Interaction
 
             aimPoint = bounds.ClosestPoint(cameraPosition);
             return Vector3.Angle(cameraForward, bounds.center - cameraPosition);
+        }
+
+        /// <summary>
+        /// カメラ → 狙い点の間に、対象自身以外の遮蔽物（構造物・他の Interactable）があるかを返す。
+        /// 自己ヒットはレイヤーでなく同一性（ヒットコライダー親階層の <see cref="IInteractable"/> と
+        /// <paramref name="target"/> の参照一致）で除外する。対象のコライダーが対象ルート階層の外にあると
+        /// 自己遮蔽になるが、候補収集も同じ親方向探索に依存しており新たな制約ではない。
+        /// トリガーは無視するため、拾得用に膨らませたトリガーコライダーは遮蔽物にならない。
+        /// </summary>
+        /// <param name="cameraPosition">遮蔽レイの始点（カメラ位置）</param>
+        /// <param name="aimPoint">遮蔽レイの終点（対象の狙い点）</param>
+        /// <param name="target">自己ヒット除外の対象自身</param>
+        /// <param name="occluderMask">遮蔽対象レイヤー（Interactable 合成済み）</param>
+        /// <param name="hitBuffer">ヒット列挙の再利用バッファ（呼び出し側が所有）</param>
+        internal static bool IsOccluded(Vector3 cameraPosition, Vector3 aimPoint, IInteractable target, int occluderMask, RaycastHit[] hitBuffer)
+        {
+            var toAim = aimPoint - cameraPosition;
+            float aimDistance = toAim.magnitude;
+            if (aimDistance <= OcclusionMargin) return false;
+
+            int hitCount = Physics.RaycastNonAlloc(
+                cameraPosition, toAim, hitBuffer, aimDistance - OcclusionMargin, occluderMask, QueryTriggerInteraction.Ignore);
+
+            // バッファ満杯はヒットの切り捨て（真の遮蔽物の欠落）と区別できないため、安全側の遮蔽扱いにする
+            if (hitCount == hitBuffer.Length) return true;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var hitCollider = hitBuffer[i].collider;
+                if (hitCollider == null) continue;
+                if (ReferenceEquals(hitCollider.GetComponentInParent<IInteractable>(), target)) continue;
+                return true;
+            }
+
+            return false;
         }
 
         // 前回との差分のみ通知する。今回不在の対象は Hidden に戻し、状態変化のみ反映する。
