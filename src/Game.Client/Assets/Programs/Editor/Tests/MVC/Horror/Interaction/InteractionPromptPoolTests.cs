@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Game.Core.Services;
 using Game.Horror.Interaction;
+using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Input;
 using Game.Shared.Scriptable.Database.Tables;
@@ -39,6 +40,7 @@ namespace Game.Tests.MVC.Horror.Interaction
             GameServiceManager.Register(CreateLocalizationService());
             GameServiceManager.Register(CreateInputSystemService());
             GameServiceManager.Register(CreateInputActionIconService());
+            GameServiceManager.Register(CreateHorrorIconService());
         }
 
         [TearDown]
@@ -90,6 +92,13 @@ namespace Game.Tests.MVC.Horror.Interaction
             // Sprite dummySprite = Sprite.Create(texture, rect, pivot);
             // icon.GetSprite(new InputBindingInfo()).Returns(dummySprite);
             icon.GetSprite(new InputBindingInfo()).Returns(_ => null);
+            return icon;
+        }
+
+        private IHorrorIconService CreateHorrorIconService()
+        {
+            var icon = Substitute.For<IHorrorIconService>();
+            icon.GetSprite(Arg.Any<string>()).Returns(_ => null);
             return icon;
         }
 
