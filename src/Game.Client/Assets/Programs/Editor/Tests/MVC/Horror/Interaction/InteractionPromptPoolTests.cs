@@ -78,7 +78,6 @@ namespace Game.Tests.MVC.Horror.Interaction
             input.OnControlSchemeChanged.Returns(new Subject<string>());
             input.OnDeviceChanged.Returns(new Subject<InputDeviceChangeInfo>());
             input.OnBindingChanged.Returns(new Subject<InputAction>());
-            input.GetBindingDisplayString(Arg.Any<InputAction>(), Arg.Any<string>()).Returns("TestBinding");
             input.GetBindingInfo(Arg.Any<InputAction>(), Arg.Any<string>()).Returns(new InputBindingInfo());
             return input;
         }

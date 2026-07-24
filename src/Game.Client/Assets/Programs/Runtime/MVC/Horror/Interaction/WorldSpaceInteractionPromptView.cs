@@ -80,7 +80,8 @@ namespace Game.Horror.Interaction
 
         private void SetInputBindingText()
         {
-            _inputBindingText.text = _inputService.GetBindingDisplayString(_inputService.Player.Interact);
+            var info = _inputService.GetBindingInfo(_inputService.Player.Interact);
+            _inputBindingText.text = info.DisplayName;
         }
 
         public void SetInteractionToggle(bool isOn)

@@ -279,11 +279,6 @@ namespace Game.Core.Services
             return map?.FindAction(actionName, throwIfNotFound: false);
         }
 
-        public string GetBindingDisplayString(InputAction action, string partName = null)
-        {
-            return GetBindingInfo(ControlScheme, action.actionMap.name, action.name, partName).DisplayName;
-        }
-
         public InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null)
         {
             var action = FindInputAction(actionMapName, actionName);

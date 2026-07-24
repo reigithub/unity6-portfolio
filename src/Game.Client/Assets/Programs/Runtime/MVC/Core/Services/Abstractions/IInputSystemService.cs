@@ -94,12 +94,6 @@ namespace Game.Core.Services
 
         InputAction FindInputAction(string actionMapName, string actionName);
 
-        /// <summary>
-        /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
-        /// <paramref name="partName"/> を指定すると、コンポジットの該当パート1つのみの表示を返す。
-        /// </summary>
-        string GetBindingDisplayString(InputAction action, string partName = null);
-
         InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null);
 
         InputBindingInfo GetBindingInfo(string scheme, string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
