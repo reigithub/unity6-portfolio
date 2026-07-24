@@ -4,7 +4,7 @@ using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
-using Game.Shared.Services;
+using Game.Shared.Extensions;
 using R3;
 using UnityEngine;
 
@@ -20,24 +20,35 @@ namespace Game.Horror.Dialogs
         [SerializeField] private HorrorInventorySlotDetailView _slotDetailView;
         [SerializeField] private HorrorInventoryContextMenu _contextMenu;
 
+        [SerializeField] private Transform _keyItemContentRoot;
+        [SerializeField] private HorrorKeyItemView _keyItemPrefab;
+
         #endregion
 
-        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
-        private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+        private IInputSystemService _inputService;
+        private IHorrorInventoryService _inventoryService;
+        private IHorrorKeyItemService _keyItemService;
+
         private HorrorInventorySlotView _slotView;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
                 ContextActionType = x,
-                SlotInfo = _slotView.SlotInfo
+                SlotView = _slotView
             });
 
         public void Initialize()
         {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            _keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
+
             _tabGroup.Initialize();
             BindSlots();
+            _slotDetailView.Initialize();
+            UpdateDetail(_slots[0]);
+            BindKeyItems();
             _tabGroup.ChangeTab(0);
 
             if (_contextMenu != null)
@@ -51,6 +62,8 @@ namespace Game.Horror.Dialogs
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
 
+        #region InventorySlots
+
         private void BindSlots()
         {
             var slots = _inventoryService.Slots;
@@ -62,31 +75,30 @@ namespace Game.Horror.Dialogs
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    if (HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var slotInfo))
-                    {
-                        _slots[i].SetSlot(slotInfo, slot.Count);
-                        empty = false;
-                    }
+                    _slots[i].SetSlot(slot.ObjectCategory, slot.Id, slot.Count);
+                    empty = false;
                 }
 
                 if (empty) _slots[i].SetEmpty();
 
-                _slots[i].OnSelected
-                    .Subscribe(UpdateDetail)
-                    .AddTo(Disposables);
-
-                _slots[i].OnSubmit
-                    .Subscribe(OpenSubmenu)
-                    .AddTo(Disposables);
+                _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
+                _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
             }
+        }
 
-            UpdateDetail(_slots[0]);
+        public void RefreshSlots()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                _slots[i].RefreshSlot();
+            }
         }
 
         private void UpdateDetail(HorrorInventorySlotView slot)
             => _slotDetailView.SetSlotDetail(slot.SlotInfo);
 
-        public bool IsSubmenuOpen() => _contextMenu != null && _contextMenu.IsOpen;
+        public bool IsSubmenuOpen()
+            => _contextMenu != null && _contextMenu.IsOpen;
 
         // サブメニュー展開：非空スロットの決定で種別に応じたエントリを開く。空スロットは無視。
         private void OpenSubmenu(HorrorInventorySlotView slot)
@@ -94,7 +106,7 @@ namespace Game.Horror.Dialogs
             if (IsSubmenuOpen()) return;
             if (slot == null || slot.SlotInfo == null) return;
 
-            var entries = slot.SlotInfo.SlotType.ToContextActions();
+            var entries = slot.SlotInfo.ToContextActions();
             if (entries.Length == 0) return;
 
             _slotView = slot;
@@ -114,7 +126,7 @@ namespace Game.Horror.Dialogs
             SetSlotsInteractable(true);
             if (_slotView != null)
             {
-                _inputService.SetSelectedGameObject(_slotView.gameObject);
+                _inputService.SetSelectedGameObject(_slotView.Selectable.gameObject);
                 _slotView = null;
             }
         }
@@ -125,5 +137,27 @@ namespace Game.Horror.Dialogs
             _slotsCanvasGroup.interactable = value;
             _slotsCanvasGroup.blocksRaycasts = value;
         }
+
+        #endregion
+
+        #region KeyItems
+
+        private void BindKeyItems()
+        {
+            foreach (Transform keyItem in _keyItemContentRoot)
+            {
+                keyItem.gameObject.SafeDestroy();
+            }
+
+            var keyItems = _keyItemService.KeyItems;
+            foreach (var item in keyItems)
+            {
+                var keyItem = Instantiate(_keyItemPrefab, _keyItemContentRoot);
+                keyItem.Initialize();
+                keyItem.SetItem(item.ObjectCategory, item.Id);
+            }
+        }
+
+        #endregion
     }
 }

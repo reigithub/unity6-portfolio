@@ -17,13 +17,13 @@ namespace Game.Horror.Inventory
         [SerializeField] private TextMeshProUGUI _label;
         [SerializeField] private Button _button;
 
-        private readonly Subject<InventoryContextActionType> _onClicked = new();
-        public Observable<InventoryContextActionType> OnClicked => _onClicked;
+        private readonly Subject<ContextActionType> _onClicked = new();
+        public Observable<ContextActionType> OnClicked => _onClicked;
 
         /// <summary>フォーカス設定に用いるボタン。</summary>
         public Selectable Selectable => _button;
 
-        public void Initialize(InventoryContextActionType contextAction)
+        public void Initialize(ContextActionType contextAction)
         {
             if (_label != null)
             {

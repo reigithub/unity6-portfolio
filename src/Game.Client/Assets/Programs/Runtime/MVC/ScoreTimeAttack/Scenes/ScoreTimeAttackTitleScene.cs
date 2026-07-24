@@ -43,13 +43,13 @@ namespace Game.ScoreTimeAttack.Scenes
         {
             ApplicationEvents.ResumeTime();
             ApplicationEvents.ShowCursor();
-            InputService.UI.Menu.Disable();
+            InputService.Player.Menu.Disable();
             InputService.UI.ScrollWheel.Disable();
         }
 
         private void OnDisable()
         {
-            InputService.UI.Menu.Enable();
+            InputService.Player.Menu.Enable();
             InputService.UI.ScrollWheel.Enable();
         }
     }

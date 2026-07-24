@@ -9,7 +9,10 @@
         "UniTask",
         "R3.Unity",
         "MessagePipe",
-        "MemoryPack.Unity"
+        "MemoryPack.Unity",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Unity.Localization"
     ],
     "includePlatforms": [
         "Editor"

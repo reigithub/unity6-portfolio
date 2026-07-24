@@ -35,10 +35,10 @@ namespace Game.Tests.PlayMode
         }
 
         private InputAction PlayerAction(IInputSystemService service, string name)
-            => service.InputActionAsset.FindActionMap("Player").FindAction(name);
+            => service.FindInputAction(InputActionMaps.Player, name);
 
         private int FirstIndex(InputAction action, string scheme)
-            => InputSystemService.ResolveSchemeBindingIndices(scheme, action)[0];
+            => InputSystemService.GetBindingIndicesByControlScheme(scheme, action)[0].Index;
 
         #region Save / Load
 
@@ -103,7 +103,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(idx, "<Keyboard>/j");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo("<Keyboard>/j"));
 
-            _service.ResetBinding(InputControlSchemes.KeyboardAndMouse, "Jump");
+            _service.ResetBinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump");
             Assert.That(jump.bindings[idx].effectivePath, Is.EqualTo(defaultPath));
             yield return null;
         }
@@ -125,7 +125,7 @@ namespace Game.Tests.PlayMode
             jump.ApplyBindingOverride(padIdx, "<Gamepad>/buttonNorth");
 
             // Gamepad のみリセット
-            _service.ResetSchemeBindings(InputControlSchemes.Gamepad);
+            _service.ResetControlSchemeBindings(InputControlSchemes.Gamepad);
 
             Assert.That(jump.bindings[padIdx].effectivePath, Is.EqualTo(padDefault),
                 "対象スキーム（Gamepad）は既定へ戻る");
@@ -133,7 +133,7 @@ namespace Game.Tests.PlayMode
                 "他スキーム（KBM）の override は保持される");
 
             // KBM もリセットすると既定へ戻る
-            _service.ResetSchemeBindings(InputControlSchemes.KeyboardAndMouse);
+            _service.ResetControlSchemeBindings(InputControlSchemes.KeyboardAndMouse);
             Assert.That(jump.bindings[kbmIdx].effectivePath, Is.EqualTo(kbmDefault));
             yield return null;
         }
@@ -149,8 +149,8 @@ namespace Game.Tests.PlayMode
             yield return null;
 
             var completed = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => completed = true,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
+                () => completed = true,
                 () => { });
             yield return null;
 
@@ -185,8 +185,8 @@ namespace Game.Tests.PlayMode
             attack.ApplyBindingOverride(attackIdx, "<Keyboard>/j");
 
             var completed = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => completed = true,
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
+                () => completed = true,
                 () => { });
             yield return null;
 
@@ -209,6 +209,8 @@ namespace Game.Tests.PlayMode
         public IEnumerator StartRebind_Dispose_CancelsAndRestoresEnabled()
         {
             _service.Startup();
+            // StartRebinding は開始前の enabled 状態へ復元する仕様のため、復元対象となる有効状態を事前に作る
+            _service.EnablePlayer();
             yield return null;
 
             var jump = PlayerAction(_service, "Jump");
@@ -216,8 +218,8 @@ namespace Game.Tests.PlayMode
             var originalPath = jump.bindings[idx].effectivePath;
 
             var canceled = false;
-            var op = _service.StartRebind(InputControlSchemes.KeyboardAndMouse, "Jump", null,
-                _ => { },
+            var op = _service.StartRebinding(InputControlSchemes.KeyboardAndMouse, InputActionMaps.Player, "Jump", null,
+                () => { },
                 () => canceled = true);
             yield return null;
 

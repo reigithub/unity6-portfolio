@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using Game.Shared.Input;
+using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,17 +16,17 @@ namespace Game.Core.Services
         /// <summary>
         /// プレイヤー入力アクション（移動、ジャンプ、攻撃等）
         /// </summary>
-        ProjectDefaultInputSystem.PlayerActions Player { get; }
+        ProjectInputActions.PlayerActions Player { get; }
 
         /// <summary>
         /// UI入力アクション（メニュー操作、決定、キャンセル等）
         /// </summary>
-        ProjectDefaultInputSystem.UIActions UI { get; }
+        ProjectInputActions.UIActions UI { get; }
 
         /// <summary>
-        /// InputActionAsset 実体（このインスタンス上でゲームが動作する）
+        /// 現在のコントロールスキーマ
         /// </summary>
-        InputActionAsset InputActionAsset { get; }
+        string ControlScheme { get; }
 
         /// <summary>
         /// 操作スキーマ変更イベント
@@ -36,7 +36,7 @@ namespace Game.Core.Services
         /// <summary>
         /// 操作デバイス切替イベント
         /// </summary>
-        Observable<(InputDevice device, InputDeviceChange deviceChange)> OnDeviceChanged { get; }
+        Observable<InputDeviceChangeInfo> OnDeviceChanged { get; }
 
         /// <summary>
         /// キーバインド変更イベント
@@ -46,7 +46,7 @@ namespace Game.Core.Services
         /// <summary>
         /// プレイヤー入力を有効化する
         /// </summary>
-        void EnablePlayer();
+        void EnablePlayer(bool forceEnable = false);
 
         /// <summary>
         /// プレイヤー入力を無効化する（メニュー表示中等）
@@ -56,7 +56,7 @@ namespace Game.Core.Services
         /// <summary>
         /// UI入力を有効化する
         /// </summary>
-        void EnableUI();
+        void EnableUI(bool forceEnable = false);
 
         /// <summary>
         /// UI入力を無効化する
@@ -69,6 +69,12 @@ namespace Game.Core.Services
         IDisposable BlockPlayer();
 
         /// <summary>
+        /// プレイヤー入力を一時無効化するスコープ
+        /// </summary>
+        /// <param name="ignores">無効化せず無視する入力アクション</param>
+        IDisposable BlockPlayer(params InputAction[] ignores);
+
+        /// <summary>
         /// UI入力を一時無効化するスコープ
         /// </summary>
         IDisposable BlockUI();
@@ -76,7 +82,7 @@ namespace Game.Core.Services
         /// <summary>
         /// 特定のインプットアクションを無効化するスコープ
         /// </summary>
-        IDisposable BlockInputActions(params InputAction[] actions);
+        IDisposable BlockInputAction(InputAction action);
 
         GameObject GetSelectedGameObject();
 
@@ -86,14 +92,13 @@ namespace Game.Core.Services
 
         void ResolveControlScheme(GameObject selectedGameObject = null);
 
-        /// <summary>
-        /// 指定アクション・スキームの現在のバインド表示文字列を取得する。
-        /// コンポジット（WASD 等）は各パートを "/" 区切りで結合して返す。
-        /// <paramref name="partName"/> を指定すると、コンポジットの該当パート1つのみの表示を返す。
-        /// </summary>
-        string GetBindingDisplayString(string scheme, string actionName, string partName = null);
+        InputAction FindInputAction(string actionMapName, string actionName);
 
-        string GetBindingDisplayString(InputAction action);
+        InputBindingInfo[] GetBindingInfos(string scheme, string actionMapName, string actionName, string partName = null);
+
+        InputBindingInfo GetBindingInfo(string scheme, string actionMapName, string actionName, string partName = null, string fallbackScheme = null);
+
+        InputBindingInfo GetBindingInfo(InputAction action, string partName = null);
 
         /// <summary>
         /// 指定アクション・スキームに対するインタラクティブリバインドを開始する。
@@ -102,11 +107,12 @@ namespace Game.Core.Services
         /// 戻り値を Dispose すると進行中のリバインドをキャンセルする。
         /// </summary>
         /// <param name="scheme">コントロールスキーム（Keyboard&amp;Mouse / Gamepad）</param>
-        /// <param name="actionName">Player マップのアクション名</param>
+        /// <param name="actionMapName">マップ名</param>
+        /// <param name="actionName">マップのアクション名</param>
         /// <param name="partName">コンポジットのパート名（up/down/left/right）。空＝全体/単体</param>
         /// <param name="onComplete">確定後に呼ばれる。引数は確定後の表示文字列</param>
         /// <param name="onCanceled">キャンセル時に呼ばれる</param>
-        IDisposable StartRebind(string scheme, string actionName, string partName, Action<string> onComplete, Action onCanceled);
+        IDisposable StartRebinding(string scheme, string actionMapName, string actionName, string partName, Action onComplete, Action onCanceled);
 
         /// <summary>
         /// 現在のバインドオーバーライドを JSON 文字列として取得する（永続化用）。
@@ -122,7 +128,7 @@ namespace Game.Core.Services
         /// 指定アクション・スキームのバインドオーバーライドを既定へ戻す。
         /// <paramref name="partName"/> を指定すると、コンポジットの該当パートのみを戻す。
         /// </summary>
-        void ResetBinding(string scheme, string actionName, string partName = null);
+        void ResetBinding(string scheme, string actionMapName, string actionName, string partName = null);
 
         /// <summary>
         /// 全アクションのバインドオーバーライドを既定へ戻す。
@@ -133,6 +139,6 @@ namespace Game.Core.Services
         /// 指定スキーム（Keyboard&amp;Mouse / Gamepad 等）に属するバインドオーバーライドのみを既定へ戻す。
         /// 全アクションマップを対象とし、他スキームのオーバーライドは保持する。
         /// </summary>
-        void ResetSchemeBindings(string scheme);
+        void ResetControlSchemeBindings(string scheme);
     }
 }

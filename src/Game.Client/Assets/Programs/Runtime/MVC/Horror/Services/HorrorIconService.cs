@@ -59,6 +59,9 @@ namespace Game.Horror.Services
 
         public Sprite GetSprite(string spriteName)
         {
+            if (string.IsNullOrEmpty(spriteName))
+                return null;
+
             var path = spriteName.Split('/');
             var (group, name) = (path[0], path[1]);
             switch (group)

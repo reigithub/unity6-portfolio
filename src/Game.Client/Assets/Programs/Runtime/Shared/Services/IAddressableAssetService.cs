@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -10,7 +11,7 @@ namespace Game.Shared.Services
     /// Addressablesアセット読み込みサービスの共通インターフェース
     /// MVC/MVP両方で使用
     /// </summary>
-    public interface IAddressableAssetService
+    public interface IAddressableAssetService : IGameService
     {
         /// <summary>
         /// Addressablesからアセットを非同期で読み込む

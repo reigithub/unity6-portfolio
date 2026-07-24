@@ -1,6 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.Library.Shared.Enums;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Shared.Services
 {
@@ -8,7 +9,7 @@ namespace Game.Shared.Services
     /// オーディオ再生サービスの共通インターフェース
     /// MVC/MVP両方で使用
     /// </summary>
-    public interface IAudioService
+    public interface IAudioService : IGameService
     {
         /// <summary>
         /// オーディオサービスを初期化・起動する

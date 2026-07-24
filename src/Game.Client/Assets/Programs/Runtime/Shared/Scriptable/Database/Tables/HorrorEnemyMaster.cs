@@ -13,7 +13,10 @@ namespace Game.Shared.Scriptable.Database.Tables
         #region SerializeField
 
         [SerializeField] private int _id;                          // 識別ID
+        [SerializeField] private string _developOnlyName;          // 開発時のみの識別名
         [SerializeField] private string _name;                     // 識別名
+
+        [SerializeField] private string _modelAssetName;
 
         [SerializeField] private float _walkSpeed;                 // 徘徊速度
         [SerializeField] private float _chaseSpeed;                // 追尾速度
@@ -55,6 +58,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _name;
             set => _name = value;
+        }
+
+        public string ModelAssetName
+        {
+            get => _modelAssetName;
+            set => _modelAssetName = value;
         }
 
         public float WalkSpeed

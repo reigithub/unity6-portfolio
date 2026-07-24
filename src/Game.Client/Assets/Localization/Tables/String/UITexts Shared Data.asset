@@ -158,7 +158,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2232632818540544
-    m_Key: FrameRateLimit
+    m_Key: FrameRate
     m_Metadata:
       m_Items: []
   - m_Id: 2234188787884032
@@ -178,7 +178,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2313625302736896
-    m_Key: UncappedFrameRateLimit
+    m_Key: UncappedFrameRate
     m_Metadata:
       m_Items: []
   - m_Id: 5849428867948544
@@ -231,6 +231,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 12236900220805120
     m_Key: Maps
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17248116852924416
+    m_Key: ShowFrameRate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17270524204818432
+    m_Key: BasicSettings
     m_Metadata:
       m_Items: []
   m_Metadata:

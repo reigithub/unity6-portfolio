@@ -51,7 +51,7 @@ namespace Game.MVP.Survivor.Scenes
             // 入力受付フレームをずらす
             await UniTask.Yield();
 
-            Observable.EveryValueChanged(_inputService, x => x.UI.Menu.WasPressedThisFrame(), UnityFrameProvider.Update)
+            Observable.EveryValueChanged(_inputService, x => x.UI.Cancel.WasPressedThisFrame(), UnityFrameProvider.Update)
                 .Subscribe(escape =>
                 {
                     if (escape) OnResultSelected(SurvivorPauseResult.Resume);

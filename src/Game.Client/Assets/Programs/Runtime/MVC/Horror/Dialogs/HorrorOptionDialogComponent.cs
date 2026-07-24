@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Game.Core.UI;
+using Game.Horror.Enums;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Constants;
 using R3;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace Game.Horror.Dialogs
 {
@@ -13,7 +13,16 @@ namespace Game.Horror.Dialogs
     {
         #region SerializeField
 
+        [Header("MainTab")]
         [SerializeField] private TabGroup _tabGroup;
+        [SerializeField] private GenericValues<HorrorOptionTabCategory> _tabCategories;
+
+        [Header("SubTab")]
+        [SerializeField] private TabGroup _controlsTabGroup;
+        [SerializeField] private GenericValues<HorrorOptionTabSubCategory> _controlsTabCategories;
+
+        [Header("InputAction Guide")]
+        [SerializeField] private InputActionGuildView _inputActionGuildView;
 
         [Header("Options - Gameplay")]
         [SerializeField] private SliderIndexSelector _language;
@@ -29,13 +38,13 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _cameraShake;
         [SerializeField] private SliderValueSelector _cameraFov;
 
+        [Header("Options - Controls")]
         [SerializeField] private SliderBooleanSelector _sprintMode;
         [SerializeField] private SliderBooleanSelector _crouchMode;
 
-        [Header("Options - Control")]
-        [SerializeField] private InputActionRebindingView[] _rebindViews;
-        [SerializeField] private Button _resetKeyboardBindingsButton;
-        [SerializeField] private Button _resetGamepadBindingsButton;
+        [SerializeField] private InputActionRebindingView[] _rebindingViews;
+        // [SerializeField] private Button _resetKeyboardBindingsButton;
+        // [SerializeField] private Button _resetGamepadBindingsButton;
 
         [Header("Options - Graphics")]
         [SerializeField] private SliderIndexSelector _displayMode;
@@ -46,6 +55,7 @@ namespace Game.Horror.Dialogs
 
         [SerializeField] private SliderValueSelector _frameRate;
         [SerializeField] private SliderBooleanSelector _uncappedFrameRate;
+        [SerializeField] private SliderBooleanSelector _showFrameRate;
         [SerializeField] private SliderBooleanSelector _vSync;
 
         [Header("Options - Audio")]
@@ -55,6 +65,18 @@ namespace Game.Horror.Dialogs
         [SerializeField] private SliderValueSelector _seVolume;
 
         #endregion
+
+        #region Observables
+
+        public Observable<HorrorOptionTabCategory> OnCategoryChanged => _tabGroup.OnTabChanged.Select(x => _tabCategories[x]);
+
+        public Observable<HorrorOptionTabSubCategory> OnSubCategoryChanged
+            => _controlsTabGroup.OnTabChanged.Select(x => _controlsTabCategories[x]);
+            // Multiple Sub TabGroup
+            // => Observable.Merge(
+            //     _gameTabGroup.OnTabChanged.Select(x => _gameTabCategories[x]),
+            //     _controlsTabGroup.OnTabChanged.Select(x => _controlsTabCategories[x])
+            //     );
 
         #region Options - Game
 
@@ -67,17 +89,19 @@ namespace Game.Horror.Dialogs
         public Observable<float> OnCameraAccelerationChanged => _cameraAcceleration.OnValueChanged;
         public Observable<float> OnCameraShakeChanged => _cameraShake.OnValueChanged;
         public Observable<float> OnCameraFovChanged => _cameraFov.OnValueChanged;
-        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
-        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
 
         #endregion
 
         #region Options - Graphics
 
+        public Observable<bool> OnSprintModeChanged => _sprintMode.OnValueChanged;
+        public Observable<bool> OnCrouchModeChanged => _crouchMode.OnValueChanged;
+
         public Observable<FullScreenMode> OnDisplayModeChanged => _displayMode.OnValueChanged.Select(index => _displayModeValues[index]);
         public Observable<ResolutionInfo> OnResolutionChanged => _resolution.OnValueChanged.Select(index => _resolutionValues[index]);
         public Observable<float> OnFrameRateChanged => _frameRate.OnValueChanged;
         public Observable<bool> OnUncappedFrameRateChanged => _uncappedFrameRate.OnValueChanged;
+        public Observable<bool> OnShowFrameRateChanged => _showFrameRate.OnValueChanged;
         public Observable<bool> OnVSyncChanged => _vSync.OnValueChanged;
 
         #endregion
@@ -85,12 +109,12 @@ namespace Game.Horror.Dialogs
         #region Controls
 
         /// <summary>キーリバインド行（アクション×スキーム単位）。Dialog 側が購読・表示更新する。</summary>
-        public IReadOnlyList<InputActionRebindingView> RebindViews => _rebindViews;
+        public IReadOnlyList<InputActionRebindingView> RebindingViews => _rebindingViews;
 
         /// <summary>スキーム別リセットボタン押下。値は対象スキーム（KBM / Gamepad）。</summary>
-        public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
-            _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.KeyboardAndMouse),
-            _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.Gamepad));
+        // public Observable<string> OnResetSchemeBindingsRequested => Observable.Merge(
+        //     _resetKeyboardBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.KeyboardAndMouse),
+        //     _resetGamepadBindingsButton.OnClickAsObservable().Select(_ => InputControlSchemes.Gamepad));
 
         #endregion
 
@@ -103,9 +127,12 @@ namespace Game.Horror.Dialogs
 
         #endregion
 
+        #endregion
+
         public void Initialize(HorrorOptionSaveData d)
         {
             _tabGroup.Initialize();
+            _inputActionGuildView.Initialize();
 
             // Gameplay
             _language.SetIndex(_languageValues[d.LanguageCode]);
@@ -125,6 +152,7 @@ namespace Game.Horror.Dialogs
             _resolution.SetIndex(ResolveResolutionIndex(d.ResolutionWidth, d.ResolutionHeight));
             _frameRate.SetValue(d.FrameRateLimit);
             _uncappedFrameRate.SetBool(d.UncappedFrameRate);
+            _showFrameRate.SetBool(d.ShowFrameRate);
             _vSync.SetBool(d.VSync);
 
             // Audio
@@ -151,5 +179,8 @@ namespace Game.Horror.Dialogs
             }
             return 0;
         }
+
+        public void SetInputActionGuide(params InputAction[] actions)
+            => _inputActionGuildView.SetInputActions(actions);
     }
 }

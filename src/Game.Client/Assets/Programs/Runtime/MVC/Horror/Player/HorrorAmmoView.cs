@@ -3,6 +3,13 @@ using UnityEngine;
 
 namespace Game.Horror.Player
 {
+    public enum HorrorAmmoViewMode
+    {
+        Hidden,
+        MagazineAndReserve,
+        CountOnly,
+    }
+
     /// <summary>
     /// 残弾 HUD。OverlayCanvas/Ammo にアタッチし、装備中武器の弾倉残弾/予備弾数（弾薬を使わない武器は所持数のみ）を表示する。
     /// 発砲・リロード・エイム中に表示し、一定時間後にフェードアウトする。演出はフレーム駆動
@@ -10,16 +17,6 @@ namespace Game.Horror.Player
     /// </summary>
     public class HorrorAmmoView : MonoBehaviour
     {
-        /// <summary>
-        /// HUD の表示内容。None=非表示（未装備）、MagazineAndReserve=弾倉/予備、CountOnly=所持数のみ（弾薬を使わない武器）。
-        /// </summary>
-        public enum DisplayMode
-        {
-            None,
-            MagazineAndReserve,
-            CountOnly,
-        }
-
         [Tooltip("HUD 全体のフェード用 CanvasGroup")]
         [SerializeField] private CanvasGroup _canvasGroup;
 
@@ -54,7 +51,7 @@ namespace Game.Horror.Player
 
         // 直近反映済みの表示内容（変化検出用。未初期化を検出できるよう bool で管理する）
         private bool _initialized;
-        private DisplayMode _lastMode;
+        private HorrorAmmoViewMode _lastMode;
         private int _lastMagazine = int.MinValue;
         private int _lastMagazineSize = int.MinValue;
         private int _lastReserve = int.MinValue;
@@ -71,7 +68,7 @@ namespace Game.Horror.Player
         /// 各ステート Update から UpdateAimPose 経由で毎フレーム呼ばれる。
         /// </summary>
         /// <param name="keepVisible">エイム中・リロード中の表示維持。</param>
-        public void UpdatePose(DisplayMode mode, bool keepVisible, int magazine, int magazineSize, int reserve)
+        public void UpdatePose(HorrorAmmoViewMode mode, bool keepVisible, int magazine, int magazineSize, int reserve)
         {
             if (keepVisible) _holdElapsed = 0f;
             else _holdElapsed += Time.deltaTime;
@@ -101,7 +98,7 @@ namespace Game.Horror.Player
                 _magazineText.color = CalculateMagazineColor(mode, magazine, magazineSize, _fullMagazineColor, _normalColor);
             }
 
-            var showReserve = mode == DisplayMode.MagazineAndReserve;
+            var showReserve = mode == HorrorAmmoViewMode.MagazineAndReserve;
             if (_separatorText != null) _separatorText.gameObject.SetActive(showReserve);
             if (_reserveText != null)
             {
@@ -121,27 +118,27 @@ namespace Game.Horror.Player
         }
 
         /// <summary>装備状態と弾薬設定から HUD の表示内容を解決する。未装備は None、弾薬を使わない武器は所持数のみ。</summary>
-        public static DisplayMode ResolveDisplayMode(bool hasWeapon, int ammoItemId)
+        internal static HorrorAmmoViewMode ResolveViewMode(bool hasWeapon, int ammoItemId)
         {
-            if (!hasWeapon) return DisplayMode.None;
-            return ammoItemId > 0 ? DisplayMode.MagazineAndReserve : DisplayMode.CountOnly;
+            if (!hasWeapon) return HorrorAmmoViewMode.Hidden;
+            return ammoItemId > 0 ? HorrorAmmoViewMode.MagazineAndReserve : HorrorAmmoViewMode.CountOnly;
         }
 
         /// <summary>目標アルファを算出する。None は常に 0、表示維持中または保持時間内は 1、それ以外は 0。</summary>
-        public static float CalculateTargetAlpha(DisplayMode mode, bool keepVisible, float holdElapsed, float holdSeconds)
+        internal static float CalculateTargetAlpha(HorrorAmmoViewMode mode, bool keepVisible, float holdElapsed, float holdSeconds)
         {
-            if (mode == DisplayMode.None) return 0f;
+            if (mode == HorrorAmmoViewMode.Hidden) return 0f;
             return keepVisible || holdElapsed < holdSeconds ? 1f : 0f;
         }
 
         /// <summary>弾倉側の文字色を算出する（満タンで強調色）。CountOnly（所持数表示）は常に通常色。</summary>
-        public static Color CalculateMagazineColor(DisplayMode mode, int magazine, int magazineSize, Color full, Color normal)
+        internal static Color CalculateMagazineColor(HorrorAmmoViewMode mode, int magazine, int magazineSize, Color full, Color normal)
         {
-            return mode == DisplayMode.MagazineAndReserve && magazineSize > 0 && magazine >= magazineSize ? full : normal;
+            return mode == HorrorAmmoViewMode.MagazineAndReserve && magazineSize > 0 && magazine >= magazineSize ? full : normal;
         }
 
         /// <summary>予備側の文字色を算出する（予備切れで警告色）。</summary>
-        public static Color CalculateReserveColor(int reserve, Color empty, Color normal)
+        internal static Color CalculateReserveColor(int reserve, Color empty, Color normal)
             => reserve <= 0 ? empty : normal;
     }
 }

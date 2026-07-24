@@ -82,22 +82,6 @@ namespace Game.Horror.Services
             _repository.MarkDirty();
         }
 
-        /// <summary>走り入力モードを保持する（false=ホールド, true=トグル）。</summary>
-        public void SetSprintToggle(bool toggle)
-        {
-            if (_repository.Data == null) return;
-            _repository.Data.SprintToggle = toggle;
-            _repository.MarkDirty();
-        }
-
-        /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
-        public void SetCrouchToggle(bool toggle)
-        {
-            if (_repository.Data == null) return;
-            _repository.Data.CrouchToggle = toggle;
-            _repository.MarkDirty();
-        }
-
         #endregion
 
         #region Graphics
@@ -135,6 +119,13 @@ namespace Game.Horror.Services
             _repository.MarkDirty();
         }
 
+        public void SetShowFrameRate(bool show)
+        {
+            if (_repository.Data == null) return;
+            _repository.Data.ShowFrameRate = show;
+            _repository.MarkDirty();
+        }
+
         /// <summary>VSync の有効・無効を設定する。</summary>
         public void SetVSync(bool enabled)
         {
@@ -146,6 +137,22 @@ namespace Game.Horror.Services
         #endregion
 
         #region Controls
+
+        /// <summary>走り入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        public void SetSprintToggle(bool toggle)
+        {
+            if (_repository.Data == null) return;
+            _repository.Data.SprintToggle = toggle;
+            _repository.MarkDirty();
+        }
+
+        /// <summary>しゃがみ入力モードを保持する（false=ホールド, true=トグル）。</summary>
+        public void SetCrouchToggle(bool toggle)
+        {
+            if (_repository.Data == null) return;
+            _repository.Data.CrouchToggle = toggle;
+            _repository.MarkDirty();
+        }
 
         /// <summary>
         /// キーリバインドのオーバーライド JSON を保持する（InputActionAsset.SaveBindingOverridesAsJson の出力）。

@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services.Interfaces
 {

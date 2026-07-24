@@ -39,12 +39,6 @@ namespace Game.Horror.SaveData
         /// <summary>カメラ FOV</summary>
         public float CameraFov { get; set; } = 60f;
 
-        /// <summary>走り入力モード（false=ホールド, true=トグル）</summary>
-        public bool SprintToggle { get; set; }
-
-        /// <summary>しゃがみ入力モード（false=ホールド, true=トグル）</summary>
-        public bool CrouchToggle { get; set; } = true;
-
         #endregion
 
         #region Graphics
@@ -64,12 +58,21 @@ namespace Game.Horror.SaveData
         /// <summary>フレームレート上限を解除する</summary>
         public bool UncappedFrameRate { get; set; }
 
+        /// <summary>フレームレートを表示する</summary>
+        public bool ShowFrameRate { get; set; }
+
         /// <summary>垂直同期</summary>
         public bool VSync { get; set; }
 
         #endregion
 
         #region Controls
+
+        /// <summary>走り入力モード（false=ホールド, true=トグル）</summary>
+        public bool SprintToggle { get; set; }
+
+        /// <summary>しゃがみ入力モード（false=ホールド, true=トグル）</summary>
+        public bool CrouchToggle { get; set; } = true;
 
         /// <summary>
         /// キーリバインドのオーバーライド（InputActionAsset.SaveBindingOverridesAsJson の出力）。

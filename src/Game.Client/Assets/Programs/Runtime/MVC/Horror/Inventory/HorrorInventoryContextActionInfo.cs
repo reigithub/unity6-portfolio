@@ -1,12 +1,11 @@
 using Game.Shared.Enums;
-using Game.Shared.Interfaces;
 
 namespace Game.Horror.Inventory
 {
     public struct HorrorInventoryContextActionInfo
     {
-        public InventoryContextActionType ContextActionType { get; set; }
+        public ContextActionType ContextActionType { get; init; }
 
-        public IHorrorInventorySlotInfo SlotInfo { get; set; }
+        public HorrorInventorySlotView SlotView { get; init; }
     }
 }

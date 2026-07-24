@@ -1,9 +1,7 @@
 using DG.Tweening;
 using Game.Core.Services;
-using Game.Horror.Inventory;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
-using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Equipment
@@ -25,7 +23,6 @@ namespace Game.Horror.Equipment
         [SerializeField] private Color _equippedFrameColor = Color.darkCyan;
         [SerializeField] private Color _normalFrameColor = Color.white;
 
-        private IScriptableDatabaseService _databaseService;
         private IHorrorEquipmentService _equipmentService;
         private Sequence _sequence;
 
@@ -35,12 +32,8 @@ namespace Game.Horror.Equipment
             _canvasGroup.alpha = 0f;
         }
 
-        /// <summary>
-        /// 依存解決を行う。プレイヤーコントローラーの初期化処理から呼ぶこと。
-        /// </summary>
         public void Initialize()
         {
-            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
         }
 
@@ -50,7 +43,7 @@ namespace Game.Horror.Equipment
         /// </summary>
         /// <param name="equippedType">装備中アイテムのスロット種別</param>
         /// <param name="equippedId">装備中アイテムの Id</param>
-        public void Show(InventorySlotType equippedType, int equippedId)
+        public void Show(ObjectCategory equippedType, int equippedId)
         {
             // 1. 登録内容の更新（ダイアログの RefreshSlot と同イディオム）
             for (int i = 0; i < _slots.Length; i++)
@@ -59,7 +52,7 @@ namespace Game.Horror.Equipment
             // 2. 枠色の明示適用（装備中スロットのみハイライト、それ以外は毎回通常色に戻す）
             for (int i = 0; i < _slots.Length; i++)
             {
-                var isEquipped = _equipmentService.TryGetSlot(i, out var slot) && slot.SlotType == equippedType && slot.Id == equippedId;
+                var isEquipped = _equipmentService.TryGetSlot(i, out var slot) && slot.ObjectCategory == equippedType && slot.Id == equippedId;
                 _slots[i].SetFrameColor(isEquipped ? _equippedFrameColor : _normalFrameColor);
             }
 
@@ -77,8 +70,11 @@ namespace Game.Horror.Equipment
         // 保存済み binding を master 解決してスロット表示を更新する（空なら空表示）。
         private void RefreshSlot(int index)
         {
-            if (_equipmentService.TryGetSlot(index, out var slot) && HorrorInventoryHelper.TryGetSlotInfo(_databaseService.Database, slot.SlotType, slot.Id, out var info))
-                _slots[index].SetSlot(info);
+            if (_equipmentService.TryGetSlot(index, out var slot))
+            {
+                _slots[index].Initialize();
+                _slots[index].SetSlot(slot.ObjectCategory, slot.Id);
+            }
             else
                 _slots[index].SetEmpty();
         }

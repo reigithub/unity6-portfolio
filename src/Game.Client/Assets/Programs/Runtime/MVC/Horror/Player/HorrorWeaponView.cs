@@ -331,7 +331,7 @@ namespace Game.Horror.Player
         /// 初回装備（<paramref name="skipPutDown"/>）は下げを省略し 1→0（上げのみ）。
         /// <paramref name="duration"/> が 0 以下ならゼロ除算を避けて 0 を返す。
         /// </summary>
-        public static float CalculateLowerAmount(float elapsed, float duration, bool skipPutDown)
+        internal static float CalculateLowerAmount(float elapsed, float duration, bool skipPutDown)
         {
             if (duration <= 0f) return 0f;
 
@@ -346,14 +346,14 @@ namespace Game.Horror.Player
         /// <summary>
         /// 基準位置に切替演出の下げオフセット・エイム構えオフセット・発砲キックオフセットを合成した WeaponRoot ローカル位置を算出する。
         /// </summary>
-        public static Vector3 CalculateLocalPosition(Vector3 basePosition, Vector3 downOffset, float lowerAmount, Vector3 aimOffset, float aimBlend, Vector3 recoilOffset, float recoilWeight)
+        internal static Vector3 CalculateLocalPosition(Vector3 basePosition, Vector3 downOffset, float lowerAmount, Vector3 aimOffset, float aimBlend, Vector3 recoilOffset, float recoilWeight)
             => basePosition + downOffset * lowerAmount + aimOffset * aimBlend + recoilOffset * recoilWeight;
 
         /// <summary>
         /// モデル入替点（中間点）を通過したかを判定する。初回装備（<paramref name="skipPutDown"/>）は
         /// 下げ演出が無いため常に true（開始直後に入替）。
         /// </summary>
-        public static bool IsPastSwapPoint(float elapsed, float duration, bool skipPutDown)
+        internal static bool IsPastSwapPoint(float elapsed, float duration, bool skipPutDown)
         {
             return skipPutDown || elapsed >= duration * 0.5f;
         }
@@ -363,7 +363,7 @@ namespace Game.Horror.Player
         /// 終端の transitionSeconds で 1→0（戻し）、間は 1 を保持する台形カーブ。
         /// duration が 0 以下なら 0。transitionSeconds が短い duration では自然に三角波化する。
         /// </summary>
-        public static float CalculateReloadTiltWeight(float elapsed, float duration, float transitionSeconds)
+        internal static float CalculateReloadTiltWeight(float elapsed, float duration, float transitionSeconds)
         {
             if (duration <= 0f) return 0f;
 
@@ -375,7 +375,7 @@ namespace Game.Horror.Player
         /// 基準回転にリロード傾き（ロール角 × 傾き量）と発砲キックの跳ね上げ（ピッチ角 × キック量）を合成した
         /// WeaponRoot ローカル回転を算出する。
         /// </summary>
-        public static Quaternion CalculateLocalRotation(Quaternion baseRotation, float tiltAngle, float tiltWeight, float recoilKickAngle, float recoilWeight)
+        internal static Quaternion CalculateLocalRotation(Quaternion baseRotation, float tiltAngle, float tiltWeight, float recoilKickAngle, float recoilWeight)
             => baseRotation * Quaternion.Euler(-recoilKickAngle * recoilWeight, 0f, tiltAngle * tiltWeight);
     }
 }

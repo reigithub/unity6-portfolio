@@ -136,15 +136,6 @@ namespace Game.Editor.Tests
             }
         }
 
-        private class ForceTransitionAllowedStateMachine : StateMachine<TestContext, TestEvent>
-        {
-            protected override bool AllowForceTransition => true;
-
-            public ForceTransitionAllowedStateMachine(TestContext context) : base(context)
-            {
-            }
-        }
-
         #endregion
 
         #region Constructor Tests
@@ -353,52 +344,6 @@ namespace Game.Editor.Tests
 
         #endregion
 
-        #region ForceTransition Tests
-
-        [Test]
-        public void ForceTransition_WhenNotAllowed_ThrowsException()
-        {
-            var context = new TestContext();
-            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
-
-            stateMachine.SetInitState<StateA>();
-            stateMachine.Update();
-
-            Assert.Throws<InvalidOperationException>(() => stateMachine.ForceTransition<StateB>());
-        }
-
-        [Test]
-        public void ForceTransition_WhenAllowed_TransitionsToState()
-        {
-            var context = new TestContext();
-            var stateMachine = new ForceTransitionAllowedStateMachine(context);
-
-            stateMachine.SetInitState<StateA>();
-            stateMachine.Update();
-
-            stateMachine.ForceTransition<StateB>();
-            stateMachine.Update();
-
-            Assert.That(stateMachine.IsCurrentState<StateB>(), Is.True);
-        }
-
-        [Test]
-        public void ForceTransition_WhenAllowed_BypassesTransitionTable()
-        {
-            var context = new TestContext();
-            var stateMachine = new ForceTransitionAllowedStateMachine(context);
-
-            stateMachine.SetInitState<StateA>();
-            stateMachine.Update();
-
-            stateMachine.ForceTransition<StateC>();
-            stateMachine.Update();
-
-            Assert.That(stateMachine.IsCurrentState<StateC>(), Is.True);
-        }
-
-        #endregion
-
         #region IsCurrentState Tests
 
         [Test]
@@ -532,20 +477,6 @@ namespace Game.Editor.Tests
 
             Assert.Throws<InvalidOperationException>(() => stateMachine.Update());
             Assert.That(stateMachine.IsProcessing(), Is.False);
-        }
-
-        [Test]
-        public void Update_WithExceptionInExit_ThrowsException()
-        {
-            var context = new TestContext();
-            var stateMachine = new ForceTransitionAllowedStateMachine(context);
-
-            stateMachine.SetInitState<StateWithExitException>();
-            stateMachine.Update();
-
-            stateMachine.ForceTransition<StateB>();
-
-            Assert.Throws<InvalidOperationException>(() => stateMachine.Update());
         }
 
         #endregion

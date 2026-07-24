@@ -1,4 +1,3 @@
-using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using R3;
@@ -8,6 +7,8 @@ namespace Game.MVC.Core.Scenes
 {
     public interface IGameSceneComponent : ICompositeDisposable
     {
+        UniTask PreInitialize() => UniTask.CompletedTask;
+
         UniTask Startup() => UniTask.CompletedTask;
 
         UniTask Ready() => UniTask.CompletedTask;
@@ -22,10 +23,16 @@ namespace Game.MVC.Core.Scenes
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class GameSceneComponent : MonoBehaviour, IGameSceneComponent
     {
-        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private IInputSystemService _inputService;
         private GameObject _selectedGameObject;
 
         public CompositeDisposable Disposables { get; } = new();
+
+        public virtual UniTask PreInitialize()
+        {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            return UniTask.CompletedTask;
+        }
 
         public virtual UniTask Startup()
         {

@@ -4,7 +4,6 @@ using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
-using Game.Shared.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -32,18 +31,18 @@ namespace Game.Horror.Services
         /// アイテムをインベントリに追加する。
         /// 同一 Id が既に存在する場合はスタック加算し MaxCount で頭打ちする。
         /// </summary>
-        public bool TryAdd(IHorrorInventorySlotInfo info, int addCount)
+        public bool TryAdd(ObjectCategory category, int id, int addCount, int maxCount)
         {
             var data = _repository.Data?.Inventory;
-            if (data == null || info == null || addCount <= 0)
+            if (data == null || addCount <= 0)
                 return false;
 
-            if (TryGet(data, info.SlotType, info.Id, out var slot))
+            if (TryGet(data, category, id, out var slot))
             {
-                if (slot.Count >= info.MaxCount)
+                if (slot.Count >= maxCount)
                     return false;
 
-                slot.Count = Mathf.Min(slot.Count + addCount, info.MaxCount);
+                slot.Count = Mathf.Min(slot.Count + addCount, maxCount);
             }
             else
             {
@@ -52,9 +51,9 @@ namespace Game.Horror.Services
 
                 data.Slots.Add(new HorrorInventorySlotData
                 {
-                    SlotType = info.SlotType,
-                    Id = info.Id,
-                    Count = Mathf.Min(addCount, info.MaxCount)
+                    ObjectCategory = category,
+                    Id = id,
+                    Count = Mathf.Min(addCount, maxCount)
                 });
             }
 
@@ -62,11 +61,11 @@ namespace Game.Horror.Services
             return true;
         }
 
-        private static bool TryGet(HorrorInventorySaveData data, InventorySlotType type, int id, out HorrorInventorySlotData slot)
+        private static bool TryGet(HorrorInventorySaveData data, ObjectCategory category, int id, out HorrorInventorySlotData slot)
         {
             foreach (var slotData in data.Slots)
             {
-                if (slotData.SlotType == type && slotData.Id == id)
+                if (slotData.ObjectCategory == category && slotData.Id == id)
                 {
                     slot = slotData;
                     return true;
@@ -77,31 +76,31 @@ namespace Game.Horror.Services
             return false;
         }
 
-        /// <summary>指定 (SlotType, Id) を所持しているか判定する。</summary>
-        public bool HasItem(InventorySlotType type, int id)
+        /// <summary>指定オブジェクトを所持しているか判定する。</summary>
+        public bool HasObject(ObjectCategory category, int id)
         {
             var data = _repository.Data?.Inventory;
-            return data != null && TryGet(data, type, id, out _);
+            return data != null && TryGet(data, category, id, out _);
         }
 
-        /// <summary>指定 (SlotType, Id) の所持数を取得する。未所持は 0。</summary>
-        public int GetCount(InventorySlotType type, int id)
+        /// <summary>指定オブジェクトの所持数を取得する。未所持は 0。</summary>
+        public int GetCount(ObjectCategory category, int id)
         {
             var data = _repository.Data?.Inventory;
-            return data != null && TryGet(data, type, id, out var slot) ? slot.Count : 0;
+            return data != null && TryGet(data, category, id, out var slot) ? slot.Count : 0;
         }
 
         /// <summary>
         /// 指定数を消費する。所持数不足なら何もせず false（部分消費しない）。
         /// 0 到達でスロットを除去し、Dirty にする。
         /// </summary>
-        public bool TryConsume(InventorySlotType type, int id, int count)
+        public bool TryConsume(ObjectCategory category, int id, int count)
         {
             var data = _repository.Data?.Inventory;
             if (data == null || count <= 0)
                 return false;
 
-            if (!TryGet(data, type, id, out var slot) || slot.Count < count)
+            if (!TryGet(data, category, id, out var slot) || slot.Count < count)
                 return false;
 
             slot.Count -= count;
@@ -110,6 +109,36 @@ namespace Game.Horror.Services
 
             _repository.MarkDirty();
             return true;
+        }
+
+        public void Discard(ObjectCategory category, int id, int count)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null || count <= 0)
+                return;
+
+            if (!TryGet(data, category, id, out var slot) || slot.Count < count)
+                return;
+
+            slot.Count -= count;
+            if (slot.Count <= 0)
+                data.Slots.Remove(slot);
+
+            _repository.MarkDirty();
+        }
+
+        public void DiscardAll(ObjectCategory category, int id)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null)
+                return;
+
+            if (!TryGet(data, category, id, out var slot))
+                return;
+
+            data.Slots.Remove(slot);
+
+            _repository.MarkDirty();
         }
     }
 }

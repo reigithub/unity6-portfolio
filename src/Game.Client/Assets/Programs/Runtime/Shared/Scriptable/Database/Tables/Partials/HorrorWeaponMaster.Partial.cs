@@ -3,8 +3,11 @@ using Game.Shared.Interfaces;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {
-    public partial class HorrorWeaponMaster : IHorrorInventorySlotInfo
+    public partial class HorrorWeaponMaster : IObjectInfo
     {
-        public InventorySlotType SlotType => InventorySlotType.Weapon;
+        public ObjectCategory ObjectCategory => ObjectCategory.Weapon;
+        public int ObjectId => Id;
+
+        public bool HasEffect => false;
     }
 }

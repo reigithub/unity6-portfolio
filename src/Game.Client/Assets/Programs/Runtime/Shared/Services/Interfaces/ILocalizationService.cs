@@ -3,7 +3,7 @@ using UnityEngine.Localization;
 
 namespace Game.Shared.Services.Interfaces
 {
-    public interface ILocalizationService
+    public interface ILocalizationService : IGameService
     {
         Locale SelectedLocale { get; }
 
@@ -17,7 +17,9 @@ namespace Game.Shared.Services.Interfaces
 
         string GetStringByInteractions(string localizeKey);
 
-        string GetStringByInteractionMessages(string localizeKey);
+        string GetStringByMessages(string localizeKey);
+
+        string GetStringByPropTexts(string localizeKey);
 
         string GetStringByUITexts(string localizeKey);
     }

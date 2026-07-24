@@ -56,7 +56,7 @@ namespace Game.ScoreTimeAttack.UI
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
-                    if (_inputService.UI.Cancel.WasPressedThisFrame() || _inputService.UI.Menu.WasPressedThisFrame())
+                    if (_inputService.UI.Cancel.WasPressedThisFrame() || _inputService.Player.Menu.WasPressedThisFrame())
                     {
                         TrySetResult(default);
                     }

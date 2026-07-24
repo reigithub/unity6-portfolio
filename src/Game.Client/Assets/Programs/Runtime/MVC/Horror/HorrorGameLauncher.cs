@@ -1,10 +1,11 @@
 using Cysharp.Threading.Tasks;
-using Game.Core;
+using Game.Core.MessagePipe;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.Horror.Scenes;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.Signals;
 using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
@@ -39,12 +40,24 @@ namespace Game.Horror
             GameServiceManager.Register<IAudioService, AudioService>(audioService);
             await audioService.LoadAsync();
 
-            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(new MessagePipeService());
+            var messagePipeService = new MessagePipeService();
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeIn>();
+            messagePipeService.AddMessageBroker<MessageSignals.GameScene.FadeOut>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Noise.Occurred>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Combat.Damaged>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Player.Damaged>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Player.Died>();
+            messagePipeService.Build();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 
             // アイコン一括ロード
             var iconService = new HorrorIconService(assetService);
             GameServiceManager.Register<IHorrorIconService, HorrorIconService>(iconService);
             await iconService.LoadAsync();
+
+            var inputIconService = new InputActionIconService(assetService);
+            GameServiceManager.Register<IInputActionIconService, InputActionIconService>(inputIconService);
+            await inputIconService.LoadAsync();
 
             // セーブデータストレージ構築
             var keyProvider = new AppSharedKeyProvider();
@@ -79,34 +92,35 @@ namespace Game.Horror
             // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
             GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
-
-            var equipmentService = new HorrorEquipmentService(saveRepository, inventoryService);
-            GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(equipmentService);
-
-            var interactionService = new HorrorInteractionService(saveRepository);
-            GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(interactionService);
-
-            var playerService = new HorrorPlayerService(saveRepository);
-            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(playerService);
+            GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(new HorrorEquipmentService(saveRepository, inventoryService));
+            GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
+            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository));
+            GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
 
             // 共通オブジェクト読み込み
-            await HorrorGameRootController.LoadAssetAsync();
+            var gameRootService = new HorrorGameRootService(assetService);
+            GameServiceManager.Register<IHorrorGameRootService, HorrorGameRootService>(gameRootService);
+            await gameRootService.LoadAsync();
+            await gameRootService.GlobalFadeOutAsync();
 
             // 5. 初期シーン遷移
-            var gameSceneService = new GameSceneService(inputSystemService);
+            var gameSceneService = new GameSceneService();
             GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
         }
 
         public async UniTask ShutdownAsync()
         {
-            await HorrorGameRootController.UnloadAsync();
+            var gameRootService = GameServiceManager.Resolve<IHorrorGameRootService>();
+            await gameRootService.GlobalFadeOutAsync();
             var gameSceneService = GameServiceManager.Resolve<IGameSceneService>();
             await gameSceneService.TerminateAllAsync();
             var audioService = GameServiceManager.Resolve<IAudioService>();
             audioService.Unload();
             var iconService = GameServiceManager.Resolve<IHorrorIconService>();
             iconService.Unload();
+            gameRootService.Unload();
+            await UniTask.Yield();
             GameServiceManager.Shutdown();
             await UniTask.Yield();
         }

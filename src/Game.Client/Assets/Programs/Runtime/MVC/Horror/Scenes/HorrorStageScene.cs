@@ -1,16 +1,17 @@
+using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
 using Game.Horror.Enemy;
 using Game.Horror.Interaction;
 using Game.Horror.Player;
-using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
 using Game.Shared.Scenes;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -22,23 +23,16 @@ namespace Game.Horror.Scenes
     {
         protected override string AssetPathOrAddress => "HorrorStageScene";
 
-        private IGameSceneService _sceneService;
-        private IInputSystemService _inputService;
-        private IHorrorOptionSaveRepository _optionSaveRepository;
-        private IHorrorPlayerService _playerService;
+        private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
+        private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+        private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
+        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
+        private HorrorPlayerController _player;
         private HorrorEnemyStart[] _enemyStarts;
-
-        public override UniTask PreInitialize()
-        {
-            _sceneService = GameServiceManager.Resolve<IGameSceneService>();
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
-            _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
-            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
-            return base.PreInitialize();
-        }
 
         public override async UniTask Startup()
         {
@@ -46,14 +40,16 @@ namespace Game.Horror.Scenes
             var player = await LoadPlayerAsync();
             await LoadEnemiesAsync(player);
 
-            _inputService.UI.Menu.OnPerformedAsObservable()
+            _inputService.Player.Menu.OnPerformedAsObservable()
+                .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) => await ShowPauseDialogAsync())
                 .AddTo(Disposables);
 
-            _inputService.UI.Inventory.OnPerformedAsObservable()
+            _inputService.Player.Inventory.OnPerformedAsObservable()
+                .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
                 .Where(_ => State.IsProcessing())
-                .SubscribeAwait(async (_, _) => await HorrorInventoryDialog.RunAsync())
+                .SubscribeAwait(async (_, _) => await ShowInventoryDialogAsync())
                 .AddTo(Disposables);
 
             await base.Startup();
@@ -76,13 +72,13 @@ namespace Game.Horror.Scenes
         private async UniTask LoadUnitySceneAsync()
         {
             Physics.simulationMode = SimulationMode.FixedUpdate;
-            _stageSceneInstance = await AssetService.LoadSceneAsync("Abandoned_Asylum");
+            _stageSceneInstance = await _assetService.LoadSceneAsync("Abandoned_Asylum");
             SceneManager.SetActiveScene(_stageSceneInstance.Scene);
         }
 
         private async UniTask UnloadUnitySceneAsync()
         {
-            await AssetService.UnloadSceneAsync(_stageSceneInstance);
+            await _assetService.UnloadSceneAsync(_stageSceneInstance);
             _stageSceneInstance = default;
         }
 
@@ -92,19 +88,20 @@ namespace Game.Horror.Scenes
             if (_playerStart == null)
                 return null;
 
-            var player = await _playerStart.LoadPlayerAsync();
-            player.Initialize(_optionSaveRepository.Data);
-            ApplyRespawnPosition(player);
+            _player = await _playerStart.LoadPlayerAsync();
+            _player.Initialize(_optionSaveRepository.Data);
+            ApplyRespawnPosition(_player);
             _optionSaveRepository.OnSaved
-                .Subscribe(data => player.ApplyOptions(data))
+                .Subscribe(data => _player.ApplyOptions(data))
                 .AddTo(Disposables);
-            return player.gameObject;
+            return _player.gameObject;
         }
 
         private void UnloadPlayer()
         {
             if (_playerStart != null)
                 _playerStart.UnloadPlayer();
+            _player = null;
         }
 
         /// <summary>
@@ -165,20 +162,33 @@ namespace Game.Horror.Scenes
             var result = await HorrorPauseDialog.RunAsync();
             switch (result)
             {
-                case PauseResult.Resume:
+                case HorrorPauseResult.Resume:
                 {
                     break;
                 }
-                case PauseResult.ReturnToTitle:
+                case HorrorPauseResult.ReturnToTitle:
                 {
                     await _sceneService.TransitionAsync<HorrorTitleScene>();
                     break;
                 }
-                case PauseResult.Quit:
+                case HorrorPauseResult.Quit:
                 {
                     ApplicationEvents.RequestShutdown();
                     break;
                 }
+            }
+        }
+
+        private async UniTask ShowInventoryDialogAsync()
+        {
+            var result = await HorrorInventoryDialog.RunAsync();
+            if (_player != null)
+            {
+                if (result.HasUseRequest)
+                    _player.RequestUseItem(result.UseCategory, result.UseId);
+
+                if (result.HasEquipRequest)
+                    _player.RequestEquip(result.EquipCategory, result.EquipId);
             }
         }
     }

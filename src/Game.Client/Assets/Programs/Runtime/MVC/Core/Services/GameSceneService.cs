@@ -13,19 +13,12 @@ namespace Game.Core.Services
     /// </summary>
     public partial class GameSceneService : IGameSceneService
     {
-        private readonly IInputSystemService _inputService;
-
         private readonly List<IGameScene> _gameScenes = new(16);
 
         private const GameSceneOperations DefaultOperations = GameSceneConstants.DefaultOperations;
 
         public GameSceneService()
         {
-        }
-
-        public GameSceneService(IInputSystemService inputService)
-        {
-            _inputService = inputService;
         }
 
         public async UniTask TransitionAsync<TScene>(GameSceneOperations operations = DefaultOperations)
@@ -180,9 +173,7 @@ namespace Game.Core.Services
         private UniTaskCompletionSource<TResult> CreateResultTcs<TResult>(IGameScene gameScene)
         {
             if (gameScene is IGameSceneResult<TResult> result)
-            {
                 return result.ResultTcs = new UniTaskCompletionSource<TResult>();
-            }
 
             return null;
         }
@@ -194,17 +185,14 @@ namespace Game.Core.Services
         {
             gameScene.State = GameSceneState.Processing;
 
-            using (_inputService.BlockUI())
-            {
-                if (gameScene.ArgHandler != null)
-                    await gameScene.ArgHandler.Invoke(gameScene);
+            if (gameScene.ArgHandler != null)
+                await gameScene.ArgHandler.Invoke(gameScene);
 
-                await gameScene.PreInitialize();
-                await gameScene.LoadAsset();
-                await gameScene.Startup();
-                await DoFadeInAsync(gameScene);
-                await gameScene.Ready();
-            }
+            await gameScene.PreInitialize();
+            await gameScene.LoadAsset();
+            await gameScene.Startup();
+            await gameScene.Ready();
+            await DoFadeInAsync(gameScene);
         }
 
         private async UniTask<TResult> ResultAsync<TResult>(IGameScene gameScene, UniTaskCompletionSource<TResult> tcs)
@@ -323,6 +311,7 @@ namespace Game.Core.Services
                 await DoFadeOutAsync(gameScene);
                 await gameScene.Terminate();
                 gameScene.Disposables?.Dispose();
+                if (gameScene is IGameSceneResult result) result.TrySetCanceled();
             }
         }
 
@@ -366,18 +355,12 @@ namespace Game.Core.Services
 
         private async UniTask DoFadeInAsync(IGameScene gameScene)
         {
-            if (gameScene is IGameSceneFader fader)
-            {
-                await fader.FadeInAsync();
-            }
+            if (gameScene is IGameSceneFader fader) await fader.FadeInAsync();
         }
 
         private async UniTask DoFadeOutAsync(IGameScene gameScene)
         {
-            if (gameScene is IGameSceneFader fader)
-            {
-                await fader.FadeOutAsync();
-            }
+            if (gameScene is IGameSceneFader fader) await fader.FadeOutAsync();
         }
     }
 }

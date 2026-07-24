@@ -1,7 +1,7 @@
 using Game.Core.Services;
+using Game.Horror.Signals;
 using Game.Library.Shared;
 using Game.Shared.Combat;
-using Game.Shared.Events;
 using Game.Shared.Extensions;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
@@ -29,7 +29,7 @@ namespace Game.Horror.Enemy
         [Tooltip("true の場合、初期ステートを Dormant にする（配置済み敵の遅延起動用）")]
         [SerializeField] private bool _startDormant;
 
-        private EnemyStateMachine _stateMachine;
+        private StateMachine<HorrorEnemyController, StateEvent> _stateMachine;
         private bool _initialized;
 
         // Initialize で注入されるデータ
@@ -41,6 +41,7 @@ namespace Game.Horror.Enemy
         // 体力・速度
         private int _health;
         private float _currentTargetSpeed;
+        private float _currentAnimSpeed; // Animator に渡す平滑化済みの Speed 値
 
         // 目的地更新の間引き管理（震え防止）
         private Vector3 _lastDestination;
@@ -57,6 +58,7 @@ namespace Game.Horror.Enemy
         private const float ScreamLoudness = 2f;
         private const float VelocityThreshold = 0.001f;
         private const float RotationSmoothSpeed = 10f;
+        private const float AnimSpeedResponse = 8f; // アニメーター Speed 補間の応答速度（大きいほど速く追従）
 
         /// <summary>
         /// コントローラーを初期化する。スポーナーまたはシーン初期化から呼ぶ。
@@ -67,7 +69,9 @@ namespace Game.Horror.Enemy
         {
             _player = player;
             _master = master;
-            _playerDamageable = player.GetComponent<IDamageable>();
+
+            if (player.TryGetComponent<IDamageable>(out var damageable))
+                _playerDamageable = damageable;
 
             // TryGetComponent(out _navMeshAgent);
             // TryGetComponent(out _animator);
@@ -124,10 +128,6 @@ namespace Game.Horror.Enemy
         /// <summary>死亡フラグ（体力が 0 以下）</summary>
         public bool IsDead => _health <= 0;
 
-        /// <summary>
-        /// ダメージを受ける。致死なら Death、非致死なら Stagger へ ForceTransition で割り込む。
-        /// </summary>
-        /// <param name="damage">受けるダメージ量</param>
         public void TakeDamage(int damage)
         {
             if (IsDead) return;
@@ -138,12 +138,12 @@ namespace Game.Horror.Enemy
             {
                 _health = 0;
                 if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.ForceTransition<DeathState>();
+                    _stateMachine.Transition(StateEvent.Dead);
             }
             else
             {
                 if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.ForceTransition<StaggerState>();
+                    _stateMachine.Transition(StateEvent.Stagger);
             }
         }
 
@@ -172,10 +172,11 @@ namespace Game.Horror.Enemy
                     RotationSmoothSpeed * Time.deltaTime);
             }
 
-            // アニメーター Speed 更新
+            // アニメーター Speed 更新（目標値へ指数補間で追従させ BlendTree の急変を防ぐ。停止時の 0 落下も同経路で滑らかになる）
             bool isMoving = _navMeshAgent.velocity.sqrMagnitude > VelocityThreshold;
-            float animSpeed = isMoving ? _currentTargetSpeed : 0f;
-            if (_animator) _animator.SetFloat(_animHashSpeed, animSpeed);
+            float targetAnimSpeed = isMoving ? _currentTargetSpeed : 0f;
+            _currentAnimSpeed = CalculateSmoothedAnimSpeed(_currentAnimSpeed, targetAnimSpeed, AnimSpeedResponse, Time.deltaTime);
+            if (_animator) _animator.SetFloat(_animHashSpeed, _currentAnimSpeed);
         }
 
         #endregion
@@ -191,6 +192,10 @@ namespace Game.Horror.Enemy
             if (_navMeshAgent != null) _navMeshAgent.speed = speed;
             _currentTargetSpeed = speed;
         }
+
+        /// <summary>アニメーター Speed の平滑化値を算出する（指数補間・フレームレート非依存）。</summary>
+        internal static float CalculateSmoothedAnimSpeed(float current, float target, float response, float deltaTime)
+            => Mathf.Lerp(current, target, 1f - Mathf.Exp(-response * deltaTime));
 
         #endregion
 
@@ -281,13 +286,13 @@ namespace Game.Horror.Enemy
         /// <summary>NavMeshAgent を停止する。</summary>
         private void StopAgent()
         {
-            if (_navMeshAgent != null) _navMeshAgent.isStopped = true;
+            if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh) _navMeshAgent.isStopped = true;
         }
 
         /// <summary>NavMeshAgent を再開する。</summary>
         private void ResumeAgent()
         {
-            if (_navMeshAgent != null) _navMeshAgent.isStopped = false;
+            if (_navMeshAgent != null && _navMeshAgent.isOnNavMesh) _navMeshAgent.isStopped = false;
         }
 
         #endregion
@@ -295,12 +300,12 @@ namespace Game.Horror.Enemy
         #region Combat / Sound
 
         /// <summary>
-        /// ホード伝播用のスクリーム NoiseEvent を MessagePipe で Publish する。
+        /// ホード伝播用のスクリーム HorrorSignals.Noise.Occurred を MessagePipe で Publish する。
         /// ChaseState への突入時に呼ぶ。
         /// </summary>
         private void PublishScream()
         {
-            _messagePipeService?.Publish(new NoiseEvent(transform.position, ScreamLoudness, NoiseType.Scream));
+            _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, ScreamLoudness, NoiseType.Scream));
         }
 
         /// <summary>
@@ -328,22 +333,6 @@ namespace Game.Horror.Enemy
         private void TriggerDeath()
         {
             if (_animator != null) _animator.SetTrigger(_animHashDeath);
-        }
-
-        #endregion
-
-        #region StateMachine Nested Class
-
-        /// <summary>
-        /// ForceTransition を許可する敵専用ステートマシン。
-        /// Stagger/Death への割り込み遷移（TakeDamage 内）で使用する。
-        /// </summary>
-        private sealed class EnemyStateMachine : StateMachine<HorrorEnemyController, StateEvent>
-        {
-            public EnemyStateMachine(HorrorEnemyController ctx) : base(ctx) { }
-
-            /// <summary>ForceTransition を許可する</summary>
-            protected override bool AllowForceTransition => true;
         }
 
         #endregion

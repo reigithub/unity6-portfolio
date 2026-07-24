@@ -14,112 +14,134 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable
   records:
   - _id: 1
+    _developOnlyName: Key
     _name: Key
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 1
     _acquiredCount: 1
   - _id: 2
+    _developOnlyName: Key
     _name: Key
     _inputType: 1
     _holdSeconds: 2
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 2
     _acquiredCount: 1
   - _id: 3
+    _developOnlyName: Door1
     _name: Door1
     _inputType: 2
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: Open
-    _reinteractionVerbLocalizeKey: Close
-    _rejectionMessageLocalizeKey: Locked_with_a_Key
-    _requiredItemId: 2
+    _interactionVerb: Open
+    _reinteractionVerb: Close
+    _requiredObjectCategory: 1
+    _requiredObjectId: 2
+    _rejectionMessage: Locked_with_a_Key
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 4
+    _developOnlyName: Soft_Chair
     _name: Soft_Chair
     _inputType: 2
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: Move
-    _reinteractionVerbLocalizeKey: Move
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: Move
+    _reinteractionVerb: Move
+    _requiredObjectCategory: 1
+    _requiredObjectId: 2
+    _rejectionMessage: 
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 5
+    _developOnlyName: Key3
     _name: Key3
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 3
     _acquiredCount: 1
   - _id: 6
+    _developOnlyName: Door2
     _name: Door2
     _inputType: 2
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: Open
-    _reinteractionVerbLocalizeKey: Close
-    _rejectionMessageLocalizeKey: Locked_with_a_Key
-    _requiredItemId: 3
+    _interactionVerb: Open
+    _reinteractionVerb: Close
+    _requiredObjectCategory: 1
+    _requiredObjectId: 3
+    _rejectionMessage: Locked_with_a_Key
     _acquiredId: 0
     _acquiredCount: 0
   - _id: 7
+    _developOnlyName: Handgun
     _name: Handgun
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 1
     _acquiredCount: 1
   - _id: 8
+    _developOnlyName: Smoke
     _name: Smoke
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 2
     _acquiredCount: 1
   - _id: 9
+    _developOnlyName: Handgun Ammo
     _name: Handgun Ammo
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: 
-    _interactionVerbLocalizeKey: PickUp
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 4
     _acquiredCount: 12
   - _id: 10
-    _name: Savepoint
+    _developOnlyName: Savepoint
+    _name: Abandoned_Asylum_1F
     _inputType: 0
     _holdSeconds: 0
-    _interactionLocalizeKey: Abandoned_Asylum_1F
-    _interactionVerbLocalizeKey: Save
-    _reinteractionVerbLocalizeKey: 
-    _rejectionMessageLocalizeKey: 
-    _requiredItemId: 0
+    _interactionVerb: Save
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
     _acquiredId: 0
     _acquiredCount: 0
+  - _id: 11
+    _developOnlyName: Medical First Aid Bottle 1
+    _name: Medical_First_Aid_Bottle_1
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
+    _acquiredId: 5
+    _acquiredCount: 1

@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Game.Core.Services;
 using Game.Horror.Constants;
-using Game.Horror.Inventory;
+using Game.Horror.Database;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Services;
+using Game.Shared.Services.Interfaces;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -62,6 +62,13 @@ namespace Game.Horror.Services
             }
 
             return await UniTask.WhenAll(tasks);
+        }
+
+        public async UniTask LoadByCurrentSlotAsync()
+        {
+            if (!IsValidSlot(CurrentSlot)) return;
+
+            await LoadAsync();
         }
 
         public async UniTask LoadBySlotAsync(int slotNo)
@@ -133,16 +140,27 @@ namespace Game.Horror.Services
         protected override void OnDataLoaded(HorrorSaveData data)
         {
             data.Player ??= new HorrorPlayerSaveData();
+            data.Interaction ??= new HorrorInteractionSaveData();
             data.Inventory ??= new HorrorInventorySaveData();
             data.Equipment ??= new HorrorEquipmentSaveData();
-            data.Interaction ??= new HorrorInteractionSaveData();
+            data.KeyItem ??= new HorrorKeyItemSaveData();
 
             var database = _databaseService.Database;
 
+            NormalizePlayer(data.Player, database);
             NormalizeInteraction(data.Interaction, database);
             NormalizeInventory(data.Inventory, database);
             NormalizeEquipment(data.Equipment, database);
-            NormalizePlayer(data.Player, database);
+            NormalizeKeyItem(data.KeyItem, database);
+        }
+
+        private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)
+        {
+            // マスター不在 Id は未記録(0)へ戻す。シーン内に該当セーブポイントが無いケースは復元側のフォールバックが担う
+            if (data.LastSavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.LastSavepointId, out _))
+            {
+                data.LastSavepointId = 0;
+            }
         }
 
         private static void NormalizeInteraction(HorrorInteractionSaveData data, ScriptableDatabase database)
@@ -162,7 +180,7 @@ namespace Game.Horror.Services
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out var info))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out var info))
                     data.Slots.RemoveAt(i);
                 else
                     data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
@@ -175,16 +193,16 @@ namespace Game.Horror.Services
 
             foreach (var slot in data.Slots)
             {
-                if (!HorrorInventoryHelper.TryGetSlotInfo(database, slot.SlotType, slot.Id, out _))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _))
                 {
-                    slot.SlotType = InventorySlotType.None;
+                    slot.ObjectCategory = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.SlotType != InventorySlotType.Weapon || !HorrorInventoryHelper.TryGetSlotInfo(database, data.SlotType, data.Id, out _))
+            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _))
             {
-                data.SlotType = InventorySlotType.None;
+                data.ObjectCategory = ObjectCategory.None;
                 data.Id = 0;
             }
 
@@ -220,12 +238,15 @@ namespace Game.Horror.Services
                 data.Slots.RemoveRange(MaxEquipmentSlotCount, data.Slots.Count - MaxEquipmentSlotCount);
         }
 
-        private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)
+        private static void NormalizeKeyItem(HorrorKeyItemSaveData data, ScriptableDatabase database)
         {
-            // マスター不在 Id は未記録(0)へ戻す。シーン内に該当セーブポイントが無いケースは復元側のフォールバックが担う
-            if (data.LastSavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.LastSavepointId, out _))
+            // 逆順走査
+            for (int i = data.KeyItems.Count - 1; i >= 0; i--)
             {
-                data.LastSavepointId = 0;
+                var keyItem = data.KeyItems[i];
+                if (HorrorDatabaseHelper.TryGetInfo(database, keyItem.ObjectCategory, keyItem.Id, out _))
+                    continue;
+                data.KeyItems.RemoveAt(i);
             }
         }
 

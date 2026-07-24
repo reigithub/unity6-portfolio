@@ -21,6 +21,8 @@ namespace Game.Core.UI
     {
         [SerializeField] private TabGroup _tabGroup;
 
+        [SerializeField] private bool _navigate;
+
         // 左右入力とみなす最小の x 絶対値（微小入力・デッドゾーン残差を除外）
         [SerializeField] private float _threshold = 0.5f;
 
@@ -30,6 +32,8 @@ namespace Game.Core.UI
         // 立ち上がりエッジ検出用。左右が閾値を超えている間 true にして連続切替を抑止し、
         // ニュートラル/上下に戻った performed で false に戻す。
         private bool _latched;
+
+        public Observable<int> OnTabChanged => _tabGroup.OnTabChanged;
 
         private void Start()
         {
@@ -44,10 +48,13 @@ namespace Game.Core.UI
             // 購読は performed のみ（PassThrough のため started/canceled は来ない）。
             _disposables = new CompositeDisposable();
             _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
-            _inputService.UI.Navigate
-                .OnPerformedAsObservable()
-                .Subscribe(_ => OnNavigate())
-                .AddTo(_disposables);
+            if (_navigate)
+            {
+                _inputService.UI.Navigate
+                    .OnPerformedAsObservable()
+                    .Subscribe(_ => OnNavigate())
+                    .AddTo(_disposables);
+            }
             _inputService.UI.Next2
                 .OnPerformedAsObservable()
                 .Subscribe(_ => _tabGroup.NextTab())

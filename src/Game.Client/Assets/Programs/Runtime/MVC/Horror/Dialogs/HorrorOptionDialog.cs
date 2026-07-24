@@ -1,6 +1,8 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Core.UI;
+using Game.Horror.Enums;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
@@ -19,17 +21,18 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorOptionDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IInputActionIconService _inputActionIconService = GameServiceManager.Resolve<IInputActionIconService>();
         private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
         private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorOptionService _optionService =  GameServiceManager.Resolve<IHorrorOptionService>();
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
-        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）。null = 非実行中。
-        private IDisposable _currentRebind;
+        private HorrorOptionTabCategory _tabCategory;
+        private HorrorOptionTabSubCategory _tabSubCategory;
 
-        // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）。_currentRebind と対で管理。
-        private IDisposable _rebindTimeout;
+        private IDisposable _currentRebinding;        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）
+        private IDisposable _currentRebindingTimeout; // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）
 
         public static async UniTask<bool> RunAsync()
         {
@@ -40,7 +43,7 @@ namespace Game.Horror.Dialogs
         public override UniTask Startup()
         {
             // ダイアログキャンセル
-            Observable.Merge(_inputService.UI.Cancel.OnPerformedAsObservable(), _inputService.UI.Menu.OnPerformedAsObservable())
+            _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ => TrySetResult(default))
                 .AddTo(Disposables);
@@ -56,7 +59,28 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
+            _inputService.UI.Reset.OnPerformedAsObservable()
+                .Where(_ => State.IsProcessing())
+                .Subscribe(_ => ResetSubCategory())
+                .AddTo(Disposables);
+
             SceneComponent.Initialize(Options);
+
+            SceneComponent.OnCategoryChanged
+                .Subscribe(x =>
+                {
+                    _tabCategory = x;
+                    SetInputActionGuide();
+                })
+                .AddTo(Disposables);
+            SceneComponent.OnSubCategoryChanged
+                .Subscribe(x =>
+                {
+                    _tabSubCategory = x;
+                    SetInputActionGuide();
+                })
+                .AddTo(Disposables);
+            SetInputActionGuide();
 
             // Gameplay
             SceneComponent.OnLanguageChanged
@@ -88,6 +112,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(v => { _optionService.SetCameraFov(v); })
                 .AddTo(Disposables);
 
+            // Controls - BasicSettings
             SceneComponent.OnSprintModeChanged
                 .Subscribe(b => { _optionService.SetSprintToggle(b); })
                 .AddTo(Disposables);
@@ -122,6 +147,12 @@ namespace Game.Horror.Dialogs
                 {
                     _optionService.SetUncappedFrameRate(uncapped);
                     HorrorOptionHelper.ApplyFrameRate(Options.VSync, Options.UncappedFrameRate, Options.FrameRateLimit);
+                })
+                .AddTo(Disposables);
+            SceneComponent.OnShowFrameRateChanged
+                .Subscribe(show =>
+                {
+                    _optionService.SetShowFrameRate(show);
                 })
                 .AddTo(Disposables);
             SceneComponent.OnVSyncChanged
@@ -163,70 +194,69 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             // Controls（キーリバインド）
-            foreach (var rebindView in SceneComponent.RebindViews)
+            foreach (var rebindingView in SceneComponent.RebindingViews)
             {
-                var rebind = rebindView;
-                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+                var rebinding = rebindingView;
+                RefreshBindingDisplay(rebinding);
 
                 // 進行中（_currentRebind != null）は新規開始を弾き、多重リバインドを防ぐ
-                rebind.OnRebindRequested
-                    .Where(_ => State.IsProcessing() && _currentRebind == null)
+                rebinding.OnRebindRequested
+                    .Where(_ => State.IsProcessing() && _currentRebinding == null)
                     .Subscribe(_ =>
                     {
-                        rebind.SetWaiting(true);
-                        rebind.SetTimeoutProgress(1f);
-                        _currentRebind = _inputService.StartRebind(
-                            rebind.Scheme,
-                            rebind.ActionName,
-                            rebind.CompositePartName,
-                            display =>
+                        rebinding.SetWaiting(true);
+                        rebinding.SetTimeoutProgress(1f);
+                        _currentRebinding = _inputService.StartRebinding(
+                            rebinding.ControlScheme,
+                            rebinding.ActionMapName,
+                            rebinding.ActionName,
+                            rebinding.CompositePartName,
+                            () =>
                             {
-                                rebind.SetWaiting(false);
-                                // rebind.SetDisplay(display);
+                                rebinding.SetWaiting(false);
                                 _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
-                                _currentRebind = null;
-                                _rebindTimeout?.Dispose();
-                                _rebindTimeout = null;
+                                _currentRebinding = null;
+                                _currentRebindingTimeout?.Dispose();
+                                _currentRebindingTimeout = null;
                                 // swap で旧キーが移った相手行も含め全行を再表示（ターゲット行も更新される）
                                 RefreshBindingDisplays();
-                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
+                                _inputService.SetSelectedGameObject(rebinding.Selectable.gameObject);
                             },
                             () =>
                             {
-                                rebind.SetWaiting(false);
-                                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
-                                _currentRebind = null;
-                                _rebindTimeout?.Dispose();
-                                _rebindTimeout = null;
-                                _inputService.SetSelectedGameObject(rebind.Selectable.gameObject);
+                                rebinding.SetWaiting(false);
+                                _currentRebinding = null;
+                                _currentRebindingTimeout?.Dispose();
+                                _currentRebindingTimeout = null;
+                                RefreshBindingDisplay(rebinding);
+                                _inputService.SetSelectedGameObject(rebinding.Selectable.gameObject);
                             });
-                        _currentRebind.AddTo(Disposables);
+                        _currentRebinding.AddTo(Disposables);
 
                         // 開始から3秒で自動キャンセル（完了していない時のみ）。残り時間をバーで提示。
                         var elapsed = 0f;
-                        _rebindTimeout = Observable.EveryUpdate(UnityFrameProvider.Update)
+                        _currentRebindingTimeout = Observable.EveryUpdate(UnityFrameProvider.Update)
                             .Subscribe(_ =>
                             {
+                                const float TimeoutSec = InputConstants.RebindingTimeoutSeconds;
                                 elapsed += Time.unscaledDeltaTime; // ポーズ中(timeScale=0)でも進行
-                                rebind.SetTimeoutProgress(1f - elapsed / InputConstants.RebindTimeoutSeconds);
-                                if (elapsed >= InputConstants.RebindTimeoutSeconds)
-                                    _currentRebind?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
+                                rebinding.SetTimeoutProgress(1f - elapsed / TimeoutSec);
+                                if (elapsed >= TimeoutSec)
+                                    _currentRebinding?.Dispose(); // → onCanceled 経路で表示復元＆タイマー停止
                             });
-                        _rebindTimeout.AddTo(Disposables);
+                        _currentRebindingTimeout.AddTo(Disposables);
                     })
                     .AddTo(Disposables);
             }
 
             // 指定スキームのバインドのみ既定へ戻して全行を再表示・保存する。
-            SceneComponent.OnResetSchemeBindingsRequested
-                .Where(_ => State.IsProcessing() && _currentRebind == null)
-                .Subscribe(scheme =>
-                {
-                    _inputService.ResetSchemeBindings(scheme);
-                    RefreshBindingDisplays();
-                    _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
-                })
-                .AddTo(Disposables);
+            // SceneComponent.OnResetSchemeBindingsRequested
+            //     .Where(_ => State.IsProcessing() && _currentRebinding == null)
+            //     .Subscribe(scheme =>
+            //     {
+            //         ResetSchemeBindings(scheme);
+            //     })
+            //     .AddTo(Disposables);
 
             // ロケール変更でバインド表示名を再ローカライズ
             _localizationService.OnLocaleChanged.Subscribe(_ => RefreshBindingDisplays()).AddTo(Disposables);
@@ -237,11 +267,55 @@ namespace Game.Horror.Dialogs
             return base.Startup();
         }
 
+        private void ResetSubCategory()
+        {
+            if (_tabCategory is not HorrorOptionTabCategory.Controls) return;
+
+            switch (_tabSubCategory)
+            {
+                case HorrorOptionTabSubCategory.KeyboardAndMouse:
+                    ResetControlSchemeBindings(InputControlSchemes.KeyboardAndMouse);
+                    break;
+                case HorrorOptionTabSubCategory.Gamepad:
+                    ResetControlSchemeBindings(InputControlSchemes.Gamepad);
+                    break;
+            }
+        }
+
+        private void ResetControlSchemeBindings(string scheme)
+        {
+            if (_currentRebinding != null) return;
+            _inputService.ResetControlSchemeBindings(scheme);
+            RefreshBindingDisplays();
+            _optionService.SetInputBindingOverrides(_inputService.SaveBindingOverridesAsJson());
+        }
+
+        private void RefreshBindingDisplay(InputActionRebindingView view)
+        {
+            var info = _inputService.GetBindingInfo(view.ControlScheme, view.ActionMapName, view.ActionName, view.CompositePartName);
+            // Debug.Log($"{info.ControlScheme}, {view.ActionMapName}, {view.ActionName}, {view.CompositePartName} : {info.DisplayName}, {info.DeviceLayoutName}, {info.ControlPath}");
+            view.Initialize();
+            view.SetDisplay(info.DisplayName);
+            view.SetIcon(_inputActionIconService.GetSprite(info));
+        }
+
         private void RefreshBindingDisplays()
         {
-            if (_currentRebind != null) return;
-            foreach (var rebind in SceneComponent.RebindViews)
-                rebind.SetDisplay(_inputService.GetBindingDisplayString(rebind.Scheme, rebind.ActionName, rebind.CompositePartName));
+            if (_currentRebinding != null) return;
+            foreach (var rebindingView in SceneComponent.RebindingViews)
+                RefreshBindingDisplay(rebindingView);
+        }
+
+        private void SetInputActionGuide()
+        {
+            if (_tabCategory is HorrorOptionTabCategory.Controls
+                && _tabSubCategory is HorrorOptionTabSubCategory.KeyboardAndMouse or HorrorOptionTabSubCategory.Gamepad)
+            {
+                SceneComponent.SetInputActionGuide(_inputService.UI.Submit, _inputService.UI.Cancel, _inputService.UI.Reset);
+                return;
+            }
+
+            SceneComponent.SetInputActionGuide(_inputService.UI.Submit, _inputService.UI.Cancel);
         }
 
         public override async UniTask Terminate()

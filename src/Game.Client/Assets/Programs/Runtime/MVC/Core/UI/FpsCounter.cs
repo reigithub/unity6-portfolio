@@ -33,8 +33,8 @@ namespace Game.Core.UI
             _frames = 0;
         }
 
-        /// <summary>区間のフレーム数と経過時間から平均 FPS を算出（純関数・テスト用）。</summary>
-        public static float CalculateFps(int frames, float elapsed)
+        /// <summary>区間のフレーム数と経過時間から平均 FPS を算出（アセンブリ内部の純関数）。</summary>
+        internal static float CalculateFps(int frames, float elapsed)
             => elapsed > 0f ? frames / elapsed : 0f;
     }
 }

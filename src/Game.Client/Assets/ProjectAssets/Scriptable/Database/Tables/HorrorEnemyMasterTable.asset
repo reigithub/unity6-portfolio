@@ -14,22 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable
   records:
   - _id: 1
-    _name: HorrorEnemy
-    _walkSpeed: 0
-    _chaseSpeed: 0
-    _sightRange: 0
-    _sightHalfAngle: 0
-    _eyeHeight: 0
-    _hearingRadius: 0
-    _hearingSensitivity: 0
-    _awarenessFillRate: 0
-    _awarenessDecayRate: 0
-    _suspiciousThreshold: 0
-    _alertThreshold: 0
-    _attackRange: 0
-    _attackDamage: 0
-    _attackCooldown: 0
-    _investigateGiveUpTime: 0
-    _repathInterval: 0
+    _name: HorrorZombie
+    _modelAssetName: HorrorZombie
+    _walkSpeed: 0.25
+    _chaseSpeed: 0.5
+    _sightRange: 15
+    _sightHalfAngle: 45
+    _eyeHeight: 1.5
+    _hearingRadius: 30
+    _hearingSensitivity: 1
+    _awarenessFillRate: 1
+    _awarenessDecayRate: 0.2
+    _suspiciousThreshold: 0.4
+    _alertThreshold: 0.8
+    _attackRange: 1.5
+    _attackDamage: 10
+    _attackCooldown: 1
+    _investigateGiveUpTime: 5
+    _repathInterval: 1
     _maxHealth: 100
-    _staggerDuration: 0
+    _staggerDuration: 1

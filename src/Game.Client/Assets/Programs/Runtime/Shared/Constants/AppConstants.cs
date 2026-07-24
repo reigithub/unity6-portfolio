@@ -24,10 +24,10 @@ namespace Game.Shared.Constants
         public const float StandardFadeDuration = 0.25f;
 
         /// <summary>シーン遷移のフェードイン時間（秒）</summary>
-        public const float SceneTransitionFadeInDuration = 0.5f;
+        public const float SceneTransitionFadeInDuration = 0.1f;
 
         /// <summary>シーン遷移のフェードアウト時間（秒）</summary>
-        public const float SceneTransitionFadeOutDuration = 1f;
+        public const float SceneTransitionFadeOutDuration = 0.1f;
 
         /// <summary>完全不透明</summary>
         public const float AlphaOpaque = 1f;

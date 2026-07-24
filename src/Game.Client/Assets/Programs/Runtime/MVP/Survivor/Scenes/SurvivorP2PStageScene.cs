@@ -304,7 +304,7 @@ namespace Game.MVP.Survivor.Scenes
                 .Where(_ => Application.isPlaying)
                 .Subscribe(_ =>
                 {
-                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.UI.Menu.WasPressedThisFrame())
+                    if (_sessionConfig.IsHostUserId(MyUserId) && _inputService.Player.Menu.WasPressedThisFrame())
                         _pauseRequested = true;
 
                     if (_pauseRequested) return;

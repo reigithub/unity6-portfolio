@@ -21,6 +21,11 @@ namespace Game.Horror.Services.Interfaces
         UniTask<HorrorSaveSlotInfo[]> LoadSlotInfosAsync();
 
         /// <summary>
+        /// 現在スロットからロードする
+        /// </summary>
+        UniTask LoadByCurrentSlotAsync();
+
+        /// <summary>
         /// 指定スロットからロードする
         /// </summary>
         /// <param name="slotNo">スロット番号</param>

@@ -28,7 +28,7 @@ MultiplayerManager:
     - UnityEngine.AudioModule:UnityEngine:AudioSource
     - UnityEngine.AudioModule:UnityEngine:AudioHighPassFilter
     - UnityEngine.UI:UnityEngine.UI:HorizontalLayoutGroup
-    - UnityEngine.UI:UnityEngine.UI:ToggleGroup
+    - UnityEngine.CoreModule:UnityEngine:LightProbeProxyVolume
     - UnityEngine.CoreModule:UnityEngine:MeshFilter
     - UnityEngine.UI:UnityEngine.UI:GraphicRaycaster
     - UnityEngine.UI:UnityEngine.UI:Dropdown
@@ -36,6 +36,7 @@ MultiplayerManager:
     - UnityEngine.UI:UnityEngine.UIElements:PanelRaycaster
     - UnityEngine.UIElementsModule:UnityEngine.UIElements:UIDocument
     - UnityEngine.UIElementsModule:UnityEngine.UIElements.InputSystem:InputSystemEventSystem
+    - UnityEngine.UI:UnityEngine.UI:ToggleGroup
     - UnityEngine.ParticleSystemModule:UnityEngine:ParticleSystemRenderer
     - UnityEngine.CoreModule:UnityEngine:MeshRenderer
     - UnityEngine.RenderAs2DModule:UnityEngine:RenderAs2D
@@ -49,14 +50,16 @@ MultiplayerManager:
     - UnityEngine.UI:UnityEngine.EventSystems:PhysicsRaycaster
     - UnityEngine.UI:UnityEngine.EventSystems:BaseInputModule
     - UnityEngine.UI:UnityEngine.UI:Dropdown/DropdownItem
+    - UnityEngine.CoreModule:UnityEngine:LightProbeGroup
     - UnityEngine.UI:UnityEngine.UI:HorizontalOrVerticalLayoutGroup
     - UnityEngine.UI:UnityEngine.EventSystems:BaseInput
     - UnityEngine.UI:UnityEngine.UI:InputField
     - UnityEngine.UI:UnityEngine.EventSystems:EventSystem
     - UnityEngine.UI:UnityEngine.UI:RawImage
-    - UnityEngine.UI:UnityEngine.EventSystems:StandaloneInputModule
+    - UnityEngine.CoreModule:UnityEngine:ReflectionProbe
     - UnityEngine.UI:UnityEngine.UI:Selectable
     - UnityEngine.UI:UnityEngine.EventSystems:UIBehaviour
+    - UnityEngine.UI:UnityEngine.EventSystems:StandaloneInputModule
     - UnityEngine.UI:UnityEngine.EventSystems:BaseRaycaster
     - UnityEngine.UI:UnityEngine.UI:Image
     - UnityEngine.UI:UnityEngine.UIElements:WorldDocumentRaycaster

@@ -17,8 +17,8 @@ namespace Game.Horror.Inventory
         [SerializeField] private RectTransform _entryContainer;                 // VerticalLayoutGroup コンテナ
         [SerializeField] private HorrorInventoryContextActionView _entryPrefab;
 
-        private readonly Subject<InventoryContextActionType> _onClicked = new();
-        public Observable<InventoryContextActionType> OnClicked => _onClicked;
+        private readonly Subject<ContextActionType> _onClicked = new();
+        public Observable<ContextActionType> OnClicked => _onClicked;
 
         private readonly Subject<Unit> _onClosed = new();
         public Observable<Unit> OnClosed => _onClosed;
@@ -34,7 +34,7 @@ namespace Game.Horror.Inventory
         }
 
         /// <summary>指定スロット位置にエントリ列を開く。</summary>
-        public void Open(RectTransform anchorSlot, InventoryContextActionType[] entries)
+        public void Open(RectTransform anchorSlot, ContextActionType[] entries)
         {
             if (IsOpen || entries == null || entries.Length == 0) return;
 
@@ -56,7 +56,7 @@ namespace Game.Horror.Inventory
             _onClosed.OnNext(Unit.Default);
         }
 
-        private void BuildEntries(InventoryContextActionType[] entries)
+        private void BuildEntries(ContextActionType[] entries)
         {
             ClearEntries();
             for (int i = 0; i < entries.Length; i++)

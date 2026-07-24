@@ -1,5 +1,6 @@
 using System;
 using Game.Core.Services;
+using Game.Shared.Services.Interfaces;
 using NUnit.Framework;
 
 namespace Game.Tests.MVC
@@ -9,7 +10,7 @@ namespace Game.Tests.MVC
     {
         #region Test Service Classes
 
-        private interface ITestService
+        private interface ITestService : IGameService
         {
             public bool IsStarted { get;}
             public bool IsShutdown { get;}
@@ -17,7 +18,7 @@ namespace Game.Tests.MVC
             public int ShutdownCallCount { get; }
         }
 
-        private class TestService : ITestService, IGameService
+        private class TestService : ITestService
         {
             public bool IsStarted { get; private set; }
             public bool IsShutdown { get; private set; }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Game.Core.Services;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
@@ -14,8 +13,8 @@ namespace Game.Horror.Dialogs
         [SerializeField]
         private HorrorSaveSlotView[] _slotViews;
 
-        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
-        private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+        private IScriptableDatabaseService _databaseService;
+        private ILocalizationService _localizationService;
 
         /// <summary>いずれかのスロット行がクリックされたときに、選択されたスロット番号（0〜）を通知する。</summary>
         private readonly Subject<int> _onSlotClick = new();
@@ -23,6 +22,20 @@ namespace Game.Horror.Dialogs
 
         private readonly Subject<int> _onSlotSelect = new();
         public Observable<int> OnSlotSelect => _onSlotSelect;
+
+        /// <summary>
+        /// 全スロットのメタ情報を表示テキストへ解決して各行に反映する。
+        /// </summary>
+        public void SetSlotInfos(HorrorSaveSlotInfo[] slots)
+        {
+            _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+            _localizationService = GameServiceManager.Resolve<ILocalizationService>();
+
+            foreach (var slot in slots)
+            {
+                SetSlotInfo(slot);
+            }
+        }
 
         /// <summary>
         /// スロット行にメタ情報を反映する。名称はマスターからローカライズ解決し、空きスロットは名称・日時とも空文字。
@@ -41,7 +54,7 @@ namespace Game.Horror.Dialogs
             if (slot.HasData)
             {
                 if (_databaseService.Database.HorrorInteractionMasterTable.TryFindById(slot.SavepointId, out var master))
-                    savepointName = _localizationService.GetStringByInteractions(master.InteractionLocalizeKey);
+                    savepointName = _localizationService.GetStringByInteractions(master.Name);
                 else
                     Debug.LogError($"[{GetType().Name}] HorrorInteractionMaster not found: SavepointId={slot.SavepointId}");
 
@@ -52,17 +65,6 @@ namespace Game.Horror.Dialogs
             slotView.SetInfo(slot.SlotNo + 1, savepointName, dateTimeText);
             slotView.OnClick.Subscribe(_ => _onSlotClick.OnNext(slot.SlotNo)).AddTo(Disposables);
             slotView.OnSelect.Subscribe(_ => _onSlotSelect.OnNext(slot.SlotNo)).AddTo(Disposables);
-        }
-
-        /// <summary>
-        /// 全スロットのメタ情報を表示テキストへ解決して各行に反映する。
-        /// </summary>
-        public void SetSlotInfos(HorrorSaveSlotInfo[] slots)
-        {
-            foreach (var slot in slots)
-            {
-                SetSlotInfo(slot);
-            }
         }
     }
 }

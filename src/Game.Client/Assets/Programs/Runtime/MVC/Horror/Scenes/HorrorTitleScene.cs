@@ -83,7 +83,7 @@ namespace Game.Horror.Scenes
                 {
                     if (!_hasSaveData) return;
 
-                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots);
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false);
                     if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);
@@ -92,7 +92,6 @@ namespace Game.Horror.Scenes
                     else
                     {
                         _hasSaveData = _saveSlots.Any(x => x.HasData);
-                        await UniTask.Yield();
                         SceneComponent.SetGameStartMenu(_hasSaveData);
                     }
                 })

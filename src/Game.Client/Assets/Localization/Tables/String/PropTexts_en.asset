@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: PropTexts_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 0c4ffabf8dd85254d84805227319e77b, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 20063977472
+    m_Localized: An Old Key 1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 909218676736
+    m_Localized: An Old Key 2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1618366431232
+    m_Localized: An Old Key 3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1685894725632
+    m_Localized: Handgun Ammo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1965512196096
+    m_Localized: "A well-worn key. I wonder if it\u2019ll work anywhere."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2936522932224
+    m_Localized: "A well-worn key. I wonder if it\u2019ll work anywhere."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3004315467776
+    m_Localized: "A well-worn key. I wonder if it\u2019ll work anywhere."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3082140778496
+    m_Localized: 'Handgun ammunition.
+
+      It has low recoil and tends to have
+      stable ballistics.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6184436760576
+    m_Localized: M1911
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6330654392320
+    m_Localized: An Easy-to-Handle Automatic Pistol.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8018622676992
+    m_Localized: Smoke Grenade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8022145892352
+    m_Localized: A grenade that releases smoke into the surrounding area when the
+      pin is pulled and it is thrown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759920394240000
+    m_Localized: Restores a small amount of Health.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759911493926912
+    m_Localized: Medical First Aid Bottle
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

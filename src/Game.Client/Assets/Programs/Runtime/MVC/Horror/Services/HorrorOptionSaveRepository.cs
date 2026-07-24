@@ -12,7 +12,7 @@ namespace Game.Horror.Services
     /// <see cref="HorrorOptionService"/> が担い、本クラスは持たない。
     /// 生成・ロード済みインスタンスを GameServiceManager.Register で共有登録して使う（IGameService）。
     /// </summary>
-    public class HorrorOptionSaveRepository : SaveRepositoryBase<HorrorOptionSaveData>, IHorrorOptionSaveRepository, IGameService
+    public class HorrorOptionSaveRepository : SaveRepositoryBase<HorrorOptionSaveData>, IHorrorOptionSaveRepository
     {
         protected override string SaveKey => "horror_option";
         protected override int CurrentVersion => 1;

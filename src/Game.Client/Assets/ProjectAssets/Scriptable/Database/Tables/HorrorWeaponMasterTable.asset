@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorWeaponMasterTable
   records:
   - _id: 1
-    _name: Handgun
-    _description: 
+    _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3_M1911"
+    _name: weapon_1_name
+    _description: weapon_1_desc
     _iconAssetName: Weapon/Sprite sheet Blue_12
     _modelAssetName: M1911
     _maxCount: 1
@@ -23,6 +24,7 @@ MonoBehaviour:
     _range: 50
     _fireInterval: 1
     _noiseLoudness: 2.5
+    _impactNoiseLoudness: 1
     _equipDuration: 1
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
@@ -30,20 +32,23 @@ MonoBehaviour:
     _magazineSize: 10
     _reloadDuration: 3
     _ammoItemId: 4
-    _dryFireSeAssetName:
-    _fireSeAssetName:
+    _dryFireSeAssetName: 
+    _fireSeAssetName: 
     _muzzleFlashAssetName: MuzzleFlash
     _recoilCameraPitch: 2.5
+    _recoilRecoverSeconds: 0.25
   - _id: 2
-    _name: Smoke
-    _description: 
+    _developOnlyName: "\u30B9\u30E2\u30FC\u30AF\u30B0\u30EC\u30CD\u30FC\u30C9"
+    _name: weapon_2_name
+    _description: weapon_2_desc
     _iconAssetName: Weapon/Sprite sheet Blue_37
     _modelAssetName: Smoke
     _maxCount: 1
     _damage: 0
     _range: 50
     _fireInterval: 0.3
-    _noiseLoudness: 2.5
+    _noiseLoudness: 0
+    _impactNoiseLoudness: 2.5
     _equipDuration: 1
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
@@ -51,7 +56,8 @@ MonoBehaviour:
     _magazineSize: 0
     _reloadDuration: 0
     _ammoItemId: 0
-    _dryFireSeAssetName:
-    _fireSeAssetName:
-    _muzzleFlashAssetName:
+    _dryFireSeAssetName: 
+    _fireSeAssetName: 
+    _muzzleFlashAssetName: 
     _recoilCameraPitch: 0
+    _recoilRecoverSeconds: 0.25

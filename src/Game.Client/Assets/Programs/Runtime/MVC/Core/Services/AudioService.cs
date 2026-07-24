@@ -6,7 +6,7 @@ namespace Game.Core.Services
     /// MVC用オーディオ再生サービス
     /// GameServiceManager経由で使用
     /// </summary>
-    public class AudioService : AudioServiceBase, IGameService
+    public class AudioService : AudioServiceBase
     {
         private readonly IAddressableAssetService _assetService;
         private readonly IMasterDataService _masterDataService;

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.App.Services;
 using Game.Library.Shared.Enums;
+using Game.Shared.Bootstrap;
 using Game.Shared.Enums;
 using Game.Shared.Services;
 using Game.Shared.Services.RemoteAsset;
@@ -60,6 +61,8 @@ namespace Game.App.Title
         public void Initialize(IAppServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
+
+            ApplicationEvents.ShowCursor(); // 現在、UIToolkitではマウス操作オンリーのため
 
             SetupUIElements();
             BindButtons();

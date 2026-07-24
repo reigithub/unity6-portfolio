@@ -16,19 +16,18 @@ namespace Game.Shared.Scriptable.Database.Tables
         #region SerializeField
 
         [SerializeField] private int _id;
+        [SerializeField] private string _developOnlyName; // 開発時のみの識別名
         [SerializeField] private string _name;
 
         [SerializeField] private InteractionInputType _inputType;
         [SerializeField] private float _holdSeconds;
 
-        [SerializeField] private string _interactionLocalizeKey;
+        [SerializeField] private string _interactionVerb;
+        [SerializeField] private string _reinteractionVerb;
 
-        [SerializeField] private string _interactionVerbLocalizeKey;
-        [SerializeField] private string _reinteractionVerbLocalizeKey;
-
-        [SerializeField] private string _rejectionMessageLocalizeKey;
-
-        [SerializeField] private int _requiredItemId;
+        [SerializeField] private ObjectCategory _requiredObjectCategory;
+        [SerializeField] private int _requiredObjectId;
+        [SerializeField] private string _rejectionMessage;
 
         [SerializeField] private int _acquiredId;
         [SerializeField] private int _acquiredCount;
@@ -64,35 +63,35 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _holdSeconds = value;
         }
 
-        public string InteractionLocalizeKey
+        public string InteractionVerb
         {
-            get => _interactionLocalizeKey;
-            set => _interactionLocalizeKey = value;
+            get => _interactionVerb;
+            set => _interactionVerb = value;
         }
 
-        public string InteractionVerbLocalizeKey
+        public string ReinteractionVerb
         {
-            get => _interactionVerbLocalizeKey;
-            set => _interactionVerbLocalizeKey = value;
+            get => _reinteractionVerb;
+            set => _reinteractionVerb = value;
         }
 
-        public string ReinteractionVerbLocalizeKey
+        public ObjectCategory RequiredObjectCategory
         {
-            get => _reinteractionVerbLocalizeKey;
-            set => _reinteractionVerbLocalizeKey = value;
-        }
-
-        public string RejectionMessageLocalizeKey
-        {
-            get => _rejectionMessageLocalizeKey;
-            set => _rejectionMessageLocalizeKey = value;
+            get => _requiredObjectCategory;
+            set => _requiredObjectCategory = value;
         }
 
         /// <summary>実行に必要なアイテム Id（鍵など）。0 は無条件。</summary>
-        public int RequiredItemId
+        public int RequiredObjectId
         {
-            get => _requiredItemId;
-            set => _requiredItemId = value;
+            get => _requiredObjectId;
+            set => _requiredObjectId = value;
+        }
+
+        public string RejectionMessage
+        {
+            get => _rejectionMessage;
+            set => _rejectionMessage = value;
         }
 
         /// <summary>効果として付与するアイテム Id。0 はなし。</summary>

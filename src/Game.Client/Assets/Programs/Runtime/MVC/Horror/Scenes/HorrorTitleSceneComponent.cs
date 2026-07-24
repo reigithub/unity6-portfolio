@@ -48,8 +48,6 @@ namespace Game.Horror.Scenes
 
             if (_newGameButton != null)
                 _newGameButton.gameObject.SetActive(true);
-
-            ResolveSelectable();
         }
 
         public void OpenGameStartMenu()

@@ -10,7 +10,7 @@ namespace Game.Shared.Network.Survivor
         public int TotalKills;
         public int Level;
 
-        public static SurvivorNetworkPlayerResult FromDto(PlayerResultSnapshot dto)
+        public SurvivorNetworkPlayerResult FromDto(PlayerResultSnapshot dto)
         {
             return new SurvivorNetworkPlayerResult
             {
@@ -39,7 +39,7 @@ namespace Game.Shared.Network.Survivor
         public float ClearTime;
         public int TotalKills;
 
-        public static SurvivorNetworkGameResult FromDto(GameResultSnapshot dto)
+        public SurvivorNetworkGameResult FromDto(GameResultSnapshot dto)
         {
             return new SurvivorNetworkGameResult
             {

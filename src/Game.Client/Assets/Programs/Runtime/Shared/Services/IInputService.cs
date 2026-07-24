@@ -21,12 +21,12 @@ namespace Game.Shared.Services
         /// <summary>
         /// プレイヤー入力アクション（移動、ジャンプ、攻撃等）
         /// </summary>
-        ProjectDefaultInputSystem.PlayerActions Player { get; }
+        ProjectInputActions.PlayerActions Player { get; }
 
         /// <summary>
         /// UI入力アクション（メニュー操作、決定、キャンセル等）
         /// </summary>
-        ProjectDefaultInputSystem.UIActions UI { get; }
+        ProjectInputActions.UIActions UI { get; }
 
         /// <summary>
         /// プレイヤー入力を有効化する

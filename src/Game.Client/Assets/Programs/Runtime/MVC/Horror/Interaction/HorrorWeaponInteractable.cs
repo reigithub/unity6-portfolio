@@ -1,3 +1,6 @@
+using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
+
 namespace Game.Horror.Interaction
 {
     /// <summary>
@@ -25,12 +28,29 @@ namespace Game.Horror.Interaction
             base.Interact();
         }
 
+        public override InteractionTargetInfo GetTargetInfo()
+        {
+            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var master))
+                return base.GetTargetInfo();
+
+            return new InteractionTargetInfo
+            {
+                ObjectCategory = master.ObjectCategory,
+                Id = master.Id,
+                Name = master.Name,
+                Description = master.Description,
+                Count = Master.AcquiredCount,
+                IconAssetName = master.IconAssetName
+            };
+        }
+
         private bool TryPickUpWeapon()
         {
-            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var weaponMaster))
+            if (Master == null || !Database.HorrorWeaponMasterTable.TryFindById(Master.AcquiredId, out var master))
                 return false;
 
-            return InventoryService.TryAdd(weaponMaster, Master.AcquiredCount);
+            var inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+            return inventoryService.TryAdd(master.ObjectCategory, master.Id, Master.AcquiredCount, master.MaxCount);
         }
     }
 }

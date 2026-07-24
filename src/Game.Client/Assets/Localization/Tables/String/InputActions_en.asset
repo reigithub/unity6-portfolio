@@ -62,6 +62,46 @@ MonoBehaviour:
     m_Localized: Move
     m_Metadata:
       m_Items: []
+  - m_Id: 11710666294435840
+    m_Localized: Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11710856673894400
+    m_Localized: Aim
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11711954906259456
+    m_Localized: Equip Slot 1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11712643908771840
+    m_Localized: Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11712901485174784
+    m_Localized: Equip Slot 2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11713160324063232
+    m_Localized: Equip Slot 3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11713418957430784
+    m_Localized: Equip Slot 4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11718485202706432
+    m_Localized: Equip Slot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13609069693640704
+    m_Localized: Pause Menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13609530941251584
+    m_Localized: Inventory
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
