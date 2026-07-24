@@ -24,7 +24,6 @@ namespace Game.Core.UI
         [SerializeField] private TabInfo[] _tabs;
 
         private IInputSystemService _inputService;
-        private IInputSystemService InputService => _inputService ??= GameServiceManager.Resolve<IInputSystemService>();
 
         private readonly Subject<int> _onTabChanged = new();
         public Observable<int> OnTabChanged => _onTabChanged.AsObservable();
@@ -33,6 +32,8 @@ namespace Game.Core.UI
 
         public void Initialize()
         {
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+
             for (int i = 0; i < _tabs.Length; i++)
             {
                 int index = i;
@@ -67,7 +68,7 @@ namespace Game.Core.UI
             var first = _tabs[index].FirstSelectable;
             if (first != null && first.IsSelectable() && first.gameObject.activeInHierarchy)
             {
-                InputService.SetSelectedGameObject(first.gameObject);
+                _inputService.SetSelectedGameObject(first.gameObject);
             }
             else
             {
@@ -76,7 +77,7 @@ namespace Game.Core.UI
                 {
                     var selectable = _tabs[index].TabContent.GetComponentsInChildren<Selectable>(false)
                         .FirstOrDefault(x => x.IsSelectable());
-                    if (selectable != null) InputService.SetSelectedGameObject(selectable.gameObject);
+                    if (selectable != null) _inputService.SetSelectedGameObject(selectable.gameObject);
                 }
             }
 

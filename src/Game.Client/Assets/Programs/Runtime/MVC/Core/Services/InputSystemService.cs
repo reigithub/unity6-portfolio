@@ -111,11 +111,14 @@ namespace Game.Core.Services
         public void DisableUI()
             => DisableInputActions(UI.Get().actions);
 
-        public IDisposable BlockPlayer() => BlockInputActions(Player.Get().actions);
+        public IDisposable BlockPlayer()
+            => BlockInputActions(Player.Get().actions);
 
-        public IDisposable BlockPlayer(params InputAction[] ignores) => BlockInputActions(Player.Get().actions, ignores);
+        public IDisposable BlockPlayer(params InputAction[] ignores)
+            => BlockInputActions(Player.Get().actions, ignores);
 
-        public IDisposable BlockUI() => BlockInputActions(UI.Get().actions);
+        public IDisposable BlockUI()
+            => BlockInputActions(UI.Get().actions);
 
         public IDisposable BlockInputAction(InputAction action)
         {
@@ -163,6 +166,8 @@ namespace Game.Core.Services
         }
 
         #endregion
+
+        #region EventSystem
 
         private void ResolveSelectable(GameObject selectedGameObject = null)
         {
@@ -233,11 +238,11 @@ namespace Game.Core.Services
             EventSystem.current.SetSelectedGameObject(go);
         }
 
-        public void UpdateControlScheme(string device)
+        public void UpdateControlScheme(string scheme)
         {
-            bool changed = ControlScheme != device;
-            ControlScheme = device;
-            if (changed) _onControlSchemeChanged.OnNext(device);
+            bool changed = ControlScheme != scheme;
+            ControlScheme = scheme;
+            if (changed) _onControlSchemeChanged.OnNext(scheme);
             ResolveControlScheme(_selectedGameObject);
         }
 
@@ -262,6 +267,8 @@ namespace Game.Core.Services
                 }
             }
         }
+
+        #endregion
 
         #region Rebinding
 
