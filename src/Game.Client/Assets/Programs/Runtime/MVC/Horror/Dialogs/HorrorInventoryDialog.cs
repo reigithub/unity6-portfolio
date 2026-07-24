@@ -16,6 +16,10 @@ namespace Game.Horror.Dialogs
         public ObjectCategory EquipCategory { get; init; }
         public int EquipId { get; init; }
         public bool HasEquipRequest => EquipCategory != ObjectCategory.None;
+
+        public ObjectCategory UseCategory { get; init; }
+        public int UseId { get; init; }
+        public bool HasUseRequest => UseCategory != ObjectCategory.None;
     }
 
     public class HorrorInventoryDialog : GameDialogScene<HorrorInventoryDialog, HorrorInventoryDialogComponent, HorrorInventoryResult>
@@ -24,6 +28,7 @@ namespace Game.Horror.Dialogs
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
+        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
         private HorrorInventoryResult _result;
 
@@ -88,7 +93,18 @@ namespace Game.Horror.Dialogs
                     switch (ctx.ContextActionType)
                     {
                         case ContextActionType.Use:
-                            // ダイアログを閉じて回復アイテムを使用
+                            // HP 満タン時は使用不可（無反応でダイアログに留まる）
+                            if (_playerService.IsHealthFull)
+                                break;
+
+                            _result = new HorrorInventoryResult
+                            {
+                                EquipCategory = _result.EquipCategory,
+                                EquipId = _result.EquipId,
+                                UseCategory = info.ObjectCategory,
+                                UseId = info.ObjectId,
+                            };
+                            TrySetResult(_result);
                             break;
                         case ContextActionType.Inspect:
                             // アイテム詳細ダイアログを実装して開く

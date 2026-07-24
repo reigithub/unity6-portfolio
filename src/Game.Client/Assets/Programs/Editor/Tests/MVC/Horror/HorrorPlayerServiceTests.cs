@@ -130,5 +130,70 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_service.CurrentHealth, Is.EqualTo(0));
         }
+
+        // 最大 HP：マスタ由来のランタイム値。セーブリポジトリ非経由のためロード不要・Dirty 化しない。
+
+        [Test]
+        public void MaxHealth_Initial_IsZero()
+        {
+            Assert.That(_service.MaxHealth, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SetMaxHealth_RecordsValue()
+        {
+            _service.SetMaxHealth(100);
+
+            Assert.That(_service.MaxHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void SetMaxHealth_DoesNotMarkDirty()
+        {
+            _service.SetMaxHealth(100);
+
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        // 満タン判定：MaxHealth 未設定（0）は満タン扱いにしない（誤って使用不能にならない）。
+
+        [Test]
+        public async Task IsHealthFull_AtMax_IsTrue()
+        {
+            await LoadDefaultData();
+            _service.SetMaxHealth(100);
+            _service.SetCurrentHealth(100);
+
+            Assert.That(_service.IsHealthFull, Is.True);
+        }
+
+        [Test]
+        public async Task IsHealthFull_BelowMax_IsFalse()
+        {
+            await LoadDefaultData();
+            _service.SetMaxHealth(100);
+            _service.SetCurrentHealth(99);
+
+            Assert.That(_service.IsHealthFull, Is.False);
+        }
+
+        [Test]
+        public async Task IsHealthFull_OverMax_IsTrue()
+        {
+            await LoadDefaultData();
+            _service.SetMaxHealth(100);
+            _service.SetCurrentHealth(150);
+
+            Assert.That(_service.IsHealthFull, Is.True);
+        }
+
+        [Test]
+        public async Task IsHealthFull_MaxNotSet_IsFalse()
+        {
+            await LoadDefaultData();
+            _service.SetCurrentHealth(40);
+
+            Assert.That(_service.IsHealthFull, Is.False);
+        }
     }
 }

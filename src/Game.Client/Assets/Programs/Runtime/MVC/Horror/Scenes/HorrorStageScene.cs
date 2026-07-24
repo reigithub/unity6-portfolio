@@ -182,8 +182,14 @@ namespace Game.Horror.Scenes
         private async UniTask ShowInventoryDialogAsync()
         {
             var result = await HorrorInventoryDialog.RunAsync();
-            if (result.HasEquipRequest && _player != null)
-                _player.RequestEquip(result.EquipCategory, result.EquipId);
+            if (_player != null)
+            {
+                if (result.HasUseRequest)
+                    _player.RequestUseItem(result.UseCategory, result.UseId);
+
+                if (result.HasEquipRequest)
+                    _player.RequestEquip(result.EquipCategory, result.EquipId);
+            }
         }
     }
 }

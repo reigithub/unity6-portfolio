@@ -133,6 +133,12 @@ namespace Game.Horror.Player
         private ObjectCategory _requestedEquipCategory;
         private int _requestedEquipId;
 
+        // アイテム使用（インベントリ Use 予約呼び出し）：閉じたダイアログから (category, id) 直値で要求される。遷移時キャッシュ（適用経過は UsingItemState ローカル）
+        private bool _useItemRequested;
+        private ObjectCategory _requestedUseCategory;
+        private int _requestedUseId;
+        private HorrorItemMaster _pendingUseItemMaster;
+
         // リロード：SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private bool _reloadTriggered;
 
@@ -234,13 +240,11 @@ namespace Game.Horror.Player
 
             ApplyPlayerMaster();
 
+            // マスタ適用後の実効最大 HP を共有する（インベントリの満タン判定等が参照する）
+            _playerService.SetMaxHealth(_maxHealth);
+
             // 残 HP をセーブデータから復元（0 以下=旧セーブ・新規データは Max へ正規化し、結果を書き戻す）
-            _currentHealth = NormalizeLoadedHealth(_playerService.CurrentHealth, _maxHealth);
-            _playerService.SetCurrentHealth(_currentHealth);
-            if (_healthView != null)
-                _healthView.UpdateHealth(_currentHealth, _maxHealth);
-            else
-                Debug.LogError("HorrorHealthView が未配線です。HP ゲージは表示されませんが継続します。", this);
+            ApplyHealth(NormalizeLoadedHealth(_playerService.CurrentHealth, _maxHealth));
 
             _equipmentsView.Initialize();
 
@@ -369,10 +373,35 @@ namespace Game.Horror.Player
             _requestedEquipId = id;
         }
 
+        /// <summary>
+        /// インベントリの Use アクションからアイテム使用を要求する。フラグと対象を記録するのみで、
+        /// 検証・消費は Idle/Moving ステートの Update（<see cref="TryUseItem"/>）が次フレーム以降に行う。
+        /// </summary>
+        /// <param name="category">使用対象のカテゴリ。</param>
+        /// <param name="id">使用対象の ID。</param>
+        public void RequestUseItem(ObjectCategory category, int id)
+        {
+            _useItemRequested = true;
+            _requestedUseCategory = category;
+            _requestedUseId = id;
+        }
+
         #region IDamageable
 
         /// <summary>死亡フラグ（体力が 0 以下）</summary>
         public bool IsDead => _currentHealth <= 0;
+
+        /// <summary>
+        /// 残 HP を更新し、セーブデータ同期と HUD 値反映を一括で行う（HP 書き込みの単一点）。
+        /// 表示キック（Notify）は行わない（必要な呼び出し側のみが行う）。
+        /// </summary>
+        private void ApplyHealth(int newHealth)
+        {
+            _currentHealth = newHealth;
+            _playerService.SetCurrentHealth(newHealth);
+            if (_healthView != null)
+                _healthView.UpdateHealth(newHealth, _maxHealth);
+        }
 
         /// <summary>
         /// ダメージを受ける。死亡中・無敵時間中は無視する。
@@ -385,14 +414,9 @@ namespace Game.Horror.Player
             if (IsInvincible(Time.time, _lastDamageTime, _invincibleSeconds)) return;
 
             _lastDamageTime = Time.time;
-            _currentHealth = CalculateDamagedHealth(_currentHealth, damage);
-            _playerService.SetCurrentHealth(_currentHealth);
-
+            ApplyHealth(CalculateDamagedHealth(_currentHealth, damage));
             if (_healthView != null)
-            {
-                _healthView.UpdateHealth(_currentHealth, _maxHealth);
                 _healthView.Notify();
-            }
 
             _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _currentHealth, _maxHealth));
 
@@ -468,11 +492,10 @@ namespace Game.Horror.Player
             }
 
             // 身体占有（インタラクト）中・死亡後は移動・他アクションを受け付けない
-            var restrained = _stateMachine.IsProcessing()
-                && (_stateMachine.IsCurrentState<InteractingState>() || _stateMachine.IsCurrentState<DeadState>());
+            var restrained = IsActiveState<InteractingState>() || IsActiveState<DeadState>();
 
-            // リロード硬直中は攻撃・インタラクト・リロード再入力を受け付けない（完了後の遅延発火も禁止するため、フラグ自体を立てない）
-            var reloading = _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>();
+            // リロード・アイテム使用の硬直中は攻撃・インタラクト・リロード再入力を受け付けない（完了後の遅延発火も禁止するため、フラグ自体を立てない）
+            var actionLocked = IsActiveState<ReloadingState>() || IsActiveState<UsingItemState>();
 
             if (!restrained)
             {
@@ -483,7 +506,7 @@ namespace Game.Horror.Player
                 // 走り入力（モード別）。しゃがみ状態が確定した後に判定する
                 UpdateSprintInput();
                 // インタラクト起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
-                if (!reloading) UpdateInteractInput();
+                if (!actionLocked) UpdateInteractInput();
             }
             else
             {
@@ -508,7 +531,7 @@ namespace Game.Horror.Player
             }
 
             // 攻撃（射撃）起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
-            if (!restrained && !reloading && Player.Fire.WasPressedThisFrame() && IsGrounded())
+            if (!restrained && !actionLocked && Player.Fire.WasPressedThisFrame() && IsGrounded())
             {
                 _attackTriggered = true;
             }
@@ -525,7 +548,7 @@ namespace Game.Horror.Player
             }
 
             // リロード起動入力：フラグを立てるのみ。実際の起動・遷移は Idle/Moving ステートが行う
-            if (!restrained && !reloading && Player.Reload.WasPressedThisFrame() && IsGrounded())
+            if (!restrained && !actionLocked && Player.Reload.WasPressedThisFrame() && IsGrounded())
             {
                 _reloadTriggered = true;
             }
@@ -533,12 +556,8 @@ namespace Game.Horror.Player
 
         private bool CanJump()
         {
-            if (!_stateMachine.IsProcessing())
-                return false;
-
             // Idle/Moving状態でのみジャンプ可能（しゃがみ中は不可）
-            var canJumpFromState = _stateMachine.IsCurrentState<IdleState>() ||
-                                   _stateMachine.IsCurrentState<MovingState>();
+            var canJumpFromState = IsActiveState<IdleState>() || IsActiveState<MovingState>();
 
             return canJumpFromState && IsGrounded() && !_isCrouching && !_isAiming;
         }
@@ -688,6 +707,41 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 立てられたアイテム使用予約を消費し、マスタ解決・使用効果・所持数・残 HP を検証して
+        /// UsingItemState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
+        /// 実際の消費・回復適用は UsingItemState が行う。発火時点で HP 満タンなら消費せず破棄する
+        /// （回復完了後に発火する再予約など、ダイアログ側の満タン無反応をすり抜けた予約への再検証）。
+        /// </summary>
+        /// <returns>UsingItemState へ遷移すべきなら true。</returns>
+        private bool TryUseItem()
+        {
+            if (!_useItemRequested)
+                return false;
+
+            _useItemRequested = false;
+
+            // マスタは id のみで引くため、Item 以外のカテゴリ要求を誤解決しないよう先に弾く
+            if (_requestedUseCategory != ObjectCategory.Item)
+                return false;
+
+            if (!_dbService.Database.HorrorItemMasterTable.TryFindById(_requestedUseId, out var itemMaster))
+                return false;
+
+            if (!itemMaster.HasEffect)
+                return false;
+
+            if (_inventoryService.GetCount(_requestedUseCategory, _requestedUseId) <= 0)
+                return false;
+
+            // 満タン判定はサービスの共有述語で行う（_currentHealth は ApplyHealth で常時同期済み）
+            if (_playerService.IsHealthFull)
+                return false;
+
+            _pendingUseItemMaster = itemMaster;
+            return true;
+        }
+
+        /// <summary>
         /// ショートカット4スロット＋現在装備中の Weapon をマスター解決し、武器モデルの事前ロード対象として列挙する。
         /// 同一 Id は重複排除する。
         /// </summary>
@@ -805,11 +859,29 @@ namespace Game.Horror.Player
             => Mathf.Max(0, current - damage);
 
         /// <summary>
+        /// 回復後の残 HP を算出する（最大値を超えない）。
+        /// </summary>
+        internal static int CalculateHealedHealth(int current, int amount, int max)
+            => Mathf.Min(max, current + amount);
+
+        /// <summary>
+        /// アイテム使用の経過時間に応じた適用済み回復総量を算出する。毎フレームの加算ではなく
+        /// 経過比率からの再計算のため丸め誤差が蓄積せず、duration 経過時点で必ず effect 全量に到達する。
+        /// duration が 0 以下ならゼロ除算を避けて即全量とみなす。
+        /// </summary>
+        internal static int CalculateAppliedHeal(int effect, float elapsed, float duration)
+            => duration > 0f ? Mathf.RoundToInt(effect * Mathf.Clamp01(elapsed / duration)) : effect;
+
+        /// <summary>
         /// セーブデータからロードした残 HP を正規化する。0 以下（旧セーブの既定値・新規データ・不正値）は
         /// 最大値へ、最大値超（マスター変更後の旧セーブ）は最大値へクランプする。
         /// </summary>
         internal static int NormalizeLoadedHealth(int saved, int max)
             => saved <= 0 ? max : Mathf.Min(saved, max);
+
+        /// <summary>ステートマシンが動作中かつ現在ステートが指定型かを判定する（ステート種別チェックの単一イディオム）。</summary>
+        private bool IsActiveState<TState>() where TState : State<HorrorPlayerController, StateEvent>
+            => _stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<TState>();
 
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
@@ -859,13 +931,14 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// エイム入力（HOLD）を処理する。武器未装備では構えられない。
-        /// 装備切替の硬直中は強制解除する（HOLD 継続なら硬直明けに自動で再エイムされる）。
+        /// 装備切替・アイテム使用（両手が塞がる）の硬直中は強制解除する（HOLD 継続なら硬直明けに自動で再エイムされる）。
         /// </summary>
         private void UpdateAimInput()
         {
             _isAiming = Player.Aim.IsPressed()
                         && _weaponMaster != null
-                        && !(_stateMachine.IsProcessing() && _stateMachine.IsCurrentState<EquippingState>());
+                        && !IsActiveState<EquippingState>()
+                        && !IsActiveState<UsingItemState>();
         }
 
         /// <summary>
@@ -960,6 +1033,10 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, ReloadingState>(StateEvent.Reload);
             _stateMachine.AddTransition<ReloadingState, IdleState>(StateEvent.EndReload);
 
+            _stateMachine.AddTransition<IdleState, UsingItemState>(StateEvent.UseItem);
+            _stateMachine.AddTransition<MovingState, UsingItemState>(StateEvent.UseItem);
+            _stateMachine.AddTransition<UsingItemState, IdleState>(StateEvent.EndUseItem);
+
             _stateMachine.AddTransition<IdleState>(StateEvent.Idle);
             _stateMachine.AddTransition<DeadState>(StateEvent.Dead);
 
@@ -985,6 +1062,8 @@ namespace Game.Horror.Player
             EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
             Reload, // リロード開始: Idle/Moving → Reloading
             EndReload, // リロード終了（ReloadDuration経過）: Reloading → Idle
+            UseItem, // アイテム使用開始: Idle/Moving → UsingItem
+            EndUseItem, // アイテム使用終了（EffectApplyDuration経過）: UsingItem → Idle
             Dead,
         }
 
@@ -1016,6 +1095,13 @@ namespace Game.Horror.Player
                 if (ctx.TryAttack())
                 {
                     StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // アイテム使用起動チェック（装備予約と併存した場合は回復を先に実行する）
+                if (ctx.TryUseItem())
+                {
+                    StateMachine.Transition(StateEvent.UseItem);
                     return;
                 }
 
@@ -1075,6 +1161,13 @@ namespace Game.Horror.Player
                 if (ctx.TryAttack())
                 {
                     StateMachine.Transition(StateEvent.Attack);
+                    return;
+                }
+
+                // アイテム使用起動チェック（装備予約と併存した場合は回復を先に実行する）
+                if (ctx.TryUseItem())
+                {
+                    StateMachine.Transition(StateEvent.UseItem);
                     return;
                 }
 
@@ -1352,6 +1445,72 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// アイテム使用（回復）実行中の状態。EffectApplyDuration（アイテムマスター）の間、移動・視点を許可しつつ
+        /// 硬直として滞在し、経過比率に応じた回復を毎フレーム差分適用する（漸進適用。完了時一括ではない）。
+        /// アイテムは開始時点で消費するため、死亡による中断時は途中までの回復適用・消費済みのまま終わる。
+        /// 攻撃・リロード・インタラクトの起動は入力側・遷移構造で禁止される。
+        /// </summary>
+        private class UsingItemState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+            private int _appliedHeal;
+
+            public override void Enter()
+            {
+                var ctx = Context;
+                // インスタンスはキャッシュ再利用されるため経過時間・適用済み量を必ずリセット
+                _elapsed = 0f;
+                _appliedHeal = 0;
+
+                // 開始時点で消費を確定する。TryUseItem の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
+                if (!ctx._inventoryService.TryConsume(ObjectCategory.Item, ctx._pendingUseItemMaster.Id, 1))
+                {
+                    Debug.LogError($"アイテム消費に失敗したため使用を中止します Id={ctx._pendingUseItemMaster.Id}", ctx);
+                    StateMachine.Transition(StateEvent.EndUseItem);
+                }
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.UpdateRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+
+                _elapsed += Time.deltaTime;
+                ApplyProgressiveHeal(ctx);
+                ctx.UpdateAimPose();
+
+                if (_elapsed >= ctx._pendingUseItemMaster.EffectApplyDuration)
+                    StateMachine.Transition(StateEvent.EndUseItem);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+
+            public override void Exit()
+            {
+                // 中断（死亡）時も残量の一括適用はしない（途中までの回復のみが残る）
+                Context._pendingUseItemMaster = null;
+            }
+
+            // 経過比率から適用済み総量を再計算し、前フレームとの差分のみを加算する（丸め誤差の蓄積防止）
+            private void ApplyProgressiveHeal(HorrorPlayerController ctx)
+            {
+                var master = ctx._pendingUseItemMaster;
+                var applied = CalculateAppliedHeal(master.Effect, _elapsed, master.EffectApplyDuration);
+                var diff = applied - _appliedHeal;
+                if (diff <= 0) return;
+
+                _appliedHeal = applied;
+                ctx.ApplyHealth(CalculateHealedHealth(ctx._currentHealth, diff, ctx._maxHealth));
+            }
+        }
+
+        /// <summary>
         /// 死亡状態（終端）
         /// 復帰は GameOverDialog のシーン遷移＝プレイヤー再生成で行われる）。
         /// 入力は UpdateInput の restrained（死亡込み）で遮断し、水平移動を止め重力のみ適用する。
@@ -1592,11 +1751,12 @@ namespace Game.Horror.Player
             if (_reticleView != null)
                 _reticleView.UpdatePose(_isAiming);
 
-            // エイム中・リロード中は両 HUD の表示を維持する（keepVisible の唯一の計算点）
-            var keepVisible = _isAiming
-                || (_stateMachine != null && _stateMachine.IsProcessing() && _stateMachine.IsCurrentState<ReloadingState>());
+            // エイム中・リロード中は両 HUD の表示を維持する（keepVisible の唯一の計算点）。
+            // アイテム使用（回復）中は HP 側のみ維持し、残弾 HUD は巻き込まない
+            var keepVisible = _isAiming || IsActiveState<ReloadingState>();
+            var usingItem = IsActiveState<UsingItemState>();
             UpdateAmmoView(keepVisible);
-            UpdateHealthView(keepVisible);
+            UpdateHealthView(keepVisible || usingItem);
         }
 
         /// <summary>

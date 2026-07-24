@@ -7,5 +7,7 @@ namespace Game.Shared.Scriptable.Database.Tables
     {
         public ObjectCategory ObjectCategory => ObjectCategory.Item;
         public int ObjectId => Id;
+
+        public bool HasEffect => Effect > 0;
     }
 }

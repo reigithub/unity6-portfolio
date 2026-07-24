@@ -47,5 +47,20 @@ namespace Game.Horror.Services
             data.CurrentHealth = health;
             _repository.MarkDirty();
         }
+
+        /// <summary>
+        /// 最大 HP（0 = 未設定）。他メンバーと異なりマスタ由来のランタイム値であり、
+        /// セーブリポジトリを経由しない（Dirty 化もしない）。
+        /// </summary>
+        public int MaxHealth { get; private set; }
+
+        /// <summary>最大 HP を記録する。プレイヤー初期化時にマスタ適用後の実効値を共有する。</summary>
+        public void SetMaxHealth(int maxHealth)
+        {
+            MaxHealth = maxHealth;
+        }
+
+        /// <summary>HP が満タンで回復アイテムを使用できないか。MaxHealth 未設定（0 以下）は満タン扱いにしない。</summary>
+        public bool IsHealthFull => MaxHealth > 0 && CurrentHealth >= MaxHealth;
     }
 }

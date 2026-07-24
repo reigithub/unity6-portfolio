@@ -10,5 +10,6 @@ namespace Game.Shared.Interfaces
         string Description { get; }
         string IconAssetName { get; }
         int MaxCount { get; }
+        bool HasEffect { get; }
     }
 }

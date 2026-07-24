@@ -1,4 +1,5 @@
 using System;
+using Game.Shared.Interfaces;
 
 namespace Game.Shared.Enums
 {
@@ -21,11 +22,17 @@ namespace Game.Shared.Enums
         Shortcut,
     }
 
-    public static partial class ObjectCategoryExtensions
+    public static partial class ObjectInfoExtensions
     {
-        private static readonly ContextActionType[] _itemActions =
+        private static readonly ContextActionType[] _effectiveItemActions =
         {
             ContextActionType.Use,
+            ContextActionType.Inspect,
+            ContextActionType.Discard,
+        };
+
+        private static readonly ContextActionType[] _itemActions =
+        {
             ContextActionType.Inspect,
             ContextActionType.Discard,
         };
@@ -40,12 +47,12 @@ namespace Game.Shared.Enums
         private static readonly ContextActionType[] _empty = Array.Empty<ContextActionType>();
 
         /// <summary>スロット種別に対応するアクション列を返す。未対応種別は空。</summary>
-        public static ContextActionType[] ToContextActions(this ObjectCategory category)
+        public static ContextActionType[] ToContextActions(this IObjectInfo info)
         {
-            switch (category)
+            switch (info.ObjectCategory)
             {
                 case ObjectCategory.Item:
-                    return _itemActions;
+                    return info.HasEffect ? _effectiveItemActions : _itemActions;
                 case ObjectCategory.Weapon:
                     return _weaponActions;
                 default:
@@ -53,5 +60,4 @@ namespace Game.Shared.Enums
             }
         }
     }
-
 }

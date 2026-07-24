@@ -106,7 +106,7 @@ namespace Game.Horror.Dialogs
             if (IsSubmenuOpen()) return;
             if (slot == null || slot.SlotInfo == null) return;
 
-            var entries = slot.SlotInfo.ObjectCategory.ToContextActions();
+            var entries = slot.SlotInfo.ToContextActions();
             if (entries.Length == 0) return;
 
             _slotView = slot;
