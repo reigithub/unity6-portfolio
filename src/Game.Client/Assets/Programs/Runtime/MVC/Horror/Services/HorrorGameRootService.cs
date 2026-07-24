@@ -1,21 +1,15 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Game.Core.Services;
 using Game.Horror.Interaction;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
-using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services
 {
     public class HorrorGameRootService : IHorrorGameRootService
     {
         private readonly IAddressableAssetService _assetService;
-        private readonly IInputSystemService _inputSystemService;
-        private readonly IMessagePipeService _messagePipeService;
-        private readonly IHorrorOptionSaveRepository _optionRepository;
-        private readonly ILocalizationService _localizationService;
 
         private HorrorGameRootContainer _container;
 
