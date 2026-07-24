@@ -380,7 +380,8 @@ namespace Game.Core.Services
             // リバインド中はゲーム入力・UI入力を停止する（誤発火・誤確定防止）。
             // enabled なアクションへのリバインドは InvalidOperationException になるためマップを無効化する。
             var wasEnabled = action.actionMap.enabled;
-            action.actionMap.Disable();
+            // action.actionMap.Disable();
+            DisableInputActions(action.actionMap.actions);
             var uiBlock = BlockUI();
 
             InputActionRebindingExtensions.RebindingOperation currentOp = null;
@@ -393,7 +394,8 @@ namespace Game.Core.Services
                 currentOp?.Dispose();
                 currentOp = null;
                 uiBlock.Dispose();
-                if (wasEnabled) action.actionMap.Enable();
+                // if (wasEnabled) action.actionMap.Enable();
+                if (wasEnabled) EnableInputActions(action.actionMap.actions);
             }
 
             void RebindAt(int listIndex)
