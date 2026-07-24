@@ -354,7 +354,7 @@ namespace Game.Tests.PlayMode
         [UnityTest]
         public IEnumerator BlockPlayer_DoesNotAffectUIInput()
         {
-            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.AddDevice<Mouse>();
             _service.Startup();
             _service.EnablePlayer();
             yield return null;
@@ -364,7 +364,7 @@ namespace Game.Tests.PlayMode
 
             using (_service.BlockPlayer())
             {
-                Press(keyboard.escapeKey);
+                Press(mouse.leftButton);
                 yield return null;
             }
 
