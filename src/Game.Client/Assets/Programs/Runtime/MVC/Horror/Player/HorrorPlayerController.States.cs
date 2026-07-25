@@ -210,7 +210,7 @@ namespace Game.Horror.Player
             public override void Enter()
             {
                 var ctx = Context;
-                ctx._verticalVelocity = ctx._jump;
+                ctx._verticalVelocity = ctx._playerMaster.Jump;
                 ctx._jumpTriggered = false;
             }
 
@@ -512,7 +512,7 @@ namespace Game.Horror.Player
                 if (diff <= 0) return;
 
                 _appliedHeal = applied;
-                ctx.ApplyHealth(CalculateHealedHealth(ctx._currentHealth, diff, ctx._maxHealth));
+                ctx.ApplyHealth(CalculateHealedHealth(ctx._currentHealth, diff, ctx._playerMaster.MaxHealth));
             }
         }
 
