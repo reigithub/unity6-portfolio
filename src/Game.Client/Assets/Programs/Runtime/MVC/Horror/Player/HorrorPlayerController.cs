@@ -163,9 +163,9 @@ namespace Game.Horror.Player
         // カメラ揺れ設定（ヘッドボブ figure-8 ＋ ストライド同期ロール、停止時はアイドルスウェイ）
         private Vector3 _cameraBasePosition;
         private Vector3 _standCameraBasePosition; // 立ち目線の不変参照点（しゃがみ補間の基準）
-        private float _bobPhase;
+        private float _headBobPhase;
         private float _idlePhase;         // アイドルスウェイの常時位相
-        private float _moveBobWeight;     // 0=停止, 1=移動（ease）。cameraShake とは分離
+        private float _moveHeadBobWeight; // 0=停止, 1=移動（ease）。cameraShake とは分離
         private float _cameraShake = 1f;
 
         // 足音の歩幅積算（m）。しゃがみ・非接地・入力ブロック中はリセット
@@ -1030,7 +1030,7 @@ namespace Game.Horror.Player
 
         /// <summary>
         /// カメラ揺れを適用。移動中は figure-8 ヘッドボブ、停止中はアイドルスウェイ（呼吸揺れ）をクロスフェードする。
-        /// 全体強度は CameraShake でスケール。ApplyRotation 直後に呼ばれ、表示用 pitch（リコイル込み）を維持しつつ roll を合成する。
+        /// 全体強度は CameraShake でスケール。UpdateRotation・UpdateCrouchPose の後に呼ばれ、表示用 pitch（リコイル込み）を維持しつつ roll を合成する。
         /// </summary>
         private void UpdateHeadBob()
         {
@@ -1041,7 +1041,7 @@ namespace Game.Horror.Player
             {
                 _mainCamera.transform.localPosition = _cameraBasePosition;
                 _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, 0f);
-                _moveBobWeight = 0f;
+                _moveHeadBobWeight = 0f;
                 return;
             }
 
@@ -1050,29 +1050,29 @@ namespace Game.Horror.Player
             var active = IsGrounded() && IsMoving();
             var running = IsRunning();
 
-            var ease = 1f - Mathf.Exp(-_playerMaster.BobAmplitudeResponse * Time.deltaTime);
-            _moveBobWeight = Mathf.Lerp(_moveBobWeight, active ? 1f : 0f, ease);
+            var ease = 1f - Mathf.Exp(-_playerMaster.HeadBobAmplitudeResponse * Time.deltaTime);
+            _moveHeadBobWeight = Mathf.Lerp(_moveHeadBobWeight, active ? 1f : 0f, ease);
 
             if (active)
-                _bobPhase += (running ? _playerMaster.BobRunSpeed : _playerMaster.BobWalkSpeed) * Time.deltaTime;
+                _headBobPhase += (running ? _playerMaster.HeadBobRunSpeed : _playerMaster.HeadBobWalkSpeed) * Time.deltaTime;
             _idlePhase += _playerMaster.IdleSwaySpeed * Time.deltaTime; // アイドルは常時進む
 
             // ヘッドボブ（移動）：縦は位相、横はストライド（半周期）＝figure-8。横揺れの知覚はロールが主成分。
-            var moveAmplitude = (running ? _playerMaster.BobRunAmplitude : _playerMaster.BobWalkAmplitude) * _moveBobWeight;
-            var moveRoll = (running ? _playerMaster.BobRunRoll : _playerMaster.BobWalkRoll) * _moveBobWeight;
-            var bobX = Mathf.Sin(_bobPhase * 0.5f) * moveAmplitude * _playerMaster.BobHorizontalRatio;
-            var bobY = Mathf.Sin(_bobPhase) * moveAmplitude;
-            var bobRoll = Mathf.Sin(_bobPhase * 0.5f) * moveRoll;
+            var moveAmplitude = (running ? _playerMaster.HeadBobRunAmplitude : _playerMaster.HeadBobWalkAmplitude) * _moveHeadBobWeight;
+            var moveRoll = (running ? _playerMaster.HeadBobRunRoll : _playerMaster.HeadBobWalkRoll) * _moveHeadBobWeight;
+            var headBobX = Mathf.Sin(_headBobPhase * 0.5f) * moveAmplitude * _playerMaster.HeadBobHorizontalRatio;
+            var headBobY = Mathf.Sin(_headBobPhase) * moveAmplitude;
+            var headBobRoll = Mathf.Sin(_headBobPhase * 0.5f) * moveRoll;
 
             // アイドルスウェイ（停止）：別周波数の遅い sin を重ねて有機的に
-            var idleWeight = 1f - _moveBobWeight;
-            var idleX = Mathf.Sin(_idlePhase * 1.3f) * _playerMaster.IdleSwayAmplitude * _playerMaster.BobHorizontalRatio * idleWeight;
+            var idleWeight = 1f - _moveHeadBobWeight;
+            var idleX = Mathf.Sin(_idlePhase * 1.3f) * _playerMaster.IdleSwayAmplitude * _playerMaster.HeadBobHorizontalRatio * idleWeight;
             var idleY = Mathf.Sin(_idlePhase) * _playerMaster.IdleSwayAmplitude * idleWeight;
             var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * _playerMaster.IdleSwayRoll * idleWeight;
 
             // 合算 → 全体強度 CameraShake × エイム減衰（エイム中は _aimShakeWeight が 0 へ減衰）
-            var offset = new Vector3(bobX + idleX, bobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
-            var roll = (bobRoll + idleRoll) * _cameraShake * _aimShakeWeight;
+            var offset = new Vector3(headBobX + idleX, headBobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
+            var roll = (headBobRoll + idleRoll) * _cameraShake * _aimShakeWeight;
 
             _mainCamera.transform.localPosition = _cameraBasePosition + offset;
             _mainCamera.transform.localEulerAngles = new Vector3(GetDisplayPitch(), 0f, roll);

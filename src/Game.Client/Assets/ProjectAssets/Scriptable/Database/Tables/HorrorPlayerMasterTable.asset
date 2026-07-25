@@ -26,14 +26,14 @@ MonoBehaviour:
     _aimTransitionSpeed: 8
     _aimRotationMultiplier: 0.4
     _aimShakeFadeSeconds: 1
-    _bobWalkAmplitude: 0.04
-    _bobRunAmplitude: 0.06
-    _bobWalkSpeed: 10
-    _bobRunSpeed: 15
-    _bobHorizontalRatio: 0.5
-    _bobWalkRoll: 0.05
-    _bobRunRoll: 0.1
-    _bobAmplitudeResponse: 10
+    _headBobWalkAmplitude: 0.04
+    _headBobRunAmplitude: 0.06
+    _headBobWalkSpeed: 10
+    _headBobRunSpeed: 15
+    _headBobHorizontalRatio: 0.5
+    _headBobWalkRoll: 0.05
+    _headBobRunRoll: 0.1
+    _headBobAmplitudeResponse: 10
     _idleSwaySpeed: 1.2
     _idleSwayAmplitude: 0.05
     _idleSwayRoll: 0.01
