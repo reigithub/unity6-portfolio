@@ -213,7 +213,7 @@ namespace Game.Horror.Player
             var equippedWeapon = EquippedWeaponMaster;
             if (equippedWeapon != null) _weaponView.ShowImmediate(equippedWeapon);
 
-            _weaponView.PreloadAsync(ResolveEquippableMasters()).Forget();
+            _weaponView.PreloadAsync(_equipmentService.GetEquippableWeaponMasters()).Forget();
 
             TryGetComponent(out _characterController);
 
@@ -653,35 +653,6 @@ namespace Game.Horror.Player
 
             _pendingUseItemMaster = itemMaster;
             return true;
-        }
-
-        /// <summary>
-        /// ショートカット4スロット＋現在装備中の Weapon をマスター解決し、武器モデルの事前ロード対象として列挙する。
-        /// 同一 Id は重複排除する。
-        /// </summary>
-        private List<HorrorWeaponMaster> ResolveEquippableMasters()
-        {
-            var masters = new List<HorrorWeaponMaster>();
-            var seenIds = new HashSet<int>();
-
-            for (var i = 0; i < HorrorEquipmentConstants.MaxEquipmentSlotCount; i++)
-            {
-                if (_equipmentService.TryGetSlot(i, out var slot)
-                    && slot.ObjectCategory == ObjectCategory.Weapon
-                    && seenIds.Add(slot.Id)
-                    && _dbService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
-                {
-                    masters.Add(slotMaster);
-                }
-            }
-
-            var equippedWeapon = EquippedWeaponMaster;
-            if (equippedWeapon != null && seenIds.Add(equippedWeapon.Id))
-            {
-                masters.Add(equippedWeapon);
-            }
-
-            return masters;
         }
 
         /// <summary>

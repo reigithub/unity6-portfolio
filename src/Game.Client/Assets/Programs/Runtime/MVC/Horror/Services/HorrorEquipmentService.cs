@@ -101,6 +101,34 @@ namespace Game.Horror.Services
             }
         }
 
+        /// <summary>
+        /// ショートカット登録＋装備中の武器をマスター解決し、同一 Id を重複排除して列挙する（スロット0→3→装備中の順）。
+        /// マスター未解決のスロット登録は無音でスキップする（ロード時正規化で通常は発生しない）。
+        /// </summary>
+        public List<HorrorWeaponMaster> GetEquippableWeaponMasters()
+        {
+            var masters = new List<HorrorWeaponMaster>();
+
+            for (var i = 0; i < MaxEquipmentSlotCount; i++)
+            {
+                if (TryGetSlot(i, out var slot)
+                    && slot.ObjectCategory == ObjectCategory.Weapon
+                    && !masters.Exists(m => m.Id == slot.Id)
+                    && _databaseService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
+                {
+                    masters.Add(slotMaster);
+                }
+            }
+
+            var equippedWeapon = EquippedWeaponMaster;
+            if (equippedWeapon != null && !masters.Exists(m => m.Id == equippedWeapon.Id))
+            {
+                masters.Add(equippedWeapon);
+            }
+
+            return masters;
+        }
+
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
         public bool TrySetSlot(int index, ObjectCategory slotType, int id)
         {

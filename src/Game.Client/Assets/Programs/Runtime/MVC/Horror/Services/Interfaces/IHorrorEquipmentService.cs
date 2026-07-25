@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
 using Game.Shared.Scriptable.Database.Tables;
@@ -21,6 +22,9 @@ namespace Game.Horror.Services.Interfaces
 
         /// <summary>装備中武器の解決済みマスター（null = 未装備・未ロード。解決失敗時は LogError の上 null）。</summary>
         HorrorWeaponMaster EquippedWeaponMaster { get; }
+
+        /// <summary>ショートカット登録＋装備中の武器をマスター解決し、同一 Id を重複排除して列挙する（スロット0→3→装備中の順）。</summary>
+        List<HorrorWeaponMaster> GetEquippableWeaponMasters();
 
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
         bool TrySetSlot(int index, ObjectCategory slotType, int id);

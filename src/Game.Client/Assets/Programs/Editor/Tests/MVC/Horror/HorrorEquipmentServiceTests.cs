@@ -411,6 +411,7 @@ namespace Game.Tests.MVC.Horror
         public async Task EquippedWeaponMaster_MasterNotFound_LogsErrorOnceAndReturnsNull()
         {
             await LoadDefaultData();
+            SetupRealDatabase(7); // 装備する Id=5 はテーブル未登録 → 解決失敗（不変条件違反）経路
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
@@ -435,6 +436,65 @@ namespace Game.Tests.MVC.Horror
             _service.TryEquip(ObjectCategory.Weapon, 7);
             Assert.That(_service.EquippedWeaponMaster, Is.Not.Null);
             Assert.That(_service.EquippedWeaponMaster.Id, Is.EqualTo(7));
+        }
+
+        // 装備候補一覧（GetEquippableWeaponMasters）：スロット0→3→装備中の順で武器のみを解決し、
+        // 同一 Id は重複排除、マスター未解決のスロット登録は無音でスキップする。
+
+        [Test]
+        public async Task GetEquippableWeaponMasters_NoSlotsNoEquip_ReturnsEmpty()
+        {
+            await LoadDefaultData();
+
+            Assert.That(_service.GetEquippableWeaponMasters(), Is.Empty);
+        }
+
+        [Test]
+        public async Task GetEquippableWeaponMasters_CollectsSlotWeapons_SkipsNonWeaponAndUnresolvable()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5, 7);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _service.TrySetSlot(1, ObjectCategory.Weapon, 7);
+            _service.TrySetSlot(2, ObjectCategory.Item, 3);
+            _service.TrySetSlot(3, ObjectCategory.Weapon, 9); // テーブル未登録 → 無音スキップ
+
+            var masters = _service.GetEquippableWeaponMasters();
+
+            Assert.That(masters, Has.Count.EqualTo(2));
+            Assert.That(masters[0].Id, Is.EqualTo(5));
+            Assert.That(masters[1].Id, Is.EqualTo(7));
+        }
+
+        [Test]
+        public async Task GetEquippableWeaponMasters_DeduplicatesEquippedAlreadyInSlots()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
+
+            var masters = _service.GetEquippableWeaponMasters();
+
+            Assert.That(masters, Has.Count.EqualTo(1));
+            Assert.That(masters[0].Id, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task GetEquippableWeaponMasters_AppendsEquippedNotInSlots()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5, 7);
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 7).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 7);
+
+            var masters = _service.GetEquippableWeaponMasters();
+
+            Assert.That(masters, Has.Count.EqualTo(2));
+            Assert.That(masters[0].Id, Is.EqualTo(5));
+            Assert.That(masters[1].Id, Is.EqualTo(7), "装備中は末尾に合流する");
         }
     }
 }
