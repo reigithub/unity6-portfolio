@@ -7,6 +7,8 @@ using Game.Shared.SaveData;
 using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Game.Tests.MVC.Horror
 {
@@ -73,8 +75,10 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public void SetLastSavepoint_WhenDataNull_DoesNotThrow()
+        public void SetLastSavepoint_WhenDataNull_LogsErrorAndDoesNotThrow()
         {
+            LogAssert.Expect(LogType.Error, "セーブデータ未ロードのため SetLastSavepoint(10) を無視しました");
+
             Assert.DoesNotThrow(() => _service.SetLastSavepoint(10));
         }
 
@@ -84,7 +88,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_service.LastSavepointId, Is.EqualTo(0));
         }
 
-        // 残 HP の永続化：記録+Dirty 化、同値は Dirty にしない、未ロードは安全に no-op。
+        // 残 HP の永続化：記録+Dirty 化、同値は Dirty にしない、未ロードは LogError の上で no-op。
         // 新規データの既定 0 は「未記録」を意味し、復元側（NormalizeLoadedHealth）が Max へ正規化する前提。
 
         [Test]
@@ -112,8 +116,10 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public void SetCurrentHealth_WhenDataNull_DoesNotThrow()
+        public void SetCurrentHealth_WhenDataNull_LogsErrorAndDoesNotThrow()
         {
+            LogAssert.Expect(LogType.Error, "セーブデータ未ロードのため SetCurrentHealth(40) を無視しました");
+
             Assert.DoesNotThrow(() => _service.SetCurrentHealth(40));
         }
 

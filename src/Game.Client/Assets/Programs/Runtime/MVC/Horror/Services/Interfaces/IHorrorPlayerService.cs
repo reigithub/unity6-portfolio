@@ -10,13 +10,13 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>最後に使ったセーブポイントの InteractionId（0 = 未記録・未ロード）。</summary>
         int LastSavepointId { get; }
 
-        /// <summary>最後に使ったセーブポイントを記録する。未ロード・Id 0・同値の場合は何もしない。</summary>
+        /// <summary>最後に使ったセーブポイントを記録する。未ロード時は LogError の上で何もしない。Id 0・同値の場合も何もしない。</summary>
         void SetLastSavepoint(int interactionId);
 
         /// <summary>残 HP（0 = 未記録・未ロード。復元側で最大 HP へ正規化する）。</summary>
         int CurrentHealth { get; }
 
-        /// <summary>残 HP を記録する。未ロード・同値の場合は何もしない。</summary>
+        /// <summary>残 HP を記録する。未ロード時は LogError の上で何もしない。同値の場合は何もしない。</summary>
         void SetCurrentHealth(int health);
 
         /// <summary>最大 HP（0 = 未設定）。マスタ由来のランタイム値でセーブデータには含まれない。</summary>

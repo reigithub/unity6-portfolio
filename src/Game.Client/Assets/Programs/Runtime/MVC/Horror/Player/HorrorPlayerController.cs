@@ -171,7 +171,6 @@ namespace Game.Horror.Player
         // 足音の歩幅積算（m）。しゃがみ・非接地・入力ブロック中はリセット
         private float _footstepAccumulatedDistance;
 
-        private int _currentHealth;                              // 残 HP（Initialize でセーブデータから復元）
         private float _lastDamageTime = float.NegativeInfinity;  // 最終被弾時刻（Time.time）。負の無限大=未被弾
 
         // 死亡から GameOverDialog 表示までの演出ディレイ（ms）。被弾フラッシュ・SE を見せてから遷移する
@@ -306,18 +305,17 @@ namespace Game.Horror.Player
         #region IDamageable
 
         /// <summary>死亡フラグ（体力が 0 以下）</summary>
-        public bool IsDead => _currentHealth <= 0;
+        public bool IsDead => _playerService.CurrentHealth <= 0;
 
         /// <summary>
-        /// 残 HP を更新し、セーブデータ同期と HUD 値反映を一括で行う（HP 書き込みの単一点）。
+        /// 残 HP をサービス（セーブデータ）へ書き込み、HUD 値反映を一括で行う（HP 書き込みの単一点）。
         /// 表示キック（Notify）は行わない（必要な呼び出し側のみが行う）。
         /// </summary>
         private void ApplyHealth(int newHealth)
         {
-            _currentHealth = newHealth;
             _playerService.SetCurrentHealth(newHealth);
             if (_healthView != null)
-                _healthView.UpdateHealth(newHealth, _playerMaster.MaxHealth);
+                _healthView.UpdateHealth(newHealth, _playerService.MaxHealth);
         }
 
         /// <summary>
@@ -331,11 +329,11 @@ namespace Game.Horror.Player
             if (IsInvincible(Time.time, _lastDamageTime, _playerMaster.InvincibleSeconds)) return;
 
             _lastDamageTime = Time.time;
-            ApplyHealth(CalculateDamagedHealth(_currentHealth, damage));
+            ApplyHealth(CalculateDamagedHealth(_playerService.CurrentHealth, damage));
             if (_healthView != null)
                 _healthView.Notify();
 
-            _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _currentHealth, _playerMaster.MaxHealth));
+            _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _playerService.CurrentHealth, _playerService.MaxHealth));
 
             if (!string.IsNullOrEmpty(_playerMaster.DamageSeAssetName))
                 _audioService.PlaySoundEffectOneShotAsync(_playerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
@@ -650,7 +648,7 @@ namespace Game.Horror.Player
             if (_inventoryService.GetCount(_requestedUseCategory, _requestedUseId) <= 0)
                 return false;
 
-            // 満タン判定はサービスの共有述語で行う（_currentHealth は ApplyHealth で常時同期済み）
+            // 満タン判定はサービスの共有述語で行う
             if (_playerService.IsHealthFull)
                 return false;
 

@@ -1,4 +1,5 @@
 using Game.Horror.Services.Interfaces;
+using UnityEngine;
 
 namespace Game.Horror.Services
 {
@@ -19,12 +20,19 @@ namespace Game.Horror.Services
         public int LastSavepointId => _repository.Data?.Player?.LastSavepointId ?? 0;
 
         /// <summary>
-        /// 最後に使ったセーブポイントを記録する。未ロード・Id 0・同値の場合は何もしない（同値で Dirty にしない）。
+        /// 最後に使ったセーブポイントを記録する。未ロード時は LogError の上で何もしない。
+        /// Id 0・同値の場合も何もしない（同値で Dirty にしない）。
         /// </summary>
         public void SetLastSavepoint(int interactionId)
         {
             var data = _repository.Data?.Player;
-            if (data == null || interactionId == 0 || data.LastSavepointId == interactionId)
+            if (data == null)
+            {
+                Debug.LogError($"セーブデータ未ロードのため {nameof(SetLastSavepoint)}({interactionId}) を無視しました");
+                return;
+            }
+
+            if (interactionId == 0 || data.LastSavepointId == interactionId)
                 return;
 
             data.LastSavepointId = interactionId;
@@ -35,13 +43,19 @@ namespace Game.Horror.Services
         public int CurrentHealth => _repository.Data?.Player?.CurrentHealth ?? 0;
 
         /// <summary>
-        /// 残 HP を記録する。未ロード・同値の場合は何もしない（同値で Dirty にしない）。
+        /// 残 HP を記録する。未ロード時は LogError の上で何もしない。同値の場合も何もしない（同値で Dirty にしない）。
         /// 0 も有効値として記録する（死亡時。ゲームオーバー後は Continue/Load でデータごと置き換わる）。
         /// </summary>
         public void SetCurrentHealth(int health)
         {
             var data = _repository.Data?.Player;
-            if (data == null || data.CurrentHealth == health)
+            if (data == null)
+            {
+                Debug.LogError($"セーブデータ未ロードのため {nameof(SetCurrentHealth)}({health}) を無視しました");
+                return;
+            }
+
+            if (data.CurrentHealth == health)
                 return;
 
             data.CurrentHealth = health;

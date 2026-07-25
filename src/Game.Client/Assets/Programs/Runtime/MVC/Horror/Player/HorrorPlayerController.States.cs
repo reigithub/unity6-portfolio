@@ -512,7 +512,7 @@ namespace Game.Horror.Player
                 if (diff <= 0) return;
 
                 _appliedHeal = applied;
-                ctx.ApplyHealth(CalculateHealedHealth(ctx._currentHealth, diff, ctx._playerMaster.MaxHealth));
+                ctx.ApplyHealth(CalculateHealedHealth(ctx._playerService.CurrentHealth, diff, ctx._playerService.MaxHealth));
             }
         }
 
