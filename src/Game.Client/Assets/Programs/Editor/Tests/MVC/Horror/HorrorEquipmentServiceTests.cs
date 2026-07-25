@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.Constants;
@@ -6,9 +7,14 @@ using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
+using Game.Shared.Scriptable.Database;
+using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Game.Tests.MVC.Horror
 {
@@ -22,6 +28,8 @@ namespace Game.Tests.MVC.Horror
         private IHorrorInventoryService _mockInventory;
         private IHorrorSaveRepository _repository;
         private IHorrorEquipmentService _service;
+        private HorrorWeaponMasterTable _weaponTable;
+        private ScriptableDatabase _database;
 
         [SetUp]
         public void Setup()
@@ -30,7 +38,14 @@ namespace Game.Tests.MVC.Horror
             _mockDatabase = Substitute.For<IScriptableDatabaseService>();
             _mockInventory = Substitute.For<IHorrorInventoryService>();
             _repository = new HorrorSaveRepository(_mockStorage, _mockDatabase);
-            _service = new HorrorEquipmentService(_repository, _mockInventory);
+            _service = new HorrorEquipmentService(_repository, _mockInventory, _mockDatabase);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_weaponTable != null) Object.DestroyImmediate(_weaponTable);
+            if (_database != null) Object.DestroyImmediate(_database);
         }
 
         private async Task LoadDefaultData()
@@ -354,6 +369,72 @@ namespace Game.Tests.MVC.Horror
                 _service.SetMagazineCount(5, 12);
                 Assert.That(_service.GetMagazineCount(5, 30), Is.EqualTo(30));
             });
+        }
+
+        // 装備中武器のマスター解決：未ロード・未装備は null、解決失敗は LogError の上 null（Id 単位で1回のみ）、
+        // 解決成功は装備切替に追従する。
+
+        /// <summary>
+        /// 指定 Id の武器レコードを持つ実テーブル＋DB を組み立てて mock に接続する。
+        /// EditorImportRows は列名をメンバ名と完全一致でマッピングし、無い列は既定値のままとなるため Id 列のみ投入する。
+        /// </summary>
+        private void SetupRealDatabase(params int[] weaponIds)
+        {
+            _weaponTable = ScriptableObject.CreateInstance<HorrorWeaponMasterTable>();
+            var rows = new List<IReadOnlyList<string>>();
+            foreach (var id in weaponIds)
+                rows.Add(new[] { id.ToString() });
+            _weaponTable.EditorImportRows(new[] { "Id" }, rows, mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorWeaponMasterTable").objectReferenceValue = _weaponTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+        }
+
+        [Test]
+        public void EquippedWeaponMaster_WhenDataNull_ReturnsNull()
+        {
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+        }
+
+        [Test]
+        public async Task EquippedWeaponMaster_Unequipped_ReturnsNull()
+        {
+            await LoadDefaultData();
+
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+        }
+
+        [Test]
+        public async Task EquippedWeaponMaster_MasterNotFound_LogsErrorOnceAndReturnsNull()
+        {
+            await LoadDefaultData();
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
+
+            LogAssert.Expect(LogType.Error, "装備中の武器マスターが見つかりません Id=5");
+
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+            Assert.That(_service.EquippedWeaponMaster, Is.Null); // 2回目の読みは LogError を再発しない（再発すれば未期待ログでテストが落ちる）
+        }
+
+        [Test]
+        public async Task EquippedWeaponMaster_Resolved_FollowsEquipChange()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5, 7);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 7).Returns(true);
+
+            _service.TryEquip(ObjectCategory.Weapon, 5);
+            Assert.That(_service.EquippedWeaponMaster, Is.Not.Null);
+            Assert.That(_service.EquippedWeaponMaster.Id, Is.EqualTo(5));
+
+            _service.TryEquip(ObjectCategory.Weapon, 7);
+            Assert.That(_service.EquippedWeaponMaster, Is.Not.Null);
+            Assert.That(_service.EquippedWeaponMaster.Id, Is.EqualTo(7));
         }
     }
 }

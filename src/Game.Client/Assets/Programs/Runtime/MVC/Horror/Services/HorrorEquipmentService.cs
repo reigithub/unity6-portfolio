@@ -3,6 +3,8 @@ using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
+using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -18,11 +20,17 @@ namespace Game.Horror.Services
 
         private readonly IHorrorSaveRepository _repository;
         private readonly IHorrorInventoryService _inventoryService;
+        private readonly IScriptableDatabaseService _databaseService;
 
-        public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService)
+        // 装備中武器のマスター解決キャッシュ（Id が変わった時のみ再解決。解決失敗時も null を保持して LogError の連打を防ぐ）
+        private int _resolvedWeaponId;
+        private HorrorWeaponMaster _resolvedWeaponMaster;
+
+        public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService, IScriptableDatabaseService databaseService)
         {
             _repository = repository;
             _inventoryService = inventoryService;
+            _databaseService = databaseService;
         }
 
         /// <summary>
@@ -59,6 +67,38 @@ namespace Game.Horror.Services
             type = data.ObjectCategory;
             id = data.Id;
             return true;
+        }
+
+        /// <summary>
+        /// 装備中武器の解決済みマスター（null = 未装備・未ロード。解決失敗時は LogError の上 null）。
+        /// 遅延解決＋Id キーのキャッシュ。Id 比較が毎読みで真実源（セーブデータ）に追従するため、
+        /// セーブ差し替え（ロード・新規作成）にもイベント購読なしで自動追従する。
+        /// ロード時は NormalizeEquipment がマスター不在装備を None へ正規化済みのため、解決失敗＝不変条件違反。
+        /// </summary>
+        public HorrorWeaponMaster EquippedWeaponMaster
+        {
+            get
+            {
+                var data = _repository.Data?.Equipment;
+                if (data == null || data.ObjectCategory != ObjectCategory.Weapon)
+                    return null; // 未ロード・未装備。キャッシュ Id は触らない（次の正規 Id で必ず再解決させる）
+
+                if (data.Id == _resolvedWeaponId)
+                    return _resolvedWeaponMaster;
+
+                _resolvedWeaponId = data.Id;
+                if (_databaseService.Database.HorrorWeaponMasterTable.TryFindById(data.Id, out var master))
+                {
+                    _resolvedWeaponMaster = master;
+                }
+                else
+                {
+                    _resolvedWeaponMaster = null;
+                    Debug.LogError($"装備中の武器マスターが見つかりません Id={data.Id}");
+                }
+
+                return _resolvedWeaponMaster;
+            }
         }
 
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>

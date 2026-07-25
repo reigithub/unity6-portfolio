@@ -369,10 +369,14 @@ namespace Game.Horror.Player
                 var ctx = Context;
                 if (ctx._equipmentService.TryEquip(ctx._pendingEquipType, ctx._pendingEquipId))
                 {
-                    ctx._weaponMaster = ctx._pendingWeaponMaster;
                     ctx._weaponView.BeginSwitch(ctx._pendingWeaponMaster);
                     ctx._equipmentsView.Show(ctx._pendingEquipType, ctx._pendingEquipId);
-                    Debug.Log($"{ctx._weaponMaster.Name}");
+                    Debug.Log($"{ctx._pendingWeaponMaster.Name}");
+                }
+                else
+                {
+                    // 直前フレームの TryPrepareEquip で検証済みのため通常プレイでは到達しない（到達＝不変条件違反）
+                    Debug.LogError($"装備反映に失敗しました ({ctx._pendingEquipType}, {ctx._pendingEquipId})");
                 }
             }
 
@@ -414,7 +418,7 @@ namespace Game.Horror.Player
                 // インスタンスはキャッシュ再利用されるため経過時間・適用済みフラグを必ずリセット
                 _elapsed = 0f;
                 _applied = false;
-                _duration = ctx._weaponMaster.ReloadDuration;
+                _duration = ctx.EquippedWeaponMaster.ReloadDuration;
                 ctx.NotifyHudViews();
             }
 

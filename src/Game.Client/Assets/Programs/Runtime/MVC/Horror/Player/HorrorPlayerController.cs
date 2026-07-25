@@ -91,9 +91,11 @@ namespace Game.Horror.Player
         private bool _interactTriggered;
         private IInteractable _interactTarget;
 
-        // 攻撃（ハンドガン）：マスター値・銃声発行サービス・起動入力フラグ（硬直経過は AttackingState ローカル）
-        private HorrorWeaponMaster _weaponMaster;
+        // 攻撃（ハンドガン）：起動入力フラグ（硬直経過は AttackingState ローカル）
         private bool _attackTriggered;
+
+        /// <summary>装備中武器の解決済みマスター（真実源＝装備サービス。null = 未装備）。</summary>
+        private HorrorWeaponMaster EquippedWeaponMaster => _equipmentService.EquippedWeaponMaster;
 
         // 発砲カメラリコイル（減衰オフセット型）。強度・回復秒は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
         private float _recoilPitchAmount;
@@ -205,17 +207,11 @@ namespace Game.Horror.Player
 
             _equipmentsView.Initialize();
 
-            // 装備状態をセーブデータから復元。未装備なら _weaponMaster は null のまま（TryAttack の既存 null ガードで攻撃不可）
-            if (_equipmentService.TryGetEquipped(out var slotType, out var id)
-                && slotType == ObjectCategory.Weapon
-                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(id, out var weaponMaster))
-            {
-                _weaponMaster = weaponMaster;
-            }
-
             // 武器モデル表示ビューの初期化：装備中なら即座に表示し、ショートカット登録武器のモデルは事前ロードしておく
+            // （装備中武器の復元は装備サービスの解決済みキャッシュが担う。未装備なら null＝TryAttack の null ガードで攻撃不可）
             _weaponView.Initialize();
-            if (_weaponMaster != null) _weaponView.ShowImmediate(_weaponMaster);
+            var equippedWeapon = EquippedWeaponMaster;
+            if (equippedWeapon != null) _weaponView.ShowImmediate(equippedWeapon);
 
             _weaponView.PreloadAsync(ResolveEquippableMasters()).Forget();
 
@@ -511,12 +507,13 @@ namespace Game.Horror.Player
 
             _attackTriggered = false;
 
-            if (_weaponMaster == null)
+            var weapon = EquippedWeaponMaster;
+            if (weapon == null)
                 return false;
 
             // 弾切れは空撃ち（ステート遷移なし＝硬直なし）。AmmoItemId=0 の武器は弾薬概念なし（無限）
-            if (_weaponMaster.AmmoItemId > 0
-                && _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize) <= 0)
+            if (weapon.AmmoItemId > 0
+                && _equipmentService.GetMagazineCount(weapon.Id, weapon.MagazineSize) <= 0)
             {
                 HandleDryFire();
                 return false;
@@ -531,8 +528,9 @@ namespace Game.Horror.Player
         /// </summary>
         private void HandleDryFire()
         {
-            if (!string.IsNullOrEmpty(_weaponMaster.DryFireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(_weaponMaster.DryFireSeAssetName, destroyCancellationToken).Forget();
+            var weapon = EquippedWeaponMaster;
+            if (!string.IsNullOrEmpty(weapon.DryFireSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(weapon.DryFireSeAssetName, destroyCancellationToken).Forget();
 
             NotifyHudViews();
 
@@ -609,13 +607,14 @@ namespace Game.Horror.Player
 
             _reloadTriggered = false;
 
-            if (_weaponMaster == null || _weaponMaster.AmmoItemId <= 0 || _weaponMaster.MagazineSize <= 0)
+            var weapon = EquippedWeaponMaster;
+            if (weapon == null || weapon.AmmoItemId <= 0 || weapon.MagazineSize <= 0)
                 return false;
 
-            if (_equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize) >= _weaponMaster.MagazineSize)
+            if (_equipmentService.GetMagazineCount(weapon.Id, weapon.MagazineSize) >= weapon.MagazineSize)
                 return false;
 
-            if (_inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId) <= 0)
+            if (_inventoryService.GetCount(ObjectCategory.Item, weapon.AmmoItemId) <= 0)
                 return false;
 
             return true;
@@ -676,12 +675,10 @@ namespace Game.Horror.Player
                 }
             }
 
-            if (_equipmentService.TryGetEquipped(out var equippedType, out var equippedId)
-                && equippedType == ObjectCategory.Weapon
-                && seenIds.Add(equippedId)
-                && _dbService.Database.HorrorWeaponMasterTable.TryFindById(equippedId, out var equippedMaster))
+            var equippedWeapon = EquippedWeaponMaster;
+            if (equippedWeapon != null && seenIds.Add(equippedWeapon.Id))
             {
-                masters.Add(equippedMaster);
+                masters.Add(equippedWeapon);
             }
 
             return masters;
@@ -851,7 +848,7 @@ namespace Game.Horror.Player
         private void UpdateAimInput()
         {
             _isAiming = Player.Aim.IsPressed()
-                        && _weaponMaster != null
+                        && EquippedWeaponMaster != null
                         && !IsActiveState<EquippingState>()
                         && !IsActiveState<UsingItemState>();
         }
@@ -1142,7 +1139,8 @@ namespace Game.Horror.Player
         {
             if (_ammoView == null) return;
 
-            var mode = HorrorAmmoView.ResolveViewMode(_weaponMaster != null, _weaponMaster?.AmmoItemId ?? 0);
+            var weapon = EquippedWeaponMaster;
+            var mode = HorrorAmmoView.ResolveViewMode(weapon != null, weapon?.AmmoItemId ?? 0);
 
             var magazine = 0;
             var magazineSize = 0;
@@ -1150,12 +1148,12 @@ namespace Game.Horror.Player
             switch (mode)
             {
                 case HorrorAmmoViewMode.MagazineAndReserve:
-                    magazineSize = _weaponMaster.MagazineSize;
-                    magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
-                    reserve = _inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId);
+                    magazineSize = weapon.MagazineSize;
+                    magazine = _equipmentService.GetMagazineCount(weapon.Id, magazineSize);
+                    reserve = _inventoryService.GetCount(ObjectCategory.Item, weapon.AmmoItemId);
                     break;
                 case HorrorAmmoViewMode.CountOnly:
-                    magazine = _inventoryService.GetCount(ObjectCategory.Weapon, _weaponMaster.Id); // 武器アイテム自体の所持数（例: Smoke）
+                    magazine = _inventoryService.GetCount(ObjectCategory.Weapon, weapon.Id); // 武器アイテム自体の所持数（例: Smoke）
                     break;
             }
 
@@ -1189,7 +1187,7 @@ namespace Game.Horror.Player
         private void ApplyFov()
         {
             if (_mainCamera == null) return;
-            var zoomRatio = _weaponMaster?.AimZoomRatio ?? 1f;
+            var zoomRatio = EquippedWeaponMaster?.AimZoomRatio ?? 1f;
             _mainCamera.fieldOfView = Mathf.Lerp(_baseFov, _baseFov * zoomRatio, _aimBlend);
         }
 
@@ -1204,7 +1202,8 @@ namespace Game.Horror.Player
         /// </summary>
         private void Fire()
         {
-            if (_mainCamera == null || _weaponMaster == null) return;
+            var weapon = EquippedWeaponMaster;
+            if (_mainCamera == null || weapon == null) return;
 
             var origin = _mainCamera.transform.position;
             var direction = _mainCamera.transform.forward;
@@ -1212,25 +1211,25 @@ namespace Game.Horror.Player
             // 非エイム（腰だめ）射撃はわずかにランダム拡散する（エイム中はカメラ中心へ正確に飛ぶ）
             if (!_isAiming)
             {
-                direction = CalculateShotDirection(direction, Random.insideUnitSphere, _weaponMaster.SpreadAngle);
+                direction = CalculateShotDirection(direction, Random.insideUnitSphere, weapon.SpreadAngle);
             }
 
             IDamageable target = null;
-            var impactPosition = origin + direction * _weaponMaster.Range;
+            var impactPosition = origin + direction * weapon.Range;
 
-            if (Physics.Raycast(origin, direction, out var hit, _weaponMaster.Range, _hitMask, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(origin, direction, out var hit, weapon.Range, _hitMask, QueryTriggerInteraction.Ignore))
             {
                 target = hit.collider.GetComponentInParent<IDamageable>();
                 impactPosition = hit.point;
             }
 
-            var damage = CalculateAimedDamage(_weaponMaster.Damage, _isAiming, _weaponMaster.AimDamageMultiplier);
+            var damage = CalculateAimedDamage(weapon.Damage, _isAiming, weapon.AimDamageMultiplier);
 
             // 弾倉消費（AmmoItemId=0 の武器は弾薬概念なし・無限）
-            if (_weaponMaster.AmmoItemId > 0)
+            if (weapon.AmmoItemId > 0)
             {
-                var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, _weaponMaster.MagazineSize);
-                _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine - 1);
+                var magazine = _equipmentService.GetMagazineCount(weapon.Id, weapon.MagazineSize);
+                _equipmentService.SetMagazineCount(weapon.Id, magazine - 1);
                 NotifyHudViews();
             }
 
@@ -1242,28 +1241,28 @@ namespace Game.Horror.Player
 
             // 騒音: 着弾音（着弾点・誘引用）→ 発砲音（射手位置）の順で発行する。この順序は変更不可:
             // 敵の注意対象位置は同フレームでは後着優先のため、両方聞こえた敵の注意対象は発砲音（射手位置）で確定する
-            if (_weaponMaster.ImpactNoiseLoudness > 0f)
-                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(impactPosition, _weaponMaster.ImpactNoiseLoudness, NoiseType.Object));
-            if (_weaponMaster.NoiseLoudness > 0f)
-                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(origin, _weaponMaster.NoiseLoudness, NoiseType.Gunshot));
+            if (weapon.ImpactNoiseLoudness > 0f)
+                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(impactPosition, weapon.ImpactNoiseLoudness, NoiseType.Object));
+            if (weapon.NoiseLoudness > 0f)
+                _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(origin, weapon.NoiseLoudness, NoiseType.Gunshot));
 
             if (_reticleView != null) _reticleView.NotifyFired();
 
             // 発砲演出：武器ビュー（マズルフラッシュ＋キック）・カメラリコイル・射撃音
             if (_weaponView != null) _weaponView.NotifyFired();
-            _recoilPitchAmount = _weaponMaster.RecoilCameraPitch;
-            _recoilRecoverSeconds = _weaponMaster.RecoilRecoverSeconds;
+            _recoilPitchAmount = weapon.RecoilCameraPitch;
+            _recoilRecoverSeconds = weapon.RecoilRecoverSeconds;
             _recoilWeight = 1f;
 
-            if (!string.IsNullOrEmpty(_weaponMaster.FireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(_weaponMaster.FireSeAssetName, destroyCancellationToken).Forget();
+            if (!string.IsNullOrEmpty(weapon.FireSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(weapon.FireSeAssetName, destroyCancellationToken).Forget();
 
-            Debug.Log($"Weapon Fire: name->{_weaponMaster.Name} , damage->{damage}");
+            Debug.Log($"Weapon Fire: name->{weapon.Name} , damage->{damage}");
         }
 
 
         /// <summary>次弾までの発射間隔（AttackingState 滞在秒）。武器未設定なら 0。</summary>
-        private float GetFireInterval() => _weaponMaster?.FireInterval ?? 0f;
+        private float GetFireInterval() => EquippedWeaponMaster?.FireInterval ?? 0f;
 
         /// <summary>
         /// 装填を適用する。完了時点の弾倉・予備から装填数を再計算し、予備の消費に成功した場合のみ弾倉へ反映する
@@ -1271,17 +1270,18 @@ namespace Game.Horror.Player
         /// </summary>
         private void ApplyReload()
         {
-            if (_weaponMaster == null || _weaponMaster.AmmoItemId <= 0) return;
+            var weapon = EquippedWeaponMaster;
+            if (weapon == null || weapon.AmmoItemId <= 0) return;
 
-            var magazineSize = _weaponMaster.MagazineSize;
-            var magazine = _equipmentService.GetMagazineCount(_weaponMaster.Id, magazineSize);
-            var reserve = _inventoryService.GetCount(ObjectCategory.Item, _weaponMaster.AmmoItemId);
+            var magazineSize = weapon.MagazineSize;
+            var magazine = _equipmentService.GetMagazineCount(weapon.Id, magazineSize);
+            var reserve = _inventoryService.GetCount(ObjectCategory.Item, weapon.AmmoItemId);
             var amount = CalculateReloadAmount(magazine, magazineSize, reserve);
 
             if (amount <= 0) return;
-            if (!_inventoryService.TryConsume(ObjectCategory.Item, _weaponMaster.AmmoItemId, amount)) return;
+            if (!_inventoryService.TryConsume(ObjectCategory.Item, weapon.AmmoItemId, amount)) return;
 
-            _equipmentService.SetMagazineCount(_weaponMaster.Id, magazine + amount);
+            _equipmentService.SetMagazineCount(weapon.Id, magazine + amount);
             NotifyHudViews();
         }
 
