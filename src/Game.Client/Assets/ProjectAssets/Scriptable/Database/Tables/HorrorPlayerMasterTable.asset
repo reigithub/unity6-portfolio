@@ -15,6 +15,7 @@ MonoBehaviour:
   records:
   - _id: 1
     _name: Default
+    _modelAssetName: HorrorPlayer
     _walkSpeed: 2
     _runSpeed: 5
     _jump: 5
