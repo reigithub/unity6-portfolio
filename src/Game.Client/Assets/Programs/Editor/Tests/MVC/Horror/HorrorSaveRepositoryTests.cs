@@ -51,6 +51,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data, Is.Not.Null);
             Assert.That(_repository.Data.Version, Is.EqualTo(HorrorSaveConstants.SaveDataLatestVersion));
             Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
+            Assert.That(_repository.Data.Player.PlayerId, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
             Assert.That(_repository.Data.Inventory.Slots, Is.Empty);
             Assert.That(_repository.Data.Interaction.InteractionIds, Is.Empty);
             Assert.That(_repository.Data.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.None));
@@ -103,7 +104,7 @@ namespace Game.Tests.MVC.Horror
             var original = new HorrorSaveData
             {
                 Version = 1,
-                Player = new HorrorPlayerSaveData { CurrentHealth = 42 },
+                Player = new HorrorPlayerSaveData { PlayerId = 7, CurrentHealth = 42 },
                 Inventory = new HorrorInventorySaveData
                 {
                     Slots = new List<HorrorInventorySlotData>
@@ -145,6 +146,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(restored, Is.Not.Null);
             Assert.That(restored.Version, Is.EqualTo(1));
+            Assert.That(restored.Player.PlayerId, Is.EqualTo(7));
             Assert.That(restored.Player.CurrentHealth, Is.EqualTo(42));
             Assert.That(restored.Inventory.Slots.Count, Is.EqualTo(1));
             Assert.That(restored.Inventory.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));

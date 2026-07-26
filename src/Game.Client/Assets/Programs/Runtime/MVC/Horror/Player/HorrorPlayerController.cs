@@ -28,8 +28,6 @@ namespace Game.Horror.Player
     [RequireComponent(typeof(CharacterController))]
     public partial class HorrorPlayerController : MonoBehaviour, IDamageable
     {
-        [SerializeField] private int _playerId = 1;
-
         [SerializeField] private Camera _mainCamera;
 
         [Header("しゃがみ")]
@@ -74,7 +72,8 @@ namespace Game.Horror.Player
         private IHorrorInventoryService _inventoryService;
         private IHorrorPlayerService _playerService;
 
-        private HorrorPlayerMaster _playerMaster;
+        /// <summary>操作中プレイヤーの解決済みマスター（真実源＝プレイヤーサービス。null = 解決失敗）。</summary>
+        private HorrorPlayerMaster PlayerMaster => _playerService.PlayerMaster;
 
         private CharacterController _characterController;
 
@@ -192,18 +191,13 @@ namespace Game.Horror.Player
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
-            // プレイヤーマスターを解決しライブ参照で保持。欠落時は初期化を中断（_initialized 不成立で全 Update はガード済み）
-            if (!_dbService.Database.HorrorPlayerMasterTable.TryFindById(_playerId, out _playerMaster))
-            {
-                Debug.LogError($"HorrorPlayerMaster が見つかりません Id={_playerId}。プレイヤーを初期化しません。", this);
+            // プレイヤーマスターはサービスが解決・保持する。欠落時は初期化を中断（_initialized 不成立で全 Update はガード済み）。
+            // 解決失敗はサービス側で LogError 済みのためここでは出さない
+            if (PlayerMaster == null)
                 return;
-            }
-
-            // 実効最大 HP を共有する（インベントリの満タン判定等が参照する）
-            _playerService.SetMaxHealth(_playerMaster.MaxHealth);
 
             // 残 HP をセーブデータから復元（0 以下=旧セーブ・新規データは Max へ正規化し、結果を書き戻す）
-            ApplyHealth(NormalizeLoadedHealth(_playerService.CurrentHealth, _playerMaster.MaxHealth));
+            ApplyHealth(NormalizeLoadedHealth(_playerService.CurrentHealth, _playerService.MaxHealth));
 
             _equipmentsView.Initialize();
 
@@ -322,7 +316,7 @@ namespace Game.Horror.Player
         public void TakeDamage(int damage)
         {
             if (IsDead) return;
-            if (IsInvincible(Time.time, _lastDamageTime, _playerMaster.InvincibleSeconds)) return;
+            if (IsInvincible(Time.time, _lastDamageTime, PlayerMaster.InvincibleSeconds)) return;
 
             _lastDamageTime = Time.time;
             ApplyHealth(CalculateDamagedHealth(_playerService.CurrentHealth, damage));
@@ -331,8 +325,8 @@ namespace Game.Horror.Player
 
             _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _playerService.CurrentHealth, _playerService.MaxHealth));
 
-            if (!string.IsNullOrEmpty(_playerMaster.DamageSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(_playerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
+            if (!string.IsNullOrEmpty(PlayerMaster.DamageSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
 
             if (IsDead)
             {
@@ -431,7 +425,7 @@ namespace Game.Horror.Player
             }
             else
             {
-                var baseSpeed = _isCrouching ? _playerMaster.CrouchSpeed : (_isSprinting ? _playerMaster.RunSpeed : _playerMaster.WalkSpeed);
+                var baseSpeed = _isCrouching ? PlayerMaster.CrouchSpeed : (_isSprinting ? PlayerMaster.RunSpeed : PlayerMaster.WalkSpeed);
                 _speed = _moveValue.magnitude * baseSpeed;
             }
 
@@ -768,8 +762,8 @@ namespace Game.Horror.Player
 
         private bool IsGrounded() => _characterController.isGrounded;
         private bool IsMoving() => _speed > 0f;
-        private bool IsWalking() => _speed >= _playerMaster.WalkSpeed && _speed < _playerMaster.RunSpeed;
-        private bool IsRunning() => _speed >= _playerMaster.RunSpeed;
+        private bool IsWalking() => _speed >= PlayerMaster.WalkSpeed && _speed < PlayerMaster.RunSpeed;
+        private bool IsRunning() => _speed >= PlayerMaster.RunSpeed;
 
         private bool IsMoveInput() => _moveValue.magnitude > InputConstants.InputThreshold;
         private bool IsLookInput() => _lookValue.magnitude > InputConstants.InputThreshold;
@@ -918,7 +912,7 @@ namespace Game.Horror.Player
             }
             else
             {
-                _verticalVelocity += _playerMaster.Gravity * Time.fixedDeltaTime;
+                _verticalVelocity += PlayerMaster.Gravity * Time.fixedDeltaTime;
             }
 
             var motion = horizontalVelocity + Vector3.up * _verticalVelocity;
@@ -944,7 +938,7 @@ namespace Game.Horror.Player
             var delta = transform.position - positionBeforeMove;
             delta.y = 0f;
 
-            var (fired, next) = StepFootstep(_footstepAccumulatedDistance, delta.magnitude, _playerMaster.FootstepStride);
+            var (fired, next) = StepFootstep(_footstepAccumulatedDistance, delta.magnitude, PlayerMaster.FootstepStride);
             if (fired)
                 EmitFootstep();
 
@@ -957,12 +951,12 @@ namespace Game.Horror.Player
         /// </summary>
         private void EmitFootstep()
         {
-            var loudness = CalculateFootstepLoudness(IsRunning(), _playerMaster.FootstepWalkLoudness, _playerMaster.FootstepRunLoudness);
+            var loudness = CalculateFootstepLoudness(IsRunning(), PlayerMaster.FootstepWalkLoudness, PlayerMaster.FootstepRunLoudness);
             if (loudness > 0f)
                 _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, loudness, NoiseType.Footstep));
 
-            if (!string.IsNullOrEmpty(_playerMaster.FootstepSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(_playerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
+            if (!string.IsNullOrEmpty(PlayerMaster.FootstepSeAssetName))
+                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
         }
 
         // カメラ localEulerAngles へ書き込む際は常にこの表示用 pitch を使う（リコイル合成の単一点）
@@ -978,15 +972,15 @@ namespace Game.Horror.Player
             if (_mainCamera == null) return;
 
             // エイム中はカメラ回転を減速する（精密な狙いを支援）
-            var aimMultiplier = Mathf.Lerp(1f, _playerMaster.AimRotationMultiplier, _aimBlend);
+            var aimMultiplier = Mathf.Lerp(1f, PlayerMaster.AimRotationMultiplier, _aimBlend);
 
             // Yaw: Player 本体を Y 軸回転（感度H・反転を適用、入力は加速度スムージング後の値）
             var horizontalInput = _smoothedLookValue.x * _lookSensitivityX * _lookInvertX;
-            transform.Rotate(0f, horizontalInput * _playerMaster.LookRotationSpeed * aimMultiplier, 0f, Space.Self);
+            transform.Rotate(0f, horizontalInput * PlayerMaster.LookRotationSpeed * aimMultiplier, 0f, Space.Self);
 
             // Pitch: カメラの X 軸 localEulerAngles を更新、クランプ（既定 -y、感度V・反転を適用）
             var verticalInput = -_smoothedLookValue.y * _lookSensitivityY * _lookInvertY;
-            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * _playerMaster.LookRotationSpeed * aimMultiplier, -89f, 89f);
+            _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle + verticalInput * PlayerMaster.LookRotationSpeed * aimMultiplier, -89f, 89f);
 
             // 発砲リコイルの減衰（全ステートの Update から毎フレーム呼ばれるためここで駆動する）
             _recoilWeight = Mathf.MoveTowards(_recoilWeight, 0f, Time.deltaTime / Mathf.Max(_recoilRecoverSeconds, 0.0001f));
@@ -1016,25 +1010,25 @@ namespace Game.Horror.Player
             var active = IsGrounded() && IsMoving();
             var running = IsRunning();
 
-            var ease = 1f - Mathf.Exp(-_playerMaster.HeadBobAmplitudeResponse * Time.deltaTime);
+            var ease = 1f - Mathf.Exp(-PlayerMaster.HeadBobAmplitudeResponse * Time.deltaTime);
             _moveHeadBobWeight = Mathf.Lerp(_moveHeadBobWeight, active ? 1f : 0f, ease);
 
             if (active)
-                _headBobPhase += (running ? _playerMaster.HeadBobRunSpeed : _playerMaster.HeadBobWalkSpeed) * Time.deltaTime;
-            _idlePhase += _playerMaster.IdleSwaySpeed * Time.deltaTime; // アイドルは常時進む
+                _headBobPhase += (running ? PlayerMaster.HeadBobRunSpeed : PlayerMaster.HeadBobWalkSpeed) * Time.deltaTime;
+            _idlePhase += PlayerMaster.IdleSwaySpeed * Time.deltaTime; // アイドルは常時進む
 
             // ヘッドボブ（移動）：縦は位相、横はストライド（半周期）＝figure-8。横揺れの知覚はロールが主成分。
-            var moveAmplitude = (running ? _playerMaster.HeadBobRunAmplitude : _playerMaster.HeadBobWalkAmplitude) * _moveHeadBobWeight;
-            var moveRoll = (running ? _playerMaster.HeadBobRunRoll : _playerMaster.HeadBobWalkRoll) * _moveHeadBobWeight;
-            var headBobX = Mathf.Sin(_headBobPhase * 0.5f) * moveAmplitude * _playerMaster.HeadBobHorizontalRatio;
+            var moveAmplitude = (running ? PlayerMaster.HeadBobRunAmplitude : PlayerMaster.HeadBobWalkAmplitude) * _moveHeadBobWeight;
+            var moveRoll = (running ? PlayerMaster.HeadBobRunRoll : PlayerMaster.HeadBobWalkRoll) * _moveHeadBobWeight;
+            var headBobX = Mathf.Sin(_headBobPhase * 0.5f) * moveAmplitude * PlayerMaster.HeadBobHorizontalRatio;
             var headBobY = Mathf.Sin(_headBobPhase) * moveAmplitude;
             var headBobRoll = Mathf.Sin(_headBobPhase * 0.5f) * moveRoll;
 
             // アイドルスウェイ（停止）：別周波数の遅い sin を重ねて有機的に
             var idleWeight = 1f - _moveHeadBobWeight;
-            var idleX = Mathf.Sin(_idlePhase * 1.3f) * _playerMaster.IdleSwayAmplitude * _playerMaster.HeadBobHorizontalRatio * idleWeight;
-            var idleY = Mathf.Sin(_idlePhase) * _playerMaster.IdleSwayAmplitude * idleWeight;
-            var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * _playerMaster.IdleSwayRoll * idleWeight;
+            var idleX = Mathf.Sin(_idlePhase * 1.3f) * PlayerMaster.IdleSwayAmplitude * PlayerMaster.HeadBobHorizontalRatio * idleWeight;
+            var idleY = Mathf.Sin(_idlePhase) * PlayerMaster.IdleSwayAmplitude * idleWeight;
+            var idleRoll = Mathf.Sin(_idlePhase * 0.7f) * PlayerMaster.IdleSwayRoll * idleWeight;
 
             // 合算 → 全体強度 CameraShake × エイム減衰（エイム中は _aimShakeWeight が 0 へ減衰）
             var offset = new Vector3(headBobX + idleX, headBobY + idleY, 0f) * _cameraShake * _aimShakeWeight;
@@ -1053,10 +1047,10 @@ namespace Game.Horror.Player
         {
             // 目標 0/1 へ指数補間（フレームレート非依存）
             var target = _isCrouching ? 1f : 0f;
-            var ease = 1f - Mathf.Exp(-_playerMaster.CrouchTransitionSpeed * Time.deltaTime);
+            var ease = 1f - Mathf.Exp(-PlayerMaster.CrouchTransitionSpeed * Time.deltaTime);
             _crouchBlend = Mathf.Lerp(_crouchBlend, target, ease);
 
-            var height = Mathf.Lerp(_standHeight, _playerMaster.CrouchHeight, _crouchBlend);
+            var height = Mathf.Lerp(_standHeight, PlayerMaster.CrouchHeight, _crouchBlend);
 
             // カプセル下端（= center.y - height/2）を立ち時と同じに固定し、足元を保ったまま頭だけ縮める
             var centerY = (height - _standHeight) * 0.5f;
@@ -1081,13 +1075,13 @@ namespace Game.Horror.Player
 
             // 目標 0/1 へ指数補間（フレームレート非依存）
             var target = _isAiming ? 1f : 0f;
-            var ease = 1f - Mathf.Exp(-_playerMaster.AimTransitionSpeed * Time.deltaTime);
+            var ease = 1f - Mathf.Exp(-PlayerMaster.AimTransitionSpeed * Time.deltaTime);
             _aimBlend = Mathf.Lerp(_aimBlend, target, ease);
 
             ApplyFov();
 
             // カメラ揺れの重みを線形に減衰/復帰（AimShakeFadeSeconds でゼロ/1 に到達）
-            _aimShakeWeight = Mathf.MoveTowards(_aimShakeWeight, _isAiming ? 0f : 1f, Time.deltaTime / _playerMaster.AimShakeFadeSeconds);
+            _aimShakeWeight = Mathf.MoveTowards(_aimShakeWeight, _isAiming ? 0f : 1f, Time.deltaTime / PlayerMaster.AimShakeFadeSeconds);
 
             _weaponView.UpdatePose(_aimBlend);
 

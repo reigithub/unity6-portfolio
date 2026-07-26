@@ -26,8 +26,8 @@ namespace Game.Horror.Scenes
         private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
-        private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;

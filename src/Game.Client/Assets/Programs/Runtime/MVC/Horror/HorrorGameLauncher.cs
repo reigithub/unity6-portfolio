@@ -94,7 +94,7 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
             GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(new HorrorEquipmentService(saveRepository, inventoryService, dbService));
             GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
-            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository));
+            GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository, dbService));
             GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
 
             // 共通オブジェクト読み込み

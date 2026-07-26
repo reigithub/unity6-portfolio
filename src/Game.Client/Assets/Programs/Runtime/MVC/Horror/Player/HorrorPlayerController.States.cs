@@ -210,7 +210,7 @@ namespace Game.Horror.Player
             public override void Enter()
             {
                 var ctx = Context;
-                ctx._verticalVelocity = ctx._playerMaster.Jump;
+                ctx._verticalVelocity = ctx.PlayerMaster.Jump;
                 ctx._jumpTriggered = false;
             }
 
