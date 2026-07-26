@@ -14,10 +14,6 @@ namespace Game.Horror.Player
     {
         private GameObject _player;
 
-        /// <summary>
-        /// 解決済みのプレイヤーマスターが指すモデルを生成する。生成に使うアドレスがマスター由来のため、
-        /// マスターの解決前には呼べない（引数で受けることでその順序を署名に表す）。
-        /// </summary>
         public async UniTask<HorrorPlayerController> LoadPlayerAsync(HorrorPlayerMaster master)
         {
             if (string.IsNullOrEmpty(master.ModelAssetName))
