@@ -79,64 +79,68 @@ namespace Game.Tests.MVC.Horror
             _repository.Data.Player.PlayerId = playerId;
         }
 
-        // プレイヤー Id：新規データ・未ロードとも既定 Id。「未記録(0)」の状態は持たせない。
+        // プレイヤーマスターの解決：プレイヤー生成に先立って確定させる。要求 Id が引けなければ既定 Id へフォールバックする。
 
         [Test]
-        public async Task PlayerId_NewData_IsDefault()
+        public void PlayerMaster_BeforeResolve_IsNull()
         {
-            await LoadDefaultData();
-
-            Assert.That(_service.PlayerId, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
+            Assert.That(_service.PlayerMaster, Is.Null);
         }
 
         [Test]
-        public void PlayerId_WhenDataNull_IsDefault()
-        {
-            Assert.That(_service.PlayerId, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
-        }
-
-        // プレイヤーマスターの解決：Id をキーにした遅延解決で、Id が引けなければ既定 Id へフォールバックする。
-
-        [Test]
-        public async Task PlayerMaster_NewData_ResolvesDefaultMaster()
+        public async Task ResolvePlayerMaster_NewData_ResolvesDefaultMaster()
         {
             SetupRealDatabase((1, 100));
             await LoadDefaultData();
 
-            Assert.That(_service.PlayerMaster, Is.Not.Null);
+            Assert.That(_service.ResolvePlayerMaster(), Is.True);
             Assert.That(_service.PlayerMaster.Id, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
         }
 
         [Test]
-        public void PlayerMaster_FollowsPlayerId()
+        public void ResolvePlayerMaster_WhenDataNull_ResolvesDefaultMaster()
+        {
+            SetupRealDatabase((1, 100));
+
+            Assert.That(_service.ResolvePlayerMaster(), Is.True);
+            Assert.That(_service.PlayerMaster.Id, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
+            Assert.That(_repository.IsDirty, Is.False); // 書き戻す先が無いため Dirty にしない
+        }
+
+        [Test]
+        public void ResolvePlayerMaster_UsesSavedPlayerId()
         {
             SetupRealDatabase((1, 100), (7, 50));
             CreateDataWithPlayerId(7);
 
+            Assert.That(_service.ResolvePlayerMaster(), Is.True);
             Assert.That(_service.PlayerMaster.Id, Is.EqualTo(7));
         }
 
         [Test]
-        public void PlayerMaster_MasterNotFound_FallsBackToDefault()
+        public void ResolvePlayerMaster_MasterNotFound_FallsBackToDefaultAndAlignsSaveData()
         {
             SetupRealDatabase((1, 100));
             CreateDataWithPlayerId(7);
 
             LogAssert.Expect(LogType.Warning, "プレイヤーマスターが見つかりません Id=7。既定 Id=1 で代替します");
 
+            Assert.That(_service.ResolvePlayerMaster(), Is.True);
             Assert.That(_service.PlayerMaster.Id, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId));
+            Assert.That(_repository.Data.Player.PlayerId, Is.EqualTo(HorrorSaveConstants.DefaultPlayerId)); // 記録も実体へ合わせる
+            Assert.That(_repository.IsDirty, Is.True);
         }
 
         [Test]
-        public void PlayerMaster_DefaultAlsoMissing_LogsErrorOnceAndReturnsNull()
+        public void ResolvePlayerMaster_DefaultAlsoMissing_LogsErrorAndReturnsFalse()
         {
             SetupRealDatabase((7, 50));
             CreateDataWithPlayerId(9);
 
             LogAssert.Expect(LogType.Error, "プレイヤーマスターが見つかりません Id=9（既定 Id=1 も未登録）");
 
+            Assert.That(_service.ResolvePlayerMaster(), Is.False);
             Assert.That(_service.PlayerMaster, Is.Null);
-            Assert.That(_service.PlayerMaster, Is.Null); // 2回目の読みは LogError を再発しない（再発すれば未期待ログでテストが落ちる）
         }
 
         // 残 HP の永続化：記録+Dirty 化、同値は Dirty にしない、未ロードは LogError の上で no-op。
@@ -195,18 +199,16 @@ namespace Game.Tests.MVC.Horror
         {
             SetupRealDatabase((1, 100));
             await LoadDefaultData();
+            _service.ResolvePlayerMaster();
 
             Assert.That(_service.MaxHealth, Is.EqualTo(100));
             Assert.That(_repository.IsDirty, Is.False);
         }
 
         [Test]
-        public void MaxHealth_WhenMasterUnresolved_IsZero()
+        public async Task MaxHealth_BeforeResolve_IsZero()
         {
-            SetupRealDatabase(); // レコード無し → 既定 Id も引けない
-            CreateDataWithPlayerId(HorrorSaveConstants.DefaultPlayerId);
-
-            LogAssert.Expect(LogType.Error, "プレイヤーマスターが見つかりません Id=1（既定 Id=1 も未登録）");
+            await LoadDefaultData();
 
             Assert.That(_service.MaxHealth, Is.EqualTo(0));
         }
@@ -218,6 +220,7 @@ namespace Game.Tests.MVC.Horror
         {
             SetupRealDatabase((1, 100));
             await LoadDefaultData();
+            _service.ResolvePlayerMaster();
             _service.SetCurrentHealth(100);
 
             Assert.That(_service.IsHealthFull, Is.True);
@@ -228,6 +231,7 @@ namespace Game.Tests.MVC.Horror
         {
             SetupRealDatabase((1, 100));
             await LoadDefaultData();
+            _service.ResolvePlayerMaster();
             _service.SetCurrentHealth(99);
 
             Assert.That(_service.IsHealthFull, Is.False);
@@ -238,19 +242,17 @@ namespace Game.Tests.MVC.Horror
         {
             SetupRealDatabase((1, 100));
             await LoadDefaultData();
+            _service.ResolvePlayerMaster();
             _service.SetCurrentHealth(150);
 
             Assert.That(_service.IsHealthFull, Is.True);
         }
 
         [Test]
-        public void IsHealthFull_WhenMasterUnresolved_IsFalse()
+        public async Task IsHealthFull_BeforeResolve_IsFalse()
         {
-            SetupRealDatabase(); // レコード無し → MaxHealth 0
-            CreateDataWithPlayerId(HorrorSaveConstants.DefaultPlayerId);
+            await LoadDefaultData();
             _service.SetCurrentHealth(40);
-
-            LogAssert.Expect(LogType.Error, "プレイヤーマスターが見つかりません Id=1（既定 Id=1 も未登録）");
 
             Assert.That(_service.IsHealthFull, Is.False);
         }

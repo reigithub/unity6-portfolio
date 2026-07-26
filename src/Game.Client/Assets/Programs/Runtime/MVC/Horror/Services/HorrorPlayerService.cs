@@ -14,9 +14,8 @@ namespace Game.Horror.Services
         private readonly IHorrorSaveRepository _repository;
         private readonly IScriptableDatabaseService _databaseService;
 
-        // プレイヤーマスターの解決キャッシュ（要求 Id が変わった時のみ再解決。解決結果が null でも保持してログの連打を防ぐ）
-        private int _resolvedPlayerId;
-        private HorrorPlayerMaster _resolvedPlayerMaster;
+        // 今回のプレイで操作するプレイヤーのマスター。ResolvePlayerMaster で確定し、プレイ中は変わらない
+        private HorrorPlayerMaster _playerMaster;
 
         public HorrorPlayerService(IHorrorSaveRepository repository, IScriptableDatabaseService databaseService)
         {
@@ -24,50 +23,45 @@ namespace Game.Horror.Services
             _databaseService = databaseService;
         }
 
-        /// <summary>操作するプレイヤーの Id（未ロード時は既定 Id）。</summary>
-        public int PlayerId => _repository.Data?.Player?.PlayerId ?? HorrorSaveConstants.DefaultPlayerId;
+        /// <summary>現在プレイ中のプレイヤーマスター（<see cref="ResolvePlayerMaster"/> 前・解決失敗時は null）。</summary>
+        public HorrorPlayerMaster PlayerMaster => _playerMaster;
 
         /// <summary>
-        /// 現在プレイ中のプレイヤーマスター（解決失敗時は null）。
-        /// 遅延解決＋要求 Id キーのキャッシュ。Id 比較が毎読みで真実源（セーブデータ）に追従するため、
-        /// セーブ差し替え（ロード・新規作成）にもイベント購読なしで自動追従する。
+        /// セーブデータの PlayerId から操作対象のマスターを確定する。プレイヤーの生成に先立って呼ぶ。
+        /// 要求 Id が引けなければ既定 Id へフォールバックし、記録と実体の乖離を残さないようセーブデータの
+        /// PlayerId も既定 Id へ合わせる（LogWarning）。既定 Id も引けない場合はマスターデータ側の
+        /// 不変条件違反として LogError の上 false を返す（プレイヤーを生成できない）。
         /// </summary>
-        public HorrorPlayerMaster PlayerMaster
+        public bool ResolvePlayerMaster()
         {
-            get
+            var data = _repository.Data?.Player;
+            var requestedId = data?.PlayerId ?? HorrorSaveConstants.DefaultPlayerId;
+
+            if (_databaseService.Database.HorrorPlayerMasterTable.TryFindById(requestedId, out _playerMaster))
+                return true;
+
+            if (!_databaseService.Database.HorrorPlayerMasterTable.TryFindById(HorrorSaveConstants.DefaultPlayerId, out _playerMaster))
             {
-                var id = PlayerId;
-                if (id == _resolvedPlayerId)
-                    return _resolvedPlayerMaster;
-
-                _resolvedPlayerId = id;
-                _resolvedPlayerMaster = ResolvePlayerMaster(id);
-                return _resolvedPlayerMaster;
-            }
-        }
-
-        /// <summary>
-        /// 要求 Id → 既定 Id の順にマスターを解決する。フォールバックの発動はセーブデータ側の不整合として LogWarning、
-        /// 既定 Id も引けない場合はマスターデータ側の不変条件違反として LogError の上 null を返す。
-        /// </summary>
-        private HorrorPlayerMaster ResolvePlayerMaster(int id)
-        {
-            var table = _databaseService.Database.HorrorPlayerMasterTable;
-            if (table.TryFindById(id, out var master))
-                return master;
-
-            if (table.TryFindById(HorrorSaveConstants.DefaultPlayerId, out var defaultMaster))
-            {
-                Debug.LogWarning($"プレイヤーマスターが見つかりません Id={id}。既定 Id={HorrorSaveConstants.DefaultPlayerId} で代替します");
-                return defaultMaster;
+                Debug.LogError($"プレイヤーマスターが見つかりません Id={requestedId}（既定 Id={HorrorSaveConstants.DefaultPlayerId} も未登録）");
+                return false;
             }
 
-            Debug.LogError($"プレイヤーマスターが見つかりません Id={id}（既定 Id={HorrorSaveConstants.DefaultPlayerId} も未登録）");
-            return null;
+            Debug.LogWarning($"プレイヤーマスターが見つかりません Id={requestedId}。既定 Id={_playerMaster.Id} で代替します");
+
+            if (data != null)
+            {
+                data.PlayerId = _playerMaster.Id;
+                _repository.MarkDirty();
+            }
+
+            return true;
         }
 
-        /// <summary>残 HP（0 = 未記録・未ロード。復元側で最大 HP へ正規化する）。</summary>
         public int CurrentHealth => _repository.Data?.Player?.CurrentHealth ?? 0;
+
+        public int MaxHealth => _playerMaster?.MaxHealth ?? 0;
+
+        public bool IsHealthFull => MaxHealth > 0 && CurrentHealth >= MaxHealth;
 
         /// <summary>
         /// 残 HP を記録する。未ロード時は LogError の上で何もしない。同値の場合も何もしない（同値で Dirty にしない）。
@@ -88,14 +82,5 @@ namespace Game.Horror.Services
             data.CurrentHealth = health;
             _repository.MarkDirty();
         }
-
-        /// <summary>
-        /// 最大 HP（0 = マスター未解決）。他メンバーと異なりマスタ由来のランタイム値であり、
-        /// セーブリポジトリを経由しない（Dirty 化もしない）。
-        /// </summary>
-        public int MaxHealth => PlayerMaster?.MaxHealth ?? 0;
-
-        /// <summary>HP が満タンで回復アイテムを使用できないか。MaxHealth 未解決（0 以下）は満タン扱いにしない。</summary>
-        public bool IsHealthFull => MaxHealth > 0 && CurrentHealth >= MaxHealth;
     }
 }

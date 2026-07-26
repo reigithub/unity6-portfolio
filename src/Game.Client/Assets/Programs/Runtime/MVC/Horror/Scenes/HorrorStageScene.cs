@@ -28,6 +28,7 @@ namespace Game.Horror.Scenes
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
+        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
@@ -88,7 +89,10 @@ namespace Game.Horror.Scenes
             if (_playerStart == null)
                 return null;
 
-            _player = await _playerStart.LoadPlayerAsync();
+            if (!_playerService.ResolvePlayerMaster())
+                return null;
+
+            _player = await _playerStart.LoadPlayerAsync(_playerService.PlayerMaster);
             _player.Initialize(_optionSaveRepository.Data);
             ApplyRespawnPosition(_player);
             _optionSaveRepository.OnSaved

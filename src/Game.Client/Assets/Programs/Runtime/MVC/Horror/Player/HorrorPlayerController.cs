@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
-using Game.Horror.Constants;
 using Game.Horror.Dialogs;
 using Game.Horror.Equipment;
 using Game.Horror.Interaction;
@@ -179,6 +177,9 @@ namespace Game.Horror.Player
 
         public void Initialize(HorrorOptionSaveData data)
         {
+            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
+            if (PlayerMaster == null) return;
+
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _inputService.EnablePlayer(forceEnable: true);
 
@@ -189,12 +190,6 @@ namespace Game.Horror.Player
             _dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
-            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
-
-            // プレイヤーマスターはサービスが解決・保持する。欠落時は初期化を中断（_initialized 不成立で全 Update はガード済み）。
-            // 解決失敗はサービス側で LogError 済みのためここでは出さない
-            if (PlayerMaster == null)
-                return;
 
             // 残 HP をセーブデータから復元（0 以下=旧セーブ・新規データは Max へ正規化し、結果を書き戻す）
             ApplyHealth(NormalizeLoadedHealth(_playerService.CurrentHealth, _playerService.MaxHealth));
