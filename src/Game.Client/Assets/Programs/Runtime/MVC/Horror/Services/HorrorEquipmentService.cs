@@ -22,9 +22,7 @@ namespace Game.Horror.Services
         private readonly IHorrorInventoryService _inventoryService;
         private readonly IScriptableDatabaseService _databaseService;
 
-        // 装備中武器のマスター解決キャッシュ（Id が変わった時のみ再解決。解決失敗時も null を保持して LogError の連打を防ぐ）
-        private int _resolvedWeaponId;
-        private HorrorWeaponMaster _resolvedWeaponMaster;
+        private HorrorWeaponMaster _equippedWeaponMaster;
 
         public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService, IScriptableDatabaseService databaseService)
         {
@@ -39,8 +37,8 @@ namespace Game.Horror.Services
         public bool CanEquip(ObjectCategory type, int id) => type == ObjectCategory.Weapon && _inventoryService.HasObject(type, id);
 
         /// <summary>
-        /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立する場合のみ反映して Dirty にする。
-        /// 現在と同一の装備を指定した場合も冪等に true を返す。
+        /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立し、かつマスターを解決できる場合のみ
+        /// 反映して Dirty にする。現在と同一の装備を指定した場合も冪等に true を返す。
         /// </summary>
         public bool TryEquip(ObjectCategory type, int id)
         {
@@ -48,8 +46,16 @@ namespace Game.Horror.Services
             if (data == null || !CanEquip(type, id))
                 return false;
 
+            // 記録とマスターの確定は同時に行う（装備中なのにマスターが無い状態を作らない）
+            if (!_databaseService.Database.HorrorWeaponMasterTable.TryFindById(id, out var master))
+            {
+                Debug.LogError($"装備中の武器マスターが見つかりません Id={id}");
+                return false;
+            }
+
             data.ObjectCategory = type;
             data.Id = id;
+            _equippedWeaponMaster = master;
             _repository.MarkDirty();
             return true;
         }
@@ -69,36 +75,29 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>装備中武器のマスター（null = 未装備。<see cref="ResolveEquippedWeaponMaster"/> 前も null）。</summary>
+        public HorrorWeaponMaster EquippedWeaponMaster => _equippedWeaponMaster;
+
         /// <summary>
-        /// 装備中武器の解決済みマスター（null = 未装備・未ロード。解決失敗時は LogError の上 null）。
-        /// 遅延解決＋Id キーのキャッシュ。Id 比較が毎読みで真実源（セーブデータ）に追従するため、
-        /// セーブ差し替え（ロード・新規作成）にもイベント購読なしで自動追従する。
+        /// セーブデータの装備記録からマスターを確定する。プレイ開始時（セーブのロード・新規作成後）に呼ぶ。
         /// ロード時は NormalizeEquipment がマスター不在装備を None へ正規化済みのため、解決失敗＝不変条件違反。
         /// </summary>
-        public HorrorWeaponMaster EquippedWeaponMaster
+        public void ResolveEquippedWeaponMaster()
         {
-            get
-            {
-                var data = _repository.Data?.Equipment;
-                if (data == null || data.ObjectCategory != ObjectCategory.Weapon)
-                    return null; // 未ロード・未装備。キャッシュ Id は触らない（次の正規 Id で必ず再解決させる）
+            _equippedWeaponMaster = null;
 
-                if (data.Id == _resolvedWeaponId)
-                    return _resolvedWeaponMaster;
+            var data = _repository.Data?.Equipment;
+            if (data == null || data.ObjectCategory != ObjectCategory.Weapon)
+                return; // 未ロード・未装備
 
-                _resolvedWeaponId = data.Id;
-                if (_databaseService.Database.HorrorWeaponMasterTable.TryFindById(data.Id, out var master))
-                {
-                    _resolvedWeaponMaster = master;
-                }
-                else
-                {
-                    _resolvedWeaponMaster = null;
-                    Debug.LogError($"装備中の武器マスターが見つかりません Id={data.Id}");
-                }
+            if (_databaseService.Database.HorrorWeaponMasterTable.TryFindById(data.Id, out _equippedWeaponMaster))
+                return;
 
-                return _resolvedWeaponMaster;
-            }
+            // 記録と実体の乖離を残さない（次回ロード時の NormalizeEquipment と同じ結果へ寄せる）
+            Debug.LogError($"装備中の武器マスターが見つかりません Id={data.Id}。未装備へ戻します");
+            data.ObjectCategory = ObjectCategory.None;
+            data.Id = 0;
+            _repository.MarkDirty();
         }
 
         /// <summary>

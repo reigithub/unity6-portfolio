@@ -69,6 +69,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_WeaponPossessed_SucceedsAndMarksDirty()
         {
             await LoadDefaultData();
+            SetupRealDatabase(5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
 
             var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
@@ -110,6 +111,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_SameWeaponAgain_ReturnsTrueIdempotently()
         {
             await LoadDefaultData();
+            SetupRealDatabase(5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
@@ -269,6 +271,7 @@ namespace Game.Tests.MVC.Horror
         public async Task TryEquip_DoesNotAffectSlots()
         {
             await LoadDefaultData();
+            SetupRealDatabase(7);
             _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 7).Returns(true);
 
@@ -283,6 +286,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Assign_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
+            SetupRealDatabase(5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
@@ -297,6 +301,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Clear_DoesNotAffectEquipped()
         {
             await LoadDefaultData();
+            SetupRealDatabase(5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
             _service.TryEquip(ObjectCategory.Weapon, 5);
@@ -371,8 +376,8 @@ namespace Game.Tests.MVC.Horror
             });
         }
 
-        // 装備中武器のマスター解決：未ロード・未装備は null、解決失敗は LogError の上 null（Id 単位で1回のみ）、
-        // 解決成功は装備切替に追従する。
+        // 装備中武器のマスター解決：解決前・未ロード・未装備は null。プレイ開始時の解決
+        // （ResolveEquippedWeaponMaster）と装備切替（TryEquip）で確定し、解決できない記録は未装備へ戻す。
 
         /// <summary>
         /// 指定 Id の武器レコードを持つ実テーブル＋DB を組み立てて mock に接続する。
@@ -394,31 +399,77 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public void EquippedWeaponMaster_WhenDataNull_ReturnsNull()
+        public void EquippedWeaponMaster_BeforeResolve_IsNull()
         {
             Assert.That(_service.EquippedWeaponMaster, Is.Null);
         }
 
         [Test]
-        public async Task EquippedWeaponMaster_Unequipped_ReturnsNull()
+        public void ResolveEquippedWeaponMaster_WhenDataNull_ResolvesNull()
         {
-            await LoadDefaultData();
-
+            // LoadAsync 未実行 ＝ Data は null。DB へも触れない
+            Assert.DoesNotThrow(() => _service.ResolveEquippedWeaponMaster());
             Assert.That(_service.EquippedWeaponMaster, Is.Null);
         }
 
         [Test]
-        public async Task EquippedWeaponMaster_MasterNotFound_LogsErrorOnceAndReturnsNull()
+        public async Task ResolveEquippedWeaponMaster_Unequipped_ResolvesNull()
         {
             await LoadDefaultData();
-            SetupRealDatabase(7); // 装備する Id=5 はテーブル未登録 → 解決失敗（不変条件違反）経路
+
+            _service.ResolveEquippedWeaponMaster();
+
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public async Task ResolveEquippedWeaponMaster_RestoresFromSaveData()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
             _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
             _service.TryEquip(ObjectCategory.Weapon, 5);
 
-            LogAssert.Expect(LogType.Error, "装備中の武器マスターが見つかりません Id=5");
+            // 装備記録の残るセーブデータに対し、未解決のサービス（＝セーブのロード直後）を作り直す
+            var service = new HorrorEquipmentService(_repository, _mockInventory, _mockDatabase);
+            Assert.That(service.EquippedWeaponMaster, Is.Null);
+
+            service.ResolveEquippedWeaponMaster();
+
+            Assert.That(service.EquippedWeaponMaster, Is.Not.Null);
+            Assert.That(service.EquippedWeaponMaster.Id, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task ResolveEquippedWeaponMaster_MasterNotFound_LogsErrorAndClearsEquipment()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(7); // 記録された Id=5 はテーブル未登録 → 解決失敗（不変条件違反）経路
+            _repository.Data.Equipment.ObjectCategory = ObjectCategory.Weapon;
+            _repository.Data.Equipment.Id = 5;
+
+            LogAssert.Expect(LogType.Error, "装備中の武器マスターが見つかりません Id=5。未装備へ戻します");
+            _service.ResolveEquippedWeaponMaster();
 
             Assert.That(_service.EquippedWeaponMaster, Is.Null);
-            Assert.That(_service.EquippedWeaponMaster, Is.Null); // 2回目の読みは LogError を再発しない（再発すれば未期待ログでテストが落ちる）
+            Assert.That(_service.TryGetEquipped(out _, out _), Is.False); // 記録も実体（未装備）へ合わせる
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task TryEquip_MasterNotFound_LogsErrorAndDoesNotEquip()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(7); // 装備する Id=5 はテーブル未登録 → 装備を成立させない
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+
+            LogAssert.Expect(LogType.Error, "装備中の武器マスターが見つかりません Id=5");
+
+            Assert.That(_service.TryEquip(ObjectCategory.Weapon, 5), Is.False);
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+            Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
+            Assert.That(_repository.IsDirty, Is.False);
         }
 
         [Test]

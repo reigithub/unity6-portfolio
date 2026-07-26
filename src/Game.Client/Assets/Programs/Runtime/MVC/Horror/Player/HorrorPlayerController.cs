@@ -194,10 +194,14 @@ namespace Game.Horror.Player
             // 残 HP をセーブデータから復元（0 以下=旧セーブ・新規データは Max へ正規化し、結果を書き戻す）
             ApplyHealth(NormalizeLoadedHealth(_playerService.CurrentHealth, _playerService.MaxHealth));
 
+            // 武器モデルの復元に先立ち、セーブの装備記録からマスターを確定する
+            _equipmentService.ResolveEquippedWeaponMaster();
+
+            // 装備ショートカットビュー初期化
             _equipmentsView.Initialize();
 
             // 武器モデル表示ビューの初期化：装備中なら即座に表示し、ショートカット登録武器のモデルは事前ロードしておく
-            // （装備中武器の復元は装備サービスの解決済みキャッシュが担う。未装備なら null＝TryAttack の null ガードで攻撃不可）
+            // （マスターは上で確定済み。未装備なら null＝TryAttack の null ガードで攻撃不可）
             _weaponView.Initialize();
             var equippedWeapon = EquippedWeaponMaster;
             if (equippedWeapon != null) _weaponView.ShowImmediate(equippedWeapon);
