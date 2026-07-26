@@ -20,7 +20,7 @@ namespace Game.Horror.SaveData
         /// <summary>保存日時（UTC）</summary>
         public DateTime SavedAtUtc { get; set; }
 
-        /// <summary>保存時点のセーブポイント Id（HorrorInteractionMaster の Id、0 = なし）</summary>
+        /// <summary>最後にセーブしたセーブポイントの Id（HorrorInteractionMaster の Id、0 = 未記録）。復帰地点の解決に使う</summary>
         public int SavepointId { get; set; }
 
         public HorrorPlayerSaveData Player { get; set; } = new();

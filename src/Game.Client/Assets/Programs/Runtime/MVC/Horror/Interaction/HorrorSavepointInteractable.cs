@@ -18,7 +18,6 @@ namespace Game.Horror.Interaction
         [SerializeField] private Transform _respawnPoint;
 
         private IHorrorSaveRepository _saveRepository;
-        private IHorrorPlayerService _playerService;
 
         /// <summary>
         /// 復帰時のプレイヤー開始 Transform。未設定はシーン配線漏れとして LogError で顕在化し null を返す
@@ -37,7 +36,6 @@ namespace Game.Horror.Interaction
         protected override void Start()
         {
             _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
-            _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             base.Start();
         }
 
@@ -55,7 +53,7 @@ namespace Game.Horror.Interaction
             // 自身のインタラクト記録と復帰地点を選択後に Dirty 化し、今回の保存に含める
             base.Interact();
 
-            _playerService.SetLastSavepoint(InteractionId);
+            _saveRepository.SetSavepointId(InteractionId);
             await _saveRepository.SaveBySlotAsync(selected);
         }
     }

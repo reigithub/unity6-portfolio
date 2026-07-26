@@ -27,7 +27,7 @@ namespace Game.Horror.Scenes
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
-        private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
+        private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
 
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
@@ -111,7 +111,7 @@ namespace Game.Horror.Scenes
         /// </summary>
         private void ApplyRespawnPosition(HorrorPlayerController player)
         {
-            var savepointId = _playerService.LastSavepointId;
+            var savepointId = _saveRepository.Data.SavepointId;
             if (savepointId == 0)
                 return;
 

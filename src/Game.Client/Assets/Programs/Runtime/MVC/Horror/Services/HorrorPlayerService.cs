@@ -4,8 +4,7 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// Horror プレイヤー状態（復帰地点等）を扱うドメインサービス。
-    /// 座標ではなく InteractionId のみを永続化し、位置解決はシーン側（リスポーン Transform）に委ねる。
+    /// Horror プレイヤー状態を扱うドメインサービス。
     /// </summary>
     public class HorrorPlayerService : IHorrorPlayerService
     {
@@ -14,29 +13,6 @@ namespace Game.Horror.Services
         public HorrorPlayerService(IHorrorSaveRepository repository)
         {
             _repository = repository;
-        }
-
-        /// <summary>最後に使ったセーブポイントの InteractionId（0 = 未記録・未ロード）。</summary>
-        public int LastSavepointId => _repository.Data?.Player?.LastSavepointId ?? 0;
-
-        /// <summary>
-        /// 最後に使ったセーブポイントを記録する。未ロード時は LogError の上で何もしない。
-        /// Id 0・同値の場合も何もしない（同値で Dirty にしない）。
-        /// </summary>
-        public void SetLastSavepoint(int interactionId)
-        {
-            var data = _repository.Data?.Player;
-            if (data == null)
-            {
-                Debug.LogError($"セーブデータ未ロードのため {nameof(SetLastSavepoint)}({interactionId}) を無視しました");
-                return;
-            }
-
-            if (interactionId == 0 || data.LastSavepointId == interactionId)
-                return;
-
-            data.LastSavepointId = interactionId;
-            _repository.MarkDirty();
         }
 
         /// <summary>残 HP（0 = 未記録・未ロード。復元側で最大 HP へ正規化する）。</summary>

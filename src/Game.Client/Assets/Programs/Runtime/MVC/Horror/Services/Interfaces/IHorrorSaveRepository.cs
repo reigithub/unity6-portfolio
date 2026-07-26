@@ -33,7 +33,7 @@ namespace Game.Horror.Services.Interfaces
 
         /// <summary>
         /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
-        /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に刻印される。
+        /// スロットメタ（スロット番号・保存日時）は保存直前に刻印される。
         /// </summary>
         /// <param name="slotNo">保存先スロット番号（0〜スロット数上限 - 1）。</param>
         UniTask SaveBySlotAsync(int slotNo);
@@ -43,5 +43,10 @@ namespace Game.Horror.Services.Interfaces
         /// </summary>
         /// <param name="slotNo">スロット番号</param>
         UniTask DeleteBySlotAsync(int slotNo);
+
+        /// <summary>
+        /// セーブポイントを記録する。未ロード時は LogError の上で何もしない。Id 0・同値の場合も何もしない。
+        /// </summary>
+        void SetSavepointId(int interactionId);
     }
 }

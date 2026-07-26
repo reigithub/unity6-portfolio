@@ -50,7 +50,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_repository.Data, Is.Not.Null);
             Assert.That(_repository.Data.Version, Is.EqualTo(HorrorSaveConstants.SaveDataLatestVersion));
-            Assert.That(_repository.Data.Player.LastSavepointId, Is.EqualTo(0));
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
             Assert.That(_repository.Data.Inventory.Slots, Is.Empty);
             Assert.That(_repository.Data.Interaction.InteractionIds, Is.Empty);
             Assert.That(_repository.Data.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.None));
@@ -81,12 +81,12 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public async Task Load_ExistingDataWithZeroId_DoesNotTouchDatabase()
         {
-            // Id=0 は NormalizePlayer の != 0 ガードでマスター照会をスキップする。
-            // Repository は区画一括正規化のため database 参照自体は取得するが、Player 区画のテーブルへは触れない。
+            // Id=0 は NormalizeSavepoint の != 0 ガードでマスター照会をスキップする。
+            // Repository は区画一括正規化のため database 参照自体は取得するが、セーブポイントのテーブルへは触れない。
             var data = new HorrorSaveData
             {
                 Version = 1,
-                Player = new HorrorPlayerSaveData { LastSavepointId = 0 },
+                SavepointId = 0,
             };
             _mockStorage.LoadAsync<HorrorSaveData>(SaveKey)
                 .Returns(UniTask.FromResult(data));
@@ -94,7 +94,7 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
 
             Assert.That(_repository.Data, Is.Not.Null);
-            Assert.That(_repository.Data.Player.LastSavepointId, Is.EqualTo(0));
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
         }
 
         [Test]
@@ -103,7 +103,7 @@ namespace Game.Tests.MVC.Horror
             var original = new HorrorSaveData
             {
                 Version = 1,
-                Player = new HorrorPlayerSaveData { LastSavepointId = 42 },
+                Player = new HorrorPlayerSaveData { CurrentHealth = 42 },
                 Inventory = new HorrorInventorySaveData
                 {
                     Slots = new List<HorrorInventorySlotData>
@@ -145,7 +145,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(restored, Is.Not.Null);
             Assert.That(restored.Version, Is.EqualTo(1));
-            Assert.That(restored.Player.LastSavepointId, Is.EqualTo(42));
+            Assert.That(restored.Player.CurrentHealth, Is.EqualTo(42));
             Assert.That(restored.Inventory.Slots.Count, Is.EqualTo(1));
             Assert.That(restored.Inventory.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.Inventory.Slots[0].Id, Is.EqualTo(3));
@@ -189,18 +189,17 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task SaveToSlotAsync_WithValidSlot_SavesToSlotKeyAndWritesMeta()
+        public async Task SaveToSlotAsync_WithValidSlot_SavesToSlotKeyAndStampsSlotMeta()
         {
             await LoadDefaultData();
             _mockStorage.SaveAsync("horror_save_slot3", Arg.Any<HorrorSaveData>())
                 .Returns(UniTask.CompletedTask);
-            _repository.Data.Player.LastSavepointId = 42;
+            _repository.SetSavepointId(42);
 
             await _repository.SaveBySlotAsync(3);
 
             Assert.That(_repository.CurrentSlot, Is.EqualTo(3));
             Assert.That(_repository.Data.SlotNo, Is.EqualTo(3));
-            Assert.That(_repository.Data.SavepointId, Is.EqualTo(42));
             Assert.That(_repository.Data.SavedAtUtc, Is.Not.EqualTo(default(DateTime)));
             await _mockStorage.Received(1).SaveAsync(
                 "horror_save_slot3",
@@ -263,6 +262,57 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadSlotInfosAsync();
 
             Assert.That(_repository.Data, Is.SameAs(currentData));
+        }
+
+        // セーブポイント記録：記録+Dirty 化、Id 0・同値は Dirty にしない、未ロードは LogError の上で no-op。
+
+        [Test]
+        public async Task SetSavepointId_RecordsAndMarksDirty()
+        {
+            await LoadDefaultData();
+
+            _repository.SetSavepointId(10);
+
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(10));
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task SetSavepointId_SameId_DoesNotMarkDirty()
+        {
+            await LoadDefaultData();
+            _repository.SetSavepointId(10);
+            await _repository.SaveBySlotAsync(0);
+            Assert.That(_repository.IsDirty, Is.False);
+
+            _repository.SetSavepointId(10);
+
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public async Task SetSavepointId_Zero_IgnoredAndNotDirty()
+        {
+            await LoadDefaultData();
+
+            _repository.SetSavepointId(0);
+
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public void SetSavepointId_WhenDataNull_LogsErrorAndDoesNotThrow()
+        {
+            LogAssert.Expect(LogType.Error, "[HorrorSaveRepository] セーブデータ未ロードのため SetSavepointId(10) を無視しました");
+
+            Assert.DoesNotThrow(() => _repository.SetSavepointId(10));
+        }
+
+        [Test]
+        public void SavepointId_WhenDataNull_ReturnsZero()
+        {
+            Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorPlayerSaveData
     {
-        /// <summary>最後に使ったセーブポイントの InteractionId（0 = 未記録）</summary>
+        /// <summary>未使用。MemoryPack のメンバー順序を保つための残置枠であり読み書きしない</summary>
         public int LastSavepointId { get; set; }
 
         /// <summary>残 HP（0 = 旧セーブ・未記録。ロード時に最大 HP へ正規化される）</summary>

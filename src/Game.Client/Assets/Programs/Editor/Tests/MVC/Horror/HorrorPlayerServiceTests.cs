@@ -39,55 +39,6 @@ namespace Game.Tests.MVC.Horror
             await _repository.LoadAsync();
         }
 
-        [Test]
-        public async Task SetLastSavepoint_RecordsAndMarksDirty()
-        {
-            await LoadDefaultData();
-
-            _service.SetLastSavepoint(10);
-
-            Assert.That(_service.LastSavepointId, Is.EqualTo(10));
-            Assert.That(_repository.IsDirty, Is.True);
-        }
-
-        [Test]
-        public async Task SetLastSavepoint_SameId_DoesNotMarkDirty()
-        {
-            await LoadDefaultData();
-            _service.SetLastSavepoint(10);
-            await _repository.SaveBySlotAsync(0);
-            Assert.That(_repository.IsDirty, Is.False);
-
-            _service.SetLastSavepoint(10);
-
-            Assert.That(_repository.IsDirty, Is.False);
-        }
-
-        [Test]
-        public async Task SetLastSavepoint_Zero_IgnoredAndNotDirty()
-        {
-            await LoadDefaultData();
-
-            _service.SetLastSavepoint(0);
-
-            Assert.That(_service.LastSavepointId, Is.EqualTo(0));
-            Assert.That(_repository.IsDirty, Is.False);
-        }
-
-        [Test]
-        public void SetLastSavepoint_WhenDataNull_LogsErrorAndDoesNotThrow()
-        {
-            LogAssert.Expect(LogType.Error, "セーブデータ未ロードのため SetLastSavepoint(10) を無視しました");
-
-            Assert.DoesNotThrow(() => _service.SetLastSavepoint(10));
-        }
-
-        [Test]
-        public void LastSavepointId_WhenDataNull_ReturnsZero()
-        {
-            Assert.That(_service.LastSavepointId, Is.EqualTo(0));
-        }
-
         // 残 HP の永続化：記録+Dirty 化、同値は Dirty にしない、未ロードは LogError の上で no-op。
         // 新規データの既定 0 は「未記録」を意味し、復元側（NormalizeLoadedHealth）が Max へ正規化する前提。
 
