@@ -14,6 +14,7 @@ namespace Game.Shared.Scriptable.Database.Tables
 
         [SerializeField] private int _id;                       // 識別ID
         [SerializeField] private string _name;                  // 識別名
+        [SerializeField] private string _modelAssetName;        // プレイヤーモデルの Addressables アドレス
 
         [SerializeField] private float _walkSpeed;              // 歩き速度（m/s）
         [SerializeField] private float _runSpeed;               // 走り速度（m/s）
@@ -29,14 +30,14 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _aimRotationMultiplier;  // エイム中のカメラ回転速度倍率
         [SerializeField] private float _aimShakeFadeSeconds;    // エイム中にカメラ揺れをゼロへ減衰させる秒数（解除時の復帰も同じ秒数）
 
-        [SerializeField] private float _bobWalkAmplitude;       // ヘッドボブ歩き：縦位置振幅（m）
-        [SerializeField] private float _bobRunAmplitude;        // ヘッドボブ走り：縦位置振幅（m）
-        [SerializeField] private float _bobWalkSpeed;           // ヘッドボブ歩き：位相速度 rad/s（ゆっくり）
-        [SerializeField] private float _bobRunSpeed;            // ヘッドボブ走り：位相速度 rad/s（少しだけ速い）
-        [SerializeField] private float _bobHorizontalRatio;     // ヘッドボブ横位置/縦位置 比
-        [SerializeField] private float _bobWalkRoll;            // ヘッドボブ歩き：ロール角（度）＝知覚される横揺れ
-        [SerializeField] private float _bobRunRoll;             // ヘッドボブ走り：ロール角（度）
-        [SerializeField] private float _bobAmplitudeResponse;   // ヘッドボブ強度イーズの応答
+        [SerializeField] private float _headBobWalkAmplitude;       // ヘッドボブ歩き：縦位置振幅（m）
+        [SerializeField] private float _headBobRunAmplitude;        // ヘッドボブ走り：縦位置振幅（m）
+        [SerializeField] private float _headBobWalkSpeed;           // ヘッドボブ歩き：位相速度 rad/s（ゆっくり）
+        [SerializeField] private float _headBobRunSpeed;            // ヘッドボブ走り：位相速度 rad/s（少しだけ速い）
+        [SerializeField] private float _headBobHorizontalRatio;     // ヘッドボブ横位置/縦位置 比
+        [SerializeField] private float _headBobWalkRoll;            // ヘッドボブ歩き：ロール角（度）＝知覚される横揺れ
+        [SerializeField] private float _headBobRunRoll;             // ヘッドボブ走り：ロール角（度）
+        [SerializeField] private float _headBobAmplitudeResponse;   // ヘッドボブ強度イーズの応答
 
         [SerializeField] private float _idleSwaySpeed;          // アイドルスウェイ：位相速度 rad/s（呼吸 ~5秒周期）
         [SerializeField] private float _idleSwayAmplitude;      // アイドルスウェイ：縦位置振幅（m, ヘッドボブより小）
@@ -66,6 +67,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _name;
             set => _name = value;
+        }
+
+        public string ModelAssetName
+        {
+            get => _modelAssetName;
+            set => _modelAssetName = value;
         }
 
         public float WalkSpeed
@@ -134,52 +141,52 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _aimShakeFadeSeconds = value;
         }
 
-        public float BobWalkAmplitude
+        public float HeadBobWalkAmplitude
         {
-            get => _bobWalkAmplitude;
-            set => _bobWalkAmplitude = value;
+            get => _headBobWalkAmplitude;
+            set => _headBobWalkAmplitude = value;
         }
 
-        public float BobRunAmplitude
+        public float HeadBobRunAmplitude
         {
-            get => _bobRunAmplitude;
-            set => _bobRunAmplitude = value;
+            get => _headBobRunAmplitude;
+            set => _headBobRunAmplitude = value;
         }
 
-        public float BobWalkSpeed
+        public float HeadBobWalkSpeed
         {
-            get => _bobWalkSpeed;
-            set => _bobWalkSpeed = value;
+            get => _headBobWalkSpeed;
+            set => _headBobWalkSpeed = value;
         }
 
-        public float BobRunSpeed
+        public float HeadBobRunSpeed
         {
-            get => _bobRunSpeed;
-            set => _bobRunSpeed = value;
+            get => _headBobRunSpeed;
+            set => _headBobRunSpeed = value;
         }
 
-        public float BobHorizontalRatio
+        public float HeadBobHorizontalRatio
         {
-            get => _bobHorizontalRatio;
-            set => _bobHorizontalRatio = value;
+            get => _headBobHorizontalRatio;
+            set => _headBobHorizontalRatio = value;
         }
 
-        public float BobWalkRoll
+        public float HeadBobWalkRoll
         {
-            get => _bobWalkRoll;
-            set => _bobWalkRoll = value;
+            get => _headBobWalkRoll;
+            set => _headBobWalkRoll = value;
         }
 
-        public float BobRunRoll
+        public float HeadBobRunRoll
         {
-            get => _bobRunRoll;
-            set => _bobRunRoll = value;
+            get => _headBobRunRoll;
+            set => _headBobRunRoll = value;
         }
 
-        public float BobAmplitudeResponse
+        public float HeadBobAmplitudeResponse
         {
-            get => _bobAmplitudeResponse;
-            set => _bobAmplitudeResponse = value;
+            get => _headBobAmplitudeResponse;
+            set => _headBobAmplitudeResponse = value;
         }
 
         public float IdleSwaySpeed

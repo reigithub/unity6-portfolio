@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
+using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services.Interfaces;
 
 namespace Game.Horror.Services.Interfaces
@@ -12,11 +14,27 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>指定 (SlotType, Id) が装備可能か判定する。装備対象は Weapon のみで、かつ所持している必要がある。</summary>
         bool CanEquip(ObjectCategory type, int id);
 
-        /// <summary>指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立する場合のみ反映して Dirty にする。</summary>
+        /// <summary>
+        /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立し、かつマスターを解決できる場合のみ
+        /// 反映して Dirty にする。マスターを解決できない場合は装備を成立させない（LogError の上 false）。
+        /// </summary>
         bool TryEquip(ObjectCategory type, int id);
 
         /// <summary>現在装備中の (SlotType, Id) を取得する。未装備または未ロードなら false。</summary>
         bool TryGetEquipped(out ObjectCategory type, out int id);
+
+        /// <summary>装備中武器のマスター（null = 未装備。<see cref="ResolveEquippedWeaponMaster"/> 前も null）。</summary>
+        HorrorWeaponMaster EquippedWeaponMaster { get; }
+
+        /// <summary>
+        /// セーブデータの装備記録から装備中武器のマスターを確定する。セーブのロード・新規作成後、
+        /// <see cref="EquippedWeaponMaster"/> を読む前に呼ぶ。
+        /// 解決できない記録は不変条件違反として LogError の上、未装備へ戻す。
+        /// </summary>
+        void ResolveEquippedWeaponMaster();
+
+        /// <summary>ショートカット登録＋装備中の武器をマスター解決し、同一 Id を重複排除して列挙する（スロット0→3→装備中の順）。</summary>
+        List<HorrorWeaponMaster> GetEquippableWeaponMasters();
 
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>
         bool TrySetSlot(int index, ObjectCategory slotType, int id);

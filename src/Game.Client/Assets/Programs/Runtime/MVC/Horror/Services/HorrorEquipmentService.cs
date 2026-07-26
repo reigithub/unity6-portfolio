@@ -3,6 +3,8 @@ using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
+using Game.Shared.Scriptable.Database.Tables;
+using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -18,11 +20,15 @@ namespace Game.Horror.Services
 
         private readonly IHorrorSaveRepository _repository;
         private readonly IHorrorInventoryService _inventoryService;
+        private readonly IScriptableDatabaseService _databaseService;
 
-        public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService)
+        private HorrorWeaponMaster _equippedWeaponMaster;
+
+        public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService, IScriptableDatabaseService databaseService)
         {
             _repository = repository;
             _inventoryService = inventoryService;
+            _databaseService = databaseService;
         }
 
         /// <summary>
@@ -31,8 +37,8 @@ namespace Game.Horror.Services
         public bool CanEquip(ObjectCategory type, int id) => type == ObjectCategory.Weapon && _inventoryService.HasObject(type, id);
 
         /// <summary>
-        /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立する場合のみ反映して Dirty にする。
-        /// 現在と同一の装備を指定した場合も冪等に true を返す。
+        /// 指定 (SlotType, Id) を装備状態にする。<see cref="CanEquip"/> が成立し、かつマスターを解決できる場合のみ
+        /// 反映して Dirty にする。現在と同一の装備を指定した場合も冪等に true を返す。
         /// </summary>
         public bool TryEquip(ObjectCategory type, int id)
         {
@@ -40,8 +46,16 @@ namespace Game.Horror.Services
             if (data == null || !CanEquip(type, id))
                 return false;
 
+            // 記録とマスターの確定は同時に行う（装備中なのにマスターが無い状態を作らない）
+            if (!_databaseService.Database.HorrorWeaponMasterTable.TryFindById(id, out var master))
+            {
+                Debug.LogError($"装備中の武器マスターが見つかりません Id={id}");
+                return false;
+            }
+
             data.ObjectCategory = type;
             data.Id = id;
+            _equippedWeaponMaster = master;
             _repository.MarkDirty();
             return true;
         }
@@ -59,6 +73,59 @@ namespace Game.Horror.Services
             type = data.ObjectCategory;
             id = data.Id;
             return true;
+        }
+
+        /// <summary>装備中武器のマスター（null = 未装備。<see cref="ResolveEquippedWeaponMaster"/> 前も null）。</summary>
+        public HorrorWeaponMaster EquippedWeaponMaster => _equippedWeaponMaster;
+
+        /// <summary>
+        /// セーブデータの装備記録からマスターを確定する。プレイ開始時（セーブのロード・新規作成後）に呼ぶ。
+        /// ロード時は NormalizeEquipment がマスター不在装備を None へ正規化済みのため、解決失敗＝不変条件違反。
+        /// </summary>
+        public void ResolveEquippedWeaponMaster()
+        {
+            _equippedWeaponMaster = null;
+
+            var data = _repository.Data?.Equipment;
+            if (data == null || data.ObjectCategory != ObjectCategory.Weapon)
+                return; // 未ロード・未装備
+
+            if (_databaseService.Database.HorrorWeaponMasterTable.TryFindById(data.Id, out _equippedWeaponMaster))
+                return;
+
+            // 記録と実体の乖離を残さない（次回ロード時の NormalizeEquipment と同じ結果へ寄せる）
+            Debug.LogError($"装備中の武器マスターが見つかりません Id={data.Id}。未装備へ戻します");
+            data.ObjectCategory = ObjectCategory.None;
+            data.Id = 0;
+            _repository.MarkDirty();
+        }
+
+        /// <summary>
+        /// ショートカット登録＋装備中の武器をマスター解決し、同一 Id を重複排除して列挙する（スロット0→3→装備中の順）。
+        /// マスター未解決のスロット登録は無音でスキップする（ロード時正規化で通常は発生しない）。
+        /// </summary>
+        public List<HorrorWeaponMaster> GetEquippableWeaponMasters()
+        {
+            var masters = new List<HorrorWeaponMaster>();
+
+            for (var i = 0; i < MaxEquipmentSlotCount; i++)
+            {
+                if (TryGetSlot(i, out var slot)
+                    && slot.ObjectCategory == ObjectCategory.Weapon
+                    && !masters.Exists(m => m.Id == slot.Id)
+                    && _databaseService.Database.HorrorWeaponMasterTable.TryFindById(slot.Id, out var slotMaster))
+                {
+                    masters.Add(slotMaster);
+                }
+            }
+
+            var equippedWeapon = EquippedWeaponMaster;
+            if (equippedWeapon != null && !masters.Exists(m => m.Id == equippedWeapon.Id))
+            {
+                masters.Add(equippedWeapon);
+            }
+
+            return masters;
         }
 
         /// <summary>指定スロット(0-3)へアイテム (SlotType, Id) を登録する。</summary>

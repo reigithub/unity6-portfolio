@@ -81,7 +81,7 @@ namespace Game.Horror.Services
 
         /// <summary>
         /// 指定スロットへ保存する。範囲外のスロット番号は保存を行わない。
-        /// スロットメタ（スロット番号・保存日時・セーブポイント Id）は保存直前に <see cref="OnBeforeSave"/> が刻印する。
+        /// スロットメタ（スロット番号・保存日時）は保存直前に <see cref="OnBeforeSave"/> が刻印する。
         /// </summary>
         /// <param name="slotNo">保存先スロット番号（0〜<see cref="HorrorSaveConstants.MaxSaveSlotCount"/> - 1）。</param>
         public async UniTask SaveBySlotAsync(int slotNo)
@@ -119,15 +119,31 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// セーブポイントIDを記録する
+        /// </summary>
+        public void SetSavepointId(int interactionId)
+        {
+            if (Data == null)
+            {
+                Debug.LogError($"[{GetType().Name}] セーブデータ未ロードのため {nameof(SetSavepointId)}({interactionId}) を無視しました");
+                return;
+            }
+
+            if (interactionId == 0 || Data.SavepointId == interactionId)
+                return;
+
+            Data.SavepointId = interactionId;
+            MarkDirty();
+        }
+
         // どの保存経路（SaveAsync / SaveIfDirtyAsync）でもスロットメタが最新になるよう、保存直前に刻印する。
-        // セーブポイント Id は復帰地点（Player.LastSavepointId）から導出し、真実の源を一つに保つ。
         protected override void OnBeforeSave(HorrorSaveData data)
         {
             if (CurrentSlot < 0) throw new InvalidOperationException($"[{GetType().Name}] Slot {CurrentSlot} is invalid");
 
             data.SlotNo = CurrentSlot;
             data.SavedAtUtc = DateTime.UtcNow;
-            data.SavepointId = data.Player.LastSavepointId;
         }
 
         protected override HorrorSaveData CreateNewData()
@@ -147,19 +163,19 @@ namespace Game.Horror.Services
 
             var database = _databaseService.Database;
 
-            NormalizePlayer(data.Player, database);
+            NormalizeSavepoint(data, database);
             NormalizeInteraction(data.Interaction, database);
             NormalizeInventory(data.Inventory, database);
             NormalizeEquipment(data.Equipment, database);
             NormalizeKeyItem(data.KeyItem, database);
         }
 
-        private static void NormalizePlayer(HorrorPlayerSaveData data, ScriptableDatabase database)
+        private static void NormalizeSavepoint(HorrorSaveData data, ScriptableDatabase database)
         {
             // マスター不在 Id は未記録(0)へ戻す。シーン内に該当セーブポイントが無いケースは復元側のフォールバックが担う
-            if (data.LastSavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.LastSavepointId, out _))
+            if (data.SavepointId != 0 && !database.HorrorInteractionMasterTable.TryFindById(data.SavepointId, out _))
             {
-                data.LastSavepointId = 0;
+                data.SavepointId = 0;
             }
         }
 
