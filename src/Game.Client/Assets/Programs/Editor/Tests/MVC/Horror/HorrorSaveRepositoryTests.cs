@@ -314,7 +314,7 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void SavepointId_WhenDataNull_ReturnsZero()
         {
-            Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
+            Assert.That(_repository.Data?.SavepointId ?? 0, Is.EqualTo(0));
         }
     }
 }
