@@ -73,6 +73,9 @@ namespace Game.Horror.Player
         /// <summary>操作中プレイヤーの解決済みマスター（真実源＝プレイヤーサービス。null = 解決失敗）。</summary>
         private HorrorPlayerMaster PlayerMaster => _playerService.PlayerMaster;
 
+        /// <summary>装備中武器の解決済みマスター（真実源＝装備サービス。null = 未装備）。</summary>
+        private HorrorWeaponMaster EquippedWeaponMaster => _equipmentService.EquippedWeaponMaster;
+
         private CharacterController _characterController;
 
         // ステートマシーン
@@ -90,9 +93,6 @@ namespace Game.Horror.Player
 
         // 攻撃（ハンドガン）：起動入力フラグ（硬直経過は AttackingState ローカル）
         private bool _attackTriggered;
-
-        /// <summary>装備中武器の解決済みマスター（真実源＝装備サービス。null = 未装備）。</summary>
-        private HorrorWeaponMaster EquippedWeaponMaster => _equipmentService.EquippedWeaponMaster;
 
         // 発砲カメラリコイル（減衰オフセット型）。強度・回復秒は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
         private float _recoilPitchAmount;
