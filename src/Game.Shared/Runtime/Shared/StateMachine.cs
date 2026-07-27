@@ -237,6 +237,40 @@ namespace Game.Library.Shared
             return StateEventResult.Failed;
         }
 
+        /// <summary>
+        /// 先約（未消費の遷移要求）があっても上書きして遷移を要求する
+        /// </summary>
+        /// <returns>StateEventResult: 遷移リクエストに対する応答（Waiting は返らない）</returns>
+        /// <remarks>
+        /// <para>死亡確定など「他の遷移に負けてはならない」イベント専用。解決は通常の遷移テーブル（AnyState / FromTo）に従い、現在ステート基準で行う</para>
+        /// <para>Force 同士は後勝ちのため、負けてはならないイベントは 1 つのステートマシンにつき実質 1 種類に限ること</para>
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public StateEventResult ForceTransition(TEvent eventKey)
+        {
+            if (_currentState == null)
+                throw new InvalidOperationException("State Machine is not Processing!!");
+
+            if (_currentPhase == StatePhase.Exiting)
+                throw new InvalidOperationException("Exit Processing");
+
+            if (_anyTransitions.TryGetValue(eventKey, out var anyState))
+            {
+                _nextState = anyState;
+                return StateEventResult.Succeeded;
+            }
+
+            if (_fromToTransitions.TryGetValue(eventKey, out var rules) &&
+                rules.TryGetValue(_currentState, out var toState))
+            {
+                _nextState = toState;
+                return StateEventResult.Succeeded;
+            }
+
+            // 遷移情報が登録されていない
+            return StateEventResult.Failed;
+        }
+
         #endregion
 
         #region Process
