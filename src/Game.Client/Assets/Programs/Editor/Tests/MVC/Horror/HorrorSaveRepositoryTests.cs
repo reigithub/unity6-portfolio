@@ -366,6 +366,29 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data, Is.SameAs(currentData));
         }
 
+        // コンティニュー/リスタートの分岐前提：CreateData はスロットを確定せず、無効スロットのロードはデータを差し替えない。
+
+        [Test]
+        public void CreateData_KeepsCurrentSlotInvalid()
+        {
+            _repository.CreateData();
+
+            Assert.That(_repository.CurrentSlot, Is.EqualTo(-1));
+            Assert.That(_repository.Data, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task LoadByCurrentSlotAsync_WhenNoCurrentSlot_LogsErrorAndKeepsData()
+        {
+            _repository.CreateData();
+            var currentData = _repository.Data;
+            LogAssert.Expect(LogType.Error, new Regex("Invalid slot number"));
+
+            await _repository.LoadByCurrentSlotAsync();
+
+            Assert.That(_repository.Data, Is.SameAs(currentData));
+        }
+
         // セーブポイント記録：記録+Dirty 化、Id 0・同値は Dirty にしない、未ロードは LogError の上で no-op。
 
         [Test]
