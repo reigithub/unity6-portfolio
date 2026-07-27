@@ -160,6 +160,7 @@ namespace Game.Horror.Services
             data.Inventory ??= new HorrorInventorySaveData();
             data.Equipment ??= new HorrorEquipmentSaveData();
             data.KeyItem ??= new HorrorKeyItemSaveData();
+            data.Enemy ??= new HorrorEnemySaveData();
 
             var database = _databaseService.Database;
 
@@ -168,6 +169,7 @@ namespace Game.Horror.Services
             NormalizeInventory(data.Inventory, database);
             NormalizeEquipment(data.Equipment, database);
             NormalizeKeyItem(data.KeyItem, database);
+            NormalizeEnemy(data.Enemy, database);
         }
 
         private static void NormalizeSavepoint(HorrorSaveData data, ScriptableDatabase database)
@@ -263,6 +265,25 @@ namespace Game.Horror.Services
                 if (HorrorDatabaseHelper.TryGetInfo(database, keyItem.ObjectCategory, keyItem.Id, out _))
                     continue;
                 data.KeyItems.RemoveAt(i);
+            }
+        }
+
+        private static void NormalizeEnemy(HorrorEnemySaveData data, ScriptableDatabase database)
+        {
+            // テーブル未割当（.asset 未 Register 等）で例外を出すと SaveRepositoryBase の
+            // catch が CreateNewData() で全区画を新規化しセーブが消えるため、正規化をスキップして残す
+            if (database.HorrorEnemySpawnMasterTable == null)
+            {
+                Debug.LogError($"[{nameof(HorrorSaveRepository)}] HorrorEnemySpawnMasterTable が未割当のため Enemy 区画の正規化をスキップしました");
+                return;
+            }
+
+            // 逆順走査
+            for (int i = data.DefeatedSpawnIds.Count - 1; i >= 0; i--)
+            {
+                var id = data.DefeatedSpawnIds[i];
+                if (!database.HorrorEnemySpawnMasterTable.TryFindById(id, out _))
+                    data.DefeatedSpawnIds.RemoveAt(i);
             }
         }
 

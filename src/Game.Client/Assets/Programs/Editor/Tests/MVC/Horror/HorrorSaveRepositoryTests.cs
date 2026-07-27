@@ -9,10 +9,13 @@ using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
+using Game.Shared.Scriptable.Database;
+using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using MemoryPack;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -26,6 +29,8 @@ namespace Game.Tests.MVC.Horror
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
         private IHorrorSaveRepository _repository;
+        private HorrorEnemySpawnMasterTable _spawnTable;
+        private ScriptableDatabase _database;
 
         [SetUp]
         public void Setup()
@@ -33,6 +38,32 @@ namespace Game.Tests.MVC.Horror
             _mockStorage = Substitute.For<ISaveDataStorage>();
             _mockDatabase = Substitute.For<IScriptableDatabaseService>();
             _repository = new HorrorSaveRepository(_mockStorage, _mockDatabase);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_spawnTable != null) UnityEngine.Object.DestroyImmediate(_spawnTable);
+            if (_database != null) UnityEngine.Object.DestroyImmediate(_database);
+        }
+
+        /// <summary>
+        /// 指定 Id のスポーンエントリを持つ実テーブル＋DB を組み立てて mock に接続する。
+        /// EditorImportRows は列名をメンバ名と完全一致でマッピングし、無い列は既定値のままとなる。
+        /// </summary>
+        private void SetupRealDatabaseWithSpawnIds(params int[] spawnIds)
+        {
+            _spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
+            var rows = new List<IReadOnlyList<string>>();
+            foreach (var id in spawnIds)
+                rows.Add(new[] { id.ToString() });
+            _spawnTable.EditorImportRows(new[] { "Id" }, rows, mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = _spawnTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
         }
 
         private async Task LoadDefaultData()
@@ -98,6 +129,70 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
         }
 
+        // エネミー区画：旧形式補填、マスタ整合、テーブル未割当時のセーブ保全。
+
+        [Test]
+        public async Task Load_ExistingDataWithoutEnemySection_FillsEnemy()
+        {
+            // 旧形式（Enemy 区画なし）のバイナリはデシリアライズで Enemy=null になる。補填を固定する
+            // （実環境同様に DB ロード済み状態で読み込む。NormalizeEnemy はテーブル存在確認で database へ触るため）
+            SetupRealDatabaseWithSpawnIds();
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = null,
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy, Is.Not.Null);
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.Empty);
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_RemovesUnknownSpawnIds()
+        {
+            SetupRealDatabaseWithSpawnIds(1, 3);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { DefeatedSpawnIds = new List<int> { 1, 2, 3, 99 } },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1, 3 }));
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_WhenSpawnTableUnassigned_KeepsDataAndDoesNotWipeSave()
+        {
+            // テーブル未割当（.asset 未 Register 等の移行窓）で例外を出すと SaveRepositoryBase の
+            // catch が CreateNewData() で全区画を新規化しセーブが消える。データ保全を固定する
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            _mockDatabase.Database.Returns(_database);
+            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnMasterTable が未割当"));
+
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Player = new HorrorPlayerSaveData { PlayerId = 7, CurrentHealth = 42 },
+                Enemy = new HorrorEnemySaveData { DefeatedSpawnIds = new List<int> { 1, 2 } },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Player.PlayerId, Is.EqualTo(7));
+            Assert.That(_repository.Data.Player.CurrentHealth, Is.EqualTo(42));
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1, 2 }));
+        }
+
         [Test]
         public void Serialization_RoundTrip_PreservesAllSections()
         {
@@ -139,6 +234,10 @@ namespace Game.Tests.MVC.Horror
                         new() { ObjectCategory = ObjectCategory.Item, Id = 3 },
                     },
                 },
+                Enemy = new HorrorEnemySaveData
+                {
+                    DefeatedSpawnIds = new List<int> { 10, 20 },
+                },
             };
 
             var bytes = MemoryPackSerializer.Serialize(original);
@@ -166,6 +265,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.KeyItem.KeyItems.Count, Is.EqualTo(1));
             Assert.That(restored.KeyItem.KeyItems[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.KeyItem.KeyItems[0].Id, Is.EqualTo(3));
+            Assert.That(restored.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 10, 20 }));
         }
 
         [Test]
