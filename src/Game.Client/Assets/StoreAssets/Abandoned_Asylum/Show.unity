@@ -2678,7 +2678,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f39ca1c68abf80b4083ba21f6c13dde2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Enemy.HorrorEnemyStart
-  _enemyMasterId: 1
+  _spawnId: 2
 --- !u!1 &515023808
 GameObject:
   m_ObjectHideFlags: 0
@@ -3054,7 +3054,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f39ca1c68abf80b4083ba21f6c13dde2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Enemy.HorrorEnemyStart
-  _enemyMasterId: 1
+  _spawnId: 3
 --- !u!114 &590892887
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7411,7 +7411,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f39ca1c68abf80b4083ba21f6c13dde2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Enemy.HorrorEnemyStart
-  _enemyMasterId: 1
+  _spawnId: 1
 --- !u!4 &1743077016
 Transform:
   m_ObjectHideFlags: 0
