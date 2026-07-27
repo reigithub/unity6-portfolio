@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
@@ -141,6 +142,17 @@ namespace Game.Horror.Scenes
                 return;
 
             _enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
+
+            // SpawnId の設定ミスは撃破時ではなくシーン起動時に決定的に検出する
+            var seenSpawnIds = new HashSet<int>();
+            foreach (var enemyStart in _enemyStarts)
+            {
+                if (enemyStart.SpawnId == 0)
+                    Debug.LogError($"[{nameof(HorrorStageScene)}] {enemyStart.name} の SpawnId が未設定(0)です", enemyStart);
+                else if (!seenSpawnIds.Add(enemyStart.SpawnId))
+                    Debug.LogError($"[{nameof(HorrorStageScene)}] SpawnId={enemyStart.SpawnId} が複数の {nameof(HorrorEnemyStart)} で重複しています", enemyStart);
+            }
+
             foreach (var enemyStart in _enemyStarts)
             {
                 await enemyStart.LoadEnemyAsync(player);

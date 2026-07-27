@@ -1,4 +1,5 @@
 using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
 using Game.Horror.Signals;
 using Game.Library.Shared;
 using Game.Shared.Combat;
@@ -35,8 +36,10 @@ namespace Game.Horror.Enemy
         // Initialize で注入されるデータ
         private GameObject _player;
         private HorrorEnemyMaster _master;
+        private int _spawnId;
         private IDamageable _playerDamageable;
         private IMessagePipeService _messagePipeService;
+        private IHorrorEnemyService _enemyService;
 
         // 体力・速度
         private int _health;
@@ -65,10 +68,12 @@ namespace Game.Horror.Enemy
         /// </summary>
         /// <param name="player">プレイヤーの GameObject</param>
         /// <param name="master">調整値マスターデータ</param>
-        public void Initialize(GameObject player, HorrorEnemyMaster master)
+        /// <param name="spawnId">スポーンエントリの一意 Id（HorrorEnemySpawnMaster の Id）。撃破記録の永続化キー</param>
+        public void Initialize(GameObject player, HorrorEnemyMaster master, int spawnId)
         {
             _player = player;
             _master = master;
+            _spawnId = spawnId;
 
             if (player.TryGetComponent<IDamageable>(out var damageable))
                 _playerDamageable = damageable;
@@ -91,6 +96,9 @@ namespace Game.Horror.Enemy
 
             // MessagePipe サービスをキャッシュ（Scream 発火用）
             _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
+
+            // 撃破記録サービスをキャッシュ（死亡時の永続化用）
+            _enemyService = GameServiceManager.Resolve<IHorrorEnemyService>();
 
             InitializeStateMachine();
             _initialized = true;
@@ -137,6 +145,12 @@ namespace Game.Horror.Enemy
             if (_health <= 0)
             {
                 _health = 0;
+
+                // 撃破の記録は HP0 確定時点で行う（DeathState は死の演出であり、FSM 遷移は
+                // 拒否されうるため永続化を遷移の成否に依存させない。Initialize 前は IsDead の
+                // 早期 return でここに到達しないため _enemyService は非 null が保証される）
+                _enemyService.MarkDefeated(_spawnId);
+
                 if (_stateMachine != null && _stateMachine.IsProcessing())
                     _stateMachine.Transition(StateEvent.Dead);
             }
