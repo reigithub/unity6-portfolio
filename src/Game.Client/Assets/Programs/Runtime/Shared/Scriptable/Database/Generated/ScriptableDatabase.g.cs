@@ -10,6 +10,9 @@ namespace Game.Shared.Scriptable.Database
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable horrorEnemyMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable HorrorEnemyMasterTable => horrorEnemyMasterTable;
 
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable horrorEnemySpawnMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable HorrorEnemySpawnMasterTable => horrorEnemySpawnMasterTable;
+
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable horrorInteractionMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable HorrorInteractionMasterTable => horrorInteractionMasterTable;
 
