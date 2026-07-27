@@ -113,6 +113,7 @@ namespace Game.Horror.Enemy
         private void Update()
         {
             if (!_initialized) return;
+            EnsureDeadState();
             _stateMachine.Update();
         }
 
@@ -146,13 +147,8 @@ namespace Game.Horror.Enemy
             {
                 _health = 0;
 
-                // 撃破の記録は HP0 確定時点で行う（DeathState は死の演出であり、FSM 遷移は
-                // 拒否されうるため永続化を遷移の成否に依存させない。Initialize 前は IsDead の
-                // 早期 return でここに到達しないため _enemyService は非 null が保証される）
+                // DeathState への遷移は Update の EnsureDeadState が宣言的に保証する
                 _enemyService.MarkDefeated(_spawnId);
-
-                if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.Transition(StateEvent.Dead);
             }
             else
             {
