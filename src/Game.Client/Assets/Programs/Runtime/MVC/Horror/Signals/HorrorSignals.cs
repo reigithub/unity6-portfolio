@@ -107,5 +107,24 @@ namespace Game.Horror.Signals
                 }
             }
         }
+
+        // --- Enemy ---
+
+        public static class Enemy
+        {
+            /// <summary>
+            /// エネミー死亡イベントのデータ（撃破記録の永続化に使用）。
+            /// SpawnId は HorrorEnemySpawnMaster の Id（スポーンエントリの一意識別子）。
+            /// </summary>
+            public readonly struct Died
+            {
+                public readonly int SpawnId;
+
+                public Died(int spawnId)
+                {
+                    SpawnId = spawnId;
+                }
+            }
+        }
     }
 }

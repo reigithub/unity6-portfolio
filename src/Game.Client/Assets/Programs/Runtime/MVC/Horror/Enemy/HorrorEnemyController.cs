@@ -1,5 +1,4 @@
 using Game.Core.Services;
-using Game.Horror.Services.Interfaces;
 using Game.Horror.Signals;
 using Game.Library.Shared;
 using Game.Shared.Combat;
@@ -39,7 +38,6 @@ namespace Game.Horror.Enemy
         private int _spawnId;
         private IDamageable _playerDamageable;
         private IMessagePipeService _messagePipeService;
-        private IHorrorEnemyService _enemyService;
 
         // 体力・速度
         private int _health;
@@ -94,11 +92,8 @@ namespace Game.Horror.Enemy
             // 知覚センサーを初期化（視覚/聴覚の購読含む）
             _perception.Initialize(player.transform, master);
 
-            // MessagePipe サービスをキャッシュ（Scream 発火用）
+            // MessagePipe サービスをキャッシュ（Scream / Enemy.Died 発火用）
             _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
-
-            // 撃破記録サービスをキャッシュ（死亡時の永続化用）
-            _enemyService = GameServiceManager.Resolve<IHorrorEnemyService>();
 
             InitializeStateMachine();
             _initialized = true;
@@ -148,7 +143,8 @@ namespace Game.Horror.Enemy
                 _health = 0;
 
                 // DeathState への遷移は Update の EnsureDeadState が宣言的に保証する
-                _enemyService.MarkDefeated(_spawnId);
+                // 未初期化時に撃破記録を無音で失わないよう、あえて ?. を使わない
+                _messagePipeService.Publish(new HorrorSignals.Enemy.Died(_spawnId));
             }
             else
             {

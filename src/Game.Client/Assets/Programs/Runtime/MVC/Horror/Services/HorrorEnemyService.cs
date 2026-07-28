@@ -1,4 +1,7 @@
+using System;
+using Game.Core.Services;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.Signals;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -9,13 +12,34 @@ namespace Game.Horror.Services
     public class HorrorEnemyService : IHorrorEnemyService
     {
         private readonly IHorrorSaveRepository _repository;
+        private readonly IMessagePipeService _messagePipeService;
+        private IDisposable _subscription;
 
-        public HorrorEnemyService(IHorrorSaveRepository repository)
+        public HorrorEnemyService(IHorrorSaveRepository repository, IMessagePipeService messagePipeService)
         {
             _repository = repository;
+            _messagePipeService = messagePipeService;
         }
 
-        public void MarkDefeated(int spawnId)
+        public void Startup()
+        {
+            _subscription = _messagePipeService.Subscribe<HorrorSignals.Enemy.Died>(evt => MarkDefeated(evt.SpawnId));
+        }
+
+        public void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
+        }
+
+        public bool IsDefeated(int spawnId)
+        {
+            // 未ロード時は無音で false（敵を出す方向へフェイルオープン。シーン構築中にログを撒かない）
+            var data = _repository.Data?.Enemy;
+            return data != null && data.DefeatedSpawnIds.Contains(spawnId);
+        }
+
+        private void MarkDefeated(int spawnId)
         {
             var data = _repository.Data?.Enemy;
             if (data == null)
@@ -35,13 +59,6 @@ namespace Game.Horror.Services
 
             data.DefeatedSpawnIds.Add(spawnId);
             _repository.MarkDirty();
-        }
-
-        public bool IsDefeated(int spawnId)
-        {
-            // 未ロード時は無音で false（敵を出す方向へフェイルオープン。シーン構築中にログを撒かない）
-            var data = _repository.Data?.Enemy;
-            return data != null && data.DefeatedSpawnIds.Contains(spawnId);
         }
     }
 }
