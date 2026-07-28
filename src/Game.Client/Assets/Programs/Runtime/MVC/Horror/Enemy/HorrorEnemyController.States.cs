@@ -1,7 +1,6 @@
 using Game.Library.Shared;
 using Game.Shared.Extensions;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace Game.Horror.Enemy
 {
@@ -38,6 +37,17 @@ namespace Game.Horror.Enemy
             Dead,
         }
 
+        private void InitializeOrResetStateMachine()
+        {
+            // プール再利用時は遷移テーブルを保持したまま実行状態のみリセットして再起動する
+            if (_stateMachine == null)
+                InitializeStateMachine();
+            else
+                _stateMachine.Reset();
+
+            SetInitialState();
+        }
+
         /// <summary>
         /// ステートマシンを構築し遷移テーブルを登録する。
         /// </summary>
@@ -71,7 +81,14 @@ namespace Game.Horror.Enemy
 
             _stateMachine.AddTransition<StaggerState>(StateEvent.Stagger);
             _stateMachine.AddTransition<DeathState>(StateEvent.Dead);
+        }
 
+        /// <summary>
+        /// 初期ステート（配置済みの遅延起動敵は Dormant、それ以外は Wander）を設定する。
+        /// 初回構築後と Reset() による再起動後の両方で呼ぶ。
+        /// </summary>
+        private void SetInitialState()
+        {
             if (_startDormant)
                 _stateMachine.SetInitState<DormantState>();
             else
@@ -389,14 +406,21 @@ namespace Game.Horror.Enemy
         /// <summary>
         /// 死亡状態。EnsureDeadState が AnyState 遷移で到達を保証する。終端状態。
         /// Death トリガーを発火し、NavMeshAgent とすべてのコライダーを無効化する。
+        /// 演出時間の経過後、スポナーへ完了を通知してプール返却させる。
         /// </summary>
         private class DeathState : State<HorrorEnemyController, StateEvent>
         {
-            private float _delay = 10f;
+            private const float DespawnDelay = 10f;
+
+            private float _delay;
 
             public override void Enter()
             {
                 var ctx = Context;
+
+                // State インスタンスは StateMachine 内で再利用されるため、フィールド初期化子ではなく毎回ここで設定する
+                _delay = DespawnDelay;
+
                 ctx.TriggerDeath();
 
                 if (ctx._navMeshAgent)
@@ -417,7 +441,7 @@ namespace Game.Horror.Enemy
             {
                 _delay -= Time.unscaledDeltaTime;
                 if (_delay <= 0f)
-                    Context.gameObject.SetActive(false);
+                    Context.NotifyDeathFinished();
             }
         }
 

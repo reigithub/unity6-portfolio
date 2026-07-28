@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Dialogs;
@@ -34,7 +33,7 @@ namespace Game.Horror.Scenes
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
         private HorrorPlayerController _player;
-        private HorrorEnemyStart[] _enemyStarts;
+        private HorrorEnemySpawner _enemySpawner;
 
         public override async UniTask Startup()
         {
@@ -141,36 +140,19 @@ namespace Game.Horror.Scenes
             if (player == null)
                 return;
 
-            _enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
-
-            // SpawnId の設定ミスは撃破時ではなくシーン起動時に決定的に検出する
-            var seenSpawnIds = new HashSet<int>();
-            foreach (var enemyStart in _enemyStarts)
-            {
-                if (enemyStart.SpawnId == 0)
-                    Debug.LogError($"[{nameof(HorrorStageScene)}] {enemyStart.name} の SpawnId が未設定(0)です", enemyStart);
-                else if (!seenSpawnIds.Add(enemyStart.SpawnId))
-                    Debug.LogError($"[{nameof(HorrorStageScene)}] SpawnId={enemyStart.SpawnId} が複数の {nameof(HorrorEnemyStart)} で重複しています", enemyStart);
-            }
-
-            foreach (var enemyStart in _enemyStarts)
-            {
-                await enemyStart.LoadEnemyAsync(player);
-            }
+            // マーカーの検証（SpawnId 未設定/重複）と生成実行はスポナーが担う
+            var enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
+            _enemySpawner = new HorrorEnemySpawner(
+                _assetService,
+                GameServiceManager.Resolve<IScriptableDatabaseService>(),
+                GameServiceManager.Resolve<IHorrorEnemyService>());
+            await _enemySpawner.InitializeAsync(player, enemyStarts);
         }
 
         private void UnloadEnemies()
         {
-            if (_enemyStarts == null)
-                return;
-
-            foreach (var enemyStart in _enemyStarts)
-            {
-                if (enemyStart != null)
-                    enemyStart.UnloadEnemy();
-            }
-
-            _enemyStarts = null;
+            _enemySpawner?.Dispose();
+            _enemySpawner = null;
         }
 
         private async UniTask ShowPauseDialogAsync()

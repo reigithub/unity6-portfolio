@@ -160,6 +160,17 @@ namespace Game.Horror.Enemy
             messagePipeService.Subscribe<HorrorSignals.Noise.Occurred>(OnNoise).AddTo(_subscriptions);
             messagePipeService.Subscribe<HorrorSignals.Player.Died>(OnPlayerDied).AddTo(_subscriptions);
 
+            // プール再利用個体が前世の警戒度・知覚位置を引き継がないよう毎回クリアする
+            // （OnDisable は購読解除と視認フラグのみで、ゲージと位置履歴は残留する）
+            _awareness = 0f;
+            _hasConfirmedSight = false;
+            _sightDistance = 0f;
+            _perceivedPlayerPosition = default;
+            _hasPerceivedPlayerPosition = false;
+            _noticedPosition = default;
+            _hasNoticedPosition = false;
+            _nextScanTime = 0f;
+
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log($"[HorrorEnemyPerception] Initialize: target={target.name}, sightRange={master.SightRange}, hearingRadius={master.HearingRadius}");
 #endif
