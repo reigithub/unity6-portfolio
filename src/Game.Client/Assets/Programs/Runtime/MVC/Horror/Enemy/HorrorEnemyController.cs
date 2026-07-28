@@ -7,7 +7,6 @@ using Game.Shared.Extensions;
 using Game.Shared.Scriptable.Database.Tables;
 using UnityEngine;
 using UnityEngine.AI;
-using Random = UnityEngine.Random;
 
 namespace Game.Horror.Enemy
 {
@@ -265,7 +264,7 @@ namespace Game.Horror.Enemy
             if (_navMeshAgent.pathPending) return;
             if (_navMeshAgent.remainingDistance > 0.5f) return;
 
-            var randomDir = Random.insideUnitSphere * WanderRadius;
+            var randomDir = UnityEngine.Random.insideUnitSphere * WanderRadius;
             randomDir.y = 0f;
             var randomPos = transform.position + randomDir;
 
