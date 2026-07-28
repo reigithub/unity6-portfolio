@@ -35,6 +35,12 @@ namespace Game.Horror.Services
             _databaseService = databaseService;
         }
 
+        public override void CreateNewSaveData()
+        {
+            CurrentSlot = -1;
+            base.CreateNewSaveData();
+        }
+
         private static string GetSaveKeyBySlot(int slotNo) => $"horror_save_slot{slotNo}";
 
         public async UniTask<HorrorSaveSlotInfo> LoadSlotInfoAsync(int slotNo)

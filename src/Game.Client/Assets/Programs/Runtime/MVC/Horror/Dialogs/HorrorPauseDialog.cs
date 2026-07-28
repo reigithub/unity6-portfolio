@@ -68,7 +68,7 @@ namespace Game.Horror.Dialogs
                     if (_saveRepository.CurrentSlot >= 0)
                         await _saveRepository.LoadByCurrentSlotAsync();
                     else
-                        _saveRepository.CreateData();
+                        _saveRepository.CreateNewSaveData();
 
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })

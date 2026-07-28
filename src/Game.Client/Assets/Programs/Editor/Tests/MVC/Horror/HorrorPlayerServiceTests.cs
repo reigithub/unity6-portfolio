@@ -75,7 +75,7 @@ namespace Game.Tests.MVC.Horror
         /// <summary>新規データを作り、操作対象のプレイヤー Id だけを差し替える（書き込み API は無いため直接設定する）。</summary>
         private void CreateDataWithPlayerId(int playerId)
         {
-            _repository.CreateData();
+            _repository.CreateNewSaveData();
             _repository.Data.Player.PlayerId = playerId;
         }
 

@@ -100,7 +100,7 @@ namespace Game.Horror.Scenes
             SceneComponent.OnNewGame
                 .SubscribeAwait(async (_, _) =>
                 {
-                    _saveRepository.CreateData();
+                    _saveRepository.CreateNewSaveData();
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })
                 .AddTo(Disposables);

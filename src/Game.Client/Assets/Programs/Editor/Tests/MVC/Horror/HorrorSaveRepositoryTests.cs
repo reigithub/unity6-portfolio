@@ -371,7 +371,7 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void CreateData_KeepsCurrentSlotInvalid()
         {
-            _repository.CreateData();
+            _repository.CreateNewSaveData();
 
             Assert.That(_repository.CurrentSlot, Is.EqualTo(-1));
             Assert.That(_repository.Data, Is.Not.Null);
@@ -380,7 +380,7 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public async Task LoadByCurrentSlotAsync_WhenNoCurrentSlot_LogsErrorAndKeepsData()
         {
-            _repository.CreateData();
+            _repository.CreateNewSaveData();
             var currentData = _repository.Data;
             LogAssert.Expect(LogType.Error, new Regex("Invalid slot number"));
 
