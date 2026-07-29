@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using Game.Shared.Scriptable.Database;
 using UnityEditor;
 using UnityEngine;
 
@@ -72,6 +71,9 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                 AssetDatabase.SaveAssets();
                 Debug.Log($"[ScriptableDatabaseIO] 取り込み {imported} 件 / スキップ {skipped} 件" +
                           $"（{(mergeByPrimaryKey ? "Merge" : "Replace")}, {extension.ToUpperInvariant()}）: {dir}", database);
+
+                // 取り込みはマスターデータの主要な投入経路のため、そのまま検証まで通す（取り込み自体は巻き戻さない）。
+                ScriptableDatabaseValidationRunner.Run(database);
             }
             catch (Exception e)
             {
@@ -101,20 +103,31 @@ namespace Game.Shared.Scriptable.Database.EditorTools
 
         // ---- 対象 ScriptableDatabase の解決（ScriptableDatabaseWindow から利用） ----
 
-        // 固定パスの ScriptableDatabase.asset をロードしてアクションを実行する（型はリフレクションで解決）。
-        internal static void RunWithDatabase(Action<ScriptableObject> action)
+        /// <summary>
+        /// 固定パスの ScriptableDatabase.asset をロードする（型はリフレクションで解決）。
+        /// 未生成・未登録でも通知しないので、通知が必要な経路は <see cref="RunWithDatabase"/> を使う。
+        /// </summary>
+        internal static ScriptableObject LoadDatabaseOrNull()
         {
             var dbType = ScriptableDatabaseBuilder.FindDatabaseType();
-            if (dbType == null)
+            return dbType == null
+                ? null
+                : AssetDatabase.LoadAssetAtPath(ScriptableDatabaseAssetPath.EditorAssetPath, dbType) as ScriptableObject;
+        }
+
+        // ロードしてアクションを実行する。解決できない場合は理由を通知して実行しない。
+        internal static void RunWithDatabase(Action<ScriptableObject> action)
+        {
+            if (ScriptableDatabaseBuilder.FindDatabaseType() == null)
             {
                 Debug.LogError("[ScriptableDatabaseIO] ScriptableDatabase 型が見つかりません。先に ScriptableDatabaseWindow の 'Build' を実行してください。");
                 return;
             }
 
-            var database = AssetDatabase.LoadAssetAtPath(ScriptableDatabaseBuilder.DatabaseAssetPath, dbType) as ScriptableObject;
+            var database = LoadDatabaseOrNull();
             if (database == null)
             {
-                Debug.LogError($"[ScriptableDatabaseIO] {ScriptableDatabaseBuilder.DatabaseAssetPath} が見つかりません。先に ScriptableDatabaseWindow の 'Register' を実行してください。");
+                Debug.LogError($"[ScriptableDatabaseIO] {ScriptableDatabaseAssetPath.EditorAssetPath} が見つかりません。先に ScriptableDatabaseWindow の 'Register' を実行してください。");
                 return;
             }
 

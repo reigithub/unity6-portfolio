@@ -22,7 +22,6 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     public static class ScriptableDatabaseBuilder
     {
         private const string OutDir = "Assets/Programs/Runtime/Shared/Scriptable/Database/Generated";
-        internal const string DatabaseAssetPath = "Assets/ProjectAssets/Scriptable/Database/ScriptableDatabase.asset";
         private const string DatabaseClassName = "ScriptableDatabase";
         private const string DatabaseNamespace = "Game.Shared.Scriptable.Database";
 
@@ -82,12 +81,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                 return;
             }
 
-            var database = AssetDatabase.LoadAssetAtPath(DatabaseAssetPath, dbType) as ScriptableObject;
+            var database = AssetDatabase.LoadAssetAtPath(ScriptableDatabaseAssetPath.EditorAssetPath, dbType) as ScriptableObject;
             if (database == null)
             {
                 database = ScriptableObject.CreateInstance(dbType);
-                AssetDatabase.CreateAsset(database, DatabaseAssetPath);
-                Debug.Log($"[ScriptableDatabaseBuilder] Created {DatabaseAssetPath}.");
+                AssetDatabase.CreateAsset(database, ScriptableDatabaseAssetPath.EditorAssetPath);
+                Debug.Log($"[ScriptableDatabaseBuilder] Created {ScriptableDatabaseAssetPath.EditorAssetPath}.");
             }
 
             var so = new SerializedObject(database);

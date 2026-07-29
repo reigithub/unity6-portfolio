@@ -38,4 +38,24 @@ namespace Game.Shared.Scriptable.Database
             NonUnique = nonUnique;
         }
     }
+
+    /// <summary>
+    /// 参照整合性（外部キー）。この列の値は <see cref="TargetRecordType"/> の
+    /// <see cref="PrimaryKeyAttribute"/> 列に存在しなければならない。
+    /// 検証の実行は編集時のみ（Validation は UNITY_EDITOR 限定）だが、宣言はレコード定義の一部として常に残す。
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    public sealed class ForeignKeyAttribute : Attribute
+    {
+        /// <summary>参照先のレコード型。</summary>
+        public Type TargetRecordType { get; }
+
+        /// <summary>0 を「未設定」として検証対象外にする。無指定なら 0 も存在チェックの対象。</summary>
+        public bool AllowNone { get; set; }
+
+        public ForeignKeyAttribute(Type targetRecordType)
+        {
+            TargetRecordType = targetRecordType;
+        }
+    }
 }
