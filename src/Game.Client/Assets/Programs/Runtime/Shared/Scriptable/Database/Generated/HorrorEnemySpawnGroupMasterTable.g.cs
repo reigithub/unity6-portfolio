@@ -6,29 +6,29 @@ using Game.Shared.Scriptable.Database;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {
-    [CreateAssetMenu(menuName = "Scriptable Database/Table/HorrorEnemyGroupMasterTable")]
-    public sealed partial class HorrorEnemyGroupMasterTable : ScriptableTable<HorrorEnemyGroupMaster>
+    [CreateAssetMenu(menuName = "Scriptable Database/Table/HorrorEnemySpawnGroupMasterTable")]
+    public sealed partial class HorrorEnemySpawnGroupMasterTable : ScriptableTable<HorrorEnemySpawnGroupMaster>
     {
         // PrimaryKey: Id
-        private static readonly System.Func<HorrorEnemyGroupMaster, int> _pkSel = r => r.Id;
+        private static readonly System.Func<HorrorEnemySpawnGroupMaster, int> _pkSel = r => r.Id;
         private static readonly IComparer<int> _pkCmp = Comparer<int>.Default;
 
-        public HorrorEnemyGroupMaster FindById(int key)
+        public HorrorEnemySpawnGroupMaster FindById(int key)
         {
             return FindUnique(records, key, _pkSel, _pkCmp);
         }
 
-        public bool TryFindById(int key, out HorrorEnemyGroupMaster record)
+        public bool TryFindById(int key, out HorrorEnemySpawnGroupMaster record)
         {
             return TryFindUnique(records, key, _pkSel, _pkCmp, out record);
         }
 
-        public HorrorEnemyGroupMaster FindClosestById(int key, bool lower = true)
+        public HorrorEnemySpawnGroupMaster FindClosestById(int key, bool lower = true)
         {
             return FindClosest(records, key, _pkSel, _pkCmp, lower);
         }
 
-        public ScriptableTableRecords<HorrorEnemyGroupMaster> FindRangeById(int min, int max, bool asc = true)
+        public ScriptableTableRecords<HorrorEnemySpawnGroupMaster> FindRangeById(int min, int max, bool asc = true)
         {
             return FindRange(records, min, max, _pkSel, _pkCmp, asc);
         }

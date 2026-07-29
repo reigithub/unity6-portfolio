@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cf51690159d00b0459629221507bb920, type: 3}
-  m_Name: HorrorEnemyGroupMasterTable
+  m_Name: HorrorEnemySpawnGroupMasterTable
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorEnemyGroupMasterTable
   records:
   - _id: 1

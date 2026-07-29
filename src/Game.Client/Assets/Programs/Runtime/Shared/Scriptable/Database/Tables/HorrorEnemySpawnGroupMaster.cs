@@ -4,16 +4,16 @@ using UnityEngine;
 namespace Game.Shared.Scriptable.Database.Tables
 {
     /// <summary>
-    /// ホラーゲームのエネミーグループのマスターデータ。
-    /// グループは連鎖スポーンの単位で、全滅・グループ内キル数の到達をトリガーに別グループを起動する。
+    /// ホラーゲームのエネミースポーングループのマスターデータ。
+    /// スポーングループは連鎖スポーンの単位で、全滅・グループ内キル数の到達をトリガーに別グループを起動する。
     /// </summary>
     [Serializable]
-    [ScriptableTable(Name = "Scriptable Database/Table/HorrorEnemyGroupMasterTable")]
-    public partial class HorrorEnemyGroupMaster
+    [ScriptableTable(Name = "Scriptable Database/Table/HorrorEnemySpawnGroupMasterTable")]
+    public partial class HorrorEnemySpawnGroupMaster
     {
         #region SerializeField
 
-        [SerializeField] private int _id;                       // 識別ID（グループの一意識別子）
+        [SerializeField] private int _id;                       // 識別ID（スポーングループの一意識別子）
         [SerializeField] private string _developOnlyName;       // 開発時のみの識別名
         [SerializeField] private bool _isInitialSpawn;          // シーン開始時にスポーンする初期グループか
         [SerializeField] private int _nextGroupIdOnEliminated;  // 全滅時に起動するグループ（0=なし）

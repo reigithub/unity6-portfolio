@@ -7,11 +7,11 @@ namespace Game.Shared.Scriptable.Database
     [CreateAssetMenu(menuName = "Scriptable Database/Database")]
     public sealed partial class ScriptableDatabase : ScriptableObject
     {
-        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyGroupMasterTable horrorEnemyGroupMasterTable;
-        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyGroupMasterTable HorrorEnemyGroupMasterTable => horrorEnemyGroupMasterTable;
-
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable horrorEnemyMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable HorrorEnemyMasterTable => horrorEnemyMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnGroupMasterTable horrorEnemySpawnGroupMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnGroupMasterTable HorrorEnemySpawnGroupMasterTable => horrorEnemySpawnGroupMasterTable;
 
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable horrorEnemySpawnMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable HorrorEnemySpawnMasterTable => horrorEnemySpawnMasterTable;

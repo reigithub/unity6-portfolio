@@ -16,24 +16,24 @@ MonoBehaviour:
   - _id: 1
     _developOnlyName: EnemyStart
     _enemyMasterId: 1
-    _groupId: 1
+    _spawnGroupId: 1
   - _id: 2
     _developOnlyName: EnemyStart (1)
     _enemyMasterId: 1
-    _groupId: 1
+    _spawnGroupId: 1
   - _id: 3
     _developOnlyName: EnemyStart (2)
     _enemyMasterId: 1
-    _groupId: 1
+    _spawnGroupId: 1
   - _id: 4
     _developOnlyName: EnemyStart (3)
     _enemyMasterId: 1
-    _groupId: 2
+    _spawnGroupId: 2
   - _id: 5
     _developOnlyName: EnemyStart (4)
     _enemyMasterId: 1
-    _groupId: 2
+    _spawnGroupId: 2
   - _id: 6
     _developOnlyName: EnemyStart (5)
     _enemyMasterId: 1
-    _groupId: 3
+    _spawnGroupId: 3

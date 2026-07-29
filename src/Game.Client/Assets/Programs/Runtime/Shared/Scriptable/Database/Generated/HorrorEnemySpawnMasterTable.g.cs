@@ -33,23 +33,23 @@ namespace Game.Shared.Scriptable.Database.Tables
             return FindRange(records, min, max, _pkSel, _pkCmp, asc);
         }
 
-        // SecondaryKey index 0: GroupId
-        private static readonly System.Func<HorrorEnemySpawnMaster, int> _sel0 = r => r.GroupId;
+        // SecondaryKey index 0: SpawnGroupId
+        private static readonly System.Func<HorrorEnemySpawnMaster, int> _sel0 = r => r.SpawnGroupId;
         private static readonly IComparer<int> _cmp0 = Comparer<int>.Default;
         private HorrorEnemySpawnMaster[] _idx0;
         private HorrorEnemySpawnMaster[] Idx0 => _idx0 ??= BuildSortedIndex(records, _sel0, _cmp0);
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindByGroupId(int key)
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindBySpawnGroupId(int key)
         {
             return FindMany(Idx0, _sel0, _cmp0, key);
         }
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindRangeByGroupId(int min, int max, bool asc = true)
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindRangeBySpawnGroupId(int min, int max, bool asc = true)
         {
             return FindRange(Idx0, min, max, _sel0, _cmp0, asc);
         }
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindClosestByGroupId(int key, bool lower = true)
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindClosestBySpawnGroupId(int key, bool lower = true)
         {
             return FindManyClosest(Idx0, key, _sel0, _cmp0, lower);
         }

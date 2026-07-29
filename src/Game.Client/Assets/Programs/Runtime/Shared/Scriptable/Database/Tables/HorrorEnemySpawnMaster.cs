@@ -16,7 +16,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _id;                  // 識別ID（スポーンエントリの一意識別子）
         [SerializeField] private string _developOnlyName;  // 開発時のみの識別名
         [SerializeField] private int _enemyMasterId;       // 生成する敵の種類（HorrorEnemyMaster の Id）
-        [SerializeField] private int _groupId;             // 所属グループ（HorrorEnemyGroupMaster の Id。全エントリ必須）
+        [SerializeField] private int _spawnGroupId;        // 所属スポーングループ（HorrorEnemySpawnGroupMaster の Id。全エントリ必須）
 
         #endregion
 
@@ -36,10 +36,10 @@ namespace Game.Shared.Scriptable.Database.Tables
         }
 
         [SecondaryKey(0, nonUnique: true)]
-        public int GroupId
+        public int SpawnGroupId
         {
-            get => _groupId;
-            set => _groupId = value;
+            get => _spawnGroupId;
+            set => _spawnGroupId = value;
         }
 
         #endregion
