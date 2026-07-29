@@ -145,6 +145,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _reloadDuration = value;
         }
 
+        [ForeignKey(typeof(HorrorItemMaster), AllowNone = true)]
         public int AmmoItemId
         {
             get => _ammoItemId;

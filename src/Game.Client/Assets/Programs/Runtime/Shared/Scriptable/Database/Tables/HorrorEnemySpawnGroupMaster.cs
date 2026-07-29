@@ -37,6 +37,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _isInitialSpawn = value;
         }
 
+        [ForeignKey(typeof(HorrorEnemySpawnGroupMaster), AllowNone = true)]
         public int NextGroupIdOnEliminated
         {
             get => _nextGroupIdOnEliminated;
@@ -49,6 +50,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _additionalKillThreshold = value;
         }
 
+        [ForeignKey(typeof(HorrorEnemySpawnGroupMaster), AllowNone = true)]
         public int AdditionalGroupId
         {
             get => _additionalGroupId;

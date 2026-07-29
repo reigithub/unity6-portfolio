@@ -29,6 +29,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _id = value;
         }
 
+        [ForeignKey(typeof(HorrorEnemyMaster))]
         public int EnemyMasterId
         {
             get => _enemyMasterId;
@@ -36,6 +37,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         }
 
         [SecondaryKey(0, nonUnique: true)]
+        [ForeignKey(typeof(HorrorEnemySpawnGroupMaster))]
         public int SpawnGroupId
         {
             get => _spawnGroupId;
