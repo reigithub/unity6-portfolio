@@ -1,4 +1,5 @@
 using System;
+using Game.Shared.Scriptable.Database.Validation;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables

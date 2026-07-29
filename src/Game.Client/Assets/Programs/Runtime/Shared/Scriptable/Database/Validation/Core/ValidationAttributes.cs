@@ -1,6 +1,6 @@
 using System;
 
-namespace Game.Shared.Scriptable.Database
+namespace Game.Shared.Scriptable.Database.Validation
 {
     /// <summary>
     /// 参照整合性（外部キー）。この列の値は <see cref="TargetRecordType"/> の
