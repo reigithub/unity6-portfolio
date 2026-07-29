@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf51690159d00b0459629221507bb920, type: 3}
+  m_Name: HorrorEnemyGroupMasterTable
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorEnemyGroupMasterTable
+  records:
+  - _id: 1
+    _developOnlyName: "\u521D\u671F\u30B0\u30EB\u30FC\u30D7"
+    _isInitialSpawn: 1
+    _nextGroupIdOnEliminated: 2
+    _additionalKillThreshold: 2
+    _additionalGroupId: 3
+  - _id: 2
+    _developOnlyName: "\u5168\u6EC5\u9023\u9396\u30B0\u30EB\u30FC\u30D7"
+    _isInitialSpawn: 0
+    _nextGroupIdOnEliminated: 0
+    _additionalKillThreshold: 0
+    _additionalGroupId: 0
+  - _id: 3
+    _developOnlyName: "\u95BE\u5024\u9023\u9396\u30B0\u30EB\u30FC\u30D7"
+    _isInitialSpawn: 0
+    _nextGroupIdOnEliminated: 0
+    _additionalKillThreshold: 0
+    _additionalGroupId: 0

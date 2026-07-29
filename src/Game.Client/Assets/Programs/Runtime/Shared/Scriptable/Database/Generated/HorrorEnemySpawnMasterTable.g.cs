@@ -33,11 +33,33 @@ namespace Game.Shared.Scriptable.Database.Tables
             return FindRange(records, min, max, _pkSel, _pkCmp, asc);
         }
 
+        // SecondaryKey index 0: GroupId
+        private static readonly System.Func<HorrorEnemySpawnMaster, int> _sel0 = r => r.GroupId;
+        private static readonly IComparer<int> _cmp0 = Comparer<int>.Default;
+        private HorrorEnemySpawnMaster[] _idx0;
+        private HorrorEnemySpawnMaster[] Idx0 => _idx0 ??= BuildSortedIndex(records, _sel0, _cmp0);
+
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindByGroupId(int key)
+        {
+            return FindMany(Idx0, _sel0, _cmp0, key);
+        }
+
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindRangeByGroupId(int min, int max, bool asc = true)
+        {
+            return FindRange(Idx0, min, max, _sel0, _cmp0, asc);
+        }
+
+        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindClosestByGroupId(int key, bool lower = true)
+        {
+            return FindManyClosest(Idx0, key, _sel0, _cmp0, lower);
+        }
+
 #if UNITY_EDITOR
         [ContextMenu("Sort & Validate")]
         public override void EditorSortAndValidate()
         {
             SortAndValidate(_pkSel, _pkCmp);
+            _idx0 = null;
         }
 
         public override bool EditorIsSorted() => IsSortedByKey(_pkSel, _pkCmp);
