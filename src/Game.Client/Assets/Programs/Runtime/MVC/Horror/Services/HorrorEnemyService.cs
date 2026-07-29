@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// Horror のエネミー撃破記録（撃破済み判定）とグループ進行（全滅/キル数連鎖）を扱うドメインサービス。
+    /// Horror のエネミー撃破記録（撃破済み判定）とスポーングループ進行（全滅/キル数連鎖）を扱うドメインサービス。
     /// </summary>
     public class HorrorEnemyService : IHorrorEnemyService
     {
@@ -18,9 +18,9 @@ namespace Game.Horror.Services
         private readonly IScriptableDatabaseService _databaseService;
         private IDisposable _subscription;
 
-        // 起動済みグループ（発火の一度きり保証・循環参照の暴走防止）。
-        // 永続化せず、シーン開始時の GetActiveGroupIds() が撃破記録から fixpoint で再導出して置き換える
-        private readonly HashSet<int> _activatedGroupIds = new();
+        // 起動済みスポーングループ（発火の一度きり保証・循環参照の暴走防止）。
+        // 永続化せず、シーン開始時の GetActiveSpawnGroupIds() が撃破記録から fixpoint で再導出して置き換える
+        private readonly HashSet<int> _activatedSpawnGroupIds = new();
 
         public HorrorEnemyService(
             IHorrorSaveRepository repository,
@@ -50,12 +50,12 @@ namespace Game.Horror.Services
             return data != null && data.DefeatedSpawnIds.Contains(spawnId);
         }
 
-        public int GetDefeatedCount(int groupId)
+        public int GetDefeatedCount(int spawnGroupId)
         {
             var data = _repository.Data?.Enemy;
             if (data == null) return 0;
 
-            var records = _databaseService.Database.HorrorEnemySpawnMasterTable.FindByGroupId(groupId);
+            var records = _databaseService.Database.HorrorEnemySpawnMasterTable.FindBySpawnGroupId(spawnGroupId);
             var count = 0;
             foreach (var master in records)
             {
@@ -65,9 +65,9 @@ namespace Game.Horror.Services
             return count;
         }
 
-        public bool IsGroupEliminated(int groupId)
+        public bool IsSpawnGroupEliminated(int spawnGroupId)
         {
-            var records = _databaseService.Database.HorrorEnemySpawnMasterTable.FindByGroupId(groupId);
+            var records = _databaseService.Database.HorrorEnemySpawnMasterTable.FindBySpawnGroupId(spawnGroupId);
             if (records.Count == 0) return false; // 空集合を全滅扱いにすると、起動した瞬間に空のまま連鎖が走るため
 
             var data = _repository.Data?.Enemy;
@@ -81,15 +81,15 @@ namespace Game.Horror.Services
             return true;
         }
 
-        public IReadOnlyCollection<int> GetActiveGroupIds()
+        public IReadOnlyCollection<int> GetActiveSpawnGroupIds()
         {
-            _activatedGroupIds.Clear();
+            _activatedSpawnGroupIds.Clear();
 
-            ValidateGroupMasters();
+            ValidateSpawnGroupMasters();
 
-            foreach (var group in _databaseService.Database.HorrorEnemyGroupMasterTable.All)
+            foreach (var spawnGroup in _databaseService.Database.HorrorEnemySpawnGroupMasterTable.All)
             {
-                if (group.IsInitialSpawn) _activatedGroupIds.Add(group.Id);
+                if (spawnGroup.IsInitialSpawn) _activatedSpawnGroupIds.Add(spawnGroup.Id);
             }
 
             // 全滅/閾値の連鎖を集合が安定するまで反復し、セーブデータ由来の途中状態を再構築する
@@ -97,19 +97,19 @@ namespace Game.Horror.Services
             do
             {
                 changed = false;
-                foreach (var group in _databaseService.Database.HorrorEnemyGroupMasterTable.All)
+                foreach (var spawnGroup in _databaseService.Database.HorrorEnemySpawnGroupMasterTable.All)
                 {
-                    if (!_activatedGroupIds.Contains(group.Id)) continue;
+                    if (!_activatedSpawnGroupIds.Contains(spawnGroup.Id)) continue;
 
-                    if (group.AdditionalGroupId != 0 && group.AdditionalKillThreshold > 0 &&
-                        GetDefeatedCount(group.Id) >= group.AdditionalKillThreshold &&
-                        _activatedGroupIds.Add(group.AdditionalGroupId))
+                    if (spawnGroup.AdditionalGroupId != 0 && spawnGroup.AdditionalKillThreshold > 0 &&
+                        GetDefeatedCount(spawnGroup.Id) >= spawnGroup.AdditionalKillThreshold &&
+                        _activatedSpawnGroupIds.Add(spawnGroup.AdditionalGroupId))
                     {
                         changed = true;
                     }
 
-                    if (group.NextGroupIdOnEliminated != 0 && IsGroupEliminated(group.Id) &&
-                        _activatedGroupIds.Add(group.NextGroupIdOnEliminated))
+                    if (spawnGroup.NextGroupIdOnEliminated != 0 && IsSpawnGroupEliminated(spawnGroup.Id) &&
+                        _activatedSpawnGroupIds.Add(spawnGroup.NextGroupIdOnEliminated))
                     {
                         changed = true;
                     }
@@ -118,14 +118,14 @@ namespace Game.Horror.Services
             while (changed);
 
             // 内部集合はランタイム連鎖で増え続けるため、呼び出し時点のスナップショットを返す
-            return new HashSet<int>(_activatedGroupIds);
+            return new HashSet<int>(_activatedSpawnGroupIds);
         }
 
         private void OnEnemyDied(int spawnId)
         {
             // 進行判定は記録が新規に行われたときのみ（冪等 no-op や不正 Id で連鎖判定を走らせない）
             if (!TryMarkDefeated(spawnId)) return;
-            EvaluateGroupProgression(spawnId);
+            EvaluateSpawnGroupProgression(spawnId);
         }
 
         private bool TryMarkDefeated(int spawnId)
@@ -151,74 +151,74 @@ namespace Game.Horror.Services
             return true;
         }
 
-        private void EvaluateGroupProgression(int spawnId)
+        private void EvaluateSpawnGroupProgression(int spawnId)
         {
             var database = _databaseService.Database;
             if (database == null)
             {
-                Debug.LogError($"[{GetType().Name}] マスターデータ未ロードのためグループ進行判定 (SpawnId={spawnId}) をスキップしました");
+                Debug.LogError($"[{GetType().Name}] マスターデータ未ロードのためスポーングループ進行判定 (SpawnId={spawnId}) をスキップしました");
                 return;
             }
 
             if (!database.HorrorEnemySpawnMasterTable.TryFindById(spawnId, out var spawn))
             {
-                Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnMaster (Id={spawnId}) が見つからないためグループ進行判定をスキップしました");
+                Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnMaster (Id={spawnId}) が見つからないためスポーングループ進行判定をスキップしました");
                 return;
             }
 
-            if (!database.HorrorEnemyGroupMasterTable.TryFindById(spawn.GroupId, out var group))
+            if (!database.HorrorEnemySpawnGroupMasterTable.TryFindById(spawn.SpawnGroupId, out var spawnGroup))
             {
-                Debug.LogError($"[{GetType().Name}] HorrorEnemyGroupMaster (Id={spawn.GroupId}) が見つからないためグループ進行判定をスキップしました");
+                Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnGroupMaster (Id={spawn.SpawnGroupId}) が見つからないためスポーングループ進行判定をスキップしました");
                 return;
             }
 
             // 同一キルで閾値と全滅の両方が成立したら両方起動する
-            if (group.AdditionalGroupId != 0 && group.AdditionalKillThreshold > 0 &&
-                GetDefeatedCount(group.Id) >= group.AdditionalKillThreshold)
+            if (spawnGroup.AdditionalGroupId != 0 && spawnGroup.AdditionalKillThreshold > 0 &&
+                GetDefeatedCount(spawnGroup.Id) >= spawnGroup.AdditionalKillThreshold)
             {
-                TryActivateGroup(group.AdditionalGroupId);
+                TryActivateSpawnGroup(spawnGroup.AdditionalGroupId);
             }
 
-            if (group.NextGroupIdOnEliminated != 0 && IsGroupEliminated(group.Id))
+            if (spawnGroup.NextGroupIdOnEliminated != 0 && IsSpawnGroupEliminated(spawnGroup.Id))
             {
-                TryActivateGroup(group.NextGroupIdOnEliminated);
+                TryActivateSpawnGroup(spawnGroup.NextGroupIdOnEliminated);
             }
         }
 
-        private void TryActivateGroup(int groupId)
+        private void TryActivateSpawnGroup(int spawnGroupId)
         {
-            if (!_activatedGroupIds.Add(groupId)) return; // 起動済み（閾値は到達後の毎キルで成立し続けるため、ここで一度きりを保証）
-            _messagePipeService.Publish(new HorrorSignals.Enemy.GroupActivated(groupId));
+            if (!_activatedSpawnGroupIds.Add(spawnGroupId)) return; // 起動済み（閾値は到達後の毎キルで成立し続けるため、ここで一度きりを保証）
+            _messagePipeService.Publish(new HorrorSignals.Enemy.SpawnGroupActivated(spawnGroupId));
         }
 
         /// <summary>
-        /// グループマスタの整合性を検証する（毎シーン開始の決定点で LogError）。
+        /// スポーングループマスタの整合性を検証する（毎シーン開始の決定点で LogError）。
         /// 参照先不在・閾値と追加グループの片設定・所属エントリ0件を検出する。
         /// </summary>
-        private void ValidateGroupMasters()
+        private void ValidateSpawnGroupMasters()
         {
             var database = _databaseService.Database;
-            var groupTable = database.HorrorEnemyGroupMasterTable;
-            foreach (var group in groupTable.All)
+            var groupTable = database.HorrorEnemySpawnGroupMasterTable;
+            foreach (var spawnGroup in groupTable.All)
             {
-                if (group.NextGroupIdOnEliminated != 0 && !groupTable.TryFindById(group.NextGroupIdOnEliminated, out _))
+                if (spawnGroup.NextGroupIdOnEliminated != 0 && !groupTable.TryFindById(spawnGroup.NextGroupIdOnEliminated, out _))
                 {
-                    Debug.LogError($"[{GetType().Name}] HorrorEnemyGroupMaster (Id={group.Id}) の NextGroupIdOnEliminated={group.NextGroupIdOnEliminated} が見つかりません");
+                    Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnGroupMaster (Id={spawnGroup.Id}) の NextGroupIdOnEliminated={spawnGroup.NextGroupIdOnEliminated} が見つかりません");
                 }
 
-                if (group.AdditionalGroupId != 0 && !groupTable.TryFindById(group.AdditionalGroupId, out _))
+                if (spawnGroup.AdditionalGroupId != 0 && !groupTable.TryFindById(spawnGroup.AdditionalGroupId, out _))
                 {
-                    Debug.LogError($"[{GetType().Name}] HorrorEnemyGroupMaster (Id={group.Id}) の AdditionalGroupId={group.AdditionalGroupId} が見つかりません");
+                    Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnGroupMaster (Id={spawnGroup.Id}) の AdditionalGroupId={spawnGroup.AdditionalGroupId} が見つかりません");
                 }
 
-                if ((group.AdditionalGroupId != 0) != (group.AdditionalKillThreshold > 0))
+                if ((spawnGroup.AdditionalGroupId != 0) != (spawnGroup.AdditionalKillThreshold > 0))
                 {
-                    Debug.LogError($"[{GetType().Name}] HorrorEnemyGroupMaster (Id={group.Id}) の AdditionalKillThreshold と AdditionalGroupId は両方設定するか両方 0 にしてください (Threshold={group.AdditionalKillThreshold}, GroupId={group.AdditionalGroupId})");
+                    Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnGroupMaster (Id={spawnGroup.Id}) の AdditionalKillThreshold と AdditionalGroupId は両方設定するか両方 0 にしてください (Threshold={spawnGroup.AdditionalKillThreshold}, GroupId={spawnGroup.AdditionalGroupId})");
                 }
 
-                if (database.HorrorEnemySpawnMasterTable.FindByGroupId(group.Id).Count == 0)
+                if (database.HorrorEnemySpawnMasterTable.FindBySpawnGroupId(spawnGroup.Id).Count == 0)
                 {
-                    Debug.LogError($"[{GetType().Name}] HorrorEnemyGroupMaster (Id={group.Id}) に所属するスポーンエントリがありません");
+                    Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnGroupMaster (Id={spawnGroup.Id}) に所属するスポーンエントリがありません");
                 }
             }
         }

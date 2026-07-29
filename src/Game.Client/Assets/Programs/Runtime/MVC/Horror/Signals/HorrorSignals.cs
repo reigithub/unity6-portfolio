@@ -127,16 +127,16 @@ namespace Game.Horror.Signals
             }
 
             /// <summary>
-            /// エネミーグループ起動イベントのデータ（連鎖スポーンの実行に使用）。
-            /// GroupId は HorrorEnemyGroupMaster の Id。
+            /// エネミースポーングループ起動イベントのデータ（連鎖スポーンの実行に使用）。
+            /// SpawnGroupId は HorrorEnemySpawnGroupMaster の Id。
             /// </summary>
-            public readonly struct GroupActivated
+            public readonly struct SpawnGroupActivated
             {
-                public readonly int GroupId;
+                public readonly int SpawnGroupId;
 
-                public GroupActivated(int groupId)
+                public SpawnGroupActivated(int spawnGroupId)
                 {
-                    GroupId = groupId;
+                    SpawnGroupId = spawnGroupId;
                 }
             }
         }

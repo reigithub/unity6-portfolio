@@ -48,7 +48,7 @@ namespace Game.Horror
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Damaged>();
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Died>();
             messagePipeService.AddMessageBroker<HorrorSignals.Enemy.Died>();
-            messagePipeService.AddMessageBroker<HorrorSignals.Enemy.GroupActivated>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Enemy.SpawnGroupActivated>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 

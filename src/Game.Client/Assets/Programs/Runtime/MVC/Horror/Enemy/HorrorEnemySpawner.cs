@@ -16,8 +16,8 @@ namespace Game.Horror.Enemy
     /// Horror のエネミースポナー。シーン上のマーカー（<see cref="HorrorEnemyStart"/>）から
     /// スポーンエントリの registry を構築し、敵種（EnemyMaster）単位のオブジェクトプールで個体を使い回す。
     /// 死亡演出完了の通知（<see cref="HorrorEnemyController.Initialize"/> へ注入するコールバック）でプールへ回収する。
-    /// 初期スポーンは活性グループ（IHorrorEnemyService.GetActiveGroupIds）に限定し、
-    /// ランタイムの連鎖は GroupActivated シグナルを購読して所属エントリを <see cref="TrySpawn"/> する。
+    /// 初期スポーンは活性スポーングループ（IHorrorEnemyService.GetActiveSpawnGroupIds）に限定し、
+    /// ランタイムの連鎖は SpawnGroupActivated シグナルを購読して所属エントリを <see cref="TrySpawn"/> する。
     /// </summary>
     public class HorrorEnemySpawner
     {
@@ -44,7 +44,7 @@ namespace Game.Horror.Enemy
         {
             public Transform Marker;
             public HorrorEnemyMaster EnemyMaster;
-            public int GroupId;
+            public int SpawnGroupId;
         }
 
         public HorrorEnemySpawner(
@@ -73,14 +73,14 @@ namespace Game.Horror.Enemy
             ValidateMarkerCoverage(markers);
             await PreloadPrefabsAndBuildPoolsAsync();
 
-            // ランタイム連鎖（全滅/閾値でのグループ起動）の受信。Dispose で解除する
-            _groupSubscription = _messagePipeService.Subscribe<HorrorSignals.Enemy.GroupActivated>(evt => SpawnGroup(evt.GroupId));
+            // ランタイム連鎖（全滅/閾値でのスポーングループ起動）の受信。Dispose で解除する
+            _groupSubscription = _messagePipeService.Subscribe<HorrorSignals.Enemy.SpawnGroupActivated>(evt => SpawnGroup(evt.SpawnGroupId));
 
-            // 初期スポーンは活性グループ（初期グループ + セーブデータから復元された連鎖分）のみ。撃破済みは TrySpawn 内でスキップ
-            var activeGroupIds = new HashSet<int>(_enemyService.GetActiveGroupIds());
+            // 初期スポーンは活性スポーングループ（初期グループ + セーブデータから復元された連鎖分）のみ。撃破済みは TrySpawn 内でスキップ
+            var activeSpawnGroupIds = new HashSet<int>(_enemyService.GetActiveSpawnGroupIds());
             foreach (var (spawnId, entry) in _entries)
             {
-                if (activeGroupIds.Contains(entry.GroupId))
+                if (activeSpawnGroupIds.Contains(entry.SpawnGroupId))
                     TrySpawn(spawnId);
             }
         }
@@ -203,19 +203,19 @@ namespace Game.Horror.Enemy
                     continue;
                 }
 
-                if (spawn.GroupId == 0)
+                if (spawn.SpawnGroupId == 0)
                 {
-                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnMaster (Id={spawn.Id}) の GroupId が未設定(0)です");
+                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnMaster (Id={spawn.Id}) の SpawnGroupId が未設定(0)です");
                     continue;
                 }
 
-                if (!database.HorrorEnemyGroupMasterTable.TryFindById(spawn.GroupId, out _))
+                if (!database.HorrorEnemySpawnGroupMasterTable.TryFindById(spawn.SpawnGroupId, out _))
                 {
-                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemyGroupMaster (Id={spawn.GroupId}) が見つかりません。");
+                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnGroupMaster (Id={spawn.SpawnGroupId}) が見つかりません。");
                     continue;
                 }
 
-                _entries.Add(marker.SpawnId, new SpawnEntry { Marker = marker.transform, EnemyMaster = master, GroupId = spawn.GroupId });
+                _entries.Add(marker.SpawnId, new SpawnEntry { Marker = marker.transform, EnemyMaster = master, SpawnGroupId = spawn.SpawnGroupId });
             }
         }
 
@@ -236,12 +236,12 @@ namespace Game.Horror.Enemy
             }
         }
 
-        /// <summary>グループ起動通知を受けて所属エントリをスポーンする（撃破済みは TrySpawn 内で無音スキップ）。</summary>
-        private void SpawnGroup(int groupId)
+        /// <summary>スポーングループ起動通知を受けて所属エントリをスポーンする（撃破済みは TrySpawn 内で無音スキップ）。</summary>
+        private void SpawnGroup(int spawnGroupId)
         {
             foreach (var (spawnId, entry) in _entries)
             {
-                if (entry.GroupId == groupId)
+                if (entry.SpawnGroupId == spawnGroupId)
                     TrySpawn(spawnId);
             }
         }

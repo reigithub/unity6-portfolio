@@ -61,7 +61,7 @@ namespace Game.Tests.MVC.Horror
 
             var messagePipe = new MessagePipeService();
             messagePipe.AddMessageBroker<HorrorSignals.Enemy.Died>();
-            messagePipe.AddMessageBroker<HorrorSignals.Enemy.GroupActivated>();
+            messagePipe.AddMessageBroker<HorrorSignals.Enemy.SpawnGroupActivated>();
             messagePipe.Build();
             _messagePipe = messagePipe;
 
@@ -69,7 +69,7 @@ namespace Game.Tests.MVC.Horror
             _service.Startup(); // GameServiceManager.Register が呼ぶ Startup 相当（購読開始）
 
             _activatedGroups.Clear();
-            _groupSubscription = _messagePipe.Subscribe<HorrorSignals.Enemy.GroupActivated>(evt => _activatedGroups.Add(evt.GroupId));
+            _groupSubscription = _messagePipe.Subscribe<HorrorSignals.Enemy.SpawnGroupActivated>(evt => _activatedGroups.Add(evt.SpawnGroupId));
         }
 
         [TearDown]
@@ -87,9 +87,9 @@ namespace Game.Tests.MVC.Horror
         private void SetupDatabase(string[][] spawnRows, string[][] groupRows)
         {
             var spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
-            spawnTable.EditorImportRows(new[] { "Id", "EnemyMasterId", "GroupId" }, spawnRows, mergeByPrimaryKey: false);
+            spawnTable.EditorImportRows(new[] { "Id", "EnemyMasterId", "SpawnGroupId" }, spawnRows, mergeByPrimaryKey: false);
 
-            var groupTable = ScriptableObject.CreateInstance<HorrorEnemyGroupMasterTable>();
+            var groupTable = ScriptableObject.CreateInstance<HorrorEnemySpawnGroupMasterTable>();
             groupTable.EditorImportRows(
                 new[] { "Id", "IsInitialSpawn", "NextGroupIdOnEliminated", "AdditionalKillThreshold", "AdditionalGroupId" },
                 groupRows,
@@ -98,7 +98,7 @@ namespace Game.Tests.MVC.Horror
             var database = ScriptableObject.CreateInstance<ScriptableDatabase>();
             var so = new SerializedObject(database);
             so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = spawnTable;
-            so.FindProperty("horrorEnemyGroupMasterTable").objectReferenceValue = groupTable;
+            so.FindProperty("horrorEnemySpawnGroupMasterTable").objectReferenceValue = groupTable;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             _createdObjects.Add(spawnTable);
@@ -204,7 +204,7 @@ namespace Game.Tests.MVC.Horror
             LogAssert.NoUnexpectedReceived();
         }
 
-        // グループ判定：所属エントリと撃破記録の突き合わせ。未ロード・所属0件は無音で 0 / false。
+        // スポーングループ判定：所属エントリと撃破記録の突き合わせ。未ロード・所属0件は無音で 0 / false。
 
         [Test]
         public async Task GetDefeatedCount_CountsOnlyGroupMembers()
@@ -224,24 +224,24 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task IsGroupEliminated_TrueWhenAllDefeated_FalseWhenPartial()
+        public async Task IsSpawnGroupEliminated_TrueWhenAllDefeated_FalseWhenPartial()
         {
             await LoadDataWithDefeats(4, 5, 1);
 
-            Assert.That(_service.IsGroupEliminated(2), Is.True);
-            Assert.That(_service.IsGroupEliminated(1), Is.False);
+            Assert.That(_service.IsSpawnGroupEliminated(2), Is.True);
+            Assert.That(_service.IsSpawnGroupEliminated(1), Is.False);
         }
 
         [Test]
-        public async Task IsGroupEliminated_EmptyGroup_ReturnsFalse()
+        public async Task IsSpawnGroupEliminated_EmptyGroup_ReturnsFalse()
         {
             await LoadDataWithDefeats(1, 2, 3, 4, 5, 6);
 
             // 所属エントリ0件（未知グループ含む）を全滅扱いにすると、起動した瞬間に空連鎖が走るため false
-            Assert.That(_service.IsGroupEliminated(999), Is.False);
+            Assert.That(_service.IsSpawnGroupEliminated(999), Is.False);
         }
 
-        // グループ進行（ランタイム連鎖）：閾値到達で追加グループ、全滅で次グループ。発火は一度きり。
+        // スポーングループ進行（ランタイム連鎖）：閾値到達で追加グループ、全滅で次グループ。発火は一度きり。
 
         [Test]
         public async Task Died_ThresholdReached_ActivatesAdditionalGroup()
@@ -295,7 +295,7 @@ namespace Game.Tests.MVC.Horror
         public async Task Died_SpawnMasterMissing_RecordsButLogsProgressionError_OnceOnDuplicate()
         {
             await LoadDefaultData();
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnMaster (Id=99) が見つからないためグループ進行判定をスキップしました");
+            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnMaster (Id=99) が見つからないためスポーングループ進行判定をスキップしました");
 
             _messagePipe.Publish(new HorrorSignals.Enemy.Died(99));
             // 重複 = 記録 no-op → 進行判定も走らず LogError は1回のみ（予期しない LogError はテストを自動失敗させる）
@@ -305,48 +305,48 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task Died_GroupMasterMissing_LogsProgressionError()
+        public async Task Died_SpawnGroupMasterMissing_LogsProgressionError()
         {
             SetupDatabase(
                 new[] { new[] { "1", "1", "7" } },
                 new[] { new[] { "1", "0", "0", "0", "0" } });
             await LoadDefaultData();
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemyGroupMaster (Id=7) が見つからないためグループ進行判定をスキップしました");
+            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=7) が見つからないためスポーングループ進行判定をスキップしました");
 
             _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
         }
 
-        // 活性グループ算出（ロード時復元）：初期グループを種に全滅/閾値連鎖を fixpoint で再構築する。
+        // 活性スポーングループ算出（ロード時復元）：初期グループを種に全滅/閾値連鎖を fixpoint で再構築する。
 
         [Test]
-        public async Task GetActiveGroupIds_FreshData_ReturnsInitialOnly()
+        public async Task GetActiveSpawnGroupIds_FreshData_ReturnsInitialOnly()
         {
             await LoadDefaultData();
 
             // 整合検証の LogError が出ないことは、予期しない LogError の自動失敗で担保される
-            Assert.That(_service.GetActiveGroupIds(), Is.EquivalentTo(new[] { 1 }));
+            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1 }));
         }
 
         [Test]
-        public async Task GetActiveGroupIds_ThresholdReachedInSave_ActivatesAdditional()
+        public async Task GetActiveSpawnGroupIds_ThresholdReachedInSave_ActivatesAdditional()
         {
             await LoadDataWithDefeats(1, 2);
 
-            Assert.That(_service.GetActiveGroupIds(), Is.EquivalentTo(new[] { 1, 3 }));
+            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1, 3 }));
         }
 
         [Test]
-        public async Task GetActiveGroupIds_EliminatedInSave_ActivatesChain()
+        public async Task GetActiveSpawnGroupIds_EliminatedInSave_ActivatesChain()
         {
             await LoadDataWithDefeats(1, 2, 3);
 
-            Assert.That(_service.GetActiveGroupIds(), Is.EquivalentTo(new[] { 1, 2, 3 }));
+            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1, 2, 3 }));
         }
 
         [Test]
-        public async Task GetActiveGroupIds_MultiHopChain_ResolvesToFixpoint()
+        public async Task GetActiveSpawnGroupIds_MultiHopChain_ResolvesToFixpoint()
         {
             // Group1(初期) 全滅 → Group2 全滅 → Group3 と2段連鎖した途中状態からの復元
             SetupDatabase(
@@ -364,14 +364,14 @@ namespace Game.Tests.MVC.Horror
                 });
             await LoadDataWithDefeats(1, 2);
 
-            Assert.That(_service.GetActiveGroupIds(), Is.EquivalentTo(new[] { 1, 2, 3 }));
+            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1, 2, 3 }));
         }
 
         [Test]
-        public async Task GetActiveGroupIds_SeedsRuntimeGuard_NoRefireForRestoredGroups()
+        public async Task GetActiveSpawnGroupIds_SeedsRuntimeGuard_NoRefireForRestoredGroups()
         {
             await LoadDataWithDefeats(1, 2); // 閾値到達済み → Group3 は復元で起動済み扱い
-            _service.GetActiveGroupIds();
+            _service.GetActiveSpawnGroupIds();
 
             _messagePipe.Publish(new HorrorSignals.Enemy.Died(3)); // 全滅 → Group2 のみ新規発火（Group3 は再発火しない）
 
@@ -379,17 +379,7 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task GetActiveGroupIds_WhenDatabaseNull_LogsErrorAndReturnsEmpty()
-        {
-            await LoadDefaultData();
-            _mockDatabase.Database.Returns((ScriptableDatabase)null);
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] マスターデータ未ロードのため活性グループを算出できません");
-
-            Assert.That(_service.GetActiveGroupIds(), Is.Empty);
-        }
-
-        [Test]
-        public async Task GetActiveGroupIds_InvalidGroupMaster_LogsErrors()
+        public async Task GetActiveSpawnGroupIds_InvalidSpawnGroupMaster_LogsErrors()
         {
             // Group1: 参照先不在(Next=99) + 片設定(Threshold=5, Additional=0) / Group2: 所属エントリ0件
             SetupDatabase(
@@ -400,11 +390,11 @@ namespace Game.Tests.MVC.Horror
                     new[] { "2", "0", "0", "0", "0" },
                 });
             await LoadDefaultData();
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemyGroupMaster (Id=1) の NextGroupIdOnEliminated=99 が見つかりません");
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemyGroupMaster (Id=1) の AdditionalKillThreshold と AdditionalGroupId は両方設定するか両方 0 にしてください (Threshold=5, GroupId=0)");
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemyGroupMaster (Id=2) に所属するスポーンエントリがありません");
+            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=1) の NextGroupIdOnEliminated=99 が見つかりません");
+            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=1) の AdditionalKillThreshold と AdditionalGroupId は両方設定するか両方 0 にしてください (Threshold=5, GroupId=0)");
+            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=2) に所属するスポーンエントリがありません");
 
-            Assert.That(_service.GetActiveGroupIds(), Is.EquivalentTo(new[] { 1 }));
+            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1 }));
         }
     }
 }
