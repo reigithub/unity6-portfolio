@@ -145,6 +145,7 @@ namespace Game.Horror.Scenes
             _enemySpawner = new HorrorEnemySpawner(
                 _assetService,
                 GameServiceManager.Resolve<IScriptableDatabaseService>(),
+                GameServiceManager.Resolve<IMessagePipeService>(),
                 GameServiceManager.Resolve<IHorrorEnemyService>());
             await _enemySpawner.InitializeAsync(player, enemyStarts);
         }

@@ -48,6 +48,7 @@ namespace Game.Horror
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Damaged>();
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Died>();
             messagePipeService.AddMessageBroker<HorrorSignals.Enemy.Died>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Enemy.GroupActivated>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 
@@ -97,7 +98,7 @@ namespace Game.Horror
             GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository, dbService));
             GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
-            GameServiceManager.Register<IHorrorEnemyService, HorrorEnemyService>(new HorrorEnemyService(saveRepository, messagePipeService));
+            GameServiceManager.Register<IHorrorEnemyService, HorrorEnemyService>(new HorrorEnemyService(saveRepository, dbService, messagePipeService));
 
             // 共通オブジェクト読み込み
             var gameRootService = new HorrorGameRootService(assetService);

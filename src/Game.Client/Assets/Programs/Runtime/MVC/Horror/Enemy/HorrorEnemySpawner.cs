@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Game.Core.Services;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.Signals;
 using Game.Shared.Extensions;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
@@ -13,12 +16,14 @@ namespace Game.Horror.Enemy
     /// Horror のエネミースポナー。シーン上のマーカー（<see cref="HorrorEnemyStart"/>）から
     /// スポーンエントリの registry を構築し、敵種（EnemyMaster）単位のオブジェクトプールで個体を使い回す。
     /// 死亡演出完了の通知（<see cref="HorrorEnemyController.Initialize"/> へ注入するコールバック）でプールへ回収する。
-    /// <see cref="TrySpawn"/> はグループ連鎖スポーン（要件3）の受け口を兼ねる。
+    /// 初期スポーンは活性グループ（IHorrorEnemyService.GetActiveGroupIds）に限定し、
+    /// ランタイムの連鎖は GroupActivated シグナルを購読して所属エントリを <see cref="TrySpawn"/> する。
     /// </summary>
     public class HorrorEnemySpawner
     {
         private readonly IAddressableAssetService _assetService;
         private readonly IScriptableDatabaseService _dbService;
+        private readonly IMessagePipeService _messagePipeService;
         private readonly IHorrorEnemyService _enemyService;
 
         // spawnId → スポーン定義（マーカー位置 + マスタ解決結果）
@@ -33,20 +38,24 @@ namespace Game.Horror.Enemy
 
         private GameObject _player;
         private Transform _poolParent;
+        private IDisposable _groupSubscription;
 
         private sealed class SpawnEntry
         {
             public Transform Marker;
             public HorrorEnemyMaster EnemyMaster;
+            public int GroupId;
         }
 
         public HorrorEnemySpawner(
             IAddressableAssetService assetService,
             IScriptableDatabaseService dbService,
+            IMessagePipeService messagePipeService,
             IHorrorEnemyService enemyService)
         {
             _assetService = assetService;
             _dbService = dbService;
+            _messagePipeService = messagePipeService;
             _enemyService = enemyService;
         }
 
@@ -61,10 +70,19 @@ namespace Game.Horror.Enemy
             _poolParent = new GameObject("HorrorEnemyPool").transform;
 
             BuildEntries(markers);
+            ValidateMarkerCoverage(markers);
             await PreloadPrefabsAndBuildPoolsAsync();
 
-            foreach (var spawnId in _entries.Keys)
-                TrySpawn(spawnId);
+            // ランタイム連鎖（全滅/閾値でのグループ起動）の受信。Dispose で解除する
+            _groupSubscription = _messagePipeService.Subscribe<HorrorSignals.Enemy.GroupActivated>(evt => SpawnGroup(evt.GroupId));
+
+            // 初期スポーンは活性グループ（初期グループ + セーブデータから復元された連鎖分）のみ。撃破済みは TrySpawn 内でスキップ
+            var activeGroupIds = new HashSet<int>(_enemyService.GetActiveGroupIds());
+            foreach (var (spawnId, entry) in _entries)
+            {
+                if (activeGroupIds.Contains(entry.GroupId))
+                    TrySpawn(spawnId);
+            }
         }
 
         /// <summary>
@@ -127,6 +145,9 @@ namespace Game.Horror.Enemy
         /// </summary>
         public void Dispose()
         {
+            _groupSubscription?.Dispose();
+            _groupSubscription = null;
+
             // 貸出中を全返却してからプールを破棄する（Clear の actionOnDestroy が待機個体を破棄する）
             foreach ((int spawnId, HorrorEnemyController controller) in _activeEnemies)
                 _pools[_entries[spawnId].EnemyMaster.Id].Release(controller);
@@ -182,7 +203,46 @@ namespace Game.Horror.Enemy
                     continue;
                 }
 
-                _entries.Add(marker.SpawnId, new SpawnEntry { Marker = marker.transform, EnemyMaster = master });
+                if (spawn.GroupId == 0)
+                {
+                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnMaster (Id={spawn.Id}) の GroupId が未設定(0)です");
+                    continue;
+                }
+
+                if (!database.HorrorEnemyGroupMasterTable.TryFindById(spawn.GroupId, out _))
+                {
+                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemyGroupMaster (Id={spawn.GroupId}) が見つかりません。");
+                    continue;
+                }
+
+                _entries.Add(marker.SpawnId, new SpawnEntry { Marker = marker.transform, EnemyMaster = master, GroupId = spawn.GroupId });
+            }
+        }
+
+        /// <summary>
+        /// マスタ行に対応するマーカーの不在を検証する。連鎖グループのマーカー配置忘れは
+        /// 活性化時の「未登録」エラーまで発覚が遅れるため、シーン起動時に決定的に検出する。
+        /// </summary>
+        private void ValidateMarkerCoverage(IReadOnlyList<HorrorEnemyStart> markers)
+        {
+            var markerIds = new HashSet<int>();
+            foreach (var marker in markers)
+                markerIds.Add(marker.SpawnId);
+
+            foreach (var spawn in _dbService.Database.HorrorEnemySpawnMasterTable.All)
+            {
+                if (!markerIds.Contains(spawn.Id))
+                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnMaster (Id={spawn.Id}) に対応する {nameof(HorrorEnemyStart)} マーカーがシーンにありません");
+            }
+        }
+
+        /// <summary>グループ起動通知を受けて所属エントリをスポーンする（撃破済みは TrySpawn 内で無音スキップ）。</summary>
+        private void SpawnGroup(int groupId)
+        {
+            foreach (var (spawnId, entry) in _entries)
+            {
+                if (entry.GroupId == groupId)
+                    TrySpawn(spawnId);
             }
         }
 
@@ -241,7 +301,7 @@ namespace Game.Horror.Enemy
             // NavMeshAgent が NavMesh 外の位置（原点）で Awake するエラーを防ぐ（SurvivorEnemySpawner と同じ対策）。
             // 貸出時は TrySpawn がマーカー位置を設定してから SetActive(true) する。
             prefab.SetActive(false);
-            var instance = Object.Instantiate(prefab, _poolParent);
+            var instance = UnityEngine.Object.Instantiate(prefab, _poolParent);
             prefab.SetActive(true);
 
             if (!instance.TryGetComponent<HorrorEnemyController>(out var controller))
