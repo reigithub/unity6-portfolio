@@ -62,11 +62,16 @@ namespace Game.Shared.Scriptable.Database.Validation
             return primaryKey != null && MemberType(primaryKey) == typeof(int);
         }
 
-        /// <summary>外部キー宣言のあるメンバ。</summary>
-        public static IEnumerable<(MemberInfo Member, ForeignKeyAttribute Attribute)> ForeignKeys(Type recordType) =>
+        /// <summary>指定した検証属性が付いているメンバと、その属性の対。</summary>
+        public static IEnumerable<(MemberInfo Member, TAttribute Attribute)> Declarations<TAttribute>(Type recordType)
+            where TAttribute : Attribute =>
             Columns(recordType)
-                .Select(m => (Member: m, Attribute: m.GetCustomAttribute<ForeignKeyAttribute>()))
+                .Select(m => (Member: m, Attribute: m.GetCustomAttribute<TAttribute>()))
                 .Where(x => x.Attribute != null);
+
+        /// <summary>名前で列を引く（<see cref="CompareAttribute"/> の比較相手の解決用）。無ければ null。</summary>
+        public static MemberInfo FindColumn(Type recordType, string name) =>
+            Columns(recordType).FirstOrDefault(m => m.Name == name);
 
         public static Type MemberType(MemberInfo member) =>
             member is FieldInfo f ? f.FieldType : ((PropertyInfo)member).PropertyType;
@@ -77,8 +82,8 @@ namespace Game.Shared.Scriptable.Database.Validation
         public static object GetValue(MemberInfo member, object instance) =>
             member is FieldInfo f ? f.GetValue(instance) : ((PropertyInfo)member).GetValue(instance);
 
-        // 列対象メンバ（public プロパティ / public フィールド）。宣言順。
-        private static IEnumerable<MemberInfo> Columns(Type recordType) =>
+        /// <summary>列対象メンバ（public プロパティ / public フィールド）。宣言順。</summary>
+        public static IEnumerable<MemberInfo> Columns(Type recordType) =>
             recordType
                 .GetMembers(BindingFlags.Public | BindingFlags.Instance)
                 .Where(m => m is FieldInfo || (m is PropertyInfo p && p.GetIndexParameters().Length == 0))

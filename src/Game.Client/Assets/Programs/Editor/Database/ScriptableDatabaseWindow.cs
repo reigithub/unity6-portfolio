@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,16 +9,8 @@ namespace Game.Shared.Scriptable.Database.EditorTools
     /// </summary>
     public class ScriptableDatabaseWindow : EditorWindow
     {
-        // 検証対象の選択肢。列挙にリフレクション走査を伴うため、OnGUI では作らず遅延構築して保持する。
-        private Type[] _recordTypes;
-        private string[] _recordTypeNames;
-        private int _selectedRecordType;
-
         [MenuItem("Project/Database/ScriptableDatabaseWindow")]
         public static void Open() => GetWindow<ScriptableDatabaseWindow>("Scriptable Database");
-
-        // ドメインリロード（再コンパイル）のたびに選択肢を作り直す。
-        private void OnEnable() => ClearRecordTypes();
 
         private void OnGUI()
         {
@@ -70,44 +60,12 @@ namespace Game.Shared.Scriptable.Database.EditorTools
         {
             EditorGUILayout.LabelField("検証", EditorStyles.boldLabel);
 
-            if (GUILayout.Button("Validate All（構成＋全テーブル）"))
+            if (GUILayout.Button("Validate All（構成＋全テーブル。結果は Console）"))
                 ScriptableDatabaseIO.RunWithDatabase(db => ScriptableDatabaseValidationRunner.Run(db));
 
-            EnsureRecordTypes();
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                using (new EditorGUI.DisabledScope(_recordTypes.Length == 0))
-                {
-                    _selectedRecordType = EditorGUILayout.Popup(_selectedRecordType, _recordTypeNames);
-                    if (GUILayout.Button("Validate Selected", GUILayout.Width(140)))
-                    {
-                        var recordType = _recordTypes[_selectedRecordType];
-                        ScriptableDatabaseIO.RunWithDatabase(db => ScriptableDatabaseValidationRunner.Run(db, recordType));
-                    }
-                }
-
-                if (GUILayout.Button("↻", GUILayout.Width(24))) ClearRecordTypes();
-            }
-
-            if (_recordTypes.Length == 0)
-                EditorGUILayout.HelpBox("検証対象のテーブルがありません。Build / Register を実行してください。", MessageType.Info);
-        }
-
-        // 選択肢の構築では未生成・未登録を通知しない（OnGUI から呼ぶため）。実行時に呼び出し側が通知する。
-        private void EnsureRecordTypes()
-        {
-            if (_recordTypes != null) return;
-
-            _recordTypes = ScriptableDatabaseValidationRunner.RecordTypes(ScriptableDatabaseIO.LoadDatabaseOrNull()).ToArray();
-            _recordTypeNames = _recordTypes.Select(t => t.Name).ToArray();
-            _selectedRecordType = Mathf.Clamp(_selectedRecordType, 0, Mathf.Max(0, _recordTypes.Length - 1));
-        }
-
-        private void ClearRecordTypes()
-        {
-            _recordTypes = null;
-            _recordTypeNames = null;
+            // テーブル単位の実行と結果の閲覧は専用ウィンドウが担う。
+            if (GUILayout.Button("検証ウィンドウを開く（テーブル別の結果・エラー詳細）"))
+                ScriptableDatabaseValidationWindow.Open();
         }
     }
 }

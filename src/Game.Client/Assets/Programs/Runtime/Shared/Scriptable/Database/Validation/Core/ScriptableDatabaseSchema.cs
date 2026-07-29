@@ -15,18 +15,18 @@ namespace Game.Shared.Scriptable.Database.Validation
         /// <summary>レコード型 → 結線済みテーブル。</summary>
         public IReadOnlyDictionary<Type, ScriptableTableBase> Tables { get; }
 
-        /// <summary>宣言として妥当だった外部キー。</summary>
-        public IReadOnlyList<ForeignKeyDeclarations.Declaration> ForeignKeys { get; }
+        /// <summary>検証属性の宣言から作られた validator。</summary>
+        public IReadOnlyList<object> Validators { get; }
 
         public ValidationResult Result { get; }
 
         private ScriptableDatabaseSchema(
             IReadOnlyDictionary<Type, ScriptableTableBase> tables,
-            IReadOnlyList<ForeignKeyDeclarations.Declaration> foreignKeys,
+            IReadOnlyList<object> validators,
             ValidationResult result)
         {
             Tables = tables;
-            ForeignKeys = foreignKeys;
+            Validators = validators;
             Result = result;
         }
 
@@ -41,23 +41,26 @@ namespace Game.Shared.Scriptable.Database.Validation
             CollectTables(database, tables, declaredRecordTypes, result);
             DetectMissingTableFields(declaredRecordTypes, result);
 
-            var foreignKeys = ForeignKeyDeclarations.Collect(declaredRecordTypes, new HashSet<Type>(tables.Keys), result);
+            var validators = DeclaredValidators.Collect(declaredRecordTypes, new HashSet<Type>(tables.Keys), result);
 
-            return new ScriptableDatabaseSchema(tables, foreignKeys, result);
+            return new ScriptableDatabaseSchema(tables, validators, result);
         }
 
-        /// <summary>結線済みテーブルのレコード型だけを、型走査なしで列挙する（一覧表示用）。</summary>
-        public static List<Type> WiredRecordTypes(ScriptableObject database)
+        /// <summary>結線済みテーブルを、型走査なしで列挙する（一覧表示・資産選択用）。</summary>
+        public static List<(Type RecordType, ScriptableTableBase Table)> WiredTables(ScriptableObject database)
         {
-            var recordTypes = new List<Type>();
-            if (database == null) return recordTypes;
+            var wired = new List<(Type, ScriptableTableBase)>();
+            if (database == null) return wired;
 
+            var seen = new HashSet<Type>();
             foreach (var (_, recordType, table) in TableFields(database))
             {
-                if (table != null && !recordTypes.Contains(recordType)) recordTypes.Add(recordType);
+                if (table == null || !seen.Add(recordType)) continue;
+
+                wired.Add((recordType, table));
             }
 
-            return recordTypes;
+            return wired;
         }
 
         /// <summary>

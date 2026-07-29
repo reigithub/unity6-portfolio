@@ -40,10 +40,6 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             return Report(results, database);
         }
 
-        /// <summary>検証対象のレコード型（ウィンドウの選択肢用）。解決できなければ空。</summary>
-        public static IReadOnlyList<Type> RecordTypes(ScriptableObject database) =>
-            ValidationExecutor.WiredRecordTypes(database);
-
         private static bool Report(IReadOnlyList<ValidationResult> results, ScriptableObject database)
         {
             int errorCount = 0;
@@ -70,7 +66,8 @@ namespace Game.Shared.Scriptable.Database.EditorTools
             return false;
         }
 
-        private static string Header(ValidationResult result)
+        /// <summary>結果 1 件分の見出し（Console 出力と検証ウィンドウで共通）。</summary>
+        public static string Header(ValidationResult result)
         {
             string time = $"({result.CheckTime.TotalMilliseconds:0}ms)";
 

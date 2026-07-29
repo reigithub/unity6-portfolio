@@ -25,8 +25,13 @@ namespace Game.Shared.Scriptable.Database.Validation
         private readonly IRecordGetter _recordGetter;
         private readonly List<ITableValidator> _tableValidators;
 
-        // レコード型 → List<IRecordValidator<TRecord>>。ExecuteCore<T> がそのままキャストして使う。
+        // レコード型 → List<IRecordValidator<TRecord>> / List<ITableRecordsValidator<TRecord>>。
+        // ExecuteCore<T> がそのままキャストして使う。
         private readonly Dictionary<Type, IList> _recordValidators = new();
+        private readonly Dictionary<Type, IList> _recordsValidators = new();
+
+        // 見落とし報告の重複を避ける（同じ型・同じ種別の validator が複数あっても報告は 1 件）。
+        private readonly HashSet<(Type RecordType, string Kind)> _reportedOrphans = new();
 
         /// <summary>検証対象のレコード型。</summary>
         public IReadOnlyList<Type> RecordTypes { get; }
@@ -45,33 +50,37 @@ namespace Game.Shared.Scriptable.Database.Validation
             return new ValidationExecutor(
                 schema.Tables.Keys.ToList(),
                 new ScriptableDatabaseRecordGetter(schema.Tables),
-                schema.ForeignKeys,
+                schema.Validators,
                 DiscoverValidators(schema.Result),
                 schema.Result);
         }
 
         /// <summary>
         /// 対象・供給・validator を直接与えて構築する（資産に依存しないエンジン検証や、限定実行用）。
-        /// [ForeignKey] 宣言由来の検証は資産経路と同じく自動で組み込むが、validator クラスの自動発見は行わない。
+        /// 検証属性の宣言由来の validator は資産経路と同じく自動で組み込むが、validator クラスの自動発見は行わない。
         /// </summary>
         public static ValidationExecutor Create(IReadOnlyList<Type> recordTypes, IRecordGetter recordGetter, IReadOnlyList<object> validators = null)
         {
             if (recordTypes == null) throw new ArgumentNullException(nameof(recordTypes));
 
             var configurationResult = new ValidationResult(ConfigurationResultName, 0);
-            var foreignKeys = ForeignKeyDeclarations.Collect(recordTypes, new HashSet<Type>(recordTypes), configurationResult);
+            var declared = DeclaredValidators.Collect(recordTypes, new HashSet<Type>(recordTypes), configurationResult);
 
-            return new ValidationExecutor(recordTypes, recordGetter, foreignKeys, validators, configurationResult);
+            return new ValidationExecutor(recordTypes, recordGetter, declared, validators, configurationResult);
         }
 
-        /// <summary>結線済みテーブルのレコード型（一覧表示用。validator の発見や検証は行わない）。</summary>
+        /// <summary>結線済みテーブル（レコード型と資産の対。validator の発見や検証は行わない）。</summary>
+        public static IReadOnlyList<(Type RecordType, ScriptableTableBase Table)> WiredTables(ScriptableObject database) =>
+            ScriptableDatabaseSchema.WiredTables(database);
+
+        /// <summary>結線済みテーブルのレコード型（一覧表示用）。</summary>
         public static IReadOnlyList<Type> WiredRecordTypes(ScriptableObject database) =>
-            ScriptableDatabaseSchema.WiredRecordTypes(database);
+            WiredTables(database).Select(x => x.RecordType).ToList();
 
         private ValidationExecutor(
             IReadOnlyList<Type> recordTypes,
             IRecordGetter recordGetter,
-            IEnumerable<ForeignKeyDeclarations.Declaration> foreignKeys,
+            IEnumerable<object> declaredValidators,
             IEnumerable<object> validators,
             ValidationResult configurationResult)
         {
@@ -79,11 +88,8 @@ namespace Game.Shared.Scriptable.Database.Validation
             _recordGetter = recordGetter ?? throw new ArgumentNullException(nameof(recordGetter));
             ConfigurationResult = configurationResult;
 
-            var declared = foreignKeys.Select(d =>
-                ForeignKeyRecordValidator.Create(d.RecordType, d.Member, d.PrimaryKeyMember, d.Attribute));
-
-            var tableValidators = RegisterValidators(declared.Concat(validators ?? Enumerable.Empty<object>()));
-            DetectOrphanedValidators(tableValidators);
+            var tableValidators = RegisterValidators(
+                declaredValidators.Concat(validators ?? Enumerable.Empty<object>()));
             _tableValidators = BuildTableValidators(tableValidators);
         }
 
@@ -125,11 +131,10 @@ namespace Game.Shared.Scriptable.Database.Validation
         {
             try
             {
-                var validators = _recordValidators.TryGetValue(typeof(TRecord), out var list)
-                    ? (IReadOnlyList<IRecordValidator<TRecord>>)list
-                    : Array.Empty<IRecordValidator<TRecord>>();
-
-                return tableValidator.ValidateAll(validators, _recordGetter);
+                return tableValidator.ValidateAll(
+                    Registered<IRecordValidator<TRecord>>(_recordValidators, typeof(TRecord)),
+                    Registered<IRecordsValidator<TRecord>>(_recordsValidators, typeof(TRecord)),
+                    _recordGetter);
             }
             catch (Exception e)
             {
@@ -140,10 +145,14 @@ namespace Game.Shared.Scriptable.Database.Validation
             }
         }
 
+        private static IReadOnlyList<TValidator> Registered<TValidator>(Dictionary<Type, IList> map, Type recordType) =>
+            map.TryGetValue(recordType, out var list) ? (IReadOnlyList<TValidator>)list : Array.Empty<TValidator>();
+
         // ---- 登録 ----
 
         private Dictionary<Type, ITableValidator> RegisterValidators(IEnumerable<object> validators)
         {
+            var targets = new HashSet<Type>(RecordTypes);
             var tableValidators = new Dictionary<Type, ITableValidator>();
 
             foreach (var validator in validators)
@@ -152,6 +161,8 @@ namespace Game.Shared.Scriptable.Database.Validation
 
                 if (validator is ITableValidator tableValidator)
                 {
+                    if (!IsTarget(targets, tableValidator.RecordType, "TableValidator")) continue;
+
                     if (tableValidators.TryGetValue(tableValidator.RecordType, out var registered))
                     {
                         ConfigurationResult.AddError(tableValidator.RecordType.Name,
@@ -163,46 +174,41 @@ namespace Game.Shared.Scriptable.Database.Validation
                     continue;
                 }
 
-                foreach (var recordType in RecordValidatorTargets(validator.GetType()))
-                {
-                    AddRecordValidator(recordType, validator);
-                }
+                Register(_recordValidators, typeof(IRecordValidator<>), validator, targets, "RecordValidator");
+                Register(_recordsValidators, typeof(IRecordsValidator<>), validator, targets, "TableRecordsValidator");
             }
 
             return tableValidators;
         }
 
-        private void AddRecordValidator(Type recordType, object validator)
+        private void Register(Dictionary<Type, IList> map, Type openInterface, object validator, HashSet<Type> targets, string kind)
         {
-            if (!_recordValidators.TryGetValue(recordType, out var list))
+            foreach (var recordType in Targets(validator.GetType(), openInterface))
             {
-                var listType = typeof(List<>).MakeGenericType(typeof(IRecordValidator<>).MakeGenericType(recordType));
-                list = (IList)Activator.CreateInstance(listType);
-                _recordValidators.Add(recordType, list);
-            }
+                if (!IsTarget(targets, recordType, kind)) continue;
 
-            list.Add(validator);
+                if (!map.TryGetValue(recordType, out var list))
+                {
+                    var listType = typeof(List<>).MakeGenericType(openInterface.MakeGenericType(recordType));
+                    list = (IList)Activator.CreateInstance(listType);
+                    map.Add(recordType, list);
+                }
+
+                list.Add(validator);
+            }
         }
 
-        // マスターデータのレコード型（[ScriptableTable]）に対する validator が実行されないまま消えるのを顕在化させる。
-        // テーブル化されていない型の validator は本機構の管轄外なので対象にしない。
-        private void DetectOrphanedValidators(Dictionary<Type, ITableValidator> tableValidators)
+        // 検証対象のテーブルが無い validator は登録しない（BuildTableValidators / ExecuteCore のどちらからも
+        // 参照されず、実行されることがないため）。ただしマスターデータのレコード型（[ScriptableTable]）に
+        // 対するものは実行されないまま消えるのを顕在化させる。テーブル化されていない型は本機構の管轄外。
+        private bool IsTarget(HashSet<Type> targets, Type recordType, string kind)
         {
-            var targets = new HashSet<Type>(RecordTypes);
+            if (targets.Contains(recordType)) return true;
 
-            void Detect(IEnumerable<Type> recordTypes, string kind)
-            {
-                foreach (var recordType in recordTypes)
-                {
-                    if (targets.Contains(recordType)) continue;
-                    if (recordType.GetCustomAttribute<ScriptableTableAttribute>() == null) continue;
+            if (recordType.GetCustomAttribute<ScriptableTableAttribute>() != null && _reportedOrphans.Add((recordType, kind)))
+                ConfigurationResult.AddError(recordType.Name, $"この型の {kind} がありますが、検証対象のテーブルがありません。");
 
-                    ConfigurationResult.AddError(recordType.Name, $"この型の {kind} がありますが、検証対象のテーブルがありません。");
-                }
-            }
-
-            Detect(_recordValidators.Keys, "RecordValidator");
-            Detect(tableValidators.Keys, "TableValidator");
+            return false;
         }
 
         // validator が無いテーブルも件数付きで結果に出すため、全テーブルに既定 TableValidator を補完する。
@@ -228,7 +234,8 @@ namespace Game.Shared.Scriptable.Database.Validation
                 if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition) continue;
 
                 bool isTableValidator = typeof(ITableValidator).IsAssignableFrom(type);
-                bool isRecordValidator = RecordValidatorTargets(type).Any();
+                bool isRecordValidator = Targets(type, typeof(IRecordValidator<>)).Any()
+                    || Targets(type, typeof(IRecordsValidator<>)).Any();
                 if (!isTableValidator && !isRecordValidator) continue;
 
                 if (isTableValidator && !DerivesFromTableValidator(type))
@@ -252,9 +259,9 @@ namespace Game.Shared.Scriptable.Database.Validation
             }
         }
 
-        private static IEnumerable<Type> RecordValidatorTargets(Type type) =>
+        private static IEnumerable<Type> Targets(Type type, Type openInterface) =>
             type.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRecordValidator<>))
+                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == openInterface)
                 .Select(i => i.GetGenericArguments()[0]);
 
         private static bool DerivesFromTableValidator(Type type) =>

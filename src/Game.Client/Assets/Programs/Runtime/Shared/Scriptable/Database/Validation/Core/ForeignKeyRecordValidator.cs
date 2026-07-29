@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Game.Shared.Scriptable.Database.Validation
@@ -37,11 +38,35 @@ namespace Game.Shared.Scriptable.Database.Validation
 
     internal static class ForeignKeyRecordValidator
     {
-        /// <summary>レコード型が実行時にしか決まらない発見経路から生成する。</summary>
-        public static object Create(Type recordType, MemberInfo member, MemberInfo primaryKeyMember, ForeignKeyAttribute attribute)
+        /// <param name="availableRecordTypes">参照先として解決できるレコード型。</param>
+        public static object Create(
+            Type recordType, MemberInfo member, MemberInfo primaryKey, ForeignKeyAttribute attribute,
+            HashSet<Type> availableRecordTypes, ValidationResult result)
         {
-            var validatorType = typeof(ForeignKeyRecordValidator<>).MakeGenericType(recordType);
-            return Activator.CreateInstance(validatorType, member, primaryKeyMember, attribute);
+            if (!DeclaredValidators.RequireMemberType(recordType, member, "[ForeignKey]", result, typeof(int))) return null;
+
+            string where = DeclaredValidators.Describe(recordType, member);
+            var target = attribute.TargetRecordType;
+
+            if (target == null)
+            {
+                result.AddError(recordType.Name, $"{where} の [ForeignKey] に参照先の型が指定されていません。");
+                return null;
+            }
+
+            if (!ValidationReflection.TryFindIntPrimaryKey(target, out _))
+            {
+                result.AddError(recordType.Name, $"{where} の参照先 {target.Name} に int の [PrimaryKey] がありません。");
+                return null;
+            }
+
+            if (!availableRecordTypes.Contains(target))
+            {
+                result.AddError(recordType.Name, $"{where} の参照先 {target.Name} のテーブルが検証対象にありません。");
+                return null;
+            }
+
+            return DeclaredValidators.Create(typeof(ForeignKeyRecordValidator<>), recordType, member, primaryKey, attribute);
         }
     }
 }

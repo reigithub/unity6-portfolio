@@ -44,29 +44,6 @@ namespace Game.Tests.Shared
 
         // ---- テスト用スタブ ----
 
-        private sealed class StubRecordGetter : IRecordGetter
-        {
-            private readonly Dictionary<Type, List<object>> _records = new();
-
-            public void Add<TRecord>(params TRecord[] records) =>
-                _records[typeof(TRecord)] = records.Cast<object>().ToList();
-
-            public IReadOnlyList<TRecord> GetAll<TRecord>() => Records(typeof(TRecord)).Cast<TRecord>().ToList();
-
-            public bool ContainsPrimaryKey(Type targetRecordType, int primaryKey)
-            {
-                var property = targetRecordType.GetProperty("Id");
-                return Records(targetRecordType).Any(r => (int)property.GetValue(r) == primaryKey);
-            }
-
-            private List<object> Records(Type recordType)
-            {
-                if (_records.TryGetValue(recordType, out var records)) return records;
-
-                throw new InvalidOperationException($"{recordType.Name} は登録されていません。");
-            }
-        }
-
         private sealed class ThrowingTableValidator : TableValidator<ParentRecord>
         {
             public const string Message = "テーブル検証で発生した例外";
@@ -80,6 +57,21 @@ namespace Game.Tests.Shared
             public int Calls { get; private set; }
 
             public void Validate(ParentRecord record, ValidationResult result, IRecordGetter recordGetter) => Calls++;
+        }
+
+        private sealed class CountingRecordsValidator : IRecordsValidator<ParentRecord>
+        {
+            public int Calls { get; private set; }
+
+            public void Validate(IReadOnlyList<ParentRecord> allRecords, ValidationResult result, IRecordGetter recordGetter) => Calls++;
+        }
+
+        // テーブル横断の拡張フックを override しても、登録済み validator の実行が飛ばないことを確かめるための派生。
+        private sealed class SilentTableValidator : TableValidator<ParentRecord>
+        {
+            protected override void ValidateAll(IReadOnlyList<ParentRecord> allRecords, ValidationResult result, IRecordGetter recordGetter)
+            {
+            }
         }
 
         private static StubRecordGetter CreateGetter(params ChildRecord[] children)
@@ -215,6 +207,52 @@ namespace Game.Tests.Shared
             var executor = ValidationExecutor.Create(new[] { typeof(ParentRecord) }, CreateGetter());
 
             Assert.Throws<ArgumentException>(() => executor.Execute<ChildRecord>());
+        }
+
+        [Test]
+        public void Execute_TableRecordsValidatorRunsOncePerTable()
+        {
+            var validator = new CountingRecordsValidator();
+
+            CreateExecutor(CreateGetter(), validator).Execute<ParentRecord>();
+
+            Assert.AreEqual(1, validator.Calls);
+        }
+
+        [Test]
+        public void Execute_TableRecordsValidatorRunsEvenWithCustomTableValidator()
+        {
+            var validator = new CountingRecordsValidator();
+
+            CreateExecutor(CreateGetter(), new SilentTableValidator(), validator).Execute<ParentRecord>();
+
+            Assert.AreEqual(1, validator.Calls, "TableValidator の派生は登録済み validator を素通りさせられないこと。");
+        }
+
+        // ---- null レコード ----
+
+        [Test]
+        public void Execute_NullRecord_IsReportedByIndex()
+        {
+            var getter = new StubRecordGetter();
+            getter.Add(new ParentRecord { Id = 1 }, null, new ParentRecord { Id = 2 });
+
+            var result = ValidationExecutor.Create(new[] { typeof(ParentRecord) }, getter).Execute<ParentRecord>();
+
+            Assert.IsTrue(result.Errors.ContainsKey("index 1"), "主キーを読めないため位置で報告すること。");
+        }
+
+        [Test]
+        public void Execute_NullRecord_SkipsRecordValidators()
+        {
+            var getter = new StubRecordGetter();
+            getter.Add(new ParentRecord { Id = 1 }, null, new ParentRecord { Id = 2 });
+            var validator = new CountingRecordValidator();
+
+            ValidationExecutor.Create(new[] { typeof(ParentRecord) }, getter, new object[] { validator })
+                .Execute<ParentRecord>();
+
+            Assert.AreEqual(2, validator.Calls, "null レコードに対して record validator を動かさないこと。");
         }
     }
 }
