@@ -276,37 +276,21 @@ namespace Game.Horror.Services
 
         private static void NormalizeEnemy(HorrorEnemySaveData data, ScriptableDatabase database)
         {
-            // 列追加前の旧バイナリは FiredTriggerIds が null になるため、テーブル状態に関わらず先に埋める
+            // 列追加前の旧バイナリは FiredTriggerIds が null になるため先に埋める
             data.FiredTriggerIds ??= new List<int>();
 
-            // テーブル未割当（.asset 未 Register 等）で例外を出すと SaveRepositoryBase の
-            // catch が CreateNewData() で全区画を新規化しセーブが消えるため、該当リストの正規化だけをスキップして残す
-            if (database.HorrorEnemySpawnMasterTable == null)
+            // 逆順走査
+            for (int i = data.DefeatedSpawnIds.Count - 1; i >= 0; i--)
             {
-                Debug.LogError($"[{nameof(HorrorSaveRepository)}] HorrorEnemySpawnMasterTable が未割当のため DefeatedSpawnIds の正規化をスキップしました");
-            }
-            else
-            {
-                // 逆順走査
-                for (int i = data.DefeatedSpawnIds.Count - 1; i >= 0; i--)
-                {
-                    if (!database.HorrorEnemySpawnMasterTable.TryFindById(data.DefeatedSpawnIds[i], out _))
-                        data.DefeatedSpawnIds.RemoveAt(i);
-                }
+                if (!database.HorrorEnemySpawnMasterTable.TryFindById(data.DefeatedSpawnIds[i], out _))
+                    data.DefeatedSpawnIds.RemoveAt(i);
             }
 
-            if (database.HorrorEnemySpawnTriggerMasterTable == null)
+            // 逆順走査
+            for (int i = data.FiredTriggerIds.Count - 1; i >= 0; i--)
             {
-                Debug.LogError($"[{nameof(HorrorSaveRepository)}] HorrorEnemySpawnTriggerMasterTable が未割当のため FiredTriggerIds の正規化をスキップしました");
-            }
-            else
-            {
-                // 逆順走査
-                for (int i = data.FiredTriggerIds.Count - 1; i >= 0; i--)
-                {
-                    if (!database.HorrorEnemySpawnTriggerMasterTable.TryFindById(data.FiredTriggerIds[i], out _))
-                        data.FiredTriggerIds.RemoveAt(i);
-                }
+                if (!database.HorrorEnemySpawnTriggerMasterTable.TryFindById(data.FiredTriggerIds[i], out _))
+                    data.FiredTriggerIds.RemoveAt(i);
             }
         }
 

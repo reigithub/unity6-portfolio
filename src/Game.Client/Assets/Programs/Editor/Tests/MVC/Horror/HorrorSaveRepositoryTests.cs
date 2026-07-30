@@ -143,7 +143,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
         }
 
-        // エネミー区画：旧形式補填、マスタ整合、テーブル未割当時のセーブ保全。
+        // エネミー区画：旧形式補填、マスタ整合（テーブル結線は起動時の一括検査が保証する前提）。
 
         [Test]
         public async Task Load_ExistingDataWithoutEnemySection_FillsEnemy()
@@ -217,68 +217,6 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Not.Null);
             Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
-        }
-
-        [Test]
-        public async Task NormalizeEnemy_WhenTablesUnassigned_KeepsDataAndDoesNotWipeSave()
-        {
-            // テーブル未割当（.asset 未 Register 等の移行窓）で例外を出すと SaveRepositoryBase の
-            // catch が CreateNewData() で全区画を新規化しセーブが消える。データ保全を固定する
-            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
-            _mockDatabase.Database.Returns(_database);
-            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnMasterTable が未割当"));
-            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnTriggerMasterTable が未割当"));
-
-            var data = new HorrorSaveData
-            {
-                Version = 1,
-                Player = new HorrorPlayerSaveData { PlayerId = 7, CurrentHealth = 42 },
-                Enemy = new HorrorEnemySaveData
-                {
-                    DefeatedSpawnIds = new List<int> { 1, 2 },
-                    FiredTriggerIds = new List<int> { 5 },
-                },
-            };
-            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
-                .Returns(UniTask.FromResult(data));
-
-            await _repository.LoadAsync();
-
-            Assert.That(_repository.Data.Player.PlayerId, Is.EqualTo(7));
-            Assert.That(_repository.Data.Player.CurrentHealth, Is.EqualTo(42));
-            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1, 2 }));
-            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 5 }));
-        }
-
-        [Test]
-        public async Task NormalizeEnemy_WhenTriggerTableOnlyUnassigned_NormalizesDefeatedAndKeepsFired()
-        {
-            // 未割当ガードはリスト単位で独立している。片側の未割当がもう片側の正規化を巻き込まないことを固定する
-            _spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
-            _spawnTable.EditorImportRows(new[] { "Id" }, IdRows(new[] { 1 }), mergeByPrimaryKey: false);
-            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
-            var so = new SerializedObject(_database);
-            so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = _spawnTable;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            _mockDatabase.Database.Returns(_database);
-            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnTriggerMasterTable が未割当"));
-
-            var data = new HorrorSaveData
-            {
-                Version = 1,
-                Enemy = new HorrorEnemySaveData
-                {
-                    DefeatedSpawnIds = new List<int> { 1, 99 },
-                    FiredTriggerIds = new List<int> { 5 },
-                },
-            };
-            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
-                .Returns(UniTask.FromResult(data));
-
-            await _repository.LoadAsync();
-
-            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
-            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 5 }));
         }
 
         [Test]

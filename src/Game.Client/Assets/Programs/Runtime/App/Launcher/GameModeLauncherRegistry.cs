@@ -37,7 +37,16 @@ namespace Game.App.Launcher
             {
                 Debug.Log($"[GameModeLauncherRegistry] Launching: {mode}");
                 _currentLauncher = launcher;
-                await launcher.StartupAsync();
+                try
+                {
+                    await launcher.StartupAsync();
+                }
+                catch
+                {
+                    // 起動途中で失敗したランチャーを Shutdown 対象に残すと、未登録サービスの解決で二次例外になるため外す
+                    _currentLauncher = null;
+                    throw;
+                }
             }
             else
             {

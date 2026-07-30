@@ -195,12 +195,6 @@ namespace Game.Horror.Services
         private void EvaluateSpawnGroupProgression(int spawnId)
         {
             var database = _databaseService.Database;
-            if (database == null)
-            {
-                Debug.LogError($"[{GetType().Name}] マスターデータ未ロードのためスポーングループ進行判定 (SpawnId={spawnId}) をスキップしました");
-                return;
-            }
-
             if (!database.HorrorEnemySpawnMasterTable.TryFindById(spawnId, out var spawn))
             {
                 Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnMaster (Id={spawnId}) が見つからないためスポーングループ進行判定をスキップしました");
