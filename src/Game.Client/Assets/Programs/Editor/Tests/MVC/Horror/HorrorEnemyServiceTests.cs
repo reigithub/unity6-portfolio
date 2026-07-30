@@ -289,7 +289,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_activatedGroups, Is.EquivalentTo(new[] { 2, 3 }));
         }
 
-        // 進行判定の異常系：記録は行うが判定をスキップして LogError。冪等 no-op（重複）では判定自体を走らせない。
+        // 進行判定の異常系：判定をスキップしても撃破記録は残す。冪等 no-op（重複）では判定自体を走らせない。
 
         [Test]
         public async Task Died_SpawnMasterMissing_RecordsButLogsProgressionError_OnceOnDuplicate()
@@ -305,17 +305,17 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task Died_SpawnGroupMasterMissing_LogsProgressionError()
+        public async Task Died_SpawnGroupMasterMissing_RecordsWithoutProgression()
         {
             SetupDatabase(
                 new[] { new[] { "1", "1", "7" } },
                 new[] { new[] { "1", "0", "0", "0", "0" } });
             await LoadDefaultData();
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=7) が見つからないためスポーングループ進行判定をスキップしました");
 
             _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
+            Assert.That(_activatedGroups, Is.Empty);
         }
 
         // 活性スポーングループ算出（ロード時復元）：初期グループを種に全滅/閾値連鎖を fixpoint で再構築する。
@@ -325,7 +325,6 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            // 整合検証の LogError が出ないことは、予期しない LogError の自動失敗で担保される
             Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1 }));
         }
 
@@ -376,25 +375,6 @@ namespace Game.Tests.MVC.Horror
             _messagePipe.Publish(new HorrorSignals.Enemy.Died(3)); // 全滅 → Group2 のみ新規発火（Group3 は再発火しない）
 
             Assert.That(_activatedGroups, Is.EqualTo(new[] { 2 }));
-        }
-
-        [Test]
-        public async Task GetActiveSpawnGroupIds_InvalidSpawnGroupMaster_LogsErrors()
-        {
-            // Group1: 参照先不在(Next=99) + 片設定(Threshold=5, Additional=0) / Group2: 所属エントリ0件
-            SetupDatabase(
-                new[] { new[] { "1", "1", "1" } },
-                new[]
-                {
-                    new[] { "1", "1", "99", "5", "0" },
-                    new[] { "2", "0", "0", "0", "0" },
-                });
-            await LoadDefaultData();
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=1) の NextGroupIdOnEliminated=99 が見つかりません");
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=1) の AdditionalKillThreshold と AdditionalGroupId は両方設定するか両方 0 にしてください (Threshold=5, GroupId=0)");
-            LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnGroupMaster (Id=2) に所属するスポーンエントリがありません");
-
-            Assert.That(_service.GetActiveSpawnGroupIds(), Is.EquivalentTo(new[] { 1 }));
         }
     }
 }

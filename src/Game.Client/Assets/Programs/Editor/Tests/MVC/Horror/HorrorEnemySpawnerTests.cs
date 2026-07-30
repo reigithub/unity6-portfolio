@@ -112,35 +112,6 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task InitializeAsync_EnemyMasterMissing_LogsError()
-        {
-            SetupDatabase(new[] { new[] { "5", "77", "1" } });
-            LogAssert.Expect(LogType.Error, "[HorrorEnemySpawner] HorrorEnemyMaster (Id=77) が見つかりません。");
-
-            await _spawner.InitializeAsync(_player, new[] { CreateMarker(5) });
-        }
-
-        [Test]
-        public async Task InitializeAsync_SpawnGroupIdZero_LogsErrorAndExcludesEntry()
-        {
-            SetupDatabase(new[] { new[] { "7", "10", "0" } });
-            LogAssert.Expect(LogType.Error, "[HorrorEnemySpawner] HorrorEnemySpawnMaster (Id=7) の SpawnGroupId が未設定(0)です");
-
-            await _spawner.InitializeAsync(_player, new[] { CreateMarker(7) });
-
-            Assert.That(CountActiveEnemies(FindPoolParent()), Is.Zero);
-        }
-
-        [Test]
-        public async Task InitializeAsync_SpawnGroupMasterMissing_LogsError()
-        {
-            SetupDatabase(new[] { new[] { "8", "10", "9" } });
-            LogAssert.Expect(LogType.Error, "[HorrorEnemySpawner] HorrorEnemySpawnGroupMaster (Id=9) が見つかりません。");
-
-            await _spawner.InitializeAsync(_player, new[] { CreateMarker(8) });
-        }
-
-        [Test]
         public async Task InitializeAsync_MarkerMissingForMasterRow_LogsError()
         {
             SetupDatabase(new[] { new[] { "1", "10", "1" }, new[] { "2", "10", "1" } });
@@ -279,7 +250,7 @@ namespace Game.Tests.MVC.Horror
         /// <summary>
         /// 実テーブル + 実 DB を組み立てて mock サービスへ接続する（HorrorSaveRepositoryTests と同じ手法）。
         /// マーカー不在検証があるため、spawn 行は各テストが使うマーカーと一致させる（既定は Id=1 → 敵種10・Group1）。
-        /// 敵種は 10 のみ定義（77 は EnemyMaster 不在ケース用）、スポーングループは 1,2 のみ定義（9 は不在ケース用）。
+        /// 敵種は 10 のみ定義。スポーングループ表はスポナーが参照しないため結線しない（活性グループはサービスの mock が返す）。
         /// </summary>
         private void SetupDatabase(string[][] spawnRows)
         {
@@ -292,26 +263,14 @@ namespace Game.Tests.MVC.Horror
                 new[] { new[] { "10", "TestEnemy", "10" } },
                 mergeByPrimaryKey: false);
 
-            var groupTable = ScriptableObject.CreateInstance<HorrorEnemySpawnGroupMasterTable>();
-            groupTable.EditorImportRows(
-                new[] { "Id", "IsInitialSpawn", "NextGroupIdOnEliminated", "AdditionalKillThreshold", "AdditionalGroupId" },
-                new[]
-                {
-                    new[] { "1", "1", "0", "0", "0" },
-                    new[] { "2", "0", "0", "0", "0" },
-                },
-                mergeByPrimaryKey: false);
-
             var database = ScriptableObject.CreateInstance<ScriptableDatabase>();
             var so = new SerializedObject(database);
             so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = spawnTable;
             so.FindProperty("horrorEnemyMasterTable").objectReferenceValue = enemyTable;
-            so.FindProperty("horrorEnemySpawnGroupMasterTable").objectReferenceValue = groupTable;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             _createdObjects.Add(spawnTable);
             _createdObjects.Add(enemyTable);
-            _createdObjects.Add(groupTable);
             _createdObjects.Add(database);
 
             _mockDbService.Database.Returns(database);

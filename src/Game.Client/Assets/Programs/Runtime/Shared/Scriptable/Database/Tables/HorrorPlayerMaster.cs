@@ -1,4 +1,5 @@
 using System;
+using Game.Shared.Scriptable.Database.Validation;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables
@@ -69,6 +70,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _name = value;
         }
 
+        [StringNotNull]
         public string ModelAssetName
         {
             get => _modelAssetName;

@@ -197,23 +197,7 @@ namespace Game.Horror.Enemy
                     continue;
                 }
 
-                if (!database.HorrorEnemyMasterTable.TryFindById(spawn.EnemyMasterId, out var master))
-                {
-                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemyMaster (Id={spawn.EnemyMasterId}) が見つかりません。");
-                    continue;
-                }
-
-                if (spawn.SpawnGroupId == 0)
-                {
-                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnMaster (Id={spawn.Id}) の SpawnGroupId が未設定(0)です");
-                    continue;
-                }
-
-                if (!database.HorrorEnemySpawnGroupMasterTable.TryFindById(spawn.SpawnGroupId, out _))
-                {
-                    Debug.LogError($"[{nameof(HorrorEnemySpawner)}] HorrorEnemySpawnGroupMaster (Id={spawn.SpawnGroupId}) が見つかりません。");
-                    continue;
-                }
+                if (!database.HorrorEnemyMasterTable.TryFindById(spawn.EnemyMasterId, out var master)) continue;
 
                 _entries.Add(marker.SpawnId, new SpawnEntry { Marker = marker.transform, EnemyMaster = master, SpawnGroupId = spawn.SpawnGroupId });
             }
