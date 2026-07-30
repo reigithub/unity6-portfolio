@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// Horror のエネミー撃破記録（撃破済み判定）とスポーングループ進行（全滅/キル数連鎖）を扱うドメインサービス。
+    /// Horror のエネミー撃破記録（撃破済み判定）とスポーングループ進行（全滅/キル数連鎖・トリガー発火）を扱うドメインサービス。
     /// </summary>
     public class HorrorEnemyService : IHorrorEnemyService
     {
@@ -50,6 +50,38 @@ namespace Game.Horror.Services
             return data != null && data.DefeatedSpawnIds.Contains(spawnId);
         }
 
+        public bool IsTriggerFired(int triggerId)
+        {
+            // 未ロード時は無音で false（IsDefeated と同じフェイルオープン）
+            var data = _repository.Data?.Enemy;
+            return data != null && data.FiredTriggerIds.Contains(triggerId);
+        }
+
+        public void NotifyTriggerPassed(int triggerId)
+        {
+            var data = _repository.Data?.Enemy;
+            if (data == null)
+            {
+                // 記録の消失は「リロードでトリガーが再発火する」としか観測できないため、無音で落とさず顕在化させる
+                Debug.LogError($"[{GetType().Name}] セーブデータ未ロードのためトリガー発火記録 (TriggerId={triggerId}) を無視しました");
+                return;
+            }
+
+            if (data.FiredTriggerIds.Contains(triggerId)) return;
+
+            // triggerId はシーンの SerializeField 由来のランタイム値（シーン×マスタの突き合わせはランタイムで検出する）
+            if (!_databaseService.Database.HorrorEnemySpawnTriggerMasterTable.TryFindById(triggerId, out var trigger))
+            {
+                Debug.LogError($"[{GetType().Name}] HorrorEnemySpawnTriggerMaster (Id={triggerId}) が見つからないためトリガー発火を無視しました");
+                return;
+            }
+
+            // グループが既に活性でも発火記録だけは残す（起動の一度きりは TryActivateSpawnGroup が保証）
+            data.FiredTriggerIds.Add(triggerId);
+            _repository.MarkDirty();
+            TryActivateSpawnGroup(trigger.SpawnGroupId);
+        }
+
         public int GetDefeatedCount(int spawnGroupId)
         {
             var data = _repository.Data?.Enemy;
@@ -88,6 +120,17 @@ namespace Game.Horror.Services
             foreach (var spawnGroup in _databaseService.Database.HorrorEnemySpawnGroupMasterTable.All)
             {
                 if (spawnGroup.IsInitialSpawn) _activatedSpawnGroupIds.Add(spawnGroup.Id);
+            }
+
+            // 発火済みトリガーの起動先も種に含める（トリガー起動は撃破記録から導出できないため FiredTriggerIds が正本）
+            var enemyData = _repository.Data?.Enemy;
+            if (enemyData != null)
+            {
+                foreach (var triggerId in enemyData.FiredTriggerIds)
+                {
+                    if (_databaseService.Database.HorrorEnemySpawnTriggerMasterTable.TryFindById(triggerId, out var trigger))
+                        _activatedSpawnGroupIds.Add(trigger.SpawnGroupId);
+                }
             }
 
             // 全滅/閾値の連鎖を集合が安定するまで反復し、セーブデータ由来の途中状態を再構築する

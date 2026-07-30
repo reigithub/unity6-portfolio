@@ -30,6 +30,7 @@ namespace Game.Tests.MVC.Horror
         private IScriptableDatabaseService _mockDatabase;
         private IHorrorSaveRepository _repository;
         private HorrorEnemySpawnMasterTable _spawnTable;
+        private HorrorEnemySpawnTriggerMasterTable _triggerTable;
         private ScriptableDatabase _database;
 
         [SetUp]
@@ -44,26 +45,39 @@ namespace Game.Tests.MVC.Horror
         public void TearDown()
         {
             if (_spawnTable != null) UnityEngine.Object.DestroyImmediate(_spawnTable);
+            if (_triggerTable != null) UnityEngine.Object.DestroyImmediate(_triggerTable);
             if (_database != null) UnityEngine.Object.DestroyImmediate(_database);
         }
 
+        private void SetupRealDatabaseWithSpawnIds(params int[] spawnIds) =>
+            SetupRealDatabase(spawnIds, triggerIds: Array.Empty<int>());
+
         /// <summary>
-        /// 指定 Id のスポーンエントリを持つ実テーブル＋DB を組み立てて mock に接続する。
+        /// 指定 Id のスポーンエントリ・スポーントリガーを持つ実テーブル＋DB を組み立てて mock に接続する。
         /// EditorImportRows は列名をメンバ名と完全一致でマッピングし、無い列は既定値のままとなる。
         /// </summary>
-        private void SetupRealDatabaseWithSpawnIds(params int[] spawnIds)
+        private void SetupRealDatabase(int[] spawnIds, int[] triggerIds)
         {
             _spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
-            var rows = new List<IReadOnlyList<string>>();
-            foreach (var id in spawnIds)
-                rows.Add(new[] { id.ToString() });
-            _spawnTable.EditorImportRows(new[] { "Id" }, rows, mergeByPrimaryKey: false);
+            _spawnTable.EditorImportRows(new[] { "Id" }, IdRows(spawnIds), mergeByPrimaryKey: false);
+
+            _triggerTable = ScriptableObject.CreateInstance<HorrorEnemySpawnTriggerMasterTable>();
+            _triggerTable.EditorImportRows(new[] { "Id" }, IdRows(triggerIds), mergeByPrimaryKey: false);
 
             _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
             var so = new SerializedObject(_database);
             so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = _spawnTable;
+            so.FindProperty("horrorEnemySpawnTriggerMasterTable").objectReferenceValue = _triggerTable;
             so.ApplyModifiedPropertiesWithoutUndo();
             _mockDatabase.Database.Returns(_database);
+        }
+
+        private static List<IReadOnlyList<string>> IdRows(int[] ids)
+        {
+            var rows = new List<IReadOnlyList<string>>();
+            foreach (var id in ids)
+                rows.Add(new[] { id.ToString() });
+            return rows;
         }
 
         private async Task LoadDefaultData()
@@ -149,6 +163,7 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_repository.Data.Enemy, Is.Not.Null);
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.Empty);
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
         }
 
         [Test]
@@ -169,19 +184,60 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task NormalizeEnemy_WhenSpawnTableUnassigned_KeepsDataAndDoesNotWipeSave()
+        public async Task NormalizeEnemy_RemovesUnknownFiredTriggerIds()
+        {
+            SetupRealDatabase(spawnIds: new[] { 1 }, triggerIds: new[] { 1, 3 });
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { FiredTriggerIds = new List<int> { 1, 2, 3, 99 } },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 1, 3 }));
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_WhenFiredTriggerIdsNull_FillsEmpty()
+        {
+            // 列追加前の旧バイナリはデシリアライズで FiredTriggerIds=null になる。null 埋めを固定する
+            SetupRealDatabaseWithSpawnIds();
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { FiredTriggerIds = null },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Not.Null);
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_WhenTablesUnassigned_KeepsDataAndDoesNotWipeSave()
         {
             // テーブル未割当（.asset 未 Register 等の移行窓）で例外を出すと SaveRepositoryBase の
             // catch が CreateNewData() で全区画を新規化しセーブが消える。データ保全を固定する
             _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
             _mockDatabase.Database.Returns(_database);
             LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnMasterTable が未割当"));
+            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnTriggerMasterTable が未割当"));
 
             var data = new HorrorSaveData
             {
                 Version = 1,
                 Player = new HorrorPlayerSaveData { PlayerId = 7, CurrentHealth = 42 },
-                Enemy = new HorrorEnemySaveData { DefeatedSpawnIds = new List<int> { 1, 2 } },
+                Enemy = new HorrorEnemySaveData
+                {
+                    DefeatedSpawnIds = new List<int> { 1, 2 },
+                    FiredTriggerIds = new List<int> { 5 },
+                },
             };
             _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
                 .Returns(UniTask.FromResult(data));
@@ -191,6 +247,38 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.Player.PlayerId, Is.EqualTo(7));
             Assert.That(_repository.Data.Player.CurrentHealth, Is.EqualTo(42));
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1, 2 }));
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 5 }));
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_WhenTriggerTableOnlyUnassigned_NormalizesDefeatedAndKeepsFired()
+        {
+            // 未割当ガードはリスト単位で独立している。片側の未割当がもう片側の正規化を巻き込まないことを固定する
+            _spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
+            _spawnTable.EditorImportRows(new[] { "Id" }, IdRows(new[] { 1 }), mergeByPrimaryKey: false);
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = _spawnTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+            LogAssert.Expect(LogType.Error, new Regex("HorrorEnemySpawnTriggerMasterTable が未割当"));
+
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData
+                {
+                    DefeatedSpawnIds = new List<int> { 1, 99 },
+                    FiredTriggerIds = new List<int> { 5 },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 5 }));
         }
 
         [Test]
@@ -237,6 +325,7 @@ namespace Game.Tests.MVC.Horror
                 Enemy = new HorrorEnemySaveData
                 {
                     DefeatedSpawnIds = new List<int> { 10, 20 },
+                    FiredTriggerIds = new List<int> { 30 },
                 },
             };
 
@@ -266,6 +355,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.KeyItem.KeyItems[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.KeyItem.KeyItems[0].Id, Is.EqualTo(3));
             Assert.That(restored.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 10, 20 }));
+            Assert.That(restored.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 30 }));
         }
 
         [Test]
