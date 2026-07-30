@@ -31,3 +31,9 @@ MonoBehaviour:
     _nextGroupIdOnEliminated: 0
     _additionalKillThreshold: 0
     _additionalGroupId: 0
+  - _id: 4
+    _developOnlyName: "\u30C8\u30EA\u30AC\u30FC\u8D77\u52D5\u30B0\u30EB\u30FC\u30D7"
+    _isInitialSpawn: 0
+    _nextGroupIdOnEliminated: 0
+    _additionalKillThreshold: 0
+    _additionalGroupId: 0

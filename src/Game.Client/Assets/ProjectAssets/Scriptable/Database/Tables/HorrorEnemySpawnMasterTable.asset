@@ -37,3 +37,11 @@ MonoBehaviour:
     _developOnlyName: EnemyStart (5)
     _enemyMasterId: 1
     _spawnGroupId: 3
+  - _id: 7
+    _developOnlyName: EnemyStart (6)
+    _enemyMasterId: 1
+    _spawnGroupId: 4
+  - _id: 8
+    _developOnlyName: EnemyStart (7)
+    _enemyMasterId: 1
+    _spawnGroupId: 4
