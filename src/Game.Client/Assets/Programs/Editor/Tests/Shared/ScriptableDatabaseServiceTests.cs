@@ -1,14 +1,28 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Cysharp.Threading.Tasks;
 using Game.Shared.Exceptions;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Services;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace Game.Tests.Shared
 {
     public class ScriptableDatabaseServiceTests
     {
+        private readonly List<Object> _createdObjects = new();
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach (var obj in _createdObjects)
+                Object.DestroyImmediate(obj);
+            _createdObjects.Clear();
+        }
+
         // Addressables 非依存で基底フロー（LoadAsync）を検証するための fake。
         private sealed class FakeService : ScriptableDatabaseServiceBase
         {
@@ -17,10 +31,38 @@ namespace Game.Tests.Shared
             protected override UniTask<ScriptableDatabase> LoadDatabaseAssetAsync() => UniTask.FromResult(_db);
         }
 
-        [Test]
-        public void LoadAsync_Success_SetsDatabase()
+        /// <summary>
+        /// テーブルフィールドをリフレクションで列挙し、除外指定以外へ空テーブルを結線した DB を作る。
+        /// フィールド名のハードコードを避け、テーブル増減にテストが自動追従する。
+        /// </summary>
+        private ScriptableDatabase CreateDatabase(params string[] unassignedFieldNames)
         {
             var db = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            _createdObjects.Add(db);
+
+            var so = new SerializedObject(db);
+            foreach (var field in TableFields())
+            {
+                if (unassignedFieldNames.Contains(field.Name)) continue;
+
+                var table = ScriptableObject.CreateInstance(field.FieldType);
+                _createdObjects.Add(table);
+                so.FindProperty(field.Name).objectReferenceValue = table;
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return db;
+        }
+
+        private static IEnumerable<FieldInfo> TableFields() =>
+            typeof(ScriptableDatabase)
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+                .Where(f => typeof(ScriptableTableBase).IsAssignableFrom(f.FieldType));
+
+        [Test]
+        public void LoadAsync_AllTablesAssigned_SetsDatabase()
+        {
+            var db = CreateDatabase();
             var service = new FakeService(db);
 
             service.LoadAsync().GetAwaiter().GetResult();
@@ -34,6 +76,30 @@ namespace Game.Tests.Shared
             var service = new FakeService(null);
 
             Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
+        }
+
+        [Test]
+        public void LoadAsync_UnassignedTable_ThrowsWithTableName()
+        {
+            var db = CreateDatabase("horrorWeaponMasterTable");
+            var service = new FakeService(db);
+
+            var ex = Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
+
+            StringAssert.Contains(nameof(ScriptableDatabase.HorrorWeaponMasterTable), ex.Message);
+            Assert.That(service.Database, Is.Null);
+        }
+
+        [Test]
+        public void LoadAsync_MultipleUnassignedTables_ReportsAll()
+        {
+            var db = CreateDatabase("horrorEnemyMasterTable", "horrorWeaponMasterTable");
+            var service = new FakeService(db);
+
+            var ex = Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
+
+            StringAssert.Contains(nameof(ScriptableDatabase.HorrorEnemyMasterTable), ex.Message);
+            StringAssert.Contains(nameof(ScriptableDatabase.HorrorWeaponMasterTable), ex.Message);
         }
     }
 }
