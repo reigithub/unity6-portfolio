@@ -29,11 +29,10 @@ namespace Game.Shared.Services
 
                 // テーブル結線（オーサリング時に確定する構成）はここで一括検査し、欠落したまま起動させない。
                 // 編集時/CI の検証（ScriptableDatabaseSchema）が第一層で、ここはビルド資産の齟齬に対する最終防衛
-                var unassigned = database.CollectUnassignedTableNames();
-                if (unassigned.Count > 0)
+                if (database.HasUnassignedTable())
                 {
                     throw new MasterDataLoadException(nameof(ScriptableDatabase),
-                        $"テーブル資産が未結線です: {string.Join(", ", unassigned)}。ScriptableDatabaseWindow の Register を実行してください。");
+                        "テーブル資産が未結線です。ScriptableDatabaseWindow の Register を実行してください。");
                 }
 
                 Database = database;

@@ -79,27 +79,13 @@ namespace Game.Tests.Shared
         }
 
         [Test]
-        public void LoadAsync_UnassignedTable_ThrowsWithTableName()
+        public void LoadAsync_UnassignedTable_Throws()
         {
             var db = CreateDatabase("horrorWeaponMasterTable");
             var service = new FakeService(db);
 
-            var ex = Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
-
-            StringAssert.Contains(nameof(ScriptableDatabase.HorrorWeaponMasterTable), ex.Message);
+            Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
             Assert.That(service.Database, Is.Null);
-        }
-
-        [Test]
-        public void LoadAsync_MultipleUnassignedTables_ReportsAll()
-        {
-            var db = CreateDatabase("horrorEnemyMasterTable", "horrorWeaponMasterTable");
-            var service = new FakeService(db);
-
-            var ex = Assert.Throws<MasterDataLoadException>(() => service.LoadAsync().GetAwaiter().GetResult());
-
-            StringAssert.Contains(nameof(ScriptableDatabase.HorrorEnemyMasterTable), ex.Message);
-            StringAssert.Contains(nameof(ScriptableDatabase.HorrorWeaponMasterTable), ex.Message);
         }
     }
 }
