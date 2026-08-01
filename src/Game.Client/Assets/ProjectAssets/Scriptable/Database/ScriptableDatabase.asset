@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f92d211b74040944ba7223b31e695f31, type: 3}
   m_Name: ScriptableDatabase
   m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.ScriptableDatabase
+  horrorEnemyDropMasterTable: {fileID: 11400000, guid: 6be60c62acc887c4383859fdbe48157e, type: 2}
   horrorEnemyMasterTable: {fileID: 11400000, guid: e2e87e3bd7accf743971a7c95f801a79, type: 2}
   horrorEnemySpawnGroupMasterTable: {fileID: 11400000, guid: c435b0184e8d72c49a0ded70ab7dbc62, type: 2}
   horrorEnemySpawnMasterTable: {fileID: 11400000, guid: cf81e371ee81a7e40be7827a10c8f0e4, type: 2}

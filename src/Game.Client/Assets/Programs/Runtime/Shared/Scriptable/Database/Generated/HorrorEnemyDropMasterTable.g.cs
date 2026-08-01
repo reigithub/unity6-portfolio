@@ -6,50 +6,50 @@ using Game.Shared.Scriptable.Database;
 
 namespace Game.Shared.Scriptable.Database.Tables
 {
-    [CreateAssetMenu(menuName = "Scriptable Database/Table/HorrorEnemySpawnMasterTable")]
-    public sealed partial class HorrorEnemySpawnMasterTable : ScriptableTable<HorrorEnemySpawnMaster>
+    [CreateAssetMenu(menuName = "Scriptable Database/Table/HorrorEnemyDropMasterTable")]
+    public sealed partial class HorrorEnemyDropMasterTable : ScriptableTable<HorrorEnemyDropMaster>
     {
         // PrimaryKey: Id
-        private static readonly System.Func<HorrorEnemySpawnMaster, int> _pkSel = r => r.Id;
+        private static readonly System.Func<HorrorEnemyDropMaster, int> _pkSel = r => r.Id;
         private static readonly IComparer<int> _pkCmp = Comparer<int>.Default;
 
-        public HorrorEnemySpawnMaster FindById(int key)
+        public HorrorEnemyDropMaster FindById(int key)
         {
             return FindUnique(records, key, _pkSel, _pkCmp);
         }
 
-        public bool TryFindById(int key, out HorrorEnemySpawnMaster record)
+        public bool TryFindById(int key, out HorrorEnemyDropMaster record)
         {
             return TryFindUnique(records, key, _pkSel, _pkCmp, out record);
         }
 
-        public HorrorEnemySpawnMaster FindClosestById(int key, bool lower = true)
+        public HorrorEnemyDropMaster FindClosestById(int key, bool lower = true)
         {
             return FindClosest(records, key, _pkSel, _pkCmp, lower);
         }
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindRangeById(int min, int max, bool asc = true)
+        public ScriptableTableRecords<HorrorEnemyDropMaster> FindRangeById(int min, int max, bool asc = true)
         {
             return FindRange(records, min, max, _pkSel, _pkCmp, asc);
         }
 
-        // SecondaryKey index 0: SpawnGroupId
-        private static readonly System.Func<HorrorEnemySpawnMaster, int> _sel0 = r => r.SpawnGroupId;
+        // SecondaryKey index 0: DropGroupId
+        private static readonly System.Func<HorrorEnemyDropMaster, int> _sel0 = r => r.DropGroupId;
         private static readonly IComparer<int> _cmp0 = Comparer<int>.Default;
-        private HorrorEnemySpawnMaster[] _idx0;
-        private HorrorEnemySpawnMaster[] Idx0 => _idx0 ??= BuildSortedIndex(records, _sel0, _cmp0);
+        private HorrorEnemyDropMaster[] _idx0;
+        private HorrorEnemyDropMaster[] Idx0 => _idx0 ??= BuildSortedIndex(records, _sel0, _cmp0);
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindBySpawnGroupId(int key)
+        public ScriptableTableRecords<HorrorEnemyDropMaster> FindByDropGroupId(int key)
         {
             return FindMany(Idx0, _sel0, _cmp0, key);
         }
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindRangeBySpawnGroupId(int min, int max, bool asc = true)
+        public ScriptableTableRecords<HorrorEnemyDropMaster> FindRangeByDropGroupId(int min, int max, bool asc = true)
         {
             return FindRange(Idx0, min, max, _sel0, _cmp0, asc);
         }
 
-        public ScriptableTableRecords<HorrorEnemySpawnMaster> FindClosestBySpawnGroupId(int key, bool lower = true)
+        public ScriptableTableRecords<HorrorEnemyDropMaster> FindClosestByDropGroupId(int key, bool lower = true)
         {
             return FindManyClosest(Idx0, key, _sel0, _cmp0, lower);
         }

@@ -14,6 +14,7 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _name;
         [SerializeField] private string _description;
         [SerializeField] private string _iconAssetName;
+        [SerializeField] private string _modelAssetName;     // ドロップ品プレハブの Addressables アドレス（空はドロップ非対応）
         [SerializeField] private int _maxCount;
         [SerializeField] private int _effect;
         [SerializeField] private float _effectDuration;      // 効果持続時間
@@ -47,6 +48,12 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _iconAssetName;
             set => _iconAssetName = value;
+        }
+
+        public string ModelAssetName
+        {
+            get => _modelAssetName;
+            set => _modelAssetName = value;
         }
 
         public int MaxCount

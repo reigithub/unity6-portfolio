@@ -18,6 +18,7 @@ MonoBehaviour:
     _name: item_1_name
     _description: item_1_desc
     _iconAssetName: UI/Key_BrightBG
+    _modelAssetName: 
     _maxCount: 1
     _effect: 0
     _effectDuration: 0
@@ -28,6 +29,7 @@ MonoBehaviour:
     _name: item_2_name
     _description: item_2_desc
     _iconAssetName: UI/Key_BrightBG
+    _modelAssetName: 
     _maxCount: 1
     _effect: 0
     _effectDuration: 0
@@ -38,6 +40,7 @@ MonoBehaviour:
     _name: item_3_name
     _description: item_3_desc
     _iconAssetName: UI/Key_BrightBG
+    _modelAssetName: 
     _maxCount: 1
     _effect: 0
     _effectDuration: 0
@@ -48,6 +51,7 @@ MonoBehaviour:
     _name: item_4_name
     _description: item_4_desc
     _iconAssetName: Weapon/Sprite sheet Blue_45
+    _modelAssetName: HorrorDropHandgunAmmo
     _maxCount: 120
     _effect: 0
     _effectDuration: 0
@@ -58,6 +62,7 @@ MonoBehaviour:
     _name: item_5_name
     _description: item_5_desc
     _iconAssetName: UI/Heart01_BrightBG
+    _modelAssetName: MedicalFirstAidBottle1
     _maxCount: 1
     _effect: 25
     _effectDuration: 0

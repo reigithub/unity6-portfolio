@@ -43,6 +43,8 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private int _maxHealth;                   // 最大体力
         [SerializeField] private float _staggerDuration;           // のけぞり持続時間（秒）
 
+        [SerializeField] private int _dropGroupId;                 // 撃破時ドロップの抽選グループ（HorrorEnemyDropMaster.DropGroupId。0 はドロップなし）
+
         #endregion
 
         #region Database
@@ -172,6 +174,14 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _staggerDuration;
             set => _staggerDuration = value;
+        }
+
+        // グループキー（HorrorEnemyDropMaster.DropGroupId）への参照のため ForeignKey は宣言できない。
+        // 参照整合は HorrorEnemyMasterDropGroupValidator が担保する
+        public int DropGroupId
+        {
+            get => _dropGroupId;
+            set => _dropGroupId = value;
         }
 
         #endregion

@@ -145,3 +145,27 @@ MonoBehaviour:
     _rejectionMessage: 
     _acquiredId: 5
     _acquiredCount: 1
+  - _id: 12
+    _developOnlyName: Drop_Handgun Ammo
+    _name: Drop_Handgun Ammo
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
+    _acquiredId: 0
+    _acquiredCount: 0
+  - _id: 13
+    _developOnlyName: Drop_Medical First Aid Bottle 1
+    _name: Drop_Medical_First_Aid_Bottle_1
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
+    _acquiredId: 0
+    _acquiredCount: 0
