@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Game.Shared.Scriptable.Database;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -34,6 +35,8 @@ namespace Game.Tests.Shared
             public ScriptableTableRecords<Rec> FindRangeById(int min, int max, bool ascending = true) => FindRange(records, min, max, Sel, Cmp, ascending);
 
             public void Set(params Rec[] rs) => records = rs;   // 主キー昇順で渡す
+
+            protected override void InvalidateIndexCaches() { }   // 二次索引なし
 
             public override void EditorSortAndValidate() => SortAndValidate(Sel, Cmp);
             public override bool EditorIsSorted() => IsSortedByKey(Sel, Cmp);
@@ -179,6 +182,68 @@ namespace Game.Tests.Shared
             Assert.AreEqual(1, t.All[0].id);
         }
 
+        // ===== 二次索引キャッシュとデシリアライズ =====
+
+        [Serializable]
+        private class Rec3
+        {
+            public int id;
+            public int group;
+            public Rec3(int id, int group) { this.id = id; this.group = group; }
+        }
+
+        // 生成器が出力する二次索引の配線（_idx キャッシュ + FindMany）を手書きで再現し、
+        // records 再デシリアライズ後の索引の鮮度を検証する。
+        private class TestIndexedScriptableTable : ScriptableTable<Rec3>
+        {
+            private static readonly Func<Rec3, int> PkSel = r => r.id;
+            private static readonly Func<Rec3, int> GroupSel = r => r.group;
+            private static readonly IComparer<int> Cmp = Comparer<int>.Default;
+
+            private Rec3[] _idx0;
+            private Rec3[] Idx0 => _idx0 ??= BuildSortedIndex(records, GroupSel, Cmp);
+
+            public ScriptableTableRecords<Rec3> FindByGroup(int group) => FindMany(Idx0, GroupSel, Cmp, group);
+
+            public void Set(params Rec3[] rs) => records = rs;
+
+            protected override void InvalidateIndexCaches() => _idx0 = null;
+
+            public override void EditorSortAndValidate()
+            {
+                SortAndValidate(PkSel, Cmp);
+                InvalidateIndexCaches();
+            }
+
+            public override bool EditorIsSorted() => IsSortedByKey(PkSel, Cmp);
+        }
+
+        /// <summary>
+        /// records の再デシリアライズ（Inspector 編集・外部編集の再インポートと同じ経路）後、
+        /// 二次索引が更新後の records を参照することを検証する。
+        /// キャッシュがデシリアライズで無効化されないと、編集前の索引が返り続ける
+        /// （ドメインリロード無効環境で FindByDropGroupId が実データと乖離した実障害の再現）。
+        /// </summary>
+        [Test]
+        public void SecondaryIndex_AfterDeserialize_ReflectsUpdatedRecords()
+        {
+            var t = ScriptableObject.CreateInstance<TestIndexedScriptableTable>();
+            t.Set(new Rec3(1, 1));
+            Assert.AreEqual(1, t.FindByGroup(1).Count);   // 索引を構築（キャッシュされる）
+
+            // SerializedObject 適用 = ネイティブへ書き込み → managed への再デシリアライズ
+            var so = new SerializedObject(t);
+            var records = so.FindProperty("records");
+            records.arraySize = 2;
+            var added = records.GetArrayElementAtIndex(1);
+            added.FindPropertyRelative("id").intValue = 2;
+            added.FindPropertyRelative("group").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.AreEqual(2, t.All.Count, "records 自体が更新されていません（テスト手法の前提が不成立）");
+            Assert.AreEqual(2, t.FindByGroup(1).Count, "二次索引がデシリアライズ後の records を反映していません");
+        }
+
         // ===== CSV/TSV インポート/エクスポート =====
 
         private enum Element { Fire, Water, Wind }
@@ -205,6 +270,8 @@ namespace Game.Tests.Shared
         {
             private static readonly Func<Rec2, int> Sel = r => r.Id;
             private static readonly IComparer<int> Cmp = Comparer<int>.Default;
+
+            protected override void InvalidateIndexCaches() { }   // 二次索引なし
 
             public override void EditorSortAndValidate() => SortAndValidate(Sel, Cmp);
             public override bool EditorIsSorted() => IsSortedByKey(Sel, Cmp);
