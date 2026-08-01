@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: HorrorPrefabs
   m_GUID: 2f8c2378ebe10394aa5550e1e878ed7c
   m_SerializeEntries:
+  - m_GUID: 16f5ce1a9e90b0f478fa2517ecd87035
+    m_Address: HorrorDropHandgunAmmo
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5818357fe0784d941877264a3199967f
     m_Address: HorrorPlayer
     m_ReadOnly: 0
@@ -22,6 +27,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6dc4cf4496348884d8ee27743ae38562
     m_Address: HorrorZombie
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90cebf0e181eceb4fbfeafe704e1cd41
+    m_Address: MedicalFirstAidBottle1
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
