@@ -34,12 +34,14 @@ namespace Game.Horror.Scenes
         private HorrorPlayerStart _playerStart;
         private HorrorPlayerController _player;
         private HorrorEnemySpawner _enemySpawner;
+        private HorrorEnemyDropSpawner _dropSpawner;
 
         public override async UniTask Startup()
         {
             await LoadUnitySceneAsync();
             var player = await LoadPlayerAsync();
             await LoadEnemiesAsync(player);
+            await LoadDropsAsync(player);
 
             _inputService.Player.Menu.OnPerformedAsObservable()
                 .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
@@ -64,6 +66,7 @@ namespace Game.Horror.Scenes
 
         public override async UniTask Terminate()
         {
+            UnloadDrops();
             UnloadEnemies();
             UnloadPlayer();
             await UnloadUnitySceneAsync();
@@ -154,6 +157,25 @@ namespace Game.Horror.Scenes
         {
             _enemySpawner?.Dispose();
             _enemySpawner = null;
+        }
+
+        private async UniTask LoadDropsAsync(GameObject player)
+        {
+            // プレイヤー不在時はエネミーも不在（LoadEnemiesAsync と対称のガード）のため撃破ドロップも成立しない
+            if (player == null)
+                return;
+
+            _dropSpawner = new HorrorEnemyDropSpawner(
+                _assetService,
+                GameServiceManager.Resolve<IScriptableDatabaseService>(),
+                GameServiceManager.Resolve<IMessagePipeService>());
+            await _dropSpawner.InitializeAsync();
+        }
+
+        private void UnloadDrops()
+        {
+            _dropSpawner?.Dispose();
+            _dropSpawner = null;
         }
 
         private async UniTask ShowPauseDialogAsync()

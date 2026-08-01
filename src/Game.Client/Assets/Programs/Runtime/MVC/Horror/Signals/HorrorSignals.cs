@@ -113,16 +113,19 @@ namespace Game.Horror.Signals
         public static class Enemy
         {
             /// <summary>
-            /// エネミー死亡イベントのデータ（撃破記録の永続化に使用）。
+            /// エネミー死亡イベントのデータ（撃破記録の永続化・ドロップ品の出現に使用）。
             /// SpawnId は HorrorEnemySpawnMaster の Id（スポーンエントリの一意識別子）。
+            /// Position は死亡地点のワールド座標（ドロップ品の出現位置）。
             /// </summary>
             public readonly struct Died
             {
                 public readonly int SpawnId;
+                public readonly Vector3 Position;
 
-                public Died(int spawnId)
+                public Died(int spawnId, Vector3 position)
                 {
                     SpawnId = spawnId;
+                    Position = position;
                 }
             }
 

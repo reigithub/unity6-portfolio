@@ -142,7 +142,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
             Assert.That(_repository.IsDirty, Is.True);
@@ -152,11 +152,11 @@ namespace Game.Tests.MVC.Horror
         public async Task Died_Twice_RecordsOnce_AndSecondPublishDoesNotMarkDirty()
         {
             await LoadDefaultData();
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
             await _repository.SaveBySlotAsync(0);
             Assert.That(_repository.IsDirty, Is.False);
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
             Assert.That(_repository.IsDirty, Is.False);
@@ -167,7 +167,7 @@ namespace Game.Tests.MVC.Horror
         {
             LogAssert.Expect(LogType.Error, "[HorrorEnemyService] セーブデータ未ロードのため撃破記録 (SpawnId=1) を無視しました");
 
-            Assert.DoesNotThrow(() => _messagePipe.Publish(new HorrorSignals.Enemy.Died(1)));
+            Assert.DoesNotThrow(() => _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero)));
         }
 
         [TestCase(0)]
@@ -177,7 +177,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
             LogAssert.Expect(LogType.Error, $"[HorrorEnemyService] 無効なスポーン Id のため撃破記録 (SpawnId={spawnId}) を無視しました");
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(spawnId));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(spawnId, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.Empty);
             Assert.That(_repository.IsDirty, Is.False);
@@ -191,7 +191,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
             _service.Shutdown();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.Empty);
             Assert.That(_repository.IsDirty, Is.False);
@@ -203,7 +203,7 @@ namespace Game.Tests.MVC.Horror
         public async Task IsDefeated_ReturnsTrueForRecorded_FalseForUnrecorded()
         {
             await LoadDefaultData();
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2, Vector3.zero));
 
             Assert.That(_service.IsDefeated(2), Is.True);
             Assert.That(_service.IsDefeated(3), Is.False);
@@ -260,10 +260,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
             Assert.That(_activatedGroups, Is.Empty);
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2, Vector3.zero));
             Assert.That(_activatedGroups, Is.EqualTo(new[] { 3 }));
         }
 
@@ -272,9 +272,9 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2)); // 閾値2到達 → Group3
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(3)); // 全滅 → Group2（閾値は成立し続けるが Group3 は再発火しない）
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2, Vector3.zero)); // 閾値2到達 → Group3
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(3, Vector3.zero)); // 全滅 → Group2（閾値は成立し続けるが Group3 は再発火しない）
 
             Assert.That(_activatedGroups, Is.EqualTo(new[] { 3, 2 }));
         }
@@ -294,10 +294,10 @@ namespace Game.Tests.MVC.Horror
                 StandardGroupRows);
             await LoadDefaultData();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
             Assert.That(_activatedGroups, Is.Empty);
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2, Vector3.zero));
             Assert.That(_activatedGroups, Is.EquivalentTo(new[] { 2, 3 }));
         }
 
@@ -309,9 +309,9 @@ namespace Game.Tests.MVC.Horror
             await LoadDefaultData();
             LogAssert.Expect(LogType.Error, "[HorrorEnemyService] HorrorEnemySpawnMaster (Id=99) が見つからないためスポーングループ進行判定をスキップしました");
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(99));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(99, Vector3.zero));
             // 重複 = 記録 no-op → 進行判定も走らず LogError は1回のみ（予期しない LogError はテストを自動失敗させる）
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(99));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(99, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 99 }));
         }
@@ -324,7 +324,7 @@ namespace Game.Tests.MVC.Horror
                 new[] { new[] { "1", "0", "0", "0", "0" } });
             await LoadDefaultData();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
 
             Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1 }));
             Assert.That(_activatedGroups, Is.Empty);
@@ -384,7 +384,7 @@ namespace Game.Tests.MVC.Horror
             await LoadDataWithDefeats(1, 2); // 閾値到達済み → Group3 は復元で起動済み扱い
             _service.GetActiveSpawnGroupIds();
 
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(3)); // 全滅 → Group2 のみ新規発火（Group3 は再発火しない）
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(3, Vector3.zero)); // 全滅 → Group2 のみ新規発火（Group3 は再発火しない）
 
             Assert.That(_activatedGroups, Is.EqualTo(new[] { 2 }));
         }
@@ -425,8 +425,8 @@ namespace Game.Tests.MVC.Horror
         {
             SetupDatabase(StandardSpawnRows, StandardGroupRows, new[] { new[] { "1", "3" } });
             await LoadDefaultData();
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1));
-            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2)); // 閾値2到達 → Group3 起動済み
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(2, Vector3.zero)); // 閾値2到達 → Group3 起動済み
             await _repository.SaveBySlotAsync(0);
 
             _service.NotifyTriggerPassed(1);

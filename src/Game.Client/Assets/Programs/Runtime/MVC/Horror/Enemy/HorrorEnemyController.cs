@@ -161,7 +161,7 @@ namespace Game.Horror.Enemy
 
                 // DeathState への遷移は Update の EnsureDeadState が宣言的に保証する
                 // 未初期化時に撃破記録を無音で失わないよう、あえて ?. を使わない
-                _messagePipeService.Publish(new HorrorSignals.Enemy.Died(_spawnId));
+                _messagePipeService.Publish(new HorrorSignals.Enemy.Died(_spawnId, transform.position));
             }
             else
             {
