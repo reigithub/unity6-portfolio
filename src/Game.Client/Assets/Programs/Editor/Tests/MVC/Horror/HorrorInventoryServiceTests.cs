@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
@@ -107,10 +108,214 @@ namespace Game.Tests.MVC.Horror
         public async Task TryConsume_Success_MarksDirty()
         {
             await LoadDefaultData();
-            // TryAdd 経由だと既に Dirty になるため、直接 Slots へ登録して Dirty を汚さず前提を作る。
-            _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4 });
+            AddSlotDirect(ObjectCategory.Item, 3, 4);
 
             var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        /// <summary>Dirty を汚さずスロットを直接登録する（TryAdd 経由だと Dirty になるため）。</summary>
+        private void AddSlotDirect(ObjectCategory category, int id, int count)
+            => _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { ObjectCategory = category, Id = id, Count = count });
+
+        /// <summary>本命アイテムと衝突しないダミーアイテムで指定数のスロットを占有する。</summary>
+        private void FillSlotsWithDummies(int count)
+        {
+            for (int i = 0; i < count; i++)
+                AddSlotDirect(ObjectCategory.Item, 1000 + i, 1);
+        }
+
+        [Test]
+        public async Task TryAdd_ExceedsMaxCount_SplitsIntoMultipleSlots()
+        {
+            await LoadDefaultData();
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 25, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(25));
+            Assert.That(_service.Slots.Count, Is.EqualTo(3));
+            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
+            Assert.That(_service.Slots[1].Count, Is.EqualTo(10));
+            Assert.That(_service.Slots[2].Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryAdd_PartialStack_FillsHeadBeforeAppending()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 8);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 4, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(2));
+            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
+            Assert.That(_service.Slots[1].Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TryAdd_FullStack_AppendsNewSlot()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+
+            // 旧実装では満タンスタックへの追加は false だったが、分割仕様では新規スロットへ入る
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 3, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(2));
+            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
+            Assert.That(_service.Slots[1].Count, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task TryAdd_InsufficientCapacity_ReturnsFalseAndUnchanged()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 8); // 全スロット占有、受入可能量は既存スタックの空き 2 のみ
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 4, 10);
+
+            Assert.That(ok, Is.False);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(8));
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public async Task TryAdd_ExactCapacity_Succeeds()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 8);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 2, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(10));
+            Assert.That(_service.Slots.Count, Is.EqualTo(HorrorInventoryConstants.MaxSlotCount));
+        }
+
+        [Test]
+        public async Task TryAdd_SlotShortage_NeedsTwoSlots_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1); // 残り 1 スロット
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 15, 10); // 2 スロット必要
+
+            Assert.That(ok, Is.False);
+            Assert.That(_service.HasObject(ObjectCategory.Item, 3), Is.False);
+        }
+
+        [Test]
+        public async Task TryAdd_LastSlot_FitsInOneSlot_Succeeds()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1); // 残り 1 スロット
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 10, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(10));
+        }
+
+        [Test]
+        public async Task TryAdd_ZeroOrNegativeMaxCount_ReturnsFalse()
+        {
+            await LoadDefaultData();
+
+            Assert.That(_service.TryAdd(ObjectCategory.Item, 3, 1, 0), Is.False);
+            Assert.That(_service.TryAdd(ObjectCategory.Item, 3, 1, -1), Is.False);
+            Assert.That(_service.HasObject(ObjectCategory.Item, 3), Is.False);
+        }
+
+        [Test]
+        public async Task GetCount_MultipleStacks_ReturnsTotal()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(15));
+        }
+
+        [Test]
+        public async Task HasObject_MultipleStacks_ReturnsTrue()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+
+            Assert.That(_service.HasObject(ObjectCategory.Item, 3), Is.True);
+        }
+
+        [Test]
+        public async Task TryConsume_AcrossStacks_ConsumesFromHeadAndRemovesEmptied()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 12);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(1));
+            Assert.That(_service.Slots[0].Count, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task TryConsume_AcrossStacks_InsufficientTotal_ReturnsFalseUnchanged()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 16);
+
+            Assert.That(ok, Is.False);
+            Assert.That(_service.Slots.Count, Is.EqualTo(2));
+            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
+            Assert.That(_service.Slots[1].Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task DiscardSlot_RemovesOnlyTargetStack()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+            AddSlotDirect(ObjectCategory.Item, 4, 3);
+
+            var ok = _service.DiscardSlot(0);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(2));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(5));
+            Assert.That(_service.GetCount(ObjectCategory.Item, 4), Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task DiscardSlot_InvalidIndex_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1);
+
+            Assert.That(_service.DiscardSlot(-1), Is.False);
+            Assert.That(_service.DiscardSlot(1), Is.False);
+            Assert.That(_service.Slots.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DiscardSlot_Success_MarksDirty()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1);
+
+            var ok = _service.DiscardSlot(0);
 
             Assert.That(ok, Is.True);
             Assert.That(_repository.IsDirty, Is.True);

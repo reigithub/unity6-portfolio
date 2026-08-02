@@ -111,8 +111,8 @@ namespace Game.Horror.Dialogs
                             // await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
-                            _inventoryService.DiscardAll(info.ObjectCategory, info.ObjectId);
-                            ctx.SlotView.SetEmpty();
+                            _inventoryService.DiscardSlot(ctx.SlotView.SlotIndex);
+                            SceneComponent.ApplySlots();
                             break;
                         case ContextActionType.Equip:
                             _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.ObjectId };

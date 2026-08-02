@@ -36,6 +36,8 @@ namespace Game.Horror.Inventory
 
         public IObjectInfo SlotInfo { get; private set; }
 
+        public int SlotIndex { get; private set; } = -1;
+
         private IHorrorIconService _iconService;
         private IHorrorEquipmentService _equipmentService;
         private IInputSystemService _inputSystemService;
@@ -56,8 +58,9 @@ namespace Game.Horror.Inventory
                 .AddTo(this);
         }
 
-        public void SetSlot(ObjectCategory category, int id, int count)
+        public void SetSlot(int slotIndex, ObjectCategory category, int id, int count)
         {
+            SlotIndex = slotIndex;
             if (HorrorDatabaseHelper.TryGetInfo(category, id, out var info))
             {
                 SlotInfo = info;
@@ -75,6 +78,7 @@ namespace Game.Horror.Inventory
 
         public void SetEmpty()
         {
+            SlotIndex = -1;
             SlotInfo = null;
             SetIcon(null);
             if (_countText != null)

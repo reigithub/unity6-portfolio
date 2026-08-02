@@ -200,7 +200,7 @@ namespace Game.Horror.Services
 
         private static void NormalizeInventory(HorrorInventorySaveData data, ScriptableDatabase database)
         {
-            // 逆順走査
+            // 逆順走査。同一 (ObjectCategory, Id) の複数スロットは分割スタックとして正当なデータのためマージしない
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
@@ -208,6 +208,15 @@ namespace Game.Horror.Services
                     data.Slots.RemoveAt(i);
                 else
                     data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
+            }
+
+            // スロット数超過は切り詰めるとアイテムロストになるため削除せず、エラーで顕在化のみ行う
+            // （TryAdd 側の上限ガードで新規追加は止まり、消費により自然に上限以下へ収束する）
+            if (data.Slots.Count > HorrorInventoryConstants.MaxSlotCount)
+            {
+                Debug.LogError(
+                    $"[{nameof(HorrorSaveRepository)}] インベントリのスロット数がデータ上限を超えています: " +
+                    $"{data.Slots.Count} > {HorrorInventoryConstants.MaxSlotCount}（超過分は画面に表示されません）");
             }
         }
 

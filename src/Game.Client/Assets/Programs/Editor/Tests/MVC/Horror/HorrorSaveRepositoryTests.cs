@@ -31,6 +31,7 @@ namespace Game.Tests.MVC.Horror
         private IHorrorSaveRepository _repository;
         private HorrorEnemySpawnMasterTable _spawnTable;
         private HorrorEnemySpawnTriggerMasterTable _triggerTable;
+        private HorrorItemMasterTable _itemTable;
         private ScriptableDatabase _database;
 
         [SetUp]
@@ -46,6 +47,7 @@ namespace Game.Tests.MVC.Horror
         {
             if (_spawnTable != null) UnityEngine.Object.DestroyImmediate(_spawnTable);
             if (_triggerTable != null) UnityEngine.Object.DestroyImmediate(_triggerTable);
+            if (_itemTable != null) UnityEngine.Object.DestroyImmediate(_itemTable);
             if (_database != null) UnityEngine.Object.DestroyImmediate(_database);
         }
 
@@ -217,6 +219,44 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Not.Null);
             Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
+        }
+
+        /// <summary>指定 Id のアイテムマスター（MaxCount=120）だけを持つ実 DB を組み立てて mock に接続する。</summary>
+        private void SetupRealDatabaseWithItem(int itemId)
+        {
+            _itemTable = ScriptableObject.CreateInstance<HorrorItemMasterTable>();
+            _itemTable.EditorImportRows(
+                new[] { "Id", "MaxCount" },
+                new[] { new[] { itemId.ToString(), "120" } },
+                mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorItemMasterTable").objectReferenceValue = _itemTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+        }
+
+        [Test]
+        public async Task NormalizeInventory_SlotCountOverflow_LogsErrorWithoutTruncating()
+        {
+            SetupRealDatabaseWithItem(4);
+            var slots = new List<HorrorInventorySlotData>();
+            for (int i = 0; i < HorrorInventoryConstants.MaxSlotCount + 1; i++)
+                slots.Add(new HorrorInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1 });
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData { Slots = slots },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+            LogAssert.Expect(LogType.Error, new Regex("インベントリのスロット数がデータ上限を超えています"));
+
+            await _repository.LoadAsync();
+
+            // 切り詰め（アイテムロスト）はせず、行はそのまま保持される
+            Assert.That(_repository.Data.Inventory.Slots.Count, Is.EqualTo(HorrorInventoryConstants.MaxSlotCount + 1));
         }
 
         [Test]

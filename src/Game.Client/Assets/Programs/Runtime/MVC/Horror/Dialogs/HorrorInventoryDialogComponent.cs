@@ -31,6 +31,10 @@ namespace Game.Horror.Dialogs
 
         private HorrorInventorySlotView _slotView;
 
+        // 最後に詳細ペインへ反映したスロット。ApplySlots の再適用後に詳細表示を追随させるために保持する
+        // （_slotView はサブメニュー閉時に null 化されるため流用できない）
+        private HorrorInventorySlotView _lastSelectedSlot;
+
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
@@ -64,28 +68,46 @@ namespace Game.Horror.Dialogs
 
         #region InventorySlots
 
+        // 初期化と購読は寿命中 1 回のみ。再実行すると Disposables に購読が重複登録されるため、
+        // データの再反映は ApplySlots を使うこと。
         private void BindSlots()
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                _slots[i].Initialize();
+                _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
+                _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
+            }
+
+            ApplySlots();
+        }
+
+        /// <summary>
+        /// インベントリデータをスロット表示へ反映する（再入可能）。
+        /// スロット破棄などでデータの並びが変わった後に呼び、グリッドと詳細ペインを最新化する。
+        /// </summary>
+        public void ApplySlots()
         {
             var slots = _inventoryService.Slots;
             for (int i = 0; i < _slots.Length; i++)
             {
-                _slots[i].Initialize();
-
-                bool empty = true;
                 if (i < slots.Count)
                 {
                     var slot = slots[i];
-                    _slots[i].SetSlot(slot.ObjectCategory, slot.Id, slot.Count);
-                    empty = false;
+                    _slots[i].SetSlot(i, slot.ObjectCategory, slot.Id, slot.Count);
                 }
-
-                if (empty) _slots[i].SetEmpty();
-
-                _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
-                _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
+                else
+                {
+                    _slots[i].SetEmpty();
+                }
             }
+
+            if (_lastSelectedSlot != null)
+                UpdateDetail(_lastSelectedSlot);
         }
 
+        // 入力デバイス変更などによるアイコンの再解決のみ行う（個数テキストは更新しない）。
+        // データ変更の反映には ApplySlots を使うこと。
         public void RefreshSlots()
         {
             for (int i = 0; i < _slots.Length; i++)
@@ -95,7 +117,10 @@ namespace Game.Horror.Dialogs
         }
 
         private void UpdateDetail(HorrorInventorySlotView slot)
-            => _slotDetailView.SetSlotDetail(slot.SlotInfo);
+        {
+            _lastSelectedSlot = slot;
+            _slotDetailView.SetSlotDetail(slot.SlotInfo);
+        }
 
         public bool IsSubmenuOpen()
             => _contextMenu != null && _contextMenu.IsOpen;
