@@ -1,6 +1,7 @@
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.Horror.Inventory;
+using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
@@ -29,17 +30,13 @@ namespace Game.Horror.Dialogs
         private IHorrorInventoryService _inventoryService;
         private IHorrorKeyItemService _keyItemService;
 
-        private HorrorInventorySlotView _slotView;
-
-        // 最後に詳細ペインへ反映したスロット。ApplySlots の再適用後に詳細表示を追随させるために保持する
-        // （_slotView はサブメニュー閉時に null 化されるため流用できない）
-        private HorrorInventorySlotView _lastSelectedSlot;
+        private HorrorInventorySlotView _selectedSlot;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
                 ContextActionType = x,
-                SlotView = _slotView
+                SlotView = _selectedSlot
             });
 
         public void Initialize()
@@ -74,6 +71,7 @@ namespace Game.Horror.Dialogs
         {
             for (int i = 0; i < _slots.Length; i++)
             {
+                _slots[i].SlotIndex = i; // グリッド固定位置。以後不変
                 _slots[i].Initialize();
                 _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
                 _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
@@ -84,26 +82,28 @@ namespace Game.Horror.Dialogs
 
         /// <summary>
         /// インベントリデータをスロット表示へ反映する（再入可能）。
-        /// スロット破棄などでデータの並びが変わった後に呼び、グリッドと詳細ペインを最新化する。
+        /// スロット破棄などでデータが変わった後に呼び、グリッドと詳細ペインを最新化する。
         /// </summary>
         public void ApplySlots()
         {
-            var slots = _inventoryService.Slots;
-            for (int i = 0; i < _slots.Length; i++)
+            // 位置（SlotNo）→行の一時テーブルを構築して View と 1:1 で対応させる。範囲外の行は表示しない（正規化後は発生しない）
+            var rows = new HorrorInventorySlotData[_slots.Length];
+            foreach (var row in _inventoryService.Slots)
             {
-                if (i < slots.Count)
-                {
-                    var slot = slots[i];
-                    _slots[i].SetSlot(i, slot.ObjectCategory, slot.Id, slot.Count);
-                }
-                else
-                {
-                    _slots[i].SetEmpty();
-                }
+                if (row.SlotNo >= 0 && row.SlotNo < rows.Length)
+                    rows[row.SlotNo] = row;
             }
 
-            if (_lastSelectedSlot != null)
-                UpdateDetail(_lastSelectedSlot);
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (rows[i] != null)
+                    _slots[i].SetSlot(rows[i].ObjectCategory, rows[i].Id, rows[i].Count);
+                else
+                    _slots[i].SetEmpty();
+            }
+
+            if (_selectedSlot != null)
+                UpdateDetail(_selectedSlot);
         }
 
         // 入力デバイス変更などによるアイコンの再解決のみ行う（個数テキストは更新しない）。
@@ -118,7 +118,7 @@ namespace Game.Horror.Dialogs
 
         private void UpdateDetail(HorrorInventorySlotView slot)
         {
-            _lastSelectedSlot = slot;
+            _selectedSlot = slot;
             _slotDetailView.SetSlotDetail(slot.SlotInfo);
         }
 
@@ -134,7 +134,8 @@ namespace Game.Horror.Dialogs
             var entries = slot.SlotInfo.ToContextActions();
             if (entries.Length == 0) return;
 
-            _slotView = slot;
+            // 同一スロットの再クリックでは OnSelected が再発火しないため、決定時にも自身の引数で更新する
+            _selectedSlot = slot;
             SetSlotsInteractable(false);
             _contextMenu.Open(slot.RectTransform, entries);
         }
@@ -145,15 +146,13 @@ namespace Game.Horror.Dialogs
             if (_contextMenu != null) _contextMenu.Close();
         }
 
-        // 閉じられたらグリッド操作を戻し、フォーカスを起点スロットへ復帰させる。
+        // 閉じられたらグリッド操作を戻し、フォーカスを対象スロットへ復帰させる
+        // （Close() は未オープン時に OnClosed を発火しないため、一回性のガードは不要）。
         private void OnSubmenuClosed()
         {
             SetSlotsInteractable(true);
-            if (_slotView != null)
-            {
-                _inputService.SetSelectedGameObject(_slotView.Selectable.gameObject);
-                _slotView = null;
-            }
+            if (_selectedSlot != null)
+                _inputService.SetSelectedGameObject(_selectedSlot.Selectable.gameObject);
         }
 
         private void SetSlotsInteractable(bool value)

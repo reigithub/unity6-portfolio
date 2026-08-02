@@ -205,18 +205,61 @@ namespace Game.Horror.Services
             {
                 var slot = data.Slots[i];
                 if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out var info))
+                {
                     data.Slots.RemoveAt(i);
-                else
-                    data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
+                    continue;
+                }
+
+                slot.Count = Mathf.Min(slot.Count, info.MaxCount);
+
+                // 行の存在 = 中身のあるスタック、の不変条件を確立する
+                if (slot.Count <= 0)
+                    data.Slots.RemoveAt(i);
             }
 
-            // スロット数超過は切り詰めるとアイテムロストになるため削除せず、エラーで顕在化のみ行う
-            // （TryAdd 側の上限ガードで新規追加は止まり、消費により自然に上限以下へ収束する）
-            if (data.Slots.Count > HorrorInventoryConstants.MaxSlotCount)
+            RenumberInventorySlots(data);
+        }
+
+        /// <summary>
+        /// SlotNo の不変条件（値域内・行間一意）を確立する。
+        /// リスト順の先勝ちで正当な SlotNo を確定し、範囲外・重複の行はリスト順に最小の空き位置へ再割り当てする
+        /// （列追加前の旧バイナリは全行 SlotNo=0 で届くため、この規則で旧来の表示順が保存される）。
+        /// 空き位置が尽きて割り当てられない行のみ削除し、LogError で顕在化する。
+        /// </summary>
+        private static void RenumberInventorySlots(HorrorInventorySaveData data)
+        {
+            const int maxSlotCount = HorrorInventoryConstants.MaxSlotCount;
+
+            // パス1: 値域内かつ未占有の SlotNo をリスト順の先勝ちで確定する
+            var occupied = new bool[maxSlotCount];
+            var pending = new List<HorrorInventorySlotData>();
+            foreach (var slot in data.Slots)
             {
-                Debug.LogError(
-                    $"[{nameof(HorrorSaveRepository)}] インベントリのスロット数がデータ上限を超えています: " +
-                    $"{data.Slots.Count} > {HorrorInventoryConstants.MaxSlotCount}（超過分は画面に表示されません）");
+                if (slot.SlotNo >= 0 && slot.SlotNo < maxSlotCount && !occupied[slot.SlotNo])
+                    occupied[slot.SlotNo] = true;
+                else
+                    pending.Add(slot);
+            }
+
+            // パス2: 未確定行をリスト順に最小の空き位置へ割り当てる
+            int nextFree = 0;
+            foreach (var slot in pending)
+            {
+                while (nextFree < maxSlotCount && occupied[nextFree])
+                    nextFree++;
+
+                if (nextFree >= maxSlotCount)
+                {
+                    // パス3: 空き不足で割り当て不能な行は保持できないため削除し、エラーで顕在化する
+                    Debug.LogError(
+                        $"[{nameof(HorrorSaveRepository)}] インベントリの空き位置が不足したためスロットを破棄しました: " +
+                        $"({slot.ObjectCategory}, {slot.Id}) x{slot.Count}");
+                    data.Slots.Remove(slot);
+                    continue;
+                }
+
+                slot.SlotNo = nextFree;
+                occupied[nextFree] = true;
             }
         }
 

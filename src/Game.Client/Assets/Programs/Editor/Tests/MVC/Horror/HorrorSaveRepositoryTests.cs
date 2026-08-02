@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -238,7 +239,7 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task NormalizeInventory_SlotCountOverflow_LogsErrorWithoutTruncating()
+        public async Task NormalizeInventory_SlotCountOverflow_TruncatesOverflowAndLogsError()
         {
             SetupRealDatabaseWithItem(4);
             var slots = new List<HorrorInventorySlotData>();
@@ -251,12 +252,173 @@ namespace Game.Tests.MVC.Horror
             };
             _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
                 .Returns(UniTask.FromResult(data));
-            LogAssert.Expect(LogType.Error, new Regex("インベントリのスロット数がデータ上限を超えています"));
+            LogAssert.Expect(LogType.Error, new Regex("インベントリの空き位置が不足したためスロットを破棄しました"));
 
             await _repository.LoadAsync();
 
-            // 切り詰め（アイテムロスト）はせず、行はそのまま保持される
-            Assert.That(_repository.Data.Inventory.Slots.Count, Is.EqualTo(HorrorInventoryConstants.MaxSlotCount + 1));
+            // 空き位置に収まらない行だけが切り詰められ、残行は 0〜49 に一意採番される
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(HorrorInventoryConstants.MaxSlotCount));
+            Assert.That(result.Select(s => s.SlotNo),
+                Is.EquivalentTo(Enumerable.Range(0, HorrorInventoryConstants.MaxSlotCount)));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_LegacyAllZeroSlotNo_RenumbersPreservingListOrder()
+        {
+            SetupRealDatabaseWithItem(4);
+            // SlotNo 列追加前の旧バイナリ相当: 全行 SlotNo=0 で届く
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 3, SlotNo = 0 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // リスト順（= 旧・追加順）を保って 0, 1, 2 に再採番される
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(3));
+            Assert.That(result[0].SlotNo, Is.EqualTo(0));
+            Assert.That(result[0].Count, Is.EqualTo(1));
+            Assert.That(result[1].SlotNo, Is.EqualTo(1));
+            Assert.That(result[1].Count, Is.EqualTo(2));
+            Assert.That(result[2].SlotNo, Is.EqualTo(2));
+            Assert.That(result[2].Count, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_ValidUniqueSlotNos_Unchanged()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 5 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 2 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 正当なデータは再採番されない（冪等）
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0].SlotNo, Is.EqualTo(5));
+            Assert.That(result[1].SlotNo, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_DuplicateSlotNo_FirstWinsOthersReassignedToLowestFree()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 2 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 2 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 先勝ちで位置 2 を確定し、重複行は最小の空き位置 0 へ
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result[0].SlotNo, Is.EqualTo(2));
+            Assert.That(result[1].SlotNo, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_OutOfRangeSlotNo_ReassignedToLowestFree()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = -1 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 99 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result[0].SlotNo, Is.EqualTo(0));
+            Assert.That(result[1].SlotNo, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_NonPositiveCountRow_Removed()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 0, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 3, SlotNo = 1 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 行の存在 = 中身のあるスタック、の不変条件が確立される（残行の位置は不変）
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].Count, Is.EqualTo(3));
+            Assert.That(result[0].SlotNo, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Deserialization_LegacySlotWithoutSlotNo_YieldsSlotNoZero()
+        {
+            // SlotNo 列追加前と同形状のバイナリを新型で読むと、末尾未読メンバは default(int) = 0 になる
+            var legacy = new LegacyInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 7 };
+            var bytes = MemoryPackSerializer.Serialize(legacy);
+
+            var restored = MemoryPackSerializer.Deserialize<HorrorInventorySlotData>(bytes);
+
+            Assert.That(restored.ObjectCategory, Is.EqualTo(ObjectCategory.Item));
+            Assert.That(restored.Id, Is.EqualTo(4));
+            Assert.That(restored.Count, Is.EqualTo(7));
+            Assert.That(restored.SlotNo, Is.EqualTo(0));
         }
 
         [Test]
@@ -270,7 +432,7 @@ namespace Game.Tests.MVC.Horror
                 {
                     Slots = new List<HorrorInventorySlotData>
                     {
-                        new() { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4, SlotNo = 7 },
                     },
                 },
                 Equipment = new HorrorEquipmentSaveData
@@ -318,6 +480,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.Inventory.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.Inventory.Slots[0].Id, Is.EqualTo(3));
             Assert.That(restored.Inventory.Slots[0].Count, Is.EqualTo(4));
+            Assert.That(restored.Inventory.Slots[0].SlotNo, Is.EqualTo(7));
             Assert.That(restored.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(restored.Equipment.Id, Is.EqualTo(5));
             Assert.That(restored.Equipment.Slots.Count, Is.EqualTo(4));
@@ -507,5 +670,16 @@ namespace Game.Tests.MVC.Horror
         {
             Assert.That(_repository.Data?.SavepointId ?? 0, Is.EqualTo(0));
         }
+    }
+
+    /// <summary>SlotNo 列追加前の HorrorInventorySlotData と同形状のレコード（旧バイナリ互換テスト用）。</summary>
+    [MemoryPackable]
+    internal partial class LegacyInventorySlotData
+    {
+        public ObjectCategory ObjectCategory { get; set; }
+
+        public int Id { get; set; }
+
+        public int Count { get; set; }
     }
 }

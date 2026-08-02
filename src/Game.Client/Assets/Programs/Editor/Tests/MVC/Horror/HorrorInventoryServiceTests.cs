@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.Constants;
@@ -116,9 +117,19 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.IsDirty, Is.True);
         }
 
-        /// <summary>Dirty を汚さずスロットを直接登録する（TryAdd 経由だと Dirty になるため）。</summary>
-        private void AddSlotDirect(ObjectCategory category, int id, int count)
-            => _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData { ObjectCategory = category, Id = id, Count = count });
+        /// <summary>Dirty を汚さずスロットを直接登録する（TryAdd 経由だと Dirty になるため）。slotNo 省略時は連番（現在の行数）。</summary>
+        private void AddSlotDirect(ObjectCategory category, int id, int count, int? slotNo = null)
+            => _repository.Data.Inventory.Slots.Add(new HorrorInventorySlotData
+            {
+                ObjectCategory = category,
+                Id = id,
+                Count = count,
+                SlotNo = slotNo ?? _repository.Data.Inventory.Slots.Count
+            });
+
+        /// <summary>指定位置（SlotNo）の行を取得する。空位置は null。</summary>
+        private HorrorInventorySlotData GetSlotAt(int slotNo)
+            => _service.Slots.FirstOrDefault(s => s.SlotNo == slotNo);
 
         /// <summary>本命アイテムと衝突しないダミーアイテムで指定数のスロットを占有する。</summary>
         private void FillSlotsWithDummies(int count)
@@ -137,9 +148,9 @@ namespace Game.Tests.MVC.Horror
             Assert.That(ok, Is.True);
             Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(25));
             Assert.That(_service.Slots.Count, Is.EqualTo(3));
-            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
-            Assert.That(_service.Slots[1].Count, Is.EqualTo(10));
-            Assert.That(_service.Slots[2].Count, Is.EqualTo(5));
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(2).Count, Is.EqualTo(5));
         }
 
         [Test]
@@ -152,8 +163,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.Slots.Count, Is.EqualTo(2));
-            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
-            Assert.That(_service.Slots[1].Count, Is.EqualTo(2));
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(2));
         }
 
         [Test]
@@ -167,8 +178,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.Slots.Count, Is.EqualTo(2));
-            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
-            Assert.That(_service.Slots[1].Count, Is.EqualTo(3));
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(3));
         }
 
         [Test]
@@ -264,7 +275,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.Slots.Count, Is.EqualTo(1));
-            Assert.That(_service.Slots[0].Count, Is.EqualTo(3));
+            Assert.That(GetSlotAt(0), Is.Null);              // 若い位置から消費され使い切りで除去
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(3));  // 残る行の位置は動かない
         }
 
         [Test]
@@ -278,8 +290,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.False);
             Assert.That(_service.Slots.Count, Is.EqualTo(2));
-            Assert.That(_service.Slots[0].Count, Is.EqualTo(10));
-            Assert.That(_service.Slots[1].Count, Is.EqualTo(5));
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(5));
         }
 
         [Test]
@@ -296,16 +308,20 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_service.Slots.Count, Is.EqualTo(2));
             Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(5));
             Assert.That(_service.GetCount(ObjectCategory.Item, 4), Is.EqualTo(3));
+            Assert.That(GetSlotAt(0), Is.Null);              // 破棄位置は空く
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(5));  // 他行の位置は動かない
+            Assert.That(GetSlotAt(2).Id, Is.EqualTo(4));
         }
 
         [Test]
-        public async Task DiscardSlot_InvalidIndex_ReturnsFalse()
+        public async Task DiscardSlot_OutOfRangeOrEmptyPosition_ReturnsFalse()
         {
             await LoadDefaultData();
-            AddSlotDirect(ObjectCategory.Item, 3, 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 1); // SlotNo 0
 
-            Assert.That(_service.DiscardSlot(-1), Is.False);
-            Assert.That(_service.DiscardSlot(1), Is.False);
+            Assert.That(_service.DiscardSlot(-1), Is.False, "範囲外（負）");
+            Assert.That(_service.DiscardSlot(HorrorInventoryConstants.MaxSlotCount), Is.False, "範囲外（上限）");
+            Assert.That(_service.DiscardSlot(1), Is.False, "空位置");
             Assert.That(_service.Slots.Count, Is.EqualTo(1));
         }
 
@@ -319,6 +335,102 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task DiscardSlot_MiddleSlot_KeepsOtherSlotNos()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
+            AddSlotDirect(ObjectCategory.Item, 4, 5, 1);
+            AddSlotDirect(ObjectCategory.Item, 5, 2, 2);
+
+            var ok = _service.DiscardSlot(1);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(0).Id, Is.EqualTo(3));    // 前詰めされない
+            Assert.That(GetSlotAt(1), Is.Null);
+            Assert.That(GetSlotAt(2).Id, Is.EqualTo(5));
+            Assert.That(_service.DiscardSlot(1), Is.False); // 空いた位置の再破棄は false
+        }
+
+        [Test]
+        public async Task TryAdd_AfterDiscard_ReusesLowestFreeSlotNo()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1, 0);
+            AddSlotDirect(ObjectCategory.Item, 4, 1, 1);
+            AddSlotDirect(ObjectCategory.Item, 5, 1, 2);
+            _service.DiscardSlot(1);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 6, 1, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(1).Id, Is.EqualTo(6)); // 破棄跡（最小の空き位置）に入る
+        }
+
+        [Test]
+        public async Task TryAdd_MultipleNewStacks_FillAscendingGaps()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1, 0);
+            AddSlotDirect(ObjectCategory.Item, 4, 1, 2);
+            AddSlotDirect(ObjectCategory.Item, 5, 1, 4);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 6, 15, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(1).Id, Is.EqualTo(6));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(3).Id, Is.EqualTo(6));
+            Assert.That(GetSlotAt(3).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryAdd_FillsExistingStacksInSlotNoOrder()
+        {
+            await LoadDefaultData();
+            // List 順は SlotNo 降順に登録し、充填が List 順でなく SlotNo 昇順で行われることを検証する
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 3);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 5, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(10)); // 若い位置が先に満ちる
+            Assert.That(GetSlotAt(3).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsume_ConsumesInSlotNoOrder()
+        {
+            await LoadDefaultData();
+            // List 順は SlotNo 降順に登録し、消費が List 順でなく SlotNo 昇順で行われることを検証する
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 2);
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 12);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(1));
+            Assert.That(GetSlotAt(0), Is.Null);              // 若い位置から消費され使い切りで除去
+            Assert.That(GetSlotAt(2).Count, Is.EqualTo(3));  // 位置は動かない
+        }
+
+        [Test]
+        public async Task TryConsume_EmptiedRow_IsRemoved_OthersKeepSlotNo()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 3, 0);
+            AddSlotDirect(ObjectCategory.Item, 4, 2, 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 4, 2);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 3);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(0), Is.Null);
+            Assert.That(GetSlotAt(1).Id, Is.EqualTo(4));
+            Assert.That(GetSlotAt(2).Count, Is.EqualTo(4));
         }
     }
 }
