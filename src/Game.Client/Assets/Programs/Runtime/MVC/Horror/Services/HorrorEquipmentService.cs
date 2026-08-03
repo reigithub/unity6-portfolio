@@ -172,6 +172,28 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// 指定アイテムを最初の空きスロット（index 昇順）へ登録する。
+        /// 既登録なら何もしない（単一登録の不変条件を維持）。空き無し・未ロードも何もせず false。
+        /// </summary>
+        public bool TryAutoAssignSlot(ObjectCategory slotType, int id)
+        {
+            var data = _repository.Data?.Equipment;
+            if (data == null || slotType == ObjectCategory.None)
+                return false;
+
+            if (GetSlotIndex(data, slotType, id) >= 0)
+                return false;
+
+            for (var i = 0; i < MaxEquipmentSlotCount; i++)
+            {
+                if (!TryGetSlot(i, out _))
+                    return TrySetSlot(i, slotType, id);
+            }
+
+            return false; // 空き無し
+        }
+
         // 指定アイテム (SlotType, Id) が登録されているスロット index を返す（None は対象外）。無ければ -1。
         private static int GetSlotIndex(HorrorEquipmentSaveData data, ObjectCategory slotType, int id)
         {

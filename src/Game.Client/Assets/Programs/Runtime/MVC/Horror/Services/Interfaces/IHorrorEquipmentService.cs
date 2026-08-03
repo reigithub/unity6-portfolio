@@ -42,6 +42,9 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>対象アイテムを destIndex に割り当てる。既登録なら移動/入替、未登録なら上書きする。</summary>
         bool TryAssignSlot(int destIndex, ObjectCategory slotType, int id);
 
+        /// <summary>指定アイテムを最初の空きスロット（index 昇順）へ登録する。既登録・空き無し・未ロードは何もせず false。</summary>
+        bool TryAutoAssignSlot(ObjectCategory slotType, int id);
+
         /// <summary>指定スロット(0-3)の登録を外す（空にする）。</summary>
         bool ClearSlot(int index);
 

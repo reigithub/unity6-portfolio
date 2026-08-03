@@ -256,12 +256,86 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
+        public async Task RegisterToEmpty_AllSlotsEmpty_RegistersAtIndex0AndMarksDirty()
+        {
+            await LoadDefaultData();
+
+            var ok = _service.TryAutoAssignSlot(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGetSlot(0, out var slot), Is.True);
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.Id, Is.EqualTo(5));
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task RegisterToEmpty_Index0Occupied_RegistersAtIndex1()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(0, ObjectCategory.Item, 3);
+
+            var ok = _service.TryAutoAssignSlot(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGetSlot(1, out var slot), Is.True);
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.Id, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task RegisterToEmpty_AlreadyRegistered_ReturnsFalseAndNoChange()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(1, ObjectCategory.Weapon, 5);
+
+            var ok = _service.TryAutoAssignSlot(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(CountOf(ObjectCategory.Weapon, 5), Is.EqualTo(1), "同一装備は常に1スロットのみ");
+            Assert.That(_service.TryGetSlot(1, out var slot), Is.True);
+            Assert.That(slot.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(slot.Id, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task RegisterToEmpty_AllSlotsOccupied_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(0, ObjectCategory.Item, 1);
+            _service.TrySetSlot(1, ObjectCategory.Item, 2);
+            _service.TrySetSlot(2, ObjectCategory.Item, 3);
+            _service.TrySetSlot(3, ObjectCategory.Item, 4);
+
+            var ok = _service.TryAutoAssignSlot(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(CountOf(ObjectCategory.Weapon, 5), Is.EqualTo(0), "占有スロットを上書きしない");
+        }
+
+        [Test]
+        public async Task RegisterToEmpty_DoesNotAffectEquipped()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+            _service.TryEquip(ObjectCategory.Weapon, 5);
+
+            _service.TryAutoAssignSlot(ObjectCategory.Weapon, 7);
+
+            Assert.That(_service.TryGetEquipped(out var type, out var id), Is.True);
+            Assert.That(type, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(id, Is.EqualTo(5));
+        }
+
+        [Test]
         public void SlotMutators_WhenDataNull_DoNotThrowAndReturnFalse()
         {
             // LoadAsync 未実行 ＝ Data は null
             Assert.DoesNotThrow(() =>
             {
                 Assert.That(_service.TrySetSlot(0, ObjectCategory.Item, 1), Is.False);
+                Assert.That(_service.TryAutoAssignSlot(ObjectCategory.Weapon, 1), Is.False);
                 Assert.That(_service.ClearSlot(0), Is.False);
                 Assert.That(_service.TryGetSlot(0, out _), Is.False);
             });
