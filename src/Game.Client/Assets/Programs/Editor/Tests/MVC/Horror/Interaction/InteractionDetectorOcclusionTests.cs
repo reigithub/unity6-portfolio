@@ -143,6 +143,7 @@ namespace Game.Tests.MVC.Horror.Interaction
             public Bounds WorldBounds => new(transform.position, Vector3.one);
             public InteractionInputType InputType => InteractionInputType.Instant;
             public float HoldSeconds => 0f;
+            public bool AllowOutOfView => false;
             public bool CanInteract() => true;
             public void Interact() { }
             public void SetInteractionState(InteractionState state, Camera viewCamera) { }

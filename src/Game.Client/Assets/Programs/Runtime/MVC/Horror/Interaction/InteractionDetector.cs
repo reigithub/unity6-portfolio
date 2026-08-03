@@ -8,9 +8,11 @@ namespace Game.Horror.Interaction
     /// プレイヤー周囲のインタラクト対象を検出し、各対象の提示状態を駆動する検出器。
     /// 検出範囲(<see cref="_discoverRadius"/>)内・カメラ視界内・非遮蔽の対象を「発見可能(Discoverable)」とし、
     /// そのうちインタラクト距離(<see cref="_interactRadius"/>)内で画面中心（レティクル）に最も近い 1 つだけを「実行可能(Actionable)」とする。
-    /// エイムコーン内に候補が無い場合のみ、視界外かつプレイヤー前方半面（水平 180 度）かつインタラクト距離内の
-    /// 非遮蔽対象から表面距離最小の 1 つをフォールバックで Actionable にする
-    /// （足元の近接アイテムを画面端クランプのプロンプトで取得可能にするため。背後の対象は対象外）。
+    /// エイムコーン内に候補が無い場合のみ、視界外インタラクト許可対象
+    /// （<see cref="IInteractable.AllowOutOfView"/>、拾得系のみ）のうち
+    /// プレイヤー前方半面（水平 180 度）かつインタラクト距離内の非遮蔽対象から
+    /// 表面距離最小の 1 つをフォールバックで Actionable にする
+    /// （足元の近接アイテムを画面端クランプのプロンプトで取得可能にするため。背後・据え置き装置は対象外）。
     /// 距離判定はプレイヤー位置、視界・遮蔽・狙いはカメラ基準（一人称で視点が頭前方にあるため）。
     /// 遮蔽物は構造物・地形に加え他の Interactable も含み、対象自身のコライダーのみ参照一致で除外する。
     /// 対象は点でなく <see cref="IInteractable.WorldBounds"/>(AABB) で扱い、狙いは画面中心 ray への交差/角度で測る。
@@ -214,9 +216,10 @@ namespace Game.Horror.Interaction
         /// 「カメラ視界内（bounds の一部でも frustum 内）かつ非遮蔽」を Discoverable として <see cref="_visible"/> に集め、
         /// そのうち「対象表面までの距離が <see cref="_interactRadius"/> 内 かつ 画面中心からの角度が <see cref="_aimConeAngle"/> 内」で
         /// 最も画面中心に近い 1 つを <see cref="_actionable"/> に選ぶ。
-        /// エイムコーン内候補が無ければ、視錐台外かつプレイヤー前方半面（水平 180 度、<see cref="IsInForwardHemisphere"/>）
-        /// かつインタラクト距離内の候補（<see cref="_fallbackCandidates"/>）から表面距離最小の非遮蔽対象を
-        /// フォールバック選定する。Actionable は視界内選定なら Discoverable 集合の元、
+        /// エイムコーン内候補が無ければ、視錐台外の視界外インタラクト許可対象
+        /// （<see cref="IInteractable.AllowOutOfView"/>）のうちプレイヤー前方半面
+        /// （水平 180 度、<see cref="IsInForwardHemisphere"/>）かつインタラクト距離内の候補
+        /// （<see cref="_fallbackCandidates"/>）から表面距離最小の非遮蔽対象をフォールバック選定する。Actionable は視界内選定なら Discoverable 集合の元、
         /// フォールバック選定なら視界外で Discoverable 集合と交わらない（いずれも常に高々 1 つ）。
         /// </summary>
         private void EvaluateCandidates(IInteractable previousActionable)
@@ -250,17 +253,20 @@ namespace Game.Horror.Interaction
                 // カメラ視界（frustum）内か：bounds の一部でも入っていれば可（中心が画面外でも脱落しない）
                 if (!GeometryUtility.TestPlanesAABB(_frustumPlanes, bounds))
                 {
-                    // 視界外でも「インタラクト距離内 かつ プレイヤー前方半面（水平 180 度）」なら
-                    // Actionable フォールバック候補として保持する（採用時の表示は View 側の画面端クランプが担う）。
+                    // 視界外でも「視界外インタラクト許可対象（拾得系） かつ インタラクト距離内 かつ プレイヤー前方半面（水平 180 度）」
+                    // なら Actionable フォールバック候補として保持する（採用時の表示は View 側の画面端クランプが担う）。
                     // 現 Actionable には前方判定に角度マージンを与え、真横境界での成立/不成立の点滅を抑える
-                    float fallbackDistance = CalculateSurfaceDistance(bounds, playerPos);
-                    float directionTolerance = ReferenceEquals(interactable, previousActionable)
-                        ? _fallbackDirectionStickiness
-                        : 0f;
-                    if (fallbackDistance <= _interactRadius
-                        && IsInForwardHemisphere(playerPos, playerForward, bounds.center, directionTolerance))
+                    if (interactable.AllowOutOfView)
                     {
-                        _fallbackCandidates.Add(new FallbackCandidate(interactable, bounds, fallbackDistance));
+                        float fallbackDistance = CalculateSurfaceDistance(bounds, playerPos);
+                        float directionTolerance = ReferenceEquals(interactable, previousActionable)
+                            ? _fallbackDirectionStickiness
+                            : 0f;
+                        if (fallbackDistance <= _interactRadius
+                            && IsInForwardHemisphere(playerPos, playerForward, bounds.center, directionTolerance))
+                        {
+                            _fallbackCandidates.Add(new FallbackCandidate(interactable, bounds, fallbackDistance));
+                        }
                     }
 #if UNITY_EDITOR
                     _gizmoCandidates.Add(new GizmoCandidate(interactable, bounds, bounds.center, float.NaN, GizmoCandidateKind.OutOfView));

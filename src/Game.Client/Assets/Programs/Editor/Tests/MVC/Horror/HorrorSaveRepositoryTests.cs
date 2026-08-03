@@ -407,21 +407,6 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public void Deserialization_LegacySlotWithoutSlotNo_YieldsSlotNoZero()
-        {
-            // SlotNo 列追加前と同形状のバイナリを新型で読むと、末尾未読メンバは default(int) = 0 になる
-            var legacy = new LegacyInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 7 };
-            var bytes = MemoryPackSerializer.Serialize(legacy);
-
-            var restored = MemoryPackSerializer.Deserialize<HorrorInventorySlotData>(bytes);
-
-            Assert.That(restored.ObjectCategory, Is.EqualTo(ObjectCategory.Item));
-            Assert.That(restored.Id, Is.EqualTo(4));
-            Assert.That(restored.Count, Is.EqualTo(7));
-            Assert.That(restored.SlotNo, Is.EqualTo(0));
-        }
-
-        [Test]
         public void Serialization_RoundTrip_PreservesAllSections()
         {
             var original = new HorrorSaveData

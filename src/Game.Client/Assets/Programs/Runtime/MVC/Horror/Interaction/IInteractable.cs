@@ -33,6 +33,13 @@ namespace Game.Horror.Interaction
         float HoldSeconds { get; }
 
         /// <summary>
+        /// 視界外（カメラ視錐台外）でも Actionable 成立（画面端クランプのプロンプト表示とインタラクト実行）を
+        /// 許すか。拾得してインベントリへ加える対象（アイテム・ドロップ品・武器）のみ true。
+        /// 据え置きの装置（扉・椅子・セーブポイント等）は見ずに操作させる意味がないため false。
+        /// </summary>
+        bool AllowOutOfView { get; }
+
+        /// <summary>
         /// 実行可能か（鍵所持などの条件判定）。false の間は実行をブロックし、提示で不可を表す。
         /// </summary>
         bool CanInteract();

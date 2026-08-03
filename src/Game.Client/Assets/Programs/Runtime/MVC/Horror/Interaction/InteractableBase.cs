@@ -117,6 +117,9 @@ namespace Game.Horror.Interaction
 
         public virtual float HoldSeconds => Master != null ? Master.HoldSeconds : 0f;
 
+        // 既定は視界外インタラクト不許可。拾得系の具象のみ opt-in でオーバーライドする
+        public virtual bool AllowOutOfView => false;
+
         public virtual bool WasInteracted() => _interactionService.Contains(_interactionId);
 
         public virtual bool CanInteract() => true;

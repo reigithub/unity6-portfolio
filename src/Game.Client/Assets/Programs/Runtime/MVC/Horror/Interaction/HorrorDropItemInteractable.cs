@@ -26,6 +26,9 @@ namespace Game.Horror.Interaction
             _onCollected = onCollected;
         }
 
+        // 拾得系のため、視界外でも画面端クランプのプロンプトで拾えるようにする
+        public override bool AllowOutOfView => true;
+
         // ドロップ品に再拾得の概念はなく、取得状態を永続化もしない
         public override bool WasInteracted() => false;
 
