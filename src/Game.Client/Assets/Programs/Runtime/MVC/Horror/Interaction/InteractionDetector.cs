@@ -8,6 +8,9 @@ namespace Game.Horror.Interaction
     /// プレイヤー周囲のインタラクト対象を検出し、各対象の提示状態を駆動する検出器。
     /// 検出範囲(<see cref="_discoverRadius"/>)内・カメラ視界内・非遮蔽の対象を「発見可能(Discoverable)」とし、
     /// そのうちインタラクト距離(<see cref="_interactRadius"/>)内で画面中心（レティクル）に最も近い 1 つだけを「実行可能(Actionable)」とする。
+    /// エイムコーン内に候補が無い場合のみ、視界外かつプレイヤー前方半面（水平 180 度）かつインタラクト距離内の
+    /// 非遮蔽対象から表面距離最小の 1 つをフォールバックで Actionable にする
+    /// （足元の近接アイテムを画面端クランプのプロンプトで取得可能にするため。背後の対象は対象外）。
     /// 距離判定はプレイヤー位置、視界・遮蔽・狙いはカメラ基準（一人称で視点が頭前方にあるため）。
     /// 遮蔽物は構造物・地形に加え他の Interactable も含み、対象自身のコライダーのみ参照一致で除外する。
     /// 対象は点でなく <see cref="IInteractable.WorldBounds"/>(AABB) で扱い、狙いは画面中心 ray への交差/角度で測る。
@@ -39,6 +42,12 @@ namespace Game.Horror.Interaction
         [Tooltip("現在の Actionable を維持しやすくするヒステリシス角度（度）。僅差での対象切替・点滅を抑える")]
         [SerializeField] private float _actionableStickiness = 5f;
 
+        [Tooltip("視界外フォールバックで現在の Actionable を維持しやすくするヒステリシス距離（m）。僅差での対象切替・点滅を抑える")]
+        [SerializeField] private float _fallbackStickiness = 0.3f;
+
+        [Tooltip("視界外フォールバックの前方判定で現在の Actionable を維持しやすくするヒステリシス角度（度）。真横境界での表示点滅を抑える")]
+        [SerializeField] private float _fallbackDirectionStickiness = 10f;
+
         // 遮蔽レイを対象表面の手前で止める余白。自己ヒット除外の正本は参照一致（IsOccluded）で、
         // これは AABB 境界ちょうどの際どいヒットを避ける補助
         private const float OcclusionMargin = 0.05f;
@@ -49,6 +58,24 @@ namespace Game.Horror.Interaction
         private readonly HashSet<IInteractable> _seen = new();
         private readonly List<IInteractable> _visible = new();
         private readonly Plane[] _frustumPlanes = new Plane[6];
+
+        // 視界外フォールバックの候補（視錐台外だがインタラクト距離内）。視界内 Actionable 不在時のみ選定に使う
+        private readonly List<FallbackCandidate> _fallbackCandidates = new();
+
+        // 視錐台判定で脱落した対象のうち、近接距離内のものを選定まで保持する
+        private readonly struct FallbackCandidate
+        {
+            public readonly IInteractable Target;
+            public readonly Bounds Bounds;
+            public readonly float SurfaceDistance;
+
+            public FallbackCandidate(IInteractable target, Bounds bounds, float surfaceDistance)
+            {
+                Target = target;
+                Bounds = bounds;
+                SurfaceDistance = surfaceDistance;
+            }
+        }
 
         // 提示状態の差分追跡（前回 / 今回）。Scan 末尾で swap して再利用する
         private Dictionary<IInteractable, InteractionState> _previousStates = new();
@@ -77,11 +104,12 @@ namespace Game.Horror.Interaction
         private static readonly Color GizmoColorFrustum = Color.gray;
         private static readonly Color GizmoColorCandidateDiscoverable = Color.cyan;
         private static readonly Color GizmoColorCandidateActionable = Color.green;
+        private static readonly Color GizmoColorCandidateFallbackActionable = new Color(1f, 0.5f, 0f);
         private static readonly Color GizmoColorCandidateOutOfView = new Color(0.3f, 0.3f, 0.3f);
         private static readonly Color GizmoColorCandidateOccluded = Color.red;
 
         // ---- 候補分類 ----
-        private enum GizmoCandidateKind { OutOfView, Occluded, Discoverable, Actionable }
+        private enum GizmoCandidateKind { OutOfView, Occluded, Discoverable, Actionable, FallbackActionable }
 
         private readonly struct GizmoCandidate
         {
@@ -155,6 +183,7 @@ namespace Game.Horror.Interaction
             _visible.Clear();
             _seen.Clear();
             _currentStates.Clear();
+            _fallbackCandidates.Clear();
 
             // ヒステリシス用に直前の Actionable を退避してからクリアする
             var previousActionable = _actionable;
@@ -166,10 +195,14 @@ namespace Game.Horror.Interaction
 
                 for (int i = 0; i < _visible.Count; i++)
                 {
-                    var target = _visible[i];
-                    _currentStates[target] = ReferenceEquals(target, _actionable)
-                        ? InteractionState.Actionable
-                        : InteractionState.Discoverable;
+                    _currentStates[_visible[i]] = InteractionState.Discoverable;
+                }
+
+                // 視界内選定なら Discoverable からの上書き、視界外フォールバックなら追加となる
+                //（フォールバック対象は _visible に入らないため Discoverable にはならない）
+                if (_actionable != null)
+                {
+                    _currentStates[_actionable] = InteractionState.Actionable;
                 }
             }
 
@@ -180,11 +213,16 @@ namespace Game.Horror.Interaction
         /// 範囲内の候補を1本のパイプラインで評価する。
         /// 「カメラ視界内（bounds の一部でも frustum 内）かつ非遮蔽」を Discoverable として <see cref="_visible"/> に集め、
         /// そのうち「対象表面までの距離が <see cref="_interactRadius"/> 内 かつ 画面中心からの角度が <see cref="_aimConeAngle"/> 内」で
-        /// 最も画面中心に近い 1 つを <see cref="_actionable"/> に選ぶ。Actionable ⊆ Discoverable が常に保たれる。
+        /// 最も画面中心に近い 1 つを <see cref="_actionable"/> に選ぶ。
+        /// エイムコーン内候補が無ければ、視錐台外かつプレイヤー前方半面（水平 180 度、<see cref="IsInForwardHemisphere"/>）
+        /// かつインタラクト距離内の候補（<see cref="_fallbackCandidates"/>）から表面距離最小の非遮蔽対象を
+        /// フォールバック選定する。Actionable は視界内選定なら Discoverable 集合の元、
+        /// フォールバック選定なら視界外で Discoverable 集合と交わらない（いずれも常に高々 1 つ）。
         /// </summary>
         private void EvaluateCandidates(IInteractable previousActionable)
         {
             var playerPos = transform.position;
+            var playerForward = transform.forward; // プレイヤー本体は yaw のみ回転するため常に水平の体の向き
             var camTransform = _camera.transform;
             var camPos = camTransform.position;
             var camForward = camTransform.forward;
@@ -212,6 +250,18 @@ namespace Game.Horror.Interaction
                 // カメラ視界（frustum）内か：bounds の一部でも入っていれば可（中心が画面外でも脱落しない）
                 if (!GeometryUtility.TestPlanesAABB(_frustumPlanes, bounds))
                 {
+                    // 視界外でも「インタラクト距離内 かつ プレイヤー前方半面（水平 180 度）」なら
+                    // Actionable フォールバック候補として保持する（採用時の表示は View 側の画面端クランプが担う）。
+                    // 現 Actionable には前方判定に角度マージンを与え、真横境界での成立/不成立の点滅を抑える
+                    float fallbackDistance = CalculateSurfaceDistance(bounds, playerPos);
+                    float directionTolerance = ReferenceEquals(interactable, previousActionable)
+                        ? _fallbackDirectionStickiness
+                        : 0f;
+                    if (fallbackDistance <= _interactRadius
+                        && IsInForwardHemisphere(playerPos, playerForward, bounds.center, directionTolerance))
+                    {
+                        _fallbackCandidates.Add(new FallbackCandidate(interactable, bounds, fallbackDistance));
+                    }
 #if UNITY_EDITOR
                     _gizmoCandidates.Add(new GizmoCandidate(interactable, bounds, bounds.center, float.NaN, GizmoCandidateKind.OutOfView));
 #endif
@@ -243,7 +293,7 @@ namespace Game.Horror.Interaction
 #endif
 
                 // Actionable 候補：対象表面までの距離がインタラクト距離内、かつエイムコーン内
-                float surfaceDist = (playerPos - bounds.ClosestPoint(playerPos)).magnitude;
+                float surfaceDist = CalculateSurfaceDistance(bounds, playerPos);
                 if (surfaceDist <= _interactRadius && aimScore <= _aimConeAngle)
                 {
                     // 現 Actionable はヒステリシス分だけ優遇し、僅差での乗り換え・点滅を防ぐ
@@ -259,18 +309,92 @@ namespace Game.Horror.Interaction
                 }
             }
 
+            // エイムコーン内の視界内候補が不在のときのみ、視界外の近接対象をフォールバック選定する
+            if (_actionable == null && _fallbackCandidates.Count > 0)
+            {
+                SelectFallbackActionable(previousActionable, camPos, occlusionMask);
+            }
+
 #if UNITY_EDITOR
-            // _actionable 確定後、該当候補の分類を Actionable へ差し替える
+            // _actionable 確定後、該当候補の分類を差し替える（視界内は Actionable、視界外は FallbackActionable）
             for (int i = 0; i < _gizmoCandidates.Count; i++)
             {
-                if (ReferenceEquals(_gizmoCandidates[i].Target, _actionable))
-                {
-                    var c = _gizmoCandidates[i];
-                    _gizmoCandidates[i] = new GizmoCandidate(c.Target, c.Bounds, c.AimPoint, c.AimScore, GizmoCandidateKind.Actionable);
-                    break;
-                }
+                if (!ReferenceEquals(_gizmoCandidates[i].Target, _actionable)) continue;
+
+                var c = _gizmoCandidates[i];
+                bool fromOutOfView = c.Kind == GizmoCandidateKind.OutOfView;
+                var kind = fromOutOfView ? GizmoCandidateKind.FallbackActionable : GizmoCandidateKind.Actionable;
+                var aimPoint = fromOutOfView ? c.Bounds.ClosestPoint(_gizmoCamPos) : c.AimPoint;
+                _gizmoCandidates[i] = new GizmoCandidate(c.Target, c.Bounds, aimPoint, c.AimScore, kind);
+                break;
             }
 #endif
+        }
+
+        /// <summary>
+        /// 視界外フォールバックの Actionable を選定する。選定基準は表面距離最小
+        /// （視界外対象への角度はカメラ回転で毎スキャン揺れるため、プレイヤー移動でしか変わらない距離が安定する）。
+        /// 現対象には距離ヒステリシス（<see cref="_fallbackStickiness"/>）を適用して僅差での乗り換え・点滅を防ぎ、
+        /// 遮蔽判定（壁越し取得の防止。視界内経路と同条件）は現ベストを更新しうる候補にのみ遅延実行する
+        /// （遮蔽された近距離候補があっても次点の非遮蔽候補へ正しく落ちる）。
+        /// </summary>
+        private void SelectFallbackActionable(IInteractable previousActionable, Vector3 cameraPosition, int occlusionMask)
+        {
+            float bestDistance = float.MaxValue;
+
+            for (int i = 0; i < _fallbackCandidates.Count; i++)
+            {
+                var candidate = _fallbackCandidates[i];
+                float effectiveDistance = ReferenceEquals(candidate.Target, previousActionable)
+                    ? candidate.SurfaceDistance - _fallbackStickiness
+                    : candidate.SurfaceDistance;
+
+                if (effectiveDistance >= bestDistance) continue; // 勝てない候補には遮蔽レイを撃たない
+
+                // 視界外はレティクル ray と交差しないため、狙い点はカメラへの最近接点を直接使う
+                var aimPoint = candidate.Bounds.ClosestPoint(cameraPosition);
+                bool occluded = IsOccluded(cameraPosition, aimPoint, candidate.Target, occlusionMask, _occlusionHitBuffer);
+
+#if UNITY_EDITOR
+                if ((aimPoint - cameraPosition).magnitude > OcclusionMargin)
+                {
+                    _gizmoOcclusionRays.Add(new GizmoOcclusionRay(cameraPosition, aimPoint, occluded));
+                }
+#endif
+
+                if (occluded) continue;
+
+                bestDistance = effectiveDistance;
+                _actionable = candidate.Target;
+            }
+        }
+
+        /// <summary>
+        /// プレイヤー位置から対象 AABB 表面までの距離（m）を返す純関数。プレイヤーが bounds 内部・表面上にいる場合は 0。
+        /// 視界内経路の Actionable 距離判定と、視界外フォールバックの近接判定が同じ距離定義を共有する。
+        /// </summary>
+        internal static float CalculateSurfaceDistance(Bounds bounds, Vector3 playerPosition)
+            => (playerPosition - bounds.ClosestPoint(playerPosition)).magnitude;
+
+        /// <summary>
+        /// 対象がプレイヤーの前方半面（水平 180 度以内）にあるかを返す純関数。
+        /// 判定は水平面（XZ）で行う: 足元の対象は縦方向成分が支配的で、3D の内積では前方の足元でも
+        /// 負になりうるため、y 成分を落として体の向きとの角度で判定する。
+        /// <paramref name="toleranceDegrees"/> は境界を緩めるマージン（度）。0 で真横（90°）ちょうどまで含み、
+        /// 正の値で 90°+マージンまで含む（現 Actionable の維持ヒステリシスに使う）。
+        /// どちらかの水平成分がほぼゼロ（対象がほぼ真下、または forward が垂直）の場合は前方扱いとする
+        /// （真下は前後の区別が無く、体の向きに依らず手が届くため）。
+        /// </summary>
+        internal static bool IsInForwardHemisphere(
+            Vector3 playerPosition, Vector3 playerForward, Vector3 targetPoint, float toleranceDegrees)
+        {
+            var toTarget = targetPoint - playerPosition;
+            toTarget.y = 0f;
+            playerForward.y = 0f;
+
+            if (toTarget.sqrMagnitude < 1e-6f || playerForward.sqrMagnitude < 1e-6f) return true;
+
+            return Vector3.Angle(playerForward, toTarget) <= 90f + toleranceDegrees;
         }
 
         /// <summary>
@@ -425,6 +549,7 @@ namespace Game.Horror.Interaction
                     Gizmos.color = candidate.Kind switch
                     {
                         GizmoCandidateKind.Actionable => GizmoColorCandidateActionable,
+                        GizmoCandidateKind.FallbackActionable => GizmoColorCandidateFallbackActionable,
                         GizmoCandidateKind.Discoverable => GizmoColorCandidateDiscoverable,
                         GizmoCandidateKind.Occluded => GizmoColorCandidateOccluded,
                         _ => GizmoColorCandidateOutOfView,
