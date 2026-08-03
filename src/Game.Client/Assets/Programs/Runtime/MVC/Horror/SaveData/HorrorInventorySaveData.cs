@@ -19,12 +19,12 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorInventorySlotData
     {
+        public int SlotNo { get; set; }
+
         public ObjectCategory ObjectCategory { get; set; }
 
         public int Id { get; set; }
 
         public int Count { get; set; }
-
-        public int SlotNo { get; set; }
     }
 }
