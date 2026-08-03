@@ -110,11 +110,13 @@ namespace Game.Horror.Player
         private ObjectCategory _requestedEquipCategory;
         private int _requestedEquipId;
 
-        // アイテム使用（インベントリ Use 予約呼び出し）：閉じたダイアログから (category, id) 直値で要求される。遷移時キャッシュ（適用経過は UsingItemState ローカル）
+        // アイテム使用（インベントリ Use 予約呼び出し）：閉じたダイアログから (category, id, slotNo) 直値で要求される。遷移時キャッシュ（適用経過は UsingItemState ローカル）
         private bool _useItemRequested;
         private ObjectCategory _requestedUseCategory;
         private int _requestedUseId;
+        private int _requestedUseSlotNo;
         private HorrorItemMaster _pendingUseItemMaster;
+        private int _pendingUseSlotNo = -1;
 
         // リロード：SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private bool _reloadTriggered;
@@ -284,11 +286,13 @@ namespace Game.Horror.Player
         /// </summary>
         /// <param name="category">使用対象のカテゴリ。</param>
         /// <param name="id">使用対象の ID。</param>
-        public void RequestUseItem(ObjectCategory category, int id)
+        /// <param name="slotNo">使用対象のスロット位置。消費はこのスロットのみに作用する。</param>
+        public void RequestUseItem(ObjectCategory category, int id, int slotNo)
         {
             _useItemRequested = true;
             _requestedUseCategory = category;
             _requestedUseId = id;
+            _requestedUseSlotNo = slotNo;
         }
 
         #region IDamageable
@@ -614,7 +618,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 立てられたアイテム使用予約を消費し、マスタ解決・使用効果・所持数・残 HP を検証して
+        /// 立てられたアイテム使用予約を消費し、マスタ解決・使用効果・指定スロットの所持・残 HP を検証して
         /// UsingItemState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
         /// 実際の消費・回復適用は UsingItemState が行う。発火時点で HP 満タンなら消費せず破棄する
         /// （回復完了後に発火する再予約など、ダイアログ側の満タン無反応をすり抜けた予約への再検証）。
@@ -637,7 +641,21 @@ namespace Game.Horror.Player
             if (!itemMaster.HasEffect)
                 return false;
 
-            if (_inventoryService.GetCount(_requestedUseCategory, _requestedUseId) <= 0)
+            // 消費は指定スロットのみに作用するため、所持検証もそのスロットが対象アイテムを保持しているかで行う
+            bool slotHoldsItem = false;
+            foreach (var slot in _inventoryService.Slots)
+            {
+                if (slot.SlotNo == _requestedUseSlotNo
+                    && slot.ObjectCategory == _requestedUseCategory
+                    && slot.Id == _requestedUseId
+                    && slot.Count > 0)
+                {
+                    slotHoldsItem = true;
+                    break;
+                }
+            }
+
+            if (!slotHoldsItem)
                 return false;
 
             // 満タン判定はサービスの共有述語で行う
@@ -645,6 +663,7 @@ namespace Game.Horror.Player
                 return false;
 
             _pendingUseItemMaster = itemMaster;
+            _pendingUseSlotNo = _requestedUseSlotNo;
             return true;
         }
 

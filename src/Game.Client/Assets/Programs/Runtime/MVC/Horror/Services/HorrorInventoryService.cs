@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Game.Horror.Constants;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
@@ -117,7 +118,8 @@ namespace Game.Horror.Services
         }
 
         /// <summary>
-        /// 指定数を消費する。複数スロットにまたがる場合は SlotNo 昇順（画面の若い位置）から消費し、
+        /// 指定数を消費する（スロットを対象に取らない、総量に対する消費。リロード等）。
+        /// 複数スロットにまたがる場合は Count 昇順（同数は SlotNo 昇順）で数の少ない端数の山から消費し、
         /// 0 になった行は除去する（他行の位置は動かない）。合計所持数が不足なら何もせず false（部分消費しない）。
         /// </summary>
         public bool TryConsume(ObjectCategory category, int id, int count)
@@ -129,13 +131,17 @@ namespace Game.Horror.Services
             if (GetCount(category, id) < count)
                 return false;
 
-            var map = BuildSlotMap(data);
+            // 端数の山を先に解消するため、数の少ない順（同数は画面の若い位置順）に消費する
+            var stacks = data.Slots
+                .Where(s => s.ObjectCategory == category && s.Id == id)
+                .OrderBy(s => s.Count)
+                .ThenBy(s => s.SlotNo);
+
             int remaining = count;
-            for (int pos = 0; pos < MaxSlotCount && remaining > 0; pos++)
+            foreach (var slot in stacks)
             {
-                var slot = map[pos];
-                if (slot == null || slot.ObjectCategory != category || slot.Id != id)
-                    continue;
+                if (remaining <= 0)
+                    break;
 
                 int take = Mathf.Min(slot.Count, remaining);
                 slot.Count -= take;
@@ -143,6 +149,33 @@ namespace Game.Horror.Services
             }
 
             data.Slots.RemoveAll(s => s.ObjectCategory == category && s.Id == id && s.Count <= 0);
+
+            _repository.MarkDirty();
+            return true;
+        }
+
+        /// <summary>
+        /// 指定位置（SlotNo）のスロットのみから指定数を消費する（UI でスロットを選択して実行するアクション用）。
+        /// 指定位置の行が (category, id) と一致し Count が足りる場合のみ消費し、0 になった行は除去する（他行の位置は動かない）。
+        /// 範囲外・空位置・内容不一致・数量不足は何もせず false（他の同種スロットへは波及しない）。
+        /// </summary>
+        public bool TryConsumeAt(ObjectCategory category, int id, int slotNo, int count)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null || count <= 0 || slotNo < 0 || slotNo >= MaxSlotCount)
+                return false;
+
+            int index = data.Slots.FindIndex(s => s.SlotNo == slotNo);
+            if (index < 0)
+                return false;
+
+            var slot = data.Slots[index];
+            if (slot.ObjectCategory != category || slot.Id != id || slot.Count < count)
+                return false;
+
+            slot.Count -= count;
+            if (slot.Count <= 0)
+                data.Slots.RemoveAt(index);
 
             _repository.MarkDirty();
             return true;

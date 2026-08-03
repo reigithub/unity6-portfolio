@@ -206,7 +206,7 @@ namespace Game.Horror.Scenes
             if (_player != null)
             {
                 if (result.HasUseRequest)
-                    _player.RequestUseItem(result.UseCategory, result.UseId);
+                    _player.RequestUseItem(result.UseCategory, result.UseId, result.UseSlotNo);
 
                 if (result.HasEquipRequest)
                     _player.RequestEquip(result.EquipCategory, result.EquipId);

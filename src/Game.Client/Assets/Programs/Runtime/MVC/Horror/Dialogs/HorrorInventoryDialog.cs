@@ -19,6 +19,8 @@ namespace Game.Horror.Dialogs
 
         public ObjectCategory UseCategory { get; init; }
         public int UseId { get; init; }
+        public int UseSlotNo { get; init; }
+
         public bool HasUseRequest => UseCategory != ObjectCategory.None;
     }
 
@@ -103,6 +105,7 @@ namespace Game.Horror.Dialogs
                                 EquipId = _result.EquipId,
                                 UseCategory = info.ObjectCategory,
                                 UseId = info.ObjectId,
+                                UseSlotNo = ctx.SlotView.SlotIndex,
                             };
                             TrySetResult(_result);
                             break;

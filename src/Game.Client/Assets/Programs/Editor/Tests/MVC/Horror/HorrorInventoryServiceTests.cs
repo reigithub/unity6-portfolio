@@ -265,7 +265,7 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task TryConsume_AcrossStacks_ConsumesFromHeadAndRemovesEmptied()
+        public async Task TryConsume_AcrossStacks_ConsumesSmallestFirstAndRemovesEmptied()
         {
             await LoadDefaultData();
             AddSlotDirect(ObjectCategory.Item, 3, 10);
@@ -275,8 +275,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.Slots.Count, Is.EqualTo(1));
-            Assert.That(GetSlotAt(0), Is.Null);              // 若い位置から消費され使い切りで除去
-            Assert.That(GetSlotAt(1).Count, Is.EqualTo(3));  // 残る行の位置は動かない
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(3));  // 大きい山は跨ぎ分だけ減り、位置は動かない
+            Assert.That(GetSlotAt(1), Is.Null);              // 端数の山から消費され使い切りで除去
         }
 
         [Test]
@@ -402,10 +402,11 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
-        public async Task TryConsume_ConsumesInSlotNoOrder()
+        public async Task TryConsume_ConsumesFromSmallestCountFirst()
         {
             await LoadDefaultData();
-            // List 順は SlotNo 降順に登録し、消費が List 順でなく SlotNo 昇順で行われることを検証する
+            // 端数の山（SlotNo 2）が大きい山（SlotNo 0）より画面の遅い位置にある配置で、
+            // 消費が位置順でなく Count 昇順で行われることを検証する
             AddSlotDirect(ObjectCategory.Item, 3, 5, 2);
             AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
 
@@ -413,8 +414,8 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_service.Slots.Count, Is.EqualTo(1));
-            Assert.That(GetSlotAt(0), Is.Null);              // 若い位置から消費され使い切りで除去
-            Assert.That(GetSlotAt(2).Count, Is.EqualTo(3));  // 位置は動かない
+            Assert.That(GetSlotAt(2), Is.Null);              // 端数の山から消費され使い切りで除去
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(3));  // 大きい山は跨ぎ分だけ減り、位置は動かない
         }
 
         [Test]
@@ -431,6 +432,146 @@ namespace Game.Tests.MVC.Horror
             Assert.That(GetSlotAt(0), Is.Null);
             Assert.That(GetSlotAt(1).Id, Is.EqualTo(4));
             Assert.That(GetSlotAt(2).Count, Is.EqualTo(4));
+        }
+
+        [Test]
+        public async Task TryConsume_EqualCounts_TieBreaksBySlotNoAscending()
+        {
+            await LoadDefaultData();
+            // 同数の山は画面の若い位置（SlotNo 昇順）から消費される
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 3);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(1), Is.Null);
+            Assert.That(GetSlotAt(3).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsume_FullStackPreserved_WhilePartialSuffices()
+        {
+            await LoadDefaultData();
+            // 端数で足りる消費では満杯の山（Count = maxCount）に手を付けない
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 1);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 1);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(10));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryConsume_SpansToNextSmallestAfterExhaustingSmallest()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 2);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 4);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(0), Is.Null);              // 最小の山を使い切り
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(3));  // 次に少ない山へ跨ぐ
+            Assert.That(GetSlotAt(2).Count, Is.EqualTo(10)); // 最大の山は不変
+        }
+
+        [Test]
+        public async Task TryConsumeAt_ConsumesOnlyTargetSlot()
+        {
+            await LoadDefaultData();
+            // 端数の山（SlotNo 1）があっても、指定した大きい山（SlotNo 0）だけが減る
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 0, 4);
+
+            Assert.That(ok, Is.True);
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(6));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_FullAmount_RemovesRowOthersKeepSlotNo()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 3, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 0, 3);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.Slots.Count, Is.EqualTo(1));
+            Assert.That(GetSlotAt(0), Is.Null);
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_EmptyPosition_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 1, 1);
+
+            Assert.That(ok, Is.False);
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_DifferentItem_ReturnsFalseUnchanged()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 4, 0, 1);
+
+            Assert.That(ok, Is.False);
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_InsufficientCount_ReturnsFalseWithoutSpill()
+        {
+            await LoadDefaultData();
+            // 指定した山の不足を他の同種スロットで補わない（部分消費もしない）
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 1);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 0, 3);
+
+            Assert.That(ok, Is.False);
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(2));
+            Assert.That(GetSlotAt(1).Count, Is.EqualTo(10));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_OutOfRangeOrNonPositiveCount_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+
+            Assert.That(_service.TryConsumeAt(ObjectCategory.Item, 3, -1, 1), Is.False, "範囲外（下限）");
+            Assert.That(_service.TryConsumeAt(ObjectCategory.Item, 3, HorrorInventoryConstants.MaxSlotCount, 1), Is.False, "範囲外（上限）");
+            Assert.That(_service.TryConsumeAt(ObjectCategory.Item, 3, 0, 0), Is.False, "count = 0");
+            Assert.That(_service.TryConsumeAt(ObjectCategory.Item, 3, 0, -1), Is.False, "count < 0");
+            Assert.That(GetSlotAt(0).Count, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_Success_MarksDirty()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 0, 1);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_repository.IsDirty, Is.True);
         }
     }
 }

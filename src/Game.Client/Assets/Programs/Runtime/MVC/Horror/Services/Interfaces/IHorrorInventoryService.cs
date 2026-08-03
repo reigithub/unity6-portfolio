@@ -27,11 +27,19 @@ namespace Game.Horror.Services.Interfaces
         int GetCount(ObjectCategory category, int id);
 
         /// <summary>
-        /// 指定数を消費する。複数スロットにまたがる場合は SlotNo 昇順（画面の若い位置）から消費し、
+        /// 指定数を消費する（スロットを対象に取らない、総量に対する消費。リロード等）。
+        /// 複数スロットにまたがる場合は Count 昇順（同数は SlotNo 昇順）で数の少ない端数の山から消費し、
         /// 0 になった行は除去する（他行の位置は動かない）。
         /// 合計所持数が不足なら何もせず false（部分消費しない）。
         /// </summary>
         bool TryConsume(ObjectCategory category, int id, int count);
+
+        /// <summary>
+        /// 指定位置（SlotNo）のスロットのみから指定数を消費する（UI でスロットを選択して実行するアクション用）。
+        /// 指定位置の行が (category, id) と一致し Count が足りる場合のみ消費し、0 になった行は除去する（他行の位置は動かない）。
+        /// 範囲外・空位置・内容不一致・数量不足は何もせず false（他の同種スロットへは波及しない）。
+        /// </summary>
+        bool TryConsumeAt(ObjectCategory category, int id, int slotNo, int count);
 
         /// <summary>指定位置（SlotNo）のスロットを丸ごと破棄する。範囲外・空位置は何もせず false。</summary>
         bool DiscardSlot(int slotIndex);

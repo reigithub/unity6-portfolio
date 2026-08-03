@@ -52,7 +52,7 @@ MonoBehaviour:
     _description: item_4_desc
     _iconAssetName: Weapon/Sprite sheet Blue_45
     _modelAssetName: HorrorDropHandgunAmmo
-    _maxCount: 120
+    _maxCount: 15
     _effect: 0
     _effectDuration: 0
     _effectApplyDuration: 0

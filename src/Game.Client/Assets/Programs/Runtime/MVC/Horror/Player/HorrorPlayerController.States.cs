@@ -472,10 +472,10 @@ namespace Game.Horror.Player
                 _elapsed = 0f;
                 _appliedHeal = 0;
 
-                // 開始時点で消費を確定する。TryUseItem の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
-                if (!ctx._inventoryService.TryConsume(ObjectCategory.Item, ctx._pendingUseItemMaster.Id, 1))
+                // 開始時点で指定スロットからの消費を確定する。TryUseItem の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
+                if (!ctx._inventoryService.TryConsumeAt(ObjectCategory.Item, ctx._pendingUseItemMaster.Id, ctx._pendingUseSlotNo, 1))
                 {
-                    Debug.LogError($"アイテム消費に失敗したため使用を中止します Id={ctx._pendingUseItemMaster.Id}", ctx);
+                    Debug.LogError($"アイテム消費に失敗したため使用を中止します Id={ctx._pendingUseItemMaster.Id} SlotNo={ctx._pendingUseSlotNo}", ctx);
                     StateMachine.Transition(StateEvent.EndUseItem);
                 }
             }
@@ -505,6 +505,7 @@ namespace Game.Horror.Player
             {
                 // 中断（死亡）時も残量の一括適用はしない（途中までの回復のみが残る）
                 Context._pendingUseItemMaster = null;
+                Context._pendingUseSlotNo = -1;
             }
 
             // 経過比率から適用済み総量を再計算し、前フレームとの差分のみを加算する（丸め誤差の蓄積防止）
