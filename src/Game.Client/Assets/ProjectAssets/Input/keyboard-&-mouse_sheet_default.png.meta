@@ -708,7 +708,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: keyboard-&-mouse_sheet_default_26
+      name: mouse_scroll
       rect:
         serializedVersion: 2
         x: 576
@@ -6177,7 +6177,6 @@ TextureImporter:
       keyboard-&-mouse_sheet_default_220: -691144463
       keyboard-&-mouse_sheet_default_24: -988063525
       keyboard-&-mouse_sheet_default_25: -533180955
-      keyboard-&-mouse_sheet_default_26: 75418770
       keyboard-&-mouse_sheet_default_27: 1625878517
       keyboard-&-mouse_sheet_default_28: -789999855
       keyboard-&-mouse_sheet_default_3: -1358840247
@@ -6407,6 +6406,7 @@ TextureImporter:
       mouse_middleButton_outline: 1625648195
       mouse_rightButton: 247068163
       mouse_rightButton_outline: 2114705551
+      mouse_scroll: 75418770
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
