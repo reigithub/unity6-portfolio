@@ -47,22 +47,22 @@ namespace Game.Tests.MVC.Horror
         public void CalculateZoom_AboveMax_ClampsToMax()
             => Assert.That(HorrorItemPreviewView.CalculateZoom(1.95f, -1f, 0.1f, 0.5f, 2f), Is.EqualTo(2f).Within(1e-4f));
 
-        // RenderTexture の幅：描画先の縦横比に合わせる（高さ基準）。サイズ未確定なら正方形へフォールバック。
+        // RenderTexture の幅：縦横比に対応する幅（高さ基準）。1px 未満には潰さない。
 
         [Test]
-        public void CalculateTextureWidth_WideRect_MatchesAspect()
-            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(1920f, 1080f, 1024), Is.EqualTo(1820));
+        public void CalculateTextureWidth_WideAspect_MatchesAspect()
+            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(1920f / 1080f, 1024), Is.EqualTo(1820));
 
         [Test]
-        public void CalculateTextureWidth_SquareRect_ReturnsTextureSize()
-            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(1024f, 1024f, 1024), Is.EqualTo(1024));
+        public void CalculateTextureWidth_SquareAspect_ReturnsTextureSize()
+            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(1f, 1024), Is.EqualTo(1024));
 
         [Test]
-        public void CalculateTextureWidth_ZeroWidth_FallsBackToSquare()
-            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(0f, 1080f, 1024), Is.EqualTo(1024));
+        public void CalculateTextureWidth_TallAspect_ReturnsNarrowerWidth()
+            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(9f / 16f, 1024), Is.EqualTo(576));
 
         [Test]
-        public void CalculateTextureWidth_ZeroHeight_FallsBackToSquare()
-            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(1920f, 0f, 1024), Is.EqualTo(1024));
+        public void CalculateTextureWidth_NonPositiveAspect_ClampsToOne()
+            => Assert.That(HorrorItemPreviewView.CalculateTextureWidth(0f, 1024), Is.EqualTo(1));
     }
 }

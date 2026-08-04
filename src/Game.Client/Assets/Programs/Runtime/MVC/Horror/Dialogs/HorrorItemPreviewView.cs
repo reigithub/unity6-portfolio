@@ -122,10 +122,17 @@ namespace Game.Horror.Dialogs
         /// <param name="defaultRotationDegrees">モデルを提示する姿勢（Euler 度）。全て 0 でオーサリング姿勢のまま。</param>
         public async UniTask InitializeAsync(string modelAssetName, RawImage output, Vector3 defaultRotationDegrees)
         {
-            // 描画先と同じ縦横比で生成する（正方形固定だと引き伸ばされる）
             var outputRect = output.rectTransform.rect;
-            var textureWidth = CalculateTextureWidth(outputRect.width, outputRect.height, _textureSize);
-            _renderTexture = new RenderTexture(textureWidth, _textureSize, 24) { antiAliasing = 4 };
+            var rectReady = outputRect.width > 0f && outputRect.height > 0f;
+            if (!rectReady)
+            {
+                // 矩形の未確定は表示比率の破綻としか観測できないため、無音で落とさず顕在化させる
+                Debug.LogError($"[{GetType().Name}] 描画先の矩形が未確定のため画面アスペクトで代替します: {outputRect.size}");
+            }
+
+            // 描画先と同じ縦横比で生成する（正方形固定だと引き伸ばされる）
+            var aspect = rectReady ? outputRect.width / outputRect.height : (float)Screen.width / Screen.height;
+            _renderTexture = new RenderTexture(CalculateTextureWidth(aspect, _textureSize), _textureSize, 24) { antiAliasing = 4 };
             _previewCamera.targetTexture = _renderTexture;
             output.texture = _renderTexture;
 
@@ -190,14 +197,11 @@ namespace Game.Horror.Dialogs
         }
 
         /// <summary>
-        /// 描画先の縦横比に合わせた RenderTexture の幅を算出する（高さ基準）。
-        /// 描画先のサイズが未確定（0 以下）ならフォールバックとして正方形にする。
+        /// 縦横比に対応する RenderTexture の幅を算出する（高さ基準）。
+        /// 1 未満に潰れると RenderTexture の生成が失敗するため、最低 1px を保証する。
         /// </summary>
-        internal static int CalculateTextureWidth(float rectWidth, float rectHeight, int textureSize)
-        {
-            if (rectWidth <= 0f || rectHeight <= 0f) return textureSize;
-            return Mathf.Max(1, Mathf.RoundToInt(textureSize * (rectWidth / rectHeight)));
-        }
+        internal static int CalculateTextureWidth(float aspect, int textureSize)
+            => Mathf.Max(1, Mathf.RoundToInt(textureSize * aspect));
 
         /// <summary>
         /// bounds の最長辺が targetSize に一致するフィットスケールを算出する。
