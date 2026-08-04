@@ -21,6 +21,11 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _effectApplyDuration; // 効果適用にかかる時間
         [SerializeField] private bool _keyItem;
 
+        // 詳細プレビューでモデルを提示する姿勢（Euler 度）。全て 0 でプレハブのオーサリング姿勢そのまま
+        [SerializeField] private float _previewRotationX;
+        [SerializeField] private float _previewRotationY;
+        [SerializeField] private float _previewRotationZ;
+
         #endregion
 
         #region Database
@@ -84,6 +89,24 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _keyItem;
             set => _keyItem = value;
+        }
+
+        public float PreviewRotationX
+        {
+            get => _previewRotationX;
+            set => _previewRotationX = value;
+        }
+
+        public float PreviewRotationY
+        {
+            get => _previewRotationY;
+            set => _previewRotationY = value;
+        }
+
+        public float PreviewRotationZ
+        {
+            get => _previewRotationZ;
+            set => _previewRotationZ = value;
         }
 
         #endregion

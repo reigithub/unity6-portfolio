@@ -39,6 +39,11 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private float _recoilCameraPitch;     // 発砲カメラリコイルの跳ね上げピッチ角（度）
         [SerializeField] private float _recoilRecoverSeconds;  // 発砲カメラリコイルが収まるまでの秒数（減衰オフセット型）
 
+        // 詳細プレビューでモデルを提示する姿勢（Euler 度）。全て 0 でプレハブのオーサリング姿勢そのまま
+        [SerializeField] private float _previewRotationX;
+        [SerializeField] private float _previewRotationY;
+        [SerializeField] private float _previewRotationZ;
+
         #endregion
 
         #region Database
@@ -181,6 +186,24 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _recoilRecoverSeconds;
             set => _recoilRecoverSeconds = value;
+        }
+
+        public float PreviewRotationX
+        {
+            get => _previewRotationX;
+            set => _previewRotationX = value;
+        }
+
+        public float PreviewRotationY
+        {
+            get => _previewRotationY;
+            set => _previewRotationY = value;
+        }
+
+        public float PreviewRotationZ
+        {
+            get => _previewRotationZ;
+            set => _previewRotationZ = value;
         }
 
         #endregion

@@ -37,6 +37,9 @@ MonoBehaviour:
     _muzzleFlashAssetName: MuzzleFlash
     _recoilCameraPitch: 2.5
     _recoilRecoverSeconds: 0.25
+    _previewRotationX: 0
+    _previewRotationY: -90
+    _previewRotationZ: 0
   - _id: 2
     _developOnlyName: "\u30B9\u30E2\u30FC\u30AF\u30B0\u30EC\u30CD\u30FC\u30C9"
     _name: weapon_2_name
