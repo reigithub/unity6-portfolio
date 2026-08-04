@@ -15,8 +15,10 @@ namespace Game.Horror.Interaction
     /// （足元の近接アイテムを画面端クランプのプロンプトで取得可能にするため。背後・据え置き装置は対象外）。
     /// 距離判定はプレイヤー位置、視界・遮蔽・狙いはカメラ基準（一人称で視点が頭前方にあるため）。
     /// 遮蔽物は構造物・地形に加え他の Interactable も含み、対象自身のコライダーのみ参照一致で除外する。
-    /// 対象は点でなく <see cref="IInteractable.WorldBounds"/>(AABB) で扱い、狙いは画面中心 ray への交差/角度で測る。
-    /// 物理 SphereCast を使わないため、対象へ密着しても（cast 開始位置のめり込みで）検出が落ちることがない。
+    /// 対象は点でなく <see cref="IInteractable.WorldBounds"/>(AABB) で扱う。ただしレティクル直撃の判定のみ
+    /// 実コライダーへの Raycast（<see cref="FindReticleTarget"/>）を使う: 合成 AABB が実体より大きい対象
+    /// （開いた扉等）では、AABB の空気部分への交差やカメラ内包が「狙っている」を意味しないため。
+    /// 距離・検出は物理 cast を使わないため、対象へ密着しても（cast 開始位置のめり込みで）検出が落ちることがない。
     /// </summary>
     public class InteractionDetector : MonoBehaviour
     {
@@ -56,7 +58,7 @@ namespace Game.Horror.Interaction
 
         // 物理クエリ・候補集計用の再利用バッファ（毎スキャンで Clear し GC を避ける）
         private readonly Collider[] _hitBuffer = new Collider[16];
-        private readonly RaycastHit[] _occlusionHitBuffer = new RaycastHit[16];
+        private readonly RaycastHit[] _raycastHitBuffer = new RaycastHit[16];
         private readonly HashSet<IInteractable> _seen = new();
         private readonly List<IInteractable> _visible = new();
         private readonly Plane[] _frustumPlanes = new Plane[6];
@@ -231,6 +233,9 @@ namespace Game.Horror.Interaction
             var camForward = camTransform.forward;
             var centerRay = _camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
 
+            // レティクル直撃対象: 画面中心 ray が実コライダーでヒットしている最近接の Interactable（不在なら null）
+            var reticleTarget = FindReticleTarget(centerRay, _discoverRadius, _interactableMask, _raycastHitBuffer, out var reticleHitPoint);
+
             // 遮蔽マスク: シリアライズ値は変えず Interactable を常時合成し、対象同士の遮蔽も成立させる
             int occlusionMask = _occluderMask | _interactableMask;
 
@@ -275,10 +280,11 @@ namespace Game.Horror.Interaction
                 }
 
                 // 狙いスコア（0=レティクル直撃、度）と、遮蔽判定に使う aimPoint を同時に得る
-                float aimScore = CalculateAimScore(bounds, centerRay, camPos, camForward, out var aimPoint);
+                float aimScore = CalculateAimScore(
+                    bounds, ReferenceEquals(interactable, reticleTarget), reticleHitPoint, camPos, camForward, out var aimPoint);
 
                 // 遮蔽（壁越し）を除外：カメラ → aimPoint の間に対象自身以外の遮蔽物（構造物・他の Interactable）があれば不可視
-                if (IsOccluded(camPos, aimPoint, interactable, occlusionMask, _occlusionHitBuffer))
+                if (IsOccluded(camPos, aimPoint, interactable, occlusionMask, _raycastHitBuffer))
                 {
 #if UNITY_EDITOR
                     _gizmoCandidates.Add(new GizmoCandidate(interactable, bounds, aimPoint, aimScore, GizmoCandidateKind.Occluded));
@@ -359,7 +365,7 @@ namespace Game.Horror.Interaction
 
                 // 視界外はレティクル ray と交差しないため、狙い点はカメラへの最近接点を直接使う
                 var aimPoint = candidate.Bounds.ClosestPoint(cameraPosition);
-                bool occluded = IsOccluded(cameraPosition, aimPoint, candidate.Target, occlusionMask, _occlusionHitBuffer);
+                bool occluded = IsOccluded(cameraPosition, aimPoint, candidate.Target, occlusionMask, _raycastHitBuffer);
 
 #if UNITY_EDITOR
                 if ((aimPoint - cameraPosition).magnitude > OcclusionMargin)
@@ -404,17 +410,58 @@ namespace Game.Horror.Interaction
         }
 
         /// <summary>
-        /// 画面中心（レティクル）からの「狙いの良さ」を角度で返す。0 が最良（レティクル直撃）で、
-        /// 値が大きいほど画面中心から外れる。レティクル ray が bounds を貫けば 0、外れたら
-        /// カメラ前方と bounds 中心方向のなす角（度）。画面投影を使わないため、対象がカメラ平面より
-        /// 後ろ（深度 z&lt;0）へ回り込む近距離でも反転・破綻しない。
-        /// <paramref name="aimPoint"/> は遮蔽判定に使う狙い点（交差時は交差点、非交差時は bounds 上の最近接点）。
+        /// レティクル ray が実コライダーでヒットしている最近接の Interactable（直撃対象）を返す。不在なら null。
+        /// AABB でなく実コライダーへの Raycast を使うことで、合成 AABB が実体より大きい対象（開いた扉等）の
+        /// 空気部分への交差やカメラ内包での誤直撃を防ぐ。トリガーも含む（拾得用に膨らませたトリガーへの直撃は有効）。
+        /// バッファ満杯で真の最近接が欠落しても、直撃漏れは角度判定に落ちるだけで安全側。
         /// </summary>
-        internal static float CalculateAimScore(Bounds bounds, Ray centerRay, Vector3 cameraPosition, Vector3 cameraForward, out Vector3 aimPoint)
+        /// <param name="centerRay">画面中心（レティクル）の ray</param>
+        /// <param name="maxDistance">レイの最大距離（検出範囲）</param>
+        /// <param name="interactableMask">候補収集の対象レイヤー（Interactable）</param>
+        /// <param name="hitBuffer">ヒット列挙の再利用バッファ（呼び出し側が所有）</param>
+        /// <param name="hitPoint">直撃対象への実ヒット点（不在時は default）</param>
+        internal static IInteractable FindReticleTarget(
+            Ray centerRay, float maxDistance, int interactableMask, RaycastHit[] hitBuffer, out Vector3 hitPoint)
         {
-            if (bounds.IntersectRay(centerRay, out float distance))
+            int hitCount = Physics.RaycastNonAlloc(centerRay, hitBuffer, maxDistance, interactableMask, QueryTriggerInteraction.Collide);
+
+            IInteractable closest = null;
+            float closestDistance = float.MaxValue;
+            hitPoint = default;
+
+            // RaycastNonAlloc のヒット順は距離順でないため、全ヒットから最近接を選ぶ
+            for (int i = 0; i < hitCount; i++)
             {
-                aimPoint = centerRay.GetPoint(distance);
+                var hit = hitBuffer[i];
+                if (hit.collider == null || hit.distance >= closestDistance) continue;
+
+                var interactable = hit.collider.GetComponentInParent<IInteractable>();
+                if (interactable == null) continue;
+
+                closest = interactable;
+                closestDistance = hit.distance;
+                hitPoint = hit.point;
+            }
+
+            return closest;
+        }
+
+        /// <summary>
+        /// 画面中心（レティクル）からの「狙いの良さ」を角度で返す純関数。0 が最良（レティクル直撃）で、
+        /// 値が大きいほど画面中心から外れる。直撃かどうかは呼び出し側が実コライダーへの Raycast
+        /// （<see cref="FindReticleTarget"/>）で判定して渡す。AABB 貫通を直撃としないのは、合成 AABB が
+        /// 実体より大きい対象（開いた扉等）でカメラ内包・空気部分への交差が「狙っている」を意味しないため。
+        /// 非直撃はカメラ前方と bounds 中心方向のなす角（度）。画面投影を使わないため、対象がカメラ平面より
+        /// 後ろ（深度 z&lt;0）へ回り込む近距離でも反転・破綻しない。
+        /// <paramref name="aimPoint"/> は遮蔽判定に使う狙い点（直撃時は実ヒット点、非直撃時は bounds 上の最近接点）。
+        /// </summary>
+        internal static float CalculateAimScore(
+            Bounds bounds, bool isReticleHit, Vector3 reticleHitPoint,
+            Vector3 cameraPosition, Vector3 cameraForward, out Vector3 aimPoint)
+        {
+            if (isReticleHit)
+            {
+                aimPoint = reticleHitPoint;
                 return 0f;
             }
 
