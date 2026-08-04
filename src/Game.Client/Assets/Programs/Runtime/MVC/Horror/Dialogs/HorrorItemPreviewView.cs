@@ -12,8 +12,7 @@ namespace Game.Horror.Dialogs
     /// アイテム詳細ダイアログの 3D モデルプレビュー機構。
     /// プレハブ内 PreviewRig ルート（子に PreviewCamera / PreviewLight / ModelAnchor）にアタッチされる想定。
     /// リグは CanvasScaler の影響を受けないよう Canvas の兄弟として配置され、専用 RenderTexture 越しに
-    /// <see cref="RawImage"/> へ描画する。モデルの読み込み・解放は <see cref="Game.Horror.Player.HorrorWeaponView"/>
-    /// と同じ Addressables ハンドル対管理イディオムに倣う。
+    /// <see cref="RawImage"/> へ描画する。
     /// 回転・ズーム操作は毎フレーム <see cref="Time.unscaledDeltaTime"/> 駆動（親ダイアログは Time.timeScale=0 で開くため）。
     /// </summary>
     public class HorrorItemPreviewView : MonoBehaviour
@@ -33,14 +32,20 @@ namespace Game.Horror.Dialogs
         [Tooltip("モデルの最長辺をこのサイズへフィットさせる")]
         [SerializeField] private float _fitSize = 1f;
 
-        [Tooltip("キー/ボタン回転の速度（度/秒）")]
-        [SerializeField] private float _rotateSpeed = 120f;
-
         [Tooltip("マウスドラッグの回転感度（度/px）")]
         [SerializeField] private float _dragSensitivity = 0.25f;
 
+        [Tooltip("マウススクロールホイールの回転感度（度/px）")]
+        [SerializeField] private float _scrollSensitivity = 0.25f;
+
+        [Tooltip("キー/ボタン回転の速度（度/秒）")]
+        [SerializeField] private float _rotateSpeed = 120f;
+
         [Tooltip("ピッチ角のクランプ範囲（±度）")]
         [SerializeField] private float _pitchLimit = 80f;
+
+        [Tooltip("ズームの速度")]
+        [SerializeField] private float _zoomSpeed = 15f;
 
         [Tooltip("ホイール1notch あたりのズーム係数変化量")]
         [SerializeField] private float _zoomStep = 0.1f;
@@ -60,6 +65,7 @@ namespace Game.Horror.Dialogs
 
         private float _yaw;
         private float _pitch;
+        private float _roll;
         private float _zoom = 1f;
         private bool _initialized;
 
@@ -70,9 +76,9 @@ namespace Game.Horror.Dialogs
             var dt = Time.unscaledDeltaTime;
 
             if (_inputService.UI.Next.IsPressed())
-                _yaw += _rotateSpeed * dt;
+                _roll -= _rotateSpeed * dt;
             else if (_inputService.UI.Previous.IsPressed())
-                _yaw -= _rotateSpeed * dt;
+                _roll += _rotateSpeed * dt;
 
             bool canInputDelta =　_inputService.UI.Click.IsPressed()
                                  || _inputService.ControlScheme != InputControlSchemes.KeyboardAndMouse;
@@ -83,16 +89,14 @@ namespace Game.Horror.Dialogs
                 _pitch -= pointerDelta.y * _dragSensitivity;
             }
 
-            // _pitch = Mathf.Clamp(_pitch, -_pitchLimit, _pitchLimit);
-
-            var scrollY = _inputService.UI.ScrollWheel.ReadValue<Vector2>().y;
+            float scrollY = _inputService.UI.ScrollWheel.ReadValue<Vector2>().y * _scrollSensitivity;
             if (_inputService.UI.Next2.IsPressed())
-                scrollY += _rotateSpeed * dt;
+                scrollY += _zoomSpeed * dt;
             else if (_inputService.UI.Previous2.IsPressed())
-                scrollY -= _rotateSpeed * dt;
+                scrollY -= _zoomSpeed * dt;
             _zoom = CalculateZoom(_zoom, scrollY, _zoomStep, _zoomMin, _zoomMax);
 
-            _modelAnchor.localRotation = Quaternion.Euler(_pitch, _yaw, 0f);
+            _modelAnchor.localRotation = Quaternion.Euler(_pitch, _yaw, _roll);
             _previewCamera.transform.localPosition = _cameraBasePosition * _zoom;
         }
 
@@ -159,9 +163,10 @@ namespace Game.Horror.Dialogs
         {
             _yaw = 0f;
             _pitch = 0f;
+            _roll = 0f;
             _zoom = 1f;
 
-            _modelAnchor.localRotation = Quaternion.Euler(_pitch, _yaw, 0f);
+            _modelAnchor.localRotation = Quaternion.Euler(_pitch, _yaw, _roll);
             _previewCamera.transform.localPosition = _cameraBasePosition * _zoom;
         }
 
