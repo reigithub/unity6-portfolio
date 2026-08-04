@@ -110,8 +110,7 @@ namespace Game.Horror.Dialogs
                             TrySetResult(_result);
                             break;
                         case ContextActionType.Inspect:
-                            // アイテム詳細ダイアログを実装して開く
-                            // await HorrorItemDetailDialog.RunAsync(info);
+                            await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
                             _inventoryService.DiscardSlot(ctx.SlotView.SlotIndex);
