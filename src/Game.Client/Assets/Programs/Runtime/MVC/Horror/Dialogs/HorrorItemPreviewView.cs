@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Shared.Constants;
-using Game.Shared.Enums;
 using Game.Shared.Extensions;
 using Game.Shared.Services;
 using UnityEngine;
@@ -11,8 +10,8 @@ namespace Game.Horror.Dialogs
 {
     /// <summary>
     /// アイテム詳細ダイアログの 3D モデルプレビュー機構。
-    /// プレハブ内 PreviewRig ルート（子に PreviewCamera / PreviewLight / ModelAnchor）にアタッチされる想定で、
-    /// 初期化時に Canvas 配下から切り離してワールド上の退避位置に配置し、専用 RenderTexture 越しに
+    /// プレハブ内 PreviewRig ルート（子に PreviewCamera / PreviewLight / ModelAnchor）にアタッチされる想定。
+    /// リグは CanvasScaler の影響を受けないよう Canvas の兄弟として配置され、専用 RenderTexture 越しに
     /// <see cref="RawImage"/> へ描画する。モデルの読み込み・解放は <see cref="Game.Horror.Player.HorrorWeaponView"/>
     /// と同じ Addressables ハンドル対管理イディオムに倣う。
     /// 回転・ズーム操作は毎フレーム <see cref="Time.unscaledDeltaTime"/> 駆動（親ダイアログは Time.timeScale=0 で開くため）。
@@ -27,9 +26,6 @@ namespace Game.Horror.Dialogs
 
         [Tooltip("モデルの生成先（回転・ピッチはここに適用）")]
         [SerializeField] private Transform _modelAnchor;
-
-        [Tooltip("Canvas から切り離した後の退避先ワールド座標（メインカメラに実質映らない床下）")]
-        [SerializeField] private Vector3 _rigWorldPosition = new(0f, -2000f, 0f);
 
         [Tooltip("プレビュー用 RenderTexture の一辺サイズ（px）")]
         [SerializeField] private int _textureSize = 1024;
@@ -122,11 +118,6 @@ namespace Game.Horror.Dialogs
         /// <param name="defaultRotationDegrees">モデルを提示する姿勢（Euler 度）。全て 0 でオーサリング姿勢のまま。</param>
         public async UniTask InitializeAsync(string modelAssetName, RawImage output, Vector3 defaultRotationDegrees)
         {
-            // Canvas 子のままだと CanvasScaler のスケール・座標系を継承するため、3D プレビュー空間として切り離す
-            transform.SetParent(null);
-            transform.position = _rigWorldPosition;
-            transform.localScale = Vector3.one;
-
             // 描画先と同じ縦横比で生成する（正方形固定だと引き伸ばされる）
             var outputRect = output.rectTransform.rect;
             var textureWidth = CalculateTextureWidth(outputRect.width, outputRect.height, _textureSize);

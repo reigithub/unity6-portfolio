@@ -114,15 +114,6 @@ namespace Game.Horror.Dialogs
         public void ResetPreview()
             => _previewView.ResetView();
 
-        public override UniTask Terminate()
-        {
-            // PreviewRig は InitializeAsync で Canvas 外（ワールド退避位置）へ切り離されるため、
-            // ダイアログの GameObject 階層破棄と連動しない。ここで明示的に破棄する
-            if (_previewView != null) Destroy(_previewView.gameObject);
-
-            return base.Terminate();
-        }
-
         private void SetText()
         {
             _nameText.text = _localizationService.GetStringByPropTexts(_info.Name);

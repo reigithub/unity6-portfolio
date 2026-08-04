@@ -149,38 +149,43 @@ namespace Game.Editor.MenuCommands
 
             var uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
 
-            // ---- ルート (Canvas + Component) ----
-            var root = new GameObject("HorrorItemDetailDialog", typeof(RectTransform));
+            // ---- ルート (素の GameObject。Canvas とプレビューリグを兄弟に並べる) ----
+            var root = new GameObject("HorrorItemDetailDialog");
             try
             {
-                root.layer = 5; // UI
-                var canvas = root.AddComponent<Canvas>();
+                // UI 一式は Canvas 配下に置く。リグを Canvas の外に出すことで CanvasScaler の座標系・スケールを受けないようにする
+                var canvasObject = new GameObject("Canvas", typeof(RectTransform));
+                canvasObject.layer = 5; // UI
+                canvasObject.transform.SetParent(root.transform, false);
+                var canvasRoot = canvasObject.transform;
+
+                var canvas = canvasObject.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.additionalShaderChannels = (AdditionalCanvasShaderChannels)31; // 既存ダイアログと同じ全チャンネル
 
-                var scaler = root.AddComponent<CanvasScaler>();
+                var scaler = canvasObject.AddComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 scaler.referenceResolution = new Vector2(1920f, 1080f);
                 scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
-                root.AddComponent<GraphicRaycaster>();
-                var component = root.AddComponent<HorrorItemDetailDialogComponent>(); // RequireComponent で CanvasGroup も付与される
+                canvasObject.AddComponent<GraphicRaycaster>();
+                var component = canvasObject.AddComponent<HorrorItemDetailDialogComponent>(); // RequireComponent で CanvasGroup も付与される
 
                 // ---- 暗幕 ----
-                var background = CreateUIObject("Background", root.transform);
+                var background = CreateUIObject("Background", canvasRoot);
                 Stretch(background);
                 var backgroundImage = background.gameObject.AddComponent<Image>();
                 backgroundImage.color = BackdropColor;
 
                 // ---- 3D プレビュー表示先 ----
                 // 全画面に広げ、ズーム時のフラスタム外クロップ境界を画面端に一致させる（中央に切れ目を出さない）
-                var previewImageRect = CreateUIObject("PreviewImage", root.transform);
+                var previewImageRect = CreateUIObject("PreviewImage", canvasRoot);
                 Stretch(previewImageRect);
                 var previewImage = previewImageRect.gameObject.AddComponent<RawImage>();
                 previewImage.raycastTarget = false;
 
                 // ---- モデル未設定時のフォールバックアイコン ----
-                var fallbackRect = CreateUIObject("FallbackIcon", root.transform);
+                var fallbackRect = CreateUIObject("FallbackIcon", canvasRoot);
                 fallbackRect.sizeDelta = new Vector2(400f, 400f);
                 fallbackRect.anchoredPosition = new Vector2(0f, 40f);
                 var fallbackIcon = fallbackRect.gameObject.AddComponent<Image>();
@@ -189,10 +194,10 @@ namespace Game.Editor.MenuCommands
                 fallbackRect.gameObject.SetActive(false);
 
                 // ---- SPECS パネル (左下) ----
-                var specsView = BuildSpecsPanel(root.transform, font, uiSprite);
+                var specsView = BuildSpecsPanel(canvasRoot, font, uiSprite);
 
                 // ---- 名前 / 説明パネル (右下) ----
-                var infoPanel = CreateUIObject("InfoPanel", root.transform);
+                var infoPanel = CreateUIObject("InfoPanel", canvasRoot);
                 SetAnchor(infoPanel, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f));
                 infoPanel.anchoredPosition = new Vector2(-80f, 120f);
                 infoPanel.sizeDelta = new Vector2(520f, 360f);
@@ -208,10 +213,11 @@ namespace Game.Editor.MenuCommands
                 descriptionText.color = new Color(0.85f, 0.85f, 0.85f, 1f);
 
                 // ---- 操作ガイド (下部中央) ----
-                var guide = BuildInputActionGuide(root.transform, font);
+                var guide = BuildInputActionGuide(canvasRoot, font);
 
-                // ---- 3D プレビューリグ (実行時に Canvas 外へ切り離される) ----
+                // ---- 3D プレビューリグ (Canvas の兄弟。シーンの近傍ライトを拾わないよう遠方へ置く) ----
                 var previewView = BuildPreviewRig(root.transform, previewLayer);
+                previewView.transform.localPosition = new Vector3(0f, -2000f, 0f);
 
                 // ---- SerializeField 配線 ----
                 SetRefs(component,
