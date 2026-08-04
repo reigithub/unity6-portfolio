@@ -242,6 +242,34 @@ MonoBehaviour:
     m_Localized: Basic Settings
     m_Metadata:
       m_Items: []
+  - m_Id: 23485961825427456
+    m_Localized: SPECS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606592
+    m_Localized: Power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606593
+    m_Localized: Stability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606594
+    m_Localized: Accuracy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800896
+    m_Localized: Fire Rate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800897
+    m_Localized: Reload Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800898
+    m_Localized: Capacity
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

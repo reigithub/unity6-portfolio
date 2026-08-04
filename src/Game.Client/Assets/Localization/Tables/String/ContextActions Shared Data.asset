@@ -83,6 +83,14 @@ MonoBehaviour:
     m_Key: Cancel
     m_Metadata:
       m_Items: []
+  - m_Id: 14297717401460736
+    m_Key: Rotate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14297717430820864
+    m_Key: Zoom
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
