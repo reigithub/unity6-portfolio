@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Horror.Constants;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
@@ -45,16 +46,7 @@ namespace Game.Horror.Services
             var map = BuildSlotMap(data);
 
             // 全量が入るか事前判定する（既存スタックの空き + 空き位置数 × maxCount）
-            long capacity = 0;
-            foreach (var slot in map)
-            {
-                if (slot == null)
-                    capacity += maxCount;
-                else if (slot.ObjectCategory == category && slot.Id == id)
-                    capacity += Mathf.Max(0, maxCount - slot.Count);
-            }
-
-            if (capacity < addCount)
+            if (CalculateCapacity(map, BuildSlotCounts(map), category, id, maxCount) < addCount)
                 return false;
 
             // 既存スタックを SlotNo 昇順で充填する
@@ -181,6 +173,32 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// 指定の消費を適用した後の状態で、対象を全量追加できるかを判定する（インベントリは変更しない）。
+        /// 消費と追加を 1 操作として扱う交換（クラフト等）で、素材だけ消えて成果物が入らない事態を防ぐために使う。
+        /// 消費側の所持数が足りない場合も false。
+        /// </summary>
+        public bool CanAddAfterConsume(IReadOnlyList<HorrorObjectAmount> consumptions, ObjectCategory addCategory, int addId, int addCount, int addMaxCount)
+        {
+            var data = _repository.Data?.Inventory;
+            if (data == null || addCount <= 0 || addMaxCount <= 0)
+                return false;
+
+            var map = BuildSlotMap(data);
+            var counts = BuildSlotCounts(map);
+
+            if (consumptions != null)
+            {
+                foreach (var consumption in consumptions)
+                {
+                    if (!TryConsumeOnCounts(map, counts, consumption))
+                        return false;
+                }
+            }
+
+            return CalculateCapacity(map, counts, addCategory, addId, addMaxCount) >= addCount;
+        }
+
         /// <summary>指定位置（SlotNo）のスロットを丸ごと破棄する。範囲外・空位置は何もせず false。</summary>
         public bool DiscardSlot(int slotIndex)
         {
@@ -219,6 +237,76 @@ namespace Game.Horror.Services
             }
 
             return map;
+        }
+
+        /// <summary>位置ごとの所持数を写した作業用配列を作る。判定のシミュレーションはこの配列だけを書き換える。</summary>
+        private static int[] BuildSlotCounts(HorrorInventorySlotData[] map)
+        {
+            var counts = new int[map.Length];
+            for (int pos = 0; pos < map.Length; pos++)
+            {
+                counts[pos] = map[pos]?.Count ?? 0;
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// 追加可能な総量を求める（空き位置数 × maxCount + 同種スタックの残容量）。
+        /// 位置の中身は <paramref name="map"/>、残数は <paramref name="counts"/> を見るため、
+        /// 消費をシミュレートした後の状態にも使える（残数 0 の位置は空きとして数える）。
+        /// </summary>
+        private static long CalculateCapacity(HorrorInventorySlotData[] map, int[] counts, ObjectCategory category, int id, int maxCount)
+        {
+            long capacity = 0;
+            for (int pos = 0; pos < map.Length; pos++)
+            {
+                var slot = map[pos];
+                if (slot == null || counts[pos] <= 0)
+                    capacity += maxCount;
+                else if (slot.ObjectCategory == category && slot.Id == id)
+                    capacity += Mathf.Max(0, maxCount - counts[pos]);
+            }
+
+            return capacity;
+        }
+
+        /// <summary>
+        /// 作業用配列に対して消費をシミュレートする。<see cref="TryConsume"/> と同じ順序
+        /// （残数の少ない山から、同数は SlotNo 昇順）で減らす。消費順序によって空く位置の数が変わるため、
+        /// 実際の消費と同じ順序で辿らないと追加可能量の判定がずれる。所持数が不足していれば false。
+        /// </summary>
+        private static bool TryConsumeOnCounts(HorrorInventorySlotData[] map, int[] counts, HorrorObjectAmount consumption)
+        {
+            if (consumption.Count <= 0)
+                return false;
+
+            int remaining = consumption.Count;
+            while (remaining > 0)
+            {
+                int target = -1;
+                for (int pos = 0; pos < map.Length; pos++)
+                {
+                    var slot = map[pos];
+                    if (slot == null || counts[pos] <= 0)
+                        continue;
+                    if (slot.ObjectCategory != consumption.Category || slot.Id != consumption.Id)
+                        continue;
+
+                    // 同数なら先に見つかった位置（SlotNo の小さい方）を維持する
+                    if (target < 0 || counts[pos] < counts[target])
+                        target = pos;
+                }
+
+                if (target < 0)
+                    return false;
+
+                int take = Mathf.Min(counts[target], remaining);
+                counts[target] -= take;
+                remaining -= take;
+            }
+
+            return true;
         }
     }
 }

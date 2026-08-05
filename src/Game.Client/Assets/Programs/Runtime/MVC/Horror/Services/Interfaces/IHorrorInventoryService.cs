@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
 using Game.Shared.Services.Interfaces;
@@ -40,6 +41,13 @@ namespace Game.Horror.Services.Interfaces
         /// 範囲外・空位置・内容不一致・数量不足は何もせず false（他の同種スロットへは波及しない）。
         /// </summary>
         bool TryConsumeAt(ObjectCategory category, int id, int slotNo, int count);
+
+        /// <summary>
+        /// 指定の消費を適用した後の状態で、対象を全量追加できるかを判定する（インベントリは変更しない）。
+        /// 消費と追加を 1 操作として扱う交換（クラフト等）で、素材だけ消えて成果物が入らない事態を防ぐために使う。
+        /// 消費側の所持数が足りない場合も false。
+        /// </summary>
+        bool CanAddAfterConsume(IReadOnlyList<HorrorObjectAmount> consumptions, ObjectCategory addCategory, int addId, int addCount, int addMaxCount);
 
         /// <summary>指定位置（SlotNo）のスロットを丸ごと破棄する。範囲外・空位置は何もせず false。</summary>
         bool DiscardSlot(int slotIndex);

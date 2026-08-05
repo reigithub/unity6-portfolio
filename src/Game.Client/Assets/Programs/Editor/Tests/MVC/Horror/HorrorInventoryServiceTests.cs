@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Game.Horror.Constants;
+using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
@@ -572,6 +573,152 @@ namespace Game.Tests.MVC.Horror
 
             Assert.That(ok, Is.True);
             Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        private static HorrorObjectAmount[] Amounts(params (int id, int count)[] items)
+            => items.Select(x => new HorrorObjectAmount
+            {
+                Category = ObjectCategory.Item,
+                Id = x.id,
+                Count = x.count
+            }).ToArray();
+
+        [Test]
+        public async Task CanAddAfterConsume_MaterialsAndFreeSlot_ReturnsTrue()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(ok, Is.True);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_InsufficientMaterials_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1, 0);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(ok, Is.False);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_ConsumptionFreesTheOnlySlot_ReturnsTrue()
+        {
+            await LoadDefaultData();
+            // 全スロット占有。素材の山を消費して空く 1 枠へ成果物が入る
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 2);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(ok, Is.True);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_ConsumptionLeavesRemainder_ReturnsFalseWhenSlotsAreFull()
+        {
+            await LoadDefaultData();
+            // 素材の山が消費後も残る（残数 1）ため空き枠が生まれず、成果物を置けない
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 1);
+            AddSlotDirect(ObjectCategory.Item, 3, 3);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(ok, Is.False);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_MultipleMaterials_JudgesEachKind()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+            AddSlotDirect(ObjectCategory.Item, 5, 1, 1);
+
+            Assert.That(
+                _service.CanAddAfterConsume(Amounts((3, 2), (5, 1)), ObjectCategory.Item, 4, 1, 1),
+                Is.True, "両方の素材が足りる");
+            Assert.That(
+                _service.CanAddAfterConsume(Amounts((3, 2), (5, 2)), ObjectCategory.Item, 4, 1, 1),
+                Is.False, "片方の素材が足りない");
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_ConsumesSmallestStackFirst_FreesSlotForResult()
+        {
+            await LoadDefaultData();
+            // 端数の山（1 個）から先に消費されるため 1 枠空く。大きい山から消費する順序では空かない
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 2);
+            AddSlotDirect(ObjectCategory.Item, 3, 5);
+            AddSlotDirect(ObjectCategory.Item, 3, 1);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 3)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(ok, Is.True);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_StacksWithResult_UsesRemainingCapacity()
+        {
+            await LoadDefaultData();
+            // 全スロット占有だが成果物と同種のスタックに空きがあるため積める
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount - 2);
+            AddSlotDirect(ObjectCategory.Item, 3, 2);
+            AddSlotDirect(ObjectCategory.Item, 4, 8);
+
+            var ok = _service.CanAddAfterConsume(Amounts((3, 1)), ObjectCategory.Item, 4, 2, 10);
+
+            Assert.That(ok, Is.True);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_DoesNotMutateInventory()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+
+            _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(_service.GetCount(ObjectCategory.Item, 3), Is.EqualTo(2));
+            Assert.That(_service.Slots.Count, Is.EqualTo(1));
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_NonPositiveAmounts_ReturnsFalse()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+
+            Assert.That(
+                _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 0, 1),
+                Is.False, "追加数 0");
+            Assert.That(
+                _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 0),
+                Is.False, "スタック上限 0");
+            Assert.That(
+                _service.CanAddAfterConsume(Amounts((3, 0)), ObjectCategory.Item, 4, 1, 1),
+                Is.False, "消費数 0");
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_NoConsumption_JudgesCapacityOnly()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount);
+
+            Assert.That(
+                _service.CanAddAfterConsume(null, ObjectCategory.Item, 4, 1, 1),
+                Is.False, "空きがない");
+
+            _service.DiscardSlot(0);
+
+            Assert.That(
+                _service.CanAddAfterConsume(null, ObjectCategory.Item, 4, 1, 1),
+                Is.True, "空きが生まれた");
         }
     }
 }
