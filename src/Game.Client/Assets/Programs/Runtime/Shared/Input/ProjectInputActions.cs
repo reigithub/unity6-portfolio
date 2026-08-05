@@ -1468,7 +1468,7 @@ namespace Game.Shared.Input
                     ""id"": ""217503da-b2ca-4155-ab83-36a3501bb103"",
                     ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
-                    ""processors"": ""ScaleVector2(x=10,y=10)"",
+                    ""processors"": ""ScaleVector2(x=5,y=5)"",
                     ""groups"": "";Gamepad"",
                     ""action"": ""PointDelta"",
                     ""isComposite"": false,
