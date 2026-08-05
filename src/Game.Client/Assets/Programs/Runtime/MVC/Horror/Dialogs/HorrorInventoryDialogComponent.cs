@@ -24,6 +24,8 @@ namespace Game.Horror.Dialogs
         [SerializeField] private Transform _keyItemContentRoot;
         [SerializeField] private HorrorKeyItemView _keyItemPrefab;
 
+        [SerializeField] private HorrorCraftView _craftView;
+
         #endregion
 
         private IInputSystemService _inputService;
@@ -50,6 +52,7 @@ namespace Game.Horror.Dialogs
             _slotDetailView.Initialize();
             UpdateDetail(_slots[0]);
             BindKeyItems();
+            BindCraft();
             _tabGroup.ChangeTab(0);
 
             if (_contextMenu != null)
@@ -62,6 +65,8 @@ namespace Game.Horror.Dialogs
 
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
+
+        public bool IsProcessing() => IsSubmenuOpen() || IsCrafting();
 
         #region InventorySlots
 
@@ -180,6 +185,25 @@ namespace Game.Horror.Dialogs
                 keyItem.Initialize();
                 keyItem.SetItem(item.ObjectCategory, item.Id);
             }
+        }
+
+        #endregion
+
+        #region Craft
+
+        /// <summary>クラフトの長押しが進行中か（ダイアログを閉じる・タブを切り替える入力の抑止に使う）。</summary>
+        public bool IsCrafting() => _craftView != null && _craftView.IsCrafting;
+
+        private void BindCraft()
+        {
+            if (_craftView == null) return;
+
+            _craftView.Initialize();
+
+            // クラフトはインベントリの中身を変えるため、グリッド表示へ反映する
+            _craftView.OnCrafted
+                .Subscribe(_ => ApplySlots())
+                .AddTo(Disposables);
         }
 
         #endregion

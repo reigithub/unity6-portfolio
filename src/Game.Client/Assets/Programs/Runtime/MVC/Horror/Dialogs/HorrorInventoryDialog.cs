@@ -54,11 +54,13 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            // キャンセル：サブメニュー展開中は一段だけ閉じ、それ以外はダイアログを閉じる
+            // キャンセル：サブメニュー展開中は一段だけ閉じ、それ以外はダイアログを閉じる（クラフトの長押し中は無効）
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
+                    if (SceneComponent.IsCrafting()) return;
+
                     if (SceneComponent.IsSubmenuOpen())
                         SceneComponent.CloseSubmenu();
                     else
@@ -66,20 +68,20 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            // インベントリトグルでダイアログを閉じる（サブメニュー展開中は無効）
+            // インベントリトグルでダイアログを閉じる（サブメニュー展開中・クラフトの長押し中は無効）
             _inputService.Player.Inventory.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => TrySetResult(_result))
                 .AddTo(Disposables);
 
-            // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中は無効）
+            // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中・クラフトの長押し中は無効）
             _inputService.UI.Previous.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => SceneComponent.PreviousTab())
                 .AddTo(Disposables);
 
             _inputService.UI.Next.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
