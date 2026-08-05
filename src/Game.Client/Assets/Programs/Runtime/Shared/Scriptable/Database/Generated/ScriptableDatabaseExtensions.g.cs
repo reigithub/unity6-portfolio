@@ -6,6 +6,8 @@ namespace Game.Shared.Scriptable.Database
     {
         /// <summary>いずれかのテーブルが未割当（null）か（起動時の結線フェイルファースト用）。</summary>
         public static bool HasUnassignedTable(this ScriptableDatabase database) =>
+            database.HorrorCraftMasterTable == null ||
+            database.HorrorCraftMaterialMasterTable == null ||
             database.HorrorEnemyDropMasterTable == null ||
             database.HorrorEnemyMasterTable == null ||
             database.HorrorEnemySpawnGroupMasterTable == null ||
