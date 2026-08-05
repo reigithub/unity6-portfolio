@@ -17,17 +17,17 @@ MonoBehaviour:
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3\u306E\u5F3E\u85AC x4"
     _dropGroupId: 1
     _itemId: 4
-    _dropRate: 3500
+    _dropRate: 1000
     _count: 4
   - _id: 2
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3\u306E\u5F3E\u85AC x8"
     _dropGroupId: 1
     _itemId: 4
-    _dropRate: 5000
+    _dropRate: 4000
     _count: 8
   - _id: 3
-    _developOnlyName: "\u56DE\u5FA9\u30DC\u30C8\u30EB"
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u7DD1"
     _dropGroupId: 1
-    _itemId: 5
-    _dropRate: 1500
+    _itemId: 6
+    _dropRate: 5000
     _count: 1
