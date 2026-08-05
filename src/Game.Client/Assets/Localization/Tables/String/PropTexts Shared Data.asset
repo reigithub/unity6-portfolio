@@ -71,6 +71,14 @@ MonoBehaviour:
     m_Key: item_5_desc
     m_Metadata:
       m_Items: []
+  - m_Id: 5305812613341184
+    m_Key: item_6_name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5305816568569856
+    m_Key: item_6_desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

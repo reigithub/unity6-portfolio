@@ -71,11 +71,21 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 759920394240000
-    m_Localized: Restores a small amount of Health.
+    m_Localized: Restores Health.
     m_Metadata:
       m_Items: []
   - m_Id: 759911493926912
     m_Localized: Medical First Aid Bottle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5305812613341184
+    m_Localized: Herbal Plant (Green)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5305816568569856
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
     m_Metadata:
       m_Items: []
   references:
