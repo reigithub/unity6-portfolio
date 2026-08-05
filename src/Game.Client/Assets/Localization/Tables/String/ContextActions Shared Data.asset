@@ -91,6 +91,10 @@ MonoBehaviour:
     m_Key: Zoom
     m_Metadata:
       m_Items: []
+  - m_Id: 14786537402146816
+    m_Key: Craft_Hold
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

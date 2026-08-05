@@ -94,6 +94,10 @@ MonoBehaviour:
     m_Localized: Zoom
     m_Metadata:
       m_Items: []
+  - m_Id: 14786537402146816
+    m_Localized: Craft(HOLD)
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
