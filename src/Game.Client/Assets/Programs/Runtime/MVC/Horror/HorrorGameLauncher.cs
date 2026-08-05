@@ -29,6 +29,7 @@ namespace Game.Horror
             // 各種サービス取得・初期化
             var assetService = new AddressableAssetService();
             GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
+            
             var localizationService = new LocalizationService();
             GameServiceManager.Register<ILocalizationService, LocalizationService>(localizationService);
 
@@ -91,13 +92,14 @@ namespace Game.Horror
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
             GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
 
-            // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤー → キーアイテム → エネミーの順に生成し、I/F キーで共有登録
+            // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤー → キーアイテム → クラフト（所持増減を注入）→ エネミーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
             GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
             GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(new HorrorEquipmentService(saveRepository, inventoryService, dbService));
             GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository, dbService));
             GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
+            GameServiceManager.Register<IHorrorCraftService, HorrorCraftService>(new HorrorCraftService(dbService, inventoryService));
             GameServiceManager.Register<IHorrorEnemyService, HorrorEnemyService>(new HorrorEnemyService(saveRepository, dbService, messagePipeService));
 
             // 共通オブジェクト読み込み
@@ -106,7 +108,7 @@ namespace Game.Horror
             await gameRootService.LoadAsync();
             await gameRootService.GlobalFadeOutAsync();
 
-            // 5. 初期シーン遷移
+            // 初期シーン遷移
             var gameSceneService = new GameSceneService();
             GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<HorrorTitleScene>();
