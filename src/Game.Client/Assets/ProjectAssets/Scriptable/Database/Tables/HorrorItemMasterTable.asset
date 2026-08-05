@@ -60,7 +60,7 @@ MonoBehaviour:
     _name: item_4_name
     _description: item_4_desc
     _iconAssetName: Weapon/Sprite sheet Blue_45
-    _modelAssetName: HorrorDropHandgunAmmo
+    _modelAssetName: M1911_Ammo
     _maxCount: 15
     _effect: 0
     _effectDuration: 0
