@@ -33,25 +33,19 @@ namespace Game.Horror.Dialogs
         [SerializeField] private float _fitSize = 1f;
 
         [Tooltip("マウスドラッグの回転感度（度/px）")]
-        [SerializeField] private float _dragSensitivity = 0.25f;
-
-        [Tooltip("マウススクロールホイールの回転感度（度/px）")]
-        [SerializeField] private float _scrollSensitivity = 0.25f;
+        [SerializeField] private float _dragSensitivity = 0.5f;
 
         [Tooltip("キー/ボタン回転の速度（度/秒）")]
         [SerializeField] private float _rotateSpeed = 120f;
 
-        [Tooltip("ピッチ角のクランプ範囲（±度）")]
-        [SerializeField] private float _pitchLimit = 80f;
+        [Tooltip("ホイール入力1単位あたりのズーム変化量")]
+        [SerializeField] private float _scrollSensitivity = 0.05f;
 
-        [Tooltip("ズームの速度")]
-        [SerializeField] private float _zoomSpeed = 15f;
-
-        [Tooltip("ホイール1notch あたりのズーム係数変化量")]
-        [SerializeField] private float _zoomStep = 0.1f;
+        [Tooltip("キー押下1秒あたりのズーム変化量")]
+        [SerializeField] private float _zoomSpeed = 1f;
 
         [Tooltip("ズーム係数の最小値（最も接近）")]
-        [SerializeField] private float _zoomMin = 0.6f;
+        [SerializeField] private float _zoomMin = 0.5f;
 
         [Tooltip("ズーム係数の最大値（最も離れる）")]
         [SerializeField] private float _zoomMax = 2f;
@@ -85,16 +79,17 @@ namespace Game.Horror.Dialogs
             if (canInputDelta)
             {
                 var pointerDelta = _inputService.UI.PointDelta.ReadValue<Vector2>();
-                _yaw += pointerDelta.x * _dragSensitivity;
-                _pitch -= pointerDelta.y * _dragSensitivity;
+                _yaw -= pointerDelta.x * _dragSensitivity;
+                _pitch += pointerDelta.y * _dragSensitivity;
             }
 
-            float scrollY = _inputService.UI.ScrollWheel.ReadValue<Vector2>().y * _scrollSensitivity;
+            // ホイールは1フレームぶんの回転量なので dt を掛けない。キーは押下時間に比例させる
+            var zoomDelta = _inputService.UI.ScrollWheel.ReadValue<Vector2>().y * _scrollSensitivity;
             if (_inputService.UI.Next2.IsPressed())
-                scrollY += _zoomSpeed * dt;
+                zoomDelta += _zoomSpeed * dt;
             else if (_inputService.UI.Previous2.IsPressed())
-                scrollY -= _zoomSpeed * dt;
-            _zoom = CalculateZoom(_zoom, scrollY, _zoomStep, _zoomMin, _zoomMax);
+                zoomDelta -= _zoomSpeed * dt;
+            _zoom = CalculateZoom(_zoom, zoomDelta, _zoomMin, _zoomMax);
 
             _modelAnchor.localRotation = Quaternion.Euler(_pitch, _yaw, _roll);
             _previewCamera.transform.localPosition = _cameraBasePosition * _zoom;
@@ -214,14 +209,10 @@ namespace Game.Horror.Dialogs
         }
 
         /// <summary>
-        /// ホイール入力からズーム係数を算出する。scrollDelta が 0 なら現在値を維持し、
-        /// それ以外は符号に応じて zoomStep 分だけ増減して min〜max にクランプする
-        /// （上スクロール＝正＝拡大＝カメラ接近＝係数を減らす）。
+        /// ズーム係数へ変化量を適用して min〜max にクランプする（上スクロール＝正＝拡大＝カメラ接近＝係数を減らす）。
+        /// 指数で適用することで、係数の大小によらず変化量あたりの倍率が一定になる。
         /// </summary>
-        internal static float CalculateZoom(float current, float scrollDelta, float zoomStep, float min, float max)
-        {
-            if (Mathf.Approximately(scrollDelta, 0f)) return current;
-            return Mathf.Clamp(current - Mathf.Sign(scrollDelta) * zoomStep, min, max);
-        }
+        internal static float CalculateZoom(float current, float zoomDelta, float min, float max)
+            => Mathf.Clamp(current * Mathf.Exp(-zoomDelta), min, max);
     }
 }

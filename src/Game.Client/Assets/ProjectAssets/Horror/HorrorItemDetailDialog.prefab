@@ -4998,11 +4998,11 @@ MonoBehaviour:
   _modelAnchor: {fileID: 7513189991033212798}
   _textureSize: 1024
   _fitSize: 1
+  _dragSensitivity: 0.5
   _rotateSpeed: 120
-  _dragSensitivity: 0.25
-  _pitchLimit: 80
-  _zoomStep: 0.1
-  _zoomMin: 0.6
+  _scrollSensitivity: 0.05
+  _zoomSpeed: 1
+  _zoomMin: 0.5
   _zoomMax: 2
 --- !u!1 &7346688254365418140
 GameObject:
