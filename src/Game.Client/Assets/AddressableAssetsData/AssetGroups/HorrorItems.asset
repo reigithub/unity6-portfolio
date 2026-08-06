@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 44a26e7074b74ec41a0c676b22d74a08
+    m_Address: HerbalPlant1_blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 90cebf0e181eceb4fbfeafe704e1cd41
     m_Address: MedicalFirstAidBottle1
     m_ReadOnly: 0
@@ -30,8 +35,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c10cb1184397b454ea3d803cfbfdb74e
+    m_Address: HerbalPlant1_red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c969812b1669385489fc5bf1516c984b
     m_Address: VialVaccineGreen
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f751508c4c9dfd243be84c56f06c446c
+    m_Address: HerbalPlant1_gold
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -88,6 +88,36 @@ MonoBehaviour:
       Craft Materials.'
     m_Metadata:
       m_Items: []
+  - m_Id: 5648921081151488
+    m_Localized: Herbal Plant (Blue)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922956005376
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922960199680
+    m_Localized: Herbal Plant (Gold)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922960199681
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922964393984
+    m_Localized: Herbal Plant (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922964393985
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

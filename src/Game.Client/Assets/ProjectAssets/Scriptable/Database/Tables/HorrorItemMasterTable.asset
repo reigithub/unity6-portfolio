@@ -97,3 +97,45 @@ MonoBehaviour:
     _previewRotationX: 0
     _previewRotationY: 180
     _previewRotationZ: 0
+  - _id: 7
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u9752"
+    _name: item_7_name
+    _description: item_7_desc
+    _iconAssetName: Medical/HerbalPlant_Blue
+    _modelAssetName: HerbalPlant1_blue
+    _maxCount: 1
+    _effect: 10
+    _effectDuration: 0
+    _effectApplyDuration: 1
+    _keyItem: 0
+    _previewRotationX: 0
+    _previewRotationY: 180
+    _previewRotationZ: 0
+  - _id: 8
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u91D1"
+    _name: item_8_name
+    _description: item_8_desc
+    _iconAssetName: Medical/HerbalPlant_Gold
+    _modelAssetName: HerbalPlant1_gold
+    _maxCount: 1
+    _effect: 10
+    _effectDuration: 0
+    _effectApplyDuration: 1
+    _keyItem: 0
+    _previewRotationX: 0
+    _previewRotationY: 180
+    _previewRotationZ: 0
+  - _id: 9
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u8D64"
+    _name: item_9_name
+    _description: item_9_desc
+    _iconAssetName: Medical/HerbalPlant_Red
+    _modelAssetName: HerbalPlant1_red
+    _maxCount: 1
+    _effect: 10
+    _effectDuration: 0
+    _effectApplyDuration: 1
+    _keyItem: 0
+    _previewRotationX: 0
+    _previewRotationY: 180
+    _previewRotationZ: 0

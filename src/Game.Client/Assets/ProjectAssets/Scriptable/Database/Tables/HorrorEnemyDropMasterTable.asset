@@ -23,11 +23,29 @@ MonoBehaviour:
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3\u306E\u5F3E\u85AC x8"
     _dropGroupId: 1
     _itemId: 4
-    _dropRate: 4000
+    _dropRate: 3000
     _count: 8
   - _id: 3
     _developOnlyName: "\u85AC\u7528\u690D\u7269_\u7DD1"
     _dropGroupId: 1
     _itemId: 6
-    _dropRate: 5000
+    _dropRate: 3000
+    _count: 1
+  - _id: 4
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u9752"
+    _dropGroupId: 1
+    _itemId: 7
+    _dropRate: 1000
+    _count: 1
+  - _id: 5
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u91D1"
+    _dropGroupId: 1
+    _itemId: 8
+    _dropRate: 1000
+    _count: 1
+  - _id: 6
+    _developOnlyName: "\u85AC\u7528\u690D\u7269_\u8D64"
+    _dropGroupId: 1
+    _itemId: 9
+    _dropRate: 1000
     _count: 1

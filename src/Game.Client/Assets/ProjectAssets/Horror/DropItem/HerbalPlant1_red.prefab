@@ -1,0 +1,213 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1056366218969757777
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 121542695913412546}
+  - component: {fileID: 6281501413443330629}
+  - component: {fileID: 5423731393716871194}
+  m_Layer: 10
+  m_Name: HerbalPlant1_red
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &121542695913412546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1056366218969757777}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4164076211202718563}
+  - {fileID: 370154660896748617}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6281501413443330629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1056366218969757777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a167cf0a024bc94aaa23e432c764ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.HorrorDropItemInteractable
+  _interactionId: 17
+  _centerOverride: {fileID: 0}
+  _promptAnchor: {fileID: 370154660896748617}
+  _colliders: []
+  _highlighter: {fileID: 5423731393716871194}
+--- !u!114 &5423731393716871194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1056366218969757777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3208eea20eafef44c8cd8901879d2d4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.InteractionOutlineHighlighter
+  _outlineMaterial: {fileID: 2100000, guid: eaf08f643893b234d8d3b2d848977090, type: 2}
+  _renderers: []
+--- !u!1 &1075911751113114151
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 370154660896748617}
+  m_Layer: 10
+  m_Name: PromptAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &370154660896748617
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075911751113114151}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.3, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 121542695913412546}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1109895648206183111
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 121542695913412546}
+    m_Modifications:
+    - target: {fileID: 1696298270519118101, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2900414793334535151, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3497791687163021331, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460025821737843486, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Name
+      value: Herbal Plant 1 red
+      objectReference: {fileID: 0}
+    - target: {fileID: 4460025821737843486, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4927204056222697423, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5339754293335414288, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5522648076994417167, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6626680841628080989, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6729746314405840532, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6845231924492301640, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7970929532202000513, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 8399413769779974002, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 8653109317883235257, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+--- !u!4 &4164076211202718563 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3940334622318043556, guid: 4ea1d448af0099a498e76235c0b03878, type: 3}
+  m_PrefabInstance: {fileID: 1109895648206183111}
+  m_PrefabAsset: {fileID: 0}
