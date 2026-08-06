@@ -17,7 +17,7 @@ MonoBehaviour:
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3_M1911"
     _name: weapon_1_name
     _description: weapon_1_desc
-    _iconAssetName: Weapon/Sprite sheet Blue_12
+    _iconAssetName: Military/M1911
     _modelAssetName: M1911
     _maxCount: 1
     _damage: 30
@@ -44,7 +44,7 @@ MonoBehaviour:
     _developOnlyName: "\u30B9\u30E2\u30FC\u30AF\u30B0\u30EC\u30CD\u30FC\u30C9"
     _name: weapon_2_name
     _description: weapon_2_desc
-    _iconAssetName: Weapon/Sprite sheet Blue_37
+    _iconAssetName: Military/Smoke
     _modelAssetName: Smoke
     _maxCount: 1
     _damage: 0
@@ -64,3 +64,6 @@ MonoBehaviour:
     _muzzleFlashAssetName: 
     _recoilCameraPitch: 0
     _recoilRecoverSeconds: 0.25
+    _previewRotationX: 0
+    _previewRotationY: 0
+    _previewRotationZ: 0

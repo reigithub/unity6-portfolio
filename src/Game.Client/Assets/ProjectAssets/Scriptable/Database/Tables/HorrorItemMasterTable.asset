@@ -59,7 +59,7 @@ MonoBehaviour:
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3\u306E\u5F3E\u85AC"
     _name: item_4_name
     _description: item_4_desc
-    _iconAssetName: Weapon/Sprite sheet Blue_45
+    _iconAssetName: Military/M1911_Magazin
     _modelAssetName: M1911_Ammo
     _maxCount: 15
     _effect: 0
@@ -73,7 +73,7 @@ MonoBehaviour:
     _developOnlyName: "\u56DE\u5FA9\u30DC\u30C8\u30EB"
     _name: item_5_name
     _description: item_5_desc
-    _iconAssetName: UI/Heart02_BrightBG
+    _iconAssetName: Medical/MedicalFirstAidBottle_Green
     _modelAssetName: MedicalFirstAidBottle1
     _maxCount: 1
     _effect: 25
@@ -87,7 +87,7 @@ MonoBehaviour:
     _developOnlyName: "\u85AC\u7528\u690D\u7269_\u7DD1"
     _name: item_6_name
     _description: item_6_desc
-    _iconAssetName: UI/Heart01_BrightBG
+    _iconAssetName: Medical/HerbalPlant_Green
     _modelAssetName: HerbalPlant1_green
     _maxCount: 1
     _effect: 10
