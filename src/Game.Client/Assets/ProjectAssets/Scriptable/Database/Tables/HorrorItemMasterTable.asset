@@ -66,15 +66,15 @@ MonoBehaviour:
     _effectDuration: 0
     _effectApplyDuration: 0
     _keyItem: 0
-    _previewRotationX: 180
+    _previewRotationX: 0
     _previewRotationY: 90
-    _previewRotationZ: 90
+    _previewRotationZ: 0
   - _id: 5
     _developOnlyName: "\u56DE\u5FA9\u30DC\u30C8\u30EB"
     _name: item_5_name
     _description: item_5_desc
     _iconAssetName: Medical/MedicalFirstAidBottle_Green
-    _modelAssetName: MedicalFirstAidBottle1
+    _modelAssetName: MedicalFirstAidBottle
     _maxCount: 1
     _effect: 25
     _effectDuration: 0
@@ -94,7 +94,7 @@ MonoBehaviour:
     _effectDuration: 0
     _effectApplyDuration: 1
     _keyItem: 0
-    _previewRotationX: 0
+    _previewRotationX: 20
     _previewRotationY: 180
     _previewRotationZ: 0
   - _id: 7
@@ -108,7 +108,7 @@ MonoBehaviour:
     _effectDuration: 0
     _effectApplyDuration: 1
     _keyItem: 0
-    _previewRotationX: 0
+    _previewRotationX: 20
     _previewRotationY: 180
     _previewRotationZ: 0
   - _id: 8
@@ -122,7 +122,7 @@ MonoBehaviour:
     _effectDuration: 0
     _effectApplyDuration: 1
     _keyItem: 0
-    _previewRotationX: 0
+    _previewRotationX: 20
     _previewRotationY: 180
     _previewRotationZ: 0
   - _id: 9
@@ -136,6 +136,6 @@ MonoBehaviour:
     _effectDuration: 0
     _effectApplyDuration: 1
     _keyItem: 0
-    _previewRotationX: 0
+    _previewRotationX: 20
     _previewRotationY: 180
     _previewRotationZ: 0

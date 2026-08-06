@@ -145,69 +145,9 @@ MonoBehaviour:
     _rejectionMessage: 
     _acquiredId: 5
     _acquiredCount: 1
-  - _id: 12
-    _developOnlyName: Drop_Handgun Ammo
-    _name: Drop_Handgun Ammo
-    _inputType: 0
-    _holdSeconds: 0
-    _interactionVerb: PickUp
-    _reinteractionVerb: 
-    _requiredObjectCategory: 0
-    _requiredObjectId: 0
-    _rejectionMessage: 
-    _acquiredId: 0
-    _acquiredCount: 0
-  - _id: 13
-    _developOnlyName: "Drop_\u56DE\u5FA9\u30DC\u30C8\u30EB"
-    _name: Drop_Medical_First_Aid_Bottle_1
-    _inputType: 0
-    _holdSeconds: 0
-    _interactionVerb: PickUp
-    _reinteractionVerb: 
-    _requiredObjectCategory: 0
-    _requiredObjectId: 0
-    _rejectionMessage: 
-    _acquiredId: 0
-    _acquiredCount: 0
-  - _id: 14
-    _developOnlyName: "Drop_\u85AC\u7528\u690D\u7269(\u7DD1)"
-    _name: Drop_HerbalPlant1_green
-    _inputType: 0
-    _holdSeconds: 0
-    _interactionVerb: PickUp
-    _reinteractionVerb: 
-    _requiredObjectCategory: 0
-    _requiredObjectId: 0
-    _rejectionMessage: 
-    _acquiredId: 0
-    _acquiredCount: 0
-  - _id: 15
-    _developOnlyName: "Drop_\u85AC\u7528\u690D\u7269(\u9752)"
-    _name: Drop_HerbalPlant1_blue
-    _inputType: 0
-    _holdSeconds: 0
-    _interactionVerb: PickUp
-    _reinteractionVerb: 
-    _requiredObjectCategory: 0
-    _requiredObjectId: 0
-    _rejectionMessage: 
-    _acquiredId: 0
-    _acquiredCount: 0
-  - _id: 16
-    _developOnlyName: "Drop_\u85AC\u7528\u690D\u7269(\u91D1)"
-    _name: Drop_HerbalPlant1_gold
-    _inputType: 0
-    _holdSeconds: 0
-    _interactionVerb: PickUp
-    _reinteractionVerb: 
-    _requiredObjectCategory: 0
-    _requiredObjectId: 0
-    _rejectionMessage: 
-    _acquiredId: 0
-    _acquiredCount: 0
-  - _id: 17
-    _developOnlyName: "Drop_\u85AC\u7528\u690D\u7269(\u8D64)"
-    _name: Drop_HerbalPlant1_red
+  - _id: 999999
+    _developOnlyName: "\u30C9\u30ED\u30C3\u30D7\u30A2\u30A4\u30C6\u30E0"
+    _name: DropItem
     _inputType: 0
     _holdSeconds: 0
     _interactionVerb: PickUp

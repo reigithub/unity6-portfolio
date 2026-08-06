@@ -56,7 +56,7 @@ MonoBehaviour:
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
     _spreadAngle: 2
-    _magazineSize: 0
+    _magazineSize: 1
     _reloadDuration: 0
     _ammoItemId: 0
     _dryFireSeAssetName: 
