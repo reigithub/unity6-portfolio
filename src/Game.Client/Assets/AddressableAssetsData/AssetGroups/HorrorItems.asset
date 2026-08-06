@@ -16,7 +16,7 @@ MonoBehaviour:
   m_GUID: 6c67d6f1b84151548af0854d724470db
   m_SerializeEntries:
   - m_GUID: 16f5ce1a9e90b0f478fa2517ecd87035
-    m_Address: M1911_Ammo
+    m_Address: M1911_Magazin
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

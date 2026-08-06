@@ -60,7 +60,7 @@ MonoBehaviour:
     _name: item_4_name
     _description: item_4_desc
     _iconAssetName: Military/M1911_Magazin
-    _modelAssetName: M1911_Ammo
+    _modelAssetName: M1911_Magazin
     _maxCount: 15
     _effect: 0
     _effectDuration: 0

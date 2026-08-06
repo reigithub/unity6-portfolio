@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 6596043668045131721}
   - component: {fileID: 607034002236360710}
   m_Layer: 10
-  m_Name: M1911_Ammo
+  m_Name: M1911_Magazin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
