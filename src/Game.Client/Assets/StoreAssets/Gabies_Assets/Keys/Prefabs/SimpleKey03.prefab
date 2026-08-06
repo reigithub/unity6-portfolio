@@ -395,10 +395,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4071069836747969314}
-  - component: {fileID: 8480579643262025115}
-  - component: {fileID: 6119300537743999703}
   m_Layer: 10
-  m_Name: Simple_03
+  m_Name: SimpleKey03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -418,68 +416,5 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9176368662766867559}
-  - {fileID: 7181708233028883150}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8480579643262025115
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6202248377633566000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3208eea20eafef44c8cd8901879d2d4c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Shared::Game.Shared.Interaction.InteractionOutlineHighlighter
-  _outlineMaterial: {fileID: 2100000, guid: eaf08f643893b234d8d3b2d848977090, type: 2}
-  _renderers: []
---- !u!114 &6119300537743999703
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6202248377633566000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0683f166bab997d4490541106907ee59, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.PickItemInteractable
-  _interactionId: 1
-  _centerOverride: {fileID: 0}
-  _promptAnchor: {fileID: 7181708233028883150}
-  _colliders: []
-  _highlighter: {fileID: 8480579643262025115}
---- !u!1 &9085621109998764279
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7181708233028883150}
-  m_Layer: 0
-  m_Name: PromptAnchor
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7181708233028883150
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9085621109998764279}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.2, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4071069836747969314}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
