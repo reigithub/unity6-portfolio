@@ -15,33 +15,13 @@ MonoBehaviour:
   m_GroupName: HorrorWeapons
   m_GUID: 087e715e4321b96479088cfd270e9d06
   m_SerializeEntries:
-  - m_GUID: 02baef62b1bfedf40bb369fb7542b9e7
-    m_Address: RPG7
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5a2bf64643e1fb0439ea39c0fc9b00ff
-    m_Address: RGD-5
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6f1a7354265853f44b0ed5e2e43676ad
     m_Address: M1911
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 8b0b86b42def11849a8eba21f4a6a684
-    m_Address: Benelli_M4
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8b4cba336c093ff41ae9321f9f8433d6
     m_Address: Smoke
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ee329c3cd08e58645834d20702d7f6c6
-    m_Address: AK74
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

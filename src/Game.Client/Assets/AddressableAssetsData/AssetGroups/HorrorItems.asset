@@ -26,7 +26,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 90cebf0e181eceb4fbfeafe704e1cd41
-    m_Address: MedicalFirstAidBottle1
+    m_Address: MedicalFirstAidBottle
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -41,7 +41,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c969812b1669385489fc5bf1516c984b
-    m_Address: VialVaccineGreen
+    m_Address: VialVaccine_Green
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
