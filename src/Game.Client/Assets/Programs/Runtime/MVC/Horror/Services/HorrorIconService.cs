@@ -12,13 +12,16 @@ namespace Game.Horror.Services
         private readonly IAddressableAssetService _assetService;
 
         private const string UiIconsKey1 = "ModernGDR_Icons_BrightBackground";
-        private const string WeaponIconsKey1 = "Navidtbt_Weapon_Icons_Blue";
+        private const string MedicalIconsKey = "MedicalItemIcons";
+        private const string MilitaryIconsKey = "MilitaryItemIcons";
 
         private AsyncOperationHandle<IList<Sprite>> _uiIconsHandle;
-        private AsyncOperationHandle<IList<Sprite>> _weaponIconsHandle;
+        private AsyncOperationHandle<IList<Sprite>> _medicalIconsHandle;
+        private AsyncOperationHandle<IList<Sprite>> _militaryIconsHandle;
 
         private Dictionary<string, Sprite> _uiIcons;
-        private Dictionary<string, Sprite> _weaponIcons;
+        private Dictionary<string, Sprite> _medicalIcons;
+        private Dictionary<string, Sprite> _militaryIcons;
 
         public HorrorIconService(IAddressableAssetService assetService)
         {
@@ -28,7 +31,8 @@ namespace Game.Horror.Services
         public async UniTask LoadAsync()
         {
             await LoadUiIconsAsync();
-            await LoadWeaponIconsAsync();
+            await LoadMedicalIconsAsync();
+            await LoadMilitaryIconsAsync();
         }
 
         public void Unload()
@@ -36,9 +40,9 @@ namespace Game.Horror.Services
             _assetService.Release(_uiIconsHandle);
             _uiIcons.Clear();
             _uiIcons = null;
-            _assetService.Release(_weaponIconsHandle);
-            _weaponIcons.Clear();
-            _weaponIcons = null;
+            _assetService.Release(_militaryIconsHandle);
+            _militaryIcons.Clear();
+            _militaryIcons = null;
         }
 
         private async UniTask LoadUiIconsAsync()
@@ -49,12 +53,20 @@ namespace Game.Horror.Services
             foreach (var sprite in sprites) _uiIcons[sprite.name] = sprite;
         }
 
-        private async UniTask LoadWeaponIconsAsync()
+        private async UniTask LoadMedicalIconsAsync()
         {
-            _weaponIconsHandle = _assetService.LoadAssetAsyncHandle<IList<Sprite>>(WeaponIconsKey1);
-            var sprites = await _weaponIconsHandle.ToUniTask();
-            _weaponIcons = new Dictionary<string, Sprite>(sprites.Count);
-            foreach (var sprite in sprites) _weaponIcons[sprite.name] = sprite;
+            _medicalIconsHandle = _assetService.LoadAssetAsyncHandle<IList<Sprite>>(MedicalIconsKey);
+            var sprites = await _medicalIconsHandle.ToUniTask();
+            _medicalIcons = new Dictionary<string, Sprite>(sprites.Count);
+            foreach (var sprite in sprites) _medicalIcons[sprite.name] = sprite;
+        }
+
+        private async UniTask LoadMilitaryIconsAsync()
+        {
+            _militaryIconsHandle = _assetService.LoadAssetAsyncHandle<IList<Sprite>>(MilitaryIconsKey);
+            var sprites = await _militaryIconsHandle.ToUniTask();
+            _militaryIcons = new Dictionary<string, Sprite>(sprites.Count);
+            foreach (var sprite in sprites) _militaryIcons[sprite.name] = sprite;
         }
 
         public Sprite GetSprite(string spriteName)
@@ -67,7 +79,8 @@ namespace Game.Horror.Services
             switch (group)
             {
                 case "UI": return _uiIcons[name];
-                case "Weapon": return _weaponIcons[name];
+                case "Medical": return _medicalIcons[name];
+                case "Military": return _militaryIcons[name];
                 default: return null;
             }
         }
