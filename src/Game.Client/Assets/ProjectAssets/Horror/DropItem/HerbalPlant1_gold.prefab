@@ -78,7 +78,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a167cf0a024bc94aaa23e432c764ce6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.HorrorDropItemInteractable
-  _interactionId: 16
+  _interactionId: 999999
   _centerOverride: {fileID: 0}
   _promptAnchor: {fileID: 5013221583124746462}
   _colliders: []

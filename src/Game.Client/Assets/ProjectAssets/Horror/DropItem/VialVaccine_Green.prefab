@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 3636850638167822260}
   - component: {fileID: 8645923618899068845}
   m_Layer: 10
-  m_Name: VialVaccineGreen
+  m_Name: VialVaccine_Green
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -78,7 +78,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a167cf0a024bc94aaa23e432c764ce6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.Interaction.HorrorDropItemInteractable
-  _interactionId: 0
+  _interactionId: 999999
   _centerOverride: {fileID: 0}
   _promptAnchor: {fileID: 2927950086715956300}
   _colliders: []
