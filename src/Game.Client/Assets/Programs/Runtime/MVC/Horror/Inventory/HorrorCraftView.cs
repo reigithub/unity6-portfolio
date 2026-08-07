@@ -32,8 +32,8 @@ namespace Game.Horror.Inventory
         [SerializeField] private Transform _materialContentRoot;
         [SerializeField] private HorrorCraftMaterialView _materialPrefab;
 
-        [Tooltip("長押しの進捗ゲージ（Image: Type=Filled）。押下中のみ表示する")]
-        [SerializeField] private Image _holdGauge;
+        [Tooltip("長押しの進捗ゲージ（Slider: 値域 0〜1）。押下中のみ表示する")]
+        [SerializeField] private Slider _holdGauge;
 
         #endregion
 
@@ -75,6 +75,7 @@ namespace Game.Horror.Inventory
                 .AddTo(_disposables);
 
             BuildRecipes();
+            ValidateHoldGauge();
             SetHoldProgress(0f);
         }
 
@@ -235,7 +236,18 @@ namespace Game.Horror.Inventory
             if (_holdGauge.gameObject.activeSelf != active)
                 _holdGauge.gameObject.SetActive(active);
 
-            _holdGauge.fillAmount = Mathf.Clamp01(progress01);
+            _holdGauge.SetValueWithoutNotify(Mathf.Clamp01(progress01));
+        }
+
+        // 進捗は 0〜1 で渡すため、prefab 側の値域がこれと異なるとゲージ表示が破綻する
+        private void ValidateHoldGauge()
+        {
+            if (_holdGauge == null) return;
+            if (Mathf.Approximately(_holdGauge.minValue, 0f) && Mathf.Approximately(_holdGauge.maxValue, 1f)) return;
+
+            Debug.LogError(
+                $"[{nameof(HorrorCraftView)}] {nameof(_holdGauge)} の値域は min=0 / max=1 である必要があります"
+                + $"（現在 min={_holdGauge.minValue} / max={_holdGauge.maxValue}）", this);
         }
 
         // タブ切替で表示が戻ったときに、前回の押下状態・進捗を引き継がない
