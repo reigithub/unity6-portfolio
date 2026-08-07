@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: HorrorItems
   m_GUID: 6c67d6f1b84151548af0854d724470db
   m_SerializeEntries:
+  - m_GUID: 0e0dd4e844b3c3547bde6d35619e9225
+    m_Address: MedicPack1_Red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 11adfadc65ece9f47b61fb74f2896f5d
     m_Address: HerbalPlant_green
     m_ReadOnly: 0
@@ -32,6 +37,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4ea1d448af0099a498e76235c0b03878
     m_Address: HerbalPlant_red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52f3fc3181689c6469bcd38e08dfcac3
+    m_Address: MedicPack2_Red
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -56,7 +66,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8e364c485201b734d83c151341928f14
-    m_Address: RecoverySpray
+    m_Address: RecoverySpray_Blue
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -82,6 +92,26 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: c4539bb33e2457d409e40054fe0456c8
     m_Address: HerbalPlant_blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc3501480cb297740a7c3765960fa449
+    m_Address: MedicPack1_White
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cf06a08f026133d4f9da31efd88d5a4d
+    m_Address: RecoverySpray_White
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d676b482519b49440a8e15ed6ad5d7c6
+    m_Address: MedicPack2_Red_Dirty
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfb72cb82a4bbea43bd033c3a32614a2
+    m_Address: RecoverySpray_Silver
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
