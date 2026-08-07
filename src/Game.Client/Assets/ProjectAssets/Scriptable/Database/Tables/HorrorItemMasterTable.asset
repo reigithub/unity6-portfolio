@@ -88,7 +88,7 @@ MonoBehaviour:
     _name: item_6_name
     _description: item_6_desc
     _iconAssetName: Medical/HerbalPlant_Green
-    _modelAssetName: HerbalPlant1_green
+    _modelAssetName: HerbalPlant_green
     _maxCount: 1
     _effect: 10
     _effectDuration: 0
@@ -102,7 +102,7 @@ MonoBehaviour:
     _name: item_7_name
     _description: item_7_desc
     _iconAssetName: Medical/HerbalPlant_Blue
-    _modelAssetName: HerbalPlant1_blue
+    _modelAssetName: HerbalPlant_blue
     _maxCount: 1
     _effect: 10
     _effectDuration: 0
@@ -116,7 +116,7 @@ MonoBehaviour:
     _name: item_8_name
     _description: item_8_desc
     _iconAssetName: Medical/HerbalPlant_Gold
-    _modelAssetName: HerbalPlant1_gold
+    _modelAssetName: HerbalPlant_gold
     _maxCount: 1
     _effect: 10
     _effectDuration: 0
@@ -130,7 +130,7 @@ MonoBehaviour:
     _name: item_9_name
     _description: item_9_desc
     _iconAssetName: Medical/HerbalPlant_Red
-    _modelAssetName: HerbalPlant1_red
+    _modelAssetName: HerbalPlant_red
     _maxCount: 1
     _effect: 10
     _effectDuration: 0

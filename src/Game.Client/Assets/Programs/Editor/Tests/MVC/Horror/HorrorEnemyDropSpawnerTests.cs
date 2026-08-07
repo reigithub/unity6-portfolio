@@ -22,11 +22,18 @@ namespace Game.Tests.MVC.Horror
     [TestFixture]
     public class HorrorEnemyDropSpawnerTests
     {
+        // 共通プレハブのアドレス（HorrorEnemyDropSpawner.DropItemAddress と一致させる）
+        private const string DropItemAddress = "HorrorDropItem";
+
+        // テスト用アイテム（Id=4）の ModelAssetName
+        private const string TestModelAddress = "TestDropItem";
+
         private IAddressableAssetService _mockAssets;
         private IScriptableDatabaseService _mockDbService;
         private IHorrorInventoryService _mockInventory;
         private IMessagePipeService _messagePipe;
-        private GameObject _prefab;
+        private GameObject _dropItemPrefab;
+        private GameObject _modelPrefab;
         private HorrorEnemyDropSpawner _spawner;
         private readonly List<Object> _createdObjects = new();
 
@@ -47,11 +54,13 @@ namespace Game.Tests.MVC.Horror
             _mockDbService = Substitute.For<IScriptableDatabaseService>();
             SetupDatabase();
 
-            _prefab = new GameObject("DropSpawnerTestPrefab");
-            _prefab.AddComponent<HorrorDropItemInteractable>();
+            _dropItemPrefab = CreateDropItemPrefab();
+            _modelPrefab = CreateModelPrefab();
 
+            // 共通プレハブとモデルの2段ロードのため、アドレス別に撃ち分ける
             _mockAssets = Substitute.For<IAddressableAssetService>();
-            _mockAssets.LoadAssetAsync<GameObject>(Arg.Any<string>()).Returns(UniTask.FromResult(_prefab));
+            _mockAssets.LoadAssetAsync<GameObject>(DropItemAddress).Returns(UniTask.FromResult(_dropItemPrefab));
+            _mockAssets.LoadAssetAsync<GameObject>(TestModelAddress).Returns(UniTask.FromResult(_modelPrefab));
 
             _spawner = new HorrorEnemyDropSpawner(_mockAssets, _mockDbService, _messagePipe);
         }
@@ -60,11 +69,38 @@ namespace Game.Tests.MVC.Horror
         public void TearDown()
         {
             _spawner?.Dispose();
-            if (_prefab != null) Object.DestroyImmediate(_prefab);
+            if (_dropItemPrefab != null) Object.DestroyImmediate(_dropItemPrefab);
+            if (_modelPrefab != null) Object.DestroyImmediate(_modelPrefab);
             foreach (var obj in _createdObjects)
                 Object.DestroyImmediate(obj);
             _createdObjects.Clear();
             GameServiceManager.Shutdown();
+        }
+
+        /// <summary>
+        /// 共通プレハブのテストダブル。実プレハブ（HorrorDropItem.prefab）と同じく
+        /// ModelHolder を子に持ち、_modelHolder へ結線する。
+        /// </summary>
+        private static GameObject CreateDropItemPrefab()
+        {
+            var prefab = new GameObject("DropSpawnerTestPrefab");
+            var modelHolder = new GameObject("ModelHolder");
+            modelHolder.transform.SetParent(prefab.transform, worldPositionStays: false);
+
+            var interactable = prefab.AddComponent<HorrorDropItemInteractable>();
+            var so = new SerializedObject(interactable);
+            so.FindProperty("_modelHolder").objectReferenceValue = modelHolder.transform;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            return prefab;
+        }
+
+        /// <summary>モデルのテストダブル。ストアアセット同様に非トリガーのコライダーを持たせる。</summary>
+        private static GameObject CreateModelPrefab()
+        {
+            var prefab = new GameObject("DropSpawnerTestModel");
+            prefab.AddComponent<BoxCollider>();
+            return prefab;
         }
 
         // 累積抽選の純関数：roll は [0, 10000)。当選行の index、余り区間（合計 < 10000）は -1。
@@ -207,7 +243,35 @@ namespace Game.Tests.MVC.Horror
 
             Assert.DoesNotThrow(() => _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero)));
             Assert.That(GameObject.Find("HorrorDropItemPool"), Is.Null);
-            _mockAssets.Received(1).Release(_prefab);
+            _mockAssets.Received(1).Release(_dropItemPrefab);
+            _mockAssets.Received(1).Release(_modelPrefab);
+        }
+
+        // モデル装着：共通プレハブの ModelHolder 配下へ生成し、同梱コライダーをトリガー化する。
+
+        [Test]
+        public async Task EnemyDied_AttachesModelUnderModelHolder()
+        {
+            await _spawner.InitializeAsync();
+
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
+
+            var modelHolder = GetSingleActiveDrop(FindPoolParent()).transform.Find("ModelHolder");
+            Assert.That(modelHolder, Is.Not.Null, "ModelHolder が見つかりません");
+            Assert.That(modelHolder.childCount, Is.EqualTo(1), "ModelHolder 配下にモデルが装着されていません");
+        }
+
+        [Test]
+        public async Task EnemyDied_AttachedModelColliderBecomesTrigger()
+        {
+            await _spawner.InitializeAsync();
+
+            _messagePipe.Publish(new HorrorSignals.Enemy.Died(1, Vector3.zero));
+
+            var drop = GetSingleActiveDrop(FindPoolParent());
+            var collider = drop.GetComponentInChildren<Collider>(includeInactive: true);
+            Assert.That(collider, Is.Not.Null, "モデル同梱のコライダーが見つかりません");
+            Assert.That(collider.isTrigger, Is.True, "モデル同梱のコライダーがトリガー化されていません");
         }
 
         /// <summary>
@@ -225,7 +289,7 @@ namespace Game.Tests.MVC.Horror
             var itemTable = ScriptableObject.CreateInstance<HorrorItemMasterTable>();
             itemTable.EditorImportRows(
                 new[] { "Id", "ModelAssetName", "MaxCount" },
-                new[] { new[] { "4", "TestDropItem", "120" } },
+                new[] { new[] { "4", TestModelAddress, "120" } },
                 mergeByPrimaryKey: false);
 
             var enemyTable = ScriptableObject.CreateInstance<HorrorEnemyMasterTable>();

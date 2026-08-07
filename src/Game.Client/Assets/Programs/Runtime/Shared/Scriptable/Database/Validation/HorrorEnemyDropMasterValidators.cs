@@ -44,7 +44,7 @@ namespace Game.Shared.Scriptable.Database.Validation
 
     /// <summary>
     /// ドロップ対象アイテムの制約を検証する。
-    /// ModelAssetName が空だとドロップ品プレハブを解決できず、キーアイテムは未回収ドロップが永続化されないため配布できない。
+    /// ModelAssetName が空だとドロップ品のモデルを解決できず、キーアイテムは未回収ドロップが永続化されないため配布できない。
     /// 参照先アイテムの存在自体は <see cref="ForeignKeyAttribute"/> の宣言が担保する。
     /// </summary>
     public sealed class HorrorEnemyDropItemValidator : IRecordValidator<HorrorEnemyDropMaster>
@@ -58,7 +58,7 @@ namespace Game.Shared.Scriptable.Database.Validation
                 if (string.IsNullOrEmpty(item.ModelAssetName))
                 {
                     result.AddError(record.Id.ToString(),
-                        $"ItemId={record.ItemId} の {nameof(HorrorItemMaster.ModelAssetName)} が空のため、ドロップ品プレハブを解決できません。");
+                        $"ItemId={record.ItemId} の {nameof(HorrorItemMaster.ModelAssetName)} が空のため、ドロップ品のモデルを解決できません。");
                 }
 
                 if (item.KeyItem)

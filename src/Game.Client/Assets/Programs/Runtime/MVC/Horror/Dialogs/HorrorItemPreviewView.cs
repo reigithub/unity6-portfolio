@@ -144,7 +144,7 @@ namespace Game.Horror.Dialogs
             // リセット（操作分ゼロ）が自然にこの姿勢へ戻る
             model.transform.localRotation = Quaternion.Euler(defaultRotationDegrees);
 
-            // ModelAssetName はドロップ品プレハブを流用するため、物理・挙動スクリプトが同梱されている可能性がある。プレビュー用に無害化する
+            // ModelAssetName の指す先はストアアセットのモデルや武器プレハブで、物理・挙動スクリプトが同梱されている可能性がある。プレビュー用に無害化する
             foreach (var col in model.GetComponentsInChildren<Collider>(true)) col.enabled = false;
             foreach (var rb in model.GetComponentsInChildren<Rigidbody>(true)) rb.isKinematic = true;
             foreach (var behaviour in model.GetComponentsInChildren<MonoBehaviour>(true)) behaviour.enabled = false;

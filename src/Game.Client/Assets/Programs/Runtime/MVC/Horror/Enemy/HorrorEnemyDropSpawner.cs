@@ -16,11 +16,16 @@ namespace Game.Horror.Enemy
     /// エネミー撃破時のドロップ品スポナー。<see cref="HorrorSignals.Enemy.Died"/> を購読し、
     /// 敵種の抽選グループ（HorrorEnemyMaster.DropGroupId → HorrorEnemyDropMaster）で累積抽選して
     /// 死亡位置へドロップ品（<see cref="HorrorDropItemInteractable"/>）を生成する。
+    /// 個体はアイテム種を問わない共通プレハブ（<see cref="DropItemAddress"/>）から作り、
+    /// 見た目と当たり判定はアイテムの ModelAssetName が指すモデルアセットを装着して供給する。
     /// アイテム種（ItemId）単位のオブジェクトプールで個体を使い回し、拾得通知でプールへ回収する。
     /// 未回収のドロップ品は永続化しない（シーン破棄とともに消える）。
     /// </summary>
     public class HorrorEnemyDropSpawner
     {
+        // アイテム種を問わないドロップ品の共通プレハブ。モデルは ModelHolder 配下へ実行時に装着する
+        private const string DropItemAddress = "HorrorDropItem";
+
         // 抽選の分母（万分率。10000 = 100%）
         private const int RateDenominator = 10000;
 
@@ -34,13 +39,16 @@ namespace Game.Horror.Enemy
         private readonly IScriptableDatabaseService _dbService;
         private readonly IMessagePipeService _messagePipeService;
 
-        // ItemId → プール / ロード済み prefab / 解決済みアイテムマスタ
+        // ItemId → プール / ロード済みモデル prefab / 解決済みアイテムマスタ
         private readonly Dictionary<int, ObjectPool<HorrorDropItemInteractable>> _pools = new();
-        private readonly Dictionary<int, GameObject> _prefabs = new();
+        private readonly Dictionary<int, GameObject> _modelPrefabs = new();
         private readonly Dictionary<int, HorrorItemMaster> _items = new();
 
         // 貸出中の個体 → ItemId（返却先プールの逆引き）
         private readonly Dictionary<HorrorDropItemInteractable, int> _activeDrops = new();
+
+        // 全アイテム種が共有する構造プレハブ（ロード済みハンドル。Dispose で Release する）
+        private GameObject _dropItemPrefab;
 
         private Transform _poolParent;
         private IDisposable _subscription;
@@ -56,12 +64,20 @@ namespace Game.Horror.Enemy
         }
 
         /// <summary>
-        /// ドロップテーブルが参照する全アイテムの prefab を事前ロードしてプールを構築し、
+        /// 共通プレハブとドロップテーブルが参照する全アイテムのモデルを事前ロードしてプールを構築し、
         /// 撃破シグナルの購読を開始する。シーン起動時に1回呼ぶ。
         /// </summary>
         public async UniTask InitializeAsync()
         {
             _poolParent = new GameObject("HorrorDropItemPool").transform;
+
+            _dropItemPrefab = await _assetService.LoadAssetAsync<GameObject>(DropItemAddress);
+            if (_dropItemPrefab == null)
+            {
+                // 共通プレハブが無いと全アイテム種のドロップが成立しないため、以降を組み立てない
+                Debug.LogError($"[{nameof(HorrorEnemyDropSpawner)}] 共通プレハブのロードに失敗しました (Address={DropItemAddress})");
+                return;
+            }
 
             var database = _dbService.Database;
             foreach (var row in database.HorrorEnemyDropMasterTable.All)
@@ -75,18 +91,18 @@ namespace Game.Horror.Enemy
                     continue;
                 }
 
-                var prefab = await _assetService.LoadAssetAsync<GameObject>(item.ModelAssetName);
-                if (prefab == null)
+                var modelPrefab = await _assetService.LoadAssetAsync<GameObject>(item.ModelAssetName);
+                if (modelPrefab == null)
                 {
-                    Debug.LogError($"[{nameof(HorrorEnemyDropSpawner)}] prefab のロードに失敗しました (ModelAssetName={item.ModelAssetName})");
+                    Debug.LogError($"[{nameof(HorrorEnemyDropSpawner)}] モデルのロードに失敗しました (ModelAssetName={item.ModelAssetName})");
                     continue;
                 }
 
-                _prefabs[row.ItemId] = prefab;
+                _modelPrefabs[row.ItemId] = modelPrefab;
                 _items[row.ItemId] = item;
 
                 var pool = new ObjectPool<HorrorDropItemInteractable>(
-                    createFunc: () => CreateDrop(prefab),
+                    createFunc: () => CreateDrop(modelPrefab),
                     actionOnRelease: drop => drop.gameObject.SetActive(false),
                     actionOnDestroy: drop => drop.gameObject.SafeDestroy(),
                     collectionCheck: true,
@@ -132,10 +148,16 @@ namespace Game.Horror.Enemy
                 pool.Clear();
             _pools.Clear();
 
-            foreach (var prefab in _prefabs.Values)
-                _assetService.Release(prefab);
-            _prefabs.Clear();
+            foreach (var modelPrefab in _modelPrefabs.Values)
+                _assetService.Release(modelPrefab);
+            _modelPrefabs.Clear();
             _items.Clear();
+
+            if (_dropItemPrefab != null)
+            {
+                _assetService.Release(_dropItemPrefab);
+                _dropItemPrefab = null;
+            }
 
             if (_poolParent != null)
             {
@@ -204,19 +226,22 @@ namespace Game.Horror.Enemy
             _activeDrops.Add(drop, row.ItemId);
         }
 
-        private HorrorDropItemInteractable CreateDrop(GameObject prefab)
+        private HorrorDropItemInteractable CreateDrop(GameObject modelPrefab)
         {
-            // プレハブを一時的に非アクティブ化して Instantiate することで、
+            // 共通プレハブを一時的に非アクティブ化して Instantiate することで、
             // Start()（GameServiceManager からのサービス解決）を初回貸出時まで遅延させる（HorrorEnemySpawner と同じ手法）
-            prefab.SetActive(false);
-            var instance = UnityEngine.Object.Instantiate(prefab, _poolParent);
-            prefab.SetActive(true);
+            _dropItemPrefab.SetActive(false);
+            var instance = UnityEngine.Object.Instantiate(_dropItemPrefab, _poolParent);
+            _dropItemPrefab.SetActive(true);
 
             if (!instance.TryGetComponent<HorrorDropItemInteractable>(out var drop))
             {
                 instance.SafeDestroy();
                 throw new MissingComponentException($"Cannot find {nameof(HorrorDropItemInteractable)}");
             }
+
+            // Awake 前（個体が非アクティブなうち）に装着し、コライダー・Renderer の Awake 時収集に含める
+            drop.AttachModel(modelPrefab);
 
             return drop;
         }
