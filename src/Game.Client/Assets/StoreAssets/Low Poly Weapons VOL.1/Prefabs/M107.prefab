@@ -191,6 +191,7 @@ GameObject:
   - component: {fileID: 4053999043310118}
   - component: {fileID: 33265667909663144}
   - component: {fileID: 23745275597904220}
+  - component: {fileID: -8997838323784579140}
   m_Layer: 0
   m_Name: M107
   m_TagString: Untagged
@@ -273,6 +274,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &-8997838323784579140
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1829597508155286}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: a0e70037533056249a1bcaf8b480c5cb, type: 3}
 --- !u!1001 &3301221972709062512
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -324,6 +347,14 @@ PrefabInstance:
     - target: {fileID: 3302922818846481406, guid: d81a1e63db1faeb47bef4444b10df4b9, type: 3}
       propertyPath: m_Name
       value: Magazin
+      objectReference: {fileID: 0}
+    - target: {fileID: 4846532156079514753, guid: d81a1e63db1faeb47bef4444b10df4b9, type: 3}
+      propertyPath: m_Convex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4846532156079514753, guid: d81a1e63db1faeb47bef4444b10df4b9, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

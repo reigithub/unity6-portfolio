@@ -101,6 +101,7 @@ GameObject:
   - component: {fileID: 4379243761268538}
   - component: {fileID: 33316380303130376}
   - component: {fileID: 23614443034357060}
+  - component: {fileID: 2060014869795025376}
   m_Layer: 0
   m_Name: RGD-5
   m_TagString: Untagged
@@ -181,6 +182,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &2060014869795025376
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1698056052845220}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: cecca25c94780ca428d51ab9f5894270, type: 3}
 --- !u!1 &1793803600195958
 GameObject:
   m_ObjectHideFlags: 0

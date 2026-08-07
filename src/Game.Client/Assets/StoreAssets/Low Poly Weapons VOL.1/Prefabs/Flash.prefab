@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4408339615606960}
   - component: {fileID: 33944325949276540}
   - component: {fileID: 23559475949960412}
+  - component: {fileID: -6334288004199482002}
   m_Layer: 0
   m_Name: Flash
   m_TagString: Untagged
@@ -91,6 +92,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &-6334288004199482002
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1516097666562846}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 0463b32f3348438449af40d60686807b, type: 3}
 --- !u!1 &1602846664546522
 GameObject:
   m_ObjectHideFlags: 0

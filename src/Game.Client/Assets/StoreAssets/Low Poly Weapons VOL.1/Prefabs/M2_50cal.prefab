@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4489439191758400}
+  - component: {fileID: 1409017502181362428}
   m_Layer: 0
   m_Name: M2_50cal
   m_TagString: Untagged
@@ -33,6 +34,28 @@ Transform:
   - {fileID: 4503388056927176}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &1409017502181362428
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156375666866002}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1 &1351145581268770
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,6 +641,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4873442176732742}
     m_Modifications:
+    - target: {fileID: -638497604425429696, guid: 862576ddf644d854eb83c88f8877341c, type: 3}
+      propertyPath: m_Convex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -638497604425429696, guid: 862576ddf644d854eb83c88f8877341c, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6542589169027791516, guid: 862576ddf644d854eb83c88f8877341c, type: 3}
       propertyPath: m_Name
       value: Magazin
