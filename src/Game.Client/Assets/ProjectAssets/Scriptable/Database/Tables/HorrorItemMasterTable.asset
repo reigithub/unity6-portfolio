@@ -17,7 +17,7 @@ MonoBehaviour:
     _developOnlyName: "\u3069\u3053\u304B\u306E\u30AB\u30AE1"
     _name: item_1_name
     _description: item_1_desc
-    _iconAssetName: UI/Key_BrightBG
+    _iconAssetName: Key/KeyItems_2
     _modelAssetName: 
     _maxCount: 1
     _effect: 0
@@ -31,7 +31,7 @@ MonoBehaviour:
     _developOnlyName: "\u3069\u3053\u304B\u306E\u30AB\u30AE2"
     _name: item_2_name
     _description: item_2_desc
-    _iconAssetName: UI/Key_BrightBG
+    _iconAssetName: Key/KeyItems_5
     _modelAssetName: 
     _maxCount: 1
     _effect: 0
@@ -45,7 +45,7 @@ MonoBehaviour:
     _developOnlyName: "\u3069\u3053\u304B\u306E\u30AB\u30AE3"
     _name: item_3_name
     _description: item_3_desc
-    _iconAssetName: UI/Key_BrightBG
+    _iconAssetName: Key/KeyItems_5
     _modelAssetName: 
     _maxCount: 1
     _effect: 0
