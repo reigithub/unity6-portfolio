@@ -73,6 +73,9 @@ namespace Game.Horror.Dialogs
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) =>
                 {
+                    var result = await HorrorConfirmDialog.RunAsync("Confirm_Delete");
+                    if (!result) return;
+
                     if (_slotNo < 0) return;
                     if (!_slots[_slotNo].HasData) return;
                     await _saveRepository.DeleteBySlotAsync(_slotNo);

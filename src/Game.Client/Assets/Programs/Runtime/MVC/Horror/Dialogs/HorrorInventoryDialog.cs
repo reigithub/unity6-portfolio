@@ -115,6 +115,9 @@ namespace Game.Horror.Dialogs
                             await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
+                            var result = await HorrorConfirmDialog.RunAsync("Confirm_Discard_Item");
+                            if (!result) return;
+
                             _inventoryService.DiscardSlot(ctx.SlotView.SlotIndex);
                             SceneComponent.ApplySlots();
                             break;
