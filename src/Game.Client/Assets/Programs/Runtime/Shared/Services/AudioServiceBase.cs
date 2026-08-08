@@ -43,19 +43,19 @@ namespace Game.Shared.Services
         private const int MaxLoadVoiceCount = 10;
         private const int MaxLoadSfxCount = 10;
 
-        private readonly Dictionary<string, UniTask<AudioClip>> _bgmLoadTasks = new();
-        private readonly Dictionary<string, UniTask<AudioClip>> _voiceLoadTasks = new();
-        private readonly Dictionary<string, UniTask<AudioClip>> _sfxLoadTasks = new();
-
         private readonly Dictionary<string, AudioClip> _bgmClips = new(MaxLoadBgmCount);
         private readonly Dictionary<string, AudioClip> _voiceClips = new(MaxLoadVoiceCount);
         private readonly Dictionary<string, AudioClip> _sfxClips = new(MaxLoadSfxCount);
+
+        private bool _unloaded;
 
         protected abstract IAddressableAssetService AssetService { get; }
         protected abstract IMasterDataService MasterDataService { get; }
 
         public async UniTask LoadAsync()
         {
+            _unloaded = false;
+
             var audioService = await AssetService.InstantiateAsync("AudioService");
             if (audioService == null) return;
 
@@ -74,114 +74,128 @@ namespace Game.Shared.Services
 
         public void Unload()
         {
+            _unloaded = true;
             _bgmSource = null;
             _voiceSource = null;
             _sfxSource = null;
-            _bgmLoadTasks.Clear();
-            _voiceLoadTasks.Clear();
-            _sfxLoadTasks.Clear();
+            foreach (var clip in _bgmClips.Values) AssetService.Release(clip);
+            _bgmClips.Clear();
+            foreach (var clip in _voiceClips.Values) AssetService.Release(clip);
+            _voiceClips.Clear();
+            foreach (var clip in _sfxClips.Values) AssetService.Release(clip);
+            _sfxClips.Clear();
             _audioServiceObject.SafeDestroy();
             _audioServiceObject = null;
         }
 
         #region Load AudioClip
 
-        private UniTask<AudioClip> LoadAudioClipAsync(string assetName) => AssetService.LoadAssetAsync<AudioClip>(assetName);
-
         private async UniTask<AudioClip> LoadBgmAsync(string assetName, CancellationToken token = default)
         {
-            if (!_bgmLoadTasks.TryGetValue(assetName, out var task))
+            if (_bgmClips.TryGetValue(assetName, out var cached))
+                return cached;
+
+            // LoadAndCacheBgmAsync に token を渡さず、待機だけをキャンセルする（2メソッド構成は意図的）。
+            // 1メソッドに統合してロードの await にキャンセルを掛けると、キャンセル時に以降の
+            // 登録・相殺 Release が実行されず、完走したロードの参照カウントがリークする。
+            // 内側を必ず完走させることで、クリップの所有権を常にキャッシュへ移す。
+            return await LoadAndCacheBgmAsync(assetName).AttachExternalCancellation(token);
+        }
+
+        private async UniTask<AudioClip> LoadAndCacheBgmAsync(string assetName)
+        {
+            var clip = await AssetService.LoadAssetAsync<AudioClip>(assetName);
+
+            if (_unloaded)
             {
-                task = LoadAudioClipAsync(assetName).Preserve();
-                _bgmLoadTasks[assetName] = task;
+                AssetService.Release(clip);
+                throw new OperationCanceledException();
             }
 
-            AudioClip audioClip;
-            try
+            if (!_bgmClips.TryAdd(assetName, clip))
             {
-                audioClip = await task.AttachExternalCancellation(token);
-                _bgmClips.TryAdd(assetName, audioClip);
-            }
-            catch (Exception e)
-            {
-                _bgmLoadTasks.Remove(assetName);
-                Debug.LogException(e);
-                throw;
-            }
-            finally
-            {
-                if (_bgmClips.Count > MaxLoadBgmCount)
-                {
-                    (string name, AudioClip clip) = _bgmClips.First();
-                    AssetService.Release(clip);
-                    _bgmClips.Remove(name);
-                    _bgmLoadTasks.Remove(name);
-                }
+                AssetService.Release(clip); // 並行ロードで先着があった分の参照カウントを返す
+                return _bgmClips[assetName];
             }
 
-            return audioClip;
+            if (_bgmClips.Count > MaxLoadBgmCount)
+            {
+                (string name, AudioClip old) = _bgmClips.First();
+                _bgmClips.Remove(name);
+                AssetService.Release(old);
+            }
+
+            return clip;
         }
 
         private async UniTask<AudioClip> LoadVoiceAsync(string assetName, CancellationToken token = default)
         {
-            if (!_voiceLoadTasks.TryGetValue(assetName, out var task))
+            if (_voiceClips.TryGetValue(assetName, out var cached))
+                return cached;
+
+            // ロードと登録は中断させず、待機だけをキャンセルする（クリップの所有権は常にキャッシュへ移る）
+            return await LoadAndCacheVoiceAsync(assetName).AttachExternalCancellation(token);
+        }
+
+        private async UniTask<AudioClip> LoadAndCacheVoiceAsync(string assetName)
+        {
+            var clip = await AssetService.LoadAssetAsync<AudioClip>(assetName);
+
+            if (_unloaded)
             {
-                task = LoadAudioClipAsync(assetName).Preserve();
-                _voiceLoadTasks[assetName] = task;
+                AssetService.Release(clip);
+                throw new OperationCanceledException();
             }
 
-            AudioClip audioClip;
-            try
+            if (!_voiceClips.TryAdd(assetName, clip))
             {
-                audioClip = await task.AttachExternalCancellation(token);
-                _voiceClips.Add(assetName, audioClip);
-            }
-            catch
-            {
-                _voiceLoadTasks.Remove(assetName);
-                throw;
+                AssetService.Release(clip); // 並行ロードで先着があった分の参照カウントを返す
+                return _voiceClips[assetName];
             }
 
             if (_voiceClips.Count > MaxLoadVoiceCount)
             {
-                (string name, AudioClip clip) = _voiceClips.First();
-                AssetService.Release(clip);
+                (string name, AudioClip old) = _voiceClips.First();
                 _voiceClips.Remove(name);
-                _voiceLoadTasks.Remove(name);
+                AssetService.Release(old);
             }
 
-            return audioClip;
+            return clip;
         }
 
         private async UniTask<AudioClip> LoadSfxAsync(string assetName, CancellationToken token = default)
         {
-            if (!_sfxLoadTasks.TryGetValue(assetName, out var task))
+            if (_sfxClips.TryGetValue(assetName, out var cached))
+                return cached;
+
+            // ロードと登録は中断させず、待機だけをキャンセルする（クリップの所有権は常にキャッシュへ移る）
+            return await LoadAndCacheSfxAsync(assetName).AttachExternalCancellation(token);
+        }
+
+        private async UniTask<AudioClip> LoadAndCacheSfxAsync(string assetName)
+        {
+            var clip = await AssetService.LoadAssetAsync<AudioClip>(assetName);
+
+            if (_unloaded)
             {
-                task = LoadAudioClipAsync(assetName).Preserve();
-                _sfxLoadTasks[assetName] = task;
+                AssetService.Release(clip);
+                throw new OperationCanceledException();
             }
 
-            AudioClip audioClip;
-            try
+            if (!_sfxClips.TryAdd(assetName, clip))
             {
-                audioClip = await task.AttachExternalCancellation(token);
-                _sfxClips.Add(assetName, audioClip);
-            }
-            catch
-            {
-                _sfxLoadTasks.Remove(assetName);
-                throw;
+                AssetService.Release(clip); // 並行ロードで先着があった分の参照カウントを返す
+                return _sfxClips[assetName];
             }
 
             if (_sfxClips.Count > MaxLoadSfxCount)
             {
-                (string name, AudioClip clip) = _sfxClips.First();
-                AssetService.Release(clip);
+                (string name, AudioClip old) = _sfxClips.First();
                 _sfxClips.Remove(name);
-                _sfxLoadTasks.Remove(name);
+                AssetService.Release(old);
             }
 
-            return audioClip;
+            return clip;
         }
 
         #endregion
