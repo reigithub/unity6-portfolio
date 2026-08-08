@@ -26,6 +26,7 @@ namespace Game.Horror.Scenes
         private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
@@ -58,10 +59,11 @@ namespace Game.Horror.Scenes
             await base.Startup();
         }
 
-        public override UniTask Ready()
+        public override async UniTask Ready()
         {
             ApplicationEvents.ResumeTime();
-            return base.Ready();
+            await _audioService.PlayBgmAsync("ha-undercurrent", SceneComponent.GetCancellationTokenOnDestroy());
+            await base.Ready();
         }
 
         public override async UniTask Terminate()
