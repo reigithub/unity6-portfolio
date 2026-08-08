@@ -329,7 +329,7 @@ namespace Game.Horror.Player
             _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _playerService.CurrentHealth, _playerService.MaxHealth));
 
             if (!string.IsNullOrEmpty(PlayerMaster.DamageSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(PlayerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
 
             if (IsDead)
             {
@@ -527,7 +527,7 @@ namespace Game.Horror.Player
         {
             var weapon = EquippedWeaponMaster;
             if (!string.IsNullOrEmpty(weapon.DryFireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(weapon.DryFireSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(weapon.DryFireSeAssetName, destroyCancellationToken).Forget();
 
             NotifyHudViews();
 
@@ -974,7 +974,7 @@ namespace Game.Horror.Player
                 _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, loudness, NoiseType.Footstep));
 
             if (!string.IsNullOrEmpty(PlayerMaster.FootstepSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(PlayerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
         }
 
         // カメラ localEulerAngles へ書き込む際は常にこの表示用 pitch を使う（リコイル合成の単一点）
@@ -1238,7 +1238,7 @@ namespace Game.Horror.Player
             _recoilWeight = 1f;
 
             if (!string.IsNullOrEmpty(weapon.FireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(weapon.FireSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(weapon.FireSeAssetName, destroyCancellationToken).Forget();
 
             Debug.Log($"Weapon Fire: name->{weapon.Name} , damage->{damage}");
         }
