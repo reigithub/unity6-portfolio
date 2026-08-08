@@ -34,10 +34,10 @@ namespace Game.Horror.Dialogs
         private IDisposable _currentRebinding;        // 進行中のリバインド操作（多重開始防止 / キャンセルボタン連動用）
         private IDisposable _currentRebindingTimeout; // 進行中リバインドの自動キャンセルタイマー（残り時間バー駆動）
 
-        public static async UniTask<bool> RunAsync()
+        public static async UniTask<bool> RunAsync(bool visibleLastScene = false)
         {
             var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-            return await sceneService.TransitionDialogAsync<HorrorOptionDialog, bool>();
+            return await sceneService.TransitionDialogAsync<HorrorOptionDialog, bool>(visibleLastScene: visibleLastScene);
         }
 
         public override UniTask Startup()
@@ -293,7 +293,6 @@ namespace Game.Horror.Dialogs
         private void RefreshBindingDisplay(InputActionRebindingView view)
         {
             var info = _inputService.GetBindingInfo(view.ControlScheme, view.ActionMapName, view.ActionName, view.CompositePartName);
-            // Debug.Log($"{info.ControlScheme}, {view.ActionMapName}, {view.ActionName}, {view.CompositePartName} : {info.DisplayName}, {info.DeviceLayoutName}, {info.ControlPath}");
             view.Initialize();
             view.SetDisplay(info.DisplayName);
             view.SetIcon(_inputActionIconService.GetSprite(info));

@@ -39,7 +39,7 @@ namespace Game.Horror.Scenes
             SceneComponent.OnOption
                 .SubscribeAwait(async (_, _) =>
                 {
-                    await HorrorOptionDialog.RunAsync();
+                    await HorrorOptionDialog.RunAsync(visibleLastScene: true);
                 })
                 .AddTo(Disposables);
 
