@@ -39,6 +39,7 @@ namespace Game.Core.UI
                 int index = i;
                 _tabs[i].Tab.isOn = index == 0;
                 _tabs[i].Tab.OnValueChangedAsObservable()
+                    .DistinctUntilChanged()
                     .Where(isOn => isOn)
                     .Subscribe(_ => ChangeTab(index))
                     .AddTo(this);
