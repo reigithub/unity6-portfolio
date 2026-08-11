@@ -1476,6 +1476,7 @@ GameObject:
   - component: {fileID: 5855587280245561097}
   - component: {fileID: 6437640631022901478}
   - component: {fileID: 4517536268731785498}
+  - component: {fileID: 1207548279328769769}
   m_Layer: 0
   m_Name: HorrorTitleScene
   m_TagString: Untagged
@@ -1532,6 +1533,24 @@ MonoBehaviour:
   _continueGameButton: {fileID: 3600302161370553072}
   _loadGameButton: {fileID: 4245017889938586583}
   _newGameButton: {fileID: 9049455381684277958}
+--- !u!114 &1207548279328769769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3482232161177167698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7955566f18f887e4092d8315927cf1aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.UI.Sound.HorrorUISoundProfile
+  _selectSeAssetName: HorrorSfx_UI_Select
+  _submitSeAssetName: HorrorSfx_UI_Submit
+  _cancelSeAssetName: HorrorSfx_UI_Cancel
+  _tabChangedSeAssetName: HorrorSfx_UI_Select
+  _valueChangedSeAssetName: HorrorSfx_UI_Select
+  _armingDelayFrames: 2
 --- !u!1 &3810045180650060366
 GameObject:
   m_ObjectHideFlags: 0

@@ -8447,6 +8447,7 @@ GameObject:
   - component: {fileID: 1889253254155075517}
   - component: {fileID: 3889637892381741613}
   - component: {fileID: 3516465702985064615}
+  - component: {fileID: 6235761568749270022}
   m_Layer: 5
   m_Name: HorrorInventoryDialog
   m_TagString: Untagged
@@ -8620,6 +8621,19 @@ MonoBehaviour:
   _keyItemContentRoot: {fileID: 1250384742759438774}
   _keyItemPrefab: {fileID: 6477491100335810527}
   _craftView: {fileID: 7364070368349235236}
+--- !u!114 &6235761568749270022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1889253254155075514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7955566f18f887e4092d8315927cf1aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.UI.Sound.HorrorUISoundProfile
+  _overrides: []
 --- !u!1 &1921289488875539407
 GameObject:
   m_ObjectHideFlags: 0
@@ -26622,6 +26636,7 @@ GameObject:
   - component: {fileID: 8430002700799129739}
   - component: {fileID: 3168669057664814204}
   - component: {fileID: 2852698967660615041}
+  - component: {fileID: 5164097168433975383}
   m_Layer: 5
   m_Name: CraftRecipeItem
   m_TagString: Untagged
@@ -26808,6 +26823,19 @@ MonoBehaviour:
   _icon: {fileID: 777035651521699100}
   _nameText: {fileID: 3793961789837533378}
   _possessedCountText: {fileID: 1271285906112801298}
+--- !u!114 &5164097168433975383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6089244856585646484}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d2ee70a887172f4292d59a5e2d9ed61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.UI.Sound.HorrorUISoundClickMarker
+  _clickSound: 0
 --- !u!1 &6104426003046155653
 GameObject:
   m_ObjectHideFlags: 0
