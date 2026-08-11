@@ -10,5 +10,7 @@ namespace Game.Horror.Services.Interfaces
         /// Select のみ同一フレーム末尾まで遅延され、同一フレームに他種別が再生された場合は破棄される。
         /// </summary>
         void Play(HorrorUISoundType type, string seAssetName);
+
+        void PlayCancelSfx();
     }
 }

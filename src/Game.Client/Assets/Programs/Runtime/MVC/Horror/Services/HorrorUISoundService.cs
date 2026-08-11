@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Game.Horror.Constants;
 using Game.Horror.Enums;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Services;
@@ -9,10 +10,7 @@ using UnityEngine;
 namespace Game.Horror.Services
 {
     /// <summary>
-    /// UI操作効果音の再生と、種別横断の再生規則を所有するサービス。所有する規則は3つ:
-    /// Select の劣後（同一フレームに他種別が再生されたら破棄）、
-    /// Select の最小発音間隔（フレームを跨ぐ高速ホバー等の連続を間引く）、
-    /// 同一フレーム同種別の畳み込み（同一操作が複数経路から同じ音を要求した場合に1回にする）。
+    /// UI操作効果音の再生と、種別横断の再生規則を所有するサービス
     /// </summary>
     public class HorrorUISoundService : IHorrorUISoundService
     {
@@ -22,8 +20,7 @@ namespace Game.Horror.Services
 
         private readonly IAudioService _audioService;
         private CancellationTokenSource _cts;
-        private readonly Dictionary<HorrorUISoundType, int> _lastPlayFrames = new(); // 種別ごとの最終再生フレーム（同フレーム同種別の畳み込み用）
-        private int _lastPriorityFrame = -1;
+        private readonly Dictionary<HorrorUISoundType, int> _lastPlayFrames = new(); // 種別ごとの最終再生フレーム。同フレーム同種別の畳み込みと、Select 劣後（非 Select 再生の有無）の判定に使う
         private float _lastSelectPlayTime = float.NegativeInfinity;
         private string _pendingSelectSeAssetName; // 非 null = 同一フレーム内で Select 予約済み
 
@@ -55,13 +52,15 @@ namespace Game.Horror.Services
             }
 
             // 同一操作が複数経路（ClickMarker と ValueMarker 等）から同種別を要求した場合の重ね録り防止。
-            // Select は RequestSelect 側の同フレーム畳み込みが同じ役割を担う
-            if (_lastPlayFrames.TryGetValue(type, out var lastFrame) && lastFrame == Time.frameCount) return;
+            if (_lastPlayFrames.TryGetValue(type, out var lastFrame) && lastFrame == Time.frameCount)
+                return;
             _lastPlayFrames[type] = Time.frameCount;
 
-            _lastPriorityFrame = Time.frameCount;
             PlayCore(seAssetName);
         }
+
+        public void PlayCancelSfx()
+            => Play(HorrorUISoundType.Cancel, HorrorAudioConstants.UICancelSfx);
 
         // Select は即時再生せず同一フレーム末尾で確定する。
         // タブ切替では TabGroup.ChangeTab がフォーカス移動（→Select要求）の後に OnTabChanged（→TabChanged要求）を
@@ -81,13 +80,20 @@ namespace Game.Horror.Services
 
             var seAssetName = _pendingSelectSeAssetName;
             _pendingSelectSeAssetName = null;
-            if (_lastPriorityFrame == frame) return;
+            if (HasPriorityPlayAt(frame)) return;
 
             var now = Time.unscaledTime;
             if (now - _lastSelectPlayTime < SelectMinInterval) return;
 
             _lastSelectPlayTime = now;
             PlayCore(seAssetName);
+        }
+
+        private bool HasPriorityPlayAt(int frame)
+        {
+            foreach (var playFrame in _lastPlayFrames.Values)
+                if (playFrame == frame) return true;
+            return false;
         }
 
         private void PlayCore(string seAssetName)
