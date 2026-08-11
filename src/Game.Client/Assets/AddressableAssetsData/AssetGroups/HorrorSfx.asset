@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HorrorSfx
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HorrorSfx
+  m_GUID: 9bee35ef698501b4f951047b6f256903
+  m_SerializeEntries:
+  - m_GUID: 1dc2f2287b118ff45939a91b08a2244e
+    m_Address: HorrorSfx_UI_TabChanged
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3863ffc05ef130743a6ef7bcbdef0df4
+    m_Address: HorrorSfx_UI_Select
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f829940876ff2d45bd0eaaa967edf2c
+    m_Address: HorrorSfx_UI_Cancel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cd7b383f7b2a33e4ab9998acf6a28acf
+    m_Address: HorrorSfx_UI_Submit
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f44b7388dcf5dd14a981e85a3aa5a9f6
+    m_Address: HorrorSfx_UI_ValueChanged
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 80891b41b2256e24799ff54958e3362b, type: 2}
+    - {fileID: 11400000, guid: e1230f05c4799da4680f4cf2e771418a, type: 2}
