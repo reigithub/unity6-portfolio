@@ -59,23 +59,25 @@ namespace Game.Horror.Scenes
                     _titleMenuRoot.SetActive(false);
 
                 _gameStartMenuRoot.SetActive(true);
-            }
 
-            ResolveSelectable();
+                ResolveSelectable();
+            }
         }
 
-        public void CloseGameStartMenu()
+        public bool CloseGameStartMenu()
         {
-            if (_gameStartMenuRoot == null) return;
-            if (_gameStartMenuRoot.activeSelf)
+            if (_gameStartMenuRoot != null && _gameStartMenuRoot.activeSelf)
             {
                 _gameStartMenuRoot.SetActive(false);
 
                 if (_titleMenuRoot != null)
                     _titleMenuRoot.SetActive(true);
+
+                ResolveSelectable();
+                return true;
             }
 
-            ResolveSelectable();
+            return false;
         }
     }
 }

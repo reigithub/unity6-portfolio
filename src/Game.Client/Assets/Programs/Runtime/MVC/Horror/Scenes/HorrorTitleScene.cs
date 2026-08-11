@@ -21,6 +21,7 @@ namespace Game.Horror.Scenes
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorSaveSlotInfo[] _saveSlots;
         private bool _hasSaveData;
 
@@ -31,7 +32,11 @@ namespace Game.Horror.Scenes
 
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => SceneComponent.CloseGameStartMenu())
+                .Subscribe(_ =>
+                {
+                    if (SceneComponent.CloseGameStartMenu())
+                        _uiSoundService.PlayCancelSfx();
+                })
                 .AddTo(Disposables);
 
             SceneComponent.OnStart
@@ -85,7 +90,7 @@ namespace Game.Horror.Scenes
                 {
                     if (!_hasSaveData) return;
 
-                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false);
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false, visibleLastScene: true);
                     if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);

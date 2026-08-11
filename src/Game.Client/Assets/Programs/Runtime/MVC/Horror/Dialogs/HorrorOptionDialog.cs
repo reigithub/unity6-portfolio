@@ -26,6 +26,7 @@ namespace Game.Horror.Dialogs
         private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorOptionService _optionService =  GameServiceManager.Resolve<IHorrorOptionService>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorOptionSaveData Options => _optionSaveRepository.Data;
 
         private HorrorOptionTabCategory _tabCategory;
@@ -45,7 +46,11 @@ namespace Game.Horror.Dialogs
             // ダイアログキャンセル
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ =>
+                {
+                    _uiSoundService.PlayCancelSfx();
+                    TrySetResult(default);
+                })
                 .AddTo(Disposables);
 
             // L1 (Previous) / R1 (Next) でタブ循環

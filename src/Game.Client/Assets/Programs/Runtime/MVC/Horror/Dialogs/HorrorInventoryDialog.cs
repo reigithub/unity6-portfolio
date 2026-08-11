@@ -31,6 +31,7 @@ namespace Game.Horror.Dialogs
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
         private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
 
         private HorrorInventoryResult _result;
 
@@ -60,6 +61,8 @@ namespace Game.Horror.Dialogs
                 .Subscribe(_ =>
                 {
                     if (SceneComponent.IsCrafting()) return;
+
+                    _uiSoundService.PlayCancelSfx();
 
                     if (SceneComponent.IsSubmenuOpen())
                         SceneComponent.CloseSubmenu();
