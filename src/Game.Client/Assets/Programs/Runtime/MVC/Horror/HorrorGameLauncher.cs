@@ -88,6 +88,9 @@ namespace Game.Horror
                 optionSaveRepository.Data.VoiceVolume,
                 optionSaveRepository.Data.SeVolume);
 
+            // UI操作効果音
+            GameServiceManager.Register<IHorrorUISoundService, HorrorUISoundService>(new HorrorUISoundService(audioService));
+
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
             GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
