@@ -37,6 +37,13 @@ MonoBehaviour:
     _muzzleFlashAssetName: MuzzleFlash
     _recoilCameraPitch: 2.5
     _recoilRecoverSeconds: 0.25
+    _weaponType: 0
+    _throwSpeed: 0
+    _throwPitchOffset: 0
+    _fuseSeconds: 0
+    _effectRadius: 0
+    _effectDurationSeconds: 0
+    _projectileAssetName: 
     _previewRotationX: 0
     _previewRotationY: -90
     _previewRotationZ: 0
@@ -64,6 +71,13 @@ MonoBehaviour:
     _muzzleFlashAssetName: 
     _recoilCameraPitch: 0
     _recoilRecoverSeconds: 0.25
+    _weaponType: 1
+    _throwSpeed: 8
+    _throwPitchOffset: 20
+    _fuseSeconds: 2
+    _effectRadius: 15
+    _effectDurationSeconds: 15
+    _projectileAssetName: SmokeGrenadeProjectile
     _previewRotationX: 0
     _previewRotationY: 0
     _previewRotationZ: 0
