@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Shared.Extensions;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
@@ -25,6 +26,7 @@ namespace Game.Horror.Enemy
         private readonly IScriptableDatabaseService _dbService;
         private readonly IMessagePipeService _messagePipeService;
         private readonly IHorrorEnemyService _enemyService;
+        private readonly HorrorWeaponEffectRegistry _effectRegistry;
 
         // spawnId → スポーン定義（マーカー位置 + マスタ解決結果）
         private readonly Dictionary<int, SpawnEntry> _entries = new();
@@ -51,12 +53,14 @@ namespace Game.Horror.Enemy
             IAddressableAssetService assetService,
             IScriptableDatabaseService dbService,
             IMessagePipeService messagePipeService,
-            IHorrorEnemyService enemyService)
+            IHorrorEnemyService enemyService,
+            HorrorWeaponEffectRegistry effectRegistry)
         {
             _assetService = assetService;
             _dbService = dbService;
             _messagePipeService = messagePipeService;
             _enemyService = enemyService;
+            _effectRegistry = effectRegistry;
         }
 
         /// <summary>
@@ -118,7 +122,7 @@ namespace Game.Horror.Enemy
 
             // SetActive(true) の後に Initialize を呼ぶ（コンポーネントの OnEnable を先行させる。SurvivorEnemySpawner と同じ順序）
             enemy.gameObject.SetActive(true);
-            enemy.Initialize(_player, entry.EnemyMaster, spawnId, onDeathFinished: () => ReturnToPool(spawnId));
+            enemy.Initialize(_player, entry.EnemyMaster, spawnId, _effectRegistry, onDeathFinished: () => ReturnToPool(spawnId));
 
             _activeEnemies.Add(spawnId, enemy);
             return true;

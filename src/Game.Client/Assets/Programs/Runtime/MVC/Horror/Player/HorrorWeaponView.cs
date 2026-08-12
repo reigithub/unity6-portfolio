@@ -139,6 +139,22 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 装備モデルを非表示にして未装備状態へ戻す（投げ切りによる装備解除用）。
+        /// 進行中の切替演出コンテキストも破棄する（SwapModel の非表示側と同イディオム）。
+        /// </summary>
+        public void Hide()
+        {
+            if (_currentId >= 0 && _models.TryGetValue(_currentId, out var model))
+            {
+                model.SetActive(false);
+            }
+
+            _currentId = -1;
+            _pendingId = -1;
+            _lowerAmount = 0f;
+        }
+
+        /// <summary>
         /// 装備切替演出を開始する。EquippingState.Enter から装備反映直後に呼ばれる。
         /// 現行未装備（初回装備）なら下げ演出を省略するフラグを立てる。
         /// </summary>

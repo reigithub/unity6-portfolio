@@ -6,6 +6,7 @@ using Game.Core.Services;
 using Game.Horror.Enemy;
 using Game.Horror.Services.Interfaces;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Shared.Scriptable.Database;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
@@ -56,7 +57,7 @@ namespace Game.Tests.MVC.Horror
             _mockEnemyService = Substitute.For<IHorrorEnemyService>();
             _mockEnemyService.GetActiveSpawnGroupIds().Returns(new HashSet<int> { 1, 2 });
 
-            _spawner = new HorrorEnemySpawner(_mockAssets, _mockDbService, _messagePipe, _mockEnemyService);
+            _spawner = new HorrorEnemySpawner(_mockAssets, _mockDbService, _messagePipe, _mockEnemyService, new HorrorWeaponEffectRegistry());
         }
 
         [TearDown]

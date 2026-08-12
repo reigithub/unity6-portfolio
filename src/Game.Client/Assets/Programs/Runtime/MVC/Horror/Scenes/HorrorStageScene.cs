@@ -6,6 +6,7 @@ using Game.Horror.Enemy;
 using Game.Horror.Interaction;
 using Game.Horror.Player;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.WeaponEffect;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -27,6 +28,8 @@ namespace Game.Horror.Scenes
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
+        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+        private readonly IMessagePipeService _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
@@ -36,10 +39,12 @@ namespace Game.Horror.Scenes
         private HorrorPlayerController _player;
         private HorrorEnemySpawner _enemySpawner;
         private HorrorEnemyDropSpawner _dropSpawner;
+        private HorrorWeaponEffectSpawner _weaponEffectSpawner;
 
         public override async UniTask Startup()
         {
             await LoadUnitySceneAsync();
+            await LoadWeaponEffectsAsync();
             var player = await LoadPlayerAsync();
             await LoadEnemiesAsync(player);
             await LoadDropsAsync(player);
@@ -71,6 +76,7 @@ namespace Game.Horror.Scenes
             UnloadDrops();
             UnloadEnemies();
             UnloadPlayer();
+            UnloadWeaponEffects();
             await UnloadUnitySceneAsync();
             await base.Terminate();
         }
@@ -88,6 +94,22 @@ namespace Game.Horror.Scenes
             _stageSceneInstance = default;
         }
 
+        /// <summary>
+        /// 武器効果スポナー（投擲物・煙フィールドの生成基盤）を生成し、投擲物プレハブを事前ロードする。
+        /// プレイヤー（投擲依頼元）とエネミー（Registry の読み手）より前に初期化する。
+        /// </summary>
+        private async UniTask LoadWeaponEffectsAsync()
+        {
+            _weaponEffectSpawner = new HorrorWeaponEffectSpawner(_assetService, _databaseService);
+            await _weaponEffectSpawner.InitializeAsync();
+        }
+
+        private void UnloadWeaponEffects()
+        {
+            _weaponEffectSpawner?.Dispose();
+            _weaponEffectSpawner = null;
+        }
+
         private async UniTask<GameObject> LoadPlayerAsync()
         {
             _playerStart = GameSceneHelper.GetComponentInChildren<HorrorPlayerStart>(_stageSceneInstance.Scene);
@@ -98,7 +120,7 @@ namespace Game.Horror.Scenes
                 return null;
 
             _player = await _playerStart.LoadPlayerAsync(_playerService.PlayerMaster);
-            _player.Initialize(_optionSaveRepository.Data);
+            _player.Initialize(_optionSaveRepository.Data, _weaponEffectSpawner);
             ApplyRespawnPosition(_player);
             _optionSaveRepository.OnSaved
                 .Subscribe(data => _player.ApplyOptions(data))
@@ -148,10 +170,9 @@ namespace Game.Horror.Scenes
             // マーカーの検証（SpawnId 未設定/重複）と生成実行はスポナーが担う
             var enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
             _enemySpawner = new HorrorEnemySpawner(
-                _assetService,
-                GameServiceManager.Resolve<IScriptableDatabaseService>(),
-                GameServiceManager.Resolve<IMessagePipeService>(),
-                GameServiceManager.Resolve<IHorrorEnemyService>());
+                _assetService, _databaseService, _messagePipeService,
+                GameServiceManager.Resolve<IHorrorEnemyService>(),
+                _weaponEffectSpawner.Registry);
             await _enemySpawner.InitializeAsync(player, enemyStarts);
         }
 
@@ -167,10 +188,7 @@ namespace Game.Horror.Scenes
             if (player == null)
                 return;
 
-            _dropSpawner = new HorrorEnemyDropSpawner(
-                _assetService,
-                GameServiceManager.Resolve<IScriptableDatabaseService>(),
-                GameServiceManager.Resolve<IMessagePipeService>());
+            _dropSpawner = new HorrorEnemyDropSpawner(_assetService, _databaseService, _messagePipeService);
             await _dropSpawner.InitializeAsync();
         }
 

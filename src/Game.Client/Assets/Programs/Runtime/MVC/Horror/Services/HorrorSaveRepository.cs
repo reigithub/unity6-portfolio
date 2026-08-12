@@ -173,7 +173,7 @@ namespace Game.Horror.Services
             NormalizeSavepoint(data, database);
             NormalizeInteraction(data.Interaction, database);
             NormalizeInventory(data.Inventory, database);
-            NormalizeEquipment(data.Equipment, database);
+            NormalizeEquipment(data.Equipment, data.Inventory, database);
             NormalizeKeyItem(data.KeyItem, database);
             NormalizeEnemy(data.Enemy, database);
         }
@@ -263,20 +263,24 @@ namespace Game.Horror.Services
             }
         }
 
-        private static void NormalizeEquipment(HorrorEquipmentSaveData data, ScriptableDatabase database)
+        // ショートカット登録・装備中レコードとも「マスターが存在し、かつ所持している」ことを要求する
+        private static void NormalizeEquipment(HorrorEquipmentSaveData data, HorrorInventorySaveData inventory, ScriptableDatabase database)
         {
             EnsureSlotCount(data);
 
             foreach (var slot in data.Slots)
             {
-                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _)
+                    || !HasObject(inventory, slot.ObjectCategory, slot.Id))
                 {
                     slot.ObjectCategory = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _))
+            if (data.ObjectCategory != ObjectCategory.Weapon
+                || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _)
+                || !HasObject(inventory, data.ObjectCategory, data.Id))
             {
                 data.ObjectCategory = ObjectCategory.None;
                 data.Id = 0;
@@ -300,6 +304,20 @@ namespace Game.Horror.Services
                     rec.Count = Mathf.Clamp(rec.Count, 0, weaponMaster.MagazineSize);
                 }
             }
+        }
+
+        private static bool HasObject(HorrorInventorySaveData inventory, ObjectCategory category, int id)
+        {
+            if (inventory?.Slots == null)
+                return false;
+
+            foreach (var slot in inventory.Slots)
+            {
+                if (slot.ObjectCategory == category && slot.Id == id)
+                    return true;
+            }
+
+            return false;
         }
 
         // スロット数を SlotCount(4) に揃える（不足は空追加、超過は切り詰め）。

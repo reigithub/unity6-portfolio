@@ -138,7 +138,7 @@ namespace Game.Tests.MVC.Horror
                     HearingRadius = 10f,
                     HearingSensitivity = 1f,
                 };
-                perception.Initialize(targetGo.transform, master);
+                perception.Initialize(targetGo.transform, master, effectRegistry: null);
 
                 // 足音で警戒度・プレイヤー知覚位置・注意対象位置を汚す（前世の状態を作る）
                 messagePipe.Publish(new HorrorSignals.Noise.Occurred(new Vector3(1f, 0f, 0f), 1f, NoiseType.Footstep));
@@ -146,7 +146,7 @@ namespace Game.Tests.MVC.Horror
                 Assert.That(perception.TryGetLastPerceivedPlayerPosition(out _), Is.True);
                 Assert.That(perception.TryGetLastNoticedPosition(out _), Is.True);
 
-                perception.Initialize(targetGo.transform, master);
+                perception.Initialize(targetGo.transform, master, effectRegistry: null);
 
                 Assert.That(perception.Awareness, Is.Zero);
                 Assert.That(perception.TryGetLastPerceivedPlayerPosition(out _), Is.False);

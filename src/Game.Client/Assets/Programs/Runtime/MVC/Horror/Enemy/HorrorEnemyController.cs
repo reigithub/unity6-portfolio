@@ -1,6 +1,7 @@
 using System;
 using Game.Core.Services;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Library.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Extensions;
@@ -69,8 +70,9 @@ namespace Game.Horror.Enemy
         /// <param name="player">プレイヤーの GameObject</param>
         /// <param name="master">調整値マスターデータ</param>
         /// <param name="spawnId">スポーンエントリの一意 Id（HorrorEnemySpawnMaster の Id）。撃破記録の永続化キー</param>
+        /// <param name="effectRegistry">アクティブな武器効果の集合（知覚センサーへ渡す。null = 効果なし）</param>
         /// <param name="onDeathFinished">死亡演出完了の通知先（スポナーがプール返却を行う）</param>
-        public void Initialize(GameObject player, HorrorEnemyMaster master, int spawnId, Action onDeathFinished)
+        public void Initialize(GameObject player, HorrorEnemyMaster master, int spawnId, HorrorWeaponEffectRegistry effectRegistry, Action onDeathFinished)
         {
             _player = player;
             _master = master;
@@ -105,7 +107,7 @@ namespace Game.Horror.Enemy
             _health = master.MaxHealth;
 
             // 知覚センサーを初期化（視覚/聴覚の購読含む）
-            _perception.Initialize(player.transform, master);
+            _perception.Initialize(player.transform, master, effectRegistry);
 
             // MessagePipe サービスをキャッシュ（Scream / Enemy.Died 発火用）
             _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();

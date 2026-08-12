@@ -23,6 +23,9 @@ namespace Game.Horror.Services.Interfaces
         /// <summary>現在装備中の (SlotType, Id) を取得する。未装備または未ロードなら false。</summary>
         bool TryGetEquipped(out ObjectCategory type, out int id);
 
+        /// <summary>装備を解除して素手に戻す（投げ切り等）。未装備・未ロードでも安全（冪等）。</summary>
+        void Unequip();
+
         /// <summary>装備中武器のマスター（null = 未装備。<see cref="ResolveEquippedWeaponMaster"/> 前も null）。</summary>
         HorrorWeaponMaster EquippedWeaponMaster { get; }
 
@@ -47,6 +50,9 @@ namespace Game.Horror.Services.Interfaces
 
         /// <summary>指定スロット(0-3)の登録を外す（空にする）。</summary>
         bool ClearSlot(int index);
+
+        /// <summary>指定アイテム (SlotType, Id) を登録しているスロットを空にする（枯渇時の登録除去用）。未登録・未ロードは何もせず false（冪等）。</summary>
+        bool TryClearSlotOf(ObjectCategory category, int id);
 
         /// <summary>指定スロットの登録を取得する。空(None)または範囲外なら false。</summary>
         bool TryGetSlot(int index, out HorrorEquipmentSlotData slot);

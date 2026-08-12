@@ -108,6 +108,77 @@ namespace Game.Tests.MVC.Horror
         }
 
         [Test]
+        public async Task Unequip_WhenEquipped_ClearsRecordAndMasterAndMarksDirty()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
+
+            // 装備状態を直接作る（サービス経由だと TryEquip が Dirty を立て、Unequip 由来の Dirty を検証できないため）
+            _repository.Data.Equipment.ObjectCategory = ObjectCategory.Weapon;
+            _repository.Data.Equipment.Id = 5;
+            _service.ResolveEquippedWeaponMaster();
+            Assert.That(_service.EquippedWeaponMaster, Is.Not.Null);
+            Assert.That(_repository.IsDirty, Is.False);
+
+            _service.Unequip();
+
+            Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
+            Assert.That(_service.EquippedWeaponMaster, Is.Null);
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task Unequip_WhenNotEquipped_DoesNothing()
+        {
+            await LoadDefaultData();
+
+            _service.Unequip();
+
+            Assert.That(_service.TryGetEquipped(out _, out _), Is.False);
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public void Unequip_WhenDataNull_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _service.Unequip());
+        }
+
+        [Test]
+        public async Task TryClearSlotOf_Registered_ClearsSlotAndMarksDirty()
+        {
+            await LoadDefaultData();
+
+            // 登録状態を直接作る（サービス経由だと TrySetSlot が Dirty を立て、TryClearSlotOf 由来の Dirty を検証できないため）
+            _repository.Data.Equipment.Slots[1].ObjectCategory = ObjectCategory.Weapon;
+            _repository.Data.Equipment.Slots[1].Id = 2;
+            Assert.That(_repository.IsDirty, Is.False);
+
+            var ok = _service.TryClearSlotOf(ObjectCategory.Weapon, 2);
+
+            Assert.That(ok, Is.True);
+            Assert.That(_service.TryGetSlot(1, out _), Is.False);
+            Assert.That(_repository.IsDirty, Is.True);
+        }
+
+        [Test]
+        public async Task TryClearSlotOf_NotRegistered_ReturnsFalseAndNotDirty()
+        {
+            await LoadDefaultData();
+
+            var ok = _service.TryClearSlotOf(ObjectCategory.Weapon, 99);
+
+            Assert.That(ok, Is.False);
+            Assert.That(_repository.IsDirty, Is.False);
+        }
+
+        [Test]
+        public void TryClearSlotOf_WhenDataNull_ReturnsFalseWithoutThrow()
+        {
+            Assert.That(_service.TryClearSlotOf(ObjectCategory.Weapon, 2), Is.False);
+        }
+
+        [Test]
         public async Task TryEquip_SameWeaponAgain_ReturnsTrueIdempotently()
         {
             await LoadDefaultData();
