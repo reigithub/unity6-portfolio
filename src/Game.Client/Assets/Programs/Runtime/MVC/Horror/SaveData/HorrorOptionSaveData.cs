@@ -84,19 +84,19 @@ namespace Game.Horror.SaveData
 
         #region Audio
 
-        // 値は SliderValueSelector の実値（float）。range/既定は prefab のスライダー設定が確定した時点で揃える。
+        // 値は SliderValueSelector の実値（0〜10、既定 5）。0 は AudioMixer 上 -80dB（実質無音）。
 
         /// <summary>マスターボリューム</summary>
-        public float MasterVolume { get; set; } = 1f;
+        public float MasterVolume { get; set; } = 5f;
 
         /// <summary>BGM ボリューム</summary>
-        public float BgmVolume { get; set; } = 1f;
+        public float BgmVolume { get; set; } = 5f;
 
         /// <summary>ボイスボリューム</summary>
-        public float VoiceVolume { get; set; } = 1f;
+        public float VoiceVolume { get; set; } = 5f;
 
         /// <summary>SE ボリューム</summary>
-        public float SeVolume { get; set; } = 1f;
+        public float SeVolume { get; set; } = 5f;
 
         #endregion
     }

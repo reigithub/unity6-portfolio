@@ -3,6 +3,7 @@ using Game.Shared.Input;
 using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace Game.Core.Services
@@ -86,7 +87,7 @@ namespace Game.Core.Services
 
         GameObject GetSelectedGameObject();
 
-        void SetSelectedGameObject(GameObject go);
+        void SetSelectedGameObject(GameObject go, BaseEventData eventData = null);
 
         void UpdateControlScheme(string scheme);
 

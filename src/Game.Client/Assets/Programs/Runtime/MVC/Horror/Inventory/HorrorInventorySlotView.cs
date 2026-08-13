@@ -36,6 +36,9 @@ namespace Game.Horror.Inventory
 
         public IObjectInfo SlotInfo { get; private set; }
 
+        // グリッド上の固定位置
+        public int SlotIndex { get; set; } = -1;
+
         private IHorrorIconService _iconService;
         private IHorrorEquipmentService _equipmentService;
         private IInputSystemService _inputSystemService;

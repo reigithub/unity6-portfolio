@@ -33,11 +33,16 @@ namespace Game.Shared.Scriptable.Database.Tables
             return FindRange(records, min, max, _pkSel, _pkCmp, asc);
         }
 
+        protected override void InvalidateIndexCaches()
+        {
+        }
+
 #if UNITY_EDITOR
         [ContextMenu("Sort & Validate")]
         public override void EditorSortAndValidate()
         {
             SortAndValidate(_pkSel, _pkCmp);
+            InvalidateIndexCaches();
         }
 
         public override bool EditorIsSorted() => IsSortedByKey(_pkSel, _pkCmp);

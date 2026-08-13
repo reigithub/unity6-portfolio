@@ -77,12 +77,6 @@ namespace Game.Shared.Scenes
             var list = new List<T>();
             foreach (var obj in rootGameObjects)
             {
-                if (obj.TryGetComponent<T>(out var component))
-                {
-                    list.Add(component);
-                    continue;
-                }
-
                 var components = obj.GetComponentsInChildren<T>();
                 if (components != null && components.Length > 0)
                 {

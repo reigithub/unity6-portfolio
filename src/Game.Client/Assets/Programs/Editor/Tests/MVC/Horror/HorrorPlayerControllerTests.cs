@@ -94,6 +94,63 @@ namespace Game.Tests.MVC.Horror
             Assert.That(Vector3.Angle(result, forward), Is.LessThanOrEqualTo(spreadAngle));
         }
 
+        // 投擲初速：視線方向を right 軸まわりに投げ上げ角ぶん上へ回して初速を乗じる。
+        // 視線に対する相対角で回すため、上下を向いても投げ上げ角が保たれる。
+
+        [Test]
+        public void CalculateThrowVelocity_ZeroPitch_IsForwardTimesSpeed()
+        {
+            var result = HorrorPlayerController.CalculateThrowVelocity(Vector3.forward, Vector3.right, 0f, 8f);
+            Assert.That(Vector3.Distance(result, Vector3.forward * 8f), Is.LessThan(1e-4f));
+        }
+
+        [Test]
+        public void CalculateThrowVelocity_PositivePitch_HasUpwardComponent()
+        {
+            var result = HorrorPlayerController.CalculateThrowVelocity(Vector3.forward, Vector3.right, 20f, 8f);
+            Assert.That(result.y, Is.GreaterThan(0f));
+            Assert.That(result.z, Is.GreaterThan(0f)); // 前方成分は保たれる
+        }
+
+        // 回転のみで速度の大きさは変えない（初速はマスター値そのもの）
+        [Test]
+        public void CalculateThrowVelocity_PreservesSpeedMagnitude()
+        {
+            const float speed = 8f;
+            var result = HorrorPlayerController.CalculateThrowVelocity(Vector3.forward, Vector3.right, 20f, speed);
+            Assert.That(result.magnitude, Is.EqualTo(speed).Within(1e-3f));
+        }
+
+        // 仰角20度なら、初速と視線のなす角はちょうど20度
+        [Test]
+        public void CalculateThrowVelocity_DeviatesFromForwardByPitchAngle()
+        {
+            const float pitch = 20f;
+            var forward = Vector3.forward;
+            var result = HorrorPlayerController.CalculateThrowVelocity(forward, Vector3.right, pitch, 8f);
+            Assert.That(Vector3.Angle(result, forward), Is.EqualTo(pitch).Within(1e-3f));
+        }
+
+        // 見上げた状態でも視線に対する相対角は同じ（ワールド up 基準ではないことの検証）
+        [Test]
+        public void CalculateThrowVelocity_LookingUpward_KeepsRelativePitch()
+        {
+            const float pitch = 20f;
+            var forward = new Vector3(0f, 1f, 1f).normalized; // 45度見上げ
+            var result = HorrorPlayerController.CalculateThrowVelocity(forward, Vector3.right, pitch, 8f);
+            Assert.That(Vector3.Angle(result, forward), Is.EqualTo(pitch).Within(1e-3f));
+        }
+
+        // 真上を向いた極限でも破綻せず、相対角が保たれる
+        [Test]
+        public void CalculateThrowVelocity_LookingStraightUp_KeepsRelativePitch()
+        {
+            const float pitch = 20f;
+            var forward = Vector3.up;
+            var result = HorrorPlayerController.CalculateThrowVelocity(forward, Vector3.right, pitch, 8f);
+            Assert.That(Vector3.Angle(result, forward), Is.EqualTo(pitch).Within(1e-3f));
+        }
+
         // エイムダメージ：非エイムは素値、エイムは倍率適用の四捨五入、倍率1.0はエイムでも素値と一致。
 
         [Test]

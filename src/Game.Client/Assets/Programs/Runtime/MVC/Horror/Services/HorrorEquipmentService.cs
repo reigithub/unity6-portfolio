@@ -60,6 +60,23 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// 装備を解除して素手に戻す（投げ切り等）。未装備・未ロードでも安全（冪等）。
+        /// 記録とマスターの解除は同時に行う（未装備なのにマスターが残る状態を作らない）。
+        /// </summary>
+        public void Unequip()
+        {
+            _equippedWeaponMaster = null;
+
+            var data = _repository.Data?.Equipment;
+            if (data == null || data.ObjectCategory == ObjectCategory.None)
+                return;
+
+            data.ObjectCategory = ObjectCategory.None;
+            data.Id = 0;
+            _repository.MarkDirty();
+        }
+
         /// <summary>現在装備中の (SlotType, Id) を取得する。未装備または未ロードなら false。</summary>
         public bool TryGetEquipped(out ObjectCategory type, out int id)
         {
@@ -172,6 +189,28 @@ namespace Game.Horror.Services
             return true;
         }
 
+        /// <summary>
+        /// 指定アイテムを最初の空きスロット（index 昇順）へ登録する。
+        /// 既登録なら何もしない（単一登録の不変条件を維持）。空き無し・未ロードも何もせず false。
+        /// </summary>
+        public bool TryAutoAssignSlot(ObjectCategory slotType, int id)
+        {
+            var data = _repository.Data?.Equipment;
+            if (data == null || slotType == ObjectCategory.None)
+                return false;
+
+            if (GetSlotIndex(data, slotType, id) >= 0)
+                return false;
+
+            for (var i = 0; i < MaxEquipmentSlotCount; i++)
+            {
+                if (!TryGetSlot(i, out _))
+                    return TrySetSlot(i, slotType, id);
+            }
+
+            return false; // 空き無し
+        }
+
         // 指定アイテム (SlotType, Id) が登録されているスロット index を返す（None は対象外）。無ければ -1。
         private static int GetSlotIndex(HorrorEquipmentSaveData data, ObjectCategory slotType, int id)
         {
@@ -192,6 +231,28 @@ namespace Game.Horror.Services
         {
             var data = _repository.Data?.Equipment;
             if (data == null || index < 0 || index >= MaxEquipmentSlotCount)
+                return false;
+
+            var slot = data.Slots[index];
+            slot.ObjectCategory = ObjectCategory.None;
+            slot.Id = 0;
+            _repository.MarkDirty();
+            return true;
+        }
+
+        /// <summary>
+        /// 指定アイテム (SlotType, Id) を登録しているスロットを空にする（投げ切り等の枯渇時に
+        /// 「未所持のアイテムはショートカットに登録されていない」を保つための除去）。
+        /// 未登録・未ロードは何もせず false（冪等）。単一登録の不変条件により対象は高々1スロット。
+        /// </summary>
+        public bool TryClearSlotOf(ObjectCategory category, int id)
+        {
+            var data = _repository.Data?.Equipment;
+            if (data == null)
+                return false;
+
+            int index = GetSlotIndex(data, category, id);
+            if (index < 0)
                 return false;
 
             var slot = data.Slots[index];

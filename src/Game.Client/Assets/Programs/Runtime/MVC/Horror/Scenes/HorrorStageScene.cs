@@ -6,6 +6,7 @@ using Game.Horror.Enemy;
 using Game.Horror.Interaction;
 using Game.Horror.Player;
 using Game.Horror.Services.Interfaces;
+using Game.Horror.WeaponEffect;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
@@ -26,6 +27,9 @@ namespace Game.Horror.Scenes
         private readonly IAddressableAssetService _assetService = GameServiceManager.Resolve<IAddressableAssetService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
+        private readonly IScriptableDatabaseService _databaseService = GameServiceManager.Resolve<IScriptableDatabaseService>();
+        private readonly IMessagePipeService _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
         private readonly IHorrorOptionSaveRepository _optionSaveRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
         private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
@@ -33,13 +37,17 @@ namespace Game.Horror.Scenes
         private SceneInstance _stageSceneInstance;
         private HorrorPlayerStart _playerStart;
         private HorrorPlayerController _player;
-        private HorrorEnemyStart[] _enemyStarts;
+        private HorrorEnemySpawner _enemySpawner;
+        private HorrorEnemyDropSpawner _dropSpawner;
+        private HorrorWeaponEffectSpawner _weaponEffectSpawner;
 
         public override async UniTask Startup()
         {
             await LoadUnitySceneAsync();
+            await LoadWeaponEffectsAsync();
             var player = await LoadPlayerAsync();
             await LoadEnemiesAsync(player);
+            await LoadDropsAsync(player);
 
             _inputService.Player.Menu.OnPerformedAsObservable()
                 .ThrottleFirst(TimeSpan.FromSeconds(0.1f))
@@ -56,16 +64,19 @@ namespace Game.Horror.Scenes
             await base.Startup();
         }
 
-        public override UniTask Ready()
+        public override async UniTask Ready()
         {
             ApplicationEvents.ResumeTime();
-            return base.Ready();
+            await _audioService.PlayBgmAsync("ha-undercurrent", SceneComponent.GetCancellationTokenOnDestroy());
+            await base.Ready();
         }
 
         public override async UniTask Terminate()
         {
+            UnloadDrops();
             UnloadEnemies();
             UnloadPlayer();
+            UnloadWeaponEffects();
             await UnloadUnitySceneAsync();
             await base.Terminate();
         }
@@ -83,6 +94,22 @@ namespace Game.Horror.Scenes
             _stageSceneInstance = default;
         }
 
+        /// <summary>
+        /// 武器効果スポナー（投擲物・煙フィールドの生成基盤）を生成し、投擲物プレハブを事前ロードする。
+        /// プレイヤー（投擲依頼元）とエネミー（Registry の読み手）より前に初期化する。
+        /// </summary>
+        private async UniTask LoadWeaponEffectsAsync()
+        {
+            _weaponEffectSpawner = new HorrorWeaponEffectSpawner(_assetService, _databaseService);
+            await _weaponEffectSpawner.InitializeAsync();
+        }
+
+        private void UnloadWeaponEffects()
+        {
+            _weaponEffectSpawner?.Dispose();
+            _weaponEffectSpawner = null;
+        }
+
         private async UniTask<GameObject> LoadPlayerAsync()
         {
             _playerStart = GameSceneHelper.GetComponentInChildren<HorrorPlayerStart>(_stageSceneInstance.Scene);
@@ -93,7 +120,7 @@ namespace Game.Horror.Scenes
                 return null;
 
             _player = await _playerStart.LoadPlayerAsync(_playerService.PlayerMaster);
-            _player.Initialize(_optionSaveRepository.Data);
+            _player.Initialize(_optionSaveRepository.Data, _weaponEffectSpawner);
             ApplyRespawnPosition(_player);
             _optionSaveRepository.OnSaved
                 .Subscribe(data => _player.ApplyOptions(data))
@@ -140,25 +167,35 @@ namespace Game.Horror.Scenes
             if (player == null)
                 return;
 
-            _enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
-            foreach (var enemyStart in _enemyStarts)
-            {
-                await enemyStart.LoadEnemyAsync(player);
-            }
+            // マーカーの検証（SpawnId 未設定/重複）と生成実行はスポナーが担う
+            var enemyStarts = GameSceneHelper.GetComponentsInChildren<HorrorEnemyStart>(_stageSceneInstance.Scene);
+            _enemySpawner = new HorrorEnemySpawner(
+                _assetService, _databaseService, _messagePipeService,
+                GameServiceManager.Resolve<IHorrorEnemyService>(),
+                _weaponEffectSpawner.Registry);
+            await _enemySpawner.InitializeAsync(player, enemyStarts);
         }
 
         private void UnloadEnemies()
         {
-            if (_enemyStarts == null)
+            _enemySpawner?.Dispose();
+            _enemySpawner = null;
+        }
+
+        private async UniTask LoadDropsAsync(GameObject player)
+        {
+            // プレイヤー不在時はエネミーも不在（LoadEnemiesAsync と対称のガード）のため撃破ドロップも成立しない
+            if (player == null)
                 return;
 
-            foreach (var enemyStart in _enemyStarts)
-            {
-                if (enemyStart != null)
-                    enemyStart.UnloadEnemy();
-            }
+            _dropSpawner = new HorrorEnemyDropSpawner(_assetService, _databaseService, _messagePipeService);
+            await _dropSpawner.InitializeAsync();
+        }
 
-            _enemyStarts = null;
+        private void UnloadDrops()
+        {
+            _dropSpawner?.Dispose();
+            _dropSpawner = null;
         }
 
         private async UniTask ShowPauseDialogAsync()
@@ -189,7 +226,7 @@ namespace Game.Horror.Scenes
             if (_player != null)
             {
                 if (result.HasUseRequest)
-                    _player.RequestUseItem(result.UseCategory, result.UseId);
+                    _player.RequestUseItem(result.UseCategory, result.UseId, result.UseSlotNo);
 
                 if (result.HasEquipRequest)
                     _player.RequestEquip(result.EquipCategory, result.EquipId);

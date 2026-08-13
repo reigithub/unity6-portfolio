@@ -35,6 +35,12 @@ namespace Game.Horror.Services
             _databaseService = databaseService;
         }
 
+        public override void CreateNewSaveData()
+        {
+            CurrentSlot = -1;
+            base.CreateNewSaveData();
+        }
+
         private static string GetSaveKeyBySlot(int slotNo) => $"horror_save_slot{slotNo}";
 
         public async UniTask<HorrorSaveSlotInfo> LoadSlotInfoAsync(int slotNo)
@@ -160,14 +166,16 @@ namespace Game.Horror.Services
             data.Inventory ??= new HorrorInventorySaveData();
             data.Equipment ??= new HorrorEquipmentSaveData();
             data.KeyItem ??= new HorrorKeyItemSaveData();
+            data.Enemy ??= new HorrorEnemySaveData();
 
             var database = _databaseService.Database;
 
             NormalizeSavepoint(data, database);
             NormalizeInteraction(data.Interaction, database);
             NormalizeInventory(data.Inventory, database);
-            NormalizeEquipment(data.Equipment, database);
+            NormalizeEquipment(data.Equipment, data.Inventory, database);
             NormalizeKeyItem(data.KeyItem, database);
+            NormalizeEnemy(data.Enemy, database);
         }
 
         private static void NormalizeSavepoint(HorrorSaveData data, ScriptableDatabase database)
@@ -192,31 +200,87 @@ namespace Game.Horror.Services
 
         private static void NormalizeInventory(HorrorInventorySaveData data, ScriptableDatabase database)
         {
-            // 逆順走査
+            // 逆順走査。同一 (ObjectCategory, Id) の複数スロットは分割スタックとして正当なデータのためマージしない
             for (int i = data.Slots.Count - 1; i >= 0; i--)
             {
                 var slot = data.Slots[i];
                 if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out var info))
+                {
                     data.Slots.RemoveAt(i);
+                    continue;
+                }
+
+                slot.Count = Mathf.Min(slot.Count, info.MaxCount);
+
+                // 行の存在 = 中身のあるスタック、の不変条件を確立する
+                if (slot.Count <= 0)
+                    data.Slots.RemoveAt(i);
+            }
+
+            RenumberInventorySlots(data);
+        }
+
+        /// <summary>
+        /// SlotNo の不変条件（値域内・行間一意）を確立する。
+        /// リスト順の先勝ちで正当な SlotNo を確定し、範囲外・重複の行はリスト順に最小の空き位置へ再割り当てする
+        /// （列追加前の旧バイナリは全行 SlotNo=0 で届くため、この規則で旧来の表示順が保存される）。
+        /// 空き位置が尽きて割り当てられない行のみ削除し、LogError で顕在化する。
+        /// </summary>
+        private static void RenumberInventorySlots(HorrorInventorySaveData data)
+        {
+            const int maxSlotCount = HorrorInventoryConstants.MaxSlotCount;
+
+            // パス1: 値域内かつ未占有の SlotNo をリスト順の先勝ちで確定する
+            var occupied = new bool[maxSlotCount];
+            var pending = new List<HorrorInventorySlotData>();
+            foreach (var slot in data.Slots)
+            {
+                if (slot.SlotNo >= 0 && slot.SlotNo < maxSlotCount && !occupied[slot.SlotNo])
+                    occupied[slot.SlotNo] = true;
                 else
-                    data.Slots[i].Count = Mathf.Min(slot.Count, info.MaxCount);
+                    pending.Add(slot);
+            }
+
+            // パス2: 未確定行をリスト順に最小の空き位置へ割り当てる
+            int nextFree = 0;
+            foreach (var slot in pending)
+            {
+                while (nextFree < maxSlotCount && occupied[nextFree])
+                    nextFree++;
+
+                if (nextFree >= maxSlotCount)
+                {
+                    // パス3: 空き不足で割り当て不能な行は保持できないため削除し、エラーで顕在化する
+                    Debug.LogError(
+                        $"[{nameof(HorrorSaveRepository)}] インベントリの空き位置が不足したためスロットを破棄しました: " +
+                        $"({slot.ObjectCategory}, {slot.Id}) x{slot.Count}");
+                    data.Slots.Remove(slot);
+                    continue;
+                }
+
+                slot.SlotNo = nextFree;
+                occupied[nextFree] = true;
             }
         }
 
-        private static void NormalizeEquipment(HorrorEquipmentSaveData data, ScriptableDatabase database)
+        // ショートカット登録・装備中レコードとも「マスターが存在し、かつ所持している」ことを要求する
+        private static void NormalizeEquipment(HorrorEquipmentSaveData data, HorrorInventorySaveData inventory, ScriptableDatabase database)
         {
             EnsureSlotCount(data);
 
             foreach (var slot in data.Slots)
             {
-                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _))
+                if (!HorrorDatabaseHelper.TryGetInfo(database, slot.ObjectCategory, slot.Id, out _)
+                    || !HasObject(inventory, slot.ObjectCategory, slot.Id))
                 {
                     slot.ObjectCategory = ObjectCategory.None;
                     slot.Id = 0;
                 }
             }
 
-            if (data.ObjectCategory != ObjectCategory.Weapon || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _))
+            if (data.ObjectCategory != ObjectCategory.Weapon
+                || !HorrorDatabaseHelper.TryGetInfo(database, data.ObjectCategory, data.Id, out _)
+                || !HasObject(inventory, data.ObjectCategory, data.Id))
             {
                 data.ObjectCategory = ObjectCategory.None;
                 data.Id = 0;
@@ -242,6 +306,20 @@ namespace Game.Horror.Services
             }
         }
 
+        private static bool HasObject(HorrorInventorySaveData inventory, ObjectCategory category, int id)
+        {
+            if (inventory?.Slots == null)
+                return false;
+
+            foreach (var slot in inventory.Slots)
+            {
+                if (slot.ObjectCategory == category && slot.Id == id)
+                    return true;
+            }
+
+            return false;
+        }
+
         // スロット数を SlotCount(4) に揃える（不足は空追加、超過は切り詰め）。
         private static void EnsureSlotCount(HorrorEquipmentSaveData data)
         {
@@ -263,6 +341,26 @@ namespace Game.Horror.Services
                 if (HorrorDatabaseHelper.TryGetInfo(database, keyItem.ObjectCategory, keyItem.Id, out _))
                     continue;
                 data.KeyItems.RemoveAt(i);
+            }
+        }
+
+        private static void NormalizeEnemy(HorrorEnemySaveData data, ScriptableDatabase database)
+        {
+            // 列追加前の旧バイナリは FiredTriggerIds が null になるため先に埋める
+            data.FiredTriggerIds ??= new List<int>();
+
+            // 逆順走査
+            for (int i = data.DefeatedSpawnIds.Count - 1; i >= 0; i--)
+            {
+                if (!database.HorrorEnemySpawnMasterTable.TryFindById(data.DefeatedSpawnIds[i], out _))
+                    data.DefeatedSpawnIds.RemoveAt(i);
+            }
+
+            // 逆順走査
+            for (int i = data.FiredTriggerIds.Count - 1; i >= 0; i--)
+            {
+                if (!database.HorrorEnemySpawnTriggerMasterTable.TryFindById(data.FiredTriggerIds[i], out _))
+                    data.FiredTriggerIds.RemoveAt(i);
             }
         }
 

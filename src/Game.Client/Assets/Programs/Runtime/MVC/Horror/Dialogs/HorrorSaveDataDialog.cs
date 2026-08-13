@@ -26,6 +26,7 @@ namespace Game.Horror.Dialogs
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorSaveSlotInfo[] _slots;
         private int _slotNo = -1;
         private bool _saveMode = true;
@@ -35,8 +36,9 @@ namespace Game.Horror.Dialogs
         /// </summary>
         /// <param name="slots">全スロットのメタ情報。</param>
         /// <param name="saveMode">スロット選択時にセーブする</param>
+        /// <param name="visibleLastScene"></param>
         /// <returns>選択スロット番号（0〜スロット数上限 - 1）。負値はキャンセル。</returns>
-        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots, bool saveMode = true)
+        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots, bool saveMode = true, bool visibleLastScene = false)
         {
             int result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -44,7 +46,7 @@ namespace Game.Horror.Dialogs
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
                 var args = new HorrorSaveDataDialogArgs { Slots = slots, SaveMode = saveMode };
-                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveDataDialogArgs, int>(args);
+                result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveDataDialogArgs, int>(args, visibleLastScene: visibleLastScene);
             }
             return result;
         }
@@ -66,13 +68,20 @@ namespace Game.Horror.Dialogs
         {
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(-1))
+                .Subscribe(_ =>
+                {
+                    _uiSoundService.PlayCancelSfx();
+                    TrySetResult(-1);
+                })
                 .AddTo(Disposables);
 
             _inputService.UI.Remove.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .SubscribeAwait(async (_, _) =>
                 {
+                    var result = await HorrorConfirmDialog.RunAsync("Confirm_Delete");
+                    if (!result) return;
+
                     if (_slotNo < 0) return;
                     if (!_slots[_slotNo].HasData) return;
                     await _saveRepository.DeleteBySlotAsync(_slotNo);

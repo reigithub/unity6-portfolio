@@ -1,6 +1,7 @@
 using Game.Core.Services;
 using Game.Core.UI;
 using Game.Horror.Inventory;
+using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Enums;
@@ -23,19 +24,21 @@ namespace Game.Horror.Dialogs
         [SerializeField] private Transform _keyItemContentRoot;
         [SerializeField] private HorrorKeyItemView _keyItemPrefab;
 
+        [SerializeField] private HorrorCraftView _craftView;
+
         #endregion
 
         private IInputSystemService _inputService;
         private IHorrorInventoryService _inventoryService;
         private IHorrorKeyItemService _keyItemService;
 
-        private HorrorInventorySlotView _slotView;
+        private HorrorInventorySlotView _selectedSlot;
 
         public Observable<HorrorInventoryContextActionInfo> OnContextActionClicked
             => _contextMenu.OnClicked.Select(x => new HorrorInventoryContextActionInfo
             {
                 ContextActionType = x,
-                SlotView = _slotView
+                SlotView = _selectedSlot
             });
 
         public void Initialize()
@@ -49,6 +52,7 @@ namespace Game.Horror.Dialogs
             _slotDetailView.Initialize();
             UpdateDetail(_slots[0]);
             BindKeyItems();
+            BindCraft();
             _tabGroup.ChangeTab(0);
 
             if (_contextMenu != null)
@@ -62,30 +66,53 @@ namespace Game.Horror.Dialogs
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
 
+        public bool IsProcessing() => IsSubmenuOpen() || IsCrafting();
+
         #region InventorySlots
 
+        // 初期化と購読は寿命中 1 回のみ。再実行すると Disposables に購読が重複登録されるため、
+        // データの再反映は ApplySlots を使うこと。
         private void BindSlots()
         {
-            var slots = _inventoryService.Slots;
             for (int i = 0; i < _slots.Length; i++)
             {
+                _slots[i].SlotIndex = i; // グリッド固定位置。以後不変
                 _slots[i].Initialize();
-
-                bool empty = true;
-                if (i < slots.Count)
-                {
-                    var slot = slots[i];
-                    _slots[i].SetSlot(slot.ObjectCategory, slot.Id, slot.Count);
-                    empty = false;
-                }
-
-                if (empty) _slots[i].SetEmpty();
-
                 _slots[i].OnSelected.Subscribe(UpdateDetail).AddTo(Disposables);
                 _slots[i].OnSubmit.Subscribe(OpenSubmenu).AddTo(Disposables);
             }
+
+            ApplySlots();
         }
 
+        /// <summary>
+        /// インベントリデータをスロット表示へ反映する（再入可能）。
+        /// スロット破棄などでデータが変わった後に呼び、グリッドと詳細ペインを最新化する。
+        /// </summary>
+        public void ApplySlots()
+        {
+            // 位置（SlotNo）→行の一時テーブルを構築して View と 1:1 で対応させる。範囲外の行は表示しない（正規化後は発生しない）
+            var rows = new HorrorInventorySlotData[_slots.Length];
+            foreach (var row in _inventoryService.Slots)
+            {
+                if (row.SlotNo >= 0 && row.SlotNo < rows.Length)
+                    rows[row.SlotNo] = row;
+            }
+
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                if (rows[i] != null)
+                    _slots[i].SetSlot(rows[i].ObjectCategory, rows[i].Id, rows[i].Count);
+                else
+                    _slots[i].SetEmpty();
+            }
+
+            if (_selectedSlot != null)
+                UpdateDetail(_selectedSlot);
+        }
+
+        // 入力デバイス変更などによるアイコンの再解決のみ行う（個数テキストは更新しない）。
+        // データ変更の反映には ApplySlots を使うこと。
         public void RefreshSlots()
         {
             for (int i = 0; i < _slots.Length; i++)
@@ -95,7 +122,10 @@ namespace Game.Horror.Dialogs
         }
 
         private void UpdateDetail(HorrorInventorySlotView slot)
-            => _slotDetailView.SetSlotDetail(slot.SlotInfo);
+        {
+            _selectedSlot = slot;
+            _slotDetailView.SetSlotDetail(slot.SlotInfo);
+        }
 
         public bool IsSubmenuOpen()
             => _contextMenu != null && _contextMenu.IsOpen;
@@ -109,7 +139,8 @@ namespace Game.Horror.Dialogs
             var entries = slot.SlotInfo.ToContextActions();
             if (entries.Length == 0) return;
 
-            _slotView = slot;
+            // 同一スロットの再クリックでは OnSelected が再発火しないため、決定時にも自身の引数で更新する
+            _selectedSlot = slot;
             SetSlotsInteractable(false);
             _contextMenu.Open(slot.RectTransform, entries);
         }
@@ -120,15 +151,13 @@ namespace Game.Horror.Dialogs
             if (_contextMenu != null) _contextMenu.Close();
         }
 
-        // 閉じられたらグリッド操作を戻し、フォーカスを起点スロットへ復帰させる。
+        // 閉じられたらグリッド操作を戻し、フォーカスを対象スロットへ復帰させる
+        // （Close() は未オープン時に OnClosed を発火しないため、一回性のガードは不要）。
         private void OnSubmenuClosed()
         {
             SetSlotsInteractable(true);
-            if (_slotView != null)
-            {
-                _inputService.SetSelectedGameObject(_slotView.Selectable.gameObject);
-                _slotView = null;
-            }
+            if (_selectedSlot != null)
+                _inputService.SetSelectedGameObject(_selectedSlot.Selectable.gameObject);
         }
 
         private void SetSlotsInteractable(bool value)
@@ -156,6 +185,25 @@ namespace Game.Horror.Dialogs
                 keyItem.Initialize();
                 keyItem.SetItem(item.ObjectCategory, item.Id);
             }
+        }
+
+        #endregion
+
+        #region Craft
+
+        /// <summary>クラフトの長押しが進行中か（ダイアログを閉じる・タブを切り替える入力の抑止に使う）。</summary>
+        public bool IsCrafting() => _craftView != null && _craftView.IsCrafting;
+
+        private void BindCraft()
+        {
+            if (_craftView == null) return;
+
+            _craftView.Initialize();
+
+            // クラフトはインベントリの中身を変えるため、グリッド表示へ反映する
+            _craftView.OnCrafted
+                .Subscribe(_ => ApplySlots())
+                .AddTo(Disposables);
         }
 
         #endregion

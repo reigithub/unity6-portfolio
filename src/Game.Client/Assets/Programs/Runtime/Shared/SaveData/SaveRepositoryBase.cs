@@ -42,7 +42,7 @@ namespace Game.Shared.SaveData
             _storage = storage;
         }
 
-        public void CreateData()
+        public virtual void CreateNewSaveData()
         {
             _data = CreateNewData();
             _isDirty = false;

@@ -241,6 +241,34 @@ MonoBehaviour:
     m_Key: BasicSettings
     m_Metadata:
       m_Items: []
+  - m_Id: 23485961825427456
+    m_Key: ItemDetail_Specs
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606592
+    m_Key: ItemDetail_Power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606593
+    m_Key: ItemDetail_Stability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962282606594
+    m_Key: ItemDetail_Accuracy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800896
+    m_Key: ItemDetail_FireRate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800897
+    m_Key: ItemDetail_ReloadSpeed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23485962286800898
+    m_Key: ItemDetail_Capacity
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

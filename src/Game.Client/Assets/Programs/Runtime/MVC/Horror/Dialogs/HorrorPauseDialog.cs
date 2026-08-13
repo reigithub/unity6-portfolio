@@ -1,4 +1,3 @@
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
@@ -7,7 +6,6 @@ using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
-using Game.Shared.Constants;
 using Game.Shared.Extensions;
 using R3;
 
@@ -27,6 +25,7 @@ namespace Game.Horror.Dialogs
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorSaveSlotInfo[] _saveSlots;
 
         public static async UniTask<HorrorPauseResult> RunAsync()
@@ -53,7 +52,11 @@ namespace Game.Horror.Dialogs
 
             Observable.Race(_inputService.Player.Menu.OnPerformedAsObservable(), _inputService.UI.Cancel.OnPerformedAsObservable())
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ =>
+                {
+                    _uiSoundService.PlayCancelSfx();
+                    TrySetResult(default);
+                })
                 .AddTo(Disposables);
 
             SceneComponent.OnResume
@@ -66,10 +69,10 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnRestart
                 .SubscribeAwait(async (_, _) =>
                 {
-                    if (_saveSlots.Any(x => x.HasData))
+                    if (_saveRepository.CurrentSlot >= 0)
                         await _saveRepository.LoadByCurrentSlotAsync();
                     else
-                        _saveRepository.CreateData();
+                        _saveRepository.CreateNewSaveData();
 
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })

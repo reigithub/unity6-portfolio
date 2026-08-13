@@ -1,5 +1,6 @@
 using Game.Core.Services;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Shared.Constants;
 using Game.Shared.Scriptable.Database.Tables;
 using R3;
@@ -41,6 +42,13 @@ namespace Game.Horror.Enemy
         // 追跡対象と調整値（Initialize で注入）
         private Transform _target;
         private HorrorEnemyMaster _master;
+
+        // アクティブな武器効果の集合（Initialize で注入。null 許容 = 効果なしとして扱う）
+        private HorrorWeaponEffectRegistry _effectRegistry;
+
+        // 直近スキャンで確定した視界倍率（煙など武器効果による減衰。1 = 影響なし）。
+        // 警戒度の距離正規化・Gizmo も同じスナップショットを使い、スキャンと整合させる
+        private float _sightMultiplier = 1f;
 
         // 視野半角の余弦（Initialize で事前計算し Update の Mathf.Cos を回避）
         private float _cosHalfAngle;
@@ -143,10 +151,12 @@ namespace Game.Horror.Enemy
         /// </summary>
         /// <param name="target">追跡対象（プレイヤー）の Transform</param>
         /// <param name="master">調整値マスターデータ</param>
-        public void Initialize(Transform target, HorrorEnemyMaster master)
+        /// <param name="effectRegistry">アクティブな武器効果の集合（煙による視界減衰の参照先。null = 効果なし）</param>
+        public void Initialize(Transform target, HorrorEnemyMaster master, HorrorWeaponEffectRegistry effectRegistry)
         {
             _target = target;
             _master = master;
+            _effectRegistry = effectRegistry;
 
             // 視野半角の余弦を事前計算（スキャン毎の Mathf.Cos を回避）
             _cosHalfAngle = Mathf.Cos(master.SightHalfAngle * Mathf.Deg2Rad);
@@ -159,6 +169,18 @@ namespace Game.Horror.Enemy
             var messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
             messagePipeService.Subscribe<HorrorSignals.Noise.Occurred>(OnNoise).AddTo(_subscriptions);
             messagePipeService.Subscribe<HorrorSignals.Player.Died>(OnPlayerDied).AddTo(_subscriptions);
+
+            // プール再利用個体が前世の警戒度・知覚位置を引き継がないよう毎回クリアする
+            // （OnDisable は購読解除と視認フラグのみで、ゲージと位置履歴は残留する）
+            _awareness = 0f;
+            _hasConfirmedSight = false;
+            _sightDistance = 0f;
+            _sightMultiplier = 1f;
+            _perceivedPlayerPosition = default;
+            _hasPerceivedPlayerPosition = false;
+            _noticedPosition = default;
+            _hasNoticedPosition = false;
+            _nextScanTime = 0f;
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             Debug.Log($"[HorrorEnemyPerception] Initialize: target={target.name}, sightRange={master.SightRange}, hearingRadius={master.HearingRadius}");
@@ -181,8 +203,10 @@ namespace Game.Horror.Enemy
             }
 
             // ---- 警戒度ゲージ更新（毎フレーム） ----
-            float distance01 = _hasConfirmedSight && _master.SightRange > 0f
-                ? Mathf.Clamp01(_sightDistance / _master.SightRange)
+            // 距離正規化も実効視界距離（武器効果の倍率込み）を使う（視界が縮めばゲージ充填も鈍る整合）
+            float effectiveSightRange = _master.SightRange * _sightMultiplier;
+            float distance01 = _hasConfirmedSight && effectiveSightRange > 0f
+                ? Mathf.Clamp01(_sightDistance / effectiveSightRange)
                 : 1f;
 
             _awareness = UpdateAwareness(
@@ -225,8 +249,13 @@ namespace Game.Horror.Enemy
 
             Vector3 toTarget = _target.position - transform.position;
 
-            // Step 1: 距離（sqrMagnitude で sqrt を回避）
-            float sightRangeSq = _master.SightRange * _master.SightRange;
+            // 視界倍率の確定（煙など武器効果による減衰）。目→ターゲットの視線で判定し、以降の全段が同じ値を使う
+            Vector3 eyePos = transform.position + Vector3.up * _master.EyeHeight;
+            _sightMultiplier = _effectRegistry?.GetSightMultiplier(eyePos, _target.position) ?? 1f;
+
+            // Step 1: 距離（sqrMagnitude で sqrt を回避。実効視界距離 = SightRange × 倍率）
+            float effectiveSightRange = _master.SightRange * _sightMultiplier;
+            float sightRangeSq = effectiveSightRange * effectiveSightRange;
             if (toTarget.sqrMagnitude > sightRangeSq)
             {
                 _hasConfirmedSight = false;
@@ -252,7 +281,6 @@ namespace Game.Horror.Enemy
             }
 
             // Step 3: 視線遮蔽（目の高さから Raycast。構造物/地形に加え、Interactable 家具も視線を遮る）
-            Vector3 eyePos = transform.position + Vector3.up * _master.EyeHeight;
             Vector3 eyeToTarget = _target.position - eyePos;
             float eyeDist = eyeToTarget.magnitude;
 
@@ -436,7 +464,8 @@ namespace Game.Horror.Enemy
         {
             if (!_drawGizmos || _master == null) return;
 
-            float sightRange = _master.SightRange;
+            // 実効視界距離（武器効果の倍率込み）で描画し、実挙動と一致させる
+            float sightRange = _master.SightRange * _sightMultiplier;
             float eyeH = _master.EyeHeight;
             Vector3 eyePos = transform.position + Vector3.up * eyeH;
 

@@ -169,35 +169,35 @@ namespace Game.Horror.Services
 
         #region Audio
 
-        /// <summary>マスター音量を設定する（1〜10 にクランプ）。</summary>
+        /// <summary>マスター音量を設定する（0〜10 にクランプ）。</summary>
         public void SetMasterVolume(float value)
         {
             if (_repository.Data == null) return;
-            _repository.Data.MasterVolume = Mathf.Clamp(value, 1f, 10f);
+            _repository.Data.MasterVolume = Mathf.Clamp(value, 0f, 10f);
             _repository.MarkDirty();
         }
 
-        /// <summary>BGM 音量を設定する（1〜10 にクランプ）。</summary>
+        /// <summary>BGM 音量を設定する（0〜10 にクランプ）。</summary>
         public void SetBgmVolume(float value)
         {
             if (_repository.Data == null) return;
-            _repository.Data.BgmVolume = Mathf.Clamp(value, 1f, 10f);
+            _repository.Data.BgmVolume = Mathf.Clamp(value, 0f, 10f);
             _repository.MarkDirty();
         }
 
-        /// <summary>ボイス音量を設定する（1〜10 にクランプ）。</summary>
+        /// <summary>ボイス音量を設定する（0〜10 にクランプ）。</summary>
         public void SetVoiceVolume(float value)
         {
             if (_repository.Data == null) return;
-            _repository.Data.VoiceVolume = Mathf.Clamp(value, 1f, 10f);
+            _repository.Data.VoiceVolume = Mathf.Clamp(value, 0f, 10f);
             _repository.MarkDirty();
         }
 
-        /// <summary>SE 音量を設定する（1〜10 にクランプ）。</summary>
+        /// <summary>SE 音量を設定する（0〜10 にクランプ）。</summary>
         public void SetSeVolume(float value)
         {
             if (_repository.Data == null) return;
-            _repository.Data.SeVolume = Mathf.Clamp(value, 1f, 10f);
+            _repository.Data.SeVolume = Mathf.Clamp(value, 0f, 10f);
             _repository.MarkDirty();
         }
 

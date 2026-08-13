@@ -1645,6 +1645,7 @@ GameObject:
   - component: {fileID: 1889253254155075517}
   - component: {fileID: 3889637892381741613}
   - component: {fileID: 5948950408835306445}
+  - component: {fileID: 6495148787623614498}
   m_Layer: 5
   m_Name: HorrorSaveDataDialog
   m_TagString: Untagged
@@ -1770,6 +1771,24 @@ MonoBehaviour:
   - {fileID: 1506301140774439054}
   - {fileID: 5533819164192695778}
   - {fileID: 5368740869906737525}
+--- !u!114 &6495148787623614498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1889253254155075514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7955566f18f887e4092d8315927cf1aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.UI.Sound.HorrorUISoundProfile
+  _selectSeAssetName: HorrorSfx_UI_Select
+  _submitSeAssetName: HorrorSfx_UI_Submit
+  _cancelSeAssetName: HorrorSfx_UI_Cancel
+  _tabChangedSeAssetName: HorrorSfx_UI_Select
+  _valueChangedSeAssetName: HorrorSfx_UI_Select
+  _armingDelayFrames: 2
 --- !u!1 &2004188025568877235
 GameObject:
   m_ObjectHideFlags: 0
@@ -4280,6 +4299,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1a840a540cc4cc197a8fa7fff116796, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.MVC.Core::Game.Core.UI.AutoScrollRect
+  _rebuildOnEnable: 0
 --- !u!1 &4432033753534392231
 GameObject:
   m_ObjectHideFlags: 0

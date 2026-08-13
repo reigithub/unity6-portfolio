@@ -19,6 +19,14 @@ MonoBehaviour:
     m_Key: Locked_with_a_Key
     m_Metadata:
       m_Items: []
+  - m_Id: 14785781152358400
+    m_Key: Confirm_Delete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14791699009118208
+    m_Key: Confirm_Discard_Item
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

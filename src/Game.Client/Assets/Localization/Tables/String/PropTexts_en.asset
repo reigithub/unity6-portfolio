@@ -71,11 +71,179 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 759920394240000
-    m_Localized: Restores a small amount of Health.
+    m_Localized: Restores Health.
     m_Metadata:
       m_Items: []
   - m_Id: 759911493926912
     m_Localized: Medical First Aid Bottle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5305812613341184
+    m_Localized: Herbal Plant (Green)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5305816568569856
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648921081151488
+    m_Localized: Herbal Plant (Blue)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922956005376
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922960199680
+    m_Localized: Herbal Plant (Gold)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922960199681
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922964393984
+    m_Localized: Herbal Plant (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5648922964393985
+    m_Localized: 'Restores a small amount of Health.
+
+      Craft Materials.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844754604032
+    m_Localized: Syringe (Green)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844859461632
+    m_Localized: A refined injectable treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844863655936
+    m_Localized: Syringe (Blue)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844863655937
+    m_Localized: A portable injectable treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844863655938
+    m_Localized: Syringe (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844863655939
+    m_Localized: A portable injectable treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844863655940
+    m_Localized: Syringe (Orange)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844867850240
+    m_Localized: A portable injectable treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844867850241
+    m_Localized: Vaccine Vial (Green)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844867850242
+    m_Localized: A bottled compound treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844867850243
+    m_Localized: Vaccine Vial (Blue)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844872044544
+    m_Localized: A bottled compound treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844872044545
+    m_Localized: Vaccine Vial (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844872044546
+    m_Localized: A refined compound treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844872044547
+    m_Localized: Vaccine Vial (Orange)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844876238848
+    m_Localized: A refined compound treatment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844876238849
+    m_Localized: Medic Pack 1 (White)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6189844876238850
+    m_Localized: A portable first-aid kit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733611057152
+    m_Localized: Medic Pack 1 (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194496
+    m_Localized: A portable first-aid kit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194497
+    m_Localized: Medic Pack 2 (Red)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194498
+    m_Localized: A large first-aid kit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194499
+    m_Localized: Medic Pack 2 (Worn)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194500
+    m_Localized: A worn large first-aid kit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194501
+    m_Localized: Medic Pack 3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194502
+    m_Localized: A military-grade first-aid kit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194503
+    m_Localized: Recovery Spray (White)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194504
+    m_Localized: Fully restores Health.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194505
+    m_Localized: Recovery Spray (Blue)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194506
+    m_Localized: Fully restores Health.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194507
+    m_Localized: Recovery Spray (Silver)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6204733657194508
+    m_Localized: Fully restores Health.
     m_Metadata:
       m_Items: []
   references:

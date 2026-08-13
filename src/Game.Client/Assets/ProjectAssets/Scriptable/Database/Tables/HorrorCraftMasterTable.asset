@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6562fb855fbd5e347b4834bab1432b80, type: 3}
+  m_Name: HorrorCraftMasterTable
+  m_EditorClassIdentifier: Game.Shared::Game.Shared.Scriptable.Database.Tables.HorrorCraftMasterTable
+  records:
+  - _id: 1
+    _developOnlyName: "\u56DE\u5FA9\u30DC\u30C8\u30EB"
+    _resultObjectCategory: 1
+    _resultObjectId: 5
+    _resultCount: 1
+    _materialGroupId: 1
+  - _id: 2
+    _developOnlyName: "\u6CE8\u5C04\u5668_\u9752"
+    _resultObjectCategory: 1
+    _resultObjectId: 11
+    _resultCount: 1
+    _materialGroupId: 2
+  - _id: 3
+    _developOnlyName: "\u6CE8\u5C04\u5668_\u6A59"
+    _resultObjectCategory: 1
+    _resultObjectId: 13
+    _resultCount: 1
+    _materialGroupId: 3
+  - _id: 4
+    _developOnlyName: "\u6CE8\u5C04\u5668_\u8D64"
+    _resultObjectCategory: 1
+    _resultObjectId: 12
+    _resultCount: 1
+    _materialGroupId: 4
+  - _id: 5
+    _developOnlyName: "\u6CE8\u5C04\u5668_\u7DD1"
+    _resultObjectCategory: 1
+    _resultObjectId: 10
+    _resultCount: 1
+    _materialGroupId: 5
+  - _id: 6
+    _developOnlyName: "\u30EF\u30AF\u30C1\u30F3\u74F6_\u7DD1"
+    _resultObjectCategory: 1
+    _resultObjectId: 14
+    _resultCount: 1
+    _materialGroupId: 6
+  - _id: 7
+    _developOnlyName: "\u30EF\u30AF\u30C1\u30F3\u74F6_\u9752"
+    _resultObjectCategory: 1
+    _resultObjectId: 15
+    _resultCount: 1
+    _materialGroupId: 7
+  - _id: 8
+    _developOnlyName: "\u30EF\u30AF\u30C1\u30F3\u74F6_\u6A59"
+    _resultObjectCategory: 1
+    _resultObjectId: 17
+    _resultCount: 1
+    _materialGroupId: 8
+  - _id: 9
+    _developOnlyName: "\u30EF\u30AF\u30C1\u30F3\u74F6_\u8D64"
+    _resultObjectCategory: 1
+    _resultObjectId: 16
+    _resultCount: 1
+    _materialGroupId: 9
+  - _id: 10
+    _developOnlyName: "\u30E1\u30C7\u30A3\u30C3\u30AF\u30D1\u30C3\u30AF1_\u767D"
+    _resultObjectCategory: 1
+    _resultObjectId: 18
+    _resultCount: 1
+    _materialGroupId: 10
+  - _id: 11
+    _developOnlyName: "\u30E1\u30C7\u30A3\u30C3\u30AF\u30D1\u30C3\u30AF1_\u8D64"
+    _resultObjectCategory: 1
+    _resultObjectId: 19
+    _resultCount: 1
+    _materialGroupId: 11
+  - _id: 12
+    _developOnlyName: "\u30E1\u30C7\u30A3\u30C3\u30AF\u30D1\u30C3\u30AF2_\u8D64"
+    _resultObjectCategory: 1
+    _resultObjectId: 20
+    _resultCount: 1
+    _materialGroupId: 12
+  - _id: 13
+    _developOnlyName: "\u30E1\u30C7\u30A3\u30C3\u30AF\u30D1\u30C3\u30AF2_\u6C5A"
+    _resultObjectCategory: 1
+    _resultObjectId: 21
+    _resultCount: 1
+    _materialGroupId: 13
+  - _id: 14
+    _developOnlyName: "\u30E1\u30C7\u30A3\u30C3\u30AF\u30D1\u30C3\u30AF3"
+    _resultObjectCategory: 1
+    _resultObjectId: 22
+    _resultCount: 1
+    _materialGroupId: 14
+  - _id: 15
+    _developOnlyName: "\u56DE\u5FA9\u30B9\u30D7\u30EC\u30FC_\u767D"
+    _resultObjectCategory: 1
+    _resultObjectId: 23
+    _resultCount: 1
+    _materialGroupId: 15
+  - _id: 16
+    _developOnlyName: "\u56DE\u5FA9\u30B9\u30D7\u30EC\u30FC_\u9752"
+    _resultObjectCategory: 1
+    _resultObjectId: 24
+    _resultCount: 1
+    _materialGroupId: 16
+  - _id: 17
+    _developOnlyName: "\u56DE\u5FA9\u30B9\u30D7\u30EC\u30FC_\u9280"
+    _resultObjectCategory: 1
+    _resultObjectId: 25
+    _resultCount: 1
+    _materialGroupId: 17

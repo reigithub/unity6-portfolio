@@ -11,14 +11,16 @@ namespace Game.Horror.SaveData
     [MemoryPackable]
     public partial class HorrorInventorySaveData
     {
-        /// <summary>所持アイテム一覧（追加順）</summary>
+        /// <summary>所持アイテム一覧（疎。位置は各行の SlotNo が持ち、List の並び順に意味はない）</summary>
         public List<HorrorInventorySlotData> Slots { get; set; } = new();
     }
 
-    /// <summary>所持アイテム1種分の保存レコード。</summary>
+    /// <summary>所持アイテム1スタック分の保存レコード。行が存在する = 中身のあるスタック（空位置は行なしで表現）。</summary>
     [MemoryPackable]
     public partial class HorrorInventorySlotData
     {
+        public int SlotNo { get; set; }
+
         public ObjectCategory ObjectCategory { get; set; }
 
         public int Id { get; set; }

@@ -1855,7 +1855,7 @@ MonoBehaviour:
   _navMeshAgent: {fileID: 7554705978839390300}
   _animator: {fileID: 7389507112651452681}
   _perception: {fileID: 6726319125047423673}
-  _startDormant: 1
+  _startDormant: 0
 --- !u!114 &6726319125047423673
 MonoBehaviour:
   m_ObjectHideFlags: 0

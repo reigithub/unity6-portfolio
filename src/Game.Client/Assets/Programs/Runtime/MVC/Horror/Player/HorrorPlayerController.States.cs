@@ -31,6 +31,10 @@ namespace Game.Horror.Player
             _stateMachine.AddTransition<MovingState, AttackingState>(StateEvent.Attack);
             _stateMachine.AddTransition<AttackingState, IdleState>(StateEvent.EndAttack);
 
+            _stateMachine.AddTransition<IdleState, ThrowingState>(StateEvent.Throw);
+            _stateMachine.AddTransition<MovingState, ThrowingState>(StateEvent.Throw);
+            _stateMachine.AddTransition<ThrowingState, IdleState>(StateEvent.EndThrow);
+
             _stateMachine.AddTransition<IdleState, EquippingState>(StateEvent.Equip);
             _stateMachine.AddTransition<MovingState, EquippingState>(StateEvent.Equip);
             _stateMachine.AddTransition<EquippingState, IdleState>(StateEvent.EndEquip);
@@ -64,6 +68,8 @@ namespace Game.Horror.Player
             EndInteract, // インタラクト終了: Interacting → Idle
             Attack, // 攻撃開始: Idle/Moving → Attacking
             EndAttack, // 攻撃終了（発射間隔経過）: Attacking → Idle
+            Throw, // 投擲開始: Idle/Moving → Throwing
+            EndThrow, // 投擲終了（硬直経過）: Throwing → Idle
             Equip, // 装備切替開始: Idle/Moving → Equipping
             EndEquip, // 装備切替終了（EquipDuration経過）: Equipping → Idle
             Reload, // リロード開始: Idle/Moving → Reloading
@@ -94,6 +100,13 @@ namespace Game.Horror.Player
                 if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
+                    return;
+                }
+
+                // 投擲起動チェック（Throwable 装備時のみフラグを消費。Gun の射撃チェックより先に判定する）
+                if (ctx.TryThrow())
+                {
+                    StateMachine.Transition(StateEvent.Throw);
                     return;
                 }
 
@@ -160,6 +173,13 @@ namespace Game.Horror.Player
                 if (ctx.TryInteraction())
                 {
                     StateMachine.Transition(StateEvent.Interact);
+                    return;
+                }
+
+                // 投擲起動チェック（Throwable 装備時のみフラグを消費。Gun の射撃チェックより先に判定する）
+                if (ctx.TryThrow())
+                {
+                    StateMachine.Transition(StateEvent.Throw);
                     return;
                 }
 
@@ -354,6 +374,45 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 投擲実行中の状態。Enter で投擲物を 1 発射出し、FireInterval（武器マスター）の間は移動・視点を
+        /// 許可しつつ硬直として滞在する（AttackingState と同じ拘束規約）。間隔を消化したら Idle へ戻る。
+        /// 硬直秒は Enter 時点でキャプチャする（投げ切りで装備解除され EquippedWeaponMaster が null になるため）。
+        /// </summary>
+        private class ThrowingState : State<HorrorPlayerController, StateEvent>
+        {
+            private float _elapsed;
+            private float _duration;
+
+            public override void Enter()
+            {
+                var ctx = Context;
+                // インスタンスはキャッシュ再利用されるため経過時間を必ずリセット
+                _elapsed = 0f;
+                _duration = ctx.EquippedWeaponMaster?.FireInterval ?? 0f;
+                ctx.Throw();
+            }
+
+            public override void Update()
+            {
+                var ctx = Context;
+                ctx.UpdateRotation();
+                ctx.UpdateCrouchPose();
+                ctx.UpdateHeadBob();
+                ctx.UpdateAimPose();
+
+                _elapsed += Time.deltaTime;
+                if (_elapsed >= _duration)
+                    StateMachine.Transition(StateEvent.EndThrow);
+            }
+
+            public override void FixedUpdate()
+            {
+                var ctx = Context;
+                ctx.UpdateMovementWithGravity(ctx.ComputeHorizontalVelocity());
+            }
+        }
+
+        /// <summary>
         /// 装備切替実行中の状態。Enter で装備をセーブデータへ反映し、EquipDuration（武器マスター）の間は
         /// 移動・視点を許可しつつ硬直として滞在する。滞在秒を消化したら Idle へ戻る。
         /// </summary>
@@ -472,10 +531,10 @@ namespace Game.Horror.Player
                 _elapsed = 0f;
                 _appliedHeal = 0;
 
-                // 開始時点で消費を確定する。TryUseItem の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
-                if (!ctx._inventoryService.TryConsume(ObjectCategory.Item, ctx._pendingUseItemMaster.Id, 1))
+                // 開始時点で指定スロットからの消費を確定する。TryUseItem の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
+                if (!ctx._inventoryService.TryConsumeAt(ObjectCategory.Item, ctx._pendingUseItemMaster.Id, ctx._pendingUseSlotNo, 1))
                 {
-                    Debug.LogError($"アイテム消費に失敗したため使用を中止します Id={ctx._pendingUseItemMaster.Id}", ctx);
+                    Debug.LogError($"アイテム消費に失敗したため使用を中止します Id={ctx._pendingUseItemMaster.Id} SlotNo={ctx._pendingUseSlotNo}", ctx);
                     StateMachine.Transition(StateEvent.EndUseItem);
                 }
             }
@@ -505,6 +564,7 @@ namespace Game.Horror.Player
             {
                 // 中断（死亡）時も残量の一括適用はしない（途中までの回復のみが残る）
                 Context._pendingUseItemMaster = null;
+                Context._pendingUseSlotNo = -1;
             }
 
             // 経過比率から適用済み総量を再計算し、前フレームとの差分のみを加算する（丸め誤差の蓄積防止）

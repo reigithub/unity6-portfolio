@@ -27,7 +27,33 @@ namespace Game.Shared.Enums
         /// <summary>発見可能。対象だと分かるが、まだインタラクトできない（距離が遠い）。複数同時に成立しうる。</summary>
         Discoverable,
 
-        /// <summary>インタラクト可能。画面中心に最も近い単一対象のみが成立する。</summary>
+        /// <summary>
+        /// インタラクト可能。画面中心に最も近い単一対象のみが成立する。
+        /// エイムコーン内に候補が無い場合は、視界外インタラクトを許可した対象（拾得系）に限り、
+        /// プレイヤー前方半面（水平 180 度）かつ近接距離内であればフォールバックで成立しうる
+        /// （このとき対象は Discoverable を経ず、プロンプトは画面端クランプ+方向矢印で表示される）。
+        /// </summary>
         Actionable,
+    }
+
+    /// <summary>
+    /// 画面端クランプ時の方向矢印。<see cref="None"/> はクランプ不要（実位置表示）を意味する。
+    /// </summary>
+    public enum InteractionPromptArrow
+    {
+        /// <summary>クランプなし（対象は画面内。矢印非表示）。</summary>
+        None,
+
+        /// <summary>上辺にクランプ（対象は画面上方）。</summary>
+        Up,
+
+        /// <summary>下辺にクランプ（対象は画面下方・足元）。</summary>
+        Down,
+
+        /// <summary>左辺にクランプ（対象は画面左方）。</summary>
+        Left,
+
+        /// <summary>右辺にクランプ（対象は画面右方）。</summary>
+        Right,
     }
 }

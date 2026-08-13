@@ -20,6 +20,8 @@ namespace Game.Core.UI
     [RequireComponent(typeof(ScrollRect))]
     public class AutoScrollRect : MonoBehaviour
     {
+        [SerializeField] private bool _rebuildOnEnable;
+
         private ScrollRect _scrollRect;
         private readonly List<RectTransform> _items = new();
         public IReadOnlyList<RectTransform> Items => _items;
@@ -32,6 +34,12 @@ namespace Game.Core.UI
         {
             _scrollRect = GetComponent<ScrollRect>();
             Rebuild();
+        }
+
+        private void OnEnable()
+        {
+            if (!_rebuildOnEnable) return;
+            if (_items.Count == 0) Rebuild();
         }
 
         /// <summary>

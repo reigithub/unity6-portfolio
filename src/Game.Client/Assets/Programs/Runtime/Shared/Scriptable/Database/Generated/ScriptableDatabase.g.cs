@@ -7,8 +7,26 @@ namespace Game.Shared.Scriptable.Database
     [CreateAssetMenu(menuName = "Scriptable Database/Database")]
     public sealed partial class ScriptableDatabase : ScriptableObject
     {
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorCraftMasterTable horrorCraftMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorCraftMasterTable HorrorCraftMasterTable => horrorCraftMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorCraftMaterialMasterTable horrorCraftMaterialMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorCraftMaterialMasterTable HorrorCraftMaterialMasterTable => horrorCraftMaterialMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyDropMasterTable horrorEnemyDropMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyDropMasterTable HorrorEnemyDropMasterTable => horrorEnemyDropMasterTable;
+
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable horrorEnemyMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemyMasterTable HorrorEnemyMasterTable => horrorEnemyMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnGroupMasterTable horrorEnemySpawnGroupMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnGroupMasterTable HorrorEnemySpawnGroupMasterTable => horrorEnemySpawnGroupMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable horrorEnemySpawnMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnMasterTable HorrorEnemySpawnMasterTable => horrorEnemySpawnMasterTable;
+
+        [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnTriggerMasterTable horrorEnemySpawnTriggerMasterTable;
+        public global::Game.Shared.Scriptable.Database.Tables.HorrorEnemySpawnTriggerMasterTable HorrorEnemySpawnTriggerMasterTable => horrorEnemySpawnTriggerMasterTable;
 
         [SerializeField] private global::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable horrorInteractionMasterTable;
         public global::Game.Shared.Scriptable.Database.Tables.HorrorInteractionMasterTable HorrorInteractionMasterTable => horrorInteractionMasterTable;

@@ -29,6 +29,7 @@ namespace Game.Horror
             // 各種サービス取得・初期化
             var assetService = new AddressableAssetService();
             GameServiceManager.Register<IAddressableAssetService, AddressableAssetService>(assetService);
+            
             var localizationService = new LocalizationService();
             GameServiceManager.Register<ILocalizationService, LocalizationService>(localizationService);
 
@@ -47,6 +48,8 @@ namespace Game.Horror
             messagePipeService.AddMessageBroker<HorrorSignals.Combat.Damaged>();
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Damaged>();
             messagePipeService.AddMessageBroker<HorrorSignals.Player.Died>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Enemy.Died>();
+            messagePipeService.AddMessageBroker<HorrorSignals.Enemy.SpawnGroupActivated>();
             messagePipeService.Build();
             GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipeService);
 
@@ -85,17 +88,22 @@ namespace Game.Horror
                 optionSaveRepository.Data.VoiceVolume,
                 optionSaveRepository.Data.SeVolume);
 
+            // UI操作効果音
+            GameServiceManager.Register<IHorrorUISoundService, HorrorUISoundService>(new HorrorUISoundService(audioService));
+
             // セーブデータ: リポジトリをロード（マスター整合込み）→ 具象キーで共有登録
             var saveRepository = new HorrorSaveRepository(saveDataStorage, dbService);
             GameServiceManager.Register<IHorrorSaveRepository, HorrorSaveRepository>(saveRepository);
 
-            // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤーの順に生成し、I/F キーで共有登録
+            // インベントリ → 装備（所持判定を注入）→ インタラクション → プレイヤー → キーアイテム → クラフト（所持増減を注入）→ エネミーの順に生成し、I/F キーで共有登録
             var inventoryService = new HorrorInventoryService(saveRepository);
             GameServiceManager.Register<IHorrorInventoryService, HorrorInventoryService>(inventoryService);
             GameServiceManager.Register<IHorrorEquipmentService, HorrorEquipmentService>(new HorrorEquipmentService(saveRepository, inventoryService, dbService));
             GameServiceManager.Register<IHorrorInteractionService, HorrorInteractionService>(new HorrorInteractionService(saveRepository));
             GameServiceManager.Register<IHorrorPlayerService, HorrorPlayerService>(new HorrorPlayerService(saveRepository, dbService));
             GameServiceManager.Register<IHorrorKeyItemService, HorrorKeyItemService>(new HorrorKeyItemService(saveRepository));
+            GameServiceManager.Register<IHorrorCraftService, HorrorCraftService>(new HorrorCraftService(dbService, inventoryService));
+            GameServiceManager.Register<IHorrorEnemyService, HorrorEnemyService>(new HorrorEnemyService(saveRepository, dbService, messagePipeService));
 
             // 共通オブジェクト読み込み
             var gameRootService = new HorrorGameRootService(assetService);
@@ -103,7 +111,7 @@ namespace Game.Horror
             await gameRootService.LoadAsync();
             await gameRootService.GlobalFadeOutAsync();
 
-            // 5. 初期シーン遷移
+            // 初期シーン遷移
             var gameSceneService = new GameSceneService();
             GameServiceManager.Register<IGameSceneService, GameSceneService>(gameSceneService);
             await gameSceneService.TransitionAsync<HorrorTitleScene>();

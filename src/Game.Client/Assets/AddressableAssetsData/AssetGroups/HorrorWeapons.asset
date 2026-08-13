@@ -15,23 +15,8 @@ MonoBehaviour:
   m_GroupName: HorrorWeapons
   m_GUID: 087e715e4321b96479088cfd270e9d06
   m_SerializeEntries:
-  - m_GUID: 02baef62b1bfedf40bb369fb7542b9e7
-    m_Address: RPG7
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5a2bf64643e1fb0439ea39c0fc9b00ff
-    m_Address: RGD-5
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6f1a7354265853f44b0ed5e2e43676ad
     m_Address: M1911
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 8b0b86b42def11849a8eba21f4a6a684
-    m_Address: Bennelli_M4
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -40,8 +25,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ee329c3cd08e58645834d20702d7f6c6
-    m_Address: AK74
+  - m_GUID: e1031f2bc9bb49e49a68cf969bec19eb
+    m_Address: SmokeGrenadeProjectile
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f572cebc77304794381d741887ed68d4
+    m_Address: M1911_Magazin
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

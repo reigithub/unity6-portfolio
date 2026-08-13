@@ -1,5 +1,7 @@
+using System;
 using Game.Core.Services;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Library.Shared;
 using Game.Shared.Combat;
 using Game.Shared.Extensions;
@@ -35,6 +37,8 @@ namespace Game.Horror.Enemy
         // Initialize で注入されるデータ
         private GameObject _player;
         private HorrorEnemyMaster _master;
+        private int _spawnId;
+        private Action _onDeathFinished;
         private IDamageable _playerDamageable;
         private IMessagePipeService _messagePipeService;
 
@@ -61,14 +65,19 @@ namespace Game.Horror.Enemy
         private const float AnimSpeedResponse = 8f; // アニメーター Speed 補間の応答速度（大きいほど速く追従）
 
         /// <summary>
-        /// コントローラーを初期化する。スポーナーまたはシーン初期化から呼ぶ。
+        /// コントローラーを初期化する。スポーナーの貸出時に呼ばれ、プール再利用個体の状態復元を兼ねる。
         /// </summary>
         /// <param name="player">プレイヤーの GameObject</param>
         /// <param name="master">調整値マスターデータ</param>
-        public void Initialize(GameObject player, HorrorEnemyMaster master)
+        /// <param name="spawnId">スポーンエントリの一意 Id（HorrorEnemySpawnMaster の Id）。撃破記録の永続化キー</param>
+        /// <param name="effectRegistry">アクティブな武器効果の集合（知覚センサーへ渡す。null = 効果なし）</param>
+        /// <param name="onDeathFinished">死亡演出完了の通知先（スポナーがプール返却を行う）</param>
+        public void Initialize(GameObject player, HorrorEnemyMaster master, int spawnId, HorrorWeaponEffectRegistry effectRegistry, Action onDeathFinished)
         {
             _player = player;
             _master = master;
+            _spawnId = spawnId;
+            _onDeathFinished = onDeathFinished;
 
             if (player.TryGetComponent<IDamageable>(out var damageable))
                 _playerDamageable = damageable;
@@ -80,19 +89,32 @@ namespace Game.Horror.Enemy
             // LateUpdate で手動同期する
             if (_navMeshAgent != null)
             {
+                // プール再利用時: DeathState で無効化した Agent を復元し、現在位置へ Warp する
+                // （LateUpdate の nextPosition 同期による旧位置への引き戻しを防ぐ）
+                _navMeshAgent.enabled = true;
+                _navMeshAgent.Warp(transform.position);
                 _navMeshAgent.updatePosition = false;
                 _navMeshAgent.updateRotation = false;
             }
 
+            // プール再利用時: DeathState で無効化したコライダーと走行状態を復元する
+            foreach (var col in GetComponents<Collider>())
+                col.enabled = true;
+            _currentAnimSpeed = 0f;
+            _lastDestination = default;
+            _repathTimer = 0f;
+
             _health = master.MaxHealth;
 
             // 知覚センサーを初期化（視覚/聴覚の購読含む）
-            _perception.Initialize(player.transform, master);
+            _perception.Initialize(player.transform, master, effectRegistry);
 
-            // MessagePipe サービスをキャッシュ（Scream 発火用）
+            // MessagePipe サービスをキャッシュ（Scream / Enemy.Died 発火用）
             _messagePipeService = GameServiceManager.Resolve<IMessagePipeService>();
 
-            InitializeStateMachine();
+            // ステートマシン構築
+            InitializeOrResetStateMachine();
+
             _initialized = true;
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -105,6 +127,7 @@ namespace Game.Horror.Enemy
         private void Update()
         {
             if (!_initialized) return;
+            EnsureDeadState();
             _stateMachine.Update();
         }
 
@@ -137,8 +160,10 @@ namespace Game.Horror.Enemy
             if (_health <= 0)
             {
                 _health = 0;
-                if (_stateMachine != null && _stateMachine.IsProcessing())
-                    _stateMachine.Transition(StateEvent.Dead);
+
+                // DeathState への遷移は Update の EnsureDeadState が宣言的に保証する
+                // 未初期化時に撃破記録を無音で失わないよう、あえて ?. を使わない
+                _messagePipeService.Publish(new HorrorSignals.Enemy.Died(_spawnId, transform.position));
             }
             else
             {
@@ -241,7 +266,7 @@ namespace Game.Horror.Enemy
             if (_navMeshAgent.pathPending) return;
             if (_navMeshAgent.remainingDistance > 0.5f) return;
 
-            var randomDir = Random.insideUnitSphere * WanderRadius;
+            var randomDir = UnityEngine.Random.insideUnitSphere * WanderRadius;
             randomDir.y = 0f;
             var randomPos = transform.position + randomDir;
 
@@ -314,6 +339,15 @@ namespace Game.Horror.Enemy
         private void ApplyAttackDamage()
         {
             _playerDamageable?.TakeDamage(_master.AttackDamage);
+        }
+
+        /// <summary>
+        /// 死亡演出の完了をスポナーへ通知する（プール返却が行われる）。DeathState の演出時間経過後に呼ぶ。
+        /// 未注入時に死体が無音で残留しないよう、あえて ?. を使わない。
+        /// </summary>
+        private void NotifyDeathFinished()
+        {
+            _onDeathFinished();
         }
 
         #endregion

@@ -8,6 +8,7 @@ using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
+using Game.Shared.Services;
 using R3;
 
 namespace Game.Horror.Scenes
@@ -18,7 +19,9 @@ namespace Game.Horror.Scenes
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IGameSceneService _sceneService = GameServiceManager.Resolve<IGameSceneService>();
+        private readonly IAudioService _audioService = GameServiceManager.Resolve<IAudioService>();
         private readonly IHorrorSaveRepository _saveRepository = GameServiceManager.Resolve<IHorrorSaveRepository>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorSaveSlotInfo[] _saveSlots;
         private bool _hasSaveData;
 
@@ -29,7 +32,11 @@ namespace Game.Horror.Scenes
 
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => SceneComponent.CloseGameStartMenu())
+                .Subscribe(_ =>
+                {
+                    if (SceneComponent.CloseGameStartMenu())
+                        _uiSoundService.PlayCancelSfx();
+                })
                 .AddTo(Disposables);
 
             SceneComponent.OnStart
@@ -39,7 +46,7 @@ namespace Game.Horror.Scenes
             SceneComponent.OnOption
                 .SubscribeAwait(async (_, _) =>
                 {
-                    await HorrorOptionDialog.RunAsync();
+                    await HorrorOptionDialog.RunAsync(visibleLastScene: true);
                 })
                 .AddTo(Disposables);
 
@@ -83,7 +90,7 @@ namespace Game.Horror.Scenes
                 {
                     if (!_hasSaveData) return;
 
-                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false);
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false, visibleLastScene: true);
                     if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);
@@ -100,7 +107,7 @@ namespace Game.Horror.Scenes
             SceneComponent.OnNewGame
                 .SubscribeAwait(async (_, _) =>
                 {
-                    _saveRepository.CreateData();
+                    _saveRepository.CreateNewSaveData();
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })
                 .AddTo(Disposables);
@@ -108,6 +115,12 @@ namespace Game.Horror.Scenes
             SceneComponent.Initialize(_hasSaveData);
 
             await base.Startup();
+        }
+
+        public override async UniTask Ready()
+        {
+            await _audioService.PlayBgmAsync("ha-waterheater", SceneComponent.GetCancellationTokenOnDestroy());
+            await base.Ready();
         }
     }
 }

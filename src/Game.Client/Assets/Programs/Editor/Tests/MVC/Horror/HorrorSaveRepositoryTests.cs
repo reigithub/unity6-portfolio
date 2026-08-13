@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -9,10 +10,13 @@ using Game.Horror.Services;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.SaveData;
+using Game.Shared.Scriptable.Database;
+using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using MemoryPack;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -26,6 +30,11 @@ namespace Game.Tests.MVC.Horror
         private ISaveDataStorage _mockStorage;
         private IScriptableDatabaseService _mockDatabase;
         private IHorrorSaveRepository _repository;
+        private HorrorEnemySpawnMasterTable _spawnTable;
+        private HorrorEnemySpawnTriggerMasterTable _triggerTable;
+        private HorrorItemMasterTable _itemTable;
+        private HorrorWeaponMasterTable _weaponTable;
+        private ScriptableDatabase _database;
 
         [SetUp]
         public void Setup()
@@ -33,6 +42,47 @@ namespace Game.Tests.MVC.Horror
             _mockStorage = Substitute.For<ISaveDataStorage>();
             _mockDatabase = Substitute.For<IScriptableDatabaseService>();
             _repository = new HorrorSaveRepository(_mockStorage, _mockDatabase);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_spawnTable != null) UnityEngine.Object.DestroyImmediate(_spawnTable);
+            if (_triggerTable != null) UnityEngine.Object.DestroyImmediate(_triggerTable);
+            if (_itemTable != null) UnityEngine.Object.DestroyImmediate(_itemTable);
+            if (_weaponTable != null) UnityEngine.Object.DestroyImmediate(_weaponTable);
+            if (_database != null) UnityEngine.Object.DestroyImmediate(_database);
+        }
+
+        private void SetupRealDatabaseWithSpawnIds(params int[] spawnIds) =>
+            SetupRealDatabase(spawnIds, triggerIds: Array.Empty<int>());
+
+        /// <summary>
+        /// 指定 Id のスポーンエントリ・スポーントリガーを持つ実テーブル＋DB を組み立てて mock に接続する。
+        /// EditorImportRows は列名をメンバ名と完全一致でマッピングし、無い列は既定値のままとなる。
+        /// </summary>
+        private void SetupRealDatabase(int[] spawnIds, int[] triggerIds)
+        {
+            _spawnTable = ScriptableObject.CreateInstance<HorrorEnemySpawnMasterTable>();
+            _spawnTable.EditorImportRows(new[] { "Id" }, IdRows(spawnIds), mergeByPrimaryKey: false);
+
+            _triggerTable = ScriptableObject.CreateInstance<HorrorEnemySpawnTriggerMasterTable>();
+            _triggerTable.EditorImportRows(new[] { "Id" }, IdRows(triggerIds), mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorEnemySpawnMasterTable").objectReferenceValue = _spawnTable;
+            so.FindProperty("horrorEnemySpawnTriggerMasterTable").objectReferenceValue = _triggerTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+        }
+
+        private static List<IReadOnlyList<string>> IdRows(int[] ids)
+        {
+            var rows = new List<IReadOnlyList<string>>();
+            foreach (var id in ids)
+                rows.Add(new[] { id.ToString() });
+            return rows;
         }
 
         private async Task LoadDefaultData()
@@ -98,6 +148,370 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.SavepointId, Is.EqualTo(0));
         }
 
+        // エネミー区画：旧形式補填、マスタ整合（テーブル結線は起動時の一括検査が保証する前提）。
+
+        [Test]
+        public async Task Load_ExistingDataWithoutEnemySection_FillsEnemy()
+        {
+            // 旧形式（Enemy 区画なし）のバイナリはデシリアライズで Enemy=null になる。補填を固定する
+            // （実環境同様に DB ロード済み状態で読み込む。NormalizeEnemy はテーブル存在確認で database へ触るため）
+            SetupRealDatabaseWithSpawnIds();
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = null,
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy, Is.Not.Null);
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.Empty);
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_RemovesUnknownSpawnIds()
+        {
+            SetupRealDatabaseWithSpawnIds(1, 3);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { DefeatedSpawnIds = new List<int> { 1, 2, 3, 99 } },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 1, 3 }));
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_RemovesUnknownFiredTriggerIds()
+        {
+            SetupRealDatabase(spawnIds: new[] { 1 }, triggerIds: new[] { 1, 3 });
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { FiredTriggerIds = new List<int> { 1, 2, 3, 99 } },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 1, 3 }));
+        }
+
+        [Test]
+        public async Task NormalizeEnemy_WhenFiredTriggerIdsNull_FillsEmpty()
+        {
+            // 列追加前の旧バイナリはデシリアライズで FiredTriggerIds=null になる。null 埋めを固定する
+            SetupRealDatabaseWithSpawnIds();
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Enemy = new HorrorEnemySaveData { FiredTriggerIds = null },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Not.Null);
+            Assert.That(_repository.Data.Enemy.FiredTriggerIds, Is.Empty);
+        }
+
+        /// <summary>指定 Id の武器マスター（MaxCount=1）だけを持つ実 DB を組み立てて mock に接続する。</summary>
+        private void SetupRealDatabaseWithWeapon(int weaponId)
+        {
+            _weaponTable = ScriptableObject.CreateInstance<HorrorWeaponMasterTable>();
+            _weaponTable.EditorImportRows(
+                new[] { "Id", "MaxCount" },
+                new[] { new[] { weaponId.ToString(), "1" } },
+                mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorWeaponMasterTable").objectReferenceValue = _weaponTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+        }
+
+        /// <summary>指定 Id のアイテムマスター（MaxCount=120）だけを持つ実 DB を組み立てて mock に接続する。</summary>
+        private void SetupRealDatabaseWithItem(int itemId)
+        {
+            _itemTable = ScriptableObject.CreateInstance<HorrorItemMasterTable>();
+            _itemTable.EditorImportRows(
+                new[] { "Id", "MaxCount" },
+                new[] { new[] { itemId.ToString(), "120" } },
+                mergeByPrimaryKey: false);
+
+            _database = ScriptableObject.CreateInstance<ScriptableDatabase>();
+            var so = new SerializedObject(_database);
+            so.FindProperty("horrorItemMasterTable").objectReferenceValue = _itemTable;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _mockDatabase.Database.Returns(_database);
+        }
+
+        [Test]
+        public async Task NormalizeInventory_SlotCountOverflow_TruncatesOverflowAndLogsError()
+        {
+            SetupRealDatabaseWithItem(4);
+            var slots = new List<HorrorInventorySlotData>();
+            for (int i = 0; i < HorrorInventoryConstants.MaxSlotCount + 1; i++)
+                slots.Add(new HorrorInventorySlotData { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1 });
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData { Slots = slots },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+            LogAssert.Expect(LogType.Error, new Regex("インベントリの空き位置が不足したためスロットを破棄しました"));
+
+            await _repository.LoadAsync();
+
+            // 空き位置に収まらない行だけが切り詰められ、残行は 0〜49 に一意採番される
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(HorrorInventoryConstants.MaxSlotCount));
+            Assert.That(result.Select(s => s.SlotNo),
+                Is.EquivalentTo(Enumerable.Range(0, HorrorInventoryConstants.MaxSlotCount)));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_LegacyAllZeroSlotNo_RenumbersPreservingListOrder()
+        {
+            SetupRealDatabaseWithItem(4);
+            // SlotNo 列追加前の旧バイナリ相当: 全行 SlotNo=0 で届く
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 3, SlotNo = 0 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // リスト順（= 旧・追加順）を保って 0, 1, 2 に再採番される
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(3));
+            Assert.That(result[0].SlotNo, Is.EqualTo(0));
+            Assert.That(result[0].Count, Is.EqualTo(1));
+            Assert.That(result[1].SlotNo, Is.EqualTo(1));
+            Assert.That(result[1].Count, Is.EqualTo(2));
+            Assert.That(result[2].SlotNo, Is.EqualTo(2));
+            Assert.That(result[2].Count, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_ValidUniqueSlotNos_Unchanged()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 5 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 2 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 正当なデータは再採番されない（冪等）
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0].SlotNo, Is.EqualTo(5));
+            Assert.That(result[1].SlotNo, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_DuplicateSlotNo_FirstWinsOthersReassignedToLowestFree()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = 2 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 2 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 先勝ちで位置 2 を確定し、重複行は最小の空き位置 0 へ
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result[0].SlotNo, Is.EqualTo(2));
+            Assert.That(result[1].SlotNo, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_OutOfRangeSlotNo_ReassignedToLowestFree()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 1, SlotNo = -1 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 2, SlotNo = 99 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result[0].SlotNo, Is.EqualTo(0));
+            Assert.That(result[1].SlotNo, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task NormalizeInventory_NonPositiveCountRow_Removed()
+        {
+            SetupRealDatabaseWithItem(4);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 0, SlotNo = 0 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 4, Count = 3, SlotNo = 1 },
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            // 行の存在 = 中身のあるスタック、の不変条件が確立される（残行の位置は不変）
+            var result = _repository.Data.Inventory.Slots;
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].Count, Is.EqualTo(3));
+            Assert.That(result[0].SlotNo, Is.EqualTo(1));
+        }
+
+        // 「未所持のアイテムはショートカット登録・装備中になっていない」不変条件のロード時正規化。
+        // 所持判定は NormalizeInventory が先行して確立する「在庫行の存在 = Count > 0」に依拠する。
+
+        [Test]
+        public async Task NormalizeEquipment_UnpossessedSlotRegistration_Removed()
+        {
+            SetupRealDatabaseWithWeapon(2);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData { Slots = new List<HorrorInventorySlotData>() },
+                Equipment = new HorrorEquipmentSaveData
+                {
+                    Slots = new List<HorrorEquipmentSlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Weapon, Id = 2 },
+                        new(),
+                        new(),
+                        new(),
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Equipment.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.None));
+            Assert.That(_repository.Data.Equipment.Slots[0].Id, Is.Zero);
+        }
+
+        [Test]
+        public async Task NormalizeEquipment_PossessedSlotRegistration_Kept()
+        {
+            SetupRealDatabaseWithWeapon(2);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData
+                {
+                    Slots = new List<HorrorInventorySlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Weapon, Id = 2, Count = 1, SlotNo = 0 },
+                    },
+                },
+                Equipment = new HorrorEquipmentSaveData
+                {
+                    Slots = new List<HorrorEquipmentSlotData>
+                    {
+                        new() { ObjectCategory = ObjectCategory.Weapon, Id = 2 },
+                        new(),
+                        new(),
+                        new(),
+                    },
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Equipment.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
+            Assert.That(_repository.Data.Equipment.Slots[0].Id, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task NormalizeEquipment_UnpossessedEquipped_ClearedToNone()
+        {
+            SetupRealDatabaseWithWeapon(2);
+            var data = new HorrorSaveData
+            {
+                Version = 1,
+                Inventory = new HorrorInventorySaveData { Slots = new List<HorrorInventorySlotData>() },
+                Equipment = new HorrorEquipmentSaveData
+                {
+                    ObjectCategory = ObjectCategory.Weapon,
+                    Id = 2,
+                },
+            };
+            _mockStorage.LoadAsync<HorrorSaveData>(Arg.Any<string>())
+                .Returns(UniTask.FromResult(data));
+
+            await _repository.LoadAsync();
+
+            Assert.That(_repository.Data.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.None));
+            Assert.That(_repository.Data.Equipment.Id, Is.Zero);
+        }
+
         [Test]
         public void Serialization_RoundTrip_PreservesAllSections()
         {
@@ -109,7 +523,7 @@ namespace Game.Tests.MVC.Horror
                 {
                     Slots = new List<HorrorInventorySlotData>
                     {
-                        new() { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4 },
+                        new() { ObjectCategory = ObjectCategory.Item, Id = 3, Count = 4, SlotNo = 7 },
                     },
                 },
                 Equipment = new HorrorEquipmentSaveData
@@ -139,6 +553,11 @@ namespace Game.Tests.MVC.Horror
                         new() { ObjectCategory = ObjectCategory.Item, Id = 3 },
                     },
                 },
+                Enemy = new HorrorEnemySaveData
+                {
+                    DefeatedSpawnIds = new List<int> { 10, 20 },
+                    FiredTriggerIds = new List<int> { 30 },
+                },
             };
 
             var bytes = MemoryPackSerializer.Serialize(original);
@@ -152,6 +571,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.Inventory.Slots[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.Inventory.Slots[0].Id, Is.EqualTo(3));
             Assert.That(restored.Inventory.Slots[0].Count, Is.EqualTo(4));
+            Assert.That(restored.Inventory.Slots[0].SlotNo, Is.EqualTo(7));
             Assert.That(restored.Equipment.ObjectCategory, Is.EqualTo(ObjectCategory.Weapon));
             Assert.That(restored.Equipment.Id, Is.EqualTo(5));
             Assert.That(restored.Equipment.Slots.Count, Is.EqualTo(4));
@@ -166,6 +586,8 @@ namespace Game.Tests.MVC.Horror
             Assert.That(restored.KeyItem.KeyItems.Count, Is.EqualTo(1));
             Assert.That(restored.KeyItem.KeyItems[0].ObjectCategory, Is.EqualTo(ObjectCategory.Item));
             Assert.That(restored.KeyItem.KeyItems[0].Id, Is.EqualTo(3));
+            Assert.That(restored.Enemy.DefeatedSpawnIds, Is.EquivalentTo(new[] { 10, 20 }));
+            Assert.That(restored.Enemy.FiredTriggerIds, Is.EquivalentTo(new[] { 30 }));
         }
 
         [Test]
@@ -266,6 +688,29 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data, Is.SameAs(currentData));
         }
 
+        // コンティニュー/リスタートの分岐前提：CreateData はスロットを確定せず、無効スロットのロードはデータを差し替えない。
+
+        [Test]
+        public void CreateData_KeepsCurrentSlotInvalid()
+        {
+            _repository.CreateNewSaveData();
+
+            Assert.That(_repository.CurrentSlot, Is.EqualTo(-1));
+            Assert.That(_repository.Data, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task LoadByCurrentSlotAsync_WhenNoCurrentSlot_LogsErrorAndKeepsData()
+        {
+            _repository.CreateNewSaveData();
+            var currentData = _repository.Data;
+            LogAssert.Expect(LogType.Error, new Regex("Invalid slot number"));
+
+            await _repository.LoadByCurrentSlotAsync();
+
+            Assert.That(_repository.Data, Is.SameAs(currentData));
+        }
+
         // セーブポイント記録：記録+Dirty 化、Id 0・同値は Dirty にしない、未ロードは LogError の上で no-op。
 
         [Test]
@@ -316,5 +761,16 @@ namespace Game.Tests.MVC.Horror
         {
             Assert.That(_repository.Data?.SavepointId ?? 0, Is.EqualTo(0));
         }
+    }
+
+    /// <summary>SlotNo 列追加前の HorrorInventorySlotData と同形状のレコード（旧バイナリ互換テスト用）。</summary>
+    [MemoryPackable]
+    internal partial class LegacyInventorySlotData
+    {
+        public ObjectCategory ObjectCategory { get; set; }
+
+        public int Id { get; set; }
+
+        public int Count { get; set; }
     }
 }

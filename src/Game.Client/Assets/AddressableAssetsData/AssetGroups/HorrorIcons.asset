@@ -20,6 +20,21 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0a57e6c9ddbf86546819e0142b3ddd2c
+    m_Address: MilitaryItemIcons
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 148971fbe0d3b2742bde87b4b4f7f7d2
+    m_Address: KeyItemIcons
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 33f5b84832653724d86243d48c22e69e
+    m_Address: MedicalItemIcons
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 59ba3652eec0b124fa36521af007fb5d
     m_Address: Navidtbt_Weapon_Icons_Blue
     m_ReadOnly: 0

@@ -12,7 +12,8 @@
         "MemoryPack.Unity",
         "Unity.InputSystem",
         "Unity.TextMeshPro",
-        "Unity.Localization"
+        "Unity.Localization",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [
         "Editor"

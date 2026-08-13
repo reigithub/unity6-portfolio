@@ -150,13 +150,20 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                 }
             }
 
+            // デシリアライズ（Inspector 適用・再インポート）のたびに基底の OnAfterDeserialize から呼ばれ、
+            // 二次索引を records から作り直させる（索引を持たないテーブルは空実装）。
+            sb.AppendLine();
+            sb.AppendLine($"{i1}protected override void InvalidateIndexCaches()");
+            sb.AppendLine($"{i1}{{");
+            foreach (var k in indices.Keys) sb.AppendLine($"{i2}_idx{k} = null;");
+            sb.AppendLine($"{i1}}}");
             sb.AppendLine();
             sb.AppendLine("#if UNITY_EDITOR");
             sb.AppendLine($"{i1}[ContextMenu(\"Sort & Validate\")]");
             sb.AppendLine($"{i1}public override void EditorSortAndValidate()");
             sb.AppendLine($"{i1}{{");
             sb.AppendLine($"{i2}SortAndValidate(_pkSel, _pkCmp);");
-            foreach (var k in indices.Keys) sb.AppendLine($"{i2}_idx{k} = null;");
+            sb.AppendLine($"{i2}InvalidateIndexCaches();");
             sb.AppendLine($"{i1}}}");
             sb.AppendLine();
             sb.AppendLine($"{i1}public override bool EditorIsSorted() => IsSortedByKey(_pkSel, _pkCmp);");

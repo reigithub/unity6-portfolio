@@ -15,6 +15,9 @@ namespace Game.Horror.Interaction
             gameObject.SetActive(!WasInteracted());
         }
 
+        // 拾得系のため、視界外でも画面端クランプのプロンプトで拾えるようにする
+        public override bool AllowOutOfView => true;
+
         public override bool CanInteract() => !WasInteracted();
 
         public override void Interact()

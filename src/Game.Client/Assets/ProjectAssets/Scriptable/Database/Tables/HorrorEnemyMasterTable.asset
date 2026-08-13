@@ -34,3 +34,4 @@ MonoBehaviour:
     _repathInterval: 1
     _maxHealth: 100
     _staggerDuration: 1
+    _dropGroupId: 1

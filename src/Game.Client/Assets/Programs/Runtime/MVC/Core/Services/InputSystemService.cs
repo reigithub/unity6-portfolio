@@ -227,7 +227,7 @@ namespace Game.Core.Services
             return EventSystem.current.currentSelectedGameObject;
         }
 
-        public void SetSelectedGameObject(GameObject go)
+        public void SetSelectedGameObject(GameObject go, BaseEventData eventData = null)
         {
             if (go == null) return;
 
@@ -235,7 +235,10 @@ namespace Game.Core.Services
 
             if (EventSystem.current.currentSelectedGameObject == go) return;
 
-            EventSystem.current.SetSelectedGameObject(go);
+            if (eventData == null)
+                EventSystem.current.SetSelectedGameObject(go);
+            else
+                EventSystem.current.SetSelectedGameObject(go, eventData);
         }
 
         public void UpdateControlScheme(string scheme)

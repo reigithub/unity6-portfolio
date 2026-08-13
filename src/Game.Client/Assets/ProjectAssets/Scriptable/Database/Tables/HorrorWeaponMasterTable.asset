@@ -17,7 +17,7 @@ MonoBehaviour:
     _developOnlyName: "\u30CF\u30F3\u30C9\u30AC\u30F3_M1911"
     _name: weapon_1_name
     _description: weapon_1_desc
-    _iconAssetName: Weapon/Sprite sheet Blue_12
+    _iconAssetName: Military/M1911
     _modelAssetName: M1911
     _maxCount: 1
     _damage: 30
@@ -37,11 +37,21 @@ MonoBehaviour:
     _muzzleFlashAssetName: MuzzleFlash
     _recoilCameraPitch: 2.5
     _recoilRecoverSeconds: 0.25
+    _weaponType: 0
+    _throwSpeed: 0
+    _throwPitchOffset: 0
+    _fuseSeconds: 0
+    _effectRadius: 0
+    _effectDurationSeconds: 0
+    _projectileAssetName: 
+    _previewRotationX: 0
+    _previewRotationY: -90
+    _previewRotationZ: 0
   - _id: 2
     _developOnlyName: "\u30B9\u30E2\u30FC\u30AF\u30B0\u30EC\u30CD\u30FC\u30C9"
     _name: weapon_2_name
     _description: weapon_2_desc
-    _iconAssetName: Weapon/Sprite sheet Blue_37
+    _iconAssetName: Military/Smoke
     _modelAssetName: Smoke
     _maxCount: 1
     _damage: 0
@@ -53,7 +63,7 @@ MonoBehaviour:
     _aimZoomRatio: 0.75
     _aimDamageMultiplier: 1.2
     _spreadAngle: 2
-    _magazineSize: 0
+    _magazineSize: 1
     _reloadDuration: 0
     _ammoItemId: 0
     _dryFireSeAssetName: 
@@ -61,3 +71,13 @@ MonoBehaviour:
     _muzzleFlashAssetName: 
     _recoilCameraPitch: 0
     _recoilRecoverSeconds: 0.25
+    _weaponType: 1
+    _throwSpeed: 8
+    _throwPitchOffset: 20
+    _fuseSeconds: 2
+    _effectRadius: 15
+    _effectDurationSeconds: 15
+    _projectileAssetName: SmokeGrenadeProjectile
+    _previewRotationX: 0
+    _previewRotationY: 0
+    _previewRotationZ: 0

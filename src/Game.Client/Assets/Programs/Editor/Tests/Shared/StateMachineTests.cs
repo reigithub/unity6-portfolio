@@ -321,6 +321,70 @@ namespace Game.Editor.Tests
         }
 
         [Test]
+        public void ForceTransition_WhenNextStateAlreadySet_OverridesAndTransitionsToForcedState()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.AddTransition<StateC>(TestEvent.ToAny);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            // 先約（未消費の遷移要求）を AnyState 遷移の Force が上書きする（死亡遷移の実利用と同形）
+            stateMachine.Transition(TestEvent.ToStateB);
+            var result = stateMachine.ForceTransition(TestEvent.ToAny);
+            stateMachine.Update();
+
+            Assert.That(result, Is.EqualTo(StateEventResult.Succeeded));
+            Assert.That(stateMachine.IsCurrentState<StateC>(), Is.True);
+        }
+
+        [Test]
+        public void ForceTransition_WhenNoPending_BehavesLikeTransition()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            var result = stateMachine.ForceTransition(TestEvent.ToStateB);
+            stateMachine.Update();
+
+            Assert.That(result, Is.EqualTo(StateEventResult.Succeeded));
+            Assert.That(stateMachine.IsCurrentState<StateB>(), Is.True);
+        }
+
+        [Test]
+        public void ForceTransition_WhenNoRule_ReturnsFailed()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+            stateMachine.Update();
+
+            var result = stateMachine.ForceTransition(TestEvent.ToStateC);
+
+            Assert.That(result, Is.EqualTo(StateEventResult.Failed));
+        }
+
+        [Test]
+        public void ForceTransition_BeforeStart_Throws()
+        {
+            var context = new TestContext();
+            var stateMachine = new StateMachine<TestContext, TestEvent>(context);
+
+            stateMachine.AddTransition<StateA, StateB>(TestEvent.ToStateB);
+            stateMachine.SetInitState<StateA>();
+
+            Assert.Throws<InvalidOperationException>(() => stateMachine.ForceTransition(TestEvent.ToStateB));
+        }
+
+        [Test]
         public void Transition_ExecutesStateLifecycle()
         {
             var context = new TestContext();

@@ -6,6 +6,7 @@ using Game.Horror.Interaction;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Horror.Signals;
+using Game.Horror.WeaponEffect;
 using Game.Library.Shared;
 using Game.Shared.Bootstrap;
 using Game.Shared.Combat;
@@ -94,6 +95,12 @@ namespace Game.Horror.Player
         // 攻撃（ハンドガン）：起動入力フラグ（硬直経過は AttackingState ローカル）
         private bool _attackTriggered;
 
+        // 投擲（グレネード）：武器効果スポナー（Initialize で注入。投擲物の生成を依頼する）
+        private HorrorWeaponEffectSpawner _weaponEffectSpawner;
+
+        // 投擲物の発射位置をカメラから前方へずらすオフセット（m）。カメラ・自身との重なり防止
+        private const float ThrowSpawnOffset = 0.3f;
+
         // 発砲カメラリコイル（減衰オフセット型）。強度・回復秒は発砲時点のマスター値をキャプチャし、表示 pitch にのみ合成する（照準の真値 _cameraVerticalAngle は変えない）
         private float _recoilPitchAmount;
         private float _recoilWeight;
@@ -110,11 +117,13 @@ namespace Game.Horror.Player
         private ObjectCategory _requestedEquipCategory;
         private int _requestedEquipId;
 
-        // アイテム使用（インベントリ Use 予約呼び出し）：閉じたダイアログから (category, id) 直値で要求される。遷移時キャッシュ（適用経過は UsingItemState ローカル）
+        // アイテム使用（インベントリ Use 予約呼び出し）：閉じたダイアログから (category, id, slotNo) 直値で要求される。遷移時キャッシュ（適用経過は UsingItemState ローカル）
         private bool _useItemRequested;
         private ObjectCategory _requestedUseCategory;
         private int _requestedUseId;
+        private int _requestedUseSlotNo;
         private HorrorItemMaster _pendingUseItemMaster;
+        private int _pendingUseSlotNo = -1;
 
         // リロード：SE 再生サービス・起動入力フラグ（硬直経過は ReloadingState ローカル）
         private bool _reloadTriggered;
@@ -175,10 +184,12 @@ namespace Game.Horror.Player
         // 死亡から GameOverDialog 表示までの演出ディレイ（ms）。被弾フラッシュ・SE を見せてから遷移する
         private const int GameOverDelayMilliseconds = 1200;
 
-        public void Initialize(HorrorOptionSaveData data)
+        public void Initialize(HorrorOptionSaveData data, HorrorWeaponEffectSpawner weaponEffectSpawner)
         {
             _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
             if (PlayerMaster == null) return;
+
+            _weaponEffectSpawner = weaponEffectSpawner;
 
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _inputService.EnablePlayer(forceEnable: true);
@@ -284,11 +295,13 @@ namespace Game.Horror.Player
         /// </summary>
         /// <param name="category">使用対象のカテゴリ。</param>
         /// <param name="id">使用対象の ID。</param>
-        public void RequestUseItem(ObjectCategory category, int id)
+        /// <param name="slotNo">使用対象のスロット位置。消費はこのスロットのみに作用する。</param>
+        public void RequestUseItem(ObjectCategory category, int id, int slotNo)
         {
             _useItemRequested = true;
             _requestedUseCategory = category;
             _requestedUseId = id;
+            _requestedUseSlotNo = slotNo;
         }
 
         #region IDamageable
@@ -325,7 +338,7 @@ namespace Game.Horror.Player
             _messagePipeService?.Publish(new HorrorSignals.Player.Damaged(damage, _playerService.CurrentHealth, _playerService.MaxHealth));
 
             if (!string.IsNullOrEmpty(PlayerMaster.DamageSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(PlayerMaster.DamageSeAssetName, destroyCancellationToken).Forget();
 
             if (IsDead)
             {
@@ -504,6 +517,10 @@ namespace Game.Horror.Player
             if (weapon == null)
                 return false;
 
+            // 射撃は Gun のみ。Throwable は TryThrow が先に消費するため通常到達しない（到達＝呼び出し順の不変条件違反への防御）
+            if (weapon.WeaponType != HorrorWeaponType.Gun)
+                return false;
+
             // 弾切れは空撃ち（ステート遷移なし＝硬直なし）。AmmoItemId=0 の武器は弾薬概念なし（無限）
             if (weapon.AmmoItemId > 0
                 && _equipmentService.GetMagazineCount(weapon.Id, weapon.MagazineSize) <= 0)
@@ -516,6 +533,78 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
+        /// 立てられた攻撃起動フラグを Throwable 装備時のみ消費し、エイム中・所持あり・投擲物ロード済みなら
+        /// ThrowingState へ遷移すべきと返す。Idle/Moving ステートの Update から <see cref="TryAttack"/> より先に呼ばれ、
+        /// 実際の投擲（消費・射出・装備解除）は ThrowingState.Enter が行う。
+        /// Gun 装備時はフラグを消費せず false（TryAttack が処理する）。非エイム・所持 0 は無反応（フラグのみ消費）。
+        /// 投擲物未ロードは不変条件違反（シーン起動時に全 Throwable を事前ロード済みのはず）として LogError の上不発。
+        /// </summary>
+        /// <returns>ThrowingState へ遷移すべきなら true。</returns>
+        private bool TryThrow()
+        {
+            if (!_attackTriggered)
+                return false;
+
+            var weapon = EquippedWeaponMaster;
+            if (weapon == null || weapon.WeaponType != HorrorWeaponType.Throwable)
+                return false;
+
+            _attackTriggered = false;
+
+            // 構えて（エイム中に）投げる仕様。腰だめ投擲は無反応
+            if (!_isAiming)
+                return false;
+
+            if (_inventoryService.GetCount(ObjectCategory.Weapon, weapon.Id) <= 0)
+                return false;
+
+            if (!_weaponEffectSpawner.CanSpawnProjectile(weapon))
+            {
+                Debug.LogError($"投擲物プレハブが未ロードのため投擲できません (WeaponId={weapon.Id}, Asset={weapon.ProjectileAssetName})");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 投擲を実行する。ThrowingState.Enter から呼ばれ、所持消費 → 投擲物射出 → 投げ切り（所持 0）なら
+        /// 装備解除を行う。検証（エイム・所持・ロード済み）は同フレームの <see cref="TryThrow"/> が済ませている。
+        /// 初速はカメラ視線を投げ上げ角ぶん上へ回した方向 × 武器マスターの初速（<see cref="CalculateThrowVelocity"/>）。
+        /// </summary>
+        private void Throw()
+        {
+            var weapon = EquippedWeaponMaster;
+            if (_mainCamera == null || weapon == null) return;
+
+            // 消費を先に確定する。TryThrow の所持検証と同一フレームのため、失敗はデータ異常時のみの防御パス
+            if (!_inventoryService.TryConsume(ObjectCategory.Weapon, weapon.Id, 1))
+            {
+                Debug.LogError($"投擲武器の消費に失敗したため投擲を中止します (WeaponId={weapon.Id})");
+                return;
+            }
+
+            var cameraTransform = _mainCamera.transform;
+            var forward = cameraTransform.forward;
+            var origin = cameraTransform.position + forward * ThrowSpawnOffset;
+            var velocity = CalculateThrowVelocity(forward, cameraTransform.right, weapon.ThrowPitchOffset, weapon.ThrowSpeed);
+            _weaponEffectSpawner.SpawnProjectile(weapon, origin, velocity, GetComponentsInChildren<Collider>());
+
+            NotifyHudViews();
+
+            // 投げ切ったら素手へ戻し、ショートカット登録も除去する（「未所持→登録なし」の不変条件）。
+            // 除去は Show より前に行う（Show がスロット再読込するため、この順で D-Pad HUD が同フレームで空表示になる）。
+            // 残弾 HUD は EquippedWeaponMaster=null の既存導出で自動非表示になる
+            if (_inventoryService.GetCount(ObjectCategory.Weapon, weapon.Id) <= 0)
+            {
+                _equipmentService.Unequip();
+                _weaponView.Hide();
+                _equipmentService.TryClearSlotOf(ObjectCategory.Weapon, weapon.Id);
+                _equipmentsView.Show(ObjectCategory.None, 0);
+            }
+        }
+
+        /// <summary>
         /// 空撃ちを処理する。SE（マスターにアセット名がある場合のみ）と HUD の表示キックを行い、
         /// 自動リロードが有効ならリロード起動フラグを立てる（同フレームの TryReload が消費する）。
         /// </summary>
@@ -523,7 +612,7 @@ namespace Game.Horror.Player
         {
             var weapon = EquippedWeaponMaster;
             if (!string.IsNullOrEmpty(weapon.DryFireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(weapon.DryFireSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(weapon.DryFireSeAssetName, destroyCancellationToken).Forget();
 
             NotifyHudViews();
 
@@ -614,7 +703,7 @@ namespace Game.Horror.Player
         }
 
         /// <summary>
-        /// 立てられたアイテム使用予約を消費し、マスタ解決・使用効果・所持数・残 HP を検証して
+        /// 立てられたアイテム使用予約を消費し、マスタ解決・使用効果・指定スロットの所持・残 HP を検証して
         /// UsingItemState へ遷移すべきかを判定する。Idle/Moving ステートの Update から呼ばれ、
         /// 実際の消費・回復適用は UsingItemState が行う。発火時点で HP 満タンなら消費せず破棄する
         /// （回復完了後に発火する再予約など、ダイアログ側の満タン無反応をすり抜けた予約への再検証）。
@@ -637,7 +726,21 @@ namespace Game.Horror.Player
             if (!itemMaster.HasEffect)
                 return false;
 
-            if (_inventoryService.GetCount(_requestedUseCategory, _requestedUseId) <= 0)
+            // 消費は指定スロットのみに作用するため、所持検証もそのスロットが対象アイテムを保持しているかで行う
+            bool slotHoldsItem = false;
+            foreach (var slot in _inventoryService.Slots)
+            {
+                if (slot.SlotNo == _requestedUseSlotNo
+                    && slot.ObjectCategory == _requestedUseCategory
+                    && slot.Id == _requestedUseId
+                    && slot.Count > 0)
+                {
+                    slotHoldsItem = true;
+                    break;
+                }
+            }
+
+            if (!slotHoldsItem)
                 return false;
 
             // 満タン判定はサービスの共有述語で行う
@@ -645,6 +748,7 @@ namespace Game.Horror.Player
                 return false;
 
             _pendingUseItemMaster = itemMaster;
+            _pendingUseSlotNo = _requestedUseSlotNo;
             return true;
         }
 
@@ -681,6 +785,19 @@ namespace Game.Horror.Player
         /// </summary>
         internal static Vector3 CalculateShotDirection(Vector3 forward, Vector3 randomUnit, float spreadAngle)
             => Vector3.Slerp(forward, randomUnit, spreadAngle / 180f);
+
+        /// <summary>
+        /// 投擲物の初速ベクトルを算出する。視線方向を <paramref name="right"/> 軸まわりに
+        /// <paramref name="pitchOffsetDegrees"/> だけ上向きへ回してから初速を乗じる。
+        /// 視線に対する相対角で回すため、真上・真下を向いても投げ上げ角が保たれる
+        /// （ワールド up 基準の加算では真上で破綻する）。
+        /// </summary>
+        /// <param name="forward">視線方向（正規化済み）</param>
+        /// <param name="right">視線の右方向（回転軸。正規化済み）</param>
+        /// <param name="pitchOffsetDegrees">視線からの投げ上げ角（度）</param>
+        /// <param name="speed">投擲初速（m/s）</param>
+        internal static Vector3 CalculateThrowVelocity(Vector3 forward, Vector3 right, float pitchOffsetDegrees, float speed)
+            => Quaternion.AngleAxis(-pitchOffsetDegrees, right) * forward * speed;
 
         /// <summary>
         /// リコイルオフセット（跳ね上げ＝pitch 減算）を合成した表示用 pitch を算出する（±89° クランプ込み）。
@@ -955,7 +1072,7 @@ namespace Game.Horror.Player
                 _messagePipeService?.Publish(new HorrorSignals.Noise.Occurred(transform.position, loudness, NoiseType.Footstep));
 
             if (!string.IsNullOrEmpty(PlayerMaster.FootstepSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(PlayerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(PlayerMaster.FootstepSeAssetName, destroyCancellationToken).Forget();
         }
 
         // カメラ localEulerAngles へ書き込む際は常にこの表示用 pitch を使う（リコイル合成の単一点）
@@ -1219,7 +1336,7 @@ namespace Game.Horror.Player
             _recoilWeight = 1f;
 
             if (!string.IsNullOrEmpty(weapon.FireSeAssetName))
-                _audioService.PlaySoundEffectOneShotAsync(weapon.FireSeAssetName, destroyCancellationToken).Forget();
+                _audioService.PlaySfxOneShotAsync(weapon.FireSeAssetName, destroyCancellationToken).Forget();
 
             Debug.Log($"Weapon Fire: name->{weapon.Name} , damage->{damage}");
         }

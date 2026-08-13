@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: HorrorItems
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: HorrorItems
+  m_GUID: 6c67d6f1b84151548af0854d724470db
+  m_SerializeEntries:
+  - m_GUID: 0e0dd4e844b3c3547bde6d35619e9225
+    m_Address: MedicPack1_Red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 11adfadc65ece9f47b61fb74f2896f5d
+    m_Address: HerbalPlant_green
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 288e39487e0012447af663136113a21b
+    m_Address: VialVaccine_Blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 389c9b6b73569434f9c8b022c7ab9aad
+    m_Address: MetalSyringe_red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4ea1d448af0099a498e76235c0b03878
+    m_Address: HerbalPlant_red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52f3fc3181689c6469bcd38e08dfcac3
+    m_Address: MedicPack2_Red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 63f6cb04a2140aa4f8414e1134644652
+    m_Address: HerbalPlant_gold
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6eb9f4943e67abb47b1c9fb8752fa83f
+    m_Address: HorrorDropItem
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 782d4c67a93b4dc488b4930de53168cc
+    m_Address: VialVaccine_Green
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8ac22fa7db954cf4d9842e37baa9d942
+    m_Address: MedicalFirstAidBottle
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8e364c485201b734d83c151341928f14
+    m_Address: RecoverySpray_Blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a064f6a789449b049bb5f24233283039
+    m_Address: VialVaccine_Orange
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b15a565df1aa86a49980c9b5e29f47cc
+    m_Address: MetalSyringe_blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5a128ddd76df5e4b824eeef2f4c8db3
+    m_Address: VialVaccine_Red
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bd4cb59bdae17f24ab0267c3c9c9158c
+    m_Address: MetalSyringe_orange
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4539bb33e2457d409e40054fe0456c8
+    m_Address: HerbalPlant_blue
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cc3501480cb297740a7c3765960fa449
+    m_Address: MedicPack1_White
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cf06a08f026133d4f9da31efd88d5a4d
+    m_Address: RecoverySpray_White
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d676b482519b49440a8e15ed6ad5d7c6
+    m_Address: MedicPack2_Red_Dirty
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dfb72cb82a4bbea43bd033c3a32614a2
+    m_Address: RecoverySpray_Silver
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e7fdd4ec249139849acb2bfd9f36187f
+    m_Address: MetalSyringe_green
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef977d408f6276e468bee126b0f035cc
+    m_Address: MedicPack3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: be8c7bfaed8f7eb428b95bd26a52c525, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 2ad57f5e97ff69641b000b85045670df, type: 2}
+    - {fileID: 11400000, guid: ee711ff0bda32fa4f9e8ea31a717790f, type: 2}

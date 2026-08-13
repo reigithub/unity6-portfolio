@@ -951,6 +951,7 @@ GameObject:
   - component: {fileID: 1889253254155075517}
   - component: {fileID: 3889637892381741613}
   - component: {fileID: 6008367263980400082}
+  - component: {fileID: 7810494052038233253}
   m_Layer: 5
   m_Name: HorrorEquipmentShortcutDialog
   m_TagString: Untagged
@@ -1070,6 +1071,24 @@ MonoBehaviour:
   - {fileID: 6232693421846989812}
   - {fileID: 6283585966141273434}
   - {fileID: 6148629300646825068}
+--- !u!114 &7810494052038233253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1889253254155075514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7955566f18f887e4092d8315927cf1aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.MVC.Horror::Game.Horror.UI.Sound.HorrorUISoundProfile
+  _selectSeAssetName: HorrorSfx_UI_Select
+  _submitSeAssetName: HorrorSfx_UI_Submit
+  _cancelSeAssetName: HorrorSfx_UI_Cancel
+  _tabChangedSeAssetName: HorrorSfx_UI_Select
+  _valueChangedSeAssetName: HorrorSfx_UI_Select
+  _armingDelayFrames: 2
 --- !u!1 &2487731630971116571
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
+using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Extensions;
@@ -18,6 +19,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorEquipmentShortcutDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private IObjectInfo _target;
 
         public static async UniTask<bool> RunAsync(IObjectInfo target)
@@ -37,7 +39,11 @@ namespace Game.Horror.Dialogs
             // キャンセルで閉じる（親がインベントリ表示中は Menu をブロックしているため Cancel のみ）
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => TrySetResult(default))
+                .Subscribe(_ =>
+                {
+                    _uiSoundService.PlayCancelSfx();
+                    TrySetResult(false);
+                })
                 .AddTo(Disposables);
 
             // Del で現在スロットの登録を外す

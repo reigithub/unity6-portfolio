@@ -5,8 +5,8 @@ using MemoryPack;
 namespace Game.Horror.SaveData
 {
     /// <summary>
-    /// Horror ゲームのセーブデータルート。プレイヤー・インベントリ・装備・インタラクション記録を
-    /// セクションごとに区画化して保持する（オプション設定は別セーブ扱いのため含まない）。
+    /// Horror ゲームのセーブデータルート。プレイヤー・インベントリ・装備・インタラクション記録・
+    /// エネミー撃破記録をセクションごとに区画化して保持する（オプション設定は別セーブ扱いのため含まない）。
     /// </summary>
     [MemoryPackable]
     public partial class HorrorSaveData
@@ -32,5 +32,7 @@ namespace Game.Horror.SaveData
         public HorrorEquipmentSaveData Equipment { get; set; } = new();
 
         public HorrorKeyItemSaveData KeyItem { get; set; } = new();
+
+        public HorrorEnemySaveData Enemy { get; set; } = new();
     }
 }

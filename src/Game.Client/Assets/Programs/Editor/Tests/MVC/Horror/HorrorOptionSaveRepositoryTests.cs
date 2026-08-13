@@ -47,7 +47,7 @@ namespace Game.Tests.MVC.Horror
             Assert.That(_repository.Data.InputBindingOverridesJson, Is.EqualTo(""));
             Assert.That(_repository.Data.CameraFov, Is.EqualTo(60f));
             Assert.That(_repository.Data.DisplayMode, Is.EqualTo(FullScreenMode.FullScreenWindow));
-            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(1f));
+            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(5f));
             Assert.That(_repository.IsDirty, Is.False);
         }
 

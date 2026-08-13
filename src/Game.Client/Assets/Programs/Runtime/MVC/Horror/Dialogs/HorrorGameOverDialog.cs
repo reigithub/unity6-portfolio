@@ -1,4 +1,3 @@
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using Game.Core.Services;
 using Game.Horror.SaveData;
@@ -43,10 +42,10 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnContinueGame
                 .SubscribeAwait(async (_, _) =>
                 {
-                    if (_saveSlots.Any(x => x.HasData))
+                    if (_saveRepository.CurrentSlot >= 0)
                         await _saveRepository.LoadByCurrentSlotAsync();
                     else
-                        _saveRepository.CreateData();
+                        _saveRepository.CreateNewSaveData();
 
                     await _sceneService.TransitionAsync<HorrorStageScene>();
                 })

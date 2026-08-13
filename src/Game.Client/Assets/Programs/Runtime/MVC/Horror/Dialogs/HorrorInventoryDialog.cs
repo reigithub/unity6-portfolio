@@ -19,6 +19,8 @@ namespace Game.Horror.Dialogs
 
         public ObjectCategory UseCategory { get; init; }
         public int UseId { get; init; }
+        public int UseSlotNo { get; init; }
+
         public bool HasUseRequest => UseCategory != ObjectCategory.None;
     }
 
@@ -29,6 +31,7 @@ namespace Game.Horror.Dialogs
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorInventoryService _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
         private readonly IHorrorPlayerService _playerService = GameServiceManager.Resolve<IHorrorPlayerService>();
+        private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
 
         private HorrorInventoryResult _result;
 
@@ -52,11 +55,15 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            // キャンセル：サブメニュー展開中は一段だけ閉じ、それ以外はダイアログを閉じる
+            // キャンセル：サブメニュー展開中は一段だけ閉じ、それ以外はダイアログを閉じる（クラフトの長押し中は無効）
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
                 {
+                    if (SceneComponent.IsCrafting()) return;
+
+                    _uiSoundService.PlayCancelSfx();
+
                     if (SceneComponent.IsSubmenuOpen())
                         SceneComponent.CloseSubmenu();
                     else
@@ -64,20 +71,20 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            // インベントリトグルでダイアログを閉じる（サブメニュー展開中は無効）
+            // インベントリトグルでダイアログを閉じる（サブメニュー展開中・クラフトの長押し中は無効）
             _inputService.Player.Inventory.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => TrySetResult(_result))
                 .AddTo(Disposables);
 
-            // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中は無効）
+            // L1 (Previous) / R1 (Next) でタブ循環（サブメニュー展開中・クラフトの長押し中は無効）
             _inputService.UI.Previous.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => SceneComponent.PreviousTab())
                 .AddTo(Disposables);
 
             _inputService.UI.Next.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing() && !SceneComponent.IsSubmenuOpen())
+                .Where(_ => State.IsProcessing() && !SceneComponent.IsProcessing())
                 .Subscribe(_ => SceneComponent.NextTab())
                 .AddTo(Disposables);
 
@@ -103,16 +110,19 @@ namespace Game.Horror.Dialogs
                                 EquipId = _result.EquipId,
                                 UseCategory = info.ObjectCategory,
                                 UseId = info.ObjectId,
+                                UseSlotNo = ctx.SlotView.SlotIndex,
                             };
                             TrySetResult(_result);
                             break;
                         case ContextActionType.Inspect:
-                            // アイテム詳細ダイアログを実装して開く
-                            // await HorrorItemDetailDialog.RunAsync(info);
+                            await HorrorItemDetailDialog.RunAsync(info);
                             break;
                         case ContextActionType.Discard:
-                            _inventoryService.DiscardAll(info.ObjectCategory, info.ObjectId);
-                            ctx.SlotView.SetEmpty();
+                            var result = await HorrorConfirmDialog.RunAsync("Confirm_Discard_Item");
+                            if (!result) return;
+
+                            _inventoryService.DiscardSlot(ctx.SlotView.SlotIndex);
+                            SceneComponent.ApplySlots();
                             break;
                         case ContextActionType.Equip:
                             _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.ObjectId };

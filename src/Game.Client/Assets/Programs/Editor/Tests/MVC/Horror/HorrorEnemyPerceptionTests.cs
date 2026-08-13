@@ -1,5 +1,7 @@
+using Game.Core.Services;
 using Game.Horror.Enemy;
 using Game.Horror.Signals;
+using Game.Shared.Scriptable.Database.Tables;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -111,5 +113,51 @@ namespace Game.Tests.MVC.Horror
         [Test]
         public void IsPlayerLocatedNoise_Scream_IsFalse()
             => Assert.That(HorrorEnemyPerception.IsPlayerLocatedNoise(NoiseType.Scream), Is.False);
+
+        // プール再利用：Initialize は前世の警戒度・知覚位置履歴をクリアする
+        // （OnDisable は購読解除と視認フラグのクリアのみで、ゲージと位置履歴は残留するため Initialize 側で保証する）。
+
+        [Test]
+        public void Initialize_SecondCall_ClearsAwarenessAndPerceivedPositions()
+        {
+            GameServiceManager.StartUp();
+            var messagePipe = new MessagePipeService();
+            messagePipe.AddMessageBroker<HorrorSignals.Noise.Occurred>();
+            messagePipe.AddMessageBroker<HorrorSignals.Player.Died>();
+            messagePipe.Build();
+            GameServiceManager.Register<IMessagePipeService, MessagePipeService>(messagePipe);
+
+            var enemyGo = new GameObject("PerceptionReuseTest");
+            var targetGo = new GameObject("PerceptionReuseTarget");
+            try
+            {
+                var perception = enemyGo.AddComponent<HorrorEnemyPerception>();
+                var master = new HorrorEnemyMaster
+                {
+                    SightHalfAngle = 60f,
+                    HearingRadius = 10f,
+                    HearingSensitivity = 1f,
+                };
+                perception.Initialize(targetGo.transform, master, effectRegistry: null);
+
+                // 足音で警戒度・プレイヤー知覚位置・注意対象位置を汚す（前世の状態を作る）
+                messagePipe.Publish(new HorrorSignals.Noise.Occurred(new Vector3(1f, 0f, 0f), 1f, NoiseType.Footstep));
+                Assert.That(perception.Awareness, Is.GreaterThan(0f));
+                Assert.That(perception.TryGetLastPerceivedPlayerPosition(out _), Is.True);
+                Assert.That(perception.TryGetLastNoticedPosition(out _), Is.True);
+
+                perception.Initialize(targetGo.transform, master, effectRegistry: null);
+
+                Assert.That(perception.Awareness, Is.Zero);
+                Assert.That(perception.TryGetLastPerceivedPlayerPosition(out _), Is.False);
+                Assert.That(perception.TryGetLastNoticedPosition(out _), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(targetGo);
+                Object.DestroyImmediate(enemyGo);
+                GameServiceManager.Shutdown();
+            }
+        }
     }
 }

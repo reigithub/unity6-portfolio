@@ -79,7 +79,7 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            // 音量範囲は 1〜10。上限超えは 10 にクランプされる
+            // 音量範囲は 0〜10。上限超えは 10 にクランプされる
             _service.SetMasterVolume(15f);
 
             Assert.That(_repository.Data.MasterVolume, Is.EqualTo(10f));
@@ -90,10 +90,10 @@ namespace Game.Tests.MVC.Horror
         {
             await LoadDefaultData();
 
-            // 音量範囲は 1〜10。下限割れは 1 にクランプされる
+            // 音量範囲は 0〜10。下限割れは 0 にクランプされる
             _service.SetMasterVolume(-1f);
 
-            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(1f));
+            Assert.That(_repository.Data.MasterVolume, Is.EqualTo(0f));
         }
 
         #endregion

@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Game.Shared.Scriptable.Database.EditorTools
 {
     /// <summary>
-    /// Scriptable Database の生成・登録・一括 CSV/TSV 入出力を集約したエディタウィンドウ。
-    /// 各ボタンは既存の static コマンド（Generator / Builder / IO）を呼ぶだけで、ロジックは持たない。
+    /// Scriptable Database の生成・登録・一括 CSV/TSV 入出力・検証を集約したエディタウィンドウ。
+    /// 各ボタンは既存の static コマンド（Generator / Builder / IO / ValidationRunner）を呼ぶだけで、ロジックは持たない。
     /// </summary>
     public class ScriptableDatabaseWindow : EditorWindow
     {
@@ -51,6 +51,21 @@ namespace Game.Shared.Scriptable.Database.EditorTools
                 if (GUILayout.Button("Import All (TSV)"))
                     ScriptableDatabaseIO.RunWithDatabase(db => ScriptableDatabaseIO.BatchImport(db, "tsv", mergeByPrimaryKey: true));
             }
+
+            EditorGUILayout.Space();
+            DrawValidation();
+        }
+
+        private void DrawValidation()
+        {
+            EditorGUILayout.LabelField("検証", EditorStyles.boldLabel);
+
+            if (GUILayout.Button("Validate All（構成＋全テーブル。結果は Console）"))
+                ScriptableDatabaseIO.RunWithDatabase(db => ScriptableDatabaseValidationRunner.Run(db));
+
+            // テーブル単位の実行と結果の閲覧は専用ウィンドウが担う。
+            if (GUILayout.Button("検証ウィンドウを開く（テーブル別の結果・エラー詳細）"))
+                ScriptableDatabaseValidationWindow.Open();
         }
     }
 }

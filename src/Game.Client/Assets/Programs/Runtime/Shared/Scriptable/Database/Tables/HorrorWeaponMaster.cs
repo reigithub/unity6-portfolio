@@ -1,4 +1,6 @@
 using System;
+using Game.Shared.Enums;
+using Game.Shared.Scriptable.Database.Validation;
 using UnityEngine;
 
 namespace Game.Shared.Scriptable.Database.Tables
@@ -22,7 +24,7 @@ namespace Game.Shared.Scriptable.Database.Tables
 
         [SerializeField] private int _damage;              // 着弾ダメージ（IDamageable.TakeDamage へ渡す）
         [SerializeField] private float _range;             // 射程（Raycast 最大距離, m）
-        [SerializeField] private float _fireInterval;      // 発砲後の硬直（AttackingState 滞在秒）
+        [SerializeField] private float _fireInterval;      // 使用後の硬直（Attacking/ThrowingState 滞在秒）
         [SerializeField] private float _noiseLoudness;     // 発砲音の大きさ（射手位置で発行、HorrorSignals.Noise.Occurred.Loudness）
         [SerializeField] private float _impactNoiseLoudness; // 着弾音の大きさ（着弾点で発行。誘引用）
         [SerializeField] private float _equipDuration;     // 装備切替の硬直（EquippingState 滞在秒）
@@ -37,6 +39,19 @@ namespace Game.Shared.Scriptable.Database.Tables
         [SerializeField] private string _muzzleFlashAssetName; // マズルフラッシュ VFX アセット名（空文字=表示しない）
         [SerializeField] private float _recoilCameraPitch;     // 発砲カメラリコイルの跳ね上げピッチ角（度）
         [SerializeField] private float _recoilRecoverSeconds;  // 発砲カメラリコイルが収まるまでの秒数（減衰オフセット型）
+
+        [SerializeField] private HorrorWeaponType _weaponType;   // 武器種別（挙動分岐の基点。Gun=ヒットスキャン、Throwable=投擲）
+        [SerializeField] private float _throwSpeed;              // 投擲初速（m/s。Throwable のみ使用）
+        [SerializeField] private float _throwPitchOffset;        // 投げ上げ角（度）。視線方向から何度上向きに投げるか（Throwable のみ使用）
+        [SerializeField] private float _fuseSeconds;             // 信管秒数（最初の衝突から起爆までの秒。Throwable のみ使用）
+        [SerializeField] private float _effectRadius;            // 起爆効果の半径（m。煙なら Fog の論理半径。Throwable のみ使用）
+        [SerializeField] private float _effectDurationSeconds;   // 起爆効果が有効な秒数。効果オブジェクトの生成から破棄までと一致する（Throwable のみ使用）
+        [SerializeField] private string _projectileAssetName;    // 投擲物プレハブの Addressables アドレス（Throwable のみ使用）
+
+        // 詳細プレビューでモデルを提示する姿勢（Euler 度）。全て 0 でプレハブのオーサリング姿勢そのまま
+        [SerializeField] private float _previewRotationX;
+        [SerializeField] private float _previewRotationY;
+        [SerializeField] private float _previewRotationZ;
 
         #endregion
 
@@ -145,6 +160,7 @@ namespace Game.Shared.Scriptable.Database.Tables
             set => _reloadDuration = value;
         }
 
+        [ForeignKey(typeof(HorrorItemMaster), AllowNone = true)]
         public int AmmoItemId
         {
             get => _ammoItemId;
@@ -179,6 +195,66 @@ namespace Game.Shared.Scriptable.Database.Tables
         {
             get => _recoilRecoverSeconds;
             set => _recoilRecoverSeconds = value;
+        }
+
+        public HorrorWeaponType WeaponType
+        {
+            get => _weaponType;
+            set => _weaponType = value;
+        }
+
+        public float ThrowSpeed
+        {
+            get => _throwSpeed;
+            set => _throwSpeed = value;
+        }
+
+        public float ThrowPitchOffset
+        {
+            get => _throwPitchOffset;
+            set => _throwPitchOffset = value;
+        }
+
+        public float FuseSeconds
+        {
+            get => _fuseSeconds;
+            set => _fuseSeconds = value;
+        }
+
+        public float EffectRadius
+        {
+            get => _effectRadius;
+            set => _effectRadius = value;
+        }
+
+        public float EffectDurationSeconds
+        {
+            get => _effectDurationSeconds;
+            set => _effectDurationSeconds = value;
+        }
+
+        public string ProjectileAssetName
+        {
+            get => _projectileAssetName;
+            set => _projectileAssetName = value;
+        }
+
+        public float PreviewRotationX
+        {
+            get => _previewRotationX;
+            set => _previewRotationX = value;
+        }
+
+        public float PreviewRotationY
+        {
+            get => _previewRotationY;
+            set => _previewRotationY = value;
+        }
+
+        public float PreviewRotationZ
+        {
+            get => _previewRotationZ;
+            set => _previewRotationZ = value;
         }
 
         #endregion

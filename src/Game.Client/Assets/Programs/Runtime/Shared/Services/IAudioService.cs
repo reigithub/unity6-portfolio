@@ -48,7 +48,7 @@ namespace Game.Shared.Services
         /// </summary>
         /// <param name="assetName">再生する効果音のアセット名</param>
         /// <param name="token">キャンセレーショントークン</param>
-        UniTask PlaySoundEffectAsync(string assetName, CancellationToken token = default);
+        UniTask PlaySfxAsync(string assetName, CancellationToken token = default);
 
         /// <summary>
         /// 効果音（SE）を割り込み・フェードなしで重ね再生する
@@ -56,7 +56,7 @@ namespace Game.Shared.Services
         /// </summary>
         /// <param name="assetName">再生する効果音のアセット名</param>
         /// <param name="token">キャンセレーショントークン</param>
-        UniTask PlaySoundEffectOneShotAsync(string assetName, CancellationToken token = default);
+        UniTask PlaySfxOneShotAsync(string assetName, CancellationToken token = default);
 
         /// <summary>
         /// 指定したカテゴリとアセット名でオーディオを再生する

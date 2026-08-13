@@ -145,3 +145,15 @@ MonoBehaviour:
     _rejectionMessage: 
     _acquiredId: 5
     _acquiredCount: 1
+  - _id: 999999
+    _developOnlyName: "\u30C9\u30ED\u30C3\u30D7\u30A2\u30A4\u30C6\u30E0"
+    _name: DropItem
+    _inputType: 0
+    _holdSeconds: 0
+    _interactionVerb: PickUp
+    _reinteractionVerb: 
+    _requiredObjectCategory: 0
+    _requiredObjectId: 0
+    _rejectionMessage: 
+    _acquiredId: 0
+    _acquiredCount: 0

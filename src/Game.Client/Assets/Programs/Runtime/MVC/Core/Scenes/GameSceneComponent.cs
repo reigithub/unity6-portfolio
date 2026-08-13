@@ -31,6 +31,7 @@ namespace Game.MVC.Core.Scenes
         public virtual UniTask PreInitialize()
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            SetInteractable(false, visible: true);
             return UniTask.CompletedTask;
         }
 

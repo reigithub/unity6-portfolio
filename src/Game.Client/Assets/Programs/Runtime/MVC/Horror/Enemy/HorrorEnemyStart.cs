@@ -1,53 +1,18 @@
-using Cysharp.Threading.Tasks;
-using Game.Core.Services;
-using Game.Shared.Services;
 using UnityEngine;
 
 namespace Game.Horror.Enemy
 {
     /// <summary>
-    /// 敵生成地点。配置された地点で HorrorEnemy prefab を Addressables から生成し、
-    /// マスターデータ（ScriptableDatabase）を引いて <see cref="HorrorEnemyController.Initialize"/> する。
-    /// HorrorPlayerStart と同じ「シーンに配置 → シーン側が走査して起動」する作法に倣う。
+    /// 敵スポーン地点マーカー。位置・向きと、対応するスポーンエントリの ID のみを持つ。
+    /// 生成実行は <see cref="HorrorEnemySpawner"/> が行う（シーン側が走査してスポナーへ渡す）。
+    /// HorrorPlayerStart と同じ「シーンに配置 → シーン側が走査」する作法に倣う。
     /// </summary>
     public class HorrorEnemyStart : MonoBehaviour
     {
-        [Tooltip("生成する敵のマスターデータ ID（HorrorEnemyMasterTable の PrimaryKey）")]
-        [SerializeField] private int _enemyMasterId = 1;
+        [Tooltip("スポーンエントリの ID（HorrorEnemySpawnMasterTable の PrimaryKey）。0 は未設定")]
+        [SerializeField] private int _spawnId;
 
-        private GameObject _enemy;
-
-        /// <summary>
-        /// マスターデータを引いて敵を生成・初期化する。
-        /// </summary>
-        /// <param name="player">追跡対象のプレイヤー GameObject</param>
-        public async UniTask LoadEnemyAsync(GameObject player)
-        {
-            var dbService = GameServiceManager.Resolve<IScriptableDatabaseService>();
-            if (!dbService.Database.HorrorEnemyMasterTable.TryFindById(_enemyMasterId, out var master))
-            {
-                Debug.LogError($"[HorrorEnemyStart] HorrorEnemyMaster (Id={_enemyMasterId}) が見つかりません。");
-                return;
-            }
-
-            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
-            _enemy = await assetService.InstantiateAsync(master.ModelAssetName, transform);
-
-            if (_enemy.TryGetComponent<HorrorEnemyController>(out var controller))
-            {
-                controller.Initialize(player, master);
-                return;
-            }
-
-            throw new MissingComponentException($"Cannot find {nameof(HorrorEnemyController)}");
-        }
-
-        public void UnloadEnemy()
-        {
-            if (_enemy == null) return;
-            var assetService = GameServiceManager.Resolve<IAddressableAssetService>();
-            assetService.ReleaseInstance(_enemy);
-            _enemy = null;
-        }
+        /// <summary>スポーンエントリの ID（スポナーの registry 構築・検証に使用）</summary>
+        public int SpawnId => _spawnId;
     }
 }

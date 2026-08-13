@@ -22,6 +22,19 @@ MonoBehaviour:
     m_Localized: It is Locked with a Key.
     m_Metadata:
       m_Items: []
+  - m_Id: 14785781152358400
+    m_Localized: 'Are you sure you want to delete this?
+
+      (Once deleted, it
+      cannot be recovered.)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14791699009118208
+    m_Localized: 'Discard item?
+
+      (Discarded items cannot be recovered.)'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

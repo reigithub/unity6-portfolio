@@ -104,56 +104,71 @@ namespace Game.App.Bootstrap
 
         private static async UniTask ShowTitleAsync()
         {
-            Debug.Log("[GameBootstrap] Loading title screen...");
-
-            // アプリサービスプロバイダーを初期化
-            _appServiceProvider = new AppServiceProvider();
-            await _appServiceProvider.InitializeAsync();
-
-            var titleComponent = await _sceneLoader.LoadAsync<AppTitleSceneComponent>(AppTitleAddress);
-            if (titleComponent == null)
-            {
-                // Debug.LogError("[GameBootstrap] Failed to load title screen. Falling back to ScoreTimeAttack.");
-                DisposeAppServiceProvider();
-                // await _registry.LaunchAsync(GameMode.MvcScoreTimeAttack);
-                throw new NullReferenceException("[GameBootstrap] Failed to load title screen.");
-                // return;
-            }
-
-            titleComponent.Initialize(_appServiceProvider);
-
-            // ゲームモード選択を待つ
-            var cts = new CancellationTokenSource();
-            var selectedMode = GameMode.None;
             try
             {
-                selectedMode = await titleComponent.OnGameModeSelected.FirstAsync(cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // 正常なキャンセル（シーン遷移など）
-                cts.Cancel();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[GameBootstrap] Game mode selection failed: {ex.Message}");
-                cts.Cancel();
-            }
-            finally
-            {
-                // タイトル画面を閉じる
-                _sceneLoader?.Unload();
-                // アプリサービスプロバイダーを破棄（各ゲームモードで再構築）
-                DisposeAppServiceProvider();
-            }
+                Debug.Log("[GameBootstrap] Loading title screen...");
 
-            if (cts.IsCancellationRequested)
-                return;
+                // アプリサービスプロバイダーを初期化
+                _appServiceProvider = new AppServiceProvider();
+                await _appServiceProvider.InitializeAsync();
 
-            Debug.Log($"[GameBootstrap] Selected mode: {selectedMode}");
+                var titleComponent = await _sceneLoader.LoadAsync<AppTitleSceneComponent>(AppTitleAddress);
+                if (titleComponent == null)
+                {
+                    // Debug.LogError("[GameBootstrap] Failed to load title screen. Falling back to ScoreTimeAttack.");
+                    DisposeAppServiceProvider();
+                    // await _registry.LaunchAsync(GameMode.MvcScoreTimeAttack);
+                    throw new NullReferenceException("[GameBootstrap] Failed to load title screen.");
+                    // return;
+                }
 
-            // 選択されたモードを起動
-            await _registry.LaunchAsync(selectedMode);
+                titleComponent.Initialize(_appServiceProvider);
+
+                // ゲームモード選択を待つ
+                var cts = new CancellationTokenSource();
+                var selectedMode = GameMode.None;
+                try
+                {
+                    selectedMode = await titleComponent.OnGameModeSelected.FirstAsync(cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 正常なキャンセル（シーン遷移など）
+                    cts.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[GameBootstrap] Game mode selection failed: {ex.Message}");
+                    cts.Cancel();
+                }
+                finally
+                {
+                    // タイトル画面を閉じる
+                    _sceneLoader?.Unload();
+                    // アプリサービスプロバイダーを破棄（各ゲームモードで再構築）
+                    DisposeAppServiceProvider();
+                }
+
+                if (cts.IsCancellationRequested)
+                    return;
+
+                Debug.Log($"[GameBootstrap] Selected mode: {selectedMode}");
+
+                // 選択されたモードを起動
+                await _registry.LaunchAsync(selectedMode);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // 起動シーケンス（初回起動・タイトル復帰の両経路が本メソッドを通る）の失敗は続行不能のため、
+                // 無音停止（Forget() 経由の未観測例外ログのみ）にせず明示的に終了する。
+                // rethrow は未観測例外ハンドラへの二重流入になるためしない
+                Debug.LogError($"[GameBootstrap] 起動シーケンスが失敗したため終了します: {ex}");
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.ExitPlaymode();
+#else
+                Application.Quit(-1);
+#endif
+            }
         }
 
         private static void DisposeAppServiceProvider()
