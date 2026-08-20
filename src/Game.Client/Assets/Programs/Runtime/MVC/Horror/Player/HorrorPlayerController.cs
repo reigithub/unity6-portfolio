@@ -900,7 +900,10 @@ namespace Game.Horror.Player
                 {
                     if (_isCrouching)
                     {
-                        if (CanStandUp()) _isCrouching = false;
+                        if (CanStandUp())
+                        {
+                            _isCrouching = false;
+                        }
                     }
                     else
                     {
