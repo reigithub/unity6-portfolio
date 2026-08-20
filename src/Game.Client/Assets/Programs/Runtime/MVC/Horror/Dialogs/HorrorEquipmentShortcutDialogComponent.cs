@@ -3,7 +3,6 @@ using Game.Horror.Equipment;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Interfaces;
-using Game.Shared.Services;
 using R3;
 using UnityEngine;
 
@@ -47,22 +46,22 @@ namespace Game.Horror.Dialogs
             // 初期フォーカスを先頭スロットへ
             if (_slots.Length > 0)
                 _inputService.SetSelectedGameObject(_slots[0].gameObject);
+
+            _equipmentService.EquipmentChanged
+                .Subscribe(_ => RefreshAllSlots())
+                .AddTo(Disposables);
         }
 
-        /// <summary>現在選択中スロットの登録を外す（Dialog の Remove 入力から呼ぶ）。</summary>
+        /// <summary>現在選択中スロットの登録を外す（Dialog の Remove 入力から呼ぶ）。表示は EquipmentChanged の購読で追従する。</summary>
         public void RemoveCurrent()
-        {
-            if (_equipmentService.ClearSlot(_currentIndex))
-                _slots[_currentIndex].SetEmpty();
-        }
+            => _equipmentService.ClearSlot(_currentIndex);
 
-        // 対象アイテムを指定スロットへ登録し、表示を更新する。
-        // Assign は既登録なら移動/入替、未登録なら上書きするため、影響が2スロットに及ぶ。全スロット再表示する。
+        // 対象アイテムを指定スロットへ登録する。Assign は既登録なら移動/入替、未登録なら上書きで
+        // 影響が2スロットに及ぶが、表示は EquipmentChanged の購読（全スロット再表示）で追従する。
         private void Register(int index)
         {
             if (_target == null) return;
-            if (_equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.ObjectId))
-                RefreshAllSlots();
+            _equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.ObjectId);
         }
 
         private void RefreshAllSlots()

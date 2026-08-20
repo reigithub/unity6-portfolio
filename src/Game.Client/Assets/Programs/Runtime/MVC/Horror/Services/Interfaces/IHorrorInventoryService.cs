@@ -3,6 +3,7 @@ using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Shared.Enums;
 using Game.Shared.Services.Interfaces;
+using R3;
 
 namespace Game.Horror.Services.Interfaces
 {
@@ -13,6 +14,9 @@ namespace Game.Horror.Services.Interfaces
     {
         /// <summary>所持アイテム一覧（読み取り専用、疎。位置は各行の SlotNo が持ち、並び順に意味はない）。未ロード時は空。</summary>
         IReadOnlyList<HorrorInventorySlotData> Slots { get; }
+
+        /// <summary>スロット内容が変化したときに通知する（追加・消費・破棄の成功時。判定系では発行しない）。</summary>
+        Observable<Unit> SlotsChanged { get; }
 
         /// <summary>
         /// アイテムをインベントリに追加する。既存スタックを SlotNo 昇順に maxCount まで充填し、

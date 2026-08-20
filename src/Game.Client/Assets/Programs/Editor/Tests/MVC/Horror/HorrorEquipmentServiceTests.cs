@@ -12,6 +12,7 @@ using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
+using R3;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -691,6 +692,189 @@ namespace Game.Tests.MVC.Horror
             Assert.That(masters, Has.Count.EqualTo(2));
             Assert.That(masters[0].Id, Is.EqualTo(5));
             Assert.That(masters[1].Id, Is.EqualTo(7), "装備中は末尾に合流する");
+        }
+
+        [Test]
+        public async Task TryEquip_Success_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(true);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryEquip_NotPossessed_DoesNotEmitEquipmentChanged()
+        {
+            await LoadDefaultData();
+            _mockInventory.HasObject(ObjectCategory.Weapon, 5).Returns(false);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryEquip(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Unequip_WhenEquipped_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(5);
+            _repository.Data.Equipment.ObjectCategory = ObjectCategory.Weapon;
+            _repository.Data.Equipment.Id = 5;
+            _service.ResolveEquippedWeaponMaster();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            _service.Unequip();
+
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Unequip_WhenNotEquipped_DoesNotEmitEquipmentChanged()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            _service.Unequip();
+
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ResolveEquippedWeaponMaster_MasterNotFound_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            SetupRealDatabase(7); // 記録された Id=5 はテーブル未登録 → 未装備へ戻す修復パス
+            _repository.Data.Equipment.ObjectCategory = ObjectCategory.Weapon;
+            _repository.Data.Equipment.Id = 5;
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            LogAssert.Expect(LogType.Error, "装備中の武器マスターが見つかりません Id=5。未装備へ戻します");
+            _service.ResolveEquippedWeaponMaster();
+
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ResolveEquippedWeaponMaster_Unequipped_DoesNotEmitEquipmentChanged()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            _service.ResolveEquippedWeaponMaster();
+
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task TrySetSlot_Success_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TrySetSlot(1, ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryAssignSlot_MoveBetweenSlots_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(0, ObjectCategory.Weapon, 5);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            // 2 スロット（移動元・移動先）が変わっても発行は操作単位で 1 回
+            var ok = _service.TryAssignSlot(1, ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryAssignSlot_SameSlot_DoesNotEmitEquipmentChanged()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(2, ObjectCategory.Weapon, 5);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryAssignSlot(2, ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task TryAutoAssignSlot_Success_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            // TrySetSlot 経由の登録でも二重発行しない
+            var ok = _service.TryAutoAssignSlot(ObjectCategory.Weapon, 5);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ClearSlot_Success_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(2, ObjectCategory.Item, 3);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.ClearSlot(2);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryClearSlotOf_Registered_EmitsEquipmentChangedOnce()
+        {
+            await LoadDefaultData();
+            _service.TrySetSlot(1, ObjectCategory.Weapon, 2);
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryClearSlotOf(ObjectCategory.Weapon, 2);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SetMagazineCount_Always_DoesNotEmitEquipmentChanged()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.EquipmentChanged.Subscribe(_ => emitted++);
+
+            // 弾倉残弾は発行対象外（発砲ごとに変わるため、装備変更の購読者に通知しない）
+            _service.SetMagazineCount(5, 12);
+
+            Assert.That(emitted, Is.EqualTo(0));
+            Assert.That(_repository.IsDirty, Is.True, "Dirty にはなる（保存対象ではある）");
         }
     }
 }

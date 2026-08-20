@@ -3,7 +3,6 @@ using Game.Horror.Database;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
 using Game.Shared.Interfaces;
-using Game.Shared.Services;
 using R3;
 using R3.Triggers;
 using TMPro;
@@ -82,12 +81,6 @@ namespace Game.Horror.Inventory
             SetIcon(null);
             if (_countText != null)
                 _countText.gameObject.SetActive(false);
-            SetInputActionIcon(SlotInfo);
-        }
-
-        public void RefreshSlot()
-        {
-            SetIcon(SlotInfo?.IconAssetName);
             SetInputActionIcon(SlotInfo);
         }
 

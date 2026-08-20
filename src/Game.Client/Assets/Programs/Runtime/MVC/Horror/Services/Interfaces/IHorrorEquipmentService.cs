@@ -3,6 +3,7 @@ using Game.Horror.SaveData;
 using Game.Shared.Enums;
 using Game.Shared.Scriptable.Database.Tables;
 using Game.Shared.Services.Interfaces;
+using R3;
 
 namespace Game.Horror.Services.Interfaces
 {
@@ -11,6 +12,9 @@ namespace Game.Horror.Services.Interfaces
     /// </summary>
     public interface IHorrorEquipmentService : IGameService
     {
+        /// <summary>装備・ショートカットスロットが変化したときに通知する</summary>
+        Observable<Unit> EquipmentChanged { get; }
+
         /// <summary>指定 (SlotType, Id) が装備可能か判定する。装備対象は Weapon のみで、かつ所持している必要がある。</summary>
         bool CanEquip(ObjectCategory type, int id);
 

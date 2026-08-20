@@ -7,7 +7,6 @@ using Game.Shared.Services.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Game.Horror.Inventory
@@ -37,13 +36,7 @@ namespace Game.Horror.Inventory
 
         #endregion
 
-        private readonly Subject<Unit> _onCrafted = new();
-
-        /// <summary>クラフトが成立したときに通知する（インベントリ表示の再反映用）。</summary>
-        public Observable<Unit> OnCrafted => _onCrafted;
-
         private readonly List<HorrorCraftRecipeView> _recipeViews = new();
-        private readonly List<HorrorCraftMaterialView> _materialViews = new();
         private readonly CompositeDisposable _disposables = new();
 
         private IInputSystemService _inputService;
@@ -72,6 +65,16 @@ namespace Game.Horror.Inventory
 
             _localizationService.OnLocaleChanged
                 .Subscribe(_ => UpdateDetail(_selected))
+                .AddTo(_disposables);
+
+            // 在庫の変化（自クラフト・他タブでの使用や破棄）に所持数と素材表示を追従させる
+            _inventoryService.SlotsChanged
+                .ThrottleLastFrame(1) // 同一フレームの連続変更（クラフト＝素材数+1回発行）を最終状態1回に合流する
+                .Subscribe(_ =>
+                {
+                    RefreshPossessedCounts();
+                    UpdateDetail(_selected);
+                })
                 .AddTo(_disposables);
 
             BuildRecipes();
@@ -160,8 +163,6 @@ namespace Game.Horror.Inventory
                 child.gameObject.SafeDestroy();
             }
 
-            _materialViews.Clear();
-
             foreach (var material in _craftService.GetMaterials(craftId))
             {
                 var view = Instantiate(_materialPrefab, _materialContentRoot);
@@ -171,7 +172,6 @@ namespace Game.Horror.Inventory
                     material.ObjectId,
                     material.Count,
                     _inventoryService.GetCount(material.ObjectCategory, material.ObjectId));
-                _materialViews.Add(view);
             }
         }
 
@@ -211,13 +211,7 @@ namespace Game.Horror.Inventory
 
             ResetHold();
             _awaitRelease = true;
-
-            if (!_craftService.TryCraft(craftId))
-                return;
-
-            RefreshPossessedCounts();
-            UpdateDetail(_selected);
-            _onCrafted.OnNext(Unit.Default);
+            _craftService.TryCraft(craftId);
         }
 
         private void ResetHold()
@@ -264,7 +258,6 @@ namespace Game.Horror.Inventory
         private void OnDestroy()
         {
             _disposables.Dispose();
-            _onCrafted.Dispose();
         }
     }
 }
