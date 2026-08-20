@@ -6,6 +6,7 @@ using Game.Horror.Inventory;
 using Game.Horror.SaveData;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Enums;
+using R3;
 using UnityEngine;
 
 namespace Game.Horror.Services
@@ -25,11 +26,22 @@ namespace Game.Horror.Services
 
         private readonly IReadOnlyList<HorrorInventorySlotData> _emptySlots = Array.Empty<HorrorInventorySlotData>();
 
+        private readonly Subject<Unit> _slotsChanged = new();
+        public Observable<Unit> SlotsChanged => _slotsChanged;
+
         private readonly IHorrorSaveRepository _repository;
 
         public HorrorInventoryService(IHorrorSaveRepository repository)
         {
             _repository = repository;
+        }
+
+        public void Shutdown() => _slotsChanged.Dispose();
+
+        private void MarkDirtyAndNotify()
+        {
+            _repository.MarkDirty();
+            _slotsChanged.OnNext(Unit.Default);
         }
 
         /// <summary>
@@ -84,7 +96,7 @@ namespace Game.Horror.Services
                 remaining -= fill;
             }
 
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -142,7 +154,7 @@ namespace Game.Horror.Services
 
             data.Slots.RemoveAll(s => s.ObjectCategory == category && s.Id == id && s.Count <= 0);
 
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -169,7 +181,7 @@ namespace Game.Horror.Services
             if (slot.Count <= 0)
                 data.Slots.RemoveAt(index);
 
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -212,7 +224,7 @@ namespace Game.Horror.Services
 
             data.Slots.RemoveAt(index);
 
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 

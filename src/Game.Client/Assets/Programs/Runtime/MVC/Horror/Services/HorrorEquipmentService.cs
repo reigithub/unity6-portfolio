@@ -24,11 +24,23 @@ namespace Game.Horror.Services
 
         private HorrorWeaponMaster _equippedWeaponMaster;
 
+        private readonly Subject<Unit> _equipmentChanged = new();
+        public Observable<Unit> EquipmentChanged => _equipmentChanged;
+
         public HorrorEquipmentService(IHorrorSaveRepository repository, IHorrorInventoryService inventoryService, IScriptableDatabaseService databaseService)
         {
             _repository = repository;
             _inventoryService = inventoryService;
             _databaseService = databaseService;
+        }
+
+        /// <summary>ゲームモード終了時に変更通知の Subject を破棄する。</summary>
+        public void Shutdown() => _equipmentChanged.Dispose();
+
+        private void MarkDirtyAndNotify()
+        {
+            _repository.MarkDirty();
+            _equipmentChanged.OnNext(Unit.Default);
         }
 
         /// <summary>
@@ -56,7 +68,7 @@ namespace Game.Horror.Services
             data.ObjectCategory = type;
             data.Id = id;
             _equippedWeaponMaster = master;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -74,7 +86,7 @@ namespace Game.Horror.Services
 
             data.ObjectCategory = ObjectCategory.None;
             data.Id = 0;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
         }
 
         /// <summary>現在装備中の (SlotType, Id) を取得する。未装備または未ロードなら false。</summary>
@@ -114,7 +126,7 @@ namespace Game.Horror.Services
             Debug.LogError($"装備中の武器マスターが見つかりません Id={data.Id}。未装備へ戻します");
             data.ObjectCategory = ObjectCategory.None;
             data.Id = 0;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
         }
 
         /// <summary>
@@ -155,7 +167,7 @@ namespace Game.Horror.Services
             var slot = data.Slots[index];
             slot.ObjectCategory = slotType;
             slot.Id = id;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -185,7 +197,7 @@ namespace Game.Horror.Services
             // dest に対象を置く（未登録時は上書き）
             dest.ObjectCategory = slotType;
             dest.Id = id;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -236,7 +248,7 @@ namespace Game.Horror.Services
             var slot = data.Slots[index];
             slot.ObjectCategory = ObjectCategory.None;
             slot.Id = 0;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 
@@ -258,7 +270,7 @@ namespace Game.Horror.Services
             var slot = data.Slots[index];
             slot.ObjectCategory = ObjectCategory.None;
             slot.Id = 0;
-            _repository.MarkDirty();
+            MarkDirtyAndNotify();
             return true;
         }
 

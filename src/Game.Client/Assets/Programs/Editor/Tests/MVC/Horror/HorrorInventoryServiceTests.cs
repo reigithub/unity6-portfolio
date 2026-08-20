@@ -11,6 +11,7 @@ using Game.Shared.SaveData;
 using Game.Shared.Services;
 using NSubstitute;
 using NUnit.Framework;
+using R3;
 
 namespace Game.Tests.MVC.Horror
 {
@@ -719,6 +720,133 @@ namespace Game.Tests.MVC.Horror
             Assert.That(
                 _service.CanAddAfterConsume(null, ObjectCategory.Item, 4, 1, 1),
                 Is.True, "空きが生まれた");
+        }
+
+        [Test]
+        public async Task TryAdd_Success_EmitsSlotsChangedOnce()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            // 分割配置（3 スロットに跨る）でも発行は操作単位で 1 回
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 25, 10);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryAdd_InsufficientCapacity_DoesNotEmitSlotsChanged()
+        {
+            await LoadDefaultData();
+            FillSlotsWithDummies(HorrorInventoryConstants.MaxSlotCount);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryAdd(ObjectCategory.Item, 3, 1, 10);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task TryConsume_Success_EmitsSlotsChangedOnce()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 10, 0);
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 1);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            // 複数スロットに跨る消費でも発行は操作単位で 1 回
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 12);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryConsume_InsufficientCount_DoesNotEmitSlotsChanged()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryConsume(ObjectCategory.Item, 3, 5);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_Success_EmitsSlotsChangedOnce()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 0, 1);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TryConsumeAt_EmptyPosition_DoesNotEmitSlotsChanged()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 5, 0);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.TryConsumeAt(ObjectCategory.Item, 3, 1, 1);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task DiscardSlot_Success_EmitsSlotsChangedOnce()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 1);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.DiscardSlot(0);
+
+            Assert.That(ok, Is.True);
+            Assert.That(emitted, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DiscardSlot_EmptyPosition_DoesNotEmitSlotsChanged()
+        {
+            await LoadDefaultData();
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            var ok = _service.DiscardSlot(0);
+
+            Assert.That(ok, Is.False);
+            Assert.That(emitted, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CanAddAfterConsume_DoesNotEmitSlotsChanged()
+        {
+            await LoadDefaultData();
+            AddSlotDirect(ObjectCategory.Item, 3, 2, 0);
+            int emitted = 0;
+            using var sub = _service.SlotsChanged.Subscribe(_ => emitted++);
+
+            // 判定系はインベントリを変更しないため発行しない
+            _service.CanAddAfterConsume(Amounts((3, 2)), ObjectCategory.Item, 4, 1, 1);
+
+            Assert.That(emitted, Is.EqualTo(0));
         }
     }
 }

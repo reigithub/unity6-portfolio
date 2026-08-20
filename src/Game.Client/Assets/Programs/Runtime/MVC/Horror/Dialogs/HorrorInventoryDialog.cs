@@ -122,14 +122,12 @@ namespace Game.Horror.Dialogs
                             if (!result) return;
 
                             _inventoryService.DiscardSlot(ctx.SlotView.SlotIndex);
-                            SceneComponent.ApplySlots();
                             break;
                         case ContextActionType.Equip:
                             _result = new HorrorInventoryResult { EquipCategory = info.ObjectCategory, EquipId = info.ObjectId };
                             break;
                         case ContextActionType.Shortcut:
                             await HorrorEquipmentShortcutDialog.RunAsync(info);
-                            SceneComponent.RefreshSlots();
                             break;
                     }
                 })

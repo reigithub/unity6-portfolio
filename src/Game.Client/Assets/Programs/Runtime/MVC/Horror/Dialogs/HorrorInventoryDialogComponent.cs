@@ -31,6 +31,7 @@ namespace Game.Horror.Dialogs
         private IInputSystemService _inputService;
         private IHorrorInventoryService _inventoryService;
         private IHorrorKeyItemService _keyItemService;
+        private IHorrorEquipmentService _equipmentService;
 
         private HorrorInventorySlotView _selectedSlot;
 
@@ -46,6 +47,7 @@ namespace Game.Horror.Dialogs
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _inventoryService = GameServiceManager.Resolve<IHorrorInventoryService>();
             _keyItemService = GameServiceManager.Resolve<IHorrorKeyItemService>();
+            _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             _tabGroup.Initialize();
             BindSlots();
@@ -61,6 +63,14 @@ namespace Game.Horror.Dialogs
                     .Subscribe(_ => OnSubmenuClosed())
                     .AddTo(Disposables);
             }
+
+            _inventoryService.SlotsChanged
+                .ThrottleLastFrame(1)
+                .Subscribe(_ => ApplySlots())
+                .AddTo(Disposables);
+            _equipmentService.EquipmentChanged
+                .Subscribe(_ => ApplySlots())
+                .AddTo(Disposables);
         }
 
         public void NextTab() => _tabGroup.NextTab();
@@ -89,7 +99,7 @@ namespace Game.Horror.Dialogs
         /// インベントリデータをスロット表示へ反映する（再入可能）。
         /// スロット破棄などでデータが変わった後に呼び、グリッドと詳細ペインを最新化する。
         /// </summary>
-        public void ApplySlots()
+        private void ApplySlots()
         {
             // 位置（SlotNo）→行の一時テーブルを構築して View と 1:1 で対応させる。範囲外の行は表示しない（正規化後は発生しない）
             var rows = new HorrorInventorySlotData[_slots.Length];
@@ -109,16 +119,6 @@ namespace Game.Horror.Dialogs
 
             if (_selectedSlot != null)
                 UpdateDetail(_selectedSlot);
-        }
-
-        // 入力デバイス変更などによるアイコンの再解決のみ行う（個数テキストは更新しない）。
-        // データ変更の反映には ApplySlots を使うこと。
-        public void RefreshSlots()
-        {
-            for (int i = 0; i < _slots.Length; i++)
-            {
-                _slots[i].RefreshSlot();
-            }
         }
 
         private void UpdateDetail(HorrorInventorySlotView slot)
@@ -199,11 +199,6 @@ namespace Game.Horror.Dialogs
             if (_craftView == null) return;
 
             _craftView.Initialize();
-
-            // クラフトはインベントリの中身を変えるため、グリッド表示へ反映する
-            _craftView.OnCrafted
-                .Subscribe(_ => ApplySlots())
-                .AddTo(Disposables);
         }
 
         #endregion
