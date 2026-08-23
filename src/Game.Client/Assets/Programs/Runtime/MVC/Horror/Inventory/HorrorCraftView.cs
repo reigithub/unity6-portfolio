@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Game.Core.Services;
-using Game.Horror.Constants;
 using Game.Horror.Services.Interfaces;
 using Game.Shared.Extensions;
 using Game.Shared.Services.Interfaces;
@@ -12,10 +11,8 @@ using UnityEngine.UI;
 namespace Game.Horror.Inventory
 {
     /// <summary>
-    /// インベントリダイアログのクラフトタブ。レシピ一覧・選択レシピの詳細（成果物と素材の必要数/所持数）を表示し、
-    /// 決定の長押しでクラフトを実行する。
-    /// クリック（押して離す）では実行せず、<see cref="HorrorCraftConstants.CraftHoldSeconds"/> の押下継続だけを起点にする。
-    /// ダイアログ表示中は <c>timeScale = 0</c> のため、進捗は <see cref="Time.unscaledDeltaTime"/> で積む。
+    /// インベントリダイアログのクラフトタブのビュー
+    /// レシピ一覧・選択レシピの詳細（成果物と素材の必要数/所持数）の表示、 長押しゲージの描画・入力通知（行のポインタ押下・選択）
     /// </summary>
     public class HorrorCraftView : MonoBehaviour
     {
@@ -39,25 +36,28 @@ namespace Game.Horror.Inventory
         private readonly List<HorrorCraftRecipeView> _recipeViews = new();
         private readonly CompositeDisposable _disposables = new();
 
-        private IInputSystemService _inputService;
         private ILocalizationService _localizationService;
         private IHorrorIconService _iconService;
         private IHorrorCraftService _craftService;
         private IHorrorInventoryService _inventoryService;
 
         private HorrorCraftRecipeView _selected;
-        private float _holdElapsed;
 
-        // 押しっぱなしのままタブへ入った場合や、クラフト直後の押しっぱなしで続けて実行されないよう、
-        // 一度離すまで次の長押しを開始しない
-        private bool _awaitRelease;
+        /// <summary>選択中レシピの CraftId（未選択は null）。</summary>
+        public int? SelectedCraftId => _selected != null ? _selected.CraftId : null;
 
-        /// <summary>長押しが進行中か（ダイアログ側でキャンセル・タブ切替を抑止するために見る）。</summary>
-        public bool IsCrafting => _holdElapsed > 0f;
+        /// <summary>選択中の行の上でポインタが押され続けているか（長押しの保持判定用）。</summary>
+        public bool IsSelectedPointerHeld => _selected != null && _selected.IsPointerHeld;
+
+        /// <summary>クラフトタブが表示中か。</summary>
+        public bool IsVisible => isActiveAndEnabled;
+
+        /// <summary>いずれかのレシピ行の上でポインタが押された瞬間の通知（長押し開始のトリガー用）。</summary>
+        private readonly Subject<Unit> _recipePointerPressed = new();
+        public Observable<Unit> OnRecipePointerPressed => _recipePointerPressed;
 
         public void Initialize()
         {
-            _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _localizationService = GameServiceManager.Resolve<ILocalizationService>();
             _iconService = GameServiceManager.Resolve<IHorrorIconService>();
             _craftService = GameServiceManager.Resolve<IHorrorCraftService>();
@@ -100,6 +100,7 @@ namespace Game.Horror.Inventory
                 view.SetRecipe(recipe.Id, recipe.ResultObjectCategory, recipe.ResultObjectId, recipe.ResultCount);
                 view.SetPossessedCount(_inventoryService.GetCount(recipe.ResultObjectCategory, recipe.ResultObjectId));
                 view.OnSelected.Subscribe(Select).AddTo(_disposables);
+                view.OnPointerPressed.Subscribe(_ => _recipePointerPressed.OnNext(Unit.Default)).AddTo(_disposables);
                 _recipeViews.Add(view);
             }
 
@@ -111,10 +112,6 @@ namespace Game.Horror.Inventory
         private void Select(HorrorCraftRecipeView view)
         {
             if (view == null) return;
-
-            // 選択が移ったら進行中の長押しは打ち切る
-            if (_selected != view)
-                ResetHold();
 
             _selected = view;
             UpdateDetail(view);
@@ -179,50 +176,8 @@ namespace Game.Horror.Inventory
 
         #region Hold
 
-        private void Update()
-        {
-            if (_selected == null || _craftService == null) return;
-
-            bool held = _inputService.UI.Submit.IsPressed() || _selected.IsPointerHeld;
-
-            if (_awaitRelease)
-            {
-                if (!held) _awaitRelease = false;
-                return;
-            }
-
-            // 中断条件：押下解除・素材不足（他タブでの破棄などで実行不可へ変わった場合を含む）
-            if (!held || !_craftService.CanCraft(_selected.CraftId))
-            {
-                ResetHold();
-                return;
-            }
-
-            _holdElapsed += Time.unscaledDeltaTime;
-            SetHoldProgress(_holdElapsed / HorrorCraftConstants.CraftHoldSeconds);
-
-            if (_holdElapsed >= HorrorCraftConstants.CraftHoldSeconds)
-                Execute();
-        }
-
-        private void Execute()
-        {
-            var craftId = _selected.CraftId;
-
-            ResetHold();
-            _awaitRelease = true;
-            _craftService.TryCraft(craftId);
-        }
-
-        private void ResetHold()
-        {
-            if (_holdElapsed <= 0f) return;
-
-            _holdElapsed = 0f;
-            SetHoldProgress(0f);
-        }
-
-        private void SetHoldProgress(float progress01)
+        /// <summary>長押しゲージの進捗（0〜1）を表示する。0 でゲージ非表示（Dialog の長押しフローから呼ぶ）。</summary>
+        public void SetHoldProgress(float progress01)
         {
             if (_holdGauge == null) return;
 
@@ -244,20 +199,15 @@ namespace Game.Horror.Inventory
                 + $"（現在 min={_holdGauge.minValue} / max={_holdGauge.maxValue}）", this);
         }
 
-        // タブ切替で表示が戻ったときに、前回の押下状態・進捗を引き継がない
-        private void OnEnable()
-        {
-            ResetHold();
-            _awaitRelease = true;
-        }
-
-        private void OnDisable() => ResetHold();
+        // タブ非表示ではゲージ表示を持ち越さない
+        private void OnDisable() => SetHoldProgress(0f);
 
         #endregion
 
         private void OnDestroy()
         {
             _disposables.Dispose();
+            _recipePointerPressed.Dispose();
         }
     }
 }

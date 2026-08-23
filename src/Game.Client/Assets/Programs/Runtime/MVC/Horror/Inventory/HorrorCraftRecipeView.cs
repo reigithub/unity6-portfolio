@@ -44,6 +44,10 @@ namespace Game.Horror.Inventory
         /// <summary>この行の上でポインタが押されているか（長押し判定用）。</summary>
         public bool IsPointerHeld { get; private set; }
 
+        /// <summary>この行の上でポインタが押された瞬間の通知（長押し開始のトリガー用）。</summary>
+        private readonly Subject<Unit> _pointerPressed = new();
+        public Observable<Unit> OnPointerPressed => _pointerPressed;
+
         private ILocalizationService _localizationService;
         private IHorrorIconService _iconService;
 
@@ -106,6 +110,7 @@ namespace Game.Horror.Inventory
         {
             if (eventData.button != PointerEventData.InputButton.Left) return;
             IsPointerHeld = true;
+            _pointerPressed.OnNext(Unit.Default);
         }
 
         public void OnPointerUp(PointerEventData eventData)
@@ -116,5 +121,7 @@ namespace Game.Horror.Inventory
 
         // タブ切替などで非表示になると PointerUp が届かないため、押下状態を持ち越さない
         private void OnDisable() => IsPointerHeld = false;
+
+        private void OnDestroy() => _pointerPressed.Dispose();
     }
 }
