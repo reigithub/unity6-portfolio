@@ -4,6 +4,7 @@ using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Extensions;
+using Game.Shared.Services.Interfaces;
 using R3;
 
 namespace Game.Horror.Dialogs
@@ -15,6 +16,7 @@ namespace Game.Horror.Dialogs
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
+        private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
         private string _messageLocalizeKey;
 
         public static async UniTask<bool> RunAsync(string messageLocalizeKey)
@@ -50,7 +52,8 @@ namespace Game.Horror.Dialogs
                 .Subscribe(x => TrySetResult(x))
                 .AddTo(Disposables);
 
-            SceneComponent.Initialize(_messageLocalizeKey);
+            string message = _localizationService.GetStringByMessages(_messageLocalizeKey);
+            SceneComponent.Initialize(message);
 
             return base.Startup();
         }

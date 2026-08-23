@@ -1,6 +1,4 @@
-using Game.Core.Services;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Services.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -17,10 +15,6 @@ namespace Game.Horror.Dialogs
         public Observable<bool> OnSubmit => _submitButton.OnClickAsObservable().Select(_ => true);
         public Observable<bool> OnCancel => _cancelButton.OnClickAsObservable().Select(_ => false);
 
-        public void Initialize(string messageLocalizeKey)
-        {
-            var localization = GameServiceManager.Resolve<ILocalizationService>();
-            _message.text = localization.GetStringByMessages(messageLocalizeKey);
-        }
+        public void Initialize(string message) => _message.text = message;
     }
 }
