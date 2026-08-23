@@ -42,6 +42,8 @@ namespace Game.Horror.Dialogs
                 SlotView = _selectedSlot
             });
 
+        public HorrorCraftView CraftView => _craftView;
+
         public void Initialize()
         {
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
@@ -75,8 +77,6 @@ namespace Game.Horror.Dialogs
 
         public void NextTab() => _tabGroup.NextTab();
         public void PreviousTab() => _tabGroup.PreviousTab();
-
-        public bool IsProcessing() => IsSubmenuOpen() || IsCrafting();
 
         #region InventorySlots
 
@@ -190,9 +190,6 @@ namespace Game.Horror.Dialogs
         #endregion
 
         #region Craft
-
-        /// <summary>クラフトの長押しが進行中か（ダイアログを閉じる・タブを切り替える入力の抑止に使う）。</summary>
-        public bool IsCrafting() => _craftView != null && _craftView.IsCrafting;
 
         private void BindCraft()
         {

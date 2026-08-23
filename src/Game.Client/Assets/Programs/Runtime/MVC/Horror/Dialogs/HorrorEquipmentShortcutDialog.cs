@@ -20,7 +20,9 @@ namespace Game.Horror.Dialogs
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
         private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
+        private readonly IHorrorEquipmentService _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
         private IObjectInfo _target;
+        private int _currentIndex; // 現在選択中のスロット。初期フォーカス（先頭スロット）と初期値 0 が対応する
 
         public static async UniTask<bool> RunAsync(IObjectInfo target)
         {
@@ -36,7 +38,6 @@ namespace Game.Horror.Dialogs
 
         public override UniTask Startup()
         {
-            // キャンセルで閉じる（親がインベントリ表示中は Menu をブロックしているため Cancel のみ）
             _inputService.UI.Cancel.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
                 .Subscribe(_ =>
@@ -46,13 +47,25 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            // Del で現在スロットの登録を外す
             _inputService.UI.Remove.OnPerformedAsObservable()
                 .Where(_ => State.IsProcessing())
-                .Subscribe(_ => SceneComponent.RemoveCurrent())
+                .Subscribe(_ => _equipmentService.ClearSlot(_currentIndex))
                 .AddTo(Disposables);
 
-            SceneComponent.Initialize(_target);
+            SceneComponent.OnSlotSelected
+                .Subscribe(index => _currentIndex = index)
+                .AddTo(Disposables);
+
+            SceneComponent.OnSlotClicked
+                .Where(_ => State.IsProcessing())
+                .Subscribe(index =>
+                {
+                    if (_target == null) return;
+                    _equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.ObjectId);
+                })
+                .AddTo(Disposables);
+
+            SceneComponent.Initialize();
 
             return base.Startup();
         }

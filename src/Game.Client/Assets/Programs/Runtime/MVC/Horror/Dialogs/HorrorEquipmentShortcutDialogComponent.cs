@@ -1,16 +1,15 @@
+using System.Linq;
 using Game.Core.Services;
 using Game.Horror.Equipment;
 using Game.Horror.Services.Interfaces;
 using Game.MVC.Core.Scenes;
-using Game.Shared.Interfaces;
 using R3;
 using UnityEngine;
 
 namespace Game.Horror.Dialogs
 {
     /// <summary>
-    /// ショートカット登録ダイアログのビュー。D-Pad 4スロットへの登録/解除と現在スロットの追跡を担う。
-    /// スロット並びは 1=左 / 2=上 / 3=右 / 4=下（index 0-3）。
+    /// ショートカット登録ダイアログのビュー
     /// </summary>
     public class HorrorEquipmentShortcutDialogComponent : GameSceneComponent
     {
@@ -18,29 +17,24 @@ namespace Game.Horror.Dialogs
 
         private IInputSystemService _inputService;
         private IHorrorEquipmentService _equipmentService;
-        private IObjectInfo _target;
-        private int _currentIndex;
 
-        public void Initialize(IObjectInfo target)
+        /// <summary>スロット決定（クリック）。値は決定されたスロット index。</summary>
+        public Observable<int> OnSlotClicked
+            => _slots.Select((slot, index) => slot.OnClick.Select(_ => index)).Merge();
+
+        /// <summary>スロット選択（フォーカス移動）。値は選択されたスロット index。</summary>
+        public Observable<int> OnSlotSelected
+            => _slots.Select((slot, index) => slot.OnSelect.Select(_ => index)).Merge();
+
+        public void Initialize()
         {
-            _target = target;
             _inputService = GameServiceManager.Resolve<IInputSystemService>();
             _equipmentService = GameServiceManager.Resolve<IHorrorEquipmentService>();
 
             for (int i = 0; i < _slots.Length; i++)
             {
                 _slots[i].Initialize();
-
-                int index = i;
-                RefreshSlot(index);
-
-                _slots[i].OnSelect
-                    .Subscribe(_ => _currentIndex = index)
-                    .AddTo(Disposables);
-
-                _slots[i].OnClick
-                    .Subscribe(_ => Register(index))
-                    .AddTo(Disposables);
+                RefreshSlot(i);
             }
 
             // 初期フォーカスを先頭スロットへ
@@ -52,18 +46,7 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
         }
 
-        /// <summary>現在選択中スロットの登録を外す（Dialog の Remove 入力から呼ぶ）。表示は EquipmentChanged の購読で追従する。</summary>
-        public void RemoveCurrent()
-            => _equipmentService.ClearSlot(_currentIndex);
-
-        // 対象アイテムを指定スロットへ登録する。Assign は既登録なら移動/入替、未登録なら上書きで
-        // 影響が2スロットに及ぶが、表示は EquipmentChanged の購読（全スロット再表示）で追従する。
-        private void Register(int index)
-        {
-            if (_target == null) return;
-            _equipmentService.TryAssignSlot(index, _target.ObjectCategory, _target.ObjectId);
-        }
-
+        /// <summary>全スロットの表示を現在の装備状態から再構築する（Dialog の EquipmentChanged 購読から呼ぶ）。</summary>
         private void RefreshAllSlots()
         {
             for (int i = 0; i < _slots.Length; i++)
