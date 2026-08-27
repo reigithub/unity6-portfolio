@@ -2,7 +2,7 @@
 # Google Cloud Run 用 Dockerfile
 
 # ===== Build Stage =====
-FROM mcr.microsoft.com/dotnet/sdk:9.0.313 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.316 AS build
 WORKDIR /src
 
 # 依存関係のみ先にコピー（キャッシュ活用）
@@ -24,7 +24,7 @@ RUN dotnet publish src/Game.Server/Game.Server.csproj \
     -o /app/publish
 
 # ===== Runtime Stage =====
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.15 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.18 AS runtime
 
 # curl インストール（ヘルスチェック用）+ 非rootユーザー作成
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
