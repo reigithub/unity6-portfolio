@@ -13,7 +13,8 @@ namespace Game.Horror.Dialogs
     public record HorrorSaveDataDialogArgs
     {
         public HorrorSaveSlotInfo[] Slots;
-        public bool SaveMode = true;
+        public bool AllowSave;
+        public bool AllowDelete;
     }
 
     /// <summary>
@@ -29,23 +30,25 @@ namespace Game.Horror.Dialogs
         private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private HorrorSaveSlotInfo[] _slots;
         private int _slotNo = -1;
-        private bool _saveMode = true;
+        private bool _allowSave = true;
+        private bool _allowDelete;
 
         /// <summary>
         /// ダイアログを開き、選択されたスロット番号を返す。
         /// </summary>
         /// <param name="slots">全スロットのメタ情報。</param>
-        /// <param name="saveMode">スロット選択時にセーブする</param>
+        /// <param name="allowSave">スロット選択時にセーブする</param>
+        /// <param name="allowDelete">スロット削除操作を許可する</param>
         /// <param name="visibleLastScene"></param>
         /// <returns>選択スロット番号（0〜スロット数上限 - 1）。負値はキャンセル。</returns>
-        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots, bool saveMode = true, bool visibleLastScene = false)
+        public static async UniTask<int> RunAsync(HorrorSaveSlotInfo[] slots, bool allowSave = false,  bool allowDelete = false, bool visibleLastScene = false)
         {
             int result;
             var inputService = GameServiceManager.Resolve<IInputSystemService>();
             using (inputService.BlockPlayer())
             {
                 var sceneService = GameServiceManager.Resolve<IGameSceneService>();
-                var args = new HorrorSaveDataDialogArgs { Slots = slots, SaveMode = saveMode };
+                var args = new HorrorSaveDataDialogArgs { Slots = slots, AllowSave = allowSave, AllowDelete = allowDelete };
                 result = await sceneService.TransitionDialogAsync<HorrorSaveDataDialog, HorrorSaveDataDialogArgs, int>(args, visibleLastScene: visibleLastScene);
             }
             return result;
@@ -54,7 +57,8 @@ namespace Game.Horror.Dialogs
         public UniTask SetArg(HorrorSaveDataDialogArgs args)
         {
             _slots = args.Slots;
-            _saveMode = args.SaveMode;
+            _allowSave = args.AllowSave;
+            _allowDelete = args.AllowDelete;
             return UniTask.CompletedTask;
         }
 
@@ -75,25 +79,28 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            _inputService.UI.Remove.OnPerformedAsObservable()
-                .Where(_ => State.IsProcessing())
-                .SubscribeAwait(async (_, _) =>
-                {
-                    var result = await HorrorConfirmDialog.RunAsync("Confirm_Delete");
-                    if (!result) return;
+            if (_allowDelete)
+            {
+                _inputService.UI.Remove.OnPerformedAsObservable()
+                    .Where(_ => State.IsProcessing())
+                    .SubscribeAwait(async (_, _) =>
+                    {
+                        var result = await HorrorConfirmDialog.RunAsync("Confirm_Delete");
+                        if (!result) return;
 
-                    if (_slotNo < 0) return;
-                    if (!_slots[_slotNo].HasData) return;
-                    await _saveRepository.DeleteBySlotAsync(_slotNo);
-                    _slots[_slotNo] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
-                    SceneComponent.SetSlotInfo(_slots[_slotNo]);
-                })
-                .AddTo(Disposables);
+                        if (_slotNo < 0) return;
+                        if (!_slots[_slotNo].HasData) return;
+                        await _saveRepository.DeleteBySlotAsync(_slotNo);
+                        _slots[_slotNo] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
+                        SceneComponent.SetSlotInfo(_slots[_slotNo]);
+                    })
+                    .AddTo(Disposables);
+            }
 
             SceneComponent.OnSlotClick
                 .Subscribe(slotNo =>
                 {
-                    if (!_saveMode && !_slots[_slotNo].HasData) return;
+                    if (!_allowSave && !_slots[_slotNo].HasData) return;
                     SceneComponent.SetInteractable(false);
                     TrySetResult(slotNo);
                 })
@@ -104,6 +111,11 @@ namespace Game.Horror.Dialogs
                 .AddTo(Disposables);
 
             SceneComponent.SetSlotInfos(_slots);
+
+            if (_allowDelete)
+                SceneComponent.SetInputActionGuide(_inputService.UI.Submit, _inputService.UI.Cancel, _inputService.UI.Remove);
+            else
+                SceneComponent.SetInputActionGuide(_inputService.UI.Submit, _inputService.UI.Cancel);
 
             return base.Startup();
         }

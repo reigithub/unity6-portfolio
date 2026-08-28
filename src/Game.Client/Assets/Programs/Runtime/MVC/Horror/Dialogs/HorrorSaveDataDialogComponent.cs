@@ -1,17 +1,19 @@
 using Game.Core.Services;
+using Game.Core.UI;
 using Game.Horror.SaveData;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Services;
 using Game.Shared.Services.Interfaces;
 using R3;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.Horror.Dialogs
 {
     public class HorrorSaveDataDialogComponent : GameSceneComponent
     {
-        [SerializeField]
-        private HorrorSaveSlotView[] _slotViews;
+        [SerializeField] private HorrorSaveSlotView[] _slotViews;
+        [SerializeField] private InputActionGuildView _inputActionGuildView;
 
         private IScriptableDatabaseService _databaseService;
         private ILocalizationService _localizationService;
@@ -35,6 +37,8 @@ namespace Game.Horror.Dialogs
             {
                 SetSlotInfo(slot);
             }
+
+            _inputActionGuildView.Initialize();
         }
 
         /// <summary>
@@ -66,5 +70,8 @@ namespace Game.Horror.Dialogs
             slotView.OnClick.Subscribe(_ => _onSlotClick.OnNext(slot.SlotNo)).AddTo(Disposables);
             slotView.OnSelect.Subscribe(_ => _onSlotSelect.OnNext(slot.SlotNo)).AddTo(Disposables);
         }
+
+        public void SetInputActionGuide(params InputAction[] actions)
+            => _inputActionGuildView.SetInputActions(actions);
     }
 }
