@@ -92,7 +92,6 @@ namespace Game.Horror.Dialogs
                         if (!_slots[_slotNo].HasData) return;
                         await _saveRepository.DeleteBySlotAsync(_slotNo);
                         _slots[_slotNo] = await _saveRepository.LoadSlotInfoAsync(_slotNo);
-                        SceneComponent.SetSlotInfo(_slots[_slotNo]);
                     })
                     .AddTo(Disposables);
             }
@@ -110,7 +109,7 @@ namespace Game.Horror.Dialogs
                 .Subscribe(slotNo => _slotNo = slotNo)
                 .AddTo(Disposables);
 
-            SceneComponent.SetSlotInfos(_slots);
+            SceneComponent.Initialize(_slots);
 
             if (_allowDelete)
                 SceneComponent.SetInputActionGuide(_inputService.UI.Submit, _inputService.UI.Cancel, _inputService.UI.Remove);

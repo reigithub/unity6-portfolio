@@ -155,6 +155,7 @@ namespace Game.Horror.Services
         protected override HorrorSaveData CreateNewData()
         {
             var data = new HorrorSaveData();
+            data.SlotNo = CurrentSlot;
             EnsureSlotCount(data.Equipment);
             return data;
         }

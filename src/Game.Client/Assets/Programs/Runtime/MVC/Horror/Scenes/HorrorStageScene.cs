@@ -122,7 +122,7 @@ namespace Game.Horror.Scenes
             _player = await _playerStart.LoadPlayerAsync(_playerService.PlayerMaster);
             _player.Initialize(_optionSaveRepository.Data, _weaponEffectSpawner);
             ApplyRespawnPosition(_player);
-            _optionSaveRepository.OnSaved
+            _optionSaveRepository.OnDataChanged
                 .Subscribe(data => _player.ApplyOptions(data))
                 .AddTo(Disposables);
             return _player.gameObject;
