@@ -5,6 +5,7 @@ using Game.MVC.Core.Enums;
 using Game.MVC.Core.Scenes;
 using Game.Shared.Bootstrap;
 using Game.Shared.Extensions;
+using Game.Shared.Services.Interfaces;
 using R3;
 
 namespace Game.Horror.Dialogs
@@ -15,6 +16,7 @@ namespace Game.Horror.Dialogs
         protected override string AssetPathOrAddress => "HorrorMessageDialog";
 
         private readonly IInputSystemService _inputService = GameServiceManager.Resolve<IInputSystemService>();
+        private readonly ILocalizationService _localizationService = GameServiceManager.Resolve<ILocalizationService>();
         private readonly IHorrorUISoundService _uiSoundService = GameServiceManager.Resolve<IHorrorUISoundService>();
         private string _message;
 
@@ -59,7 +61,8 @@ namespace Game.Horror.Dialogs
                 })
                 .AddTo(Disposables);
 
-            SceneComponent.SetMessage(_message);
+            var message = _localizationService.GetStringByMessages(_message);
+            SceneComponent.SetMessage(message);
 
             return base.Startup();
         }

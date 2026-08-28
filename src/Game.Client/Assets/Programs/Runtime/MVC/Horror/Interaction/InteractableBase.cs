@@ -15,9 +15,7 @@ namespace Game.Horror.Interaction
     /// フィールド配置インタラクト対象の共通基底。マスターデータ（<see cref="HorrorInteractionMaster"/>）の参照、
     /// 提示（ハイライト・プロンプト）の反映、中心位置算出を担い、具象は動詞・効果・必要な可否判定だけを実装する。
     /// プロンプト表示は中央プール（<see cref="InteractionPromptPool"/>）から <see cref="InteractionPromptView"/> を
-    /// 表示中だけ貸し受け、Hidden 遷移時に即座に返却する（返却直後に参照を null 化し、他対象への再貸出時の
-    /// 表示クロストークを防ぐ）。
-    /// 依存解決は MVC の <see cref="GameServiceManager"/> 経由。
+    /// 表示中だけ貸し受け、Hidden 遷移時に即座に返却する（返却直後に参照を null 化し、他対象への再貸出時の表示クロストークを防ぐ）。
     /// </summary>
     public abstract class InteractableBase : MonoBehaviour, IInteractable
     {
@@ -164,8 +162,7 @@ namespace Game.Horror.Interaction
             if (Master == null || string.IsNullOrEmpty(Master.RejectionMessage))
                 return UniTask.FromResult(false);
 
-            var message = _localizationService.GetStringByMessages(Master.RejectionMessage);
-            return HorrorMessageDialog.RunAsync(message);
+            return HorrorMessageDialog.RunAsync(Master.RejectionMessage);
         }
 
         // 無効化時、貸出中なら返却する（対象 Destroy 時の取り残し防止）
