@@ -16,7 +16,8 @@
         "Game.Library.Shared",
         "Unity.TextMeshPro",
         "DOTween.Modules",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Localization"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
