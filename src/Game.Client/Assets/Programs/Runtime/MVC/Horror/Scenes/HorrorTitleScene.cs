@@ -90,7 +90,7 @@ namespace Game.Horror.Scenes
                 {
                     if (!_hasSaveData) return;
 
-                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false, visibleLastScene: true);
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, allowDelete: true, visibleLastScene: true);
                     if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);

@@ -1,4 +1,6 @@
+using Game.Core.Services;
 using Game.Shared.Constants;
+using Game.Shared.Services.Interfaces;
 using R3;
 using TMPro;
 using UnityEngine;
@@ -7,9 +9,9 @@ using UnityEngine.UI;
 namespace Game.Core.UI
 {
     /// <summary>
-    /// 1アクション×1スキームのキーリバインド行（純粋View）。
+    /// 1アクション×1スキームのキーリバインド行。
     /// 現在のバインド表示と「変更」ボタンを持ち、押下を Observable で通知する。
-    /// リバインド実行・重複判定などの入力ロジックは持たず、表示更新のみを担う。
+    /// リバインド実行・重複判定などの入力ロジックは持たない。
     /// </summary>
     public class InputActionRebindingView : MonoBehaviour
     {
@@ -32,6 +34,11 @@ namespace Game.Core.UI
         [SerializeField] private GameObject _waitingOverlay;   // リバインド待機中の表示
         [SerializeField] private Image _timeoutFill;           // 自動キャンセルまでの残り時間バー/リング（fillAmount 1→0）
 
+        private IInputSystemService _inputService;
+        private IInputActionIconService _iconService;
+        private bool _isWaiting;
+        private bool _initialized;
+
         /// <summary>コントロールスキーム（Keyboard＆Mouse / Gamepad）。</summary>
         public string ControlScheme => _controlScheme;
 
@@ -53,10 +60,30 @@ namespace Game.Core.UI
 
         public void Initialize()
         {
+            if (_initialized) return;
+            _inputService = GameServiceManager.Resolve<IInputSystemService>();
+            _iconService = GameServiceManager.Resolve<IInputActionIconService>();
+            var localizationService = GameServiceManager.Resolve<ILocalizationService>();
+
             if (_rebindButton.TryGetComponent<Image>(out var image))
             {
                 image.color = _rebindable ? Color.white : Color.gray;
             }
+
+            _inputService.OnBindingChanged.Subscribe(_ => Refresh()).AddTo(this);
+            _inputService.OnDeviceChanged.Subscribe(_ => Refresh()).AddTo(this);
+            localizationService.OnLocaleChanged.Subscribe(_ => Refresh()).AddTo(this);
+
+            Refresh();
+            _initialized = true;
+        }
+
+        private void Refresh()
+        {
+            if (_isWaiting) return; // 待機表示中は上書きしない
+            var info = _inputService.GetBindingInfo(_controlScheme, _actionMapName, _actionName, _compositePartName);
+            SetDisplay(info.DisplayName);
+            SetIcon(_iconService.GetSprite(info));
         }
 
         /// <summary>アクション名ラベルを設定する。</summary>
@@ -89,10 +116,13 @@ namespace Game.Core.UI
         /// <summary>リバインド待機状態の表示を切り替える（待機中はボタンを無効化）。</summary>
         public void SetWaiting(bool waiting)
         {
+            _isWaiting = waiting;
             if (_waitingOverlay != null)
                 _waitingOverlay.SetActive(waiting);
             if (_rebindButton != null)
                 _rebindButton.interactable = !waiting;
+            if (!waiting)
+                Refresh(); // キャンセル復帰時の表示復元
         }
     }
 }

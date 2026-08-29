@@ -144,8 +144,12 @@ namespace Game.Horror.Dialogs
             _cameraShake.SetValue(d.CameraShake);
             _cameraFov.SetValue(d.CameraFov);
 
+            // Controls
             _sprintMode.SetBool(d.SprintToggle);
             _crouchMode.SetBool(d.CrouchToggle);
+
+            foreach (var rebindingView in _rebindingViews)
+                rebindingView.Initialize();
 
             // Display
             _displayMode.SetIndex(_displayModeValues[d.DisplayMode]);

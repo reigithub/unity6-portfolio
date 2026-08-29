@@ -46,7 +46,7 @@ namespace Game.Horror
                 .AddTo(this);
 
             var optionRepository = GameServiceManager.Resolve<IHorrorOptionSaveRepository>();
-            optionRepository.OnSaved
+            optionRepository.OnDataChanged
                 .Subscribe(x => SetActiveFpsView(x.ShowFrameRate))
                 .AddTo(this);
             SetActiveFpsView(optionRepository.Data.ShowFrameRate);

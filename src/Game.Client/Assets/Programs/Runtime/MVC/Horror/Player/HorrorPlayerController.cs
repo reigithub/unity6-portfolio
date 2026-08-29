@@ -255,7 +255,7 @@ namespace Game.Horror.Player
             _baseFov = data.CameraFov;
             ApplyFov();
 
-            // OnSaved でランタイム再適用される。カメラ基準位置は触らない（しゃがみ中のリセット防止）
+            // カメラ基準位置は触らない（しゃがみ中のリセット防止）
             _sprintToggle = data.SprintToggle;
             _crouchToggle = data.CrouchToggle;
         }

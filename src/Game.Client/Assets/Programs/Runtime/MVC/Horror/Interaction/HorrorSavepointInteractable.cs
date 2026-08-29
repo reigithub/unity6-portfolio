@@ -47,7 +47,7 @@ namespace Game.Horror.Interaction
         private async UniTask InteractAsync()
         {
             var slots = await _saveRepository.LoadSlotInfosAsync();
-            var selected = await HorrorSaveDataDialog.RunAsync(slots);
+            var selected = await HorrorSaveDataDialog.RunAsync(slots, allowSave: true);
             if (selected < 0) return;
 
             // 自身のインタラクト記録と復帰地点を選択後に Dirty 化し、今回の保存に含める

@@ -346,16 +346,30 @@ namespace Game.Core.Services
         }
 
         public void ResetAllBindings()
-            => _inputActions?.asset.RemoveAllBindingOverrides();
+        {
+            if (_inputActions == null) return;
+            _inputActions.asset.RemoveAllBindingOverrides();
+            foreach (var map in _inputActions.asset.actionMaps)
+                foreach (var action in map.actions)
+                    _onBindingChanged.OnNext(action);
+        }
 
         public void ResetControlSchemeBindings(string scheme)
         {
             if (_inputActions == null || string.IsNullOrEmpty(scheme)) return;
             // 全マップを走査し、指定スキームに属する binding（コンポジットパート含む）の override のみ解除する
             foreach (var map in _inputActions.asset.actionMaps)
+            {
                 foreach (var action in map.actions)
-                    foreach (var info in GetBindingIndicesByControlScheme(scheme, action))
+                {
+                    var infos = GetBindingIndicesByControlScheme(scheme, action);
+                    if (infos.Count == 0) continue;
+                    foreach (var info in infos)
                         action.RemoveBindingOverride(info.Index);
+
+                    _onBindingChanged.OnNext(action);
+                }
+            }
         }
 
         public void ResetBinding(string scheme, string actionMapName, string actionName, string partName = null)
@@ -364,6 +378,7 @@ namespace Game.Core.Services
             if (action == null) return;
             foreach (var info in GetBindingIndicesByControlScheme(scheme, action, partName))
                 action.RemoveBindingOverride(info.Index);
+            _onBindingChanged.OnNext(action);
         }
 
         public IDisposable StartRebinding(string scheme, string actionMapName, string actionName, string partName, Action onComplete, Action onCanceled)

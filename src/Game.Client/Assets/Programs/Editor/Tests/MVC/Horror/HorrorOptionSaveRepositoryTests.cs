@@ -128,17 +128,17 @@ namespace Game.Tests.MVC.Horror
 
         #endregion
 
-        #region OnSaved
+        #region OnDataChanged
 
         [Test]
-        public async Task SaveAsync_FiresOnSaved_WithSavedData()
+        public async Task SaveAsync_FiresOnDataChanged_WithSavedData()
         {
             await LoadDefaultData();
             _repository.Data.CameraControlHorizontal = true;   // 変更（dirty）
             _repository.MarkDirty();
 
             HorrorOptionSaveData received = null;
-            using var sub = _repository.OnSaved.Subscribe(d => received = d);
+            using var sub = _repository.OnDataChanged.Subscribe(d => received = d);
 
             await _repository.SaveAsync();
 

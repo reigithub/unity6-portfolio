@@ -80,7 +80,7 @@ namespace Game.Horror.Dialogs
             SceneComponent.OnLoadGame
                 .SubscribeAwait(async (_, _) =>
                 {
-                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots, saveMode: false);
+                    var slotNo = await HorrorSaveDataDialog.RunAsync(_saveSlots);
                     if (slotNo >= 0)
                     {
                         await _saveRepository.LoadBySlotAsync(slotNo);

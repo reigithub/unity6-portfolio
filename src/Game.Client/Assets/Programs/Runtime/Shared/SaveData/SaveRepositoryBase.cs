@@ -33,9 +33,9 @@ namespace Game.Shared.SaveData
         /// <summary>未保存の変更があるか</summary>
         public bool IsDirty => _isDirty;
 
-        /// <summary>セーブされたとき</summary>
-        private readonly Subject<TData> _onSaved = new();
-        public Observable<TData> OnSaved => _onSaved;
+        /// <summary>永続データが変化したとき(保存・削除)。ペイロードは変更後のメモリ上データ。</summary>
+        private readonly Subject<TData> _onDataChanged = new();
+        public Observable<TData> OnDataChanged => _onDataChanged;
 
         protected SaveRepositoryBase(ISaveDataStorage storage)
         {
@@ -102,7 +102,7 @@ namespace Game.Shared.SaveData
                 OnBeforeSave(_data);
                 await _storage.SaveAsync(SaveKey, _data);
                 _isDirty = false;
-                _onSaved.OnNext(_data);
+                _onDataChanged.OnNext(_data);
                 Debug.Log($"[{GetType().Name}] Saved successfully.");
             }
             catch (Exception e)
@@ -129,6 +129,7 @@ namespace Game.Shared.SaveData
                 await _storage.DeleteAsync(SaveKey);
                 _data = CreateNewData();
                 _isDirty = false;
+                _onDataChanged.OnNext(_data);
                 Debug.Log($"[{GetType().Name}] Save data deleted.");
             }
             catch (Exception e)
